@@ -1,136 +1,93 @@
 import { useMemo, useState } from 'react'
-import { BarChart3, ChevronDown, Crosshair, History, Maximize2, MoreHorizontal, Search, Settings2, SlidersHorizontal, WalletCards, X } from 'lucide-react'
+import { BarChart3, CalendarDays, CandlestickChart, Crosshair, Expand, History, LineChart, Menu, Minus, MoreHorizontal, Plus, Search, Settings2, SlidersHorizontal, TextCursorInput, X } from 'lucide-react'
 import TradingChart from './chart/TradingChart'
 import './App.css'
 import './MobileNav.css'
 
 const markets = [
-  { symbol: 'EURUSD', name: 'Euro / US Dollar', bid: 1.17482, ask: 1.17496, change: '+0.18', digits: 5 },
-  { symbol: 'GBPUSD', name: 'British Pound / US Dollar', bid: 1.35648, ask: 1.35664, change: '+0.24', digits: 5 },
-  { symbol: 'USDJPY', name: 'US Dollar / Japanese Yen', bid: 147.982, ask: 148.004, change: '-0.11', digits: 3 },
-  { symbol: 'USDCHF', name: 'US Dollar / Swiss Franc', bid: 0.79642, ask: 0.79658, change: '+0.09', digits: 5 },
-  { symbol: 'AUDUSD', name: 'Australian Dollar / US Dollar', bid: 0.66224, ask: 0.66238, change: '-0.07', digits: 5 },
-  { symbol: 'USDCAD', name: 'US Dollar / Canadian Dollar', bid: 1.38162, ask: 1.38178, change: '+0.13', digits: 5 },
-  { symbol: 'NZDUSD', name: 'New Zealand Dollar / US Dollar', bid: 0.60384, ask: 0.60400, change: '+0.05', digits: 5 },
+  { symbol: 'AUDCAD', name: 'Australian Dollar vs Canadian Dollar', bid: 0.99368, ask: 0.99373, change: '-0.11%', digits: 5 },
+  { symbol: 'AUDCHF', name: 'Australian Dollar vs Swiss Franc', bid: 0.58286, ask: 0.58289, change: '-0.46%', digits: 5 },
+  { symbol: 'AUDDKK', name: 'Australian Dollar vs Danish Krone', bid: 4.61785, ask: 4.62535, change: '-0.04%', digits: 5 },
+  { symbol: 'AUDHKD', name: 'Australian Dollar vs Hong Kong Dollar', bid: 5.60626, ask: 5.60658, change: '-0.28%', digits: 5 },
+  { symbol: 'AUDHUF', name: 'Australian Dollar vs Hungarian Forint', bid: 220.748, ask: 220.991, change: '-0.23%', digits: 3 },
+  { symbol: 'AUDJPY', name: 'Australian Dollar vs Japanese Yen', bid: 110.287, ask: 110.290, change: '0.13%', digits: 3 },
 ]
 
-const positions = [
-  { ticket: '1048217', symbol: 'EURUSD', type: 'Buy', volume: '0.10', price: '1.17394', sl: '1.17180', tp: '1.17850', current: '1.17482', profit: '+$8.80' },
-  { ticket: '1048272', symbol: 'GBPUSD', type: 'Sell', volume: '0.05', price: '1.35790', sl: '1.36120', tp: '1.35150', current: '1.35648', profit: '-$7.10' },
+const timeframes = ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1', 'W1', 'MN']
+const history = [
+  { ticket: '1048101', time: '17:42:18', type: 'Buy', symbol: 'AUDCAD', volume: '0.01', price: '0.99342', profit: '+$0.18' },
+  { ticket: '1048092', time: '16:58:04', type: 'Sell', symbol: 'AUDCHF', volume: '0.02', price: '0.58312', profit: '+$1.22' },
 ]
-
-const orders = [
-  { ticket: '1048304', symbol: 'EURUSD', type: 'Buy Limit', volume: '0.10', price: '1.17220', status: 'Pending' },
-  { ticket: '1048311', symbol: 'USDJPY', type: 'Sell Stop', volume: '0.10', price: '147.600', status: 'Pending' },
-]
-
-const timeframes = ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1']
-
-function formatPrice(value, digits) {
-  return Number(value).toFixed(digits)
-}
+const price = (n, digits = 5) => Number(n).toFixed(digits)
 
 export default function App() {
-  const [selectedSymbol, setSelectedSymbol] = useState('EURUSD')
-  const [timeframe, setTimeframe] = useState('M15')
-  const [orderSide, setOrderSide] = useState('Buy')
-  const [volume, setVolume] = useState(0.1)
-  const [activePanel, setActivePanel] = useState('Positions')
+  const [selectedSymbol, setSelectedSymbol] = useState('AUDCAD')
+  const [timeframe, setTimeframe] = useState('M1')
+  const [chartType, setChartType] = useState('candles')
+  const [volume, setVolume] = useState(0.01)
   const [search, setSearch] = useState('')
-  const [depthOpen, setDepthOpen] = useState(false)
+  const [terminalTab, setTerminalTab] = useState('Positions')
+  const [orderSide, setOrderSide] = useState('Buy')
   const [orderOpen, setOrderOpen] = useState(false)
-  const [mobileWatch, setMobileWatch] = useState(false)
-  const [mobileView, setMobileView] = useState('chart')
+  const [marketOpen, setMarketOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [pulse, setPulse] = useState(false)
 
-  const market = useMemo(() => markets.find((item) => item.symbol === selectedSymbol) ?? markets[0], [selectedSymbol])
-  const filteredMarkets = markets.filter((item) => `${item.symbol} ${item.name}`.toLowerCase().includes(search.toLowerCase()))
-  const changeVolume = (amount) => setVolume((value) => Math.max(0.01, Math.min(10, Number((value + amount).toFixed(2)))))
-  const openQuickOrder = (side) => { setOrderSide(side); setOrderOpen(true) }
+  const market = useMemo(() => markets.find((m) => m.symbol === selectedSymbol) || markets[0], [selectedSymbol])
+  const filteredMarkets = markets.filter((m) => `${m.symbol} ${m.name}`.toLowerCase().includes(search.toLowerCase()))
+  const changeVolume = (delta) => setVolume((v) => Math.max(0.01, Math.min(100, Number((v + delta).toFixed(2)))))
+  const quickOrder = (side) => { setOrderSide(side); setPulse(true); window.setTimeout(() => setPulse(false), 260); setOrderOpen(true) }
 
-  const goMobile = (view) => {
-    setMobileView(view)
-    if (view === 'markets') setMobileWatch(true)
-    else setMobileWatch(false)
-    if (view === 'trade') setActivePanel('Positions')
-    if (view === 'history') setActivePanel('History')
-  }
+  return <div className="acg-app">
+    <header className="acg-topbar">
+      <div className="brand"><div className="brand-icon">a</div><div><strong>ACG</strong> TRADER</div></div>
+      <div className="account-chip"><span className="live-dot" /> ACG-FUNDED <span>·</span> Account 1048217 <span>·</span> Demo</div>
+      <div className="top-actions"><span className="balance-mini">Balance <strong>$100 000.00</strong></span><button type="button" onClick={() => setSettingsOpen((v) => !v)} aria-label="Settings"><Settings2 size={17} /></button><button type="button" className="mobile-only" onClick={() => setMarketOpen(true)} aria-label="Menu"><Menu size={18} /></button></div>
+    </header>
 
-  return (
-    <div className="terminal-shell">
-      <header className="topbar">
-        <div className="brand"><span className="brand-mark">a</span><span>ACG <strong>TRADER</strong></span></div>
-        <div className="account-strip"><span className="connection-dot" /><span className="account-label">ACG-FUNDED</span><span className="account-number">#1048217</span><span className="account-separator" /><span>Balance</span><strong>$100,482.31</strong><span>Equity</span><strong className="positive">$100,491.11</strong><span className="account-metric">Margin <strong>$117.50</strong></span><span className="account-metric">Free <strong>$100,373.61</strong></span></div>
-        <button className="mobile-menu" type="button" onClick={() => goMobile('markets')} aria-label="Open markets"><SlidersHorizontal size={17} /></button>
-      </header>
+    <div className="main-grid">
+      <aside className="drawing-rail" aria-label="Chart tools">
+        <ToolButton label="Cursor">↖</ToolButton><ToolButton label="Crosshair"><Crosshair size={16} /></ToolButton><ToolButton label="Trend line">╱</ToolButton><ToolButton label="Horizontal line"><Minus size={16} /></ToolButton><ToolButton label="Text"><TextCursorInput size={16} /></ToolButton><div className="rail-spacer" /><ToolButton label="Objects"><Settings2 size={16} /></ToolButton><ToolButton label="More"><MoreHorizontal size={17} /></ToolButton>
+      </aside>
 
-      <div className="toolbar">
-        <button className="mobile-watch-button" type="button" onClick={() => goMobile('markets')}><BarChart3 size={15} /> Markets</button>
-        <div className="symbol-select"><span className="symbol-dot" /><select value={selectedSymbol} onChange={(event) => setSelectedSymbol(event.target.value)}>{markets.map((item) => <option key={item.symbol}>{item.symbol}</option>)}</select><span className="quote">{formatPrice(market.bid, market.digits)} / {formatPrice(market.ask, market.digits)}</span></div>
-        <div className="timeframes">{timeframes.map((item) => <button key={item} className={timeframe === item ? 'active' : ''} type="button" onClick={() => setTimeframe(item)}>{item}</button>)}</div>
-        <button className="timeframe-more" type="button" aria-label="More timeframes"><ChevronDown size={13} /></button>
-        <div className="toolbar-actions"><button type="button" onClick={() => setDepthOpen((value) => !value)} className={depthOpen ? 'toolbar-active' : ''}>Depth</button><button type="button" onClick={() => setOrderOpen(true)}>New Order</button><button type="button" aria-label="Crosshair"><Crosshair size={14} /></button><button type="button" aria-label="Chart settings"><Settings2 size={14} /></button></div>
-      </div>
+      <section className="terminal-workspace">
+        <div className="chart-toolbar">
+          <div className="view-modes"><button className={chartType === 'candles' ? 'active' : ''} type="button" onClick={() => setChartType('candles')}><CandlestickChart size={15} /></button><button className={chartType === 'bars' ? 'active' : ''} type="button" onClick={() => setChartType('bars')}><BarChart3 size={15} /></button><button className={chartType === 'line' ? 'active' : ''} type="button" onClick={() => setChartType('line')}><LineChart size={15} /></button></div>
+          <div className="tf-scroll">{timeframes.map((tf) => <button key={tf} type="button" className={timeframe === tf ? 'active' : ''} onClick={() => setTimeframe(tf)}>{tf}</button>)}</div>
+          <div className="chart-actions"><button type="button"><Minus size={15} /></button><button type="button"><Plus size={15} /></button><button type="button"><SlidersHorizontal size={15} /></button><button type="button"><CalendarDays size={15} /></button><button type="button"><Expand size={15} /></button></div>
+        </div>
 
-      <main className="workspace">
-        <aside className={`watchlist-panel ${mobileWatch ? 'mobile-open' : ''}`}>
-          <div className="panel-heading"><div><span className="eyebrow">MARKET WATCH</span><strong>Forex CFDs</strong></div><button type="button" className="small-button" onClick={() => setMobileWatch(false)} aria-label="Close market watch"><X size={15} /></button></div>
-          <label className="search-box"><Search size={13} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search symbol" /></label>
-          <div className="watchlist-header"><span>Symbol</span><span>Bid</span><span>Ask</span></div>
-          <div className="watchlist">{filteredMarkets.map((item) => <button key={item.symbol} type="button" className={`market-row ${selectedSymbol === item.symbol ? 'selected' : ''}`} onDoubleClick={() => setOrderOpen(true)} onClick={() => { setSelectedSymbol(item.symbol); setMobileWatch(false) }}><span><strong>{item.symbol}</strong><small>{item.name}</small></span><span>{formatPrice(item.bid, item.digits)}</span><span>{formatPrice(item.ask, item.digits)}</span></button>)}</div>
-          <div className="watchlist-hint">Double-click a symbol to open a new order.</div>
-        </aside>
+        <div className="chart-title-row"><div><strong>{market.symbol}, {timeframe}: {market.name}</strong><span className="live-badge">LIVE</span></div><button type="button" className="market-mobile-button" onClick={() => setMarketOpen(true)}><Search size={15} /> Market Watch</button></div>
 
-        <section className="center-column">
-          <div className="chart-panel">
-            <div className="chart-header"><div><div className="instrument-title"><strong>{market.symbol}</strong><span>Forex CFD</span><span className="live-pill">LIVE</span></div><div className="price-line"><span className="bid-price">{formatPrice(market.bid, market.digits)}</span><span className="slash">/</span><span className="ask-price">{formatPrice(market.ask, market.digits)}</span><span className="change">{market.change}%</span></div></div><div className="chart-tools"><button type="button" aria-label="Crosshair"><Crosshair size={15} /></button><button type="button" aria-label="Chart controls"><SlidersHorizontal size={15} /></button><button type="button" aria-label="Chart type"><BarChart3 size={15} /></button><button type="button" aria-label="Fullscreen"><Maximize2 size={15} /></button></div></div>
-            <div className="chart-area"><TradingChart symbol={market.symbol} timeframe={timeframe} /><div className="chart-badge">ACG Trader · {timeframe}</div></div>
-            <div className="quick-trade-bar"><div className="quick-label">ONE-CLICK TRADING</div><button className="quick-sell" type="button" onClick={() => openQuickOrder('Sell')}><small>SELL</small><strong>{formatPrice(market.bid, market.digits)}</strong></button><div className="quick-volume"><button type="button" onClick={() => changeVolume(-0.01)} aria-label="Decrease volume">−</button><strong>{volume.toFixed(2)}</strong><span>lots</span><button type="button" onClick={() => changeVolume(0.01)} aria-label="Increase volume">+</button></div><button className="quick-buy" type="button" onClick={() => openQuickOrder('Buy')}><small>BUY</small><strong>{formatPrice(market.ask, market.digits)}</strong></button></div>
-          </div>
+        <div className="chart-wrap"><TradingChart symbol={selectedSymbol} timeframe={timeframe} chartType={chartType} /><div className="price-marker">{price(market.bid, market.digits)}</div><div className="quick-trade">
+          <button className="quick-side sell" type="button" onClick={() => quickOrder('Sell')}><span>SELL</span><strong className={pulse ? 'quote-pulse' : ''}>{price(market.bid, market.digits)}</strong></button>
+          <div className="lot-control"><button type="button" onClick={() => changeVolume(-0.01)}><Minus size={14} /></button><strong>{volume.toFixed(2)}</strong><span>LOT</span><button type="button" onClick={() => changeVolume(0.01)}><Plus size={14} /></button></div>
+          <button className="quick-side buy" type="button" onClick={() => quickOrder('Buy')}><span>BUY</span><strong className={pulse ? 'quote-pulse' : ''}>{price(market.ask, market.digits)}</strong></button>
+        </div></div>
 
-          {depthOpen && <MarketDepth market={market} />}
-          <section className="trade-terminal-panel"><div className="tabs">{['Positions', 'Orders', 'History'].map((item) => <button key={item} type="button" className={activePanel === item ? 'active' : ''} onClick={() => setActivePanel(item)}>{item}<span>{item === 'Positions' ? positions.length : item === 'Orders' ? orders.length : 18}</span></button>)}</div>{activePanel === 'Positions' && <TradeTable rows={positions} type="positions" />}{activePanel === 'Orders' && <TradeTable rows={orders} type="orders" />}{activePanel === 'History' && <HistoryTable />}</section>
+        <section className="terminal-panel">
+          <div className="account-bar"><span>Balance: <strong>100 000.00</strong></span><span>Equity: <strong>100 000.00</strong></span><span>Margin: <strong>0.00</strong></span><span>Free margin: <strong>100 000.00</strong></span><span>Level: <strong>0.00%</strong></span><span>Profit: <strong>0.00 USD</strong></span></div>
+          <div className="terminal-tabs">{['Positions', 'Orders', 'History'].map((tab) => <button key={tab} type="button" className={terminalTab === tab ? 'active' : ''} onClick={() => setTerminalTab(tab)}>{tab}{tab === 'Positions' ? ' (0)' : ''}</button>)}<button className="new-order" type="button" onClick={() => setOrderOpen(true)}>+ Create New Order</button></div>
+          {terminalTab === 'History' ? <HistoryTable /> : <EmptyState label={terminalTab === 'Positions' ? 'You don’t have any positions' : 'You don’t have any pending orders'} />}
         </section>
-      </main>
+      </section>
 
-      <div className="mobile-settings" style={{ display: mobileView === 'more' ? 'block' : 'none' }}>
-        <div className="mobile-settings-header"><strong>Settings</strong><button className="small-button" type="button" onClick={() => goMobile('chart')} aria-label="Close settings"><X size={18} /></button></div>
-        <div className="mobile-settings-card"><strong>Trading account</strong><span>ACG-FUNDED · #1048217</span></div>
-        <div className="mobile-settings-card"><strong>Risk</strong><span>Daily loss 0.42% · Maximum loss 0.51%</span></div>
-        <div className="mobile-settings-card"><strong>Chart</strong><span>Default timeframe: {timeframe} · Candlesticks</span></div>
-        <div className="mobile-settings-card"><strong>Notifications</strong><span>Price alerts and trading notifications</span></div>
-      </div>
-
-      <footer className="statusbar"><div><span className="status-dot" /> Connected · Demo environment</div><div>Data <strong>24 ms</strong></div><div>Server <strong>15:06:24</strong></div><div className="footer-right">Daily Loss <strong>0.42%</strong> · Max Loss <strong>0.51%</strong> · Target <strong>4.8%</strong></div></footer>
-
-      <nav className="mobile-nav" aria-label="Trading navigation">
-        <button type="button" className={mobileView === 'markets' ? 'active' : ''} onClick={() => goMobile('markets')}><BarChart3 size={18} /><span>Markets</span></button>
-        <button type="button" className={mobileView === 'chart' ? 'active' : ''} onClick={() => goMobile('chart')}><Crosshair size={18} /><span>Chart</span></button>
-        <button type="button" className={mobileView === 'trade' ? 'active' : ''} onClick={() => goMobile('trade')}><WalletCards size={18} /><span>Trade</span></button>
-        <button type="button" className={mobileView === 'history' ? 'active' : ''} onClick={() => goMobile('history')}><History size={18} /><span>History</span></button>
-        <button type="button" className={mobileView === 'more' ? 'active' : ''} onClick={() => goMobile('more')}><Settings2 size={18} /><span>More</span></button>
-      </nav>
-
-      {orderOpen && <OrderModal market={market} side={orderSide} volume={volume} setSide={setOrderSide} setVolume={setVolume} onClose={() => setOrderOpen(false)} />}
+      <aside className={`market-watch ${marketOpen ? 'mobile-open' : ''}`}>
+        <div className="watch-head"><div><span>MARKET WATCH</span><strong>Forex CFDs</strong></div><button type="button" className="close-watch mobile-only" onClick={() => setMarketOpen(false)}><X size={18} /></button></div>
+        <label className="symbol-search"><Search size={15} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search symbol" /></label>
+        <div className="watch-cols"><span>Symbol</span><span>Bid</span><span>Ask</span><span>Daily Ch...</span></div>
+        <div className="watch-list">{filteredMarkets.map((m) => <button key={m.symbol} className={`watch-row ${selectedSymbol === m.symbol ? 'selected' : ''}`} type="button" onClick={() => { setSelectedSymbol(m.symbol); setMarketOpen(false) }}><span><strong>{m.symbol}</strong><small>{m.name}</small></span><span>{price(m.bid, m.digits)}</span><span>{price(m.ask, m.digits)}</span><span className={m.change.startsWith('-') ? 'red-text' : 'blue-text'}>{m.change}</span></button>)}</div>
+      </aside>
     </div>
-  )
+
+    <footer className="desktop-status"><span><i className="live-dot" /> Connected</span><span>Server time 19:54:22</span><span>Latency 24 ms</span><span className="risk-summary">Daily Loss 0.42% · Max Loss 0.51%</span></footer>
+    <nav className="mobile-bottom-nav"><button type="button" onClick={() => setMarketOpen(true)}><BarChart3 size={18} /><span>Quotes</span></button><button type="button" className="active"><Crosshair size={18} /><span>Chart</span></button><button type="button" onClick={() => { setOrderSide('Buy'); setOrderOpen(true) }}><SlidersHorizontal size={18} /><span>Trade</span></button><button type="button" onClick={() => setTerminalTab('History')}><History size={18} /><span>History</span></button><button type="button" onClick={() => setSettingsOpen((v) => !v)}><Settings2 size={18} /><span>Settings</span></button></nav>
+    {settingsOpen && <div className="settings-popover"><strong>ACG Trader</strong><span>Theme: Light</span><span>One-click trading: On</span><span>Chart: {chartType}</span></div>}
+    {orderOpen && <OrderModal market={market} side={orderSide} volume={volume} onClose={() => setOrderOpen(false)} />}
+  </div>
 }
 
-function MarketDepth({ market }) {
-  const levels = [1, 2, 3, 4, 5]
-  const step = market.symbol === 'USDJPY' ? 0.01 : 0.0001
-  return <div className="depth-panel"><div className="panel-title"><span>DEPTH OF MARKET · SIMULATED</span><strong>{market.symbol}</strong></div>{levels.map((row) => <div className="depth-row" key={row}><span>{formatPrice(market.ask + step * row, market.digits)}</span><span>{row * 10}</span><span>{formatPrice(market.bid - step * row, market.digits)}</span><span>{row * 14}</span></div>)}</div>
-}
-
-function OrderModal({ market, side, setSide, volume, setVolume, onClose }) {
-  const [type, setType] = useState('Market Execution')
-  return <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><div className="order-modal"><div className="modal-head"><div><span className="eyebrow">NEW ORDER</span><strong>{market.symbol}</strong></div><button type="button" onClick={onClose} aria-label="Close order"><X size={17} /></button></div><div className="side-toggle"><button type="button" className={side === 'Buy' ? 'buy-active' : ''} onClick={() => setSide('Buy')}>Buy</button><button type="button" className={side === 'Sell' ? 'sell-active' : ''} onClick={() => setSide('Sell')}>Sell</button></div><label className="field"><span>Order type</span><select value={type} onChange={(event) => setType(event.target.value)}><option>Market Execution</option><option>Buy Limit</option><option>Sell Limit</option><option>Buy Stop</option><option>Sell Stop</option></select></label><label className="field"><span>Volume</span><input value={volume.toFixed(2)} onChange={(event) => setVolume(Math.max(0.01, Number(event.target.value) || 0.01))} /></label>{type !== 'Market Execution' && <label className="field"><span>Price</span><input placeholder="Entry price" /></label>}<div className="price-pair"><div><span>Bid</span><strong>{formatPrice(market.bid, market.digits)}</strong></div><div><span>Ask</span><strong>{formatPrice(market.ask, market.digits)}</strong></div></div><div className="two-fields"><label className="field"><span>Stop Loss</span><input placeholder="Optional" /></label><label className="field"><span>Take Profit</span><input placeholder="Optional" /></label></div><button className={`place-order ${side.toLowerCase()}`} type="button" onClick={onClose}>{side} {market.symbol}<span>{formatPrice(side === 'Buy' ? market.ask : market.bid, market.digits)}</span></button><p className="trade-hint">Demo execution is simulated. Risk controls will be connected to the ACG trading adapter later.</p></div></div>
-}
-
-function TradeTable({ rows, type }) {
-  return <div className="table-wrap"><table><thead><tr><th>Ticket</th><th>Symbol</th><th>Type</th><th>Volume</th><th>Price</th><th>SL</th><th>TP</th>{type === 'positions' && <th>Current</th>}<th>{type === 'positions' ? 'P&L' : 'Status'}</th><th /></tr></thead><tbody>{rows.map((row) => <tr key={row.ticket}><td className="muted">{row.ticket}</td><td><strong>{row.symbol}</strong></td><td><span className={row.type.includes('Buy') ? 'trade-buy' : 'trade-sell'}>{row.type}</span></td><td>{row.volume}</td><td>{row.price}</td><td>{row.sl || '—'}</td><td>{row.tp || '—'}</td>{type === 'positions' && <td>{row.current}</td>}<td className={row.profit?.startsWith('+') ? 'positive' : row.profit ? 'negative' : ''}>{row.profit || row.status}</td><td><button className="row-action" type="button" aria-label={`Actions for ${row.ticket}`}><MoreHorizontal size={15} /></button></td></tr>)}</tbody></table></div>
-}
-
-function HistoryTable() {
-  const history = [['1048172', 'EURUSD', 'Buy', '0.10', '1.17104', '+$26.20'], ['1047903', 'USDJPY', 'Sell', '0.20', '148.410', '+$14.90'], ['1047428', 'GBPUSD', 'Buy', '0.10', '1.35220', '+$18.40']]
-  return <div className="table-wrap"><table><thead><tr><th>Ticket</th><th>Symbol</th><th>Type</th><th>Volume</th><th>Close</th><th>P&L</th><th>Time</th></tr></thead><tbody>{history.map((item, index) => <tr key={item[0]}><td className="muted">{item[0]}</td><td><strong>{item[1]}</strong></td><td>{item[2]}</td><td>{item[3]}</td><td>{item[4]}</td><td className="positive">{item[5]}</td><td>Today {14 - index}:2{index}</td></tr>)}</tbody></table></div>
-}
+function ToolButton({ children, label }) { return <button type="button" className="tool-button" title={label}>{children}</button> }
+function EmptyState({ label }) { return <div className="empty-state"><div className="empty-icon"><History size={18} /></div><strong>{label}</strong><span>Your active trades will appear here.</span></div> }
+function HistoryTable() { return <div className="history-table"><div className="history-head"><span>Symbol</span><span>Ticket</span><span>Time</span><span>Type</span><span>Volume</span><span>Price</span><span>Profit</span></div>{history.map((r) => <div className="history-row" key={r.ticket}><span>{r.symbol}</span><span>{r.ticket}</span><span>{r.time}</span><span>{r.type}</span><span>{r.volume}</span><span>{r.price}</span><span className="profit">{r.profit}</span></div>)}</div> }
+function OrderModal({ market, side, volume, onClose }) { return <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}><div className="order-modal"><div className="modal-head"><div><span>NEW ORDER</span><strong>{market.symbol}</strong></div><button type="button" onClick={onClose}><X size={18} /></button></div><div className="modal-quote"><div className="modal-sell"><span>SELL</span><strong>{price(market.bid, market.digits)}</strong></div><div className="modal-mid">{volume.toFixed(2)} LOT</div><div className="modal-buy"><span>BUY</span><strong>{price(market.ask, market.digits)}</strong></div></div><label>Order type<select><option>Market Execution</option><option>Pending Order</option></select></label><div className="two-inputs"><label>Stop Loss<input placeholder="Optional" /></label><label>Take Profit<input placeholder="Optional" /></label></div><button type="button" className={side === 'Buy' ? 'submit-buy' : 'submit-sell'} onClick={onClose}>Place {side} Order</button><p>Execution is simulated in the frontend; risk and broker adapters will connect to the live engine.</p></div></div> }
