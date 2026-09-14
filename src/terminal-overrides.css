@@ -1,57 +1,52 @@
-/* ACG terminal refinement: trader-first density and chart readability */
-.price-marker{display:none!important}
-.chart-wrap{background:var(--surface)!important}
-.trading-chart{inset:0 0 0 0}
-.quick-trade{top:10px;left:12px;height:58px;width:min(400px,calc(100% - 24px));grid-template-columns:1fr 112px 1fr;border-radius:8px}
-.quick-side strong,.lot-control strong,.account-bar strong,.watch-row{font-variant-numeric:tabular-nums lining-nums}
-.account-bar{gap:18px;height:36px;flex-basis:36px}
-.terminal-panel{height:210px;flex-basis:210px}
-.terminal-tabs{height:40px;flex-basis:40px}
-.empty-state{gap:8px}
-.empty-state .empty-icon{display:none}
-.empty-state strong{font-size:11px;font-weight:650}
-.empty-state span{display:block;font-size:9px}
-.watch-row{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;letter-spacing:-.1px}
-.watch-row strong{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-variant-numeric:tabular-nums}
-.watch-cols,.watch-row{grid-template-columns:minmax(100px,1fr) 78px 78px 62px}
-.watch-cols span,.watch-row>span{font-variant-numeric:tabular-nums lining-nums}
-.chart-toolbar{gap:4px}
-.chart-title-row{height:44px;flex-basis:44px}
-.chart-title-row strong{font-size:14px;letter-spacing:0}
-.live-badge{padding:3px 6px}
-
-/* Dark terminal becomes the primary trading surface when the user selects dark mode. */
-.acg-dark .chart-wrap{background:#0c1218!important}
-.acg-dark .chart-toolbar,.acg-dark .chart-title-row{background:#111923!important}
-.acg-dark .terminal-panel,.acg-dark .market-watch,.acg-dark .drawing-rail,.acg-dark .terminal-workspace{background:#111923!important}
-.acg-dark .terminal-tabs{background:#111923!important}
-.acg-dark .account-bar{background:#151f2b!important}
-.acg-dark .empty-state strong{color:#e9eef5}
-.acg-dark .empty-state span{color:#8d99a9}
-.acg-dark .quick-trade{border-color:#263544;box-shadow:0 12px 30px rgba(0,0,0,.26)}
-.acg-dark .quick-side.sell{background:#28171c!important;color:#f05d68!important}
-.acg-dark .quick-side.buy{background:#15263d!important;color:#4c91ff!important}
-.acg-dark .lot-control{background:#111923!important}
-.acg-dark .lot-control button{background:#151f2b;border-color:#263544}
-.acg-dark .watch-cols{background:#151f2b!important}
-.acg-dark .watch-row{background:#111923!important;border-color:#263544!important}
-.acg-dark .watch-row:hover{background:#151f2b!important}
-.acg-dark .watch-row.selected{background:rgba(76,145,255,.12)!important}
-
+/* ACG Trader final visual layer. Desktop uses the dark terminal system; mobile keeps MT5 muscle memory with the same ACG palette. */
+.acg-app{background:#0c1218!important;color:#e9eef5!important}
+.acg-app .mobile-terminal{background:#0c1218!important;color:#e9eef5!important}
 @media(max-width:760px){
-  .acg-app{min-height:560px}
-  .chart-toolbar{height:38px;flex-basis:38px;padding:0 6px}
-  .chart-title-row{height:40px;flex-basis:40px;padding:0 9px}
-  .chart-title-row strong{font-size:13px}
-  .chart-wrap{min-height:250px}
-  .quick-trade{top:8px;left:8px;width:calc(100% - 16px);height:54px;grid-template-columns:1fr 84px 1fr}
-  .quick-side span{font-size:8px}
-  .quick-side strong{font-size:11px}
-  .account-bar{height:34px;flex-basis:34px;gap:14px;padding:0 10px}
-  .account-bar span{font-variant-numeric:tabular-nums lining-nums}
-  .account-bar strong{font-size:10px}
-  .terminal-panel{height:172px;flex-basis:172px}
-  .terminal-tabs{height:36px;flex-basis:36px}
-  .terminal-tabs button{padding:0 10px}
-  .watch-row{min-height:52px}
+  html,body,#root{background:#0c1218!important;color:#e9eef5!important}
+  .acg-app{background:#0c1218!important;color:#e9eef5!important}
+  .desktop-terminal{display:none!important}
+  .mobile-terminal{display:block!important;position:relative;width:100%;height:100%;overflow:hidden;background:#0c1218!important}
+  .mobile-chart-screen,.mobile-data-screen{background:#0c1218!important;color:#e9eef5!important}
+  .mobile-bottom-nav{background:#111923!important;border-top:1px solid #263544!important;box-shadow:0 -8px 24px rgba(0,0,0,.18)!important}
+  .mobile-bottom-nav button{background:transparent!important;color:#8d99a9!important}
+  .mobile-bottom-nav button.active,.mobile-bottom-nav button.active svg{color:#4c91ff!important}
+  .mobile-chart-toolbar{background:#111923!important;border-bottom:1px solid #263544!important;color:#8d99a9!important}
+  .mobile-chart-toolbar>button{background:#111923!important;color:#8d99a9!important;border-right-color:#1b2632!important}
+  .mobile-chart-toolbar .mobile-toolbar-active{color:#4c91ff!important}
+  .mobile-timeframe{color:#e9eef5!important;background:transparent!important}
+  .mobile-timeframe-menu{background:#151f2b!important;border:1px solid #263544!important;box-shadow:0 12px 35px rgba(0,0,0,.45)!important}
+  .mobile-timeframe-menu button{background:#151f2b!important;color:#8d99a9!important}
+  .mobile-timeframe-menu button.active{background:rgba(76,145,255,.12)!important;color:#4c91ff!important}
+  .mobile-quote-strip{background:#111923!important;border-bottom-color:#263544!important}
+  .mobile-lot{background:#111923!important;color:#e9eef5!important;border-color:#263544!important}
+  .mobile-lot button{background:#111923!important;color:#8d99a9!important}
+  .mobile-chart-title{background:#111923!important;color:#e9eef5!important;border-bottom-color:#263544!important}
+  .mobile-chart-canvas{background:#0c1218!important}
+  .mobile-chart-canvas .trading-chart{background:#0c1218!important}
+  .mobile-chart-timeframes{background:#111923!important;border-top-color:#263544!important}
+  .mobile-chart-timeframes button{background:transparent!important;color:#8d99a9!important}
+  .mobile-chart-timeframes button.active{color:#e9eef5!important}
+  .mobile-chart-menu{background:#151f2b!important;border-color:#263544!important;box-shadow:0 12px 35px rgba(0,0,0,.45)!important}
+  .mobile-chart-menu strong,.mobile-chart-menu button{background:#151f2b!important;color:#e9eef5!important}
+  .mobile-chart-menu button:hover{background:#1b2632!important}
+  .mobile-screen-header{background:#111923!important;border-bottom-color:#263544!important;color:#e9eef5!important}
+  .screen-muted{color:#8d99a9!important}
+  .mobile-search{background:#151f2b!important;border-color:#263544!important;color:#8d99a9!important}
+  .mobile-search input{background:transparent!important;color:#e9eef5!important}
+  .mobile-group-tabs{background:#111923!important;border-bottom-color:#263544!important}
+  .mobile-group-tabs button{background:transparent!important;color:#8d99a9!important}
+  .mobile-group-tabs button.active{color:#4c91ff!important;border-bottom-color:#4c91ff!important}
+  .mobile-quote-head{background:#151f2b!important;border-bottom-color:#263544!important;color:#8d99a9!important}
+  .mobile-market-row{background:#111923!important;border-bottom-color:#263544!important;color:#aeb9c7!important}
+  .mobile-market-row.selected{background:rgba(76,145,255,.12)!important}
+  .mobile-symbol-cell strong{color:#e9eef5!important}.mobile-symbol-cell small{color:#687789!important}
+  .fav-star{color:#566475!important}.fav-star.active{color:#e5a900!important}
+  .trade-screen{background:#0c1218!important}
+  .mobile-metrics{background:#0c1218!important}.metric-card,.mobile-panel{background:#111923!important;border-color:#263544!important}
+  .metric-card span,.mobile-panel-kicker,.risk-row,.safe-text{color:#8d99a9!important}.metric-card strong,.risk-row strong{color:#e9eef5!important}
+  .mobile-tabs,.mobile-tabs button{background:#111923!important;border-color:#263544!important;color:#8d99a9!important}.mobile-tabs button.active{color:#4c91ff!important}
+  .mobile-history-row{background:#111923!important;border-bottom-color:#263544!important;color:#e9eef5!important}
+  .empty-list,.empty-state span{color:#8d99a9!important}.empty-state strong{color:#e9eef5!important}
+  .mobile-primary{background:#4c91ff!important;color:#fff!important}
+  .settings-screen,.settings-card{background:#0c1218!important;color:#e9eef5!important}
 }
