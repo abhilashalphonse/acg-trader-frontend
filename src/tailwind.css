@@ -19,18 +19,16 @@
   button { -webkit-tap-highlight-color: transparent; }
 }
 
-/* Tailwind-backed terminal polish. Existing component selectors remain for behavior; this layer owns the responsive visual system. */
 .acg-app { --tw-border: #e1e5ea; --tw-blue: #1474e8; }
 
 @media (max-width: 760px) {
-  /* Source-of-truth mobile canvas: full viewport with five-item navigation at the bottom. */
   .acg-app { height: 100dvh !important; min-height: 0 !important; background: #fff !important; overflow: hidden !important; }
   .mobile-terminal { height: 100dvh !important; padding: 0 !important; }
   .mobile-chart-screen, .mobile-data-screen { inset: 0 0 62px !important; height: auto !important; }
 
-  /* Exact chart hierarchy from the supplied reference: 46px toolbar + 36px quotes + 28px title. */
-  .mobile-chart-toolbar { height: 46px !important; grid-template-columns: 42px 42px 42px minmax(54px,1fr) 42px 42px !important; position: relative; z-index: 5; }
-  .mobile-chart-toolbar > button { height: 46px !important; width: 42px !important; }
+  /* At the reference width, the six top controls occupy equal touch zones. */
+  .mobile-chart-toolbar { height: 46px !important; grid-template-columns: repeat(6, minmax(0, 1fr)) !important; position: relative; z-index: 5; }
+  .mobile-chart-toolbar > button { height: 46px !important; width: 100% !important; }
   .mobile-chart-toolbar .mobile-timeframe { font-weight: 500; font-size: 13px !important; }
 
   .mobile-quote-strip { height: 36px !important; grid-template-columns: minmax(0,1fr) 78px minmax(0,1fr) !important; }
@@ -41,12 +39,11 @@
 
   .mobile-chart-title { height: 28px !important; padding: 0 8px !important; font-size: 12px !important; }
   .mobile-chart-canvas { height: calc(100% - 110px) !important; min-height: 0 !important; }
-  .mobile-chart-timeframes { display: none !important; }
+  .mobile-chart-timeframes { display: none !important; height: 0 !important; }
 
   .mobile-bottom-nav { height: 62px !important; padding: 4px 2px calc(4px + env(safe-area-inset-bottom)) !important; }
   .mobile-bottom-nav button { min-height: 54px; font-size: 8px !important; }
 
-  /* Compact, edge-safe layouts for the remaining mobile destinations. */
   .mobile-screen-header { height: 48px !important; padding: 0 12px !important; }
   .mobile-screen-header strong { font-size: 14px !important; }
   .mobile-search { margin: 8px 10px !important; height: 36px !important; border-radius: 0; }
@@ -83,8 +80,8 @@
 }
 
 @media (max-width: 390px) {
-  .mobile-chart-toolbar { grid-template-columns: 38px 38px 38px minmax(48px,1fr) 38px 38px !important; }
-  .mobile-chart-toolbar > button { width: 38px !important; }
+  .mobile-chart-toolbar { grid-template-columns: repeat(6, minmax(0, 1fr)) !important; }
+  .mobile-chart-toolbar > button { width: 100% !important; }
   .mobile-quote-strip { grid-template-columns: minmax(0,1fr) 68px minmax(0,1fr) !important; }
   .mobile-quote-sell strong, .mobile-quote-buy strong { font-size: 12px !important; }
   .mobile-quote-sell span, .mobile-quote-buy span { font-size: 6px !important; }
