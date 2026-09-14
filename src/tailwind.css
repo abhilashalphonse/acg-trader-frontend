@@ -1,90 +1,89 @@
 @import "tailwindcss";
 
 @theme {
-  --color-acg-blue: #1474e8;
-  --color-acg-red: #ee4b51;
-  --color-acg-green: #1fa774;
-  --color-acg-ink: #171b21;
-  --color-acg-muted: #737b86;
-  --color-acg-border: #e1e5ea;
+  --color-acg-blue: #2563eb;
+  --color-acg-red: #ef4444;
+  --color-acg-green: #00a896;
+  --color-acg-ink: #0f172a;
+  --color-acg-muted: #64748b;
+  --color-acg-border: #e2e8f0;
   --color-acg-panel: #ffffff;
-  --color-acg-subtle: #f6f8fa;
+  --color-acg-subtle: #f8fafc;
 }
 
 @layer base {
   *, *::before, *::after { box-sizing: border-box; }
   html, body, #root { margin: 0; width: 100%; min-height: 100%; }
-  body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--color-acg-ink); background: #f5f7f9; }
+  body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #0f172a; background: #fff; }
   button, input, select { font: inherit; }
   button { -webkit-tap-highlight-color: transparent; }
 }
 
-.acg-app { --tw-border: #e1e5ea; --tw-blue: #1474e8; }
+.acg-app { --tw-border: #e2e8f0; --tw-blue: #2563eb; background: #fff; color: #0f172a; }
 
 @media (max-width: 760px) {
-  .acg-app { height: 100dvh !important; min-height: 0 !important; background: #fff !important; overflow: hidden !important; }
-  .mobile-terminal { height: 100dvh !important; padding: 0 !important; }
-  .mobile-chart-screen, .mobile-data-screen { inset: 0 0 62px !important; height: auto !important; }
+  html, body, #root { width:100%; height:100%; min-height:100%; overflow:hidden; }
+  .acg-app { height:100dvh !important; min-height:0 !important; background:#fff !important; color:#0f172a !important; overflow:hidden !important; }
+  .mobile-terminal { height:100dvh !important; padding:0 !important; background:#fff !important; }
+  .mobile-chart-screen, .mobile-data-screen { inset:0 0 56px !important; height:auto !important; background:#fff !important; color:#0f172a !important; }
 
-  /* At the reference width, the six top controls occupy equal touch zones. */
-  .mobile-chart-toolbar { height: 46px !important; grid-template-columns: repeat(6, minmax(0, 1fr)) !important; position: relative; z-index: 5; }
-  .mobile-chart-toolbar > button { height: 46px !important; width: 100% !important; }
-  .mobile-chart-toolbar .mobile-timeframe { font-weight: 500; font-size: 13px !important; }
+  .mobile-chart-toolbar { height:48px !important; grid-template-columns:repeat(7,minmax(0,1fr)) !important; background:#fff !important; border-bottom:1px solid #e2e8f0 !important; color:#334155 !important; }
+  .mobile-chart-toolbar > button { width:100% !important; height:48px !important; background:#fff !important; color:#475569 !important; border:0 !important; }
+  .mobile-chart-toolbar .mobile-toolbar-active { color:#2563eb !important; }
+  .mobile-timeframe-wrap { position:relative; display:flex; align-items:center; justify-content:center; height:48px; }
+  .mobile-timeframe { color:#334155 !important; }
+  .mobile-timeframe-menu { position:absolute; top:44px; left:50%; transform:translateX(-50%); z-index:50; min-width:86px; padding:4px; background:#fff; border:1px solid #e2e8f0; box-shadow:0 8px 24px rgba(15,23,42,.12); }
+  .mobile-timeframe-menu button { display:block; width:100%; border:0; background:#fff; color:#475569; text-align:center; padding:7px 10px; font-size:11px; }
+  .mobile-timeframe-menu button.active { background:#eff6ff; color:#2563eb; font-weight:700; }
+  .clock-icon { font-size:20px; line-height:1; color:#475569; }
 
-  .mobile-quote-strip { height: 36px !important; grid-template-columns: minmax(0,1fr) 78px minmax(0,1fr) !important; }
-  .mobile-quote-strip button { height: 36px !important; }
-  .mobile-quote-sell strong, .mobile-quote-buy strong { font-size: 12px !important; }
-  .mobile-quote-sell span, .mobile-quote-buy span { font-size: 7px !important; }
-  .mobile-lot { height: 36px !important; }
+  .mobile-quote-strip { height:44px !important; grid-template-columns:repeat(3,minmax(0,1fr)) !important; background:#fff !important; border-bottom:1px solid #e2e8f0 !important; }
+  .mobile-quote-strip button { height:44px !important; }
+  .mobile-quote-sell, .mobile-quote-buy { background:#ef4444 !important; color:#fff !important; display:flex; flex-direction:column; justify-content:center; }
+  .mobile-quote-sell { align-items:flex-start !important; padding:0 12px !important; }
+  .mobile-quote-buy { align-items:flex-end !important; padding:0 12px !important; }
+  .mobile-quote-sell span, .mobile-quote-buy span { font-size:9px !important; font-weight:700 !important; line-height:1; }
+  .mobile-quote-sell strong, .mobile-quote-buy strong { margin-top:2px; font-size:14px !important; font-weight:700 !important; }
+  .mobile-lot { height:44px !important; display:flex !important; align-items:center !important; justify-content:space-between !important; padding:0 8px !important; background:#fff !important; border-left:1px solid #e2e8f0 !important; border-right:1px solid #e2e8f0 !important; color:#1e293b !important; }
+  .mobile-lot button { width:28px !important; height:40px !important; background:#fff !important; color:#94a3b8 !important; border:0 !important; display:grid !important; place-items:center !important; }
+  .mobile-lot button:hover { color:#475569 !important; }
+  .mobile-lot strong { font-size:13px !important; font-weight:600 !important; }
 
-  .mobile-chart-title { height: 28px !important; padding: 0 8px !important; font-size: 12px !important; }
-  .mobile-chart-canvas { height: calc(100% - 110px) !important; min-height: 0 !important; }
-  .mobile-chart-timeframes { display: none !important; height: 0 !important; }
+  .mobile-chart-canvas { position:relative; height:calc(100% - 92px) !important; min-height:0 !important; overflow:hidden; background:#fff !important; }
+  .mobile-chart-canvas .trading-chart { position:absolute; inset:0; }
+  .mobile-chart-title-overlay { color:#0f172a; font-size:12px; line-height:1.2; white-space:nowrap; }
+  .mobile-chart-title-overlay span { color:#64748b; font-weight:400; }
+  .mobile-price-tag { position:absolute; right:0; top:42%; padding:3px 6px; background:#00a896 !important; color:#fff; font:10px ui-monospace,SFMono-Regular,Menlo,monospace; pointer-events:none; z-index:8; }
+  .mobile-floating-actions button { width:36px; height:36px; border-radius:9999px; background:#fff; border:1px solid #e2e8f0; color:#475569; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(15,23,42,.14); }
+  .mobile-floating-actions button:hover { background:#f8fafc; }
+  .mobile-chart-menu { top:52px !important; background:#fff !important; border:1px solid #e2e8f0 !important; box-shadow:0 8px 24px rgba(15,23,42,.12) !important; color:#334155 !important; }
 
-  .mobile-bottom-nav { height: 62px !important; padding: 4px 2px calc(4px + env(safe-area-inset-bottom)) !important; }
-  .mobile-bottom-nav button { min-height: 54px; font-size: 8px !important; }
+  .mobile-bottom-nav { left:0 !important; right:0 !important; bottom:0 !important; height:56px !important; z-index:30; padding:0 !important; display:flex !important; align-items:center !important; justify-content:space-around !important; background:#fff !important; border-top:1px solid #e2e8f0 !important; box-shadow:none !important; }
+  .mobile-bottom-nav button { flex:1; min-width:0; height:56px !important; min-height:56px !important; border:0 !important; background:transparent !important; color:#94a3b8 !important; display:flex !important; flex-direction:column !important; align-items:center !important; justify-content:center !important; gap:3px !important; padding:0 !important; font-size:10px !important; font-weight:500 !important; }
+  .mobile-bottom-nav button svg { stroke-width:1.8; }
+  .mobile-bottom-nav button.active, .mobile-bottom-nav button.active svg { color:#2563eb !important; }
+  .mobile-bottom-nav button.active { font-weight:600 !important; }
 
-  .mobile-screen-header { height: 48px !important; padding: 0 12px !important; }
-  .mobile-screen-header strong { font-size: 14px !important; }
-  .mobile-search { margin: 8px 10px !important; height: 36px !important; border-radius: 0; }
-  .mobile-group-tabs { gap: 18px !important; height: 32px !important; padding-left: 10px !important; }
-  .mobile-group-tabs button { height: 32px !important; font-size: 10px !important; }
-  .mobile-quote-head, .mobile-market-row { grid-template-columns: minmax(112px,1.35fr) .85fr .85fr .65fr !important; }
-  .mobile-market-row { min-height: 51px !important; padding: 6px 9px !important; }
-  .mobile-symbol-cell small { max-width: 150px; }
-
-  .trade-screen { padding-bottom: 10px; }
-  .mobile-metrics { grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 8px !important; padding: 9px !important; }
-  .metric-card { min-width: 0; border-radius: 0; padding: 9px !important; }
-  .metric-card strong { font-size: 10px !important; overflow: hidden; text-overflow: ellipsis; }
-  .mobile-panel { margin: 0 9px 9px !important; border-radius: 0; }
-  .mobile-panel .empty-state { min-height: 150px !important; }
-
-  .settings-screen { overflow-y: auto !important; padding-bottom: 18px; }
-  .settings-card { margin: 10px !important; border-radius: 0 !important; }
-  .settings-list { margin: 0 10px 12px !important; border-radius: 0; overflow: hidden; }
-  .settings-list button { min-height: 48px !important; }
-
-  .modal-backdrop { padding: 12px !important; align-items: flex-end !important; }
-  .order-modal { width: 100% !important; max-width: 520px; max-height: calc(100dvh - 24px); overflow-y: auto; border-radius: 14px 14px 8px 8px !important; }
+  .mobile-screen-header { height:48px !important; background:#fff !important; border-bottom:1px solid #e2e8f0 !important; }
+  .mobile-search, .mobile-market-row, .mobile-history-row, .settings-card, .settings-list, .mobile-panel, .metric-card { background:#fff !important; border-color:#e2e8f0 !important; }
+  .mobile-group-tabs, .mobile-quote-head { border-color:#e2e8f0 !important; }
 }
 
-@media (min-width: 761px) {
-  .acg-topbar { height: 56px !important; flex-basis: 56px !important; padding-inline: 16px !important; }
-  .main-grid { grid-template-columns: 44px minmax(0,1fr) clamp(280px,25vw,340px) !important; }
-  .drawing-rail { padding-top: 8px !important; }
-  .terminal-workspace { min-width: 0; }
-  .chart-toolbar { min-height: 40px !important; }
-  .terminal-panel { min-height: 180px; }
-  .market-watch { min-width: 0; }
+@media (min-width:761px) {
+  .acg-app { background:#fff; color:#0f172a; }
+  .acg-topbar { height:56px !important; flex-basis:56px !important; padding-inline:16px !important; background:#fff !important; color:#334155 !important; border-bottom:1px solid #e2e8f0 !important; }
+  .main-grid { grid-template-columns:44px minmax(0,1fr) clamp(280px,25vw,340px) !important; }
+  .drawing-rail { padding-top:8px !important; background:#fff !important; border-color:#e2e8f0 !important; }
+  .terminal-workspace, .terminal-panel, .market-watch, .chart-toolbar, .chart-title-row { background:#fff !important; color:#334155 !important; border-color:#e2e8f0 !important; }
+  .terminal-workspace { min-width:0; }
+  .chart-toolbar { min-height:40px !important; border-bottom:1px solid #e2e8f0 !important; }
+  .terminal-panel { min-height:180px; }
+  .market-watch { min-width:0; }
 }
 
-@media (max-width: 390px) {
-  .mobile-chart-toolbar { grid-template-columns: repeat(6, minmax(0, 1fr)) !important; }
-  .mobile-chart-toolbar > button { width: 100% !important; }
-  .mobile-quote-strip { grid-template-columns: minmax(0,1fr) 68px minmax(0,1fr) !important; }
-  .mobile-quote-sell strong, .mobile-quote-buy strong { font-size: 12px !important; }
-  .mobile-quote-sell span, .mobile-quote-buy span { font-size: 6px !important; }
-  .mobile-quote-head, .mobile-market-row { grid-template-columns: minmax(102px,1.25fr) .85fr .85fr .65fr !important; gap: 4px !important; }
-  .mobile-symbol-cell small { display: none !important; }
+@media (max-width:390px) {
+  .mobile-chart-toolbar { grid-template-columns:repeat(7,minmax(0,1fr)) !important; }
+  .mobile-quote-strip { grid-template-columns:minmax(0,1fr) 78px minmax(0,1fr) !important; }
+  .mobile-quote-sell strong, .mobile-quote-buy strong { font-size:13px !important; }
+  .mobile-lot { padding:0 5px !important; }
 }
