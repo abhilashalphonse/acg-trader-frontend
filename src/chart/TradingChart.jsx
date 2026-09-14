@@ -1,131 +1,72 @@
 import { useEffect, useRef } from 'react'
-import { CandlestickSeries, ColorType, createChart } from 'lightweight-charts'
+import { CandlestickSeries, ColorType, LineSeries, createChart } from 'lightweight-charts'
 
-const BASE_PRICES = {
-  EURUSD: 1.1742,
-  GBPUSD: 1.3561,
-  USDJPY: 147.92,
-  USDCHF: 0.7961,
-  AUDUSD: 0.6620,
-  USDCAD: 1.3814,
-  NZDUSD: 0.6036,
-}
+const BASE_PRICES = { AUDCAD: 0.99368, AUDCHF: 0.58286, AUDDKK: 4.61785, AUDHKD: 5.60626, AUDHUF: 220.748, AUDJPY: 110.287 }
+const TIMEFRAME_SECONDS = { M1: 60, M5: 300, M15: 900, M30: 1800, H1: 3600, H4: 14400, D1: 86400, W1: 604800, MN: 2592000 }
 
-const TIMEFRAME_SECONDS = {
-  M1: 60,
-  M5: 300,
-  M15: 900,
-  M30: 1800,
-  H1: 3600,
-  H4: 14400,
-  D1: 86400,
-}
-
-function makeCandles(symbol, timeframe, count = 90) {
-  const base = BASE_PRICES[symbol] ?? 1.1742
-  const step = symbol === 'USDJPY' ? 0.018 : 0.000018
-  const interval = TIMEFRAME_SECONDS[timeframe] ?? TIMEFRAME_SECONDS.M15
+function makeCandles(symbol, timeframe, count = 110) {
+  const base = BASE_PRICES[symbol] ?? BASE_PRICES.AUDCAD
+  const interval = TIMEFRAME_SECONDS[timeframe] ?? 60
+  const step = symbol === 'AUDJPY' || symbol === 'AUDHUF' ? 0.018 : symbol === 'AUDDKK' || symbol === 'AUDHKD' ? 0.00055 : 0.000018
   const now = Math.floor(Date.now() / interval) * interval
   let price = base
-
-  return Array.from({ length: count }, (_, index) => {
-    const wave = Math.sin(index * 0.42) * step * 7
-    const drift = (index / count) * step * 8
+  return Array.from({ length: count }, (_, i) => {
+    const wave = Math.sin(i * 0.34) * step * 5
+    const drift = (i / count) * step * 5
     const open = price
-    const close = base + wave + drift + Math.sin(index * 1.73) * step * 3
-    const high = Math.max(open, close) + step * (3 + (index % 4))
-    const low = Math.min(open, close) - step * (2 + (index % 3))
+    const close = base + wave + drift + Math.sin(i * 1.61) * step * 2.5
+    const high = Math.max(open, close) + step * (2 + (i % 4))
+    const low = Math.min(open, close) - step * (2 + (i % 3))
     price = close
-    return {
-      time: now - (count - index - 1) * interval,
-      open,
-      high,
-      low,
-      close,
-    }
+    return { time: now - (count - i - 1) * interval, open, high, low, close }
   })
 }
 
-export default function TradingChart({ symbol, timeframe = 'M15' }) {
-  const containerRef = useRef(null)
-  const timerRef = useRef(null)
-
+export default function TradingChart({ symbol, timeframe = 'M1', chartType = 'candles' }) {
+  const ref = useRef(null)
+  const timer = useRef(null)
   useEffect(() => {
-    if (!containerRef.current) return undefined
-
-    const chart = createChart(containerRef.current, {
+    if (!ref.current) return undefined
+    const chart = createChart(ref.current, {
       autoSize: true,
-      layout: {
-        background: { type: ColorType.Solid, color: '#090e13' },
-        textColor: '#596573',
-        fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
-        fontSize: 10,
-      },
-      grid: {
-        vertLines: { color: '#121a22' },
-        horzLines: { color: '#171e26' },
-      },
-      crosshair: {
-        vertLine: { color: '#526174', width: 1, style: 2 },
-        horzLine: { color: '#526174', width: 1, style: 2 },
-      },
-      rightPriceScale: {
-        borderColor: '#202731',
-        scaleMargins: { top: 0.08, bottom: 0.12 },
-      },
-      timeScale: {
-        borderColor: '#202731',
-        timeVisible: true,
-        secondsVisible: false,
-      },
-      handleScale: { mouseWheel: true, pinch: true },
-      handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true },
+      layout: { background: { type: ColorType.Solid, color: '#ffffff' }, textColor: '#718096', fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif', fontSize: 10 },
+      grid: { vertLines: { color: '#edf1f5' }, horzLines: { color: '#edf1f5' } },
+      crosshair: { vertLine: { color: '#aeb9c7', width: 1, style: 2 }, horzLine: { color: '#aeb9c7', width: 1, style: 2 } },
+      rightPriceScale: { borderColor: '#dfe5ec', scaleMargins: { top: 0.08, bottom: 0.12 } },
+      timeScale: { borderColor: '#dfe5ec', timeVisible: true, secondsVisible: false },
+      handleScale: { mouseWheel: true, pinch: true }, handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true },
     })
-
-    const series = chart.addSeries(CandlestickSeries, {
-      upColor: '#3eb77d',
-      downColor: '#c9656a',
-      borderUpColor: '#3eb77d',
-      borderDownColor: '#c9656a',
-      wickUpColor: '#3eb77d',
-      wickDownColor: '#c9656a',
-      priceLineVisible: true,
-      lastValueVisible: true,
-    })
-
-    const interval = TIMEFRAME_SECONDS[timeframe] ?? TIMEFRAME_SECONDS.M15
     const data = makeCandles(symbol, timeframe)
-    series.setData(data)
+    let series
+    if (chartType === 'line') {
+      series = chart.addSeries(LineSeries, { color: '#1769e0', lineWidth: 2, priceLineVisible: true, lastValueVisible: true })
+      series.setData(data.map((d) => ({ time: d.time, value: d.close })))
+    } else {
+      series = chart.addSeries(CandlestickSeries, { upColor: '#1677ff', downColor: '#ef5350', borderUpColor: '#1677ff', borderDownColor: '#ef5350', wickUpColor: '#1677ff', wickDownColor: '#ef5350', priceLineVisible: true, lastValueVisible: true })
+      series.setData(data)
+    }
     chart.timeScale().fitContent()
-
-    timerRef.current = window.setInterval(() => {
+    const interval = TIMEFRAME_SECONDS[timeframe] ?? 60
+    timer.current = window.setInterval(() => {
       const last = data[data.length - 1]
-      const tickStep = symbol === 'USDJPY' ? 0.001 : 0.00001
-      const move = (Math.random() - 0.47) * tickStep * 4
-      const close = last.close + move
-      const next = {
-        ...last,
-        close,
-        high: Math.max(last.high, close),
-        low: Math.min(last.low, close),
+      const tick = symbol === 'AUDJPY' || symbol === 'AUDHUF' ? 0.001 : 0.00001
+      const close = last.close + (Math.random() - 0.48) * tick * 3
+      if (chartType === 'line') {
+        const point = { ...last, close, high: Math.max(last.high, close), low: Math.min(last.low, close) }
+        data[data.length - 1] = point
+        series.update({ time: point.time, value: close })
+      } else {
+        const point = { ...last, close, high: Math.max(last.high, close), low: Math.min(last.low, close) }
+        data[data.length - 1] = point
+        series.update(point)
       }
-      data[data.length - 1] = next
-      series.update(next)
-
       if (Date.now() >= (last.time + interval) * 1000) {
-        const nextTime = last.time + interval
-        const nextCandle = { time: nextTime, open: close, high: close, low: close, close }
-        data.push(nextCandle)
-        series.update(nextCandle)
+        const next = { time: last.time + interval, open: close, high: close, low: close, close }
+        data.push(next)
+        series.update(chartType === 'line' ? { time: next.time, value: close } : next)
       }
     }, 900)
-
-    return () => {
-      if (timerRef.current) window.clearInterval(timerRef.current)
-      timerRef.current = null
-      chart.remove()
-    }
-  }, [symbol, timeframe])
-
-  return <div className="trading-chart" ref={containerRef} aria-label={`${symbol} ${timeframe} chart`} />
+    return () => { if (timer.current) window.clearInterval(timer.current); chart.remove() }
+  }, [symbol, timeframe, chartType])
+  return <div className="trading-chart" ref={ref} aria-label={`${symbol} ${timeframe} chart`} />
 }
