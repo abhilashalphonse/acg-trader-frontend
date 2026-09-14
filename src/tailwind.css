@@ -13,7 +13,7 @@
 
 @layer base {
   *, *::before, *::after { box-sizing: border-box; }
-  html, body, #root { margin: 0; width: 100%; min-height: 100%; }
+  html, body, #root { margin: 0; width: 100%; height: 100%; min-height: 100%; }
   body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #0f172a; background: #fff; }
   button, input, select { font: inherit; }
   button { -webkit-tap-highlight-color: transparent; }
@@ -23,9 +23,9 @@
 
 @media (max-width: 760px) {
   html, body, #root { width:100%; height:100%; min-height:100%; overflow:hidden; }
-  .acg-app { height:100dvh !important; min-height:0 !important; background:#fff !important; color:#0f172a !important; overflow:hidden !important; }
-  .mobile-terminal { height:100dvh !important; padding:0 !important; background:#fff !important; }
-  .mobile-chart-screen, .mobile-data-screen { inset:0 0 56px !important; height:auto !important; background:#fff !important; color:#0f172a !important; }
+  .acg-app { position:fixed !important; inset:0 !important; width:100% !important; height:100dvh !important; min-height:0 !important; margin:0 !important; padding:0 !important; background:#fff !important; color:#0f172a !important; overflow:hidden !important; }
+  .mobile-terminal { position:fixed !important; inset:0 !important; width:100% !important; height:100dvh !important; min-height:0 !important; margin:0 !important; padding:0 !important; background:#fff !important; overflow:hidden !important; }
+  .mobile-chart-screen, .mobile-data-screen { position:absolute !important; left:0 !important; right:0 !important; top:0 !important; bottom:56px !important; height:auto !important; margin:0 !important; background:#fff !important; color:#0f172a !important; overflow:hidden !important; }
 
   .mobile-chart-toolbar { height:48px !important; grid-template-columns:repeat(7,minmax(0,1fr)) !important; background:#fff !important; border-bottom:1px solid #e2e8f0 !important; color:#334155 !important; }
   .mobile-chart-toolbar > button { width:100% !important; height:48px !important; background:#fff !important; color:#475569 !important; border:0 !important; }
@@ -58,8 +58,8 @@
   .mobile-floating-actions button:hover { background:#f8fafc; }
   .mobile-chart-menu { top:52px !important; background:#fff !important; border:1px solid #e2e8f0 !important; box-shadow:0 8px 24px rgba(15,23,42,.12) !important; color:#334155 !important; }
 
-  .mobile-bottom-nav { left:0 !important; right:0 !important; bottom:0 !important; height:56px !important; z-index:30; padding:0 !important; display:flex !important; align-items:center !important; justify-content:space-around !important; background:#fff !important; border-top:1px solid #e2e8f0 !important; box-shadow:none !important; }
-  .mobile-bottom-nav button { flex:1; min-width:0; height:56px !important; min-height:56px !important; border:0 !important; background:transparent !important; color:#94a3b8 !important; display:flex !important; flex-direction:column !important; align-items:center !important; justify-content:center !important; gap:3px !important; padding:0 !important; font-size:10px !important; font-weight:500 !important; }
+  .mobile-bottom-nav { position:absolute !important; left:0 !important; right:0 !important; bottom:0 !important; width:100% !important; height:56px !important; min-height:56px !important; margin:0 !important; padding:0 !important; z-index:100 !important; display:flex !important; align-items:center !important; justify-content:space-around !important; background:#fff !important; border-top:1px solid #e2e8f0 !important; box-shadow:none !important; }
+  .mobile-bottom-nav button { flex:1; min-width:0; width:20%; height:56px !important; min-height:56px !important; margin:0 !important; border:0 !important; background:transparent !important; color:#94a3b8 !important; display:flex !important; flex-direction:column !important; align-items:center !important; justify-content:center !important; gap:3px !important; padding:0 !important; font-size:10px !important; font-weight:500 !important; }
   .mobile-bottom-nav button svg { stroke-width:1.8; }
   .mobile-bottom-nav button.active, .mobile-bottom-nav button.active svg { color:#2563eb !important; }
   .mobile-bottom-nav button.active { font-weight:600 !important; }
