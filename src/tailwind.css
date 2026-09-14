@@ -23,43 +23,49 @@
 .acg-app { --tw-border: #e1e5ea; --tw-blue: #1474e8; }
 
 @media (max-width: 760px) {
+  /* Source-of-truth mobile canvas: full viewport with five-item navigation at the bottom. */
   .acg-app { height: 100dvh !important; min-height: 0 !important; background: #fff !important; overflow: hidden !important; }
   .mobile-terminal { height: 100dvh !important; padding: 0 !important; }
   .mobile-chart-screen, .mobile-data-screen { inset: 0 0 62px !important; height: auto !important; }
 
-  .mobile-chart-toolbar { height: 44px !important; grid-template-columns: 42px 42px 42px minmax(58px,1fr) 42px 42px !important; position: relative; z-index: 5; }
-  .mobile-chart-toolbar > button { height: 44px !important; width: 42px !important; }
-  .mobile-chart-toolbar .mobile-timeframe { font-weight: 600; }
-  .mobile-quote-strip { height: 38px !important; grid-template-columns: minmax(0,1fr) 76px minmax(0,1fr) !important; }
-  .mobile-quote-strip button { height: 38px !important; }
-  .mobile-quote-sell strong, .mobile-quote-buy strong { font-size: 13px !important; }
-  .mobile-lot { height: 38px; }
-  .mobile-chart-title { height: 30px !important; padding: 0 9px !important; font-size: 11px !important; }
-  .mobile-chart-canvas { height: calc(100% - 112px) !important; min-height: 0 !important; }
+  /* Exact chart hierarchy from the supplied reference: 46px toolbar + 36px quotes + 28px title. */
+  .mobile-chart-toolbar { height: 46px !important; grid-template-columns: 42px 42px 42px minmax(54px,1fr) 42px 42px !important; position: relative; z-index: 5; }
+  .mobile-chart-toolbar > button { height: 46px !important; width: 42px !important; }
+  .mobile-chart-toolbar .mobile-timeframe { font-weight: 500; font-size: 13px !important; }
+
+  .mobile-quote-strip { height: 36px !important; grid-template-columns: minmax(0,1fr) 78px minmax(0,1fr) !important; }
+  .mobile-quote-strip button { height: 36px !important; }
+  .mobile-quote-sell strong, .mobile-quote-buy strong { font-size: 12px !important; }
+  .mobile-quote-sell span, .mobile-quote-buy span { font-size: 7px !important; }
+  .mobile-lot { height: 36px !important; }
+
+  .mobile-chart-title { height: 28px !important; padding: 0 8px !important; font-size: 12px !important; }
+  .mobile-chart-canvas { height: calc(100% - 110px) !important; min-height: 0 !important; }
   .mobile-chart-timeframes { display: none !important; }
 
   .mobile-bottom-nav { height: 62px !important; padding: 4px 2px calc(4px + env(safe-area-inset-bottom)) !important; }
   .mobile-bottom-nav button { min-height: 54px; font-size: 8px !important; }
 
-  .mobile-screen-header { height: 50px !important; padding: 0 14px !important; }
-  .mobile-screen-header strong { font-size: 15px !important; }
-  .mobile-search { margin: 8px 10px !important; height: 38px !important; border-radius: 7px; }
-  .mobile-group-tabs { gap: 20px !important; height: 34px !important; padding-left: 12px !important; }
-  .mobile-group-tabs button { height: 34px !important; font-size: 10px !important; }
-  .mobile-quote-head, .mobile-market-row { grid-template-columns: minmax(120px,1.35fr) .9fr .9fr .7fr !important; }
-  .mobile-market-row { min-height: 54px !important; padding: 7px 10px !important; }
+  /* Compact, edge-safe layouts for the remaining mobile destinations. */
+  .mobile-screen-header { height: 48px !important; padding: 0 12px !important; }
+  .mobile-screen-header strong { font-size: 14px !important; }
+  .mobile-search { margin: 8px 10px !important; height: 36px !important; border-radius: 0; }
+  .mobile-group-tabs { gap: 18px !important; height: 32px !important; padding-left: 10px !important; }
+  .mobile-group-tabs button { height: 32px !important; font-size: 10px !important; }
+  .mobile-quote-head, .mobile-market-row { grid-template-columns: minmax(112px,1.35fr) .85fr .85fr .65fr !important; }
+  .mobile-market-row { min-height: 51px !important; padding: 6px 9px !important; }
   .mobile-symbol-cell small { max-width: 150px; }
 
   .trade-screen { padding-bottom: 10px; }
-  .mobile-metrics { grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 8px !important; padding: 10px !important; }
-  .metric-card { min-width: 0; border-radius: 8px; padding: 10px !important; }
-  .metric-card strong { font-size: 11px !important; overflow: hidden; text-overflow: ellipsis; }
-  .mobile-panel { margin: 0 10px 10px !important; border-radius: 8px; }
+  .mobile-metrics { grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 8px !important; padding: 9px !important; }
+  .metric-card { min-width: 0; border-radius: 0; padding: 9px !important; }
+  .metric-card strong { font-size: 10px !important; overflow: hidden; text-overflow: ellipsis; }
+  .mobile-panel { margin: 0 9px 9px !important; border-radius: 0; }
   .mobile-panel .empty-state { min-height: 150px !important; }
 
   .settings-screen { overflow-y: auto !important; padding-bottom: 18px; }
-  .settings-card { margin: 10px !important; border-radius: 8px !important; }
-  .settings-list { margin: 0 10px 12px !important; border-radius: 8px; overflow: hidden; }
+  .settings-card { margin: 10px !important; border-radius: 0 !important; }
+  .settings-list { margin: 0 10px 12px !important; border-radius: 0; overflow: hidden; }
   .settings-list button { min-height: 48px !important; }
 
   .modal-backdrop { padding: 12px !important; align-items: flex-end !important; }
