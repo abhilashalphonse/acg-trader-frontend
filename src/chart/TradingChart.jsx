@@ -10,7 +10,6 @@ function makeCandles(symbol, timeframe, count = 150) {
   const step = symbol === 'AUDJPY' || symbol === 'AUDHUF' ? 0.018 : symbol === 'AUDDKK' || symbol === 'AUDHKD' ? 0.00055 : 0.000018
   const now = Math.floor(Date.now() / interval) * interval
   let current = base
-
   return Array.from({ length: count }, (_, i) => {
     const wave = Math.sin(i * 0.34) * step * 5
     const drift = (i / count) * step * 5
@@ -30,92 +29,36 @@ export default function TradingChart({ symbol, timeframe = 'M1', chartType = 'ca
 
   useEffect(() => {
     if (!ref.current) return undefined
-
     const chart = createChart(ref.current, {
       autoSize: true,
-      layout: {
-        background: { type: ColorType.Solid, color: '#ffffff' },
-        textColor: '#334155',
-        fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
-        fontSize: 10,
-      },
-      grid: {
-        vertLines: { color: '#f1f5f9' },
-        horzLines: { color: '#e2e8f0' },
-      },
-      crosshair: {
-        vertLine: { color: '#94a3b8', width: 1, style: 2, labelBackgroundColor: '#334155' },
-        horzLine: { color: '#94a3b8', width: 1, style: 2, labelBackgroundColor: '#334155' },
-      },
-      rightPriceScale: {
-        visible: true,
-        borderVisible: true,
-        borderColor: '#94a3b8',
-        textColor: '#1e293b',
-        minimumWidth: 72,
-        ticksVisible: true,
-        entireTextOnly: false,
-        autoScale: true,
-        scaleMargins: { top: 0.04, bottom: 0.06 },
-      },
-      timeScale: {
-        visible: true,
-        borderVisible: true,
-        borderColor: '#94a3b8',
-        timeVisible: true,
-        secondsVisible: false,
-        rightOffset: 3,
-        barSpacing: 7,
-        minBarSpacing: 3,
-        fixLeftEdge: false,
-        fixRightEdge: false,
-      },
+      layout: { background: { type: ColorType.Solid, color: '#0c1218' }, textColor: '#8d99a9', fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif', fontSize: 10 },
+      grid: { vertLines: { color: '#17222d' }, horzLines: { color: '#17222d' } },
+      crosshair: { vertLine: { color: '#506070', width: 1, style: 2, labelBackgroundColor: '#263544' }, horzLine: { color: '#506070', width: 1, style: 2, labelBackgroundColor: '#263544' } },
+      rightPriceScale: { visible: true, borderVisible: true, borderColor: '#263544', textColor: '#aeb9c7', minimumWidth: 72, ticksVisible: true, entireTextOnly: false, autoScale: true, scaleMargins: { top: 0.05, bottom: 0.08 } },
+      timeScale: { visible: true, borderVisible: true, borderColor: '#263544', timeVisible: true, secondsVisible: false, rightOffset: 3, barSpacing: 7, minBarSpacing: 3, fixLeftEdge: false, fixRightEdge: false },
       handleScale: { mouseWheel: true, pinch: true },
       handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true },
     })
     chartRef.current = chart
-
     const data = makeCandles(symbol, timeframe)
     let series
     if (chartType === 'line') {
-      series = chart.addSeries(LineSeries, {
-        color: '#00a896',
-        lineWidth: 2,
-        priceLineVisible: true,
-        priceLineColor: '#00a896',
-        lastValueVisible: true,
-      })
+      series = chart.addSeries(LineSeries, { color: '#4c91ff', lineWidth: 2, priceLineVisible: true, priceLineColor: '#4c91ff', lastValueVisible: true })
       series.setData(data.map((d) => ({ time: d.time, value: d.close })))
     } else {
-      series = chart.addSeries(CandlestickSeries, {
-        upColor: '#00a896',
-        downColor: '#ef4444',
-        borderUpColor: '#00a896',
-        borderDownColor: '#ef4444',
-        wickUpColor: '#00a896',
-        wickDownColor: '#ef4444',
-        priceLineVisible: true,
-        priceLineColor: '#00a896',
-        lastValueVisible: true,
-      })
+      series = chart.addSeries(CandlestickSeries, { upColor: '#2acb87', downColor: '#f05d68', borderUpColor: '#2acb87', borderDownColor: '#f05d68', wickUpColor: '#2acb87', wickDownColor: '#f05d68', priceLineVisible: true, priceLineColor: '#4c91ff', lastValueVisible: true })
       series.setData(data)
     }
-
     chart.timeScale().fitContent()
-
     const onZoom = (event) => {
       const range = chart.timeScale().getVisibleLogicalRange()
       if (!range) return
       const amount = event.detail === 'in' ? -8 : 8
-      chart.timeScale().setVisibleLogicalRange({
-        from: Math.max(0, range.from - amount),
-        to: Math.min(data.length + 8, range.to + amount),
-      })
+      chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, range.from - amount), to: Math.min(data.length + 8, range.to + amount) })
     }
     const onReset = () => chart.timeScale().fitContent()
     window.addEventListener('acg-chart-zoom', onZoom)
     window.addEventListener('acg-chart-reset', onReset)
-
     const interval = TIMEFRAME_SECONDS[timeframe] ?? 60
     timer.current = window.setInterval(() => {
       const last = data[data.length - 1]
@@ -125,14 +68,12 @@ export default function TradingChart({ symbol, timeframe = 'M1', chartType = 'ca
       data[data.length - 1] = point
       if (chartType === 'line') series.update({ time: point.time, value: close })
       else series.update(point)
-
       if (Date.now() >= (last.time + interval) * 1000) {
         const next = { time: last.time + interval, open: close, high: close, low: close, close }
         data.push(next)
         series.update(chartType === 'line' ? { time: next.time, value: close } : next)
       }
     }, 900)
-
     return () => {
       window.removeEventListener('acg-chart-zoom', onZoom)
       window.removeEventListener('acg-chart-reset', onReset)
@@ -141,6 +82,5 @@ export default function TradingChart({ symbol, timeframe = 'M1', chartType = 'ca
       chartRef.current = null
     }
   }, [symbol, timeframe, chartType])
-
   return <div className="trading-chart" ref={ref} aria-label={`${symbol} ${timeframe} chart`} />
 }
