@@ -37,14 +37,15 @@ function isDarkTheme() {
 function chartTheme(dark) {
   return dark
     ? {
-        background: '#0b111a',
-        text: '#8f9bad',
-        grid: '#172230',
-        border: '#263241',
-        crosshair: '#667386',
-        up: '#26c281',
-        down: '#f05b68',
-        line: '#4da3ff',
+        background: '#0b1117',
+        text: '#93a1b3',
+        grid: '#141f2a',
+        border: '#233140',
+        crosshair: '#526274',
+        up: '#2acb87',
+        down: '#f05d68',
+        line: '#3b8cff',
+        priceLine: '#526274',
       }
     : {
         background: '#ffffff',
@@ -55,6 +56,7 @@ function chartTheme(dark) {
         up: '#1677ff',
         down: '#ef5350',
         line: '#1769e0',
+        priceLine: '#aeb9c7',
       }
 }
 
@@ -69,11 +71,32 @@ export default function TradingChart({ symbol, timeframe = 'M1', chartType = 'ca
       const theme = chartTheme(dark)
       const chart = createChart(ref.current, {
         autoSize: true,
-        layout: { background: { type: ColorType.Solid, color: theme.background }, textColor: theme.text, fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif', fontSize: 10 },
-        grid: { vertLines: { color: theme.grid }, horzLines: { color: theme.grid } },
-        crosshair: { vertLine: { color: theme.crosshair, width: 1, style: 2 }, horzLine: { color: theme.crosshair, width: 1, style: 2 } },
-        rightPriceScale: { borderColor: theme.border, scaleMargins: { top: 0.08, bottom: 0.12 } },
-        timeScale: { borderColor: theme.border, timeVisible: true, secondsVisible: false },
+        layout: {
+          background: { type: ColorType.Solid, color: theme.background },
+          textColor: theme.text,
+          fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
+          fontSize: 10,
+        },
+        grid: {
+          vertLines: { color: theme.grid },
+          horzLines: { color: theme.grid },
+        },
+        crosshair: {
+          vertLine: { color: theme.crosshair, width: 1, style: 2, labelBackgroundColor: dark ? '#182433' : '#e8edf3' },
+          horzLine: { color: theme.crosshair, width: 1, style: 2, labelBackgroundColor: dark ? '#182433' : '#e8edf3' },
+        },
+        rightPriceScale: {
+          borderColor: theme.border,
+          textColor: theme.text,
+          scaleMargins: { top: 0.08, bottom: 0.12 },
+        },
+        timeScale: {
+          borderColor: theme.border,
+          timeVisible: true,
+          secondsVisible: false,
+          rightOffset: 2,
+          barSpacing: 7,
+        },
         handleScale: { mouseWheel: true, pinch: true },
         handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true },
       })
@@ -81,7 +104,13 @@ export default function TradingChart({ symbol, timeframe = 'M1', chartType = 'ca
       const data = makeCandles(symbol, timeframe)
       let series
       if (chartType === 'line') {
-        series = chart.addSeries(LineSeries, { color: theme.line, lineWidth: 2, priceLineVisible: true, lastValueVisible: true })
+        series = chart.addSeries(LineSeries, {
+          color: theme.line,
+          lineWidth: 2,
+          priceLineVisible: true,
+          priceLineColor: theme.priceLine,
+          lastValueVisible: true,
+        })
         series.setData(data.map((d) => ({ time: d.time, value: d.close })))
       } else {
         series = chart.addSeries(CandlestickSeries, {
@@ -92,6 +121,7 @@ export default function TradingChart({ symbol, timeframe = 'M1', chartType = 'ca
           wickUpColor: theme.up,
           wickDownColor: theme.down,
           priceLineVisible: true,
+          priceLineColor: theme.priceLine,
           lastValueVisible: true,
         })
         series.setData(data)
