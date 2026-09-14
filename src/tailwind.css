@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+@theme {
+  --color-acg-blue: #1474e8;
+  --color-acg-red: #ee4b51;
+  --color-acg-green: #1fa774;
+  --color-acg-ink: #171b21;
+  --color-acg-muted: #737b86;
+  --color-acg-border: #e1e5ea;
+  --color-acg-panel: #ffffff;
+  --color-acg-subtle: #f6f8fa;
+}
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body, #root { margin: 0; width: 100%; min-height: 100%; }
+  body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--color-acg-ink); background: #f5f7f9; }
+  button, input, select { font: inherit; }
+  button { -webkit-tap-highlight-color: transparent; }
+}
+
+/* Tailwind-backed terminal polish. Existing component selectors remain for behavior; this layer owns the responsive visual system. */
+.acg-app { --tw-border: #e1e5ea; --tw-blue: #1474e8; }
+
+@media (max-width: 760px) {
+  .acg-app { height: 100dvh !important; min-height: 0 !important; background: #fff !important; overflow: hidden !important; }
+  .mobile-terminal { height: 100dvh !important; padding: 0 !important; }
+  .mobile-chart-screen, .mobile-data-screen { inset: 0 0 62px !important; height: auto !important; }
+
+  .mobile-chart-toolbar { height: 44px !important; grid-template-columns: 42px 42px 42px minmax(58px,1fr) 42px 42px !important; position: relative; z-index: 5; }
+  .mobile-chart-toolbar > button { height: 44px !important; width: 42px !important; }
+  .mobile-chart-toolbar .mobile-timeframe { font-weight: 600; }
+  .mobile-quote-strip { height: 38px !important; grid-template-columns: minmax(0,1fr) 76px minmax(0,1fr) !important; }
+  .mobile-quote-strip button { height: 38px !important; }
+  .mobile-quote-sell strong, .mobile-quote-buy strong { font-size: 13px !important; }
+  .mobile-lot { height: 38px; }
+  .mobile-chart-title { height: 30px !important; padding: 0 9px !important; font-size: 11px !important; }
+  .mobile-chart-canvas { height: calc(100% - 112px) !important; min-height: 0 !important; }
+  .mobile-chart-timeframes { display: none !important; }
+
+  .mobile-bottom-nav { height: 62px !important; padding: 4px 2px calc(4px + env(safe-area-inset-bottom)) !important; }
+  .mobile-bottom-nav button { min-height: 54px; font-size: 8px !important; }
+
+  .mobile-screen-header { height: 50px !important; padding: 0 14px !important; }
+  .mobile-screen-header strong { font-size: 15px !important; }
+  .mobile-search { margin: 8px 10px !important; height: 38px !important; border-radius: 7px; }
+  .mobile-group-tabs { gap: 20px !important; height: 34px !important; padding-left: 12px !important; }
+  .mobile-group-tabs button { height: 34px !important; font-size: 10px !important; }
+  .mobile-quote-head, .mobile-market-row { grid-template-columns: minmax(120px,1.35fr) .9fr .9fr .7fr !important; }
+  .mobile-market-row { min-height: 54px !important; padding: 7px 10px !important; }
+  .mobile-symbol-cell small { max-width: 150px; }
+
+  .trade-screen { padding-bottom: 10px; }
+  .mobile-metrics { grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 8px !important; padding: 10px !important; }
+  .metric-card { min-width: 0; border-radius: 8px; padding: 10px !important; }
+  .metric-card strong { font-size: 11px !important; overflow: hidden; text-overflow: ellipsis; }
+  .mobile-panel { margin: 0 10px 10px !important; border-radius: 8px; }
+  .mobile-panel .empty-state { min-height: 150px !important; }
+
+  .settings-screen { overflow-y: auto !important; padding-bottom: 18px; }
+  .settings-card { margin: 10px !important; border-radius: 8px !important; }
+  .settings-list { margin: 0 10px 12px !important; border-radius: 8px; overflow: hidden; }
+  .settings-list button { min-height: 48px !important; }
+
+  .modal-backdrop { padding: 12px !important; align-items: flex-end !important; }
+  .order-modal { width: 100% !important; max-width: 520px; max-height: calc(100dvh - 24px); overflow-y: auto; border-radius: 14px 14px 8px 8px !important; }
+}
+
+@media (min-width: 761px) {
+  .acg-topbar { height: 56px !important; flex-basis: 56px !important; padding-inline: 16px !important; }
+  .main-grid { grid-template-columns: 44px minmax(0,1fr) clamp(280px,25vw,340px) !important; }
+  .drawing-rail { padding-top: 8px !important; }
+  .terminal-workspace { min-width: 0; }
+  .chart-toolbar { min-height: 40px !important; }
+  .terminal-panel { min-height: 180px; }
+  .market-watch { min-width: 0; }
+}
+
+@media (max-width: 390px) {
+  .mobile-chart-toolbar { grid-template-columns: 38px 38px 38px minmax(48px,1fr) 38px 38px !important; }
+  .mobile-chart-toolbar > button { width: 38px !important; }
+  .mobile-quote-strip { grid-template-columns: minmax(0,1fr) 68px minmax(0,1fr) !important; }
+  .mobile-quote-sell strong, .mobile-quote-buy strong { font-size: 12px !important; }
+  .mobile-quote-sell span, .mobile-quote-buy span { font-size: 6px !important; }
+  .mobile-quote-head, .mobile-market-row { grid-template-columns: minmax(102px,1.25fr) .85fr .85fr .65fr !important; gap: 4px !important; }
+  .mobile-symbol-cell small { display: none !important; }
+}
