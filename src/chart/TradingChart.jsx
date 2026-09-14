@@ -4,12 +4,13 @@ import { CandlestickSeries, ColorType, LineSeries, createChart } from 'lightweig
 const BASE_PRICES = { AUDCAD: 0.99368, AUDCHF: 0.58286, AUDDKK: 4.61785, AUDHKD: 5.60626, AUDHUF: 220.748, AUDJPY: 110.287 }
 const TIMEFRAME_SECONDS = { M1: 60, M5: 300, M15: 900, M30: 1800, H1: 3600, H4: 14400, D1: 86400, W1: 604800, MN: 2592000 }
 
-function makeCandles(symbol, timeframe, count = 110) {
+function makeCandles(symbol, timeframe, count = 150) {
   const base = BASE_PRICES[symbol] ?? BASE_PRICES.AUDCAD
   const interval = TIMEFRAME_SECONDS[timeframe] ?? 60
   const step = symbol === 'AUDJPY' || symbol === 'AUDHUF' ? 0.018 : symbol === 'AUDDKK' || symbol === 'AUDHKD' ? 0.00055 : 0.000018
   const now = Math.floor(Date.now() / interval) * interval
   let current = base
+
   return Array.from({ length: count }, (_, i) => {
     const wave = Math.sin(i * 0.34) * step * 5
     const drift = (i / count) * step * 5
@@ -40,7 +41,7 @@ export default function TradingChart({ symbol, timeframe = 'M1', chartType = 'ca
       },
       grid: {
         vertLines: { color: '#f1f5f9' },
-        horzLines: { color: '#f1f5f9' },
+        horzLines: { color: '#e2e8f0' },
       },
       crosshair: {
         vertLine: { color: '#94a3b8', width: 1, style: 2, labelBackgroundColor: '#334155' },
@@ -48,15 +49,19 @@ export default function TradingChart({ symbol, timeframe = 'M1', chartType = 'ca
       },
       rightPriceScale: {
         visible: true,
-        borderColor: '#cbd5e1',
-        textColor: '#334155',
-        minimumWidth: 62,
-        scaleMargins: { top: 0.08, bottom: 0.12 },
+        borderVisible: true,
+        borderColor: '#94a3b8',
+        textColor: '#1e293b',
+        minimumWidth: 72,
+        ticksVisible: true,
+        entireTextOnly: false,
+        autoScale: true,
+        scaleMargins: { top: 0.04, bottom: 0.06 },
       },
       timeScale: {
         visible: true,
         borderVisible: true,
-        borderColor: '#cbd5e1',
+        borderColor: '#94a3b8',
         timeVisible: true,
         secondsVisible: false,
         rightOffset: 3,
@@ -95,6 +100,7 @@ export default function TradingChart({ symbol, timeframe = 'M1', chartType = 'ca
       })
       series.setData(data)
     }
+
     chart.timeScale().fitContent()
 
     const onZoom = (event) => {
@@ -119,6 +125,7 @@ export default function TradingChart({ symbol, timeframe = 'M1', chartType = 'ca
       data[data.length - 1] = point
       if (chartType === 'line') series.update({ time: point.time, value: close })
       else series.update(point)
+
       if (Date.now() >= (last.time + interval) * 1000) {
         const next = { time: last.time + interval, open: close, high: close, low: close, close }
         data.push(next)
