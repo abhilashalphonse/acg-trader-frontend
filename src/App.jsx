@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { BarChart3, ChevronDown, Crosshair, Maximize2, MoreHorizontal, Search, Settings2, SlidersHorizontal, X } from 'lucide-react'
+import { BarChart3, ChevronDown, Crosshair, History, Maximize2, MoreHorizontal, Search, Settings2, SlidersHorizontal, WalletCards, X } from 'lucide-react'
 import TradingChart from './chart/TradingChart'
 import './App.css'
+import './MobileNav.css'
 
 const markets = [
   { symbol: 'EURUSD', name: 'Euro / US Dollar', bid: 1.17482, ask: 1.17496, change: '+0.18', digits: 5 },
@@ -39,22 +40,31 @@ export default function App() {
   const [depthOpen, setDepthOpen] = useState(false)
   const [orderOpen, setOrderOpen] = useState(false)
   const [mobileWatch, setMobileWatch] = useState(false)
+  const [mobileView, setMobileView] = useState('chart')
 
   const market = useMemo(() => markets.find((item) => item.symbol === selectedSymbol) ?? markets[0], [selectedSymbol])
   const filteredMarkets = markets.filter((item) => `${item.symbol} ${item.name}`.toLowerCase().includes(search.toLowerCase()))
   const changeVolume = (amount) => setVolume((value) => Math.max(0.01, Math.min(10, Number((value + amount).toFixed(2)))))
   const openQuickOrder = (side) => { setOrderSide(side); setOrderOpen(true) }
 
+  const goMobile = (view) => {
+    setMobileView(view)
+    if (view === 'markets') setMobileWatch(true)
+    else setMobileWatch(false)
+    if (view === 'trade') setActivePanel('Positions')
+    if (view === 'history') setActivePanel('History')
+  }
+
   return (
     <div className="terminal-shell">
       <header className="topbar">
         <div className="brand"><span className="brand-mark">a</span><span>ACG <strong>TRADER</strong></span></div>
         <div className="account-strip"><span className="connection-dot" /><span className="account-label">ACG-FUNDED</span><span className="account-number">#1048217</span><span className="account-separator" /><span>Balance</span><strong>$100,482.31</strong><span>Equity</span><strong className="positive">$100,491.11</strong><span className="account-metric">Margin <strong>$117.50</strong></span><span className="account-metric">Free <strong>$100,373.61</strong></span></div>
-        <button className="mobile-menu" type="button" onClick={() => setMobileWatch((value) => !value)} aria-label="Open market watch"><SlidersHorizontal size={17} /></button>
+        <button className="mobile-menu" type="button" onClick={() => goMobile('markets')} aria-label="Open markets"><SlidersHorizontal size={17} /></button>
       </header>
 
       <div className="toolbar">
-        <button className="mobile-watch-button" type="button" onClick={() => setMobileWatch(true)}><BarChart3 size={15} /> Markets</button>
+        <button className="mobile-watch-button" type="button" onClick={() => goMobile('markets')}><BarChart3 size={15} /> Markets</button>
         <div className="symbol-select"><span className="symbol-dot" /><select value={selectedSymbol} onChange={(event) => setSelectedSymbol(event.target.value)}>{markets.map((item) => <option key={item.symbol}>{item.symbol}</option>)}</select><span className="quote">{formatPrice(market.bid, market.digits)} / {formatPrice(market.ask, market.digits)}</span></div>
         <div className="timeframes">{timeframes.map((item) => <button key={item} className={timeframe === item ? 'active' : ''} type="button" onClick={() => setTimeframe(item)}>{item}</button>)}</div>
         <button className="timeframe-more" type="button" aria-label="More timeframes"><ChevronDown size={13} /></button>
@@ -66,7 +76,7 @@ export default function App() {
           <div className="panel-heading"><div><span className="eyebrow">MARKET WATCH</span><strong>Forex CFDs</strong></div><button type="button" className="small-button" onClick={() => setMobileWatch(false)} aria-label="Close market watch"><X size={15} /></button></div>
           <label className="search-box"><Search size={13} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search symbol" /></label>
           <div className="watchlist-header"><span>Symbol</span><span>Bid</span><span>Ask</span></div>
-          <div className="watchlist">{filteredMarkets.map((item) => <button key={item.symbol} type="button" className={`market-row ${selectedSymbol === item.symbol ? 'selected' : ''}`} onDoubleClick={() => setOrderOpen(true)} onClick={() => setSelectedSymbol(item.symbol)}><span><strong>{item.symbol}</strong><small>{item.name}</small></span><span>{formatPrice(item.bid, item.digits)}</span><span>{formatPrice(item.ask, item.digits)}</span></button>)}</div>
+          <div className="watchlist">{filteredMarkets.map((item) => <button key={item.symbol} type="button" className={`market-row ${selectedSymbol === item.symbol ? 'selected' : ''}`} onDoubleClick={() => setOrderOpen(true)} onClick={() => { setSelectedSymbol(item.symbol); setMobileWatch(false) }}><span><strong>{item.symbol}</strong><small>{item.name}</small></span><span>{formatPrice(item.bid, item.digits)}</span><span>{formatPrice(item.ask, item.digits)}</span></button>)}</div>
           <div className="watchlist-hint">Double-click a symbol to open a new order.</div>
         </aside>
 
@@ -82,7 +92,24 @@ export default function App() {
         </section>
       </main>
 
+      <div className="mobile-settings" style={{ display: mobileView === 'more' ? 'block' : 'none' }}>
+        <div className="mobile-settings-header"><strong>Settings</strong><button className="small-button" type="button" onClick={() => goMobile('chart')} aria-label="Close settings"><X size={18} /></button></div>
+        <div className="mobile-settings-card"><strong>Trading account</strong><span>ACG-FUNDED · #1048217</span></div>
+        <div className="mobile-settings-card"><strong>Risk</strong><span>Daily loss 0.42% · Maximum loss 0.51%</span></div>
+        <div className="mobile-settings-card"><strong>Chart</strong><span>Default timeframe: {timeframe} · Candlesticks</span></div>
+        <div className="mobile-settings-card"><strong>Notifications</strong><span>Price alerts and trading notifications</span></div>
+      </div>
+
       <footer className="statusbar"><div><span className="status-dot" /> Connected · Demo environment</div><div>Data <strong>24 ms</strong></div><div>Server <strong>15:06:24</strong></div><div className="footer-right">Daily Loss <strong>0.42%</strong> · Max Loss <strong>0.51%</strong> · Target <strong>4.8%</strong></div></footer>
+
+      <nav className="mobile-nav" aria-label="Trading navigation">
+        <button type="button" className={mobileView === 'markets' ? 'active' : ''} onClick={() => goMobile('markets')}><BarChart3 size={18} /><span>Markets</span></button>
+        <button type="button" className={mobileView === 'chart' ? 'active' : ''} onClick={() => goMobile('chart')}><Crosshair size={18} /><span>Chart</span></button>
+        <button type="button" className={mobileView === 'trade' ? 'active' : ''} onClick={() => goMobile('trade')}><WalletCards size={18} /><span>Trade</span></button>
+        <button type="button" className={mobileView === 'history' ? 'active' : ''} onClick={() => goMobile('history')}><History size={18} /><span>History</span></button>
+        <button type="button" className={mobileView === 'more' ? 'active' : ''} onClick={() => goMobile('more')}><Settings2 size={18} /><span>More</span></button>
+      </nav>
+
       {orderOpen && <OrderModal market={market} side={orderSide} volume={volume} setSide={setOrderSide} setVolume={setVolume} onClose={() => setOrderOpen(false)} />}
     </div>
   )
