@@ -30,6 +30,7 @@ function isDarkTheme() {
     document.documentElement.dataset.theme === 'dark' ||
     document.body.dataset.theme === 'dark' ||
     app?.classList.contains('dark') ||
+    app?.classList.contains('acg-dark') ||
     app?.dataset.theme === 'dark'
   )
 }
@@ -37,15 +38,15 @@ function isDarkTheme() {
 function chartTheme(dark) {
   return dark
     ? {
-        background: '#0b1117',
-        text: '#93a1b3',
-        grid: '#141f2a',
-        border: '#233140',
-        crosshair: '#526274',
+        background: '#0c1218',
+        text: '#8d99a9',
+        grid: '#1b2733',
+        border: '#263544',
+        crosshair: '#566575',
         up: '#2acb87',
         down: '#f05d68',
-        line: '#3b8cff',
-        priceLine: '#526274',
+        line: '#4c91ff',
+        priceLine: '#536475',
       }
     : {
         background: '#ffffff',
@@ -53,9 +54,9 @@ function chartTheme(dark) {
         grid: '#edf1f5',
         border: '#dfe5ec',
         crosshair: '#aeb9c7',
-        up: '#1677ff',
-        down: '#ef5350',
-        line: '#1769e0',
+        up: '#1fa774',
+        down: '#e05260',
+        line: '#2f7df6',
         priceLine: '#aeb9c7',
       }
 }
@@ -78,24 +79,28 @@ export default function TradingChart({ symbol, timeframe = 'M1', chartType = 'ca
           fontSize: 10,
         },
         grid: {
-          vertLines: { color: theme.grid },
-          horzLines: { color: theme.grid },
+          vertLines: { color: theme.grid, style: 0 },
+          horzLines: { color: theme.grid, style: 0 },
         },
         crosshair: {
-          vertLine: { color: theme.crosshair, width: 1, style: 2, labelBackgroundColor: dark ? '#182433' : '#e8edf3' },
-          horzLine: { color: theme.crosshair, width: 1, style: 2, labelBackgroundColor: dark ? '#182433' : '#e8edf3' },
+          vertLine: { color: theme.crosshair, width: 1, style: 2, labelBackgroundColor: dark ? '#1b2733' : '#e8edf3' },
+          horzLine: { color: theme.crosshair, width: 1, style: 2, labelBackgroundColor: dark ? '#1b2733' : '#e8edf3' },
         },
         rightPriceScale: {
+          visible: true,
           borderColor: theme.border,
           textColor: theme.text,
+          minimumWidth: 58,
           scaleMargins: { top: 0.08, bottom: 0.12 },
         },
         timeScale: {
+          visible: true,
           borderColor: theme.border,
           timeVisible: true,
           secondsVisible: false,
-          rightOffset: 2,
+          rightOffset: 3,
           barSpacing: 7,
+          minBarSpacing: 3,
         },
         handleScale: { mouseWheel: true, pinch: true },
         handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true },
