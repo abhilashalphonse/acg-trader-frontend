@@ -11,10 +11,21 @@ const BASE_PRICES = {
   NZDUSD: 0.6036,
 }
 
-function makeCandles(symbol, count = 90) {
+const TIMEFRAME_SECONDS = {
+  M1: 60,
+  M5: 300,
+  M15: 900,
+  M30: 1800,
+  H1: 3600,
+  H4: 14400,
+  D1: 86400,
+}
+
+function makeCandles(symbol, timeframe, count = 90) {
   const base = BASE_PRICES[symbol] ?? 1.1742
   const step = symbol === 'USDJPY' ? 0.018 : 0.000018
-  const now = Math.floor(Date.now() / 60000) * 60
+  const interval = TIMEFRAME_SECONDS[timeframe] ?? TIMEFRAME_SECONDS.M15
+  const now = Math.floor(Date.now() / interval) * interval
   let price = base
 
   return Array.from({ length: count }, (_, index) => {
@@ -26,7 +37,7 @@ function makeCandles(symbol, count = 90) {
     const low = Math.min(open, close) - step * (2 + (index % 3))
     price = close
     return {
-      time: now - (count - index) * 900,
+      time: now - (count - index - 1) * interval,
       open,
       high,
       low,
@@ -37,7 +48,6 @@ function makeCandles(symbol, count = 90) {
 
 export default function TradingChart({ symbol, timeframe = 'M15' }) {
   const containerRef = useRef(null)
-  const seriesRef = useRef(null)
   const timerRef = useRef(null)
 
   useEffect(() => {
@@ -83,15 +93,14 @@ export default function TradingChart({ symbol, timeframe = 'M15' }) {
       lastValueVisible: true,
     })
 
-    const data = makeCandles(symbol)
+    const interval = TIMEFRAME_SECONDS[timeframe] ?? TIMEFRAME_SECONDS.M15
+    const data = makeCandles(symbol, timeframe)
     series.setData(data)
     chart.timeScale().fitContent()
-    seriesRef.current = series
 
-    const decimals = symbol === 'USDJPY' ? 3 : 5
-    const tickStep = symbol === 'USDJPY' ? 0.001 : 0.00001
     timerRef.current = window.setInterval(() => {
       const last = data[data.length - 1]
+      const tickStep = symbol === 'USDJPY' ? 0.001 : 0.00001
       const move = (Math.random() - 0.47) * tickStep * 4
       const close = last.close + move
       const next = {
@@ -102,13 +111,18 @@ export default function TradingChart({ symbol, timeframe = 'M15' }) {
       }
       data[data.length - 1] = next
       series.update(next)
-      void decimals
+
+      if (Date.now() >= (last.time + interval) * 1000) {
+        const nextTime = last.time + interval
+        const nextCandle = { time: nextTime, open: close, high: close, low: close, close }
+        data.push(nextCandle)
+        series.update(nextCandle)
+      }
     }, 900)
 
     return () => {
       if (timerRef.current) window.clearInterval(timerRef.current)
       timerRef.current = null
-      seriesRef.current = null
       chart.remove()
     }
   }, [symbol, timeframe])
