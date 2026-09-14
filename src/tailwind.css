@@ -27,7 +27,7 @@
   .mobile-terminal { position:fixed !important; inset:0 !important; width:100% !important; height:100dvh !important; min-height:0 !important; margin:0 !important; padding:0 !important; background:#fff !important; overflow:hidden !important; }
   .mobile-chart-screen, .mobile-data-screen { position:absolute !important; left:0 !important; right:0 !important; top:0 !important; bottom:56px !important; height:auto !important; margin:0 !important; background:#fff !important; color:#0f172a !important; overflow:hidden !important; }
 
-  .mobile-chart-toolbar { height:48px !important; grid-template-columns:repeat(7,minmax(0,1fr)) !important; background:#fff !important; border-bottom:1px solid #e2e8f0 !important; color:#334155 !important; }
+  .mobile-chart-toolbar { height:48px !important; background:#fff !important; border-bottom:1px solid #e2e8f0 !important; color:#334155 !important; }
   .mobile-chart-toolbar > button { width:100% !important; height:48px !important; background:#fff !important; color:#475569 !important; border:0 !important; }
   .mobile-chart-toolbar .mobile-toolbar-active { color:#2563eb !important; }
   .mobile-timeframe-wrap { position:relative; display:flex; align-items:center; justify-content:center; height:48px; }
@@ -35,7 +35,7 @@
   .mobile-timeframe-menu { position:absolute; top:44px; left:50%; transform:translateX(-50%); z-index:50; min-width:86px; padding:4px; background:#fff; border:1px solid #e2e8f0; box-shadow:0 8px 24px rgba(15,23,42,.12); }
   .mobile-timeframe-menu button { display:block; width:100%; border:0; background:#fff; color:#475569; text-align:center; padding:7px 10px; font-size:11px; }
   .mobile-timeframe-menu button.active { background:#eff6ff; color:#2563eb; font-weight:700; }
-  .clock-icon { display:inline-grid !important; place-items:center !important; width:18px !important; height:18px !important; font-size:18px !important; line-height:1 !important; color:#475569 !important; }
+  .clock-icon { font-size:20px; line-height:1; color:#475569; }
 
   .mobile-quote-strip { height:44px !important; grid-template-columns:repeat(3,minmax(0,1fr)) !important; background:#fff !important; border-bottom:1px solid #e2e8f0 !important; }
   .mobile-quote-strip button { height:44px !important; }
@@ -46,21 +46,17 @@
   .mobile-quote-sell strong, .mobile-quote-buy strong { margin-top:2px; font-size:14px !important; font-weight:700 !important; }
   .mobile-lot { height:44px !important; display:flex !important; align-items:center !important; justify-content:space-between !important; padding:0 8px !important; background:#fff !important; border-left:1px solid #e2e8f0 !important; border-right:1px solid #e2e8f0 !important; color:#1e293b !important; }
   .mobile-lot button { width:28px !important; height:40px !important; background:#fff !important; color:#94a3b8 !important; border:0 !important; display:grid !important; place-items:center !important; }
-  .mobile-lot button:hover { color:#475569 !important; }
   .mobile-lot strong { font-size:13px !important; font-weight:600 !important; }
 
-  /* Keep a dedicated bottom band inside the chart for Lightweight Charts' time labels. */
   .mobile-chart-canvas { position:relative; height:calc(100% - 92px) !important; min-height:0 !important; overflow:hidden; background:#fff !important; }
-  .mobile-chart-canvas .trading-chart { position:absolute !important; left:0 !important; right:0 !important; top:0 !important; bottom:0 !important; width:100% !important; height:100% !important; }
+  .mobile-chart-canvas .trading-chart { position:absolute; inset:0; }
   .mobile-chart-title-overlay { color:#0f172a; font-size:12px; line-height:1.2; white-space:nowrap; }
   .mobile-chart-title-overlay span { color:#64748b; font-weight:400; }
   .mobile-price-tag { position:absolute; right:0; top:42%; padding:3px 6px; background:#00a896 !important; color:#fff; font:10px ui-monospace,SFMono-Regular,Menlo,monospace; pointer-events:none; z-index:8; }
-  .mobile-floating-actions { bottom:34px !important; }
+  .mobile-floating-actions { bottom:52px !important; }
   .mobile-floating-actions button { width:36px; height:36px; border-radius:9999px; background:#fff; border:1px solid #e2e8f0; color:#475569; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(15,23,42,.14); }
-  .mobile-floating-actions button:hover { background:#f8fafc; }
-  .mobile-chart-menu { top:52px !important; background:#fff !important; border:1px solid #e2e8f0 !important; box-shadow:0 8px 24px rgba(15,23,42,.12) !important; color:#334155 !important; }
 
-  /* Five equal navigation slots. Flexbox is the source of truth for exact edge alignment. */
+  /* Five equal navigation slots. */
   .mobile-bottom-nav { position:absolute !important; left:0 !important; right:0 !important; bottom:0 !important; width:100% !important; max-width:none !important; height:56px !important; min-height:56px !important; margin:0 !important; padding:0 !important; z-index:100 !important; display:flex !important; flex-direction:row !important; align-items:stretch !important; justify-content:flex-start !important; gap:0 !important; background:#fff !important; border-top:1px solid #e2e8f0 !important; border-left:0 !important; border-right:0 !important; border-bottom:0 !important; box-shadow:none !important; }
   .mobile-bottom-nav > button { flex:1 1 0% !important; width:auto !important; min-width:0 !important; max-width:none !important; height:56px !important; min-height:56px !important; margin:0 !important; padding:0 !important; border:0 !important; background:transparent !important; color:#94a3b8 !important; display:flex !important; flex-direction:column !important; align-items:center !important; justify-content:center !important; gap:3px !important; font-size:10px !important; font-weight:500 !important; }
   .mobile-bottom-nav > button svg { flex:0 0 auto !important; stroke-width:1.8; }
