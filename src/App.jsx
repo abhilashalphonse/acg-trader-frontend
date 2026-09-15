@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import TradingTerminalV2 from './pages/TradingTerminalV2.jsx';
 import { useMarketData } from './hooks/useMarketData.js';
 
@@ -12,12 +12,20 @@ const seedMarkets = [
 ];
 
 export default function App() {
-  const activeSymbol = 'AUDCAD';
+  const [activeSymbol, setActiveSymbol] = useState('AUDCAD');
   const { markets, activeTick } = useMarketData(seedMarkets, activeSymbol);
   const market = useMemo(
     () => markets.find(item => item.symbol === activeSymbol) || seedMarkets[0],
-    [markets],
+    [markets, activeSymbol],
   );
 
-  return <TradingTerminalV2 market={market} tick={activeTick} />;
+  return (
+    <TradingTerminalV2
+      market={market}
+      tick={activeTick}
+      markets={markets}
+      activeSymbol={activeSymbol}
+      onSelectSymbol={setActiveSymbol}
+    />
+  );
 }
