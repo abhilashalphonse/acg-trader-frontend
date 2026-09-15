@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createChart } from '@gocharting/chart-sdk';
-import { createGoChartingOptions } from '../services/goCharting.js';
+import {
+  createGoChartingOptions,
+  getGoChartingDatafeed,
+} from '../services/goCharting.js';
 
 export default function TradingChart({ symbol = 'AUDCAD', timeframe = 'M1', compact = false }) {
   const ref = useRef(null);
@@ -10,10 +13,20 @@ export default function TradingChart({ symbol = 'AUDCAD', timeframe = 'M1', comp
   useEffect(() => {
     if (!ref.current) return undefined;
 
+    const datafeed = getGoChartingDatafeed();
+
+    // GoCharting's public demo WebSocket is not a general Forex/CFD feed.
+    // Until ACG has a documented UDF endpoint, keep the terminal shell alive
+    // instead of repeatedly mounting the SDK with an invalid/missing feed.
+    if (!datafeed) {
+      setError('Chart datafeed not configured');
+      return undefined;
+    }
+
     try {
       chartRef.current = createChart(
         ref.current,
-        createGoChartingOptions({ symbol, timeframe, compact }),
+        createGoChartingOptions({ symbol, timeframe, compact, datafeed }),
       );
       setError('');
     } catch (e) {
