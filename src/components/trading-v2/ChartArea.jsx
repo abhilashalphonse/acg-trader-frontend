@@ -44,7 +44,16 @@ function formatCountdown(totalSeconds) {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-export default function ChartArea({ symbol, chartTimeframe, tick, price, chartMode, selectedTool, onSelectTool }) {
+export default function ChartArea({
+  symbol,
+  chartTimeframe,
+  tick,
+  price,
+  ask,
+  chartMode,
+  selectedTool,
+  onSelectTool,
+}) {
   const timeframeSeconds = secondsByTimeframe[chartTimeframe] || 60;
   const [remaining, setRemaining] = useState(() => timeframeSeconds - (Math.floor(Date.now() / 1000) % timeframeSeconds));
 
@@ -80,7 +89,14 @@ export default function ChartArea({ symbol, chartTimeframe, tick, price, chartMo
       </aside>
 
       <div className="relative min-h-0 min-w-0 overflow-hidden rounded-xl border border-[#1b2c3d] bg-[#080f17]">
-        <TradingChart symbol={symbol} timeframe={chartTimeframe} tick={tick} chartMode={chartMode} />
+        <TradingChart
+          symbol={symbol}
+          timeframe={chartTimeframe}
+          tick={tick}
+          chartMode={chartMode}
+          bidPrice={price}
+          askPrice={ask}
+        />
 
         <div className="pointer-events-none absolute right-0 top-[31%] z-10 flex -translate-y-1/2 flex-col items-end">
           <span className="rounded-l-md bg-[#22a77d] px-2 py-1 text-[10px] font-extrabold leading-none text-[#e9fff8] shadow-[0_0_14px_rgba(34,167,125,0.18)]">{formattedPrice}</span>
