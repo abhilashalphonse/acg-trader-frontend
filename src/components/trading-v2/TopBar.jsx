@@ -4,17 +4,12 @@ import { Bell, Search, UserRound } from 'lucide-react';
 export default function TopBar({ balance = '$12,458.32', live = true }) {
   return (
     <header className="flex h-[60px] items-center justify-between gap-2 px-3">
-      <div className="flex min-w-0 items-center gap-2.5">
-        <div className="grid size-[34px] shrink-0 place-items-center rounded-[10px] bg-gradient-to-br from-[#6fdcff] via-[#3cb6ff] to-[#168cff] text-[21px] font-black leading-none text-[#03121e] shadow-[0_0_24px_rgba(48,174,255,0.18)]">
-          a
+      <div className="min-w-0 leading-none">
+        <div className="flex items-center gap-1.5 whitespace-nowrap text-[15px] font-extrabold tracking-[-0.025em] text-[#f7f9fc]">
+          <span>ACG Trader</span>
+          <span className="rounded-md bg-[#0d2b42] px-1.5 py-1 text-[9px] font-extrabold tracking-[0.04em] text-[#55bdff]">V2</span>
         </div>
-        <div className="min-w-0 leading-none">
-          <div className="flex items-center gap-1.5 whitespace-nowrap text-[15px] font-extrabold tracking-[-0.025em] text-[#f7f9fc]">
-            <span>ACG Trader</span>
-            <span className="rounded-md bg-[#0d2b42] px-1.5 py-1 text-[9px] font-extrabold tracking-[0.04em] text-[#55bdff]">V2</span>
-          </div>
-          <p className="mt-1.5 truncate text-[9px] font-medium text-[#65788e]">Trade Without Limits</p>
-        </div>
+        <p className="mt-1.5 truncate text-[9px] font-medium text-[#65788e]">Trade Without Limits</p>
       </div>
 
       <div className="flex shrink-0 items-center gap-1.5">
