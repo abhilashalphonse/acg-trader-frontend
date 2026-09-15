@@ -16,14 +16,18 @@ export const toGoChartingSymbol = symbol => GOCHARTING_SYMBOLS[symbol] ?? symbol
 export const toGoChartingInterval = timeframe => GOCHARTING_INTERVALS[timeframe] ?? '1m';
 
 export function createGoChartingOptions({ symbol, timeframe, compact = false, datafeed }) {
-  return {
+  const options = {
     licenseKey: GOCHARTING_LICENSE,
     symbol: toGoChartingSymbol(symbol),
     interval: toGoChartingInterval(timeframe),
-    datafeed,
     theme: 'dark',
     autosize: true,
     attribution: true,
     toolbar: !compact,
   };
+
+  // Only provide datafeed when using an SDK-supported or ACG custom feed.
+  if (datafeed) options.datafeed = datafeed;
+
+  return options;
 }
