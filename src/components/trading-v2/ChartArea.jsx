@@ -53,6 +53,7 @@ export default function ChartArea({
   chartMode,
   selectedTool,
   onSelectTool,
+  focusMode = false,
 }) {
   const timeframeSeconds = secondsByTimeframe[chartTimeframe] || 60;
   const [remaining, setRemaining] = useState(() => timeframeSeconds - (Math.floor(Date.now() / 1000) % timeframeSeconds));
@@ -70,20 +71,28 @@ export default function ChartArea({
 
   const formattedPrice = useMemo(() => price || '0.99368', [price]);
 
+  const areaClass = focusMode
+    ? 'grid h-full min-h-0 grid-cols-[36px_minmax(0,1fr)] gap-1.5 px-1.5 pb-1.5'
+    : 'grid h-[270px] grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2 md:h-[300px]';
+
+  const toolbarClass = focusMode
+    ? 'flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto rounded-xl border border-[#1b2c3d] bg-[#09131d] py-1.5 shadow-[inset_0_1px_rgba(255,255,255,0.02)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+    : 'flex min-h-0 flex-col items-center gap-0.5 rounded-xl border border-[#1b2c3d] bg-[#09131d] py-1.5 shadow-[inset_0_1px_rgba(255,255,255,0.02)]';
+
   return (
-    <div className="grid h-[270px] grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2 md:h-[300px]">
-      <aside className="flex min-h-0 flex-col items-center gap-0.5 rounded-xl border border-[#1b2c3d] bg-[#09131d] py-1.5 shadow-[inset_0_1px_rgba(255,255,255,0.02)]" aria-label="Drawing tools">
+    <div className={areaClass}>
+      <aside className={toolbarClass} aria-label="Drawing tools">
         {tools.map(([id, Icon]) => (
           <button
             key={id}
             type="button"
             onClick={() => onSelectTool(id)}
             aria-label={id}
-            className={`grid size-[27px] place-items-center rounded-lg transition ${
+            className={`grid ${focusMode ? 'size-[29px]' : 'size-[27px]'} shrink-0 place-items-center rounded-lg transition ${
               selectedTool === id ? 'bg-[#0f3149] text-[#59c8ff]' : 'text-[#74879c] hover:bg-white/[0.035] hover:text-[#d7e4f1]'
             }`}
           >
-            <Icon size={16} strokeWidth={1.75} />
+            <Icon size={focusMode ? 17 : 16} strokeWidth={1.75} />
           </button>
         ))}
       </aside>
