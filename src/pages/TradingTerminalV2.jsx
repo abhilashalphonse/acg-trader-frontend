@@ -4,9 +4,34 @@ import MarketPanel from '../components/trading-v2/MarketPanel.jsx';
 import ExecutionPanel from '../components/trading-v2/ExecutionPanel.jsx';
 import PositionsPanel from '../components/trading-v2/PositionsPanel.jsx';
 import BottomNavbar from '../components/trading-v2/BottomNavbar.jsx';
+import DesktopTerminal from '../components/trading-v2/DesktopTerminal.jsx';
 
-export default function TradingTerminalV2({ market, tick }) {
+function useDesktopLayout() {
+  const [isDesktop, setIsDesktop] = useState(() => (
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)').matches : false
+  ));
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const media = window.matchMedia('(min-width: 1024px)');
+    const onChange = event => setIsDesktop(event.matches);
+    setIsDesktop(media.matches);
+    media.addEventListener?.('change', onChange);
+    return () => media.removeEventListener?.('change', onChange);
+  }, []);
+
+  return isDesktop;
+}
+
+export default function TradingTerminalV2({
+  market,
+  tick,
+  markets = [],
+  activeSymbol = market?.symbol,
+  onSelectSymbol = () => {},
+}) {
   const shellRef = useRef(null);
+  const isDesktop = useDesktopLayout();
   const [timeframe, setTimeframe] = useState('1m');
   const [chartMode, setChartMode] = useState('candles');
   const [selectedTool, setSelectedTool] = useState('cursor');
@@ -28,6 +53,18 @@ export default function TradingTerminalV2({ market, tick }) {
       console.warn('Fullscreen request was not available', error);
     }
   };
+
+  if (isDesktop) {
+    return (
+      <DesktopTerminal
+        market={market}
+        tick={tick}
+        markets={markets}
+        activeSymbol={activeSymbol}
+        onSelectSymbol={onSelectSymbol}
+      />
+    );
+  }
 
   return (
     <div className="min-h-dvh bg-[#02070c] font-sans text-[#f5f8fb] antialiased">
