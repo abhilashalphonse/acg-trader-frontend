@@ -1,16 +1,15 @@
-# React + Vite
+# ACG Trader
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+ACG Trader V1 is a responsive, chart-first trading terminal designed for fast MT5-familiar workflows on mobile and desktop.
 
-Currently, two official plugins are available:
+## GoCharting V1 architecture
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The chart uses GoCharting's free attributed charting/data path directly. ACG Trader does not maintain a duplicate frontend REST/WebSocket market-data gateway for chart candles.
 
-## React Compiler
+GoCharting owns chart rendering, realtime chart data, history, timeframes, indicators and drawings. ACG Trader owns terminal UI, account state, prop-firm risk state and execution integration.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The surrounding BUY/SELL and Market Watch values are explicitly demo shell values until a supported same-feed quote subscription is connected; they must not be treated as broker execution prices.
 
-## Expanding the Oxlint configuration
+## Development
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+Run `npm install` and then `npm run dev`.
