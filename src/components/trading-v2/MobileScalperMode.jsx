@@ -18,6 +18,8 @@ export default function MobileScalperMode({
   setChartMode,
   selectedTool,
   setSelectedTool,
+  lots,
+  setLots,
   onExit,
 }) {
   const spread = Number.isFinite(market?.spread)
@@ -81,7 +83,7 @@ export default function MobileScalperMode({
         />
       </div>
 
-      <ExecutionPanel market={market} focusMode />
+      <ExecutionPanel market={market} lots={lots} onLotsChange={setLots} focusMode />
     </div>
   );
 }
