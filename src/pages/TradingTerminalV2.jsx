@@ -5,6 +5,7 @@ import ExecutionPanel from '../components/trading-v2/ExecutionPanel.jsx';
 import PositionsPanel from '../components/trading-v2/PositionsPanel.jsx';
 import BottomNavbar from '../components/trading-v2/BottomNavbar.jsx';
 import DesktopTerminal from '../components/trading-v2/DesktopTerminal.jsx';
+import MobileScalperMode from '../components/trading-v2/MobileScalperMode.jsx';
 
 function useDesktopLayout() {
   const [isDesktop, setIsDesktop] = useState(() => (
@@ -31,26 +32,47 @@ export default function TradingTerminalV2({
   onSelectSymbol = () => {},
 }) {
   const shellRef = useRef(null);
+  const nativeFullscreenRequestedRef = useRef(false);
   const isDesktop = useDesktopLayout();
   const [timeframe, setTimeframe] = useState('1m');
   const [chartMode, setChartMode] = useState('candles');
   const [selectedTool, setSelectedTool] = useState('cursor');
   const [activeNav, setActiveNav] = useState('trade');
   const [favorite, setFavorite] = useState(true);
-  const [fullscreen, setFullscreen] = useState(false);
+  const [chartFocus, setChartFocus] = useState(false);
+  const [lots, setLots] = useState(0.10);
 
   useEffect(() => {
-    const onChange = () => setFullscreen(Boolean(document.fullscreenElement));
-    document.addEventListener('fullscreenchange', onChange);
-    return () => document.removeEventListener('fullscreenchange', onChange);
+    const onFullscreenChange = () => {
+      if (nativeFullscreenRequestedRef.current && !document.fullscreenElement) {
+        nativeFullscreenRequestedRef.current = false;
+        setChartFocus(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
   }, []);
 
-  const toggleFullscreen = async () => {
+  const enterChartFocus = async () => {
+    setChartFocus(true);
     try {
-      if (!document.fullscreenElement) await shellRef.current?.requestFullscreen?.();
-      else await document.exitFullscreen?.();
+      if (!document.fullscreenElement && shellRef.current?.requestFullscreen) {
+        nativeFullscreenRequestedRef.current = true;
+        await shellRef.current.requestFullscreen();
+      }
     } catch (error) {
-      console.warn('Fullscreen request was not available', error);
+      nativeFullscreenRequestedRef.current = false;
+      console.warn('Native fullscreen was unavailable; using in-app chart focus mode instead', error);
+    }
+  };
+
+  const exitChartFocus = async () => {
+    setChartFocus(false);
+    nativeFullscreenRequestedRef.current = false;
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen?.();
+    } catch (error) {
+      console.warn('Unable to exit native fullscreen', error);
     }
   };
 
@@ -70,12 +92,12 @@ export default function TradingTerminalV2({
     <div className="min-h-dvh bg-[#02070c] font-sans text-[#f5f8fb] antialiased">
       <main
         ref={shellRef}
-        className="relative mx-auto min-h-dvh w-full max-w-[460px] overflow-x-hidden bg-[#050b12] bg-[radial-gradient(circle_at_top,rgba(26,79,116,0.20),transparent_36%)] pb-[98px]"
+        className={chartFocus
+          ? 'relative mx-auto h-dvh w-full max-w-[460px] overflow-hidden bg-[#050b12]'
+          : 'relative mx-auto min-h-dvh w-full max-w-[460px] overflow-x-hidden bg-[#050b12] bg-[radial-gradient(circle_at_top,rgba(26,79,116,0.20),transparent_36%)] pb-[98px]'}
       >
-        <TopBar />
-
-        <div className="px-2">
-          <MarketPanel
+        {chartFocus ? (
+          <MobileScalperMode
             market={market}
             tick={tick}
             timeframe={timeframe}
@@ -84,17 +106,37 @@ export default function TradingTerminalV2({
             setChartMode={setChartMode}
             selectedTool={selectedTool}
             setSelectedTool={setSelectedTool}
-            favorite={favorite}
-            setFavorite={setFavorite}
-            fullscreen={fullscreen}
-            onFullscreen={toggleFullscreen}
+            lots={lots}
+            setLots={setLots}
+            onExit={exitChartFocus}
           />
+        ) : (
+          <>
+            <TopBar />
 
-          <ExecutionPanel market={market} />
-          <PositionsPanel />
-        </div>
+            <div className="px-2">
+              <MarketPanel
+                market={market}
+                tick={tick}
+                timeframe={timeframe}
+                setTimeframe={setTimeframe}
+                chartMode={chartMode}
+                setChartMode={setChartMode}
+                selectedTool={selectedTool}
+                setSelectedTool={setSelectedTool}
+                favorite={favorite}
+                setFavorite={setFavorite}
+                fullscreen={chartFocus}
+                onFullscreen={enterChartFocus}
+              />
 
-        <BottomNavbar active={activeNav} onChange={setActiveNav} />
+              <ExecutionPanel market={market} lots={lots} onLotsChange={setLots} />
+              <PositionsPanel />
+            </div>
+
+            <BottomNavbar active={activeNav} onChange={setActiveNav} />
+          </>
+        )}
       </main>
     </div>
   );
