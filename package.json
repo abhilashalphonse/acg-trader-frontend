@@ -10,8 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@gocharting/chart-sdk": "^1.0.71",
     "firebase": "^12.19.0",
+    "lightweight-charts": "5.2.1",
     "lucide-react": "^0.468.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
