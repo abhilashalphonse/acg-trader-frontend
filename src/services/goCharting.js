@@ -11,25 +11,26 @@ export const GOCHARTING_DEMO_LICENSE = 'demo-550e8400-e29b-41d4-a716-44665544000
 export const GOCHARTING_LICENSE = import.meta.env.VITE_GOCHARTING_LICENSE || GOCHARTING_DEMO_LICENSE;
 
 export const GOCHARTING_SYMBOLS = {
-  AUDCAD: 'AUDCAD',
-  EURUSD: 'EURUSD',
-  GBPUSD: 'GBPUSD',
-  USDJPY: 'USDJPY',
-  XAUUSD: 'XAUUSD',
-  US30: 'US30',
+  AUDCAD: 'FOREX:CFD:AUDCAD',
+  EURUSD: 'FOREX:CFD:EURUSD',
+  GBPUSD: 'FOREX:CFD:GBPUSD',
+  USDJPY: 'FOREX:CFD:USDJPY',
+  XAUUSD: 'FOREX:CFD:XAUUSD',
+  US30: 'FOREX:CFD:US30',
 };
 
+// Match the resolution strings used by GoCharting's official SDK demo datafeed.
 export const GOCHARTING_INTERVALS = {
-  M1: '1m',
-  M5: '5m',
-  M15: '15m',
-  H1: '1h',
-  H4: '4h',
+  M1: '1',
+  M5: '5',
+  M15: '15',
+  H1: '60',
+  H4: '240',
   D1: '1D',
 };
 
 export const toGoChartingSymbol = symbol => GOCHARTING_SYMBOLS[symbol] ?? symbol;
-export const toGoChartingInterval = timeframe => GOCHARTING_INTERVALS[timeframe] ?? '1m';
+export const toGoChartingInterval = timeframe => GOCHARTING_INTERVALS[timeframe] ?? '1';
 
 export function getGoChartingDatafeed() {
   return createGoChartingDatafeed();
