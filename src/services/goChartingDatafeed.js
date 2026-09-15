@@ -4,6 +4,7 @@
 
 const SUPPORTED_RESOLUTIONS = ['1', '5', '15', '30', '60', '240', '1D', '1W', '1M'];
 const SYMBOL_SEARCH_URL = 'https://gocharting.com/sdk/instruments/exactSearch';
+const MAX_HISTORY_BARS = 500;
 
 const BASE_PRICES = {
   AUDCAD: 0.9025,
@@ -24,45 +25,82 @@ function symbolParts(symbolName) {
 }
 
 function resolutionSeconds(resolution) {
-  const value = typeof resolution === 'string' ? resolution : resolution?.label || '1';
-  if (value === '1D') return 86400;
-  if (value === '1W') return 604800;
+  const raw = typeof resolution === 'string'
+    ? resolution
+    : resolution?.label || resolution?.value || resolution?.resolution || '1';
+  const value = String(raw).trim();
+  if (value === '1D' || value.toLowerCase() === '1d') return 86400;
+  if (value === '1W' || value.toLowerCase() === '1w') return 604800;
   if (value === '1M') return 2592000;
-  const minutes = Number.parseInt(value, 10) || 1;
-  return minutes * 60;
+
+  const normalized = value.toLowerCase();
+  if (normalized.endsWith('h')) {
+    return (Number.parseInt(normalized, 10) || 1) * 3600;
+  }
+  if (normalized.endsWith('m')) {
+    return (Number.parseInt(normalized, 10) || 1) * 60;
+  }
+
+  return (Number.parseInt(normalized, 10) || 1) * 60;
+}
+
+function precisionFor(base) {
+  return base < 10 ? 5 : base < 1000 ? 3 : 2;
+}
+
+function demoCloseAt(symbol, time, step) {
+  const base = BASE_PRICES[symbol] || 100;
+  const amplitude = base * 0.0012;
+  const phase = time / step;
+  return base
+    + Math.sin(phase * 0.17) * amplitude
+    + Math.sin(phase * 0.047) * amplitude * 0.6;
+}
+
+function buildBar(symbol, bucketTime, step) {
+  const base = BASE_PRICES[symbol] || 100;
+  const precision = precisionFor(base);
+  const amplitude = base * 0.0012;
+  const open = demoCloseAt(symbol, bucketTime - step, step);
+  const close = demoCloseAt(symbol, bucketTime, step);
+  const high = Math.max(open, close) + amplitude * 0.22;
+  const low = Math.min(open, close) - amplitude * 0.22;
+
+  return {
+    time: bucketTime,
+    open: Number(open.toFixed(precision)),
+    high: Number(high.toFixed(precision)),
+    low: Number(low.toFixed(precision)),
+    close: Number(close.toFixed(precision)),
+    volume: 0,
+  };
 }
 
 function buildDemoBars(symbol, resolution, periodParams = {}) {
   const step = resolutionSeconds(resolution);
   const now = Math.floor(Date.now() / 1000);
-  const to = typeof periodParams.to === 'number' ? periodParams.to : now;
-  const rows = Math.min(periodParams.rows || periodParams.countBack || 240, 500);
-  const from = typeof periodParams.from === 'number' ? periodParams.from : to - rows * step;
-  const base = BASE_PRICES[symbol] || 100;
-  const precision = base < 10 ? 5 : base < 1000 ? 3 : 2;
-  const amplitude = base * 0.0012;
-  const start = Math.floor(from / step) * step;
-  const bars = [];
-  let previous = base;
+  const requestedTo = typeof periodParams.to === 'number' ? periodParams.to : now;
+  const endBucket = Math.floor(requestedTo / step) * step;
+  const requestedCount = periodParams.countBack || periodParams.rows || 240;
+  const from = typeof periodParams.from === 'number' ? periodParams.from : null;
 
-  for (let time = start; time <= to && bars.length < 500; time += step) {
-    const phase = time / step;
-    const drift = Math.sin(phase * 0.17) * amplitude + Math.sin(phase * 0.047) * amplitude * 0.6;
-    const close = base + drift;
-    const open = previous;
-    const high = Math.max(open, close) + amplitude * 0.22;
-    const low = Math.min(open, close) - amplitude * 0.22;
-    bars.push({
-      time,
-      open: Number(open.toFixed(precision)),
-      high: Number(high.toFixed(precision)),
-      low: Number(low.toFixed(precision)),
-      close: Number(close.toFixed(precision)),
-      volume: 0,
-    });
-    previous = close;
+  // Always end history at the requested right edge. The old implementation
+  // started at `from` and stopped after 500 bars; on a large request that left
+  // the last historical candle far in the past. The first realtime candle then
+  // landed at "now", creating a huge x-axis gap that looked like chart stretch.
+  let count = Math.min(Math.max(Number(requestedCount) || 240, 2), MAX_HISTORY_BARS);
+  if (from !== null && !periodParams.countBack) {
+    count = Math.min(
+      Math.max(Math.floor((endBucket - from) / step) + 1, 2),
+      MAX_HISTORY_BARS,
+    );
   }
 
+  const startBucket = endBucket - (count - 1) * step;
+  const bars = [];
+  for (let time = startBucket; time <= endBucket; time += step) {
+    bars.push(buildBar(symbol, time, step));
+  }
   return bars;
 }
 
@@ -82,7 +120,7 @@ function toUdf(bars) {
 function localSymbolInfo(symbolName) {
   const { exchange, segment, symbol } = symbolParts(symbolName);
   const base = BASE_PRICES[symbol] || 100;
-  const decimals = base < 10 ? 5 : base < 1000 ? 3 : 2;
+  const decimals = precisionFor(base);
   return {
     symbol,
     full_name: `${exchange}:${segment}:${symbol}`,
@@ -177,16 +215,42 @@ export function createGoChartingDatafeed() {
     subscribeBars(symbolInfo, resolution, onRealtime, subscriberUID) {
       const symbol = symbolInfo?.symbol || symbolParts(symbolInfo?.full_name).symbol;
       const step = resolutionSeconds(resolution);
-      const timer = window.setInterval(() => {
+      const base = BASE_PRICES[symbol] || 100;
+      const precision = precisionFor(base);
+      const amplitude = base * 0.00018;
+      let currentBar = null;
+
+      const pushRealtimeBar = () => {
         const now = Math.floor(Date.now() / 1000);
-        const bars = buildDemoBars(symbol, resolution, {
-          from: now - step,
-          to: now,
-          rows: 2,
-        });
-        const latest = bars.at(-1);
-        if (latest) onRealtime(latest);
-      }, 1000);
+        const bucketTime = Math.floor(now / step) * step;
+
+        if (!currentBar || currentBar.time !== bucketTime) {
+          // A new timeframe bucket must have a new timestamp. This is what makes
+          // GoCharting append a candle instead of continuously replacing one.
+          currentBar = buildBar(symbol, bucketTime, step);
+          currentBar.open = currentBar.close;
+          currentBar.high = currentBar.close;
+          currentBar.low = currentBar.close;
+        }
+
+        // Simulate ticks inside the active candle while preserving its open.
+        const elapsed = now - bucketTime;
+        const tick = demoCloseAt(symbol, bucketTime, step)
+          + Math.sin(elapsed * 0.73) * amplitude
+          + Math.sin(elapsed * 0.19) * amplitude * 0.45;
+        const close = Number(tick.toFixed(precision));
+        currentBar = {
+          ...currentBar,
+          high: Math.max(currentBar.high, close),
+          low: Math.min(currentBar.low, close),
+          close,
+        };
+
+        onRealtime({ ...currentBar });
+      };
+
+      pushRealtimeBar();
+      const timer = window.setInterval(pushRealtimeBar, 1000);
       subscriptions.set(subscriberUID, timer);
     },
 
