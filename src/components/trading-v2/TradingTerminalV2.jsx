@@ -5,6 +5,7 @@ import ExecutionPanel from './ExecutionPanel.jsx';
 import PositionsPanel from './PositionsPanel.jsx';
 import BottomNavbar from './BottomNavbar.jsx';
 import '../../styles/acg-trader-v2.css';
+import '../../styles/acg-trader-v2-overrides.css';
 
 export default function TradingTerminalV2({ market, tick }) {
   const [timeframe, setTimeframe] = useState('1m');
