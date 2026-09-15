@@ -9,85 +9,37 @@ function decimalsFor(symbol, fallback) {
   const point = value.indexOf('.');
   return point >= 0 ? value.length - point - 1 : 5;
 }
-
-function formatPrice(value, decimals, fallback) {
-  return Number.isFinite(value) ? value.toFixed(decimals) : fallback;
-}
+function formatPrice(value, decimals, fallback) { return Number.isFinite(value) ? value.toFixed(decimals) : fallback; }
 
 export function useMarketData(seedMarkets, activeSymbol) {
   const seedRef = useRef(seedMarkets);
   const [quotes, setQuotes] = useState({});
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState(null);
+  const [activeTick, setActiveTick] = useState(null);
 
-  useEffect(() => {
-    seedRef.current = seedMarkets;
-  }, [seedMarkets]);
+  useEffect(() => { seedRef.current = seedMarkets; }, [seedMarkets]);
 
   useEffect(() => {
     if (!activeSymbol) return undefined;
-
-    setStatus('connecting');
-    setError(null);
-
-    const unsubscribe = subscribePrice(
-      activeSymbol,
-      tick => {
-        const seed = seedRef.current.find(item => item.symbol === activeSymbol);
-        const decimals = decimalsFor(activeSymbol, seed?.bid);
-        setQuotes(current => ({
-          ...current,
-          [activeSymbol]: {
-            price: tick.price,
-            bid: tick.bid,
-            ask: tick.ask,
-            timestamp: tick.timestamp ?? tick.time,
-            dayVolume: tick.dayVolume,
-            decimals,
-          },
-        }));
-        setStatus('live');
-        setError(null);
-      },
-      streamError => {
-        setError(streamError);
-        setStatus('error');
-      },
-      subscription => {
-        if (subscription.status === 'ok' && subscription.event === 'subscribe-status') {
-          setStatus('live');
-          setError(null);
-        } else if (subscription.status === 'error') {
-          setStatus('error');
-        }
-      },
-    );
-
+    setStatus('connecting'); setError(null); setActiveTick(null);
+    const unsubscribe = subscribePrice(activeSymbol, tick => {
+      const seed = seedRef.current.find(item => item.symbol === activeSymbol);
+      const decimals = decimalsFor(activeSymbol, seed?.bid);
+      setActiveTick(tick);
+      setQuotes(current => ({ ...current, [activeSymbol]: { price:tick.price,bid:tick.bid,ask:tick.ask,timestamp:tick.timestamp??tick.time,dayVolume:tick.dayVolume,decimals } }));
+      setStatus('live'); setError(null);
+    }, streamError => { setError(streamError); setStatus('error'); }, subscription => {
+      if(subscription.status==='ok'&&subscription.event==='subscribe-status'){setStatus('live');setError(null);}
+      else if(subscription.status==='error')setStatus('error');
+    });
     return unsubscribe;
   }, [activeSymbol]);
 
   const markets = useMemo(() => seedMarkets.map(market => {
-    const quote = quotes[market.symbol];
-    if (!quote) return { ...market, live: false };
-
-    // Twelve Data does not guarantee bid/ask on every instrument. Keep the
-    // seed shell values visible when either side is absent instead of inventing a spread.
-    return {
-      ...market,
-      last: formatPrice(quote.price, quote.decimals, market.bid),
-      bid: formatPrice(quote.bid, quote.decimals, market.bid),
-      ask: formatPrice(quote.ask, quote.decimals, market.ask),
-      timestamp: quote.timestamp,
-      dayVolume: quote.dayVolume,
-      live: true,
-    };
+    const quote=quotes[market.symbol]; if(!quote)return {...market,live:false};
+    return {...market,last:formatPrice(quote.price,quote.decimals,market.bid),bid:formatPrice(quote.bid,quote.decimals,market.bid),ask:formatPrice(quote.ask,quote.decimals,market.ask),timestamp:quote.timestamp,dayVolume:quote.dayVolume,live:true};
   }), [seedMarkets, quotes]);
 
-  return {
-    markets,
-    connected: status === 'live',
-    status,
-    error,
-    source: 'twelve-data-websocket',
-  };
+  return { markets, activeTick, connected:status==='live', status, error, source:'twelve-data-websocket' };
 }
