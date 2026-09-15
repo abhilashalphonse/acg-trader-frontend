@@ -1,6 +1,6 @@
 // ACG Trader V1 GoCharting datafeed adapter.
 // Shape follows GoChartingOSS/gocharting-sdk-demo's createChartDatafeed pattern.
-// Until a production Forex/CFD feed is connected, bars are deterministic demo data.
+// Until a production Forex/CFD feed is connected, bars/ticks are deterministic demo data.
 
 const SUPPORTED_RESOLUTIONS = ['1', '5', '15', '30', '60', '240', '1D', '1W', '1M'];
 const SYMBOL_SEARCH_URL = 'https://gocharting.com/sdk/instruments/exactSearch';
@@ -27,20 +27,15 @@ function symbolParts(symbolName) {
 function resolutionSeconds(resolution) {
   const raw = typeof resolution === 'string'
     ? resolution
-    : resolution?.label || resolution?.value || resolution?.resolution || '1';
+    : resolution?.label || resolution?.value || resolution?.resolution || String(resolution || '1');
   const value = String(raw).trim();
   if (value === '1D' || value.toLowerCase() === '1d') return 86400;
   if (value === '1W' || value.toLowerCase() === '1w') return 604800;
   if (value === '1M') return 2592000;
 
   const normalized = value.toLowerCase();
-  if (normalized.endsWith('h')) {
-    return (Number.parseInt(normalized, 10) || 1) * 3600;
-  }
-  if (normalized.endsWith('m')) {
-    return (Number.parseInt(normalized, 10) || 1) * 60;
-  }
-
+  if (normalized.endsWith('h')) return (Number.parseInt(normalized, 10) || 1) * 3600;
+  if (normalized.endsWith('m')) return (Number.parseInt(normalized, 10) || 1) * 60;
   return (Number.parseInt(normalized, 10) || 1) * 60;
 }
 
@@ -48,10 +43,10 @@ function precisionFor(base) {
   return base < 10 ? 5 : base < 1000 ? 3 : 2;
 }
 
-function demoCloseAt(symbol, time, step) {
+function demoPriceAt(symbol, unixSeconds, step = 60) {
   const base = BASE_PRICES[symbol] || 100;
   const amplitude = base * 0.0012;
-  const phase = time / step;
+  const phase = unixSeconds / Math.max(step, 1);
   return base
     + Math.sin(phase * 0.17) * amplitude
     + Math.sin(phase * 0.047) * amplitude * 0.6;
@@ -61,8 +56,8 @@ function buildBar(symbol, bucketTime, step) {
   const base = BASE_PRICES[symbol] || 100;
   const precision = precisionFor(base);
   const amplitude = base * 0.0012;
-  const open = demoCloseAt(symbol, bucketTime - step, step);
-  const close = demoCloseAt(symbol, bucketTime, step);
+  const open = demoPriceAt(symbol, bucketTime - step, step);
+  const close = demoPriceAt(symbol, bucketTime, step);
   const high = Math.max(open, close) + amplitude * 0.22;
   const low = Math.min(open, close) - amplitude * 0.22;
 
@@ -84,10 +79,6 @@ function buildDemoBars(symbol, resolution, periodParams = {}) {
   const requestedCount = periodParams.countBack || periodParams.rows || 240;
   const from = typeof periodParams.from === 'number' ? periodParams.from : null;
 
-  // Always end history at the requested right edge. The old implementation
-  // started at `from` and stopped after 500 bars; on a large request that left
-  // the last historical candle far in the past. The first realtime candle then
-  // landed at "now", creating a huge x-axis gap that looked like chart stretch.
   let count = Math.min(Math.max(Number(requestedCount) || 240, 2), MAX_HISTORY_BARS);
   if (from !== null && !periodParams.countBack) {
     count = Math.min(
@@ -127,7 +118,7 @@ function localSymbolInfo(symbolName) {
     description: symbol,
     exchange,
     segment,
-    type: exchange === 'FOREX' ? 'forex' : 'cfd',
+    type: symbol === 'XAUUSD' || symbol === 'US30' ? 'cfd' : 'forex',
     session: '24x5',
     session_label: '24x5',
     timezone: 'Etc/UTC',
@@ -166,6 +157,43 @@ export function createGoChartingDatafeed() {
   const subscriptions = new Map();
   const symbolCache = new Map();
 
+  function stopStream(subscriberUID) {
+    const timer = subscriptions.get(subscriberUID);
+    if (timer) window.clearInterval(timer);
+    subscriptions.delete(subscriberUID);
+  }
+
+  function startTickStream(symbolInfo, resolution, onRealtime, subscriberUID) {
+    stopStream(subscriberUID);
+
+    const symbol = symbolInfo?.symbol || symbolParts(symbolInfo?.full_name).symbol;
+    const step = resolutionSeconds(resolution);
+    const base = BASE_PRICES[symbol] || 100;
+    const precision = precisionFor(base);
+    const microAmplitude = base * 0.00018;
+
+    const pushTick = () => {
+      const now = Math.floor(Date.now() / 1000);
+      const bucketTime = Math.floor(now / step) * step;
+      const elapsed = now - bucketTime;
+      const price = demoPriceAt(symbol, bucketTime, step)
+        + Math.sin(elapsed * 0.73) * microAmplitude
+        + Math.sin(elapsed * 0.19) * microAmplitude * 0.45;
+
+      // GoCharting's official demo feeds realtime tick objects into the SDK.
+      // The SDK then aggregates those ticks into the active candle and starts
+      // a new candle when the tick timestamp crosses the resolution boundary.
+      onRealtime({
+        time: now,
+        price: Number(price.toFixed(precision)),
+        volume: 1,
+      });
+    };
+
+    pushTick();
+    subscriptions.set(subscriberUID, window.setInterval(pushTick, 1000));
+  }
+
   return {
     onReady(callback) {
       queueMicrotask(() => callback({
@@ -194,7 +222,7 @@ export function createGoChartingDatafeed() {
 
     async searchSymbols(userInput, _exchange, _symbolType, onResult) {
       const query = String(userInput || '').toUpperCase();
-      const results = Object.keys(BASE_PRICES)
+      const items = Object.keys(BASE_PRICES)
         .filter(symbol => symbol.includes(query))
         .map(symbol => ({
           symbol,
@@ -203,8 +231,9 @@ export function createGoChartingDatafeed() {
           exchange: 'FOREX',
           ticker: symbol,
           type: symbol === 'XAUUSD' || symbol === 'US30' ? 'cfd' : 'forex',
+          key: `FOREX:CFD:${symbol}`,
         }));
-      onResult(results);
+      onResult({ searchInProgress: false, items });
     },
 
     async getBars(symbolInfo, resolution, periodParams) {
@@ -212,52 +241,24 @@ export function createGoChartingDatafeed() {
       return toUdf(buildDemoBars(symbol, resolution, periodParams));
     },
 
+    // Match GoCharting's official demo: realtime callbacks receive tick data,
+    // not pre-aggregated candles. This lets the SDK control candle rollover.
     subscribeBars(symbolInfo, resolution, onRealtime, subscriberUID) {
-      const symbol = symbolInfo?.symbol || symbolParts(symbolInfo?.full_name).symbol;
-      const step = resolutionSeconds(resolution);
-      const base = BASE_PRICES[symbol] || 100;
-      const precision = precisionFor(base);
-      const amplitude = base * 0.00018;
-      let currentBar = null;
-
-      const pushRealtimeBar = () => {
-        const now = Math.floor(Date.now() / 1000);
-        const bucketTime = Math.floor(now / step) * step;
-
-        if (!currentBar || currentBar.time !== bucketTime) {
-          // A new timeframe bucket must have a new timestamp. This is what makes
-          // GoCharting append a candle instead of continuously replacing one.
-          currentBar = buildBar(symbol, bucketTime, step);
-          currentBar.open = currentBar.close;
-          currentBar.high = currentBar.close;
-          currentBar.low = currentBar.close;
-        }
-
-        // Simulate ticks inside the active candle while preserving its open.
-        const elapsed = now - bucketTime;
-        const tick = demoCloseAt(symbol, bucketTime, step)
-          + Math.sin(elapsed * 0.73) * amplitude
-          + Math.sin(elapsed * 0.19) * amplitude * 0.45;
-        const close = Number(tick.toFixed(precision));
-        currentBar = {
-          ...currentBar,
-          high: Math.max(currentBar.high, close),
-          low: Math.min(currentBar.low, close),
-          close,
-        };
-
-        onRealtime({ ...currentBar });
-      };
-
-      pushRealtimeBar();
-      const timer = window.setInterval(pushRealtimeBar, 1000);
-      subscriptions.set(subscriberUID, timer);
+      startTickStream(symbolInfo, resolution, onRealtime, subscriberUID);
     },
 
     unsubscribeBars(subscriberUID) {
-      const timer = subscriptions.get(subscriberUID);
-      if (timer) window.clearInterval(timer);
-      subscriptions.delete(subscriberUID);
+      stopStream(subscriberUID);
+    },
+
+    // The SDK explicitly recommends these methods and uses them for realtime
+    // chart functionality in the official SDK demo.
+    subscribeTicks(symbolInfo, resolution, onRealtime, subscriberUID) {
+      startTickStream(symbolInfo, resolution, onRealtime, subscriberUID);
+    },
+
+    unsubscribeTicks(subscriberUID) {
+      stopStream(subscriberUID);
     },
 
     getServerTime(callback) {
