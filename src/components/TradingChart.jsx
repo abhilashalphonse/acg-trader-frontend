@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { createChart, DemoDatafeed } from '@gocharting/chart-sdk';
+import { createChart } from '@gocharting/chart-sdk';
 import { createGoChartingOptions } from '../services/goCharting.js';
 
 export default function TradingChart({ symbol = 'AUDCAD', timeframe = 'M1', compact = false }) {
@@ -11,10 +11,9 @@ export default function TradingChart({ symbol = 'AUDCAD', timeframe = 'M1', comp
     if (!ref.current) return undefined;
 
     try {
-      const datafeed = new DemoDatafeed();
       chartRef.current = createChart(
         ref.current,
-        createGoChartingOptions({ symbol, timeframe, compact, datafeed }),
+        createGoChartingOptions({ symbol, timeframe, compact }),
       );
       setError('');
     } catch (e) {
