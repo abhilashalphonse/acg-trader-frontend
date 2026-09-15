@@ -3,7 +3,26 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "scripts": {"dev":"vite","build":"vite build","lint":"oxlint","preview":"vite preview"},
-  "dependencies": {"@gocharting/chart-sdk":"latest","firebase":"^12.19.0","lucide-react":"^0.468.0","react":"^19.2.8","react-dom":"^19.2.8"},
-  "devDependencies": {"@tailwindcss/vite":"^4.1.13","@types/react":"^19.2.18","@types/react-dom":"^19.2.7","oxlint":"^1.81.0","tailwindcss":"^4.1.13","@vitejs/plugin-react":"^6.1.1","vite":"^8.3.0"}
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "oxlint",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@gocharting/chart-sdk": "^1.0.71",
+    "firebase": "^12.19.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.13",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "oxlint": "^1.81.0",
+    "tailwindcss": "^4.1.13",
+    "vite": "^8.3.0"
+  }
 }
