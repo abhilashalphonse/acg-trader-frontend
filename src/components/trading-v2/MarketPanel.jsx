@@ -3,16 +3,37 @@ import InstrumentHeader from './InstrumentHeader.jsx';
 import ChartControls, { mapTimeframe } from './ChartControls.jsx';
 import ChartArea from './ChartArea.jsx';
 
-export default function MarketPanel({ market, tick, timeframe, setTimeframe, selectedTool, setSelectedTool }) {
+export default function MarketPanel({
+  market,
+  tick,
+  timeframe,
+  setTimeframe,
+  chartMode,
+  setChartMode,
+  selectedTool,
+  setSelectedTool,
+  favorite,
+  setFavorite,
+  fullscreen,
+  onFullscreen,
+}) {
   return (
-    <section className="v2-market-panel">
-      <InstrumentHeader market={market}/>
-      <ChartControls timeframe={timeframe} onTimeframe={setTimeframe}/>
+    <section className="overflow-hidden rounded-[22px] border border-[#182938] bg-gradient-to-b from-[#0a141e] to-[#071019] shadow-[0_16px_45px_rgba(0,0,0,0.26)]">
+      <InstrumentHeader market={market} favorite={favorite} onFavorite={() => setFavorite(v => !v)} />
+      <ChartControls
+        timeframe={timeframe}
+        onTimeframe={setTimeframe}
+        chartMode={chartMode}
+        onChartMode={setChartMode}
+        fullscreen={fullscreen}
+        onFullscreen={onFullscreen}
+      />
       <ChartArea
         symbol={market.symbol}
         chartTimeframe={mapTimeframe(timeframe)}
         tick={tick}
-        currentPrice={market.bid}
+        price={market.bid}
+        chartMode={chartMode}
         selectedTool={selectedTool}
         onSelectTool={setSelectedTool}
       />

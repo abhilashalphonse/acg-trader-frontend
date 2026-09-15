@@ -1,23 +1,39 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { CandlestickSeries, ColorType, CrosshairMode, HistogramSeries, createChart } from 'lightweight-charts';
+import {
+  CandlestickSeries,
+  ColorType,
+  CrosshairMode,
+  HistogramSeries,
+  LineSeries,
+  LineStyle,
+  createChart,
+} from 'lightweight-charts';
 import { fetchCandles, mergeLiveBarIntoCache, timeframeSeconds } from '../services/twelveData.js';
 
-export const chartTokens = {
-  background: '#070d13',
-  text: '#64758a',
-  gridline: '#14202b',
+const chartTokens = {
+  background: '#080f17',
+  text: '#718399',
+  gridline: '#142330',
   buy: '#2dd39b',
-  sell: '#ff5b64',
-  crosshair: '#607184',
-  crosshairLabel: '#17232d',
+  sell: '#ff5f69',
+  blue: '#53c7ff',
+  crosshair: '#607287',
+  crosshairLabel: '#172633',
 };
 
 function tickToBar(previous, tick, timeframe) {
   const step = timeframeSeconds(timeframe);
   const bucket = Math.floor(tick.time / step) * step;
-  if (!previous || bucket > previous.time) return { time: bucket, open: tick.price, high: tick.price, low: tick.price, close: tick.price };
+  if (!previous || bucket > previous.time) {
+    return { time: bucket, open: tick.price, high: tick.price, low: tick.price, close: tick.price };
+  }
   if (bucket < previous.time) return previous;
-  return { ...previous, high: Math.max(previous.high, tick.price), low: Math.min(previous.low, tick.price), close: tick.price };
+  return {
+    ...previous,
+    high: Math.max(previous.high, tick.price),
+    low: Math.min(previous.low, tick.price),
+    close: tick.price,
+  };
 }
 
 function volumeForBar(bar) {
@@ -26,7 +42,11 @@ function volumeForBar(bar) {
   return Math.max(1, Math.round(range * 10000000));
 }
 
-export default function TradingChart({ symbol = 'AUDCAD', timeframe = 'M1', tick = null }) {
+function toSeriesPoint(bar, mode) {
+  return mode === 'line' ? { time: bar.time, value: bar.close } : bar;
+}
+
+export default function TradingChart({ symbol = 'AUDCAD', timeframe = 'M1', tick = null, chartMode = 'candles' }) {
   const hostRef = useRef(null);
   const lastBarRef = useRef(null);
   const seriesRef = useRef(null);
@@ -42,6 +62,7 @@ export default function TradingChart({ symbol = 'AUDCAD', timeframe = 'M1', tick
         background: { type: ColorType.Solid, color: chartTokens.background },
         textColor: chartTokens.text,
         attributionLogo: true,
+        fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
         fontSize: 10,
       },
       grid: {
@@ -54,30 +75,46 @@ export default function TradingChart({ symbol = 'AUDCAD', timeframe = 'M1', tick
         horzLine: { color: chartTokens.crosshair, labelBackgroundColor: chartTokens.crosshairLabel },
       },
       rightPriceScale: {
-        borderVisible: false,
+        borderVisible: true,
+        borderColor: '#1b2b39',
         scaleMargins: { top: 0.08, bottom: 0.22 },
       },
       timeScale: {
-        borderVisible: false,
+        borderVisible: true,
+        borderColor: '#1b2b39',
         timeVisible: true,
         secondsVisible: ['S1', 'S5', 'S15', 'S30'].includes(timeframe),
-        rightOffset: 7,
-        barSpacing: 8,
-        minBarSpacing: 2,
+        rightOffset: 4,
+        barSpacing: 7,
+        minBarSpacing: 3,
+        fixLeftEdge: false,
+        lockVisibleTimeRangeOnResize: true,
       },
       handleScroll: true,
       handleScale: true,
     });
 
-    const series = chart.addSeries(CandlestickSeries, {
-      upColor: chartTokens.buy,
-      downColor: chartTokens.sell,
-      wickUpColor: chartTokens.buy,
-      wickDownColor: chartTokens.sell,
-      borderVisible: false,
-      priceLineVisible: true,
-      lastValueVisible: true,
-    });
+    const series = chartMode === 'line'
+      ? chart.addSeries(LineSeries, {
+          color: chartTokens.blue,
+          lineWidth: 2,
+          priceLineVisible: true,
+          priceLineColor: chartTokens.buy,
+          priceLineStyle: LineStyle.Dotted,
+          lastValueVisible: false,
+          crosshairMarkerVisible: true,
+        })
+      : chart.addSeries(CandlestickSeries, {
+          upColor: chartTokens.buy,
+          downColor: chartTokens.sell,
+          wickUpColor: chartTokens.buy,
+          wickDownColor: chartTokens.sell,
+          borderVisible: false,
+          priceLineVisible: true,
+          priceLineColor: chartTokens.buy,
+          priceLineStyle: LineStyle.Dotted,
+          lastValueVisible: false,
+        });
 
     const volume = chart.addSeries(HistogramSeries, {
       priceFormat: { type: 'volume' },
@@ -96,18 +133,23 @@ export default function TradingChart({ symbol = 'AUDCAD', timeframe = 'M1', tick
 
     (async () => {
       try {
-        const bars = await fetchCandles(symbol, timeframe, 500, controller.signal);
+        const bars = await fetchCandles(symbol, timeframe, 160, controller.signal);
         if (disposed) return;
-        if (!bars.length) throw new Error('No Twelve Data candles returned');
+        if (!bars.length) throw new Error('No market candles returned');
 
-        series.setData(bars);
+        series.setData(bars.map(bar => toSeriesPoint(bar, chartMode)));
         volume.setData(bars.map(bar => ({
           time: bar.time,
           value: volumeForBar(bar),
-          color: bar.close >= bar.open ? 'rgba(45,211,155,.42)' : 'rgba(255,91,100,.40)',
+          color: bar.close >= bar.open ? 'rgba(45,211,155,0.34)' : 'rgba(255,95,105,0.32)',
         })));
         lastBarRef.current = bars[bars.length - 1];
-        chart.timeScale().fitContent();
+
+        const visibleBars = 48;
+        chart.timeScale().setVisibleLogicalRange({
+          from: Math.max(0, bars.length - visibleBars),
+          to: bars.length + 4,
+        });
       } catch (e) {
         if (e?.name === 'AbortError' || disposed) return;
         console.error('Trading chart data failed', e);
@@ -123,27 +165,32 @@ export default function TradingChart({ symbol = 'AUDCAD', timeframe = 'M1', tick
       lastBarRef.current = null;
       chart.remove();
     };
-  }, [symbol, timeframe]);
+  }, [symbol, timeframe, chartMode]);
 
   useEffect(() => {
     if (!tick || !seriesRef.current || !lastBarRef.current || !Number.isFinite(tick.price) || !Number.isFinite(tick.time)) return;
+
     const previous = lastBarRef.current;
     const next = tickToBar(previous, tick, timeframe);
     if (next === previous) return;
 
     lastBarRef.current = next;
-    seriesRef.current.update(next);
+    seriesRef.current.update(toSeriesPoint(next, chartMode));
     volumeRef.current?.update({
       time: next.time,
       value: Number.isFinite(tick.dayVolume) && tick.dayVolume > 0 ? tick.dayVolume : volumeForBar(next),
-      color: next.close >= next.open ? 'rgba(45,211,155,.42)' : 'rgba(255,91,100,.40)',
+      color: next.close >= next.open ? 'rgba(45,211,155,0.34)' : 'rgba(255,95,105,0.32)',
     });
-    mergeLiveBarIntoCache(symbol, timeframe, next, 500);
-  }, [tick, symbol, timeframe]);
+    mergeLiveBarIntoCache(symbol, timeframe, next, 160);
+  }, [tick, symbol, timeframe, chartMode]);
 
   return (
-    <div ref={hostRef} className="v2-lightweight-chart">
-      {error && <div className="v2-chart-error">{error}</div>}
+    <div ref={hostRef} className="relative size-full min-h-0 min-w-0 overflow-hidden bg-[#080f17]">
+      {error && (
+        <div className="absolute inset-0 z-20 grid place-items-center bg-[#080f17]/95 px-5 text-center text-[10px] font-medium text-[#718399]">
+          {error}
+        </div>
+      )}
     </div>
   );
 }

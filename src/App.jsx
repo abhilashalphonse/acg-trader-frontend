@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import TradingTerminalV2 from './components/trading-v2/TradingTerminalV2.jsx';
+import TradingTerminalV2 from './pages/TradingTerminalV2.jsx';
 import { useMarketData } from './hooks/useMarketData.js';
 
 const seedMarkets = [
@@ -19,5 +19,5 @@ export default function App() {
     [markets],
   );
 
-  return <TradingTerminalV2 market={market} tick={activeTick}/>;
+  return <TradingTerminalV2 market={market} tick={activeTick} />;
 }
