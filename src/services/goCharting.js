@@ -19,18 +19,19 @@ export const GOCHARTING_SYMBOLS = {
   US30: 'FOREX:CFD:US30',
 };
 
-// Match the resolution strings used by GoCharting's official SDK demo datafeed.
+// The installed SDK's createChart validator accepts unit-suffixed intervals
+// at the chart-options boundary. The datafeed normalizes these internally.
 export const GOCHARTING_INTERVALS = {
-  M1: '1',
-  M5: '5',
-  M15: '15',
-  H1: '60',
-  H4: '240',
+  M1: '1m',
+  M5: '5m',
+  M15: '15m',
+  H1: '1h',
+  H4: '4h',
   D1: '1D',
 };
 
 export const toGoChartingSymbol = symbol => GOCHARTING_SYMBOLS[symbol] ?? symbol;
-export const toGoChartingInterval = timeframe => GOCHARTING_INTERVALS[timeframe] ?? '1';
+export const toGoChartingInterval = timeframe => GOCHARTING_INTERVALS[timeframe] ?? '1m';
 
 export function getGoChartingDatafeed() {
   return createGoChartingDatafeed();
