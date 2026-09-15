@@ -1,6 +1,9 @@
 // ACG Trader V1 GoCharting boundary.
-// The chart SDK requires a Datafeed object. Our adapter follows the official
-// GoChartingOSS/gocharting-sdk-demo createChartDatafeed interface.
+//
+// V1 deliberately keeps GoCharting attribution visible and uses the public
+// demo license while we validate the free attributed integration. The SDK
+// still requires a Datafeed object, so market-data wiring stays isolated in
+// goChartingDatafeed.js instead of leaking into the ACG terminal UI.
 
 import { createGoChartingDatafeed } from './goChartingDatafeed.js';
 
@@ -42,6 +45,8 @@ export function createGoChartingOptions({ symbol, timeframe, compact = false, da
     datafeed,
     theme: 'dark',
     toolbar: !compact,
+    // Keep GoCharting branding/attribution enabled for the free V1 path.
+    attribution: true,
     debugLog: import.meta.env.DEV,
   };
 }
