@@ -33,6 +33,7 @@ export default function MarketPanel({
         chartTimeframe={mapTimeframe(timeframe)}
         tick={tick}
         price={market.bid}
+        ask={market.ask}
         chartMode={chartMode}
         selectedTool={selectedTool}
         onSelectTool={setSelectedTool}
