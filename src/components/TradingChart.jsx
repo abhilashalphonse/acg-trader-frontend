@@ -8,20 +8,14 @@ import {
 export default function TradingChart({ symbol = 'AUDCAD', timeframe = 'M1', compact = false }) {
   const ref = useRef(null);
   const chartRef = useRef(null);
+  const datafeedRef = useRef(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (!ref.current) return undefined;
 
     const datafeed = getGoChartingDatafeed();
-
-    // GoCharting's public demo WebSocket is not a general Forex/CFD feed.
-    // Until ACG has a documented UDF endpoint, keep the terminal shell alive
-    // instead of repeatedly mounting the SDK with an invalid/missing feed.
-    if (!datafeed) {
-      setError('Chart datafeed not configured');
-      return undefined;
-    }
+    datafeedRef.current = datafeed;
 
     try {
       chartRef.current = createChart(
@@ -39,6 +33,9 @@ export default function TradingChart({ symbol = 'AUDCAD', timeframe = 'M1', comp
       if (chart?.destroy) chart.destroy();
       else if (chart?.remove) chart.remove();
       chartRef.current = null;
+
+      datafeedRef.current?.destroy?.();
+      datafeedRef.current = null;
     };
   }, [symbol, timeframe, compact]);
 
