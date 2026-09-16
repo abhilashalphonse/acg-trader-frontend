@@ -25,6 +25,18 @@ function useDesktopLayout() {
   return isDesktop;
 }
 
+function pipSize(price) {
+  return Number(price) > 100 ? 0.01 : 0.0001;
+}
+
+function calculatedLots(plan, riskPercent, manualLots) {
+  if (!plan || plan.sizingMode !== 'risk') return manualLots;
+  const pip = pipSize(plan.entry);
+  const slPips = Math.max(0.1, Math.abs(Number(plan.entry) - Number(plan.sl)) / pip);
+  const riskDollars = 12500 * (riskPercent / 100);
+  return Math.max(0.01, Math.min(100, riskDollars / Math.max(slPips * 10, 0.01)));
+}
+
 export default function TradingTerminalV2({
   market,
   tick,
@@ -45,7 +57,9 @@ export default function TradingTerminalV2({
   const [lots, setLots] = useState(0.10);
   const [sizingMode, setSizingMode] = useState('lots');
   const [riskPercent, setRiskPercent] = useState(0.5);
+  const [orderType, setOrderType] = useState('market');
   const [tradePlan, setTradePlan] = useState(null);
+  const [pendingOrders, setPendingOrders] = useState([]);
   const [overlay, setOverlay] = useState(null);
   const [notice, setNotice] = useState('');
 
@@ -93,28 +107,87 @@ export default function TradingTerminalV2({
     }
   };
 
-  const startPlan = side => {
-    const entry = Number(side === 'buy' ? market?.ask : market?.bid) || 1.0944;
-    const pip = entry > 100 ? 0.01 : 0.0001;
+  const startPlan = (side, requestedType = orderType) => {
+    const marketPrice = Number(side === 'buy' ? market?.ask : market?.bid) || 1.0944;
+    const pip = pipSize(marketPrice);
+    const pending = requestedType !== 'market';
+    let entry = marketPrice;
+
+    if (requestedType === 'limit') entry = side === 'buy' ? marketPrice - 5 * pip : marketPrice + 5 * pip;
+    if (requestedType === 'stop' || requestedType === 'stop-limit') entry = side === 'buy' ? marketPrice + 5 * pip : marketPrice - 5 * pip;
+
     const sl = side === 'buy' ? entry - 4.2 * pip : entry + 4.2 * pip;
     const tp = side === 'buy' ? entry + 8.4 * pip : entry - 8.4 * pip;
-    setTradePlan({ side, entry, sl, tp, stage: 'planning', open: false });
+    const limitPrice = requestedType === 'stop-limit'
+      ? (side === 'buy' ? entry - 1.5 * pip : entry + 1.5 * pip)
+      : null;
+
+    setTradePlan({
+      side,
+      entry,
+      sl,
+      tp,
+      limitPrice,
+      marketPrice,
+      orderType: requestedType,
+      pending,
+      sizingMode,
+      manualLots: lots,
+      expiration: 'GTC',
+      stage: 'planning',
+      open: false,
+    });
   };
 
   const cancelPlan = () => {
     if (tradePlan?.open) showNotice('Demo position closed locally');
     setTradePlan(null);
   };
+
   const executePlan = () => {
+    if (!tradePlan) return;
+
+    if (tradePlan.pending) {
+      const pending = {
+        ...tradePlan,
+        id: tradePlan.editingOrderId || Date.now(),
+        lots: calculatedLots(tradePlan, riskPercent, tradePlan.manualLots ?? lots),
+        status: 'pending',
+        createdAt: 'Just now',
+      };
+      setPendingOrders(current => tradePlan.editingOrderId
+        ? current.map(order => order.id === tradePlan.editingOrderId ? pending : order)
+        : [pending, ...current]);
+      showNotice(`${tradePlan.side.toUpperCase()} ${tradePlan.orderType.toUpperCase()} order saved locally`);
+      setTradePlan(null);
+      return;
+    }
+
     setTradePlan(plan => plan ? { ...plan, open: true, stage: 'open' } : plan);
     showNotice('Frontend demo position opened');
   };
+
   const modifyPlan = stage => setTradePlan(plan => plan ? { ...plan, stage } : plan);
   const updatePlan = patch => setTradePlan(plan => plan ? { ...plan, ...patch } : plan);
 
   const manualOrder = order => {
     const side = order.side?.toUpperCase();
     showNotice(`Frontend demo: ${side} ${Number(order.lots).toFixed(2)} ${order.symbol} @ ${order.price}`);
+  };
+
+  const cancelPendingOrder = id => {
+    setPendingOrders(current => current.filter(order => order.id !== id));
+    showNotice('Pending order cancelled locally');
+  };
+
+  const modifyPendingOrder = id => {
+    const order = pendingOrders.find(item => item.id === id);
+    if (!order) return;
+    setTradePlan({ ...order, editingOrderId: id, stage: 'ready', open: false, pending: true });
+    setOrderType(order.orderType);
+    setSizingMode(order.sizingMode || 'lots');
+    if (Number.isFinite(order.manualLots)) setLots(order.manualLots);
+    showNotice('Pending order loaded on chart');
   };
 
   const handleNav = id => {
@@ -149,6 +222,8 @@ export default function TradingTerminalV2({
             setSizingMode={setSizingMode}
             riskPercent={riskPercent}
             setRiskPercent={setRiskPercent}
+            orderType={orderType}
+            setOrderType={setOrderType}
             tradePlan={tradePlan}
             onStartPlan={startPlan}
             onCancelPlan={cancelPlan}
@@ -190,14 +265,21 @@ export default function TradingTerminalV2({
                 onSizingModeChange={setSizingMode}
                 riskPercent={riskPercent}
                 onRiskPercentChange={setRiskPercent}
+                orderType={orderType}
+                onOrderTypeChange={setOrderType}
                 tradePlan={tradePlan}
                 onStartPlan={startPlan}
                 onCancelPlan={cancelPlan}
                 onExecutePlan={executePlan}
                 onModifyPlan={modifyPlan}
                 onManualOrder={manualOrder}
+                onTradePlanChange={updatePlan}
               />
-              <PositionsPanel />
+              <PositionsPanel
+                pendingOrders={pendingOrders}
+                onCancelPending={cancelPendingOrder}
+                onModifyPending={modifyPendingOrder}
+              />
             </div>
             <BottomNavbar active={activeNav} onChange={handleNav} />
           </>
