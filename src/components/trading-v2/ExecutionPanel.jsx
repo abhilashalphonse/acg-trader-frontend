@@ -9,6 +9,15 @@ const orderTypes = [
   ['stop-limit', 'Stop Limit'],
 ];
 
+function localDateTimeValue(date) {
+  const pad = value => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function defaultSpecifiedExpiry() {
+  return localDateTimeValue(new Date(Date.now() + 60 * 60 * 1000));
+}
+
 function getPlanMetrics(plan, riskPercent, manualLots = 0.1) {
   if (!plan) return null;
   const entry = Number(plan.entry) || 0;
@@ -17,11 +26,12 @@ function getPlanMetrics(plan, riskPercent, manualLots = 0.1) {
   const pipSize = entry > 100 ? 0.01 : 0.0001;
   const slPips = Math.max(0.1, Math.abs(entry - sl) / pipSize);
   const tpPips = Math.max(0.1, Math.abs(tp - entry) / pipSize);
+  const equity = Number(plan.accountEquity) || 12500;
   const lots = plan.sizingMode === 'risk'
-    ? clamp((12500 * (riskPercent / 100)) / Math.max(slPips * 10, 0.01), 0.01, 100)
+    ? clamp((equity * (riskPercent / 100)) / Math.max(slPips * 10, 0.01), 0.01, 100)
     : manualLots;
   const riskDollars = plan.sizingMode === 'risk'
-    ? +(12500 * (riskPercent / 100)).toFixed(2)
+    ? +(equity * (riskPercent / 100)).toFixed(2)
     : +(slPips * lots * 10).toFixed(2);
   const reward = +(riskDollars * (tpPips / slPips)).toFixed(2);
   return { slPips, tpPips, riskDollars, lots, rr: tpPips / slPips, reward };
@@ -114,9 +124,12 @@ export default function ExecutionPanel({
         <div className="mt-2 grid grid-cols-4 gap-1.5 text-center"><Metric label={tradePlan.pending ? 'Entry' : 'Risk'} value={tradePlan.pending ? Number(tradePlan.entry).toFixed(Number(tradePlan.entry) > 100 ? 2 : 5) : `${riskPercent.toFixed(2)}%`}/><Metric label="Lots" value={metrics?.lots.toFixed(2)}/><Metric label="SL" value={`${metrics?.slPips.toFixed(1)}p`}/><Metric label="R:R" value={`1:${metrics?.rr.toFixed(1)}`}/></div>
 
         {tradePlan.pending && (
-          <div className="mt-1.5 flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <span className="flex shrink-0 items-center gap-1 text-[8px] font-bold text-[#718398]"><Clock3 size={11}/> Expiry</span>
-            {['GTC', 'Today', 'Specified'].map(value => <button key={value} type="button" onClick={() => onTradePlanChange({ expiration: value })} className={`shrink-0 rounded-lg border px-2.5 py-1.5 text-[8px] font-bold ${tradePlan.expiration === value ? 'border-[#245477] bg-[#0d2a3e] text-[#63caff]' : 'border-[#1a2c3b] bg-[#0a151f] text-[#718398]'}`}>{value}</button>)}
+          <div className="mt-1.5 space-y-1.5">
+            <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <span className="flex shrink-0 items-center gap-1 text-[8px] font-bold text-[#718398]"><Clock3 size={11}/> Expiry</span>
+              {['GTC', 'Today', 'Specified'].map(value => <button key={value} type="button" onClick={() => onTradePlanChange({ expiration: value, ...(value === 'Specified' && !tradePlan.expirationAt ? { expirationAt: defaultSpecifiedExpiry() } : {}) })} className={`shrink-0 rounded-lg border px-2.5 py-1.5 text-[8px] font-bold ${tradePlan.expiration === value ? 'border-[#245477] bg-[#0d2a3e] text-[#63caff]' : 'border-[#1a2c3b] bg-[#0a151f] text-[#718398]'}`}>{value}</button>)}
+            </div>
+            {tradePlan.expiration === 'Specified' && <label className="flex items-center gap-2 rounded-xl border border-[#1a3040] bg-[#091720] px-2.5 py-2"><Clock3 size={12} className="shrink-0 text-[#5f7488]"/><span className="shrink-0 text-[8px] font-bold text-[#718398]">Expires</span><input type="datetime-local" min={localDateTimeValue(new Date())} value={tradePlan.expirationAt || defaultSpecifiedExpiry()} onChange={event => onTradePlanChange({ expirationAt: event.target.value })} className="min-w-0 flex-1 bg-transparent text-[9px] font-semibold text-[#c8d5df] outline-none [color-scheme:dark]"/></label>}
           </div>
         )}
 
