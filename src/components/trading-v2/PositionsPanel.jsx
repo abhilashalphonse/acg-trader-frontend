@@ -12,7 +12,17 @@ const tabs = [
   { id: 'history', label: 'History' },
 ];
 
-export default function PositionsPanel() {
+function formatPrice(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '—';
+  return number.toFixed(number > 100 ? 2 : 5);
+}
+
+export default function PositionsPanel({
+  pendingOrders = [],
+  onCancelPending = () => {},
+  onModifyPending = () => {},
+}) {
   const [tab, setTab] = useState('positions');
   const [positions, setPositions] = useState(initialPositions);
   const [menuId, setMenuId] = useState(null);
@@ -42,10 +52,10 @@ export default function PositionsPanel() {
     return { ...item, [field]: next };
   }));
 
-  const counts = useMemo(() => ({ positions: positions.length, orders: 0, history: history.length }), [positions, history]);
+  const counts = useMemo(() => ({ positions: positions.length, orders: pendingOrders.length, history: history.length }), [positions, pendingOrders, history]);
 
   return (
-    <section className="mt-3 overflow-hidden rounded-[20px] border border-[#182938] bg-gradient-to-b from-[#0a141e] to-[#071019] shadow-[0_12px_34px_rgba(0,0,0,0.2)]">
+    <section className="mt-3 overflow-visible rounded-[20px] border border-[#182938] bg-gradient-to-b from-[#0a141e] to-[#071019] shadow-[0_12px_34px_rgba(0,0,0,0.2)]">
       <div className="flex h-[50px] items-center justify-between gap-2 border-b border-[#132331] px-3">
         <div className="flex h-full min-w-0 items-stretch gap-1">
           {tabs.map(item => (
@@ -56,7 +66,7 @@ export default function PositionsPanel() {
             </button>
           ))}
         </div>
-        <button type="button" onClick={closeAll} disabled={!positions.length} className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-[#26384a] bg-[#0b151f] px-2.5 text-[9px] font-bold text-[#d6dee7] disabled:cursor-not-allowed disabled:opacity-35"><Trash2 size={13} className="text-[#8fa2b7]" />Close All</button>
+        {tab === 'positions' && <button type="button" onClick={closeAll} disabled={!positions.length} className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-[#26384a] bg-[#0b151f] px-2.5 text-[9px] font-bold text-[#d6dee7] disabled:cursor-not-allowed disabled:opacity-35"><Trash2 size={13} className="text-[#8fa2b7]" />Close All</button>}
       </div>
 
       {tab === 'positions' && (
@@ -78,7 +88,22 @@ export default function PositionsPanel() {
         </div>
       )}
 
-      {tab === 'orders' && <div className="grid h-[138px] place-items-center text-center text-[10px] font-medium text-[#607387]"><div><b className="block text-[#9fb0c2]">No pending orders</b><span className="mt-1 block">Pending-order UI will appear here</span></div></div>}
+      {tab === 'orders' && (
+        <div className="space-y-1.5 p-2">
+          {!pendingOrders.length && <div className="grid h-[138px] place-items-center text-center text-[10px] font-medium text-[#607387]"><div><b className="block text-[#9fb0c2]">No pending orders</b><span className="mt-1 block">Choose Limit, Stop, or Stop Limit above</span></div></div>}
+          {pendingOrders.map(order => (
+            <div key={order.id} className="rounded-xl border border-[#142533] bg-[#08121b] px-3 py-2.5">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0"><div className="flex items-center gap-1.5"><strong className="truncate text-[11px] text-[#f0f5f9]">{order.symbol || 'Current symbol'}</strong><span className={`rounded-md px-1.5 py-1 text-[7px] font-black ${order.side === 'buy' ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{String(order.side).toUpperCase()} {String(order.orderType).toUpperCase()}</span></div><p className="mt-1 text-[8px] text-[#718398]">{Number(order.lots || 0).toFixed(2)} lots · Entry {formatPrice(order.entry)} · {order.expiration}</p></div>
+                <div className="flex shrink-0 items-center gap-1"><button type="button" onClick={() => onModifyPending(order.id)} className="grid size-8 place-items-center rounded-lg border border-[#203747] bg-[#0b1822] text-[#8fa5b8]" aria-label="Modify pending order"><SlidersHorizontal size={13}/></button><button type="button" onClick={() => onCancelPending(order.id)} className="grid size-8 place-items-center rounded-lg border border-[#5b2931] bg-[#251217] text-[#ff7480]" aria-label="Cancel pending order"><X size={13}/></button></div>
+              </div>
+              <div className="mt-2 grid grid-cols-3 gap-1.5 text-[8px]"><div className="rounded-lg bg-[#0a151f] px-2 py-1.5 text-[#718398]">SL <b className="ml-1 text-[#c9d5de]">{formatPrice(order.sl)}</b></div><div className="rounded-lg bg-[#0a151f] px-2 py-1.5 text-[#718398]">TP <b className="ml-1 text-[#c9d5de]">{formatPrice(order.tp)}</b></div><div className="rounded-lg bg-[#0a151f] px-2 py-1.5 text-[#718398]">Status <b className="ml-1 text-[#5bc8ff]">Pending</b></div></div>
+              {order.orderType === 'stop-limit' && <div className="mt-1.5 rounded-lg border border-[#30264a] bg-[#151126] px-2 py-1.5 text-[8px] text-[#8f7ab2]">Limit price <b className="ml-1 text-[#c4a8ff]">{formatPrice(order.limitPrice)}</b></div>}
+            </div>
+          ))}
+        </div>
+      )}
+
       {tab === 'history' && <div className="space-y-1.5 p-2">{!history.length ? <div className="grid h-[122px] place-items-center text-[10px] font-medium text-[#607387]">Closed demo positions will appear here</div> : history.map((item, index) => <div key={`${item.id}-${index}`} className="flex items-center justify-between rounded-xl border border-[#142533] bg-[#08121b] px-3 py-2.5"><div><strong className="text-[11px] text-[#f0f5f9]">{item.symbol}</strong><span className="ml-2 text-[8px] font-bold text-[#74879c]">{item.side} {item.volume}</span><p className="mt-1 text-[8px] text-[#63758a]">Closed {item.closedAt}</p></div><b className="text-[11px] text-[#31d79d]">{item.pnl}</b></div>)}</div>}
     </section>
   );
