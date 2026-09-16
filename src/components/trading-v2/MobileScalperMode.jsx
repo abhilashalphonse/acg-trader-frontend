@@ -34,6 +34,7 @@ export default function MobileScalperMode({
   onManualOrder,
   onTradePlanChange,
   onIndicators = () => {},
+  indicators = [],
   onExit,
 }) {
   const spread = Number.isFinite(market?.spread)
@@ -61,7 +62,7 @@ export default function MobileScalperMode({
       </div>
 
       <div className="min-h-0 flex-1 bg-[#061019]">
-        <ChartArea symbol={market?.symbol} chartTimeframe={mapTimeframe(timeframe)} tick={tick} price={market?.bid} ask={market?.ask} chartMode={chartMode} selectedTool={selectedTool} onSelectTool={tradePlan ? () => {} : setSelectedTool} focusMode tradePlan={tradePlan} onTradePlanChange={onTradePlanChange} />
+        <ChartArea symbol={market?.symbol} chartTimeframe={mapTimeframe(timeframe)} tick={tick} price={market?.bid} ask={market?.ask} chartMode={chartMode} selectedTool={selectedTool} onSelectTool={tradePlan ? () => {} : setSelectedTool} focusMode tradePlan={tradePlan} onTradePlanChange={onTradePlanChange} indicators={indicators} />
       </div>
 
       <ExecutionPanel market={market} lots={lots} onLotsChange={setLots} focusMode sizingMode={sizingMode} onSizingModeChange={setSizingMode} riskPercent={riskPercent} onRiskPercentChange={setRiskPercent} orderType={orderType} onOrderTypeChange={setOrderType} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={onManualOrder} onTradePlanChange={onTradePlanChange} />
