@@ -3,8 +3,8 @@ import { ChevronDown, ChevronUp, ExternalLink, MoreHorizontal, Plus, X } from 'l
 
 function money(value, signed = false) {
   const number = Number(value) || 0;
-  const sign = signed && number > 0 ? '+' : '';
-  return `${sign}$${Math.abs(number).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`.replace('$-', '-$');
+  const prefix = number < 0 ? '-' : signed && number > 0 ? '+' : '';
+  return `${prefix}$${Math.abs(number).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function price(value) {
