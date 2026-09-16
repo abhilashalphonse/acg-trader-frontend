@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BarChart3,
   Grid2X2,
@@ -18,6 +18,7 @@ import {
   createChart,
 } from 'lightweight-charts';
 import { fetchCandles, mergeLiveBarIntoCache, timeframeSeconds } from '../services/twelveData.js';
+import { calculateIndicatorData } from '../utils/indicators.js';
 
 const chartTokens = {
   background: '#080f17',
@@ -28,6 +29,17 @@ const chartTokens = {
   blue: '#53c7ff',
   crosshair: '#71869b',
   crosshairLabel: '#172633',
+};
+
+const indicatorColors = {
+  ema: ['#54c8ff'],
+  sma: ['#f0c35c'],
+  vwap: ['#b38cff'],
+  bollinger: ['#65b6df', '#7f91a4', '#65b6df'],
+  rsi: ['#b68cff'],
+  atr: ['#f0ad5c'],
+  macd: ['#55c8ff', '#ffb55f'],
+  stochastic: ['#58d5ff', '#ff7fbd'],
 };
 
 function tickToBar(previous, tick, timeframe) {
@@ -73,6 +85,20 @@ function timeframeLabel(timeframe) {
   return timeframe.replace('S', 'S').replace('M', 'M').replace('H', 'H').replace('D1', 'D1');
 }
 
+function indicatorLabel(indicator) {
+  const settings = indicator.settings || {};
+  if (indicator.id === 'ema') return `EMA ${settings.period || 20}`;
+  if (indicator.id === 'sma') return `SMA ${settings.period || 20}`;
+  if (indicator.id === 'rsi') return `RSI ${settings.period || 14}`;
+  if (indicator.id === 'atr') return `ATR ${settings.period || 14}`;
+  if (indicator.id === 'bollinger') return `BB ${settings.period || 20}, ${settings.deviation || 2}`;
+  if (indicator.id === 'macd') return `MACD ${settings.fast || 12},${settings.slow || 26},${settings.signal || 9}`;
+  if (indicator.id === 'stochastic') return `Stoch ${settings.kPeriod || 14},${settings.dPeriod || 3}`;
+  if (indicator.id === 'vwap') return 'VWAP';
+  if (indicator.id === 'volume') return 'Vol';
+  return indicator.name || indicator.id;
+}
+
 export default function TradingChart({
   symbol = 'AUDCAD',
   timeframe = 'M1',
@@ -80,6 +106,7 @@ export default function TradingChart({
   chartMode = 'candles',
   bidPrice = null,
   askPrice = null,
+  indicators = [],
 }) {
   const hostRef = useRef(null);
   const chartRef = useRef(null);
@@ -90,6 +117,10 @@ export default function TradingChart({
   const volumeRef = useRef(null);
   const bidLineRef = useRef(null);
   const askLineRef = useRef(null);
+  const indicatorSeriesRef = useRef([]);
+  const indicatorPanesRef = useRef(0);
+  const indicatorsRef = useRef(indicators);
+  const indicatorFrameRef = useRef(null);
 
   const [error, setError] = useState('');
   const [showGrid, setShowGrid] = useState(true);
@@ -100,6 +131,92 @@ export default function TradingChart({
   const [displayBar, setDisplayBar] = useState(null);
 
   const decimals = useMemo(() => decimalsForSymbol(symbol), [symbol]);
+  const visibleIndicators = useMemo(() => indicators.filter(item => item.visible !== false), [indicators]);
+
+  useEffect(() => {
+    indicatorsRef.current = indicators;
+    if (indicators.some(item => item.id === 'volume' && item.visible !== false)) setShowVolume(true);
+  }, [indicators]);
+
+  const clearIndicatorSeries = useCallback(chart => {
+    if (!chart) return;
+    indicatorSeriesRef.current.forEach(series => {
+      try { chart.removeSeries(series); } catch (_) { /* series may already be disposed */ }
+    });
+    indicatorSeriesRef.current = [];
+    for (let index = indicatorPanesRef.current; index >= 1; index -= 1) {
+      try {
+        if (chart.panes().length > index) chart.removePane(index);
+      } catch (_) { /* pane may already be gone */ }
+    }
+    indicatorPanesRef.current = 0;
+  }, []);
+
+  const renderIndicators = useCallback((chart, bars) => {
+    if (!chart || !bars?.length) return;
+    clearIndicatorSeries(chart);
+
+    let paneIndex = 1;
+    indicatorsRef.current.filter(item => item.visible !== false && item.id !== 'volume').forEach((indicator, indicatorIndex) => {
+      const result = calculateIndicatorData(indicator, bars);
+      if (!result) return;
+      const colors = indicatorColors[indicator.id] || ['#53c7ff', '#f0ad5c', '#b38cff'];
+      const targetPane = result.kind === 'overlay' ? 0 : paneIndex++;
+
+      result.lines?.forEach((line, lineIndex) => {
+        const series = chart.addSeries(LineSeries, {
+          color: colors[lineIndex % colors.length],
+          lineWidth: line.key === 'bb-mid' ? 1 : 2,
+          lineStyle: line.key === 'bb-mid' ? LineStyle.Dotted : LineStyle.Solid,
+          priceLineVisible: false,
+          lastValueVisible: result.kind !== 'overlay',
+          crosshairMarkerVisible: true,
+          title: line.label,
+        }, targetPane);
+        series.setData(line.data);
+        indicatorSeriesRef.current.push(series);
+
+        if (lineIndex === 0 && Array.isArray(result.guides)) {
+          result.guides.forEach(guide => series.createPriceLine({
+            price: guide,
+            color: 'rgba(113,131,153,0.38)',
+            lineWidth: 1,
+            lineStyle: LineStyle.Dashed,
+            axisLabelVisible: true,
+            title: '',
+          }));
+        }
+      });
+
+      if (result.kind === 'macd' && result.histogram?.length) {
+        const histogram = chart.addSeries(HistogramSeries, {
+          priceLineVisible: false,
+          lastValueVisible: false,
+          base: 0,
+        }, targetPane);
+        histogram.setData(result.histogram.map(point => ({
+          ...point,
+          color: point.value >= 0 ? 'rgba(45,211,155,0.45)' : 'rgba(255,95,105,0.45)',
+        })));
+        indicatorSeriesRef.current.push(histogram);
+      }
+
+      if (targetPane > 0) {
+        const pane = chart.panes()[targetPane];
+        pane?.setHeight?.(Math.max(86, 110 - indicatorIndex * 4));
+      }
+    });
+
+    indicatorPanesRef.current = Math.max(0, paneIndex - 1);
+  }, [clearIndicatorSeries]);
+
+  const scheduleIndicatorRender = useCallback(() => {
+    if (indicatorFrameRef.current) return;
+    indicatorFrameRef.current = window.requestAnimationFrame(() => {
+      indicatorFrameRef.current = null;
+      renderIndicators(chartRef.current, barsRef.current);
+    });
+  }, [renderIndicators]);
 
   useEffect(() => {
     if (!hostRef.current) return undefined;
@@ -112,6 +229,11 @@ export default function TradingChart({
         attributionLogo: true,
         fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
         fontSize: 10,
+        panes: {
+          separatorColor: '#1b2b39',
+          separatorHoverColor: 'rgba(83,199,255,0.18)',
+          enableResize: true,
+        },
       },
       grid: {
         vertLines: { visible: true, color: chartTokens.gridline, style: LineStyle.Dotted },
@@ -236,6 +358,7 @@ export default function TradingChart({
 
         lastBarRef.current = bars[bars.length - 1];
         setDisplayBar(bars[bars.length - 1]);
+        renderIndicators(chart, bars);
 
         const visibleBars = 48;
         chart.timeScale().setVisibleLogicalRange({
@@ -252,7 +375,11 @@ export default function TradingChart({
     return () => {
       disposed = true;
       controller.abort();
+      if (indicatorFrameRef.current) window.cancelAnimationFrame(indicatorFrameRef.current);
+      indicatorFrameRef.current = null;
       chart.unsubscribeCrosshairMove(crosshairHandler);
+      indicatorSeriesRef.current = [];
+      indicatorPanesRef.current = 0;
       chartRef.current = null;
       seriesRef.current = null;
       volumeRef.current = null;
@@ -263,7 +390,11 @@ export default function TradingChart({
       barsByTimeRef.current = new Map();
       chart.remove();
     };
-  }, [symbol, timeframe, chartMode]);
+  }, [symbol, timeframe, chartMode, renderIndicators]);
+
+  useEffect(() => {
+    if (chartRef.current && barsRef.current.length) scheduleIndicatorRender();
+  }, [indicators, scheduleIndicatorRender]);
 
   useEffect(() => {
     chartRef.current?.applyOptions({
@@ -338,6 +469,7 @@ export default function TradingChart({
       barsRef.current[lastIndex] = next;
     } else if (!barsRef.current.length || next.time > barsRef.current[lastIndex].time) {
       barsRef.current.push(next);
+      if (barsRef.current.length > 240) barsRef.current.shift();
     }
 
     seriesRef.current.update(toSeriesPoint(next, chartMode));
@@ -347,10 +479,11 @@ export default function TradingChart({
       color: next.close >= next.open ? 'rgba(45,211,155,0.34)' : 'rgba(255,95,105,0.32)',
     });
     setDisplayBar(next);
+    scheduleIndicatorRender();
 
     if (autoScroll) chartRef.current?.timeScale().scrollToRealTime();
     mergeLiveBarIntoCache(symbol, timeframe, next, 160);
-  }, [tick, symbol, timeframe, chartMode, autoScroll]);
+  }, [tick, symbol, timeframe, chartMode, autoScroll, scheduleIndicatorRender]);
 
   const resetView = () => {
     const chart = chartRef.current;
@@ -376,7 +509,7 @@ export default function TradingChart({
     <div className="relative size-full min-h-0 min-w-0 overflow-hidden bg-[#080f17]">
       <div ref={hostRef} className="absolute inset-0" />
 
-      <div className="pointer-events-none absolute left-2 top-2 z-20 max-w-[48%] rounded-md bg-[#07111a]/72 px-2 py-1.5 text-[8px] leading-[1.45] text-[#8295a9] backdrop-blur-[2px]">
+      <div className="pointer-events-none absolute left-2 top-2 z-20 max-w-[58%] rounded-md bg-[#07111a]/72 px-2 py-1.5 text-[8px] leading-[1.45] text-[#8295a9] backdrop-blur-[2px]">
         <div className="font-bold tracking-[0.03em] text-[#dce8f2]">
           {symbol},{timeframeLabel(timeframe)}
         </div>
@@ -386,6 +519,11 @@ export default function TradingChart({
           <span>L <b className="text-[#aab9c8]">{format(ohlc?.low)}</b></span>
           <span>C <b className="text-[#aab9c8]">{format(ohlc?.close)}</b></span>
         </div>
+        {visibleIndicators.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 border-t border-white/[0.05] pt-1 text-[7px] font-semibold text-[#8298ac]">
+            {visibleIndicators.map(indicator => <span key={indicator.instanceId}>{indicatorLabel(indicator)}</span>)}
+          </div>
+        )}
       </div>
 
       <div className="absolute right-[54px] top-2 z-30 flex items-center gap-0.5 rounded-lg border border-[#203241] bg-[#08131d]/88 p-1 shadow-[0_5px_20px_rgba(0,0,0,0.22)] backdrop-blur-md">
