@@ -20,6 +20,15 @@ export default function MobileScalperMode({
   setSelectedTool,
   lots,
   setLots,
+  sizingMode,
+  setSizingMode,
+  riskPercent,
+  setRiskPercent,
+  tradePlan,
+  onStartPlan,
+  onCancelPlan,
+  onExecutePlan,
+  onTradePlanChange,
   onExit,
 }) {
   const spread = Number.isFinite(market?.spread)
@@ -38,6 +47,11 @@ export default function MobileScalperMode({
               <span className="rounded-md border border-[#1d3b50] bg-[#0e2638] px-1.5 py-0.5 text-[9px] font-extrabold text-[#59c8ff]">
                 {timeframe}
               </span>
+              {tradePlan && (
+                <span className={`rounded-md border px-1.5 py-0.5 text-[9px] font-extrabold ${tradePlan.side === 'buy' ? 'border-[#176347] bg-[#0d2f25] text-[#44dda9]' : 'border-[#6d2934] bg-[#31151d] text-[#ff6975]'}`}>
+                  {tradePlan.open ? 'OPEN' : 'PLANNING'} {tradePlan.side?.toUpperCase()}
+                </span>
+              )}
             </div>
             <div className="mt-1 flex items-center gap-2.5 text-[9px] font-semibold text-[#74879c]">
               <span>Bid <b className="text-[#44dda9]">{market?.bid}</b></span>
@@ -57,12 +71,12 @@ export default function MobileScalperMode({
         </div>
       </header>
 
-      <div className="shrink-0 bg-[#061019] pt-2">
+      <div className={`shrink-0 bg-[#061019] pt-2 ${tradePlan ? 'opacity-70' : ''}`}>
         <ChartControls
           timeframe={timeframe}
-          onTimeframe={setTimeframe}
+          onTimeframe={tradePlan ? () => {} : setTimeframe}
           chartMode={chartMode}
-          onChartMode={setChartMode}
+          onChartMode={tradePlan ? () => {} : setChartMode}
           fullscreen
           onFullscreen={onExit}
           focusMode
@@ -78,12 +92,27 @@ export default function MobileScalperMode({
           ask={market?.ask}
           chartMode={chartMode}
           selectedTool={selectedTool}
-          onSelectTool={setSelectedTool}
+          onSelectTool={tradePlan ? () => {} : setSelectedTool}
           focusMode
+          tradePlan={tradePlan}
+          onTradePlanChange={onTradePlanChange}
         />
       </div>
 
-      <ExecutionPanel market={market} lots={lots} onLotsChange={setLots} focusMode />
+      <ExecutionPanel
+        market={market}
+        lots={lots}
+        onLotsChange={setLots}
+        focusMode
+        sizingMode={sizingMode}
+        onSizingModeChange={setSizingMode}
+        riskPercent={riskPercent}
+        onRiskPercentChange={setRiskPercent}
+        tradePlan={tradePlan}
+        onStartPlan={onStartPlan}
+        onCancelPlan={onCancelPlan}
+        onExecutePlan={onExecutePlan}
+      />
     </div>
   );
 }
