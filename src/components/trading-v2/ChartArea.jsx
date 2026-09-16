@@ -37,6 +37,8 @@ const secondsByTimeframe = {
   D1: 86400,
 };
 
+const oscillatorIds = new Set(['rsi', 'macd', 'atr', 'stochastic']);
+
 function formatCountdown(totalSeconds) {
   const safe = Math.max(0, totalSeconds);
   const minutes = Math.floor(safe / 60);
@@ -194,9 +196,11 @@ export default function ChartArea({
   focusMode = false,
   tradePlan,
   onTradePlanChange = () => {},
+  indicators = [],
 }) {
   const timeframeSeconds = secondsByTimeframe[chartTimeframe] || 60;
   const [remaining, setRemaining] = useState(() => timeframeSeconds - (Math.floor(Date.now() / 1000) % timeframeSeconds));
+  const oscillatorCount = indicators.filter(item => item.visible !== false && oscillatorIds.has(item.id)).length;
 
   useEffect(() => {
     const update = () => {
@@ -213,7 +217,7 @@ export default function ChartArea({
 
   const areaClass = focusMode
     ? 'grid h-full min-h-0 grid-cols-[36px_minmax(0,1fr)] gap-1.5 px-1.5 pb-1.5'
-    : 'grid h-[270px] grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2 md:h-[300px]';
+    : `grid ${oscillatorCount ? (oscillatorCount > 1 ? 'h-[430px]' : 'h-[360px]') : 'h-[270px]'} grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2 md:${oscillatorCount ? 'h-[440px]' : 'h-[300px]'}`;
 
   const toolbarClass = focusMode
     ? 'flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto rounded-xl border border-[#1b2c3d] bg-[#09131d] py-1.5 shadow-[inset_0_1px_rgba(255,255,255,0.02)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
@@ -230,7 +234,7 @@ export default function ChartArea({
       </aside>
 
       <div className="relative min-h-0 min-w-0 overflow-hidden rounded-xl border border-[#1b2c3d] bg-[#080f17]">
-        <TradingChart symbol={symbol} timeframe={chartTimeframe} tick={tick} chartMode={chartMode} bidPrice={price} askPrice={ask} />
+        <TradingChart symbol={symbol} timeframe={chartTimeframe} tick={tick} chartMode={chartMode} bidPrice={price} askPrice={ask} indicators={indicators} />
         <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} />
 
         {!tradePlan && (
