@@ -536,7 +536,7 @@ export default function TradingChart({
     <div className="relative size-full min-h-0 min-w-0 overflow-hidden bg-[#080f17]">
       <div ref={hostRef} className="absolute inset-0" />
 
-      <div className="pointer-events-none absolute left-2 top-2 z-20 max-w-[58%] rounded-md bg-[#07111a]/72 px-2 py-1.5 text-[8px] leading-[1.45] text-[#8295a9] backdrop-blur-[2px]">
+      <div className="pointer-events-none absolute left-2 top-2 z-20 max-w-[68%] px-1 text-[8px] leading-[1.45] text-[#8295a9] [text-shadow:0_1px_2px_#080f17,0_0_5px_#080f17]">
         <div className="font-bold tracking-[0.03em] text-[#dce8f2]">
           {symbol},{timeframeLabel(timeframe)}
         </div>
@@ -547,7 +547,7 @@ export default function TradingChart({
           <span>C <b className="text-[#aab9c8]">{format(ohlc?.close)}</b></span>
         </div>
         {visibleIndicators.length > 0 && (
-          <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 border-t border-white/[0.05] pt-1 text-[7px] font-semibold text-[#8298ac]">
+          <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[7px] font-semibold text-[#8298ac]">
             {visibleIndicators.map(indicator => <span key={indicator.instanceId}>{indicatorLabel(indicator)}</span>)}
           </div>
         )}
