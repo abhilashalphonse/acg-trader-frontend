@@ -17,6 +17,7 @@ const tabs = [
   { id: 'positions', label: 'Positions' },
   { id: 'orders', label: 'Orders' },
   { id: 'history', label: 'History' },
+  { id: 'journal', label: 'Journal' },
 ];
 
 function formatPrice(value) {
@@ -44,6 +45,7 @@ export default function PositionsPanel({
   positions = [],
   positionHistory = [],
   pendingOrders = [],
+  journal = [],
   onClosePosition = () => {},
   onCloseAll = () => {},
   onBreakEven = () => {},
@@ -63,7 +65,8 @@ export default function PositionsPanel({
     positions: positions.length,
     orders: pendingOrders.length,
     history: positionHistory.length,
-  }), [positions, pendingOrders, positionHistory]);
+    journal: journal.length,
+  }), [positions, pendingOrders, positionHistory, journal]);
 
   const nudge = (position, field, direction) => {
     const current = Number(position[field]);
@@ -82,43 +85,21 @@ export default function PositionsPanel({
   return (
     <section className="mt-3 overflow-visible rounded-[20px] border border-[#182938] bg-gradient-to-b from-[#0a141e] to-[#071019] shadow-[0_12px_34px_rgba(0,0,0,0.2)]">
       <div className="flex h-[50px] items-center justify-between gap-2 border-b border-[#132331] px-3">
-        <div className="flex h-full min-w-0 items-stretch gap-1">
+        <div className="flex h-full min-w-0 items-stretch gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {tabs.map(item => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setTab(item.id)}
-              className={`relative flex h-full items-center gap-1.5 px-2 text-[11px] font-bold ${tab === item.id ? 'text-[#f3f7fb]' : 'text-[#7b8da1]'}`}
-            >
+            <button key={item.id} type="button" onClick={() => setTab(item.id)} className={`relative flex h-full shrink-0 items-center gap-1 px-1.5 text-[10px] font-bold ${tab === item.id ? 'text-[#f3f7fb]' : 'text-[#7b8da1]'}`}>
               <span>{item.label}</span>
-              <span className="rounded-full bg-[#0d3048] px-1.5 py-0.5 text-[8px] font-extrabold text-[#55c3ff]">{counts[item.id]}</span>
-              {tab === item.id && <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-[#3dbdff] shadow-[0_0_8px_rgba(61,189,255,0.35)]" />}
+              <span className="rounded-full bg-[#0d3048] px-1.5 py-0.5 text-[7px] font-extrabold text-[#55c3ff]">{counts[item.id]}</span>
+              {tab === item.id && <span className="absolute bottom-0 left-1.5 right-1.5 h-0.5 rounded-full bg-[#3dbdff] shadow-[0_0_8px_rgba(61,189,255,0.35)]" />}
             </button>
           ))}
         </div>
-        {tab === 'positions' && (
-          <button
-            type="button"
-            onClick={onCloseAll}
-            disabled={!positions.length}
-            className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-[#26384a] bg-[#0b151f] px-2.5 text-[9px] font-bold text-[#d6dee7] disabled:cursor-not-allowed disabled:opacity-35"
-          >
-            <Trash2 size={13} className="text-[#8fa2b7]" />
-            Close All
-          </button>
-        )}
+        {tab === 'positions' && <button type="button" onClick={onCloseAll} disabled={!positions.length} className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-[#26384a] bg-[#0b151f] px-2 text-[8px] font-bold text-[#d6dee7] disabled:cursor-not-allowed disabled:opacity-35"><Trash2 size={12} className="text-[#8fa2b7]" />Close All</button>}
       </div>
 
       {tab === 'positions' && (
         <div className="space-y-2 p-2">
-          {!positions.length && (
-            <div className="grid h-[118px] place-items-center text-center text-[10px] font-medium text-[#607387]">
-              <div>
-                <b className="block text-[#9fb0c2]">No open positions</b>
-                <span className="mt-1 block">Market executions will appear here</span>
-              </div>
-            </div>
-          )}
+          {!positions.length && <div className="grid h-[118px] place-items-center text-center text-[10px] font-medium text-[#607387]"><div><b className="block text-[#9fb0c2]">No open positions</b><span className="mt-1 block">Market executions will appear here</span></div></div>}
 
           {positions.map(position => {
             const expanded = expandedId === position.id;
@@ -136,38 +117,17 @@ export default function PositionsPanel({
                         <span className={`rounded-md px-1.5 py-1 text-[7px] font-black leading-none ${sideBuy ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{position.side}</span>
                         {position.trailingEnabled && <span className="rounded-md border border-[#25445a] bg-[#0c2230] px-1.5 py-1 text-[7px] font-bold text-[#5bc8ff]">TRAIL {position.trailingPips}p</span>}
                       </div>
-                      <p className="mt-1.5 text-[9px] text-[#6f8296]">
-                        <b className="text-[#cbd6df]">{Number(position.volume).toFixed(2)} lots</b>
-                        <span className="mx-1.5 text-[#34495b]">•</span>
-                        Entry {formatPrice(position.entry)}
-                      </p>
+                      <p className="mt-1.5 text-[9px] text-[#6f8296]"><b className="text-[#cbd6df]">{Number(position.volume).toFixed(2)} lots</b><span className="mx-1.5 text-[#34495b]">•</span>Entry {formatPrice(position.entry)}</p>
                     </div>
-
                     <div className="flex shrink-0 items-start gap-2">
-                      <div className="text-right">
-                        <span className="block text-[8px] font-semibold uppercase tracking-[0.08em] text-[#5f7388]">P&amp;L</span>
-                        <b className={`mt-1 block text-[14px] font-black ${positive ? 'text-[#3dd9a4]' : 'text-[#ff6975]'}`}>{formatPnl(position.pnl)}</b>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setExpandedId(expanded ? null : position.id)}
-                        aria-label="More position controls"
-                        className={`grid size-8 place-items-center rounded-lg border transition ${expanded ? 'border-[#29516a] bg-[#0d2b3e] text-[#5bc8ff]' : 'border-[#1b2d3c] bg-[#0b1720] text-[#788da2]'}`}
-                      >
-                        <MoreHorizontal size={16}/>
-                      </button>
+                      <div className="text-right"><span className="block text-[8px] font-semibold uppercase tracking-[0.08em] text-[#5f7388]">P&amp;L</span><b className={`mt-1 block text-[14px] font-black ${positive ? 'text-[#3dd9a4]' : 'text-[#ff6975]'}`}>{formatPnl(position.pnl)}</b></div>
+                      <button type="button" onClick={() => setExpandedId(expanded ? null : position.id)} aria-label="More position controls" className={`grid size-8 place-items-center rounded-lg border transition ${expanded ? 'border-[#29516a] bg-[#0d2b3e] text-[#5bc8ff]' : 'border-[#1b2d3c] bg-[#0b1720] text-[#788da2]'}`}><MoreHorizontal size={16}/></button>
                     </div>
                   </div>
 
                   <div className="mt-2.5 grid grid-cols-2 gap-1.5">
-                    <div className="flex items-center justify-between rounded-xl border border-[#152936] bg-[#0a161f] px-2.5 py-2">
-                      <span className="text-[8px] font-semibold text-[#63778b]">SL</span>
-                      <b className="text-[9px] font-semibold text-[#c5d0da]">{formatPrice(position.sl)}</b>
-                    </div>
-                    <div className="flex items-center justify-between rounded-xl border border-[#152936] bg-[#0a161f] px-2.5 py-2">
-                      <span className="text-[8px] font-semibold text-[#63778b]">TP</span>
-                      <b className="text-[9px] font-semibold text-[#c5d0da]">{formatPrice(position.tp)}</b>
-                    </div>
+                    <div className="flex items-center justify-between rounded-xl border border-[#152936] bg-[#0a161f] px-2.5 py-2"><span className="text-[8px] font-semibold text-[#63778b]">SL</span><b className="text-[9px] font-semibold text-[#c5d0da]">{formatPrice(position.sl)}</b></div>
+                    <div className="flex items-center justify-between rounded-xl border border-[#152936] bg-[#0a161f] px-2.5 py-2"><span className="text-[8px] font-semibold text-[#63778b]">TP</span><b className="text-[9px] font-semibold text-[#c5d0da]">{formatPrice(position.tp)}</b></div>
                   </div>
                 </div>
 
@@ -181,85 +141,24 @@ export default function PositionsPanel({
                 {expanded && (
                   <div className="space-y-2 border-t border-[#172a38] bg-[#07111a] p-2.5">
                     <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setEditingId(editing ? null : position.id)}
-                        className={`flex h-10 items-center justify-center gap-2 rounded-xl border text-[10px] font-bold ${editing ? 'border-[#235773] bg-[#0d2b3e] text-[#64cfff]' : 'border-[#1b3040] bg-[#0b1822] text-[#b8c6d2]'}`}
-                      >
-                        <SlidersHorizontal size={14}/>
-                        Modify SL / TP
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onDuplicate(position.id)}
-                        className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#1b3040] bg-[#0b1822] text-[10px] font-bold text-[#b8c6d2]"
-                      >
-                        <Copy size={14}/>
-                        Duplicate
-                      </button>
+                      <button type="button" onClick={() => setEditingId(editing ? null : position.id)} className={`flex h-10 items-center justify-center gap-2 rounded-xl border text-[10px] font-bold ${editing ? 'border-[#235773] bg-[#0d2b3e] text-[#64cfff]' : 'border-[#1b3040] bg-[#0b1822] text-[#b8c6d2]'}`}><SlidersHorizontal size={14}/>Modify SL / TP</button>
+                      <button type="button" onClick={() => onDuplicate(position.id)} className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#1b3040] bg-[#0b1822] text-[10px] font-bold text-[#b8c6d2]"><Copy size={14}/>Duplicate</button>
                     </div>
 
-                    {editing && (
-                      <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2 rounded-xl border border-[#183144] bg-[#091923] p-2">
-                        <Adjust
-                          label="SL"
-                          value={formatPrice(position.sl)}
-                          onMinus={() => nudge(position, 'sl', -1)}
-                          onPlus={() => nudge(position, 'sl', 1)}
-                        />
-                        <Adjust
-                          label="TP"
-                          value={formatPrice(position.tp)}
-                          onMinus={() => nudge(position, 'tp', -1)}
-                          onPlus={() => nudge(position, 'tp', 1)}
-                        />
-                        <button type="button" onClick={() => setEditingId(null)} className="grid size-9 place-items-center rounded-lg border border-[#176347] bg-[#0d2f25] text-[#44dda9]" aria-label="Apply modification"><Check size={14}/></button>
-                      </div>
-                    )}
+                    {editing && <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2 rounded-xl border border-[#183144] bg-[#091923] p-2"><Adjust label="SL" value={formatPrice(position.sl)} onMinus={() => nudge(position, 'sl', -1)} onPlus={() => nudge(position, 'sl', 1)} /><Adjust label="TP" value={formatPrice(position.tp)} onMinus={() => nudge(position, 'tp', -1)} onPlus={() => nudge(position, 'tp', 1)} /><button type="button" onClick={() => setEditingId(null)} className="grid size-9 place-items-center rounded-lg border border-[#176347] bg-[#0d2f25] text-[#44dda9]" aria-label="Apply modification"><Check size={14}/></button></div>}
 
                     <div className="rounded-xl border border-[#183144] bg-[#091923] p-2.5">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <ShieldCheck size={15} className={position.trailingEnabled ? 'text-[#57ccff]' : 'text-[#688095]'}/>
-                          <div>
-                            <b className="block text-[10px] text-[#d5dfe7]">Trailing Stop</b>
-                            <span className="mt-0.5 block text-[8px] text-[#667b8f]">Frontend preview · client-side behavior later</span>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => onSetTrailing(position.id, !position.trailingEnabled, position.trailingPips)}
-                          className={`relative h-6 w-11 rounded-full transition ${position.trailingEnabled ? 'bg-[#14557a]' : 'bg-[#172735]'}`}
-                          aria-label="Toggle trailing stop"
-                        >
-                          <span className={`absolute top-1 size-4 rounded-full bg-white transition ${position.trailingEnabled ? 'left-6' : 'left-1'}`} />
-                        </button>
+                        <div className="flex items-center gap-2"><ShieldCheck size={15} className={position.trailingEnabled ? 'text-[#57ccff]' : 'text-[#688095]'}/><div><b className="block text-[10px] text-[#d5dfe7]">Trailing Stop</b><span className="mt-0.5 block text-[8px] text-[#667b8f]">Frontend state ready for server-side trailing</span></div></div>
+                        <button type="button" onClick={() => onSetTrailing(position.id, !position.trailingEnabled, position.trailingPips)} className={`relative h-6 w-11 rounded-full transition ${position.trailingEnabled ? 'bg-[#14557a]' : 'bg-[#172735]'}`} aria-label="Toggle trailing stop"><span className={`absolute top-1 size-4 rounded-full bg-white transition ${position.trailingEnabled ? 'left-6' : 'left-1'}`} /></button>
                       </div>
-                      <div className="mt-2 flex items-center gap-2">
-                        <span className="text-[8px] font-semibold text-[#6d8195]">Distance</span>
-                        <button type="button" onClick={() => onSetTrailing(position.id, true, Math.max(1, Number(position.trailingPips) - 1))} className="grid size-7 place-items-center rounded-lg border border-[#1a3040] bg-[#0d1b26] text-[#8fa3b6]"><Minus size={12}/></button>
-                        <b className="min-w-[54px] rounded-lg border border-[#1a3040] bg-[#0a151f] px-2 py-1.5 text-center text-[9px] text-[#d4dee6]">{position.trailingPips || 5} pips</b>
-                        <button type="button" onClick={() => onSetTrailing(position.id, true, Number(position.trailingPips || 5) + 1)} className="grid size-7 place-items-center rounded-lg border border-[#1a3040] bg-[#0d1b26] text-[#8fa3b6]"><Plus size={12}/></button>
-                      </div>
+                      <div className="mt-2 flex items-center gap-2"><span className="text-[8px] font-semibold text-[#6d8195]">Distance</span><button type="button" onClick={() => onSetTrailing(position.id, true, Math.max(1, Number(position.trailingPips) - 1))} className="grid size-7 place-items-center rounded-lg border border-[#1a3040] bg-[#0d1b26] text-[#8fa3b6]"><Minus size={12}/></button><b className="min-w-[54px] rounded-lg border border-[#1a3040] bg-[#0a151f] px-2 py-1.5 text-center text-[9px] text-[#d4dee6]">{position.trailingPips || 5} pips</b><button type="button" onClick={() => onSetTrailing(position.id, true, Number(position.trailingPips || 5) + 1)} className="grid size-7 place-items-center rounded-lg border border-[#1a3040] bg-[#0d1b26] text-[#8fa3b6]"><Plus size={12}/></button></div>
                     </div>
 
                     <div className="rounded-xl border border-[#33262d] bg-[#151015] p-2.5">
                       <div className="flex items-center gap-2 text-[#c7b6bd]"><TrendingDown size={14}/><b className="text-[10px]">Partial close</b></div>
-                      <div className="mt-2 grid grid-cols-4 gap-1.5">
-                        {[25, 50, 75, 100].map(percent => (
-                          <button key={percent} type="button" onClick={() => onClosePosition(position.id, percent)} className="h-8 rounded-lg border border-[#362730] bg-[#1b1217] text-[9px] font-bold text-[#d0bfc5] active:bg-[#351922]">{percent === 100 ? 'ALL' : `${percent}%`}</button>
-                        ))}
-                      </div>
-                      <div className="mt-2 flex items-center gap-2">
-                        <input
-                          inputMode="numeric"
-                          value={customClose[position.id] ?? ''}
-                          onChange={event => setCustomClose(current => ({ ...current, [position.id]: event.target.value.replace(/[^0-9]/g, '').slice(0, 3) }))}
-                          placeholder="Custom %"
-                          className="h-9 min-w-0 flex-1 rounded-lg border border-[#382933] bg-[#120d11] px-3 text-[9px] font-semibold text-[#e0d3d8] outline-none placeholder:text-[#66545b]"
-                        />
-                        <button type="button" onClick={() => applyCustomClose(position)} className="h-9 rounded-lg border border-[#65313c] bg-[#2c151c] px-3 text-[9px] font-bold text-[#ff7a86]">Close</button>
-                      </div>
+                      <div className="mt-2 grid grid-cols-4 gap-1.5">{[25, 50, 75, 100].map(percent => <button key={percent} type="button" onClick={() => onClosePosition(position.id, percent)} className="h-8 rounded-lg border border-[#362730] bg-[#1b1217] text-[9px] font-bold text-[#d0bfc5] active:bg-[#351922]">{percent === 100 ? 'ALL' : `${percent}%`}</button>)}</div>
+                      <div className="mt-2 flex items-center gap-2"><input inputMode="numeric" value={customClose[position.id] ?? ''} onChange={event => setCustomClose(current => ({ ...current, [position.id]: event.target.value.replace(/[^0-9]/g, '').slice(0, 3) }))} placeholder="Custom %" className="h-9 min-w-0 flex-1 rounded-lg border border-[#382933] bg-[#120d11] px-3 text-[9px] font-semibold text-[#e0d3d8] outline-none placeholder:text-[#66545b]"/><button type="button" onClick={() => applyCustomClose(position)} className="h-9 rounded-lg border border-[#65313c] bg-[#2c151c] px-3 text-[9px] font-bold text-[#ff7a86]">Close</button></div>
                     </div>
                   </div>
                 )}
@@ -287,17 +186,13 @@ export default function PositionsPanel({
 
       {tab === 'history' && (
         <div className="space-y-1.5 p-2">
-          {!positionHistory.length ? (
-            <div className="grid h-[122px] place-items-center text-[10px] font-medium text-[#607387]">Closed positions will appear here</div>
-          ) : positionHistory.map((item, index) => (
-            <div key={`${item.id}-${index}`} className="flex items-center justify-between rounded-xl border border-[#142533] bg-[#08121b] px-3 py-2.5">
-              <div>
-                <div className="flex items-center gap-1.5"><strong className="text-[11px] text-[#f0f5f9]">{formatSymbol(item.symbol)}</strong><span className="rounded-md bg-[#101f2a] px-1.5 py-1 text-[7px] font-bold text-[#7f95a8]">{item.closeType || 'Closed'}</span></div>
-                <p className="mt-1 text-[8px] text-[#63758a]">{item.side} · {Number(item.volume).toFixed(2)} lots · {item.closedAt}</p>
-              </div>
-              <b className={`text-[11px] ${Number(item.pnl) >= 0 ? 'text-[#31d79d]' : 'text-[#ff6975]'}`}>{formatPnl(item.pnl)}</b>
-            </div>
-          ))}
+          {!positionHistory.length ? <div className="grid h-[122px] place-items-center text-[10px] font-medium text-[#607387]">Closed positions will appear here</div> : positionHistory.map((item, index) => <div key={`${item.id}-${index}`} className="flex items-center justify-between rounded-xl border border-[#142533] bg-[#08121b] px-3 py-2.5"><div><div className="flex items-center gap-1.5"><strong className="text-[11px] text-[#f0f5f9]">{formatSymbol(item.symbol)}</strong><span className="rounded-md bg-[#101f2a] px-1.5 py-1 text-[7px] font-bold text-[#7f95a8]">{item.closeType || 'Closed'}</span></div><p className="mt-1 text-[8px] text-[#63758a]">{item.side} · {Number(item.volume).toFixed(2)} lots · {item.closedAt}</p></div><b className={`text-[11px] ${Number(item.pnl) >= 0 ? 'text-[#31d79d]' : 'text-[#ff6975]'}`}>{formatPnl(item.pnl)}</b></div>)}
+        </div>
+      )}
+
+      {tab === 'journal' && (
+        <div className="max-h-[340px] overflow-y-auto p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {!journal.length ? <div className="grid h-[122px] place-items-center text-center text-[10px] text-[#607387]"><div><b className="block text-[#9fb0c2]">Journal is ready</b><span className="mt-1 block">Orders, fills and management actions will be recorded here.</span></div></div> : journal.map(item => <div key={item.id} className="grid grid-cols-[58px_1fr] gap-2 border-b border-[#122431] px-2 py-2.5 last:border-b-0"><span className="font-mono text-[8px] text-[#52687c]">{item.time}</span><div><div className="flex items-center gap-1.5"><span className={`size-1.5 rounded-full ${item.type === 'fill' ? 'bg-[#3ad7a1]' : item.type === 'order' ? 'bg-[#b68cff]' : item.type === 'modify' ? 'bg-[#f0c35c]' : 'bg-[#55c8ff]'}`} /><b className="text-[9px] font-semibold text-[#cbd7e0]">{item.message}</b></div>{item.latencyMs != null && <span className="mt-1 block text-[7px] text-[#61768a]">Execution {item.latencyMs}ms</span>}</div></div>)}
         </div>
       )}
     </section>
@@ -315,12 +210,5 @@ function QuickAction({ label, onClick, tone = 'neutral' }) {
 }
 
 function Adjust({ label, value, onMinus, onPlus }) {
-  return (
-    <div className="flex items-center gap-1 rounded-lg border border-[#1a2c3a] bg-[#0a151f] px-1.5 py-1">
-      <span className="mr-1 text-[8px] font-bold text-[#718398]">{label}</span>
-      <button type="button" onClick={onMinus} className="grid size-6 place-items-center rounded-md bg-[#101d27] text-[#8799ac]"><Minus size={11}/></button>
-      <b className="min-w-0 flex-1 text-center text-[8px] text-[#d8e2ea]">{value}</b>
-      <button type="button" onClick={onPlus} className="grid size-6 place-items-center rounded-md bg-[#101d27] text-[#8799ac]"><Plus size={11}/></button>
-    </div>
-  );
+  return <div className="flex items-center gap-1 rounded-lg border border-[#1a2c3a] bg-[#0a151f] px-1.5 py-1"><span className="mr-1 text-[8px] font-bold text-[#718398]">{label}</span><button type="button" onClick={onMinus} className="grid size-6 place-items-center rounded-md bg-[#101d27] text-[#8799ac]"><Minus size={11}/></button><b className="min-w-0 flex-1 text-center text-[8px] text-[#d8e2ea]">{value}</b><button type="button" onClick={onPlus} className="grid size-6 place-items-center rounded-md bg-[#101d27] text-[#8799ac]"><Plus size={11}/></button></div>;
 }
