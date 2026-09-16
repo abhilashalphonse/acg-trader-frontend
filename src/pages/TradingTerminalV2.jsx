@@ -123,6 +123,15 @@ export default function TradingTerminalV2({
             setSelectedTool={setSelectedTool}
             lots={lots}
             setLots={setLots}
+            sizingMode={sizingMode}
+            setSizingMode={setSizingMode}
+            riskPercent={riskPercent}
+            setRiskPercent={setRiskPercent}
+            tradePlan={tradePlan}
+            onStartPlan={startPlan}
+            onCancelPlan={cancelPlan}
+            onExecutePlan={executePlan}
+            onTradePlanChange={updatePlan}
             onExit={exitChartFocus}
           />
         ) : (
