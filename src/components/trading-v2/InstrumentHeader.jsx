@@ -15,14 +15,14 @@ function displaySymbol(symbol = '') {
   return symbol;
 }
 
-export default function InstrumentHeader({ market, favorite, onFavorite }) {
+export default function InstrumentHeader({ market, favorite, onFavorite, onSelectInstrument = () => {} }) {
   const positive = !String(market.change || '').startsWith('-');
   const symbol = displaySymbol(market.symbol);
 
   return (
     <div className="grid grid-cols-[minmax(0,1.15fr)_auto_auto_auto] items-center gap-2 px-4 pb-3 pt-4">
       <div className="min-w-0">
-        <button type="button" className="flex items-center gap-1 border-0 bg-transparent p-0 text-left text-[21px] font-black tracking-[-0.045em] text-[#f5f7fb]">
+        <button type="button" onClick={onSelectInstrument} className="flex items-center gap-1 border-0 bg-transparent p-0 text-left text-[21px] font-black tracking-[-0.045em] text-[#f5f7fb] active:scale-[0.99]">
           <span>{symbol}</span>
           <ChevronDown size={18} className="mt-0.5 shrink-0 text-[#e8eef5]" strokeWidth={2.3} />
         </button>
@@ -46,7 +46,7 @@ export default function InstrumentHeader({ market, favorite, onFavorite }) {
         type="button"
         aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
         onClick={onFavorite}
-        className="grid size-9 place-items-center rounded-xl border border-[#1c2d3e] bg-[#0a141e] text-[#ffc856] shadow-[inset_0_1px_rgba(255,255,255,0.02)]"
+        className="grid size-9 place-items-center rounded-xl border border-[#1c2d3e] bg-[#0a141e] text-[#ffc856] shadow-[inset_0_1px_rgba(255,255,255,0.02)] active:scale-95"
       >
         <Star size={18} fill={favorite ? 'currentColor' : 'none'} strokeWidth={1.8} />
       </button>
