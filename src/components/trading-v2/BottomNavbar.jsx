@@ -1,15 +1,15 @@
 import React from 'react';
-import { ChartNoAxesCombined, ClipboardList, Clock3, House, MoreHorizontal } from 'lucide-react';
+import { BarChart3, ChartNoAxesCombined, Clock3, UserRound, List } from 'lucide-react';
 
 const items = [
-  { id: 'watchlist', label: 'Watchlist', Icon: House },
-  { id: 'trade', label: 'Trade', Icon: ChartNoAxesCombined },
-  { id: 'markets', label: 'Markets', Icon: ClipboardList },
+  { id: 'watchlist', label: 'Watchlist', Icon: List },
+  { id: 'chart', label: 'Chart', Icon: ChartNoAxesCombined },
+  { id: 'trade', label: 'Trade', Icon: BarChart3 },
   { id: 'history', label: 'History', Icon: Clock3 },
-  { id: 'more', label: 'More', Icon: MoreHorizontal },
+  { id: 'account', label: 'Account', Icon: UserRound },
 ];
 
-export default function BottomNavbar({ active = 'trade', onChange = () => {} }) {
+export default function BottomNavbar({ active = 'chart', onChange = () => {} }) {
   return (
     <nav className="fixed bottom-0 left-1/2 z-40 w-full max-w-[460px] -translate-x-1/2 rounded-t-[26px] border-t border-[#1a2b3a] bg-[#071019]/95 px-2 pb-[max(14px,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl" aria-label="Primary navigation">
       <div className="grid grid-cols-5 gap-1">
