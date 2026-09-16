@@ -38,6 +38,17 @@ function calculatedLots(plan, riskPercent, manualLots) {
   return Math.max(0.01, Math.min(100, riskDollars / Math.max(slPips * 10, 0.01)));
 }
 
+function formatVolume(value) {
+  return Math.max(0.01, Number(value) || 0.01).toFixed(2);
+}
+
+function initialPositionRows() {
+  return [
+    { id: 1, symbol: 'AUDCAD', side: 'BUY', volume: 0.01, entry: 0.99342, pnl: 0.18, tp: 0.995, sl: 0.99, trailingEnabled: false, trailingPips: 5 },
+    { id: 2, symbol: 'EURUSD', side: 'SELL', volume: 0.02, entry: 1.0846, pnl: 0.78, tp: 1.08, sl: 1.09, trailingEnabled: false, trailingPips: 5 },
+  ];
+}
+
 export default function TradingTerminalV2({
   market,
   tick,
@@ -61,6 +72,8 @@ export default function TradingTerminalV2({
   const [orderType, setOrderType] = useState('market');
   const [tradePlan, setTradePlan] = useState(null);
   const [pendingOrders, setPendingOrders] = useState([]);
+  const [positions, setPositions] = useState(initialPositionRows);
+  const [positionHistory, setPositionHistory] = useState([]);
   const [overlay, setOverlay] = useState(null);
   const [notice, setNotice] = useState('');
 
@@ -83,6 +96,105 @@ export default function TradingTerminalV2({
     setNotice(message);
     if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
     noticeTimerRef.current = window.setTimeout(() => setNotice(''), 2400);
+  };
+
+  const currentPriceFor = (symbol, side) => {
+    if (symbol === market?.symbol) return Number(side === 'BUY' ? market?.ask : market?.bid) || 0;
+    const quote = markets.find(item => item.symbol === symbol);
+    return Number(side === 'BUY' ? quote?.ask : quote?.bid) || 0;
+  };
+
+  const addPosition = ({ symbol, side, volume, entry, sl = null, tp = null, source = 'market' }) => {
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+    const position = {
+      id,
+      symbol,
+      side: String(side).toUpperCase(),
+      volume: Number(formatVolume(volume)),
+      entry: Number(entry),
+      sl: sl == null ? null : Number(sl),
+      tp: tp == null ? null : Number(tp),
+      pnl: 0,
+      source,
+      trailingEnabled: false,
+      trailingPips: 5,
+      openedAt: 'Just now',
+    };
+    setPositions(current => [position, ...current]);
+    return id;
+  };
+
+  const closePosition = (id, percentage = 100) => {
+    const position = positions.find(item => item.id === id);
+    if (!position) return;
+
+    const currentVolume = Number(position.volume);
+    const requested = Math.max(1, Math.min(100, Number(percentage) || 100));
+    const closeVolume = Math.min(currentVolume, Math.max(0.01, Number((currentVolume * requested / 100).toFixed(2))));
+    const fullyClosed = closeVolume >= currentVolume - 0.000001;
+
+    setPositionHistory(current => [{
+      ...position,
+      id: `${position.id}-${Date.now()}`,
+      volume: closeVolume,
+      closedAt: 'Just now',
+      closeType: fullyClosed ? 'Closed' : `${requested}% partial`,
+    }, ...current]);
+
+    setPositions(current => fullyClosed
+      ? current.filter(item => item.id !== id)
+      : current.map(item => item.id === id ? { ...item, volume: Number((currentVolume - closeVolume).toFixed(2)) } : item));
+
+    if (tradePlan?.positionId === id && fullyClosed) setTradePlan(null);
+    showNotice(fullyClosed ? 'Position closed locally' : `${requested}% of position closed locally`);
+  };
+
+  const closeAllPositions = () => {
+    if (!positions.length) return;
+    const closed = positions.map(position => ({ ...position, id: `${position.id}-${Date.now()}`, closedAt: 'Just now', closeType: 'Close all' }));
+    setPositionHistory(current => [...closed, ...current]);
+    setPositions([]);
+    if (tradePlan?.open) setTradePlan(null);
+    showNotice('All frontend positions closed');
+  };
+
+  const updatePosition = (id, patch) => {
+    setPositions(current => current.map(position => position.id === id ? { ...position, ...patch } : position));
+  };
+
+  const movePositionToBreakEven = id => {
+    const position = positions.find(item => item.id === id);
+    if (!position) return;
+    updatePosition(id, { sl: Number(position.entry) });
+    showNotice('Stop loss moved to break even');
+  };
+
+  const reversePosition = id => {
+    setPositions(current => current.map(position => {
+      if (position.id !== id) return position;
+      const nextSide = position.side === 'BUY' ? 'SELL' : 'BUY';
+      const quote = currentPriceFor(position.symbol, nextSide) || Number(position.entry);
+      const oldEntry = Number(position.entry);
+      const slDistance = position.sl == null ? null : Math.abs(oldEntry - Number(position.sl));
+      const tpDistance = position.tp == null ? null : Math.abs(Number(position.tp) - oldEntry);
+      const nextSl = slDistance == null ? null : (nextSide === 'BUY' ? quote - slDistance : quote + slDistance);
+      const nextTp = tpDistance == null ? null : (nextSide === 'BUY' ? quote + tpDistance : quote - tpDistance);
+      return { ...position, side: nextSide, entry: quote, sl: nextSl, tp: nextTp, pnl: 0, openedAt: 'Reversed just now' };
+    }));
+    showNotice('Position reversed locally');
+  };
+
+  const setPositionTrailing = (id, enabled, pips) => {
+    updatePosition(id, { trailingEnabled: Boolean(enabled), trailingPips: Math.max(1, Number(pips) || 5) });
+    showNotice(enabled ? `Trailing stop set to ${Math.max(1, Number(pips) || 5)} pips` : 'Trailing stop disabled');
+  };
+
+  const duplicatePosition = id => {
+    const position = positions.find(item => item.id === id);
+    if (!position) return;
+    const quote = currentPriceFor(position.symbol, position.side) || Number(position.entry);
+    addPosition({ ...position, entry: quote, source: 'duplicate' });
+    showNotice('Position duplicated locally');
   };
 
   const enterChartFocus = async () => {
@@ -141,7 +253,10 @@ export default function TradingTerminalV2({
   };
 
   const cancelPlan = () => {
-    if (tradePlan?.open) showNotice('Demo position closed locally');
+    if (tradePlan?.open && tradePlan?.positionId) {
+      closePosition(tradePlan.positionId, 100);
+      return;
+    }
     setTradePlan(null);
   };
 
@@ -164,15 +279,44 @@ export default function TradingTerminalV2({
       return;
     }
 
-    setTradePlan(plan => plan ? { ...plan, open: true, stage: 'open' } : plan);
+    const volume = calculatedLots(tradePlan, riskPercent, tradePlan.manualLots ?? lots);
+    const positionId = addPosition({
+      symbol: market?.symbol,
+      side: tradePlan.side,
+      volume,
+      entry: tradePlan.entry,
+      sl: tradePlan.sl,
+      tp: tradePlan.tp,
+      source: 'risk-plan',
+    });
+    setTradePlan(plan => plan ? { ...plan, positionId, open: true, stage: 'open' } : plan);
     showNotice('Frontend demo position opened');
   };
 
   const modifyPlan = stage => setTradePlan(plan => plan ? { ...plan, stage } : plan);
-  const updatePlan = patch => setTradePlan(plan => plan ? { ...plan, ...patch } : plan);
+  const updatePlan = patch => {
+    setTradePlan(plan => {
+      if (!plan) return plan;
+      const next = { ...plan, ...patch };
+      if (plan.open && plan.positionId) {
+        const positionPatch = {};
+        if (patch.sl != null) positionPatch.sl = patch.sl;
+        if (patch.tp != null) positionPatch.tp = patch.tp;
+        if (Object.keys(positionPatch).length) updatePosition(plan.positionId, positionPatch);
+      }
+      return next;
+    });
+  };
 
   const manualOrder = order => {
     const side = order.side?.toUpperCase();
+    addPosition({
+      symbol: order.symbol,
+      side,
+      volume: order.lots,
+      entry: order.price,
+      source: 'one-click',
+    });
     showNotice(`Frontend demo: ${side} ${Number(order.lots).toFixed(2)} ${order.symbol} @ ${order.price}`);
   };
 
@@ -209,7 +353,24 @@ export default function TradingTerminalV2({
   };
 
   if (isDesktop) {
-    return <DesktopTerminal market={market} tick={tick} markets={markets} activeSymbol={activeSymbol} onSelectSymbol={onSelectSymbol} />;
+    return (
+      <DesktopTerminal
+        market={market}
+        tick={tick}
+        markets={markets}
+        activeSymbol={activeSymbol}
+        onSelectSymbol={onSelectSymbol}
+        positions={positions}
+        positionHistory={positionHistory}
+        onClosePosition={closePosition}
+        onCloseAllPositions={closeAllPositions}
+        onBreakEven={movePositionToBreakEven}
+        onReversePosition={reversePosition}
+        onUpdatePosition={updatePosition}
+        onSetTrailing={setPositionTrailing}
+        onDuplicatePosition={duplicatePosition}
+      />
+    );
   }
 
   return (
@@ -294,7 +455,16 @@ export default function TradingTerminalV2({
                     onTradePlanChange={updatePlan}
                   />
                   <PositionsPanel
+                    positions={positions}
+                    positionHistory={positionHistory}
                     pendingOrders={pendingOrders}
+                    onClosePosition={closePosition}
+                    onCloseAll={closeAllPositions}
+                    onBreakEven={movePositionToBreakEven}
+                    onReverse={reversePosition}
+                    onUpdatePosition={updatePosition}
+                    onSetTrailing={setPositionTrailing}
+                    onDuplicate={duplicatePosition}
                     onCancelPending={cancelPendingOrder}
                     onModifyPending={modifyPendingOrder}
                   />
