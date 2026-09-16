@@ -225,6 +225,29 @@ export default function TradingTerminalV2({
   const updateIndicator = (instanceId, patch) => setIndicators(current => current.map(item => item.instanceId === instanceId ? { ...item, settings: { ...item.settings, ...patch } } : item));
   const toggleIndicatorFavorite = id => setIndicatorFavorites(current => current.includes(id) ? current.filter(item => item !== id) : [...current, id]);
 
+  const applyTradingProfile = profile => {
+    if (!profile) return;
+    const settings = profile.settings || {};
+    if (settings.timeframe) setTimeframe(settings.timeframe);
+    if (settings.chartMode) setChartMode(settings.chartMode);
+    if (settings.sizingMode) setSizingMode(settings.sizingMode);
+    if (Number.isFinite(Number(settings.riskPercent))) setRiskPercent(Number(settings.riskPercent));
+    if (Number.isFinite(Number(settings.lots))) setLots(Math.max(0.01, Number(settings.lots)));
+    if (settings.orderType) setOrderType(settings.orderType);
+
+    if (Array.isArray(profile.indicators)) {
+      setIndicators(profile.indicators.map(item => createIndicator(item.id, item.settings || {})).filter(Boolean));
+    }
+
+    if (profile.symbol && markets.some(item => item.symbol === profile.symbol)) onSelectSymbol(profile.symbol);
+    setSelectedTool('cursor');
+    setTradePlan(null);
+    setActiveNav('trade');
+    setOverlay(null);
+    logEvent('profile', `${profile.name || 'Trading'} profile applied`);
+    showNotice(`${profile.name || 'Trading'} profile applied`);
+  };
+
   const indicatorSheetProps = {
     indicators,
     indicatorFavorites,
@@ -235,6 +258,7 @@ export default function TradingTerminalV2({
     onToggleIndicatorFavorite: toggleIndicatorFavorite,
     terminalPrefs: { timeframe, chartMode, lots, sizingMode, riskPercent, orderType, hotkeysEnabled },
     onToggleHotkeys: () => setHotkeysEnabled(value => !value),
+    onApplyTradingProfile: applyTradingProfile,
   };
 
   const currentPriceFor = (symbol, side) => {
@@ -375,6 +399,15 @@ export default function TradingTerminalV2({
     }
   };
 
+  const toggleDesktopFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) await document.documentElement.requestFullscreen?.();
+      else await document.exitFullscreen?.();
+    } catch (error) {
+      console.warn('Desktop fullscreen unavailable', error);
+    }
+  };
+
   const startPlan = (side, requestedType = orderType) => {
     const marketPrice = Number(side === 'buy' ? market?.ask : market?.bid) || 1.0944;
     const pip = pipSize(marketPrice);
@@ -405,6 +438,7 @@ export default function TradingTerminalV2({
     if (tradePlan.pending) {
       const pending = {
         ...tradePlan,
+        symbol: market?.symbol,
         id: tradePlan.editingOrderId || Date.now(),
         lots: calculatedLots(tradePlan, riskPercent, tradePlan.manualLots ?? lots, account.equity),
         status: 'pending',
@@ -419,13 +453,16 @@ export default function TradingTerminalV2({
     }
 
     const volume = calculatedLots(tradePlan, riskPercent, tradePlan.manualLots ?? lots, account.equity);
+    const plannedSide = tradePlan.side;
+    const plannedSl = tradePlan.sl;
+    const plannedTp = tradePlan.tp;
     runExecution({
-      side: tradePlan.side,
+      side: plannedSide,
       lots: volume,
       symbol: market?.symbol,
       requestedPrice: tradePlan.entry,
       onFill: fill => {
-        const positionId = addPosition({ symbol: market?.symbol, side: tradePlan.side, volume, entry: fill.fillPrice, sl: tradePlan.sl, tp: tradePlan.tp, source: 'risk-plan' });
+        const positionId = addPosition({ symbol: market?.symbol, side: plannedSide, volume, entry: fill.fillPrice, sl: plannedSl, tp: plannedTp, source: 'risk-plan' });
         setTradePlan(plan => plan ? { ...plan, entry: fill.fillPrice, positionId, open: true, stage: 'open' } : plan);
       },
     });
@@ -457,13 +494,14 @@ export default function TradingTerminalV2({
   const cancelPendingOrder = id => {
     const order = pendingOrders.find(item => item.id === id);
     setPendingOrders(current => current.filter(item => item.id !== id));
-    if (order) logEvent('order', `${String(order.side).toUpperCase()} ${String(order.orderType).toUpperCase()} ${market?.symbol} cancelled`);
+    if (order) logEvent('order', `${String(order.side).toUpperCase()} ${String(order.orderType).toUpperCase()} ${order.symbol || market?.symbol} cancelled`);
     showNotice('Pending order cancelled locally');
   };
 
   const modifyPendingOrder = id => {
     const order = pendingOrders.find(item => item.id === id);
     if (!order) return;
+    if (order.symbol && order.symbol !== market?.symbol) onSelectSymbol(order.symbol);
     setTradePlan({ ...order, editingOrderId: id, stage: 'ready', open: false, pending: true });
     setOrderType(order.orderType);
     setSizingMode(order.sizingMode || 'lots');
@@ -500,7 +538,7 @@ export default function TradingTerminalV2({
     enabled: isDesktop && hotkeysEnabled,
     onBuy: () => hotkeyTrade('buy'),
     onSell: () => hotkeyTrade('sell'),
-    onFullscreen: () => chartFocus ? exitChartFocus() : enterChartFocus(),
+    onFullscreen: () => toggleDesktopFullscreen(),
     onCancel: () => tradePlan && cancelPlan(),
     onCloseLatest: () => positions[0] && closePosition(positions[0].id, 100),
     onCloseAll: closeAllPositions,
@@ -521,6 +559,7 @@ export default function TradingTerminalV2({
           onSelectSymbol={onSelectSymbol}
           positions={positions}
           positionHistory={positionHistory}
+          pendingOrders={pendingOrders}
           journal={journal}
           onClosePosition={closePosition}
           onCloseAllPositions={closeAllPositions}
@@ -529,15 +568,38 @@ export default function TradingTerminalV2({
           onUpdatePosition={updatePosition}
           onSetTrailing={setPositionTrailing}
           onDuplicatePosition={duplicatePosition}
+          onCancelPending={cancelPendingOrder}
+          onModifyPending={modifyPendingOrder}
           onManualOrder={manualOrder}
           indicators={indicators}
           onOpenIndicators={() => setOverlay('indicators')}
           account={account}
           plannedRisk={plannedRisk}
           hotkeysEnabled={hotkeysEnabled}
+          timeframe={timeframe}
+          onTimeframeChange={setTimeframe}
+          chartMode={chartMode}
+          onChartModeChange={setChartMode}
+          selectedTool={selectedTool}
+          onSelectedToolChange={setSelectedTool}
+          lots={lots}
+          onLotsChange={setLots}
+          sizingMode={sizingMode}
+          onSizingModeChange={setSizingMode}
+          riskPercent={riskPercent}
+          onRiskPercentChange={setRiskPercent}
+          orderType={orderType}
+          onOrderTypeChange={setOrderType}
+          tradePlan={tradePlan}
+          onStartPlan={startPlan}
+          onCancelPlan={cancelPlan}
+          onExecutePlan={executePlan}
+          onModifyPlan={modifyPlan}
+          onTradePlanChange={updatePlan}
+          onOpenSettings={() => setOverlay('more')}
         />
         <ExecutionStatus event={executionEvent} onDismiss={() => setExecutionEvent(null)} />
-        {overlay === 'indicators' && <FrontendSheet type="indicators" onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} onSelectSymbol={onSelectSymbol} {...indicatorSheetProps} />}
+        {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} onSelectSymbol={symbol => { onSelectSymbol(symbol); setOverlay(null); }} {...indicatorSheetProps} />}
       </>
     );
   }
