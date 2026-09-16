@@ -41,6 +41,9 @@ export default function TradingTerminalV2({
   const [favorite, setFavorite] = useState(true);
   const [chartFocus, setChartFocus] = useState(false);
   const [lots, setLots] = useState(0.10);
+  const [sizingMode, setSizingMode] = useState('lots');
+  const [riskPercent, setRiskPercent] = useState(0.5);
+  const [tradePlan, setTradePlan] = useState(null);
 
   useEffect(() => {
     const onFullscreenChange = () => {
@@ -75,6 +78,18 @@ export default function TradingTerminalV2({
       console.warn('Unable to exit native fullscreen', error);
     }
   };
+
+  const startPlan = side => {
+    const entry = Number(side === 'buy' ? market?.ask : market?.bid) || 1.0944;
+    const pip = entry > 100 ? 0.01 : 0.0001;
+    const sl = side === 'buy' ? entry - 4.2 * pip : entry + 4.2 * pip;
+    const tp = side === 'buy' ? entry + 8.4 * pip : entry - 8.4 * pip;
+    setTradePlan({ side, entry, sl, tp, stage: 'planning', open: false });
+  };
+
+  const cancelPlan = () => setTradePlan(null);
+  const executePlan = () => setTradePlan(plan => plan ? { ...plan, open: true, stage: 'open' } : plan);
+  const updatePlan = patch => setTradePlan(plan => plan ? { ...plan, ...patch } : plan);
 
   if (isDesktop) {
     return (
@@ -128,9 +143,23 @@ export default function TradingTerminalV2({
                 setFavorite={setFavorite}
                 fullscreen={chartFocus}
                 onFullscreen={enterChartFocus}
+                tradePlan={tradePlan}
+                onTradePlanChange={updatePlan}
               />
 
-              <ExecutionPanel market={market} lots={lots} onLotsChange={setLots} />
+              <ExecutionPanel
+                market={market}
+                lots={lots}
+                onLotsChange={setLots}
+                sizingMode={sizingMode}
+                onSizingModeChange={setSizingMode}
+                riskPercent={riskPercent}
+                onRiskPercentChange={setRiskPercent}
+                tradePlan={tradePlan}
+                onStartPlan={startPlan}
+                onCancelPlan={cancelPlan}
+                onExecutePlan={executePlan}
+              />
               <PositionsPanel />
             </div>
 
