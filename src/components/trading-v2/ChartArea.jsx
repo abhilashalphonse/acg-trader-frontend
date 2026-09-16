@@ -6,22 +6,19 @@ import {
   Square,
   Type,
   Shapes,
-  Smile,
   Ruler,
-  Magnet,
 } from 'lucide-react';
 import TradingChart from '../TradingChart.jsx';
+import DrawingLayer from './DrawingLayer.jsx';
 
 const tools = [
-  ['cursor', Crosshair],
-  ['trendline', TrendingUp],
-  ['lines', SlidersHorizontal],
-  ['rectangle', Square],
-  ['text', Type],
-  ['geometry', Shapes],
-  ['icon', Smile],
-  ['measure', Ruler],
-  ['magnet', Magnet],
+  ['cursor', Crosshair, 'Select'],
+  ['trendline', TrendingUp, 'Trend line'],
+  ['hline', SlidersHorizontal, 'Horizontal line'],
+  ['vline', Ruler, 'Vertical line'],
+  ['rectangle', Square, 'Rectangle'],
+  ['fibonacci', Shapes, 'Fibonacci'],
+  ['text', Type, 'Text'],
 ];
 
 const secondsByTimeframe = {
@@ -226,8 +223,8 @@ export default function ChartArea({
   return (
     <div className={areaClass}>
       <aside className={toolbarClass} aria-label="Drawing tools">
-        {tools.map(([id, Icon]) => (
-          <button key={id} type="button" onClick={() => onSelectTool(id)} aria-label={id} className={`grid ${focusMode ? 'size-[29px]' : 'size-[27px]'} shrink-0 place-items-center rounded-lg transition ${selectedTool === id ? 'bg-[#0f3149] text-[#59c8ff]' : 'text-[#74879c] hover:bg-white/[0.035] hover:text-[#d7e4f1]'}`}>
+        {tools.map(([id, Icon, label]) => (
+          <button key={id} type="button" title={label} onClick={() => !tradePlan && onSelectTool(id)} aria-label={label} disabled={Boolean(tradePlan)} className={`grid ${focusMode ? 'size-[29px]' : 'size-[27px]'} shrink-0 place-items-center rounded-lg transition ${selectedTool === id ? 'bg-[#0f3149] text-[#59c8ff]' : 'text-[#74879c] hover:bg-white/[0.035] hover:text-[#d7e4f1]'} disabled:cursor-not-allowed disabled:opacity-30`}>
             <Icon size={focusMode ? 17 : 16} strokeWidth={1.75} />
           </button>
         ))}
@@ -235,6 +232,7 @@ export default function ChartArea({
 
       <div className="relative min-h-0 min-w-0 overflow-hidden rounded-xl border border-[#1b2c3d] bg-[#080f17]">
         <TradingChart symbol={symbol} timeframe={chartTimeframe} tick={tick} chartMode={chartMode} bidPrice={price} askPrice={ask} indicators={indicators} />
+        <DrawingLayer symbol={symbol} timeframe={chartTimeframe} tool={selectedTool} onToolChange={onSelectTool} disabled={Boolean(tradePlan)} />
         <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} />
 
         {!tradePlan && (
