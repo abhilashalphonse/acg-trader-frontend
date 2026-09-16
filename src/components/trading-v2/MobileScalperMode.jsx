@@ -28,7 +28,10 @@ export default function MobileScalperMode({
   onStartPlan,
   onCancelPlan,
   onExecutePlan,
+  onModifyPlan,
+  onManualOrder,
   onTradePlanChange,
+  onIndicators = () => {},
   onExit,
 }) {
   const spread = Number.isFinite(market?.spread)
@@ -41,78 +44,25 @@ export default function MobileScalperMode({
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <strong className="truncate text-[15px] font-black tracking-[-0.025em] text-[#f5f8fb]">
-                {displaySymbol(market?.symbol)}
-              </strong>
-              <span className="rounded-md border border-[#1d3b50] bg-[#0e2638] px-1.5 py-0.5 text-[9px] font-extrabold text-[#59c8ff]">
-                {timeframe}
-              </span>
-              {tradePlan && (
-                <span className={`rounded-md border px-1.5 py-0.5 text-[9px] font-extrabold ${tradePlan.side === 'buy' ? 'border-[#176347] bg-[#0d2f25] text-[#44dda9]' : 'border-[#6d2934] bg-[#31151d] text-[#ff6975]'}`}>
-                  {tradePlan.open ? 'OPEN' : 'PLANNING'} {tradePlan.side?.toUpperCase()}
-                </span>
-              )}
+              <strong className="truncate text-[15px] font-black tracking-[-0.025em] text-[#f5f8fb]">{displaySymbol(market?.symbol)}</strong>
+              <span className="rounded-md border border-[#1d3b50] bg-[#0e2638] px-1.5 py-0.5 text-[9px] font-extrabold text-[#59c8ff]">{timeframe}</span>
+              {tradePlan && <span className={`rounded-md border px-1.5 py-0.5 text-[9px] font-extrabold ${tradePlan.side === 'buy' ? 'border-[#176347] bg-[#0d2f25] text-[#44dda9]' : 'border-[#6d2934] bg-[#31151d] text-[#ff6975]'}`}>{tradePlan.open ? (tradePlan.stage === 'modifying' ? 'MODIFYING' : 'OPEN') : 'PLANNING'} {tradePlan.side?.toUpperCase()}</span>}
             </div>
-            <div className="mt-1 flex items-center gap-2.5 text-[9px] font-semibold text-[#74879c]">
-              <span>Bid <b className="text-[#44dda9]">{market?.bid}</b></span>
-              <span>Ask <b className="text-[#ff6975]">{market?.ask}</b></span>
-              <span>Spread <b className="text-[#aebdcb]">{spread}</b></span>
-            </div>
+            <div className="mt-1 flex items-center gap-2.5 text-[9px] font-semibold text-[#74879c]"><span>Bid <b className="text-[#44dda9]">{market?.bid}</b></span><span>Ask <b className="text-[#ff6975]">{market?.ask}</b></span><span>Spread <b className="text-[#aebdcb]">{spread}</b></span></div>
           </div>
-
-          <button
-            type="button"
-            onClick={onExit}
-            aria-label="Exit chart focus mode"
-            className="grid size-9 shrink-0 place-items-center rounded-xl border border-[#1b2c3d] bg-[#0a151f] text-[#93a5b7] shadow-[inset_0_1px_rgba(255,255,255,0.025)]"
-          >
-            <X size={18} />
-          </button>
+          <button type="button" onClick={onExit} aria-label="Exit chart focus mode" className="grid size-9 shrink-0 place-items-center rounded-xl border border-[#1b2c3d] bg-[#0a151f] text-[#93a5b7] shadow-[inset_0_1px_rgba(255,255,255,0.025)]"><X size={18}/></button>
         </div>
       </header>
 
-      <div className={`shrink-0 bg-[#061019] pt-2 ${tradePlan ? 'opacity-70' : ''}`}>
-        <ChartControls
-          timeframe={timeframe}
-          onTimeframe={tradePlan ? () => {} : setTimeframe}
-          chartMode={chartMode}
-          onChartMode={tradePlan ? () => {} : setChartMode}
-          fullscreen
-          onFullscreen={onExit}
-          focusMode
-        />
+      <div className="shrink-0 bg-[#061019] pt-2">
+        <ChartControls timeframe={timeframe} onTimeframe={setTimeframe} chartMode={chartMode} onChartMode={setChartMode} fullscreen onFullscreen={onExit} onIndicators={onIndicators} focusMode disabled={Boolean(tradePlan)} />
       </div>
 
       <div className="min-h-0 flex-1 bg-[#061019]">
-        <ChartArea
-          symbol={market?.symbol}
-          chartTimeframe={mapTimeframe(timeframe)}
-          tick={tick}
-          price={market?.bid}
-          ask={market?.ask}
-          chartMode={chartMode}
-          selectedTool={selectedTool}
-          onSelectTool={tradePlan ? () => {} : setSelectedTool}
-          focusMode
-          tradePlan={tradePlan}
-          onTradePlanChange={onTradePlanChange}
-        />
+        <ChartArea symbol={market?.symbol} chartTimeframe={mapTimeframe(timeframe)} tick={tick} price={market?.bid} ask={market?.ask} chartMode={chartMode} selectedTool={selectedTool} onSelectTool={tradePlan ? () => {} : setSelectedTool} focusMode tradePlan={tradePlan} onTradePlanChange={onTradePlanChange} />
       </div>
 
-      <ExecutionPanel
-        market={market}
-        lots={lots}
-        onLotsChange={setLots}
-        focusMode
-        sizingMode={sizingMode}
-        onSizingModeChange={setSizingMode}
-        riskPercent={riskPercent}
-        onRiskPercentChange={setRiskPercent}
-        tradePlan={tradePlan}
-        onStartPlan={onStartPlan}
-        onCancelPlan={onCancelPlan}
-        onExecutePlan={onExecutePlan}
-      />
+      <ExecutionPanel market={market} lots={lots} onLotsChange={setLots} focusMode sizingMode={sizingMode} onSizingModeChange={setSizingMode} riskPercent={riskPercent} onRiskPercentChange={setRiskPercent} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={onManualOrder} />
     </div>
   );
 }
