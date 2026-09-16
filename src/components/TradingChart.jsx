@@ -118,6 +118,7 @@ export default function TradingChart({
   const bidLineRef = useRef(null);
   const askLineRef = useRef(null);
   const indicatorSeriesRef = useRef([]);
+  const indicatorBindingsRef = useRef([]);
   const indicatorPanesRef = useRef(0);
   const indicatorsRef = useRef(indicators);
   const indicatorFrameRef = useRef(null);
@@ -135,7 +136,7 @@ export default function TradingChart({
 
   useEffect(() => {
     indicatorsRef.current = indicators;
-    if (indicators.some(item => item.id === 'volume' && item.visible !== false)) setShowVolume(true);
+    setShowVolume(indicators.some(item => item.id === 'volume' && item.visible !== false));
   }, [indicators]);
 
   const clearIndicatorSeries = useCallback(chart => {
@@ -144,6 +145,7 @@ export default function TradingChart({
       try { chart.removeSeries(series); } catch (_) { /* series may already be disposed */ }
     });
     indicatorSeriesRef.current = [];
+    indicatorBindingsRef.current = [];
     for (let index = indicatorPanesRef.current; index >= 1; index -= 1) {
       try {
         if (chart.panes().length > index) chart.removePane(index);
@@ -162,6 +164,7 @@ export default function TradingChart({
       if (!result) return;
       const colors = indicatorColors[indicator.id] || ['#53c7ff', '#f0ad5c', '#b38cff'];
       const targetPane = result.kind === 'overlay' ? 0 : paneIndex++;
+      const binding = { instanceId: indicator.instanceId, indicator, lines: [], histogram: null };
 
       result.lines?.forEach((line, lineIndex) => {
         const series = chart.addSeries(LineSeries, {
@@ -175,6 +178,7 @@ export default function TradingChart({
         }, targetPane);
         series.setData(line.data);
         indicatorSeriesRef.current.push(series);
+        binding.lines.push({ key: line.key, series });
 
         if (lineIndex === 0 && Array.isArray(result.guides)) {
           result.guides.forEach(guide => series.createPriceLine({
@@ -199,8 +203,10 @@ export default function TradingChart({
           color: point.value >= 0 ? 'rgba(45,211,155,0.45)' : 'rgba(255,95,105,0.45)',
         })));
         indicatorSeriesRef.current.push(histogram);
+        binding.histogram = histogram;
       }
 
+      indicatorBindingsRef.current.push(binding);
       if (targetPane > 0) {
         const pane = chart.panes()[targetPane];
         pane?.setHeight?.(Math.max(86, 110 - indicatorIndex * 4));
@@ -210,13 +216,32 @@ export default function TradingChart({
     indicatorPanesRef.current = Math.max(0, paneIndex - 1);
   }, [clearIndicatorSeries]);
 
-  const scheduleIndicatorRender = useCallback(() => {
+  const updateIndicatorData = useCallback(bars => {
+    if (!bars?.length) return;
+    indicatorBindingsRef.current.forEach(binding => {
+      const indicator = indicatorsRef.current.find(item => item.instanceId === binding.instanceId) || binding.indicator;
+      const result = calculateIndicatorData(indicator, bars);
+      if (!result) return;
+      binding.lines.forEach(lineBinding => {
+        const line = result.lines?.find(item => item.key === lineBinding.key);
+        if (line) lineBinding.series.setData(line.data);
+      });
+      if (binding.histogram && result.histogram) {
+        binding.histogram.setData(result.histogram.map(point => ({
+          ...point,
+          color: point.value >= 0 ? 'rgba(45,211,155,0.45)' : 'rgba(255,95,105,0.45)',
+        })));
+      }
+    });
+  }, []);
+
+  const scheduleIndicatorUpdate = useCallback(() => {
     if (indicatorFrameRef.current) return;
     indicatorFrameRef.current = window.requestAnimationFrame(() => {
       indicatorFrameRef.current = null;
-      renderIndicators(chartRef.current, barsRef.current);
+      updateIndicatorData(barsRef.current);
     });
-  }, [renderIndicators]);
+  }, [updateIndicatorData]);
 
   useEffect(() => {
     if (!hostRef.current) return undefined;
@@ -379,6 +404,7 @@ export default function TradingChart({
       indicatorFrameRef.current = null;
       chart.unsubscribeCrosshairMove(crosshairHandler);
       indicatorSeriesRef.current = [];
+      indicatorBindingsRef.current = [];
       indicatorPanesRef.current = 0;
       chartRef.current = null;
       seriesRef.current = null;
@@ -393,8 +419,9 @@ export default function TradingChart({
   }, [symbol, timeframe, chartMode, renderIndicators]);
 
   useEffect(() => {
-    if (chartRef.current && barsRef.current.length) scheduleIndicatorRender();
-  }, [indicators, scheduleIndicatorRender]);
+    indicatorsRef.current = indicators;
+    if (chartRef.current && barsRef.current.length) renderIndicators(chartRef.current, barsRef.current);
+  }, [indicators, renderIndicators]);
 
   useEffect(() => {
     chartRef.current?.applyOptions({
@@ -479,11 +506,11 @@ export default function TradingChart({
       color: next.close >= next.open ? 'rgba(45,211,155,0.34)' : 'rgba(255,95,105,0.32)',
     });
     setDisplayBar(next);
-    scheduleIndicatorRender();
+    scheduleIndicatorUpdate();
 
     if (autoScroll) chartRef.current?.timeScale().scrollToRealTime();
     mergeLiveBarIntoCache(symbol, timeframe, next, 160);
-  }, [tick, symbol, timeframe, chartMode, autoScroll, scheduleIndicatorRender]);
+  }, [tick, symbol, timeframe, chartMode, autoScroll, scheduleIndicatorUpdate]);
 
   const resetView = () => {
     const chart = chartRef.current;
