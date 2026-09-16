@@ -7,6 +7,7 @@ import BottomNavbar from '../components/trading-v2/BottomNavbar.jsx';
 import DesktopTerminal from '../components/trading-v2/DesktopTerminal.jsx';
 import MobileScalperMode from '../components/trading-v2/MobileScalperMode.jsx';
 import FrontendSheet from '../components/trading-v2/FrontendSheet.jsx';
+import WatchlistSection from '../components/trading-v2/WatchlistSection.jsx';
 
 function useDesktopLayout() {
   const [isDesktop, setIsDesktop] = useState(() => (
@@ -187,12 +188,20 @@ export default function TradingTerminalV2({
     setOrderType(order.orderType);
     setSizingMode(order.sizingMode || 'lots');
     if (Number.isFinite(order.manualLots)) setLots(order.manualLots);
+    setActiveNav('trade');
+    setOverlay(null);
     showNotice('Pending order loaded on chart');
+  };
+
+  const openTradeFromWatchlist = symbol => {
+    onSelectSymbol(symbol);
+    setActiveNav('trade');
+    setOverlay(null);
   };
 
   const handleNav = id => {
     setActiveNav(id);
-    if (id === 'trade') {
+    if (id === 'trade' || id === 'watchlist') {
       setOverlay(null);
       return;
     }
@@ -236,57 +245,68 @@ export default function TradingTerminalV2({
           />
         ) : (
           <>
-            <TopBar onSearch={() => setOverlay('search')} onNotifications={() => setOverlay('notifications')} onProfile={() => setOverlay('profile')} />
-            <div className="px-2">
-              <MarketPanel
-                market={market}
-                tick={tick}
-                timeframe={timeframe}
-                setTimeframe={setTimeframe}
-                chartMode={chartMode}
-                setChartMode={setChartMode}
-                selectedTool={selectedTool}
-                setSelectedTool={setSelectedTool}
-                favorite={favorite}
-                setFavorite={setFavorite}
-                fullscreen={chartFocus}
-                onFullscreen={enterChartFocus}
-                tradePlan={tradePlan}
-                onTradePlanChange={updatePlan}
-                onSelectInstrument={() => setOverlay('instruments')}
-                onIndicators={() => setOverlay('indicators')}
+            {activeNav === 'watchlist' ? (
+              <WatchlistSection
+                markets={markets}
+                activeSymbol={activeSymbol}
+                onOpenTrade={openTradeFromWatchlist}
+                onAddInstrument={() => setOverlay('search')}
               />
+            ) : (
+              <>
+                <TopBar onSearch={() => setOverlay('search')} onNotifications={() => setOverlay('notifications')} onProfile={() => setOverlay('profile')} />
+                <div className="px-2">
+                  <MarketPanel
+                    market={market}
+                    tick={tick}
+                    timeframe={timeframe}
+                    setTimeframe={setTimeframe}
+                    chartMode={chartMode}
+                    setChartMode={setChartMode}
+                    selectedTool={selectedTool}
+                    setSelectedTool={setSelectedTool}
+                    favorite={favorite}
+                    setFavorite={setFavorite}
+                    fullscreen={chartFocus}
+                    onFullscreen={enterChartFocus}
+                    tradePlan={tradePlan}
+                    onTradePlanChange={updatePlan}
+                    onSelectInstrument={() => setOverlay('instruments')}
+                    onIndicators={() => setOverlay('indicators')}
+                  />
 
-              <ExecutionPanel
-                market={market}
-                lots={lots}
-                onLotsChange={setLots}
-                sizingMode={sizingMode}
-                onSizingModeChange={setSizingMode}
-                riskPercent={riskPercent}
-                onRiskPercentChange={setRiskPercent}
-                orderType={orderType}
-                onOrderTypeChange={setOrderType}
-                tradePlan={tradePlan}
-                onStartPlan={startPlan}
-                onCancelPlan={cancelPlan}
-                onExecutePlan={executePlan}
-                onModifyPlan={modifyPlan}
-                onManualOrder={manualOrder}
-                onTradePlanChange={updatePlan}
-              />
-              <PositionsPanel
-                pendingOrders={pendingOrders}
-                onCancelPending={cancelPendingOrder}
-                onModifyPending={modifyPendingOrder}
-              />
-            </div>
+                  <ExecutionPanel
+                    market={market}
+                    lots={lots}
+                    onLotsChange={setLots}
+                    sizingMode={sizingMode}
+                    onSizingModeChange={setSizingMode}
+                    riskPercent={riskPercent}
+                    onRiskPercentChange={setRiskPercent}
+                    orderType={orderType}
+                    onOrderTypeChange={setOrderType}
+                    tradePlan={tradePlan}
+                    onStartPlan={startPlan}
+                    onCancelPlan={cancelPlan}
+                    onExecutePlan={executePlan}
+                    onModifyPlan={modifyPlan}
+                    onManualOrder={manualOrder}
+                    onTradePlanChange={updatePlan}
+                  />
+                  <PositionsPanel
+                    pendingOrders={pendingOrders}
+                    onCancelPending={cancelPendingOrder}
+                    onModifyPending={modifyPendingOrder}
+                  />
+                </div>
+              </>
+            )}
             <BottomNavbar active={activeNav} onChange={handleNav} />
           </>
         )}
 
         {notice && <div className="fixed left-1/2 top-[74px] z-[120] w-[calc(100%-24px)] max-w-[420px] -translate-x-1/2 rounded-xl border border-[#254155] bg-[#0b1b28]/95 px-3 py-2.5 text-center text-[10px] font-semibold text-[#dce9f2] shadow-[0_16px_48px_rgba(0,0,0,.45)] backdrop-blur-xl">{notice}</div>}
-        {overlay && <FrontendSheet type={overlay} onClose={() => { setOverlay(null); if (activeNav !== 'trade') setActiveNav('trade'); }} markets={markets} activeSymbol={activeSymbol} onSelectSymbol={onSelectSymbol} />}
+        {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} onSelectSymbol={symbol => { onSelectSymbol(symbol); if (activeNav === 'watchlist') setActiveNav('trade'); }} />}
       </main>
     </div>
   );
