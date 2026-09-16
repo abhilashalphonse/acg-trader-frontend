@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import ChartControls, { mapTimeframe } from './ChartControls.jsx';
 import ChartArea from './ChartArea.jsx';
 import ExecutionPanel from './ExecutionPanel.jsx';
+import PropRiskStrip from './PropRiskStrip.jsx';
 
 function displaySymbol(symbol = '') {
   if (symbol.length === 6) return `${symbol.slice(0, 3)}/${symbol.slice(3)}`;
@@ -35,6 +36,8 @@ export default function MobileScalperMode({
   onTradePlanChange,
   onIndicators = () => {},
   indicators = [],
+  account,
+  plannedRisk = 0,
   onExit,
 }) {
   const spread = Number.isFinite(market?.spread)
@@ -65,6 +68,7 @@ export default function MobileScalperMode({
         <ChartArea symbol={market?.symbol} chartTimeframe={mapTimeframe(timeframe)} tick={tick} price={market?.bid} ask={market?.ask} chartMode={chartMode} selectedTool={selectedTool} onSelectTool={tradePlan ? () => {} : setSelectedTool} focusMode tradePlan={tradePlan} onTradePlanChange={onTradePlanChange} indicators={indicators} />
       </div>
 
+      <div className="shrink-0"><PropRiskStrip account={account} plannedRisk={plannedRisk} compact /></div>
       <ExecutionPanel market={market} lots={lots} onLotsChange={setLots} focusMode sizingMode={sizingMode} onSizingModeChange={setSizingMode} riskPercent={riskPercent} onRiskPercentChange={setRiskPercent} orderType={orderType} onOrderTypeChange={setOrderType} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={onManualOrder} onTradePlanChange={onTradePlanChange} />
     </div>
   );
