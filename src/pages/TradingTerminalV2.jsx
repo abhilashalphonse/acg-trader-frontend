@@ -8,6 +8,10 @@ import DesktopTerminal from '../components/trading-v2/DesktopTerminal.jsx';
 import MobileScalperMode from '../components/trading-v2/MobileScalperMode.jsx';
 import FrontendSheet from '../components/trading-v2/FrontendSheet.jsx';
 import WatchlistSection from '../components/trading-v2/WatchlistSection.jsx';
+import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
+
+const INDICATOR_STORAGE_KEY = 'acg-trader-indicators-v1';
+const INDICATOR_FAVORITES_KEY = 'acg-trader-indicator-favorites-v1';
 
 function useDesktopLayout() {
   const [isDesktop, setIsDesktop] = useState(() => (
@@ -24,6 +28,25 @@ function useDesktopLayout() {
   }, []);
 
   return isDesktop;
+}
+
+function loadIndicators() {
+  if (typeof window === 'undefined') return [createIndicator('volume')].filter(Boolean);
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(INDICATOR_STORAGE_KEY) || 'null');
+    if (Array.isArray(stored)) return stored;
+  } catch (_) { /* fall back to defaults */ }
+  return [createIndicator('volume')].filter(Boolean);
+}
+
+function loadIndicatorFavorites() {
+  const defaults = INDICATOR_LIBRARY.filter(item => item.favorite).map(item => item.id);
+  if (typeof window === 'undefined') return defaults;
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(INDICATOR_FAVORITES_KEY) || 'null');
+    if (Array.isArray(stored)) return stored;
+  } catch (_) { /* fall back to defaults */ }
+  return defaults;
 }
 
 function pipSize(price) {
@@ -74,6 +97,8 @@ export default function TradingTerminalV2({
   const [pendingOrders, setPendingOrders] = useState([]);
   const [positions, setPositions] = useState(initialPositionRows);
   const [positionHistory, setPositionHistory] = useState([]);
+  const [indicators, setIndicators] = useState(loadIndicators);
+  const [indicatorFavorites, setIndicatorFavorites] = useState(loadIndicatorFavorites);
   const [overlay, setOverlay] = useState(null);
   const [notice, setNotice] = useState('');
 
@@ -92,10 +117,44 @@ export default function TradingTerminalV2({
     if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
   }, []);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') window.localStorage.setItem(INDICATOR_STORAGE_KEY, JSON.stringify(indicators));
+  }, [indicators]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') window.localStorage.setItem(INDICATOR_FAVORITES_KEY, JSON.stringify(indicatorFavorites));
+  }, [indicatorFavorites]);
+
   const showNotice = message => {
     setNotice(message);
     if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
     noticeTimerRef.current = window.setTimeout(() => setNotice(''), 2400);
+  };
+
+  const addIndicator = id => {
+    setIndicators(current => {
+      if (id === 'volume') {
+        const existing = current.find(item => item.id === 'volume');
+        if (existing) return current.map(item => item.instanceId === existing.instanceId ? { ...item, visible: true } : item);
+      }
+      const created = createIndicator(id);
+      return created ? [...current, created] : current;
+    });
+  };
+
+  const removeIndicator = instanceId => setIndicators(current => current.filter(item => item.instanceId !== instanceId));
+  const toggleIndicator = instanceId => setIndicators(current => current.map(item => item.instanceId === instanceId ? { ...item, visible: item.visible === false } : item));
+  const updateIndicator = (instanceId, patch) => setIndicators(current => current.map(item => item.instanceId === instanceId ? { ...item, settings: { ...item.settings, ...patch } } : item));
+  const toggleIndicatorFavorite = id => setIndicatorFavorites(current => current.includes(id) ? current.filter(item => item !== id) : [...current, id]);
+
+  const indicatorSheetProps = {
+    indicators,
+    indicatorFavorites,
+    onAddIndicator: addIndicator,
+    onRemoveIndicator: removeIndicator,
+    onToggleIndicator: toggleIndicator,
+    onUpdateIndicator: updateIndicator,
+    onToggleIndicatorFavorite: toggleIndicatorFavorite,
   };
 
   const currentPriceFor = (symbol, side) => {
@@ -371,23 +430,28 @@ export default function TradingTerminalV2({
 
   if (isDesktop) {
     return (
-      <DesktopTerminal
-        market={market}
-        tick={tick}
-        markets={markets}
-        activeSymbol={activeSymbol}
-        onSelectSymbol={onSelectSymbol}
-        positions={positions}
-        positionHistory={positionHistory}
-        onClosePosition={closePosition}
-        onCloseAllPositions={closeAllPositions}
-        onBreakEven={movePositionToBreakEven}
-        onReversePosition={reversePosition}
-        onUpdatePosition={updatePosition}
-        onSetTrailing={setPositionTrailing}
-        onDuplicatePosition={duplicatePosition}
-        onManualOrder={manualOrder}
-      />
+      <>
+        <DesktopTerminal
+          market={market}
+          tick={tick}
+          markets={markets}
+          activeSymbol={activeSymbol}
+          onSelectSymbol={onSelectSymbol}
+          positions={positions}
+          positionHistory={positionHistory}
+          onClosePosition={closePosition}
+          onCloseAllPositions={closeAllPositions}
+          onBreakEven={movePositionToBreakEven}
+          onReversePosition={reversePosition}
+          onUpdatePosition={updatePosition}
+          onSetTrailing={setPositionTrailing}
+          onDuplicatePosition={duplicatePosition}
+          onManualOrder={manualOrder}
+          indicators={indicators}
+          onOpenIndicators={() => setOverlay('indicators')}
+        />
+        {overlay === 'indicators' && <FrontendSheet type="indicators" onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} onSelectSymbol={onSelectSymbol} {...indicatorSheetProps} />}
+      </>
     );
   }
 
@@ -420,6 +484,7 @@ export default function TradingTerminalV2({
             onManualOrder={manualOrder}
             onTradePlanChange={updatePlan}
             onIndicators={() => setOverlay('indicators')}
+            indicators={indicators}
             onExit={exitChartFocus}
           />
         ) : (
@@ -452,6 +517,7 @@ export default function TradingTerminalV2({
                     onTradePlanChange={updatePlan}
                     onSelectInstrument={() => setOverlay('instruments')}
                     onIndicators={() => setOverlay('indicators')}
+                    indicators={indicators}
                   />
 
                   <ExecutionPanel
@@ -494,7 +560,7 @@ export default function TradingTerminalV2({
         )}
 
         {notice && <div className="fixed left-1/2 top-[74px] z-[120] w-[calc(100%-24px)] max-w-[420px] -translate-x-1/2 rounded-xl border border-[#254155] bg-[#0b1b28]/95 px-3 py-2.5 text-center text-[10px] font-semibold text-[#dce9f2] shadow-[0_16px_48px_rgba(0,0,0,.45)] backdrop-blur-xl">{notice}</div>}
-        {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} onSelectSymbol={symbol => { onSelectSymbol(symbol); if (activeNav === 'watchlist') setActiveNav('trade'); }} />}
+        {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} onSelectSymbol={symbol => { onSelectSymbol(symbol); if (activeNav === 'watchlist') setActiveNav('trade'); }} {...indicatorSheetProps} />}
       </main>
     </div>
   );
