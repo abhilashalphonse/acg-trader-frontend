@@ -1,7 +1,13 @@
 import React from 'react';
 import { Bell, Search, UserRound } from 'lucide-react';
 
-export default function TopBar({ balance = '$12,458.32', live = true }) {
+export default function TopBar({
+  balance = '$12,458.32',
+  live = true,
+  onSearch = () => {},
+  onNotifications = () => {},
+  onProfile = () => {},
+}) {
   return (
     <header className="flex h-[60px] items-center justify-between gap-2 px-3">
       <div className="min-w-0 leading-none">
@@ -13,24 +19,24 @@ export default function TopBar({ balance = '$12,458.32', live = true }) {
       </div>
 
       <div className="flex shrink-0 items-center gap-1.5">
-        <button type="button" aria-label="Search" className="grid size-8 place-items-center rounded-lg text-[#9db0c6] transition hover:bg-white/[0.04] hover:text-white">
+        <button type="button" onClick={onSearch} aria-label="Search" className="grid size-8 place-items-center rounded-lg text-[#9db0c6] transition hover:bg-white/[0.04] hover:text-white active:scale-95">
           <Search size={20} strokeWidth={2} />
         </button>
 
-        <button type="button" aria-label="Notifications" className="relative grid size-9 place-items-center rounded-xl border border-[#192b3b] bg-[#09131d] text-[#9eb0c4] shadow-[inset_0_1px_rgba(255,255,255,0.02)]">
+        <button type="button" onClick={onNotifications} aria-label="Notifications" className="relative grid size-9 place-items-center rounded-xl border border-[#192b3b] bg-[#09131d] text-[#9eb0c4] shadow-[inset_0_1px_rgba(255,255,255,0.02)] active:scale-95">
           <Bell size={18} />
           <span className="absolute right-[6px] top-[6px] size-1.5 rounded-full bg-[#ff5363] shadow-[0_0_0_2px_#09131d]" />
         </button>
 
-        <div className="flex h-9 min-w-[94px] flex-col justify-center rounded-xl border border-[#1a2b3b] bg-[#09131d] px-2.5 shadow-[inset_0_1px_rgba(255,255,255,0.02)]">
+        <button type="button" onClick={onProfile} className="flex h-9 min-w-[94px] flex-col justify-center rounded-xl border border-[#1a2b3b] bg-[#09131d] px-2.5 text-left shadow-[inset_0_1px_rgba(255,255,255,0.02)] active:scale-[0.99]">
           <strong className="whitespace-nowrap text-[11px] font-extrabold tracking-[-0.015em] text-[#f6f9fc]">{balance}</strong>
           <span className="mt-0.5 flex items-center gap-1 text-[8px] font-medium text-[#77899d]">
             <span className={`size-1.5 rounded-full ${live ? 'bg-[#31dfa3]' : 'bg-[#66788c]'}`} />
             {live ? 'Live' : 'Offline'}
           </span>
-        </div>
+        </button>
 
-        <button type="button" aria-label="Profile" className="grid size-9 place-items-center rounded-full border border-[#1a2b3b] bg-gradient-to-br from-[#102235] to-[#0a131e] text-[#99adc3] shadow-[0_5px_18px_rgba(0,0,0,0.25)]">
+        <button type="button" onClick={onProfile} aria-label="Profile" className="grid size-9 place-items-center rounded-full border border-[#1a2b3b] bg-gradient-to-br from-[#102235] to-[#0a131e] text-[#99adc3] shadow-[0_5px_18px_rgba(0,0,0,0.25)] active:scale-95">
           <UserRound size={18} fill="currentColor" className="opacity-90" />
         </button>
       </div>
