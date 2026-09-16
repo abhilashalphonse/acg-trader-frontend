@@ -165,22 +165,43 @@ export default function TradingTerminalV2({
   const movePositionToBreakEven = id => {
     const position = positions.find(item => item.id === id);
     if (!position) return;
-    updatePosition(id, { sl: Number(position.entry) });
+    const sl = Number(position.entry);
+    updatePosition(id, { sl });
+    if (tradePlan?.positionId === id) setTradePlan(plan => plan ? { ...plan, sl } : plan);
     showNotice('Stop loss moved to break even');
   };
 
   const reversePosition = id => {
-    setPositions(current => current.map(position => {
-      if (position.id !== id) return position;
-      const nextSide = position.side === 'BUY' ? 'SELL' : 'BUY';
-      const quote = currentPriceFor(position.symbol, nextSide) || Number(position.entry);
-      const oldEntry = Number(position.entry);
-      const slDistance = position.sl == null ? null : Math.abs(oldEntry - Number(position.sl));
-      const tpDistance = position.tp == null ? null : Math.abs(Number(position.tp) - oldEntry);
-      const nextSl = slDistance == null ? null : (nextSide === 'BUY' ? quote - slDistance : quote + slDistance);
-      const nextTp = tpDistance == null ? null : (nextSide === 'BUY' ? quote + tpDistance : quote - tpDistance);
-      return { ...position, side: nextSide, entry: quote, sl: nextSl, tp: nextTp, pnl: 0, openedAt: 'Reversed just now' };
-    }));
+    const position = positions.find(item => item.id === id);
+    if (!position) return;
+
+    const nextSide = position.side === 'BUY' ? 'SELL' : 'BUY';
+    const quote = currentPriceFor(position.symbol, nextSide) || Number(position.entry);
+    const oldEntry = Number(position.entry);
+    const slDistance = position.sl == null ? null : Math.abs(oldEntry - Number(position.sl));
+    const tpDistance = position.tp == null ? null : Math.abs(Number(position.tp) - oldEntry);
+    const nextSl = slDistance == null ? null : (nextSide === 'BUY' ? quote - slDistance : quote + slDistance);
+    const nextTp = tpDistance == null ? null : (nextSide === 'BUY' ? quote + tpDistance : quote - tpDistance);
+
+    updatePosition(id, {
+      side: nextSide,
+      entry: quote,
+      sl: nextSl,
+      tp: nextTp,
+      pnl: 0,
+      openedAt: 'Reversed just now',
+    });
+
+    if (tradePlan?.positionId === id) {
+      setTradePlan(plan => plan ? {
+        ...plan,
+        side: nextSide.toLowerCase(),
+        entry: quote,
+        sl: nextSl,
+        tp: nextTp,
+        stage: 'open',
+      } : plan);
+    }
     showNotice('Position reversed locally');
   };
 
@@ -295,17 +316,13 @@ export default function TradingTerminalV2({
 
   const modifyPlan = stage => setTradePlan(plan => plan ? { ...plan, stage } : plan);
   const updatePlan = patch => {
-    setTradePlan(plan => {
-      if (!plan) return plan;
-      const next = { ...plan, ...patch };
-      if (plan.open && plan.positionId) {
-        const positionPatch = {};
-        if (patch.sl != null) positionPatch.sl = patch.sl;
-        if (patch.tp != null) positionPatch.tp = patch.tp;
-        if (Object.keys(positionPatch).length) updatePosition(plan.positionId, positionPatch);
-      }
-      return next;
-    });
+    if (tradePlan?.open && tradePlan.positionId) {
+      const positionPatch = {};
+      if (patch.sl != null) positionPatch.sl = patch.sl;
+      if (patch.tp != null) positionPatch.tp = patch.tp;
+      if (Object.keys(positionPatch).length) updatePosition(tradePlan.positionId, positionPatch);
+    }
+    setTradePlan(plan => plan ? { ...plan, ...patch } : plan);
   };
 
   const manualOrder = order => {
@@ -369,6 +386,7 @@ export default function TradingTerminalV2({
         onUpdatePosition={updatePosition}
         onSetTrailing={setPositionTrailing}
         onDuplicatePosition={duplicatePosition}
+        onManualOrder={manualOrder}
       />
     );
   }
