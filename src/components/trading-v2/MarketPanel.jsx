@@ -18,6 +18,7 @@ export default function MarketPanel({
   onFullscreen,
   tradePlan,
   onTradePlanChange,
+  indicators = [],
   onSelectInstrument = () => {},
   onIndicators = () => {},
 }) {
@@ -45,6 +46,7 @@ export default function MarketPanel({
         onSelectTool={setSelectedTool}
         tradePlan={tradePlan}
         onTradePlanChange={onTradePlanChange}
+        indicators={indicators}
       />
     </section>
   );
