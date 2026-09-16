@@ -68,10 +68,7 @@ function TradePlanOverlay({ plan, onChange }) {
     const sl = Number(plan?.sl) || entry;
     const tp = Number(plan?.tp) || entry;
     const pip = entry > 100 ? 0.01 : 0.0001;
-    return {
-      slPips: Math.abs(entry - sl) / pip,
-      tpPips: Math.abs(tp - entry) / pip,
-    };
+    return { slPips: Math.abs(entry - sl) / pip, tpPips: Math.abs(tp - entry) / pip };
   }, [plan]);
 
   useEffect(() => {
@@ -102,12 +99,7 @@ function TradePlanOverlay({ plan, onChange }) {
         const entry = market + deltaPips * pip;
         const slDistance = Math.max(2, metrics.slPips) * pip;
         const tpDistance = Math.max(4, metrics.tpPips) * pip;
-        onChange({
-          entry,
-          sl: isBuy ? entry - slDistance : entry + slDistance,
-          tp: isBuy ? entry + tpDistance : entry - tpDistance,
-          stage: 'dragging-entry',
-        });
+        onChange({ entry, sl: isBuy ? entry - slDistance : entry + slDistance, tp: isBuy ? entry + tpDistance : entry - tpDistance, stage: 'dragging-entry' });
       } else if (dragging === 'limit') {
         setPositions(p => ({ ...p, limit: next }));
         const offsetPips = Math.max(0.5, Math.abs(next - positions.entry) * 0.14);
@@ -143,23 +135,12 @@ function TradePlanOverlay({ plan, onChange }) {
       <div className="relative h-px" style={{ backgroundColor: color, boxShadow: `0 0 10px ${color}55` }}>
         <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-md border px-1.5 py-1 text-[8px] font-black tracking-[0.03em]" style={{ borderColor: `${color}99`, backgroundColor: '#09121bcc', color }}>{label}</span>
         <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-1.5 py-1 text-[9px] font-extrabold" style={{ backgroundColor: color, color: kind === 'sl' ? '#2b0810' : '#032219' }}>{value}</span>
-        {draggable && (
-          <button
-            type="button"
-            aria-label={`Drag ${label}`}
-            onPointerDown={event => { event.preventDefault(); setDragging(kind); }}
-            onTouchStart={event => { event.preventDefault(); setDragging(kind); }}
-            className="absolute right-[54px] top-1/2 size-7 -translate-y-1/2 touch-none rounded-full border-2 bg-[#071019] shadow-[0_0_0_5px_rgba(255,255,255,0.04)]"
-            style={{ borderColor: color }}
-          />
-        )}
+        {draggable && <button type="button" aria-label={`Drag ${label}`} onPointerDown={event => { event.preventDefault(); setDragging(kind); }} onTouchStart={event => { event.preventDefault(); setDragging(kind); }} className="absolute right-[54px] top-1/2 size-7 -translate-y-1/2 touch-none rounded-full border-2 bg-[#071019] shadow-[0_0_0_5px_rgba(255,255,255,0.04)]" style={{ borderColor: color }} />}
       </div>
     </div>
   );
 
-  const entryLabel = plan.pending
-    ? `${isBuy ? 'BUY' : 'SELL'} ${String(plan.orderType || '').toUpperCase()}`
-    : isBuy ? `BUY${plan.open ? ' • OPEN' : ''}` : `SELL${plan.open ? ' • OPEN' : ''}`;
+  const entryLabel = plan.pending ? `${isBuy ? 'BUY' : 'SELL'} ${String(plan.orderType || '').toUpperCase()}` : isBuy ? `BUY${plan.open ? ' • OPEN' : ''}` : `SELL${plan.open ? ' • OPEN' : ''}`;
 
   return (
     <div ref={layerRef} className="absolute inset-0 z-20 touch-none overflow-hidden rounded-xl">
@@ -169,14 +150,7 @@ function TradePlanOverlay({ plan, onChange }) {
       {line('entry', positions.entry, '#42a5ff', entryLabel, Number(plan.entry).toFixed(decimals), Boolean(plan.pending && !plan.open))}
       {plan.pending && plan.orderType === 'stop-limit' && line('limit', positions.limit, '#b58cff', 'LIMIT', Number(plan.limitPrice ?? plan.entry).toFixed(decimals), !plan.open)}
       {line('sl', positions.sl, '#ff5968', 'SL', `-${metrics.slPips.toFixed(1)}p`, !plan.open || plan.stage === 'open')}
-      {dragging && (
-        <div className="pointer-events-none absolute right-[86px] z-40 rounded-lg border border-white/10 bg-[#071019]/95 px-2.5 py-1.5 text-right shadow-xl" style={{ top: `${((dragging === 'sl' ? positions.sl : dragging === 'tp' ? positions.tp : dragging === 'limit' ? positions.limit : positions.entry) - 12)}%` }}>
-          <div className="text-[8px] uppercase tracking-[0.12em] text-[#708397]">{dragging === 'sl' ? 'Stop loss' : dragging === 'tp' ? 'Take profit' : dragging === 'limit' ? 'Limit price' : 'Entry price'}</div>
-          <strong className={`mt-0.5 block text-[11px] ${dragging === 'sl' ? 'text-[#ff6b78]' : dragging === 'tp' ? 'text-[#53e0ad]' : 'text-[#69bdff]'}`}>
-            {dragging === 'sl' ? `-${metrics.slPips.toFixed(1)} pips` : dragging === 'tp' ? `+${metrics.tpPips.toFixed(1)} pips` : Number(dragging === 'limit' ? plan.limitPrice : plan.entry).toFixed(decimals)}
-          </strong>
-        </div>
-      )}
+      {dragging && <div className="pointer-events-none absolute right-[86px] z-40 rounded-lg border border-white/10 bg-[#071019]/95 px-2.5 py-1.5 text-right shadow-xl" style={{ top: `${((dragging === 'sl' ? positions.sl : dragging === 'tp' ? positions.tp : dragging === 'limit' ? positions.limit : positions.entry) - 12)}%` }}><div className="text-[8px] uppercase tracking-[0.12em] text-[#708397]">{dragging === 'sl' ? 'Stop loss' : dragging === 'tp' ? 'Take profit' : dragging === 'limit' ? 'Limit price' : 'Entry price'}</div><strong className={`mt-0.5 block text-[11px] ${dragging === 'sl' ? 'text-[#ff6b78]' : dragging === 'tp' ? 'text-[#53e0ad]' : 'text-[#69bdff]'}`}>{dragging === 'sl' ? `-${metrics.slPips.toFixed(1)} pips` : dragging === 'tp' ? `+${metrics.tpPips.toFixed(1)} pips` : Number(dragging === 'limit' ? plan.limitPrice : plan.entry).toFixed(decimals)}</strong></div>}
     </div>
   );
 }
@@ -191,6 +165,8 @@ export default function ChartArea({
   selectedTool,
   onSelectTool,
   focusMode = false,
+  embedded = false,
+  hideToolbar = false,
   tradePlan,
   onTradePlanChange = () => {},
   indicators = [],
@@ -212,35 +188,26 @@ export default function ChartArea({
 
   const formattedPrice = useMemo(() => price || '0.99368', [price]);
 
-  const areaClass = focusMode
-    ? 'grid h-full min-h-0 grid-cols-[36px_minmax(0,1fr)] gap-1.5 px-1.5 pb-1.5'
-    : `grid ${oscillatorCount ? (oscillatorCount > 1 ? 'h-[430px]' : 'h-[360px]') : 'h-[270px]'} grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2 md:${oscillatorCount ? 'h-[440px]' : 'h-[300px]'}`;
+  const areaClass = embedded
+    ? `grid h-full min-h-0 ${hideToolbar ? 'grid-cols-[minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} gap-1.5`
+    : focusMode
+      ? 'grid h-full min-h-0 grid-cols-[36px_minmax(0,1fr)] gap-1.5 px-1.5 pb-1.5'
+      : `grid ${oscillatorCount ? (oscillatorCount > 1 ? 'h-[430px]' : 'h-[360px]') : 'h-[270px]'} grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2 md:${oscillatorCount ? 'h-[440px]' : 'h-[300px]'}`;
 
-  const toolbarClass = focusMode
+  const toolbarClass = focusMode || embedded
     ? 'flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto rounded-xl border border-[#1b2c3d] bg-[#09131d] py-1.5 shadow-[inset_0_1px_rgba(255,255,255,0.02)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
     : 'flex min-h-0 flex-col items-center gap-0.5 rounded-xl border border-[#1b2c3d] bg-[#09131d] py-1.5 shadow-[inset_0_1px_rgba(255,255,255,0.02)]';
 
   return (
     <div className={areaClass}>
-      <aside className={toolbarClass} aria-label="Drawing tools">
-        {tools.map(([id, Icon, label]) => (
-          <button key={id} type="button" title={label} onClick={() => !tradePlan && onSelectTool(id)} aria-label={label} disabled={Boolean(tradePlan)} className={`grid ${focusMode ? 'size-[29px]' : 'size-[27px]'} shrink-0 place-items-center rounded-lg transition ${selectedTool === id ? 'bg-[#0f3149] text-[#59c8ff]' : 'text-[#74879c] hover:bg-white/[0.035] hover:text-[#d7e4f1]'} disabled:cursor-not-allowed disabled:opacity-30`}>
-            <Icon size={focusMode ? 17 : 16} strokeWidth={1.75} />
-          </button>
-        ))}
-      </aside>
+      {!hideToolbar && <aside className={toolbarClass} aria-label="Drawing tools">{tools.map(([id, Icon, label]) => <button key={id} type="button" title={label} onClick={() => !tradePlan && onSelectTool(id)} aria-label={label} disabled={Boolean(tradePlan)} className={`grid ${focusMode ? 'size-[29px]' : 'size-[27px]'} shrink-0 place-items-center rounded-lg transition ${selectedTool === id ? 'bg-[#0f3149] text-[#59c8ff]' : 'text-[#74879c] hover:bg-white/[0.035] hover:text-[#d7e4f1]'} disabled:cursor-not-allowed disabled:opacity-30`}><Icon size={focusMode ? 17 : 16} strokeWidth={1.75} /></button>)}</aside>}
 
-      <div className="relative min-h-0 min-w-0 overflow-hidden rounded-xl border border-[#1b2c3d] bg-[#080f17]">
+      <div className={`relative min-h-0 min-w-0 overflow-hidden ${embedded ? '' : 'rounded-xl border border-[#1b2c3d]'} bg-[#080f17]`}>
         <TradingChart symbol={symbol} timeframe={chartTimeframe} tick={tick} chartMode={chartMode} bidPrice={price} askPrice={ask} indicators={indicators} />
         <DrawingLayer symbol={symbol} timeframe={chartTimeframe} tool={selectedTool} onToolChange={onSelectTool} disabled={Boolean(tradePlan)} />
         <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} />
 
-        {!tradePlan && (
-          <div className="pointer-events-none absolute right-0 top-[31%] z-10 flex -translate-y-1/2 flex-col items-end">
-            <span className="rounded-l-md bg-[#22a77d] px-2 py-1 text-[10px] font-extrabold leading-none text-[#e9fff8] shadow-[0_0_14px_rgba(34,167,125,0.18)]">{formattedPrice}</span>
-            <small className="mt-0.5 rounded-bl bg-[#16684f] px-2 py-0.5 text-[8px] font-semibold leading-none text-[#a6e7cf]">{formatCountdown(remaining)}</small>
-          </div>
-        )}
+        {!tradePlan && !embedded && <div className="pointer-events-none absolute right-0 top-[31%] z-10 flex -translate-y-1/2 flex-col items-end"><span className="rounded-l-md bg-[#22a77d] px-2 py-1 text-[10px] font-extrabold leading-none text-[#e9fff8] shadow-[0_0_14px_rgba(34,167,125,0.18)]">{formattedPrice}</span><small className="mt-0.5 rounded-bl bg-[#16684f] px-2 py-0.5 text-[8px] font-semibold leading-none text-[#a6e7cf]">{formatCountdown(remaining)}</small></div>}
       </div>
     </div>
   );
