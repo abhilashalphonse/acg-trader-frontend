@@ -18,10 +18,12 @@ export default function MarketPanel({
   onFullscreen,
   tradePlan,
   onTradePlanChange,
+  onSelectInstrument = () => {},
+  onIndicators = () => {},
 }) {
   return (
     <section className="overflow-hidden rounded-[22px] border border-[#182938] bg-gradient-to-b from-[#0a141e] to-[#071019] shadow-[0_16px_45px_rgba(0,0,0,0.26)]">
-      <InstrumentHeader market={market} favorite={favorite} onFavorite={() => setFavorite(v => !v)} />
+      <InstrumentHeader market={market} favorite={favorite} onFavorite={() => setFavorite(v => !v)} onSelectInstrument={onSelectInstrument} />
       <ChartControls
         timeframe={timeframe}
         onTimeframe={setTimeframe}
@@ -29,6 +31,8 @@ export default function MarketPanel({
         onChartMode={setChartMode}
         fullscreen={fullscreen}
         onFullscreen={onFullscreen}
+        onIndicators={onIndicators}
+        disabled={Boolean(tradePlan)}
       />
       <ChartArea
         symbol={market.symbol}
