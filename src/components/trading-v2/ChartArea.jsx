@@ -1,13 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Crosshair,
-  TrendingUp,
-  SlidersHorizontal,
-  Square,
-  Type,
-  Shapes,
-  Ruler,
-} from 'lucide-react';
+import { Crosshair, TrendingUp, SlidersHorizontal, Square, Type, Shapes, Ruler } from 'lucide-react';
 import TradingChart from '../TradingChart.jsx';
 import DrawingLayer from './DrawingLayer.jsx';
 
@@ -21,19 +13,7 @@ const tools = [
   ['text', Type, 'Text'],
 ];
 
-const secondsByTimeframe = {
-  S1: 1,
-  S5: 5,
-  S15: 15,
-  S30: 30,
-  M1: 60,
-  M5: 300,
-  M15: 900,
-  H1: 3600,
-  H4: 14400,
-  D1: 86400,
-};
-
+const secondsByTimeframe = { S1: 1, S5: 5, S15: 15, S30: 30, M1: 60, M5: 300, M15: 900, H1: 3600, H4: 14400, D1: 86400 };
 const oscillatorIds = new Set(['rsi', 'macd', 'atr', 'stochastic']);
 
 function formatCountdown(totalSeconds) {
@@ -52,12 +32,7 @@ function TradePlanOverlay({ plan, onChange }) {
     if (!plan) return;
     const isBuy = plan.side === 'buy';
     if (plan.pending) {
-      setPositions({
-        tp: isBuy ? 24 : 76,
-        entry: isBuy ? (plan.orderType === 'limit' ? 58 : 42) : (plan.orderType === 'limit' ? 42 : 58),
-        limit: isBuy ? 48 : 52,
-        sl: isBuy ? 76 : 24,
-      });
+      setPositions({ tp: isBuy ? 24 : 76, entry: isBuy ? (plan.orderType === 'limit' ? 58 : 42) : (plan.orderType === 'limit' ? 42 : 58), limit: isBuy ? 48 : 52, sl: isBuy ? 76 : 24 });
     } else {
       setPositions({ tp: isBuy ? 27 : 73, entry: 50, limit: 57, sl: isBuy ? 69 : 31 });
     }
@@ -106,10 +81,7 @@ function TradePlanOverlay({ plan, onChange }) {
         onChange({ limitPrice: isBuy ? plan.entry - offsetPips * pip : plan.entry + offsetPips * pip, stage: 'dragging-limit' });
       }
     };
-    const up = () => {
-      setDragging(null);
-      onChange({ stage: plan.open ? 'open' : 'ready' });
-    };
+    const up = () => { setDragging(null); onChange({ stage: plan.open ? 'open' : 'ready' }); };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up, { once: true });
     window.addEventListener('touchmove', move, { passive: false });
@@ -131,13 +103,7 @@ function TradePlanOverlay({ plan, onChange }) {
   const decimals = Number(plan.entry) > 100 ? 2 : 5;
 
   const line = (kind, top, color, label, value, draggable) => (
-    <div className="absolute left-0 right-0 z-30" style={{ top: `${top}%` }}>
-      <div className="relative h-px" style={{ backgroundColor: color, boxShadow: `0 0 10px ${color}55` }}>
-        <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-md border px-1.5 py-1 text-[8px] font-black tracking-[0.03em]" style={{ borderColor: `${color}99`, backgroundColor: '#09121bcc', color }}>{label}</span>
-        <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-1.5 py-1 text-[9px] font-extrabold" style={{ backgroundColor: color, color: kind === 'sl' ? '#2b0810' : '#032219' }}>{value}</span>
-        {draggable && <button type="button" aria-label={`Drag ${label}`} onPointerDown={event => { event.preventDefault(); setDragging(kind); }} onTouchStart={event => { event.preventDefault(); setDragging(kind); }} className="absolute right-[54px] top-1/2 size-7 -translate-y-1/2 touch-none rounded-full border-2 bg-[#071019] shadow-[0_0_0_5px_rgba(255,255,255,0.04)]" style={{ borderColor: color }} />}
-      </div>
-    </div>
+    <div className="absolute left-0 right-0 z-30" style={{ top: `${top}%` }}><div className="relative h-px" style={{ backgroundColor: color, boxShadow: `0 0 10px ${color}55` }}><span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-md border px-1.5 py-1 text-[8px] font-black tracking-[0.03em]" style={{ borderColor: `${color}99`, backgroundColor: '#09121bcc', color }}>{label}</span><span className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-1.5 py-1 text-[9px] font-extrabold" style={{ backgroundColor: color, color: kind === 'sl' ? '#2b0810' : '#032219' }}>{value}</span>{draggable && <button type="button" aria-label={`Drag ${label}`} onPointerDown={event => { event.preventDefault(); setDragging(kind); }} onTouchStart={event => { event.preventDefault(); setDragging(kind); }} className="absolute right-[54px] top-1/2 size-7 -translate-y-1/2 touch-none rounded-full border-2 bg-[#071019] shadow-[0_0_0_5px_rgba(255,255,255,0.04)]" style={{ borderColor: color }} />}</div></div>
   );
 
   const entryLabel = plan.pending ? `${isBuy ? 'BUY' : 'SELL'} ${String(plan.orderType || '').toUpperCase()}` : isBuy ? `BUY${plan.open ? ' • OPEN' : ''}` : `SELL${plan.open ? ' • OPEN' : ''}`;
@@ -173,6 +139,7 @@ export default function ChartArea({
 }) {
   const timeframeSeconds = secondsByTimeframe[chartTimeframe] || 60;
   const [remaining, setRemaining] = useState(() => timeframeSeconds - (Math.floor(Date.now() / 1000) % timeframeSeconds));
+  const [coordinateApi, setCoordinateApi] = useState(null);
   const oscillatorCount = indicators.filter(item => item.visible !== false && oscillatorIds.has(item.id)).length;
 
   useEffect(() => {
@@ -187,12 +154,12 @@ export default function ChartArea({
   }, [timeframeSeconds]);
 
   const formattedPrice = useMemo(() => price || '0.99368', [price]);
-
+  const heightClass = oscillatorCount ? (oscillatorCount > 1 ? 'h-[430px] md:h-[440px]' : 'h-[360px] md:h-[440px]') : 'h-[270px] md:h-[300px]';
   const areaClass = embedded
     ? `grid h-full min-h-0 ${hideToolbar ? 'grid-cols-[minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} gap-1.5`
     : focusMode
       ? 'grid h-full min-h-0 grid-cols-[36px_minmax(0,1fr)] gap-1.5 px-1.5 pb-1.5'
-      : `grid ${oscillatorCount ? (oscillatorCount > 1 ? 'h-[430px]' : 'h-[360px]') : 'h-[270px]'} grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2 md:${oscillatorCount ? 'h-[440px]' : 'h-[300px]'}`;
+      : `grid ${heightClass} grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2`;
 
   const toolbarClass = focusMode || embedded
     ? 'flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto rounded-xl border border-[#1b2c3d] bg-[#09131d] py-1.5 shadow-[inset_0_1px_rgba(255,255,255,0.02)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
@@ -203,10 +170,9 @@ export default function ChartArea({
       {!hideToolbar && <aside className={toolbarClass} aria-label="Drawing tools">{tools.map(([id, Icon, label]) => <button key={id} type="button" title={label} onClick={() => !tradePlan && onSelectTool(id)} aria-label={label} disabled={Boolean(tradePlan)} className={`grid ${focusMode ? 'size-[29px]' : 'size-[27px]'} shrink-0 place-items-center rounded-lg transition ${selectedTool === id ? 'bg-[#0f3149] text-[#59c8ff]' : 'text-[#74879c] hover:bg-white/[0.035] hover:text-[#d7e4f1]'} disabled:cursor-not-allowed disabled:opacity-30`}><Icon size={focusMode ? 17 : 16} strokeWidth={1.75} /></button>)}</aside>}
 
       <div className={`relative min-h-0 min-w-0 overflow-hidden ${embedded ? '' : 'rounded-xl border border-[#1b2c3d]'} bg-[#080f17]`}>
-        <TradingChart symbol={symbol} timeframe={chartTimeframe} tick={tick} chartMode={chartMode} bidPrice={price} askPrice={ask} indicators={indicators} />
-        <DrawingLayer symbol={symbol} timeframe={chartTimeframe} tool={selectedTool} onToolChange={onSelectTool} disabled={Boolean(tradePlan)} />
+        <TradingChart symbol={symbol} timeframe={chartTimeframe} tick={tick} chartMode={chartMode} bidPrice={price} askPrice={ask} indicators={indicators} onCoordinateApi={setCoordinateApi} />
+        <DrawingLayer symbol={symbol} timeframe={chartTimeframe} tool={selectedTool} onToolChange={onSelectTool} disabled={Boolean(tradePlan)} coordinateApi={coordinateApi} />
         <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} />
-
         {!tradePlan && !embedded && <div className="pointer-events-none absolute right-0 top-[31%] z-10 flex -translate-y-1/2 flex-col items-end"><span className="rounded-l-md bg-[#22a77d] px-2 py-1 text-[10px] font-extrabold leading-none text-[#e9fff8] shadow-[0_0_14px_rgba(34,167,125,0.18)]">{formattedPrice}</span><small className="mt-0.5 rounded-bl bg-[#16684f] px-2 py-0.5 text-[8px] font-semibold leading-none text-[#a6e7cf]">{formatCountdown(remaining)}</small></div>}
       </div>
     </div>
