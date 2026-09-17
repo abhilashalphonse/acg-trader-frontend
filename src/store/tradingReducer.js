@@ -39,6 +39,13 @@ function upsert(map, entity) {
   return id ? { ...map, [id]: entity } : map;
 }
 
+function upsertFill(fills, fill) {
+  if (!fill) return fills;
+  const id = entityId(fill);
+  const withoutDuplicate = id ? fills.filter(item => entityId(item) !== id) : fills;
+  return [fill, ...withoutDuplicate].slice(0, 500);
+}
+
 function replaceAccountScoped(map, accountId, entities) {
   const next = {};
   for (const [id, entity] of Object.entries(map)) {
@@ -72,6 +79,39 @@ function mergeSnapshot(state, snapshots) {
   return {
     ...state,
     trading: { accountsById, valuationsByAccountId, positionsById, ordersById, fills },
+  };
+}
+
+function mergeCommandResult(state, result) {
+  if (!result || typeof result !== 'object') return state;
+  const order = result.order || null;
+  const fill = result.deal || result.fill || null;
+  const position = result.position || null;
+  const account = result.account || null;
+  const valuation = result.valuation || null;
+
+  let positionsById = state.trading.positionsById;
+  const positionId = entityId(position);
+  if (positionId) {
+    positionsById = { ...positionsById };
+    if (position.status === 'CLOSED') delete positionsById[positionId];
+    else positionsById[positionId] = position;
+  }
+
+  let valuationsByAccountId = state.trading.valuationsByAccountId;
+  const valuationAccountId = accountIdFromValuation(valuation);
+  if (valuationAccountId) valuationsByAccountId = { ...valuationsByAccountId, [valuationAccountId]: valuation };
+
+  return {
+    ...state,
+    trading: {
+      ...state.trading,
+      accountsById: account ? upsert(state.trading.accountsById, account) : state.trading.accountsById,
+      valuationsByAccountId,
+      positionsById,
+      ordersById: order ? upsert(state.trading.ordersById, order) : state.trading.ordersById,
+      fills: fill ? upsertFill(state.trading.fills, fill) : state.trading.fills,
+    },
   };
 }
 
@@ -120,10 +160,7 @@ function handleEnvelope(state, envelope) {
   }
   if (type === 'trading.fill') {
     const fill = data?.fill;
-    if (!fill) return next;
-    const id = entityId(fill);
-    const withoutDuplicate = id ? next.trading.fills.filter(item => entityId(item) !== id) : next.trading.fills;
-    return { ...next, trading: { ...next.trading, fills: [fill, ...withoutDuplicate].slice(0, 500) } };
+    return fill ? { ...next, trading: { ...next.trading, fills: upsertFill(next.trading.fills, fill) } } : next;
   }
   if (type === 'trading.position') {
     const position = data?.position;
@@ -189,6 +226,8 @@ export function tradingReducer(state, action) {
       }
       return { ...state, market: { ...state.market, quotesBySymbol } };
     }
+    case 'trading/command-result':
+      return mergeCommandResult(state, action.payload);
     case 'socket/envelope':
       return handleEnvelope(state, action.payload);
     default:
