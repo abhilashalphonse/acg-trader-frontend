@@ -23,6 +23,25 @@ function direction(next, previous) {
   return !Number.isFinite(a) || !Number.isFinite(b) || a === b ? 'flat' : a > b ? 'up' : 'down';
 }
 
+function normalizeActiveTick(value) {
+  if (!value) return null;
+  const rawSeconds = Number(value.time ?? value.timestamp);
+  const rawMilliseconds = Number(value.timeMs ?? value.receivedAtMs ?? value.providerTimestampMs);
+  const time = Number.isFinite(rawSeconds)
+    ? Math.floor(rawSeconds)
+    : Number.isFinite(rawMilliseconds)
+      ? Math.floor(rawMilliseconds / 1000)
+      : null;
+  return {
+    ...value,
+    price: Number(value.price ?? value.last ?? value.mid),
+    bid: value.bid == null ? null : Number(value.bid),
+    ask: value.ask == null ? null : Number(value.ask),
+    time,
+    timestamp: time,
+  };
+}
+
 export function useMarketData(seedMarkets, activeSymbol) {
   const { authenticated } = useTraderAuth();
   const { market, connection, subscribeMarket, ingestQuotes } = useTradingStore();
@@ -122,7 +141,8 @@ export function useMarketData(seedMarkets, activeSymbol) {
   }), [directions, market.quotesBySymbol, seedMarkets]);
 
   const activeQuote = activeSymbol ? market.quotesBySymbol[activeSymbol] : null;
-  const activeTick = activeBackendSymbol ? (market.ticksBySymbol[activeBackendSymbol] || activeQuote || null) : null;
+  const activeRaw = activeBackendSymbol ? (market.ticksBySymbol[activeBackendSymbol] || activeQuote || null) : null;
+  const activeTick = normalizeActiveTick(activeRaw);
   const status = authenticated ? connection.status : (error ? 'error' : 'public');
 
   return {
