@@ -1,13 +1,41 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Bell, Search, UserRound } from 'lucide-react';
+import { useTraderAuth } from '../../hooks/useTraderAuth.js';
+import { useTradingStore } from '../../hooks/useTradingStore.js';
+
+function money(value, currency = 'USD') {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '—';
+  try {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(numeric);
+  } catch {
+    return `${numeric.toFixed(2)} ${currency}`;
+  }
+}
 
 export default function TopBar({
-  balance = '$12,458.32',
-  live = true,
   onSearch = () => {},
   onNotifications = () => {},
   onProfile = () => {},
 }) {
+  const auth = useTraderAuth();
+  const { trading, connection } = useTradingStore();
+  const accountView = useMemo(() => {
+    const granted = auth.principal?.accountIds?.map(String) || [];
+    const accountId = granted.find(id => trading.accountsById[id]) || granted[0] || Object.keys(trading.accountsById)[0];
+    const account = accountId ? trading.accountsById[accountId] : null;
+    const valuation = accountId ? trading.valuationsByAccountId[accountId] : null;
+    return { account, valuation };
+  }, [auth.principal?.accountIds, trading.accountsById, trading.valuationsByAccountId]);
+
+  const { account, valuation } = accountView;
+  const currency = account?.currency || 'USD';
+  const balance = valuation?.balance ?? account?.state?.balance;
+  const valuationStatus = String(valuation?.valuationStatus || 'WAITING').toUpperCase();
+  const accountStatus = String(account?.status || 'UNKNOWN').toUpperCase();
+  const live = connection.status === 'ready' && valuationStatus === 'LIVE' && accountStatus === 'ACTIVE' && account?.tradingEnabled === true;
+  const stateLabel = live ? 'Live' : connection.status !== 'ready' ? 'Reconnecting' : valuationStatus !== 'LIVE' ? valuationStatus : accountStatus;
+
   return (
     <header className="flex h-[60px] items-center justify-between gap-2 px-3">
       <div className="min-w-0 leading-none">
@@ -15,7 +43,7 @@ export default function TopBar({
           <span>ACG Trader</span>
           <span className="rounded-md bg-[#0d2b42] px-1.5 py-1 text-[9px] font-extrabold tracking-[0.04em] text-[#55bdff]">V2</span>
         </div>
-        <p className="mt-1.5 truncate text-[9px] font-medium text-[#65788e]">Scalper Prime</p>
+        <p className="mt-1.5 truncate text-[9px] font-medium text-[#65788e]">{account?.accountCode || 'Trading terminal'}</p>
       </div>
 
       <div className="flex shrink-0 items-center gap-1.5">
@@ -25,14 +53,13 @@ export default function TopBar({
 
         <button type="button" onClick={onNotifications} aria-label="Notifications" className="relative grid size-9 place-items-center rounded-xl border border-[#192b3b] bg-[#09131d] text-[#9eb0c4] shadow-[inset_0_1px_rgba(255,255,255,0.02)] active:scale-95">
           <Bell size={18} />
-          <span className="absolute right-[6px] top-[6px] size-1.5 rounded-full bg-[#ff5363] shadow-[0_0_0_2px_#09131d]" />
         </button>
 
         <button type="button" onClick={onProfile} className="flex h-9 min-w-[94px] flex-col justify-center rounded-xl border border-[#1a2b3b] bg-[#09131d] px-2.5 text-left shadow-[inset_0_1px_rgba(255,255,255,0.02)] active:scale-[0.99]">
-          <strong className="whitespace-nowrap text-[11px] font-extrabold tracking-[-0.015em] text-[#f6f9fc]">{balance}</strong>
+          <strong className="whitespace-nowrap text-[11px] font-extrabold tracking-[-0.015em] text-[#f6f9fc]">{money(balance, currency)}</strong>
           <span className="mt-0.5 flex items-center gap-1 text-[8px] font-medium text-[#77899d]">
-            <span className={`size-1.5 rounded-full ${live ? 'bg-[#31dfa3]' : 'bg-[#66788c]'}`} />
-            {live ? 'Live' : 'Offline'}
+            <span className={`size-1.5 rounded-full ${live ? 'bg-[#31dfa3]' : valuationStatus === 'STALE' ? 'bg-[#eab84e]' : 'bg-[#66788c]'}`} />
+            {stateLabel}
           </span>
         </button>
 
