@@ -18,14 +18,25 @@ function normalizeInstrument(item) {
 }
 
 export function useInstrumentCatalog() {
-  const [state, setState] = useState({ instruments: [], loading: true, error: null, asOf: null });
+  const [state, setState] = useState({ instruments: [], allInstruments: [], loading: true, error: null, asOf: null });
 
   useEffect(() => {
     const controller = new AbortController();
-    void marketApi.instruments(controller.signal).then(response => {
+    void Promise.all([
+      marketApi.instruments(controller.signal),
+      marketApi.status(controller.signal),
+    ]).then(([catalogResponse, statusResponse]) => {
       if (controller.signal.aborted) return;
-      const instruments = (response?.instruments || []).map(normalizeInstrument).filter(Boolean);
-      setState({ instruments, loading: false, error: null, asOf: response?.asOf || null });
+      const allInstruments = (catalogResponse?.instruments || []).map(normalizeInstrument).filter(Boolean);
+      const configured = new Set((statusResponse?.symbols || []).map(item => String(item?.symbol || '').toUpperCase()).filter(Boolean));
+      const instruments = allInstruments.filter(item => configured.has(item.symbol));
+      setState({
+        instruments,
+        allInstruments,
+        loading: false,
+        error: null,
+        asOf: catalogResponse?.asOf || null,
+      });
     }).catch(error => {
       if (!controller.signal.aborted) setState(current => ({ ...current, loading: false, error }));
     });
