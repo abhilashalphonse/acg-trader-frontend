@@ -1,16 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import TradingTerminalV2 from './pages/TradingTerminalV2.jsx';
 import MobileTraderShell from './pages/MobileTraderShell.jsx';
+import { useInstrumentCatalog } from './hooks/useInstrumentCatalog.js';
 import { useMarketData } from './hooks/useMarketData.js';
-
-const seedMarkets = [
-  { symbol: 'AUDCAD', bid: '0.99368', ask: '0.99373', change: '+0.05%' },
-  { symbol: 'EURUSD', bid: '1.08421', ask: '1.08424', change: '+0.06%' },
-  { symbol: 'GBPUSD', bid: '1.26903', ask: '1.26907', change: '-0.12%' },
-  { symbol: 'USDJPY', bid: '156.284', ask: '156.291', change: '+0.21%' },
-  { symbol: 'XAUUSD', bid: '2648.30', ask: '2648.60', change: '+0.34%' },
-  { symbol: 'US30', bid: '42,910', ask: '42,915', change: '+0.08%' },
-];
 
 function useDesktopLayout() {
   const [isDesktop, setIsDesktop] = useState(() => (
@@ -30,19 +22,34 @@ function useDesktopLayout() {
 }
 
 export default function App() {
-  const [activeSymbol, setActiveSymbol] = useState('AUDCAD');
   const isDesktop = useDesktopLayout();
-  const { markets, activeTick } = useMarketData(seedMarkets, activeSymbol);
-  const market = useMemo(
-    () => markets.find(item => item.symbol === activeSymbol) || seedMarkets[0],
-    [markets, activeSymbol],
-  );
+  const { instruments, loading: instrumentsLoading, error: instrumentsError } = useInstrumentCatalog();
+  const [activeSymbol, setActiveSymbol] = useState(null);
+
+  useEffect(() => {
+    if (!instruments.length) return;
+    const currentExists = activeSymbol && instruments.some(item => item.symbol === activeSymbol);
+    if (!currentExists) setActiveSymbol(instruments.find(item => item.sessionOpen)?.symbol || instruments[0].symbol);
+  }, [activeSymbol, instruments]);
+
+  const { markets, activeTick, activeMarket, status, error: marketError } = useMarketData(instruments, activeSymbol);
+  const market = activeMarket || markets[0] || null;
+
+  if (instrumentsLoading && !market) {
+    return <div className="grid min-h-dvh place-items-center bg-[#050b12] text-sm font-semibold text-[#7e93a7]">Loading ACG markets…</div>;
+  }
+
+  if ((instrumentsError || marketError) && !market) {
+    const message = instrumentsError?.message || marketError?.message || 'Unable to load ACG Trader markets';
+    return <div className="grid min-h-dvh place-items-center bg-[#050b12] px-6 text-center text-sm font-semibold text-[#ff7882]">{message}</div>;
+  }
 
   const sharedProps = {
     market,
     tick: activeTick,
     markets,
-    activeSymbol,
+    marketStatus: status,
+    activeSymbol: market?.symbol || activeSymbol,
     onSelectSymbol: setActiveSymbol,
   };
 
