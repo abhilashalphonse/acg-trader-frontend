@@ -1,8 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import TradingTerminalV2 from './pages/TradingTerminalV2.jsx';
 import MobileTraderShell from './pages/MobileTraderShell.jsx';
+import TerminalStatusBanner from './components/TerminalStatusBanner.jsx';
 import { useInstrumentCatalog } from './hooks/useInstrumentCatalog.js';
 import { useMarketData } from './hooks/useMarketData.js';
+import { useTraderAuth } from './hooks/useTraderAuth.js';
+import { useTradingStore } from './hooks/useTradingStore.js';
+import { deriveTerminalStatus } from './utils/terminalStatus.js';
 
 function useDesktopLayout() {
   const [isDesktop, setIsDesktop] = useState(() => (
@@ -23,6 +27,8 @@ function useDesktopLayout() {
 
 export default function App() {
   const isDesktop = useDesktopLayout();
+  const auth = useTraderAuth();
+  const { trading, connection } = useTradingStore();
   const { instruments, loading: instrumentsLoading, error: instrumentsError } = useInstrumentCatalog();
   const [activeSymbol, setActiveSymbol] = useState(null);
 
@@ -34,6 +40,31 @@ export default function App() {
 
   const { markets, activeTick, activeMarket, status, error: marketError } = useMarketData(instruments, activeSymbol);
   const market = activeMarket || markets[0] || null;
+
+  const primaryAccount = useMemo(() => {
+    const granted = auth.principal?.accountIds?.map(String) || [];
+    const id = granted.find(accountId => trading.accountsById[accountId]) || granted[0] || Object.keys(trading.accountsById)[0];
+    if (!id) return null;
+    const account = trading.accountsById[id] || null;
+    const valuation = trading.valuationsByAccountId[id] || null;
+    if (!account) return null;
+    return {
+      ...account,
+      id: String(account.id || id),
+      valuationStatus: valuation?.valuationStatus || null,
+      staleSymbols: valuation?.staleSymbols || [],
+    };
+  }, [auth.principal?.accountIds, trading.accountsById, trading.valuationsByAccountId]);
+
+  const terminalStatus = deriveTerminalStatus({
+    authStatus: auth.status,
+    authenticated: auth.authenticated,
+    connectionStatus: connection.status,
+    account: primaryAccount,
+    valuationStatus: primaryAccount?.valuationStatus,
+    marketStatus: status,
+    activeMarket: market,
+  });
 
   if (instrumentsLoading && !market) {
     return <div className="grid min-h-dvh place-items-center bg-[#050b12] text-sm font-semibold text-[#7e93a7]">Loading ACG markets…</div>;
@@ -53,7 +84,12 @@ export default function App() {
     onSelectSymbol: setActiveSymbol,
   };
 
-  return isDesktop
-    ? <TradingTerminalV2 {...sharedProps} />
-    : <MobileTraderShell {...sharedProps} />;
+  return (
+    <>
+      <TerminalStatusBanner status={terminalStatus} />
+      {isDesktop
+        ? <TradingTerminalV2 {...sharedProps} />
+        : <MobileTraderShell {...sharedProps} />}
+    </>
+  );
 }
