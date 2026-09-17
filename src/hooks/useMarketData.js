@@ -30,14 +30,11 @@ export function useMarketData(seedMarkets, activeSymbol) {
   const [directions, setDirections] = useState({});
   const previousQuotesRef = useRef({});
   const symbols = useMemo(() => [...new Set(seedMarkets.map(item => item.symbol).filter(Boolean))], [seedMarkets]);
-  const symbolsKey = symbols.join(',');
 
   useEffect(() => {
-    if (!symbols.length) return undefined;
-    return authenticated
-      ? subscribeMarket({ quotes: symbols, ticks: activeSymbol ? [activeSymbol] : [] })
-      : undefined;
-  }, [activeSymbol, authenticated, subscribeMarket, symbolsKey]);
+    if (!symbols.length || !authenticated) return undefined;
+    return subscribeMarket({ quotes: symbols, ticks: activeSymbol ? [activeSymbol] : [] });
+  }, [activeSymbol, authenticated, subscribeMarket, symbols]);
 
   useEffect(() => {
     if (!symbols.length) return undefined;
@@ -64,7 +61,7 @@ export function useMarketData(seedMarkets, activeSymbol) {
       controller.abort();
       if (timer) window.clearInterval(timer);
     };
-  }, [authenticated, connection.status, ingestQuotes, symbolsKey]);
+  }, [authenticated, connection.status, ingestQuotes, symbols]);
 
   useEffect(() => {
     const updates = {};
@@ -82,7 +79,7 @@ export function useMarketData(seedMarkets, activeSymbol) {
       changed = true;
     }
     if (changed) setDirections(current => ({ ...current, ...updates }));
-  }, [market.quotesBySymbol, symbolsKey]);
+  }, [market.quotesBySymbol, symbols]);
 
   const markets = useMemo(() => seedMarkets.map(item => {
     const quote = market.quotesBySymbol[item.symbol];
