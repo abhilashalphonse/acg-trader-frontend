@@ -3,18 +3,9 @@ import { marketApi } from '../api/market.js';
 import { useTraderAuth } from './useTraderAuth.js';
 import { useTradingStore } from './useTradingStore.js';
 
-function decimalsFor(symbol, fallback) {
-  if (symbol === 'USDJPY') return 3;
-  if (symbol === 'XAUUSD') return 2;
-  if (symbol === 'US30') return 0;
-  const value = String(fallback ?? '');
-  const point = value.indexOf('.');
-  return point >= 0 ? value.length - point - 1 : 5;
-}
-
-function formatPrice(value, decimals, fallback) {
+function formatPrice(value, digits) {
   const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric.toFixed(decimals) : fallback;
+  return Number.isFinite(numeric) ? numeric.toFixed(digits) : '—';
 }
 
 function direction(next, previous) {
@@ -42,66 +33,70 @@ function normalizeActiveTick(value) {
   };
 }
 
-export function useMarketData(seedMarkets, activeSymbol) {
+function gatewayStateFor(status, symbol) {
+  const rows = Array.isArray(status?.symbols) ? status.symbols : [];
+  return rows.find(item => String(item?.symbol || '').toUpperCase() === symbol) || null;
+}
+
+export function useMarketData(instruments, activeSymbol) {
   const { authenticated } = useTraderAuth();
   const { market, connection, subscribeMarket, ingestQuotes } = useTradingStore();
   const [error, setError] = useState(null);
   const [directions, setDirections] = useState({});
-  const [configuredSymbols, setConfiguredSymbols] = useState(null);
+  const [gatewayStatus, setGatewayStatus] = useState(null);
   const previousQuotesRef = useRef({});
-  const symbols = useMemo(() => [...new Set(seedMarkets.map(item => item.symbol).filter(Boolean))], [seedMarkets]);
-  const backendSymbols = useMemo(() => {
-    if (!configuredSymbols) return symbols;
-    const allowed = new Set(configuredSymbols);
-    return symbols.filter(symbol => allowed.has(symbol));
-  }, [configuredSymbols, symbols]);
-  const activeBackendSymbol = backendSymbols.includes(activeSymbol) ? activeSymbol : null;
+
+  const symbols = useMemo(() => [...new Set((instruments || []).map(item => item.symbol).filter(Boolean))], [instruments]);
 
   useEffect(() => {
-    const controller = new AbortController();
-    void marketApi.status(controller.signal).then(response => {
-      if (controller.signal.aborted) return;
-      const available = Array.isArray(response?.symbols)
-        ? response.symbols.map(item => String(item?.symbol || '').toUpperCase()).filter(Boolean)
-        : [];
-      if (available.length) setConfiguredSymbols(available);
-    }).catch(nextError => {
-      if (!controller.signal.aborted) setError(nextError);
-    });
-    return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
-    if (!backendSymbols.length || !authenticated) return undefined;
-    return subscribeMarket({ quotes: backendSymbols, ticks: activeBackendSymbol ? [activeBackendSymbol] : [] });
-  }, [activeBackendSymbol, authenticated, backendSymbols, subscribeMarket]);
-
-  useEffect(() => {
-    if (!backendSymbols.length) return undefined;
     const controller = new AbortController();
     let timer = null;
-
     const refresh = async () => {
       try {
-        const response = await marketApi.quotes(backendSymbols, controller.signal);
-        if (controller.signal.aborted) return;
-        ingestQuotes(response?.quotes || []);
-        setError(null);
+        const response = await marketApi.status(controller.signal);
+        if (!controller.signal.aborted) {
+          setGatewayStatus(response);
+          setError(null);
+        }
       } catch (nextError) {
         if (!controller.signal.aborted) setError(nextError);
       }
     };
-
     void refresh();
-    if (!authenticated || connection.status !== 'ready') {
-      timer = window.setInterval(() => void refresh(), 2000);
-    }
-
+    timer = window.setInterval(() => void refresh(), connection.status === 'ready' ? 15000 : 3000);
     return () => {
       controller.abort();
       if (timer) window.clearInterval(timer);
     };
-  }, [authenticated, backendSymbols, connection.status, ingestQuotes]);
+  }, [connection.status]);
+
+  useEffect(() => {
+    if (!symbols.length || !authenticated) return undefined;
+    return subscribeMarket({ quotes: symbols, ticks: activeSymbol ? [activeSymbol] : [] });
+  }, [activeSymbol, authenticated, subscribeMarket, symbols]);
+
+  useEffect(() => {
+    if (!symbols.length) return undefined;
+    const controller = new AbortController();
+    let timer = null;
+    const refresh = async () => {
+      try {
+        const response = await marketApi.quotes(symbols, controller.signal);
+        if (!controller.signal.aborted) {
+          ingestQuotes(response?.quotes || []);
+          setError(null);
+        }
+      } catch (nextError) {
+        if (!controller.signal.aborted) setError(nextError);
+      }
+    };
+    void refresh();
+    if (!authenticated || connection.status !== 'ready') timer = window.setInterval(() => void refresh(), 2000);
+    return () => {
+      controller.abort();
+      if (timer) window.clearInterval(timer);
+    };
+  }, [authenticated, connection.status, ingestQuotes, symbols]);
 
   useEffect(() => {
     const updates = {};
@@ -121,35 +116,43 @@ export function useMarketData(seedMarkets, activeSymbol) {
     if (changed) setDirections(current => ({ ...current, ...updates }));
   }, [market.quotesBySymbol, symbols]);
 
-  const markets = useMemo(() => seedMarkets.map(item => {
-    const quote = market.quotesBySymbol[item.symbol];
-    if (!quote) return { ...item, live: false, direction: 'flat', bidDirection: 'flat', askDirection: 'flat', spread: null };
-    const decimals = decimalsFor(item.symbol, item.bid);
-    const itemDirections = directions[item.symbol] || { direction: 'flat', bidDirection: 'flat', askDirection: 'flat' };
+  const markets = useMemo(() => (instruments || []).map(instrument => {
+    const symbol = instrument.symbol;
+    const quote = market.quotesBySymbol[symbol];
+    const digits = Number.isFinite(Number(instrument.digits)) ? Number(instrument.digits) : 5;
+    const itemDirections = directions[symbol] || { direction: 'flat', bidDirection: 'flat', askDirection: 'flat' };
+    const gateway = gatewayStateFor(gatewayStatus, symbol);
+    const isStale = quote ? Boolean(quote.isStale) : Boolean(gateway?.isStale ?? true);
     return {
-      ...item,
-      last: formatPrice(quote.last ?? quote.price ?? quote.mid, decimals, item.bid),
-      bid: formatPrice(quote.bid, decimals, item.bid),
-      ask: formatPrice(quote.ask, decimals, item.ask),
-      timestamp: quote.providerTimestampMs ?? quote.receivedAtMs ?? quote.timeMs ?? null,
-      dayVolume: quote.dayVolume ?? null,
-      spread: Number.isFinite(Number(quote.spread)) ? Number(quote.spread) : null,
-      isStale: Boolean(quote.isStale),
-      live: !quote.isStale,
+      ...instrument,
+      bid: formatPrice(quote?.bid, digits),
+      ask: formatPrice(quote?.ask, digits),
+      last: formatPrice(quote?.last ?? quote?.price ?? quote?.mid, digits),
+      spread: Number.isFinite(Number(quote?.spread)) ? Number(quote.spread) : null,
+      timestamp: quote?.providerTimestampMs ?? quote?.receivedAtMs ?? quote?.timeMs ?? null,
+      dayVolume: quote?.dayVolume ?? null,
+      isStale,
+      live: Boolean(quote) && !isStale && gateway?.state !== 'DISCONNECTED',
+      marketState: gateway?.state || (quote ? (isStale ? 'STALE' : 'LIVE') : 'WAITING'),
+      sessionOpen: instrument.sessionOpen === true,
+      change: null,
       ...itemDirections,
     };
-  }), [directions, market.quotesBySymbol, seedMarkets]);
+  }), [directions, gatewayStatus, instruments, market.quotesBySymbol]);
 
   const activeQuote = activeSymbol ? market.quotesBySymbol[activeSymbol] : null;
-  const activeRaw = activeBackendSymbol ? (market.ticksBySymbol[activeBackendSymbol] || activeQuote || null) : null;
+  const activeRaw = activeSymbol ? (market.ticksBySymbol[activeSymbol] || activeQuote || null) : null;
   const activeTick = normalizeActiveTick(activeRaw);
-  const status = authenticated ? connection.status : (error ? 'error' : 'public');
+  const activeMarket = markets.find(item => item.symbol === activeSymbol) || null;
+  const status = gatewayStatus?.state || market.status?.state || (authenticated ? connection.status : (error ? 'ERROR' : 'PUBLIC'));
 
   return {
     markets,
     activeTick,
+    activeMarket,
     connected: connection.status === 'ready',
     status,
+    gatewayStatus,
     error: connection.error || error,
     source: 'acg-trader-backend',
   };
