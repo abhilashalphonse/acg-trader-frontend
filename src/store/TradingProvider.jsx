@@ -54,18 +54,24 @@ export function TradingProvider({ children }) {
     return auth.accessToken;
   }, [auth.accessToken]);
 
+  const executeCommand = useCallback(async executor => {
+    const result = await executor();
+    if (result && typeof result === 'object') dispatch({ type: 'trading/command-result', payload: result });
+    return result;
+  }, []);
+
   const commands = useMemo(() => ({
     accountValuation: (accountId, signal) => tradingApi.accountValuation(requireToken(), accountId, signal),
     positionValuation: (positionId, signal) => tradingApi.positionValuation(requireToken(), positionId, signal),
     pendingOrders: (accountId, signal) => tradingApi.pendingOrders(requireToken(), accountId, signal),
-    openMarketOrder: (command, signal) => tradingApi.openMarketOrder(requireToken(), command, signal),
-    placePendingOrder: (command, signal) => tradingApi.placePendingOrder(requireToken(), command, signal),
-    cancelPendingOrder: (orderId, command, signal) => tradingApi.cancelPendingOrder(requireToken(), orderId, command, signal),
-    updatePositionProtection: (positionId, command, signal) => tradingApi.updatePositionProtection(requireToken(), positionId, command, signal),
-    movePositionToBreakEven: (positionId, command, signal) => tradingApi.movePositionToBreakEven(requireToken(), positionId, command, signal),
-    configureTrailingStop: (positionId, command, signal) => tradingApi.configureTrailingStop(requireToken(), positionId, command, signal),
-    closePosition: (positionId, command, signal) => tradingApi.closePosition(requireToken(), positionId, command, signal),
-  }), [requireToken]);
+    openMarketOrder: (command, signal) => executeCommand(() => tradingApi.openMarketOrder(requireToken(), command, signal)),
+    placePendingOrder: (command, signal) => executeCommand(() => tradingApi.placePendingOrder(requireToken(), command, signal)),
+    cancelPendingOrder: (orderId, command, signal) => executeCommand(() => tradingApi.cancelPendingOrder(requireToken(), orderId, command, signal)),
+    updatePositionProtection: (positionId, command, signal) => executeCommand(() => tradingApi.updatePositionProtection(requireToken(), positionId, command, signal)),
+    movePositionToBreakEven: (positionId, command, signal) => executeCommand(() => tradingApi.movePositionToBreakEven(requireToken(), positionId, command, signal)),
+    configureTrailingStop: (positionId, command, signal) => executeCommand(() => tradingApi.configureTrailingStop(requireToken(), positionId, command, signal)),
+    closePosition: (positionId, command, signal) => executeCommand(() => tradingApi.closePosition(requireToken(), positionId, command, signal)),
+  }), [executeCommand, requireToken]);
 
   const value = useMemo(() => ({
     state,
