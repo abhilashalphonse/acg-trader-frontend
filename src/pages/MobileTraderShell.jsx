@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import TopBar from '../components/trading-v2/TopBar.jsx';
 import MarketPanel from '../components/trading-v2/MarketPanel.jsx';
 import ExecutionPanel from '../components/trading-v2/ExecutionPanel.jsx';
@@ -12,29 +12,19 @@ import ExecutionStatus from '../components/trading-v2/ExecutionStatus.jsx';
 import TradeSection from '../components/trading-v2/TradeSection.jsx';
 import HistorySection from '../components/trading-v2/HistorySection.jsx';
 import AccountSection from '../components/trading-v2/AccountSection.jsx';
+import { useTradingTerminal } from '../hooks/useTradingTerminal.js';
 import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
 
 const INDICATOR_STORAGE_KEY = 'acg-trader-indicators-v1';
 const INDICATOR_FAVORITES_KEY = 'acg-trader-indicator-favorites-v1';
 const TERMINAL_PREFS_KEY = 'acg-trader-terminal-prefs-v1';
 
-const DEFAULT_ACCOUNT = {
-  initialBalance: 12500,
-  balance: 12458.32,
-  equity: 12503.18,
-  dailyStartEquity: 12520,
-  dailyLossLimit: 625,
-  maxLossLimit: 1250,
-  profitTarget: 1250,
-  margin: 74.60,
-};
-
 function loadIndicators() {
   if (typeof window === 'undefined') return [createIndicator('volume')].filter(Boolean);
   try {
     const stored = JSON.parse(window.localStorage.getItem(INDICATOR_STORAGE_KEY) || 'null');
     if (Array.isArray(stored)) return stored;
-  } catch (_) { /* use default */ }
+  } catch { /* defaults below */ }
   return [createIndicator('volume')].filter(Boolean);
 }
 
@@ -44,7 +34,7 @@ function loadIndicatorFavorites() {
   try {
     const stored = JSON.parse(window.localStorage.getItem(INDICATOR_FAVORITES_KEY) || 'null');
     if (Array.isArray(stored)) return stored;
-  } catch (_) { /* use default */ }
+  } catch { /* defaults below */ }
   return defaults;
 }
 
@@ -53,27 +43,19 @@ function loadTerminalPrefs() {
   try {
     const stored = JSON.parse(window.localStorage.getItem(TERMINAL_PREFS_KEY) || '{}');
     return stored && typeof stored === 'object' ? stored : {};
-  } catch (_) {
+  } catch {
     return {};
   }
 }
 
-function initialPositions() {
-  return [
-    { id: 1, symbol: 'AUDCAD', side: 'BUY', volume: 0.01, entry: 0.99342, pnl: 0.18, tp: 0.995, sl: 0.99, trailingEnabled: false, trailingPips: 5, openedAt: 'Earlier today', source: 'market' },
-    { id: 2, symbol: 'EURUSD', side: 'SELL', volume: 0.02, entry: 1.0846, pnl: 0.78, tp: 1.08, sl: 1.09, trailingEnabled: false, trailingPips: 5, openedAt: 'Earlier today', source: 'market' },
-  ];
-}
-
 function pipSize(price) { return Number(price) > 100 ? 0.01 : 0.0001; }
-function formatVolume(value) { return Math.max(0.01, Number(value) || 0.01).toFixed(2); }
 
-function calculatedLots(plan, riskPercent, manualLots, equity = DEFAULT_ACCOUNT.equity) {
-  if (!plan || plan.sizingMode !== 'risk') return Number(manualLots) || 0.01;
+function calculatedLots(plan, riskPercent, manualLots, equity) {
+  if (!plan || plan.sizingMode !== 'risk') return Math.max(0.01, Number(manualLots) || 0.01);
   const pip = pipSize(plan.entry);
   const slPips = Math.max(0.1, Math.abs(Number(plan.entry) - Number(plan.sl)) / pip);
-  const riskDollars = Number(equity) * (Number(riskPercent) / 100);
-  return Math.max(0.01, Math.min(100, riskDollars / Math.max(slPips * 10, 0.01)));
+  const riskAmount = Math.max(0, Number(equity) || 0) * (Number(riskPercent) / 100);
+  return Math.max(0.01, Math.min(100, riskAmount / Math.max(slPips * 10, 0.01)));
 }
 
 function estimatedRisk(plan, riskPercent, manualLots, equity) {
@@ -82,7 +64,7 @@ function estimatedRisk(plan, riskPercent, manualLots, equity) {
   const sl = Number(plan.sl) || entry;
   const pip = pipSize(entry);
   const slPips = Math.max(0.1, Math.abs(entry - sl) / pip);
-  if (plan.sizingMode === 'risk') return Number(equity) * (Number(riskPercent) / 100);
+  if (plan.sizingMode === 'risk') return Math.max(0, Number(equity) || 0) * (Number(riskPercent) / 100);
   return slPips * (Number(plan.manualLots ?? manualLots) || 0) * 10;
 }
 
@@ -90,11 +72,24 @@ function stamp() {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 }
 
+function fillEvent(result, fallback) {
+  const deal = result?.deal;
+  return {
+    ...fallback,
+    status: 'filled',
+    fillPrice: Number(deal?.price ?? result?.order?.acceptedPrice ?? fallback.requestedPrice),
+    slippage: Number(deal?.slippage || 0),
+    positionId: result?.position?.id || deal?.positionId || null,
+  };
+}
+
 export default function MobileTraderShell({ market, tick, markets = [], activeSymbol, onSelectSymbol = () => {} }) {
   const shellRef = useRef(null);
   const noticeTimerRef = useRef(null);
-  const executionTimersRef = useRef([]);
+  const executionDismissRef = useRef(null);
   const prefsRef = useRef(loadTerminalPrefs());
+  const trading = useTradingTerminal(markets);
+  const { account, positions, pendingOrders, positionHistory } = trading;
 
   const [activeNav, setActiveNav] = useState('chart');
   const [timeframe, setTimeframe] = useState(prefsRef.current.timeframe || '1m');
@@ -107,12 +102,8 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const [riskPercent, setRiskPercent] = useState(Number(prefsRef.current.riskPercent) || 0.5);
   const [orderType, setOrderType] = useState(prefsRef.current.orderType || 'market');
   const [tradePlan, setTradePlan] = useState(null);
-  const [pendingOrders, setPendingOrders] = useState([]);
-  const [positions, setPositions] = useState(initialPositions);
-  const [positionHistory, setPositionHistory] = useState([]);
   const [journal, setJournal] = useState([]);
   const [executionEvent, setExecutionEvent] = useState(null);
-  const [account] = useState(DEFAULT_ACCOUNT);
   const [indicators, setIndicators] = useState(loadIndicators);
   const [indicatorFavorites, setIndicatorFavorites] = useState(loadIndicatorFavorites);
   const [overlay, setOverlay] = useState(null);
@@ -120,7 +111,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
   useEffect(() => () => {
     if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
-    executionTimersRef.current.forEach(timer => window.clearTimeout(timer));
+    if (executionDismissRef.current) window.clearTimeout(executionDismissRef.current);
   }, []);
 
   useEffect(() => {
@@ -139,7 +130,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const showNotice = message => {
     setNotice(message);
     if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
-    noticeTimerRef.current = window.setTimeout(() => setNotice(''), 2400);
+    noticeTimerRef.current = window.setTimeout(() => setNotice(''), 2600);
   };
 
   const logEvent = (type, message, details = {}) => {
@@ -147,128 +138,139 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     setJournal(current => [item, ...current].slice(0, 200));
   };
 
-  const currentPriceFor = (symbol, side) => {
-    const quote = symbol === market?.symbol ? market : markets.find(item => item.symbol === symbol);
-    return Number(String(side).toUpperCase() === 'BUY' ? quote?.ask : quote?.bid) || 0;
+  const dismissExecutionLater = () => {
+    if (executionDismissRef.current) window.clearTimeout(executionDismissRef.current);
+    executionDismissRef.current = window.setTimeout(() => setExecutionEvent(null), 2200);
   };
 
-  const addPosition = ({ symbol, side, volume, entry, sl = null, tp = null, source = 'market' }) => {
-    const id = Date.now() + Math.floor(Math.random() * 1000);
-    setPositions(current => [{
-      id,
-      symbol,
-      side: String(side).toUpperCase(),
-      volume: Number(formatVolume(volume)),
-      entry: Number(entry),
-      sl: sl == null ? null : Number(sl),
-      tp: tp == null ? null : Number(tp),
-      pnl: 0,
-      source,
-      trailingEnabled: false,
-      trailingPips: 5,
-      openedAt: stamp(),
-    }, ...current]);
-    return id;
+  const handleTradingError = (error, context = 'Trading command') => {
+    const message = trading.errorMessage(error);
+    setExecutionEvent(current => current ? { ...current, status: 'rejected', message } : { status: 'rejected', message });
+    logEvent('error', `${context}: ${message}`);
+    showNotice(message);
+    dismissExecutionLater();
   };
 
-  const clearExecutionTimers = () => {
-    executionTimersRef.current.forEach(timer => window.clearTimeout(timer));
-    executionTimersRef.current = [];
-  };
-
-  const runExecution = ({ side, lots: executionLots, symbol, requestedPrice, onFill }) => {
-    if (['submitting', 'accepted'].includes(executionEvent?.status)) return;
-    clearExecutionTimers();
-    const base = { side, lots: Number(executionLots), symbol, requestedPrice: Number(requestedPrice) };
+  const runMarketExecution = async ({ side, executionLots, symbol, requestedPrice, stopLoss = null, takeProfit = null }) => {
+    if (!symbol || !trading.accountId) return null;
+    const base = { side: String(side).toUpperCase(), lots: Number(executionLots), symbol, requestedPrice: Number(requestedPrice) };
     setExecutionEvent({ ...base, status: 'submitting' });
-    logEvent('execution', `${String(side).toUpperCase()} ${Number(executionLots).toFixed(2)} ${symbol} submitted`, base);
-
-    executionTimersRef.current.push(window.setTimeout(() => {
-      setExecutionEvent({ ...base, status: 'accepted', latencyMs: 74 });
-      logEvent('execution', `${String(side).toUpperCase()} ${symbol} accepted`, { ...base, latencyMs: 74 });
-    }, 90));
-
-    executionTimersRef.current.push(window.setTimeout(() => {
-      const fill = { ...base, status: 'filled', fillPrice: Number(requestedPrice), slippage: 0, latencyMs: 118 };
-      setExecutionEvent(fill);
-      onFill?.(fill);
-      logEvent('fill', `${String(side).toUpperCase()} ${Number(executionLots).toFixed(2)} ${symbol} filled @ ${Number(requestedPrice).toFixed(Number(requestedPrice) > 100 ? 2 : 5)}`, fill);
-    }, 220));
-
-    executionTimersRef.current.push(window.setTimeout(() => setExecutionEvent(null), 2200));
+    logEvent('execution', `${base.side} ${base.lots.toFixed(2)} ${symbol} submitted`, base);
+    try {
+      const result = await trading.openMarketOrder({
+        symbol,
+        side: base.side,
+        volume: base.lots,
+        stopLoss,
+        takeProfit,
+        requestedPrice: Number.isFinite(base.requestedPrice) ? base.requestedPrice : null,
+      });
+      const filled = fillEvent(result, base);
+      setExecutionEvent(filled);
+      logEvent('fill', `${base.side} ${base.lots.toFixed(2)} ${symbol} filled @ ${Number(filled.fillPrice).toFixed(Number(filled.fillPrice) > 100 ? 2 : 5)}`, filled);
+      dismissExecutionLater();
+      return result;
+    } catch (error) {
+      handleTradingError(error, `${base.side} ${symbol}`);
+      return null;
+    }
   };
 
-  const closePosition = (id, percentage = 100) => {
-    const position = positions.find(item => item.id === id);
+  const closePosition = async (id, percentage = 100) => {
+    const position = positions.find(item => String(item.id) === String(id));
     if (!position) return;
-    const currentVolume = Number(position.volume);
-    const requested = Math.max(1, Math.min(100, Number(percentage) || 100));
-    const closeVolume = Math.min(currentVolume, Math.max(0.01, Number((currentVolume * requested / 100).toFixed(2))));
-    const fullyClosed = closeVolume >= currentVolume - 0.000001;
-    const closePrice = currentPriceFor(position.symbol, position.side) || Number(position.entry);
-    const record = {
-      ...position,
-      id: `${position.id}-${Date.now()}`,
-      volume: closeVolume,
-      closePrice,
-      closedAt: stamp(),
-      closeType: fullyClosed ? 'Manual close' : `${requested}% partial`,
-    };
-    setPositionHistory(current => [record, ...current]);
-    setPositions(current => fullyClosed ? current.filter(item => item.id !== id) : current.map(item => item.id === id ? { ...item, volume: Number((currentVolume - closeVolume).toFixed(2)) } : item));
-    if (tradePlan?.positionId === id && fullyClosed) setTradePlan(null);
-    logEvent('position', `${fullyClosed ? 'Closed' : `Closed ${requested}% of`} ${position.symbol} ${position.side} ${closeVolume.toFixed(2)}`, { symbol: position.symbol, side: position.side, volume: closeVolume, fillPrice: closePrice, lots: closeVolume });
-    showNotice(fullyClosed ? 'Position closed locally' : `${requested}% of position closed locally`);
+    try {
+      await trading.closePosition(id, percentage);
+      if (tradePlan?.positionId === id && Number(percentage) >= 100) setTradePlan(null);
+      logEvent('position', `${percentage >= 100 ? 'Closed' : `Closed ${percentage}% of`} ${position.symbol} ${position.side}`);
+      showNotice(percentage >= 100 ? 'Position closed' : `${percentage}% of position closed`);
+    } catch (error) {
+      handleTradingError(error, `Close ${position.symbol}`);
+    }
   };
 
-  const closeAllPositions = () => {
+  const closeAllPositions = async () => {
     if (!positions.length) return;
-    const now = stamp();
-    const closed = positions.map(position => ({ ...position, id: `${position.id}-${Date.now()}-${Math.random()}`, closePrice: currentPriceFor(position.symbol, position.side) || position.entry, closedAt: now, closeType: 'Close all' }));
-    setPositionHistory(current => [...closed, ...current]);
-    positions.forEach(position => logEvent('position', `Closed ${position.symbol} ${position.side} ${Number(position.volume).toFixed(2)}`, { symbol: position.symbol, side: position.side, volume: position.volume }));
-    setPositions([]);
-    setTradePlan(null);
-    showNotice('All positions closed locally');
+    try {
+      await trading.closeAllPositions();
+      setTradePlan(null);
+      logEvent('position', `Close all submitted for ${positions.length} positions`);
+      showNotice('All positions closed');
+    } catch (error) {
+      handleTradingError(error, 'Close all');
+    }
   };
 
-  const updatePosition = (id, patch) => setPositions(current => current.map(position => position.id === id ? { ...position, ...patch } : position));
+  const updatePosition = async (id, patch) => {
+    const position = positions.find(item => String(item.id) === String(id));
+    if (!position || (!Object.prototype.hasOwnProperty.call(patch, 'sl') && !Object.prototype.hasOwnProperty.call(patch, 'tp'))) return;
+    try {
+      await trading.updatePosition(id, patch);
+      if (tradePlan?.positionId === id) setTradePlan(plan => plan ? { ...plan, ...patch } : plan);
+      logEvent('modify', `${position.symbol} protection updated`);
+      showNotice('Position protection updated');
+    } catch (error) {
+      handleTradingError(error, `Modify ${position.symbol}`);
+    }
+  };
 
-  const movePositionToBreakEven = id => {
-    const position = positions.find(item => item.id === id);
+  const movePositionToBreakEven = async id => {
+    const position = positions.find(item => String(item.id) === String(id));
     if (!position) return;
-    updatePosition(id, { sl: Number(position.entry) });
-    logEvent('modify', `${position.symbol} stop moved to break even`, { symbol: position.symbol });
-    showNotice('Stop moved to break even');
+    try {
+      await trading.movePositionToBreakEven(id);
+      if (tradePlan?.positionId === id) setTradePlan(plan => plan ? { ...plan, sl: position.entry } : plan);
+      logEvent('modify', `${position.symbol} stop moved to break even`);
+      showNotice('Stop moved to break even');
+    } catch (error) {
+      handleTradingError(error, `Break-even ${position.symbol}`);
+    }
   };
 
-  const reversePosition = id => {
-    const position = positions.find(item => item.id === id);
+  const reversePosition = async id => {
+    const position = positions.find(item => String(item.id) === String(id));
     if (!position) return;
-    const nextSide = position.side === 'BUY' ? 'SELL' : 'BUY';
-    const quote = currentPriceFor(position.symbol, nextSide) || Number(position.entry);
-    updatePosition(id, { side: nextSide, entry: quote, pnl: 0, openedAt: stamp() });
-    logEvent('position', `${position.symbol} reversed ${position.side} → ${nextSide}`, { symbol: position.symbol, side: nextSide });
-    showNotice('Position reversed locally');
+    try {
+      await trading.reversePosition(id);
+      setTradePlan(null);
+      logEvent('position', `${position.symbol} reverse completed as close + opposite market order`);
+      showNotice('Position reversed');
+    } catch (error) {
+      handleTradingError(error, `Reverse ${position.symbol}`);
+    }
   };
 
-  const setPositionTrailing = (id, enabled, pips) => {
-    const position = positions.find(item => item.id === id);
-    updatePosition(id, { trailingEnabled: Boolean(enabled), trailingPips: Math.max(1, Number(pips) || 5) });
-    if (position) logEvent('modify', `${position.symbol} trailing stop ${enabled ? `${Math.max(1, Number(pips) || 5)} pips` : 'disabled'}`, { symbol: position.symbol });
-  };
-
-  const duplicatePosition = id => {
-    const position = positions.find(item => item.id === id);
+  const setPositionTrailing = async (id, enabled, pips) => {
+    const position = positions.find(item => String(item.id) === String(id));
     if (!position) return;
-    const quote = currentPriceFor(position.symbol, position.side) || Number(position.entry);
-    addPosition({ ...position, entry: quote, source: 'duplicate' });
-    showNotice('Position duplicated locally');
+    try {
+      await trading.setPositionTrailing(id, enabled, pips);
+      logEvent('modify', `${position.symbol} trailing stop ${enabled ? `${Math.max(1, Number(pips) || 5)} pips` : 'disabled'}`);
+      showNotice(enabled ? 'Trailing stop updated' : 'Trailing stop disabled');
+    } catch (error) {
+      handleTradingError(error, `Trailing stop ${position.symbol}`);
+    }
+  };
+
+  const duplicatePosition = async id => {
+    const position = positions.find(item => String(item.id) === String(id));
+    if (!position) return;
+    try {
+      await trading.duplicatePosition(id);
+      logEvent('execution', `${position.symbol} ${position.side} duplicated`);
+      showNotice('Position duplicated');
+    } catch (error) {
+      handleTradingError(error, `Duplicate ${position.symbol}`);
+    }
   };
 
   const startPlan = (side, requestedType = orderType) => {
-    const marketPrice = Number(side === 'buy' ? market?.ask : market?.bid) || 1;
-    const pip = pipSize(marketPrice);
+    const marketPrice = Number(side === 'buy' ? market?.ask : market?.bid);
+    if (!Number.isFinite(marketPrice) || marketPrice <= 0) {
+      showNotice('Executable market price is unavailable');
+      return;
+    }
+    const pip = Number(market?.pipSize) || pipSize(marketPrice);
     const pending = requestedType !== 'market';
     let entry = marketPrice;
     if (requestedType === 'limit') entry = side === 'buy' ? marketPrice - 5 * pip : marketPrice + 5 * pip;
@@ -280,72 +282,93 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   };
 
   const cancelPlan = () => {
-    if (tradePlan?.open && tradePlan.positionId) { closePosition(tradePlan.positionId, 100); return; }
+    if (tradePlan?.open && tradePlan.positionId) {
+      void closePosition(tradePlan.positionId, 100);
+      return;
+    }
     setTradePlan(null);
   };
 
-  const executePlan = () => {
-    if (!tradePlan || ['submitting', 'accepted'].includes(executionEvent?.status)) return;
+  const executePlan = async () => {
+    if (!tradePlan || trading.commandState.pending) return;
+    const volume = calculatedLots(tradePlan, riskPercent, tradePlan.manualLots ?? lots, account.equity);
     if (tradePlan.pending) {
-      const pending = {
-        ...tradePlan,
+      const request = {
         symbol: market?.symbol,
-        id: tradePlan.editingOrderId || Date.now(),
-        lots: calculatedLots(tradePlan, riskPercent, tradePlan.manualLots ?? lots, account.equity),
-        status: 'pending',
-        createdAt: stamp(),
+        side: tradePlan.side,
+        type: tradePlan.orderType,
+        volume,
+        entry: tradePlan.entry,
+        limitPrice: tradePlan.limitPrice,
+        stopLoss: tradePlan.sl,
+        takeProfit: tradePlan.tp,
+        timeInForce: tradePlan.expiration || 'GTC',
+        expiresAt: tradePlan.expiresAt || null,
       };
-      setPendingOrders(current => tradePlan.editingOrderId ? current.map(order => order.id === tradePlan.editingOrderId ? pending : order) : [pending, ...current]);
-      logEvent('order', `${tradePlan.side.toUpperCase()} ${String(tradePlan.orderType).toUpperCase()} ${pending.lots.toFixed(2)} ${market?.symbol} placed @ ${Number(tradePlan.entry).toFixed(Number(tradePlan.entry) > 100 ? 2 : 5)}`, { symbol: market?.symbol, side: tradePlan.side, lots: pending.lots, requestedPrice: tradePlan.entry });
-      setExecutionEvent({ side: tradePlan.side, lots: pending.lots, symbol: market?.symbol, requestedPrice: tradePlan.entry, status: 'pending', message: `${String(tradePlan.orderType).toUpperCase()} order waiting for trigger` });
-      executionTimersRef.current.push(window.setTimeout(() => setExecutionEvent(null), 2200));
-      setTradePlan(null);
+      setExecutionEvent({ side: tradePlan.side, lots: volume, symbol: market?.symbol, requestedPrice: tradePlan.entry, status: 'submitting' });
+      try {
+        const result = tradePlan.editingOrderId
+          ? await trading.replacePendingOrder(tradePlan.editingOrderId, request)
+          : await trading.placePendingOrder(request);
+        setExecutionEvent({ side: tradePlan.side, lots: volume, symbol: market?.symbol, requestedPrice: tradePlan.entry, status: 'pending', message: `${String(tradePlan.orderType).toUpperCase()} order waiting for trigger` });
+        logEvent('order', `${String(tradePlan.side).toUpperCase()} ${String(tradePlan.orderType).toUpperCase()} ${volume.toFixed(2)} ${market?.symbol} placed`, { orderId: result?.order?.id });
+        setTradePlan(null);
+        dismissExecutionLater();
+      } catch (error) {
+        handleTradingError(error, 'Pending order');
+      }
       return;
     }
-    const volume = calculatedLots(tradePlan, riskPercent, tradePlan.manualLots ?? lots, account.equity);
-    const plannedSide = tradePlan.side;
-    const plannedSl = tradePlan.sl;
-    const plannedTp = tradePlan.tp;
-    runExecution({ side: plannedSide, lots: volume, symbol: market?.symbol, requestedPrice: tradePlan.entry, onFill: fill => {
-      const positionId = addPosition({ symbol: market?.symbol, side: plannedSide, volume, entry: fill.fillPrice, sl: plannedSl, tp: plannedTp, source: 'risk-plan' });
-      setTradePlan(plan => plan ? { ...plan, entry: fill.fillPrice, positionId, open: true, stage: 'open' } : plan);
-    } });
+
+    const result = await runMarketExecution({
+      side: tradePlan.side,
+      executionLots: volume,
+      symbol: market?.symbol,
+      requestedPrice: tradePlan.entry,
+      stopLoss: tradePlan.sl,
+      takeProfit: tradePlan.tp,
+    });
+    if (result?.position) setTradePlan(plan => plan ? { ...plan, entry: Number(result.position.entryPrice), positionId: result.position.id, open: true, stage: 'open' } : plan);
   };
 
   const manualOrder = order => {
-    if (['submitting', 'accepted'].includes(executionEvent?.status)) return;
-    const side = String(order.side).toUpperCase();
-    runExecution({ side, lots: order.lots, symbol: order.symbol, requestedPrice: order.price, onFill: fill => addPosition({ symbol: order.symbol, side, volume: order.lots, entry: fill.fillPrice, source: 'one-click' }) });
+    if (trading.commandState.pending) return;
+    void runMarketExecution({ side: order.side, executionLots: order.lots, symbol: order.symbol, requestedPrice: order.price });
   };
 
   const updatePlan = patch => {
     if (tradePlan?.open && tradePlan.positionId) {
       const positionPatch = {};
-      if (patch.sl != null) positionPatch.sl = patch.sl;
-      if (patch.tp != null) positionPatch.tp = patch.tp;
-      if (Object.keys(positionPatch).length) updatePosition(tradePlan.positionId, positionPatch);
+      if (Object.prototype.hasOwnProperty.call(patch, 'sl')) positionPatch.sl = patch.sl;
+      if (Object.prototype.hasOwnProperty.call(patch, 'tp')) positionPatch.tp = patch.tp;
+      if (Object.keys(positionPatch).length) void updatePosition(tradePlan.positionId, positionPatch);
     }
     setTradePlan(plan => plan ? { ...plan, ...patch } : plan);
   };
 
-  const cancelPendingOrder = id => {
-    const order = pendingOrders.find(item => item.id === id);
-    setPendingOrders(current => current.filter(item => item.id !== id));
-    if (order) logEvent('order', `${String(order.side).toUpperCase()} ${String(order.orderType).toUpperCase()} ${order.symbol} cancelled`, { symbol: order.symbol, side: order.side, lots: order.lots });
-    showNotice('Pending order cancelled locally');
+  const cancelPendingOrder = async id => {
+    const order = pendingOrders.find(item => String(item.id) === String(id));
+    if (!order) return;
+    try {
+      await trading.cancelPendingOrder(id);
+      logEvent('order', `${String(order.side).toUpperCase()} ${String(order.orderType).toUpperCase()} ${order.symbol} cancelled`);
+      showNotice('Pending order cancelled');
+    } catch (error) {
+      handleTradingError(error, `Cancel ${order.symbol}`);
+    }
   };
 
   const modifyPendingOrder = id => {
-    const order = pendingOrders.find(item => item.id === id);
+    const order = pendingOrders.find(item => String(item.id) === String(id));
     if (!order) return;
     if (order.symbol && order.symbol !== activeSymbol) onSelectSymbol(order.symbol);
     setTradePlan({ ...order, editingOrderId: id, stage: 'ready', open: false, pending: true });
     setOrderType(order.orderType);
-    setSizingMode(order.sizingMode || 'lots');
+    setSizingMode('lots');
     if (Number.isFinite(Number(order.manualLots))) setLots(Number(order.manualLots));
     setActiveNav('chart');
     setOverlay(null);
-    showNotice('Pending order loaded on Chart');
+    showNotice('Pending order loaded for modification');
   };
 
   const openChart = symbol => {
@@ -354,12 +377,14 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     setOverlay(null);
   };
 
-  const addIndicator = id => {
-    setIndicators(current => {
-      const created = createIndicator(id);
-      return created ? [...current, created] : current;
-    });
-  };
+  const addIndicator = id => setIndicators(current => {
+    if (id === 'volume') {
+      const existing = current.find(item => item.id === 'volume');
+      if (existing) return current.map(item => item.instanceId === existing.instanceId ? { ...item, visible: true } : item);
+    }
+    const created = createIndicator(id);
+    return created ? [...current, created] : current;
+  });
   const removeIndicator = instanceId => setIndicators(current => current.filter(item => item.instanceId !== instanceId));
   const toggleIndicator = instanceId => setIndicators(current => current.map(item => item.instanceId === instanceId ? { ...item, visible: item.visible === false } : item));
   const updateIndicator = (instanceId, patch) => setIndicators(current => current.map(item => item.instanceId === instanceId ? { ...item, settings: { ...item.settings, ...patch } } : item));
@@ -385,11 +410,11 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
   const enterChartFocus = async () => {
     setChartFocus(true);
-    try { if (!document.fullscreenElement && shellRef.current?.requestFullscreen) await shellRef.current.requestFullscreen(); } catch (_) { /* in-app focus remains */ }
+    try { if (!document.fullscreenElement && shellRef.current?.requestFullscreen) await shellRef.current.requestFullscreen(); } catch { /* in-app focus remains */ }
   };
   const exitChartFocus = async () => {
     setChartFocus(false);
-    try { if (document.fullscreenElement) await document.exitFullscreen?.(); } catch (_) { /* ignore */ }
+    try { if (document.fullscreenElement) await document.exitFullscreen?.(); } catch { /* ignore */ }
   };
 
   const plannedRisk = estimatedRisk(tradePlan, riskPercent, lots, account.equity);
@@ -408,61 +433,12 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
   const chartContent = (
     <>
-      <TopBar onSearch={() => setOverlay('search')} onNotifications={() => setOverlay('notifications')} onProfile={() => setOverlay('profile')} />
+      <TopBar balance={`${account.currency === 'EUR' ? '€' : '$'}${Number(account.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} live={trading.connection.status === 'ready'} onSearch={() => setOverlay('search')} onNotifications={() => setOverlay('notifications')} onProfile={() => setOverlay('profile')} />
       <div className="px-2">
-        <MarketPanel
-          market={market}
-          tick={tick}
-          timeframe={timeframe}
-          setTimeframe={setTimeframe}
-          chartMode={chartMode}
-          setChartMode={setChartMode}
-          selectedTool={selectedTool}
-          setSelectedTool={setSelectedTool}
-          favorite={favorite}
-          setFavorite={setFavorite}
-          fullscreen={chartFocus}
-          onFullscreen={enterChartFocus}
-          tradePlan={tradePlan}
-          onTradePlanChange={updatePlan}
-          onSelectInstrument={() => setOverlay('instruments')}
-          onIndicators={() => setOverlay('indicators')}
-          indicators={indicators}
-        />
+        <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={tradePlan} onTradePlanChange={updatePlan} onSelectInstrument={() => setOverlay('instruments')} onIndicators={() => setOverlay('indicators')} indicators={indicators} />
         <PropRiskStrip account={account} plannedRisk={plannedRisk} />
-        <ExecutionPanel
-          market={market}
-          lots={lots}
-          onLotsChange={setLots}
-          sizingMode={sizingMode}
-          onSizingModeChange={setSizingMode}
-          riskPercent={riskPercent}
-          onRiskPercentChange={setRiskPercent}
-          orderType={orderType}
-          onOrderTypeChange={setOrderType}
-          tradePlan={tradePlan}
-          onStartPlan={startPlan}
-          onCancelPlan={cancelPlan}
-          onExecutePlan={executePlan}
-          onModifyPlan={stage => setTradePlan(plan => plan ? { ...plan, stage } : plan)}
-          onManualOrder={manualOrder}
-          onTradePlanChange={updatePlan}
-        />
-        <PositionsPanel
-          positions={positions}
-          positionHistory={positionHistory}
-          pendingOrders={pendingOrders}
-          journal={journal}
-          onClosePosition={closePosition}
-          onCloseAll={closeAllPositions}
-          onBreakEven={movePositionToBreakEven}
-          onReverse={reversePosition}
-          onUpdatePosition={updatePosition}
-          onSetTrailing={setPositionTrailing}
-          onDuplicate={duplicatePosition}
-          onCancelPending={cancelPendingOrder}
-          onModifyPending={modifyPendingOrder}
-        />
+        <ExecutionPanel market={market} lots={lots} onLotsChange={setLots} sizingMode={sizingMode} onSizingModeChange={setSizingMode} riskPercent={riskPercent} onRiskPercentChange={setRiskPercent} orderType={orderType} onOrderTypeChange={setOrderType} tradePlan={tradePlan} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={stage => setTradePlan(plan => plan ? { ...plan, stage } : plan)} onManualOrder={manualOrder} onTradePlanChange={updatePlan} />
+        <PositionsPanel positions={positions} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={closePosition} onCloseAll={closeAllPositions} onBreakEven={movePositionToBreakEven} onReverse={reversePosition} onUpdatePosition={updatePosition} onSetTrailing={setPositionTrailing} onDuplicate={duplicatePosition} onCancelPending={cancelPendingOrder} onModifyPending={modifyPendingOrder} />
       </div>
     </>
   );
@@ -471,36 +447,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     <div className="min-h-dvh bg-[#02070c] font-sans text-[#f5f8fb] antialiased">
       <main ref={shellRef} className={chartFocus ? 'relative mx-auto h-dvh w-full max-w-[460px] overflow-hidden bg-[#050b12]' : 'relative mx-auto min-h-dvh w-full max-w-[460px] overflow-x-hidden bg-[#050b12] bg-[radial-gradient(circle_at_top,rgba(26,79,116,0.20),transparent_36%)] pb-[98px]'}>
         {chartFocus ? (
-          <MobileScalperMode
-            market={market}
-            tick={tick}
-            timeframe={timeframe}
-            setTimeframe={setTimeframe}
-            chartMode={chartMode}
-            setChartMode={setChartMode}
-            selectedTool={selectedTool}
-            setSelectedTool={setSelectedTool}
-            lots={lots}
-            setLots={setLots}
-            sizingMode={sizingMode}
-            setSizingMode={setSizingMode}
-            riskPercent={riskPercent}
-            setRiskPercent={setRiskPercent}
-            orderType={orderType}
-            setOrderType={setOrderType}
-            tradePlan={tradePlan}
-            onStartPlan={startPlan}
-            onCancelPlan={cancelPlan}
-            onExecutePlan={executePlan}
-            onModifyPlan={stage => setTradePlan(plan => plan ? { ...plan, stage } : plan)}
-            onManualOrder={manualOrder}
-            onTradePlanChange={updatePlan}
-            onIndicators={() => setOverlay('indicators')}
-            indicators={indicators}
-            account={account}
-            plannedRisk={plannedRisk}
-            onExit={exitChartFocus}
-          />
+          <MobileScalperMode market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} lots={lots} setLots={setLots} sizingMode={sizingMode} setSizingMode={setSizingMode} riskPercent={riskPercent} setRiskPercent={setRiskPercent} orderType={orderType} setOrderType={setOrderType} tradePlan={tradePlan} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={stage => setTradePlan(plan => plan ? { ...plan, stage } : plan)} onManualOrder={manualOrder} onTradePlanChange={updatePlan} onIndicators={() => setOverlay('indicators')} indicators={indicators} account={account} plannedRisk={plannedRisk} onExit={exitChartFocus} />
         ) : (
           <>
             {activeNav === 'watchlist' && <WatchlistSection markets={markets} activeSymbol={activeSymbol} onOpenTrade={openChart} onAddInstrument={() => setOverlay('search')} />}
