@@ -153,7 +153,7 @@ export default function ChartArea({
     return () => window.clearInterval(timer);
   }, [timeframeSeconds]);
 
-  const formattedPrice = useMemo(() => price || '0.99368', [price]);
+  const formattedPrice = useMemo(() => price || '—', [price]);
   const heightClass = oscillatorCount ? (oscillatorCount > 1 ? 'h-[430px] md:h-[440px]' : 'h-[360px] md:h-[440px]') : 'h-[270px] md:h-[300px]';
   const areaClass = embedded
     ? `grid h-full min-h-0 ${hideToolbar ? 'grid-cols-[minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} gap-1.5`
