@@ -14,7 +14,10 @@ export function TradingProvider({ children }) {
   const [state, dispatch] = useReducer(tradingReducer, initialTradingState);
   const socketRef = useRef(null);
   const invalidateSessionRef = useRef(auth.invalidateSession);
-  invalidateSessionRef.current = auth.invalidateSession;
+
+  useEffect(() => {
+    invalidateSessionRef.current = auth.invalidateSession;
+  }, [auth.invalidateSession]);
 
   useEffect(() => {
     const socket = new TraderSocket({
