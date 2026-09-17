@@ -33,6 +33,12 @@ function decimalPlaces(step) {
   return point < 0 ? 0 : text.length - point - 1;
 }
 
+function pointsPerPip(instrument) {
+  const tickSize = Number(instrument?.tickSize);
+  const pip = Number(instrument?.pipSize);
+  return Number.isFinite(tickSize) && tickSize > 0 && Number.isFinite(pip) && pip > 0 ? pip / tickSize : 1;
+}
+
 function partialVolume(position, percentage) {
   const openVolume = numberOr(position?.openVolume);
   const percent = Math.max(1, Math.min(100, numberOr(percentage, 100)));
@@ -45,8 +51,9 @@ function partialVolume(position, percentage) {
   return normalized.toFixed(decimalPlaces(step));
 }
 
-function normalizePosition(position, valuation) {
+function normalizePosition(position, valuation, instrument) {
   const trailingPoints = nullableNumber(position?.trailing?.distancePoints);
+  const ratio = pointsPerPip(instrument);
   return {
     id: String(position.id),
     accountId: String(position.accountId),
@@ -66,7 +73,7 @@ function normalizePosition(position, valuation) {
     source: 'server',
     trailingEnabled: Boolean(position?.trailing?.enabled),
     trailingPoints,
-    trailingPips: trailingPoints == null ? 5 : trailingPoints,
+    trailingPips: trailingPoints == null ? 5 : Math.max(1, trailingPoints / ratio),
     openedAt: displayTime(position.openedAt, 'Open'),
     raw: position,
   };
@@ -177,7 +184,10 @@ export function useTradingTerminal(markets = []) {
     .filter(item => (!accountId || String(item.accountId) === String(accountId)) && item.status !== 'CLOSED')
     .sort((a, b) => new Date(b.openedAt || 0) - new Date(a.openedAt || 0)), [accountId, trading.positionsById]);
 
-  const positions = useMemo(() => rawPositions.map(position => normalizePosition(position, positionValuations[position.id])), [positionValuations, rawPositions]);
+  const positions = useMemo(() => rawPositions.map(position => {
+    const instrument = markets.find(item => item.symbol === position.symbol);
+    return normalizePosition(position, positionValuations[position.id], instrument);
+  }), [markets, positionValuations, rawPositions]);
 
   const pendingOrders = useMemo(() => Object.values(trading.ordersById)
     .filter(order => (!accountId || String(order.accountId) === String(accountId)) && ACTIVE_ORDER_STATUSES.has(String(order.status || '').toUpperCase()) && String(order.type || '').toUpperCase() !== 'MARKET')
@@ -322,10 +332,7 @@ export function useTradingTerminal(markets = []) {
   const setPositionTrailing = useCallback((positionId, enabled, pips = 5) => {
     const position = rawPositions.find(item => String(item.id) === String(positionId));
     const instrument = markets.find(item => item.symbol === position?.symbol);
-    const tickSize = Number(instrument?.tickSize);
-    const pipSize = Number(instrument?.pipSize);
-    const pointsPerPip = Number.isFinite(tickSize) && tickSize > 0 && Number.isFinite(pipSize) && pipSize > 0 ? pipSize / tickSize : 1;
-    const distancePoints = Math.max(1, numberOr(pips, 5) * pointsPerPip);
+    const distancePoints = Math.max(1, numberOr(pips, 5) * pointsPerPip(instrument));
     return run(() => commands.configureTrailingStop(String(positionId), {
       accountId: requireAccount(),
       clientRequestId: commandId('trail'),
