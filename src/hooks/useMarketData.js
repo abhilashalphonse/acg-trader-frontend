@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { subscribePrice } from '../services/twelveData.js';
+import { marketApi } from '../api/market.js';
+import { useTraderAuth } from './useTraderAuth.js';
+import { useTradingStore } from './useTradingStore.js';
 
 function decimalsFor(symbol, fallback) {
   if (symbol === 'USDJPY') return 3;
@@ -9,25 +11,113 @@ function decimalsFor(symbol, fallback) {
   const point = value.indexOf('.');
   return point >= 0 ? value.length - point - 1 : 5;
 }
-function formatPrice(value, decimals, fallback) { return Number.isFinite(value) ? value.toFixed(decimals) : fallback; }
-function direction(next, previous) { return !Number.isFinite(previous)||next===previous ? 'flat' : next>previous ? 'up' : 'down'; }
+
+function formatPrice(value, decimals, fallback) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric.toFixed(decimals) : fallback;
+}
+
+function direction(next, previous) {
+  const a = Number(next);
+  const b = Number(previous);
+  return !Number.isFinite(a) || !Number.isFinite(b) || a === b ? 'flat' : a > b ? 'up' : 'down';
+}
 
 export function useMarketData(seedMarkets, activeSymbol) {
-  const seedRef=useRef(seedMarkets),previousTickRef=useRef(null);
-  const [quotes,setQuotes]=useState({}),[status,setStatus]=useState('idle'),[error,setError]=useState(null),[activeTick,setActiveTick]=useState(null);
-  useEffect(()=>{seedRef.current=seedMarkets;},[seedMarkets]);
-  useEffect(()=>{
-    if(!activeSymbol)return undefined;
-    previousTickRef.current=null;setStatus('connecting');setError(null);setActiveTick(null);
-    const unsubscribe=subscribePrice(activeSymbol,tick=>{
-      const seed=seedRef.current.find(item=>item.symbol===activeSymbol),decimals=decimalsFor(activeSymbol,seed?.bid),previous=previousTickRef.current;
-      const enriched={...tick,direction:direction(tick.price,previous?.price),bidDirection:direction(tick.bid,previous?.bid),askDirection:direction(tick.ask,previous?.ask),spread:Number.isFinite(tick.bid)&&Number.isFinite(tick.ask)?tick.ask-tick.bid:null};
-      previousTickRef.current=enriched;setActiveTick(enriched);
-      setQuotes(current=>({...current,[activeSymbol]:{price:tick.price,bid:tick.bid,ask:tick.ask,timestamp:tick.timestamp??tick.time,dayVolume:tick.dayVolume,decimals,direction:enriched.direction,bidDirection:enriched.bidDirection,askDirection:enriched.askDirection,spread:enriched.spread}}));
-      setStatus('live');setError(null);
-    },streamError=>{setError(streamError);setStatus('error');},subscription=>{if(subscription.status==='ok'&&subscription.event==='subscribe-status'){setStatus('live');setError(null);}else if(subscription.status==='error')setStatus('error');});
+  const { authenticated } = useTraderAuth();
+  const { market, connection, subscribeMarket, ingestQuotes } = useTradingStore();
+  const [error, setError] = useState(null);
+  const [directions, setDirections] = useState({});
+  const previousQuotesRef = useRef({});
+  const symbols = useMemo(() => [...new Set(seedMarkets.map(item => item.symbol).filter(Boolean))], [seedMarkets]);
+  const symbolsKey = symbols.join(',');
+
+  useEffect(() => {
+    if (!symbols.length) return undefined;
+    const unsubscribe = authenticated
+      ? subscribeMarket({ quotes: symbols, ticks: activeSymbol ? [activeSymbol] : [] })
+      : () => {};
     return unsubscribe;
-  },[activeSymbol]);
-  const markets=useMemo(()=>seedMarkets.map(market=>{const quote=quotes[market.symbol];if(!quote)return {...market,live:false,direction:'flat',bidDirection:'flat',askDirection:'flat',spread:null};return {...market,last:formatPrice(quote.price,quote.decimals,market.bid),bid:formatPrice(quote.bid,quote.decimals,market.bid),ask:formatPrice(quote.ask,quote.decimals,market.ask),timestamp:quote.timestamp,dayVolume:quote.dayVolume,direction:quote.direction,bidDirection:quote.bidDirection,askDirection:quote.askDirection,spread:quote.spread,live:true};}),[seedMarkets,quotes]);
-  return {markets,activeTick,connected:status==='live',status,error,source:'twelve-data-websocket'};
+  }, [activeSymbol, authenticated, subscribeMarket, symbolsKey]);
+
+  useEffect(() => {
+    if (!symbols.length) return undefined;
+    const controller = new AbortController();
+    let timer = null;
+
+    const refresh = async () => {
+      try {
+        const response = await marketApi.quotes(symbols, controller.signal);
+        if (controller.signal.aborted) return;
+        ingestQuotes(response?.quotes || []);
+        setError(null);
+      } catch (nextError) {
+        if (!controller.signal.aborted) setError(nextError);
+      }
+    };
+
+    void refresh();
+    if (!authenticated || connection.status !== 'ready') {
+      timer = window.setInterval(() => void refresh(), 2000);
+    }
+
+    return () => {
+      controller.abort();
+      if (timer) window.clearInterval(timer);
+    };
+  }, [authenticated, connection.status, ingestQuotes, symbolsKey]);
+
+  useEffect(() => {
+    let changed = false;
+    const nextDirections = { ...directions };
+    for (const symbol of symbols) {
+      const quote = market.quotesBySymbol[symbol];
+      if (!quote) continue;
+      const previous = previousQuotesRef.current[symbol];
+      const next = {
+        direction: direction(quote.last ?? quote.price ?? quote.mid, previous?.last ?? previous?.price ?? previous?.mid),
+        bidDirection: direction(quote.bid, previous?.bid),
+        askDirection: direction(quote.ask, previous?.ask),
+      };
+      const current = directions[symbol];
+      if (!current || current.direction !== next.direction || current.bidDirection !== next.bidDirection || current.askDirection !== next.askDirection) {
+        nextDirections[symbol] = next;
+        changed = true;
+      }
+      previousQuotesRef.current[symbol] = quote;
+    }
+    if (changed) setDirections(nextDirections);
+  }, [directions, market.quotesBySymbol, symbolsKey]);
+
+  const markets = useMemo(() => seedMarkets.map(item => {
+    const quote = market.quotesBySymbol[item.symbol];
+    if (!quote) return { ...item, live: false, direction: 'flat', bidDirection: 'flat', askDirection: 'flat', spread: null };
+    const decimals = decimalsFor(item.symbol, item.bid);
+    const itemDirections = directions[item.symbol] || { direction: 'flat', bidDirection: 'flat', askDirection: 'flat' };
+    return {
+      ...item,
+      last: formatPrice(quote.last ?? quote.price ?? quote.mid, decimals, item.bid),
+      bid: formatPrice(quote.bid, decimals, item.bid),
+      ask: formatPrice(quote.ask, decimals, item.ask),
+      timestamp: quote.providerTimestampMs ?? quote.receivedAtMs ?? quote.timeMs ?? null,
+      dayVolume: quote.dayVolume ?? null,
+      spread: Number.isFinite(Number(quote.spread)) ? Number(quote.spread) : null,
+      isStale: Boolean(quote.isStale),
+      live: !quote.isStale,
+      ...itemDirections,
+    };
+  }), [directions, market.quotesBySymbol, seedMarkets]);
+
+  const activeQuote = activeSymbol ? market.quotesBySymbol[activeSymbol] : null;
+  const activeTick = activeSymbol ? (market.ticksBySymbol[activeSymbol] || activeQuote || null) : null;
+  const status = authenticated ? connection.status : (error ? 'error' : 'public');
+
+  return {
+    markets,
+    activeTick,
+    connected: connection.status === 'ready',
+    status,
+    error: connection.error || error,
+    source: 'acg-trader-backend',
+  };
 }
