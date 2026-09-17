@@ -28,22 +28,43 @@ export function useMarketData(seedMarkets, activeSymbol) {
   const { market, connection, subscribeMarket, ingestQuotes } = useTradingStore();
   const [error, setError] = useState(null);
   const [directions, setDirections] = useState({});
+  const [configuredSymbols, setConfiguredSymbols] = useState(null);
   const previousQuotesRef = useRef({});
   const symbols = useMemo(() => [...new Set(seedMarkets.map(item => item.symbol).filter(Boolean))], [seedMarkets]);
+  const backendSymbols = useMemo(() => {
+    if (!configuredSymbols) return symbols;
+    const allowed = new Set(configuredSymbols);
+    return symbols.filter(symbol => allowed.has(symbol));
+  }, [configuredSymbols, symbols]);
+  const activeBackendSymbol = backendSymbols.includes(activeSymbol) ? activeSymbol : null;
 
   useEffect(() => {
-    if (!symbols.length || !authenticated) return undefined;
-    return subscribeMarket({ quotes: symbols, ticks: activeSymbol ? [activeSymbol] : [] });
-  }, [activeSymbol, authenticated, subscribeMarket, symbols]);
+    const controller = new AbortController();
+    void marketApi.status(controller.signal).then(response => {
+      if (controller.signal.aborted) return;
+      const available = Array.isArray(response?.symbols)
+        ? response.symbols.map(item => String(item?.symbol || '').toUpperCase()).filter(Boolean)
+        : [];
+      if (available.length) setConfiguredSymbols(available);
+    }).catch(nextError => {
+      if (!controller.signal.aborted) setError(nextError);
+    });
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
-    if (!symbols.length) return undefined;
+    if (!backendSymbols.length || !authenticated) return undefined;
+    return subscribeMarket({ quotes: backendSymbols, ticks: activeBackendSymbol ? [activeBackendSymbol] : [] });
+  }, [activeBackendSymbol, authenticated, backendSymbols, subscribeMarket]);
+
+  useEffect(() => {
+    if (!backendSymbols.length) return undefined;
     const controller = new AbortController();
     let timer = null;
 
     const refresh = async () => {
       try {
-        const response = await marketApi.quotes(symbols, controller.signal);
+        const response = await marketApi.quotes(backendSymbols, controller.signal);
         if (controller.signal.aborted) return;
         ingestQuotes(response?.quotes || []);
         setError(null);
@@ -61,7 +82,7 @@ export function useMarketData(seedMarkets, activeSymbol) {
       controller.abort();
       if (timer) window.clearInterval(timer);
     };
-  }, [authenticated, connection.status, ingestQuotes, symbols]);
+  }, [authenticated, backendSymbols, connection.status, ingestQuotes]);
 
   useEffect(() => {
     const updates = {};
@@ -101,7 +122,7 @@ export function useMarketData(seedMarkets, activeSymbol) {
   }), [directions, market.quotesBySymbol, seedMarkets]);
 
   const activeQuote = activeSymbol ? market.quotesBySymbol[activeSymbol] : null;
-  const activeTick = activeSymbol ? (market.ticksBySymbol[activeSymbol] || activeQuote || null) : null;
+  const activeTick = activeBackendSymbol ? (market.ticksBySymbol[activeBackendSymbol] || activeQuote || null) : null;
   const status = authenticated ? connection.status : (error ? 'error' : 'public');
 
   return {
