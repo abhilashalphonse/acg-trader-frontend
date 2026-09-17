@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import { authApi } from '../api/auth.js';
 import { ApiError } from '../api/client.js';
 import { SESSION_STORAGE_KEY } from '../api/config.js';
@@ -16,15 +16,19 @@ function readStoredSession() {
     }
     return parsed;
   } catch {
-    window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    try { window.sessionStorage.removeItem(SESSION_STORAGE_KEY); } catch { /* storage unavailable */ }
     return null;
   }
 }
 
 function storeSession(session) {
   if (typeof window === 'undefined') return;
-  if (!session) window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
-  else window.sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+  try {
+    if (!session) window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    else window.sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+  } catch {
+    // Authentication still works for the active page when browser storage is unavailable.
+  }
 }
 
 function sessionFromAuthResponse(response) {
@@ -65,7 +69,6 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [status, setStatus] = useState('bootstrapping');
   const [error, setError] = useState(null);
-  const bootstrapAbortRef = useRef(null);
 
   const commitSession = useCallback(next => {
     setSession(next);
@@ -78,7 +81,7 @@ export function AuthProvider({ children }) {
     setSession(null);
     storeSession(null);
     setStatus('anonymous');
-    if (reason) setError(reason instanceof Error ? reason : new Error(String(reason)));
+    setError(reason ? (reason instanceof Error ? reason : new Error(String(reason))) : null);
   }, []);
 
   const exchangeTicket = useCallback(async ticket => {
@@ -140,43 +143,44 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    bootstrapAbortRef.current = controller;
-
-    void (async () => {
-      const ticket = federationTicketFromUrl();
-      if (ticket) {
-        try {
-          const response = await authApi.exchangeFederationTicket(ticket, controller.signal);
-          if (controller.signal.aborted) return;
-          commitSession(sessionFromAuthResponse(response));
-        } catch (nextError) {
-          if (controller.signal.aborted) return;
-          invalidateSession(nextError);
-        } finally {
-          clearFederationTicketFromUrl();
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        const ticket = federationTicketFromUrl();
+        if (ticket) {
+          try {
+            const response = await authApi.exchangeFederationTicket(ticket, controller.signal);
+            if (controller.signal.aborted) return;
+            commitSession(sessionFromAuthResponse(response));
+          } catch (nextError) {
+            if (!controller.signal.aborted) invalidateSession(nextError);
+          } finally {
+            if (!controller.signal.aborted) clearFederationTicketFromUrl();
+          }
+          return;
         }
-        return;
-      }
 
-      const stored = readStoredSession();
-      if (!stored) {
-        setStatus('anonymous');
-        return;
-      }
+        const stored = readStoredSession();
+        if (!stored) {
+          if (!controller.signal.aborted) setStatus('anonymous');
+          return;
+        }
 
-      try {
-        const response = await authApi.me(stored.accessToken, controller.signal);
-        if (controller.signal.aborted) return;
-        const principal = response?.principal;
-        if (!principal) throw new ApiError('Session response is missing principal data', { code: 'INVALID_AUTH_RESPONSE' });
-        commitSession({ ...stored, expiresAt: principal.expiresAt || stored.expiresAt, principal });
-      } catch (nextError) {
-        if (controller.signal.aborted) return;
-        invalidateSession(nextError?.status === 401 ? null : nextError);
-      }
-    })();
+        try {
+          const response = await authApi.me(stored.accessToken, controller.signal);
+          if (controller.signal.aborted) return;
+          const principal = response?.principal;
+          if (!principal) throw new ApiError('Session response is missing principal data', { code: 'INVALID_AUTH_RESPONSE' });
+          commitSession({ ...stored, expiresAt: principal.expiresAt || stored.expiresAt, principal });
+        } catch (nextError) {
+          if (!controller.signal.aborted) invalidateSession(nextError?.status === 401 ? null : nextError);
+        }
+      })();
+    }, 0);
 
-    return () => controller.abort();
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
   }, [commitSession, invalidateSession]);
 
   useEffect(() => {
