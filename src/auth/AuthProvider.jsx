@@ -65,6 +65,11 @@ function clearFederationTicketFromUrl() {
   window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
 }
 
+function shouldDiscardFederationTicket(error) {
+  const status = Number(error?.status);
+  return Number.isFinite(status) && status >= 400 && status < 500;
+}
+
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [status, setStatus] = useState('bootstrapping');
@@ -151,10 +156,11 @@ export function AuthProvider({ children }) {
             const response = await authApi.exchangeFederationTicket(ticket, controller.signal);
             if (controller.signal.aborted) return;
             commitSession(sessionFromAuthResponse(response));
+            clearFederationTicketFromUrl();
           } catch (nextError) {
-            if (!controller.signal.aborted) invalidateSession(nextError);
-          } finally {
-            if (!controller.signal.aborted) clearFederationTicketFromUrl();
+            if (controller.signal.aborted) return;
+            if (shouldDiscardFederationTicket(nextError)) clearFederationTicketFromUrl();
+            invalidateSession(nextError);
           }
           return;
         }
@@ -172,7 +178,14 @@ export function AuthProvider({ children }) {
           if (!principal) throw new ApiError('Session response is missing principal data', { code: 'INVALID_AUTH_RESPONSE' });
           commitSession({ ...stored, expiresAt: principal.expiresAt || stored.expiresAt, principal });
         } catch (nextError) {
-          if (!controller.signal.aborted) invalidateSession(nextError?.status === 401 ? null : nextError);
+          if (controller.signal.aborted) return;
+          if (nextError?.status === 401) {
+            invalidateSession(null);
+          } else {
+            setSession(stored);
+            setStatus('authenticated');
+            setError(nextError);
+          }
         }
       })();
     }, 0);
