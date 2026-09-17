@@ -34,10 +34,9 @@ export function useMarketData(seedMarkets, activeSymbol) {
 
   useEffect(() => {
     if (!symbols.length) return undefined;
-    const unsubscribe = authenticated
+    return authenticated
       ? subscribeMarket({ quotes: symbols, ticks: activeSymbol ? [activeSymbol] : [] })
-      : () => {};
-    return unsubscribe;
+      : undefined;
   }, [activeSymbol, authenticated, subscribeMarket, symbolsKey]);
 
   useEffect(() => {
@@ -68,26 +67,22 @@ export function useMarketData(seedMarkets, activeSymbol) {
   }, [authenticated, connection.status, ingestQuotes, symbolsKey]);
 
   useEffect(() => {
+    const updates = {};
     let changed = false;
-    const nextDirections = { ...directions };
     for (const symbol of symbols) {
       const quote = market.quotesBySymbol[symbol];
-      if (!quote) continue;
+      if (!quote || previousQuotesRef.current[symbol] === quote) continue;
       const previous = previousQuotesRef.current[symbol];
-      const next = {
+      updates[symbol] = {
         direction: direction(quote.last ?? quote.price ?? quote.mid, previous?.last ?? previous?.price ?? previous?.mid),
         bidDirection: direction(quote.bid, previous?.bid),
         askDirection: direction(quote.ask, previous?.ask),
       };
-      const current = directions[symbol];
-      if (!current || current.direction !== next.direction || current.bidDirection !== next.bidDirection || current.askDirection !== next.askDirection) {
-        nextDirections[symbol] = next;
-        changed = true;
-      }
       previousQuotesRef.current[symbol] = quote;
+      changed = true;
     }
-    if (changed) setDirections(nextDirections);
-  }, [directions, market.quotesBySymbol, symbolsKey]);
+    if (changed) setDirections(current => ({ ...current, ...updates }));
+  }, [market.quotesBySymbol, symbolsKey]);
 
   const markets = useMemo(() => seedMarkets.map(item => {
     const quote = market.quotesBySymbol[item.symbol];
