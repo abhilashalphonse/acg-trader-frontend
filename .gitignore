@@ -1,5 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+coverage/
+
+# Environment files / secrets
+.env
+.env.*
+!.env.example
+!.env.sample
+*.local
+
+# Package manager auth/config
+.npmrc
+*.npmrc
+
+# Credentials / private keys
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+*credentials*.json
+service-account*.json
+*serviceAccount*.json
+secrets/
+
+# Firebase generated state
+.firebase/
+
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,22 +40,13 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
+# Editor / OS files
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-*.env.example
-*.npmrc
-.npmrc
