@@ -641,6 +641,8 @@ export default function TradingTerminalV2({
             indicators={indicators}
             account={account}
             plannedRisk={plannedRisk}
+            exposureAllowed={exposure.allowed}
+            exposureBlockReason={exposure.reason}
             onExit={exitChartFocus}
           />
         ) : (
