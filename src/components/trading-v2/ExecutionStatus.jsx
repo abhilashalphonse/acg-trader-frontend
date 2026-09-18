@@ -1,5 +1,6 @@
 import React from 'react';
 import { Check, CircleAlert, Loader2, Radio, X } from 'lucide-react';
+import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
 
 const labels = {
   submitting: 'Submitting',
@@ -10,7 +11,7 @@ const labels = {
   unknown: 'Confirming execution',
 };
 
-export default function ExecutionStatus({ event, onDismiss = () => {} }) {
+export default function ExecutionStatus({ event, instrument = null, onDismiss = () => {} }) {
   if (!event) return null;
   const status = event.status || 'submitting';
   const positive = ['accepted', 'filled', 'pending'].includes(status);
@@ -18,7 +19,7 @@ export default function ExecutionStatus({ event, onDismiss = () => {} }) {
   const warning = status === 'unknown';
   const Icon = status === 'submitting' ? Loader2 : (danger || warning) ? CircleAlert : status === 'accepted' ? Radio : Check;
   const price = Number(event.fillPrice ?? event.requestedPrice);
-  const priceLabel = Number.isFinite(price) ? price.toFixed(Math.abs(price) > 100 ? 2 : 5) : '—';
+  const priceLabel = formatInstrumentPrice(price, instrument);
 
   return (
     <div className={`fixed left-1/2 top-[72px] z-[140] w-[calc(100%-24px)] max-w-[430px] -translate-x-1/2 overflow-hidden rounded-xl border shadow-[0_16px_50px_rgba(0,0,0,.48)] backdrop-blur-xl ${danger ? 'border-[#64313a] bg-[#28141a]/96' : warning ? 'border-[#665321] bg-[#2a220f]/96' : 'border-[#24445a] bg-[#0a1a26]/96'}`}>
