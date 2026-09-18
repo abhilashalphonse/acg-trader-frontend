@@ -34,7 +34,8 @@ export default function MobileScalperMode({
   onModifyPlan,
   onManualOrder,
   onTradePlanChange,
-  onCommitProtection = () => {},
+  positions = [],
+  onUpdatePosition = () => {},
   onIndicators = () => {},
   indicators = [],
   account,
@@ -62,11 +63,11 @@ export default function MobileScalperMode({
       </header>
 
       <div className="shrink-0 bg-[#061019] pt-2">
-        <ChartControls timeframe={timeframe} onTimeframe={setTimeframe} chartMode={chartMode} onChartMode={setChartMode} fullscreen onFullscreen={onExit} onIndicators={onIndicators} focusMode disabled={Boolean(tradePlan)} />
+        <ChartControls timeframe={timeframe} onTimeframe={setTimeframe} chartMode={chartMode} onChartMode={setChartMode} fullscreen onFullscreen={onExit} onIndicators={onIndicators} focusMode disabled={Boolean(tradePlan && !tradePlan.open)} />
       </div>
 
       <div className="min-h-0 flex-1 bg-[#061019]">
-        <ChartArea symbol={market?.symbol} chartTimeframe={mapTimeframe(timeframe)} tick={tick} price={market?.bid} ask={market?.ask} chartMode={chartMode} selectedTool={selectedTool} onSelectTool={tradePlan ? () => {} : setSelectedTool} focusMode tradePlan={tradePlan} onTradePlanChange={onTradePlanChange} onCommitProtection={onCommitProtection} indicators={indicators} />
+        <ChartArea symbol={market?.symbol} chartTimeframe={mapTimeframe(timeframe)} tick={tick} price={market?.bid} ask={market?.ask} chartMode={chartMode} selectedTool={selectedTool} onSelectTool={tradePlan && !tradePlan.open ? () => {} : setSelectedTool} focusMode tradePlan={tradePlan} onTradePlanChange={onTradePlanChange} onCommitProtection={onCommitProtection} indicators={indicators} />
       </div>
 
       <div className="shrink-0"><PropRiskStrip account={account} plannedRisk={plannedRisk} compact /></div>
