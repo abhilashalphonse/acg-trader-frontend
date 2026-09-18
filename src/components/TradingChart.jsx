@@ -52,7 +52,7 @@ function indicatorLabel(indicator) {
   return indicator.name || indicator.id;
 }
 
-export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick = null, chartMode = 'candles', bidPrice = null, askPrice = null, showBidLine = true, showAskLine = true, indicators = [], onCoordinateApi = () => {} }) {
+export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick = null, chartMode = 'candles', bidPrice = null, positions = [], indicators = [], onCoordinateApi = () => {} }) {
   const { authenticated } = useTraderAuth();
   const { market, subscribeMarket } = useTradingStore();
   const hostRef = useRef(null);
@@ -62,8 +62,8 @@ export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick
   const barsByTimeRef = useRef(new Map());
   const seriesRef = useRef(null);
   const volumeRef = useRef(null);
-  const bidLineRef = useRef(null);
-  const askLineRef = useRef(null);
+  const marketLineRef = useRef(null);
+  const positionLinesRef = useRef([]);
   const indicatorSeriesRef = useRef([]);
   const indicatorBindingsRef = useRef([]);
   const indicatorPanesRef = useRef(0);
@@ -159,7 +159,7 @@ export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick
     const series = chartMode === 'line' ? chart.addSeries(LineSeries, { color: chartTokens.blue, lineWidth: 2, priceFormat, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: true }) : chart.addSeries(CandlestickSeries, { upColor: chartTokens.buy, downColor: chartTokens.sell, wickUpColor: chartTokens.buy, wickDownColor: chartTokens.sell, borderVisible: false, priceFormat, priceLineVisible: false, lastValueVisible: false });
     const volume = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: 'volume', lastValueVisible: false, priceLineVisible: false });
     chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
-    seriesRef.current = series; volumeRef.current = volume; bidLineRef.current = null; askLineRef.current = null; setError('');
+    seriesRef.current = series; volumeRef.current = volume; marketLineRef.current = null; positionLinesRef.current = []; setError('');
     const timeScale = chart.timeScale();
     const coordinateApi = { toData(point) { if (!point) return null; const time = timeScale.coordinateToTime(Number(point.x)); const price = series.coordinateToPrice(Number(point.y)); return time == null || price == null || !Number.isFinite(Number(price)) ? null : { time, price: Number(price) }; }, toScreen(point) { if (!point || point.time == null || point.price == null) return null; const x = timeScale.timeToCoordinate(point.time); const y = series.priceToCoordinate(Number(point.price)); return x == null || y == null ? null : { x: Number(x), y: Number(y) }; }, subscribe(handler) { const rangeHandler = () => handler?.(); const sizeHandler = () => handler?.(); timeScale.subscribeVisibleLogicalRangeChange(rangeHandler); timeScale.subscribeSizeChange(sizeHandler); return () => { timeScale.unsubscribeVisibleLogicalRangeChange(rangeHandler); timeScale.unsubscribeSizeChange(sizeHandler); }; } };
     coordinateCallbackRef.current?.(coordinateApi);
@@ -175,7 +175,7 @@ export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick
         barsRef.current = bars; barsByTimeRef.current = new Map(bars.map(bar => [Number(bar.time), bar])); series.setData(bars.map(bar => toSeriesPoint(bar, chartMode))); volume.setData(bars.map(bar => ({ time: bar.time, value: volumeForBar(bar), color: bar.close >= bar.open ? 'rgba(45,211,155,0.34)' : 'rgba(255,95,105,0.32)' }))); lastBarRef.current = bars[bars.length - 1]; setDisplayBar(bars[bars.length - 1]); renderIndicators(chart, bars); chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, bars.length - 48), to: bars.length + 9 });
       } catch (e) { if (e?.name === 'AbortError' || disposed) return; console.error('Trading chart data failed', e); setError(e?.message || 'Unable to load market data'); }
     })();
-    return () => { disposed = true; controller.abort(); coordinateCallbackRef.current?.(null); if (indicatorFrameRef.current) window.cancelAnimationFrame(indicatorFrameRef.current); indicatorFrameRef.current = null; chart.unsubscribeCrosshairMove(crosshairHandler); indicatorSeriesRef.current = []; indicatorBindingsRef.current = []; indicatorPanesRef.current = 0; chartRef.current = null; seriesRef.current = null; volumeRef.current = null; bidLineRef.current = null; askLineRef.current = null; lastBarRef.current = null; barsRef.current = []; barsByTimeRef.current = new Map(); chart.remove(); };
+    return () => { disposed = true; controller.abort(); coordinateCallbackRef.current?.(null); if (indicatorFrameRef.current) window.cancelAnimationFrame(indicatorFrameRef.current); indicatorFrameRef.current = null; chart.unsubscribeCrosshairMove(crosshairHandler); indicatorSeriesRef.current = []; indicatorBindingsRef.current = []; indicatorPanesRef.current = 0; chartRef.current = null; seriesRef.current = null; volumeRef.current = null; marketLineRef.current = null; positionLinesRef.current = []; lastBarRef.current = null; barsRef.current = []; barsByTimeRef.current = new Map(); chart.remove(); };
   }, [symbol, timeframe, chartMode, renderIndicators]);
 
   useEffect(() => { indicatorsRef.current = indicators; if (chartRef.current && barsRef.current.length) renderIndicators(chartRef.current, barsRef.current); }, [indicators, renderIndicators]);
@@ -184,16 +184,11 @@ export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick
     const series = seriesRef.current;
     if (!series) return;
 
-    const liveBid = Number(tick?.bid ?? bidPrice);
-    const liveAsk = Number(tick?.ask ?? askPrice);
-
-    // MT5-style market lines: continuous, price-scale anchored and tick-driven.
-    // Candles represent the Bid market; Ask is shown separately so the visible
-    // vertical distance between the two lines is the live spread.
-    if (showBidLine && Number.isFinite(liveBid)) {
-      if (!bidLineRef.current) {
-        bidLineRef.current = series.createPriceLine({
-          price: liveBid,
+    const livePrice = Number(tick?.bid ?? tick?.price ?? bidPrice);
+    if (Number.isFinite(livePrice)) {
+      if (!marketLineRef.current) {
+        marketLineRef.current = series.createPriceLine({
+          price: livePrice,
           color: chartTokens.buy,
           lineWidth: 1,
           lineStyle: LineStyle.Solid,
@@ -201,31 +196,44 @@ export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick
           title: '',
         });
       } else {
-        bidLineRef.current.applyOptions({ price: liveBid });
+        marketLineRef.current.applyOptions({ price: livePrice });
       }
-    } else if (bidLineRef.current) {
-      try { series.removePriceLine(bidLineRef.current); } catch { /* disposed */ }
-      bidLineRef.current = null;
     }
+  }, [tick?.bid, tick?.price, bidPrice, symbol, timeframe, chartMode]);
 
-    if (showAskLine && Number.isFinite(liveAsk)) {
-      if (!askLineRef.current) {
-        askLineRef.current = series.createPriceLine({
-          price: liveAsk,
-          color: chartTokens.sell,
-          lineWidth: 1,
-          lineStyle: LineStyle.Solid,
-          axisLabelVisible: true,
-          title: '',
-        });
-      } else {
-        askLineRef.current.applyOptions({ price: liveAsk });
-      }
-    } else if (askLineRef.current) {
-      try { series.removePriceLine(askLineRef.current); } catch { /* disposed */ }
-      askLineRef.current = null;
-    }
-  }, [tick?.bid, tick?.ask, bidPrice, askPrice, showBidLine, showAskLine, symbol, timeframe, chartMode]);
+  useEffect(() => {
+    const series = seriesRef.current;
+    if (!series) return;
+
+    positionLinesRef.current.forEach(line => {
+      try { series.removePriceLine(line); } catch { /* disposed */ }
+    });
+    positionLinesRef.current = [];
+
+    const openPositions = (Array.isArray(positions) ? positions : []).filter(position =>
+      String(position?.status || '').toUpperCase() === 'OPEN'
+      && String(position?.symbol || '').toUpperCase() === String(symbol || '').toUpperCase()
+      && Number.isFinite(Number(position?.entryPrice))
+    );
+
+    positionLinesRef.current = openPositions.map(position =>
+      series.createPriceLine({
+        price: Number(position.entryPrice),
+        color: chartTokens.blue,
+        lineWidth: 1,
+        lineStyle: LineStyle.Solid,
+        axisLabelVisible: true,
+        title: '',
+      })
+    );
+
+    return () => {
+      positionLinesRef.current.forEach(line => {
+        try { series.removePriceLine(line); } catch { /* disposed */ }
+      });
+      positionLinesRef.current = [];
+    };
+  }, [positions, symbol, timeframe, chartMode]);
 
   useEffect(() => {
     if (!liveCandle || !seriesRef.current) return;
