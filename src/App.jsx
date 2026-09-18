@@ -4,6 +4,7 @@ import { useInstrumentCatalog } from './hooks/useInstrumentCatalog.js';
 import { useMarketData } from './hooks/useMarketData.js';
 import { useTraderAuth } from './hooks/useTraderAuth.js';
 import { useTradingStore } from './hooks/useTradingStore.js';
+import { useWatchlists } from './hooks/useWatchlists.js';
 import { deriveTerminalStatus } from './utils/terminalStatus.js';
 
 const TradingTerminalV2 = lazy(() => import('./pages/TradingTerminalV2.jsx'));
@@ -31,6 +32,7 @@ export default function App() {
   const auth = useTraderAuth();
   const { trading, connection } = useTradingStore();
   const { instruments, loading: instrumentsLoading, error: instrumentsError } = useInstrumentCatalog();
+  const watchlists = useWatchlists(instruments);
   const [activeSymbol, setActiveSymbol] = useState(null);
 
   useEffect(() => {
@@ -39,7 +41,12 @@ export default function App() {
     if (!currentExists) setActiveSymbol(instruments.find(item => item.sessionOpen)?.symbol || instruments[0].symbol);
   }, [activeSymbol, instruments]);
 
-  const { markets, activeTick, activeMarket, status, error: marketError } = useMarketData(instruments, activeSymbol);
+  const subscriptionSymbols = useMemo(
+    () => [...new Set([...watchlists.activeSymbols, activeSymbol].filter(Boolean))],
+    [activeSymbol, watchlists.activeSymbols],
+  );
+
+  const { markets, activeTick, activeMarket, status, error: marketError } = useMarketData(instruments, activeSymbol, subscriptionSymbols);
   const market = activeMarket || markets[0] || null;
 
   const primaryAccount = useMemo(() => {
@@ -83,6 +90,7 @@ export default function App() {
     marketStatus: status,
     activeSymbol: market?.symbol || activeSymbol,
     onSelectSymbol: setActiveSymbol,
+    watchlists,
   };
 
   return (
