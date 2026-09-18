@@ -69,9 +69,11 @@ export default function PositionsPanel({
   }), [positions, pendingOrders, positionHistory, journal]);
 
   const nudge = (position, field, direction) => {
-    const current = Number(position[field]);
-    const base = Number.isFinite(current) ? current : Number(position.entry);
-    const step = pipStep(position.entry);
+    const raw = position[field];
+    const current = raw === null || raw === undefined || raw === '' ? NaN : Number(raw);
+    const entry = Number(position.entry);
+    const base = Number.isFinite(current) && current > 0 ? current : entry;
+    const step = pipStep(entry);
     onUpdatePosition(position.id, { [field]: base + direction * step });
   };
 
