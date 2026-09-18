@@ -21,8 +21,9 @@ const tabs = [
 ];
 
 function formatPrice(value) {
+  if (value === null || value === undefined || value === '') return '—';
   const number = Number(value);
-  if (!Number.isFinite(number)) return '—';
+  if (!Number.isFinite(number) || number <= 0) return '—';
   return number.toFixed(Math.abs(number) > 100 ? 2 : 5);
 }
 
