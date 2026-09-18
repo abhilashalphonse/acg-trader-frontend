@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ChevronDown, Minus, Plus, X, Check, SlidersHorizontal, Clock3 } from 'lucide-react';
 import { normalizeVolumeToStep } from '../../utils/tradingCommandNormalization.js';
 import { calculateRiskSizedLots, estimateStopRisk, riskSizingSupported } from '../../utils/tradingRisk.js';
-import { instrumentPipSize } from '../../utils/instrumentFormatting.js';
+import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 
 const orderTypes = [
   ['market', 'Market'],
@@ -158,7 +158,7 @@ export default function ExecutionPanel({
           {!isOpen && <button type="button" onClick={onCancelPlan} className="grid size-8 place-items-center rounded-lg border border-[#223343] bg-[#0d1822] text-[#8193a6]" aria-label="Cancel trade plan"><X size={15}/></button>}
         </div>
 
-        <div className="mt-2 grid grid-cols-4 gap-1.5 text-center"><Metric label={tradePlan.pending ? 'Entry' : 'Risk'} value={tradePlan.pending ? Number(tradePlan.entry).toFixed(Number(tradePlan.entry) > 100 ? 2 : 5) : `${riskPercent.toFixed(2)}%`}/><Metric label="Lots" value={metrics?.lots.toFixed(2)}/><Metric label="SL" value={`${metrics?.slPips.toFixed(1)}p`}/><Metric label="R:R" value={`1:${metrics?.rr.toFixed(1)}`}/></div>
+        <div className="mt-2 grid grid-cols-4 gap-1.5 text-center"><Metric label={tradePlan.pending ? 'Entry' : 'Risk'} value={tradePlan.pending ? formatInstrumentPrice(tradePlan.entry, market) : `${riskPercent.toFixed(2)}%`}/><Metric label="Lots" value={metrics?.lots.toFixed(2)}/><Metric label="SL" value={`${metrics?.slPips.toFixed(1)}p`}/><Metric label="R:R" value={`1:${metrics?.rr.toFixed(1)}`}/></div>
 
         {tradePlan.pending && (
           <div className="mt-1.5 space-y-1.5">
