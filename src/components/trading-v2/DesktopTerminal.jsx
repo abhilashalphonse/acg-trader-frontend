@@ -66,6 +66,7 @@ export default function DesktopTerminal({
   markets = [],
   activeSymbol = market?.symbol,
   onSelectSymbol = () => {},
+  watchlists = null,
   positions = [],
   positionHistory = [],
   pendingOrders = [],
@@ -113,8 +114,8 @@ export default function DesktopTerminal({
   const searchRef = useRef(null);
   const [activeNav, setActiveNav] = useState('trade');
   const [search, setSearch] = useState('');
-  const [favorite, setFavorite] = useState(true);
   const [notice, setNotice] = useState('');
+  const favorite = watchlists?.isWatched?.(activeSymbol) === true;
 
   const currency = account?.currency || 'USD';
   const accountPnl = Number(account?.floatingPnl ?? (Number(account?.equity) - Number(account?.balance)));
@@ -124,9 +125,13 @@ export default function DesktopTerminal({
 
   const filteredMarkets = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return markets;
-    return markets.filter(item => `${item.symbol} ${item.name || ''} ${item.assetClass || ''}`.toLowerCase().includes(query));
-  }, [markets, search]);
+    const watched = new Set(watchlists?.activeSymbols || []);
+    const base = !query && (activeNav === 'trade' || activeNav === 'watchlist')
+      ? markets.filter(item => watched.has(item.symbol))
+      : markets;
+    if (!query) return base;
+    return base.filter(item => `${item.symbol} ${item.displaySymbol || ''} ${item.name || ''} ${item.assetClass || ''}`.toLowerCase().includes(query));
+  }, [activeNav, markets, search, watchlists?.activeSymbols]);
 
   const toggleFullscreen = async () => {
     try {
@@ -188,7 +193,7 @@ export default function DesktopTerminal({
         </aside>
 
         <section className="grid min-h-0 grid-rows-[60px_36px_44px_minmax(0,1fr)_104px_250px] bg-[#060d14] 2xl:grid-rows-[62px_36px_46px_minmax(0,1fr)_108px_260px]">
-          <div className="flex items-center border-b border-[#172737] bg-[#08111a] px-4"><div className="min-w-[240px]"><button type="button" onClick={() => searchRef.current?.focus()} className="flex items-center gap-1 text-[15px] font-extrabold tracking-[-0.025em] text-[#f3f7fb]">{displaySymbol(market?.symbol)}<ChevronDown size={14}/></button><span className="mt-1 block text-[8px] text-[#5f7388]">{marketLabel(market)}</span></div><div className="ml-4"><strong className="block font-mono text-[17px] tracking-[-0.02em] text-[#edf5fb]">{market?.bid || '—'}</strong><span className={`mt-1 block text-[8px] font-semibold ${market?.live ? 'text-[#35d49f]' : market?.isStale ? 'text-[#e7bd58]' : 'text-[#718398]'}`}>{market?.sessionOpen === false ? 'SESSION CLOSED' : market?.live ? 'LIVE' : market?.isStale ? 'STALE' : market?.marketState || 'WAITING'}</span></div><div className="ml-auto flex items-center gap-4"><div className="hidden text-right xl:block"><span className="block text-[7px] uppercase tracking-[0.08em] text-[#506477]">Valuation</span><b className={`mt-1 block text-[9px] ${valuationStatus === 'LIVE' ? 'text-[#3dd9a4]' : valuationStatus === 'STALE' ? 'text-[#e7bd58]' : 'text-[#a0b0bf]'}`}>{valuationStatus}</b></div><button type="button" onClick={() => setFavorite(v => !v)} className={`grid size-8 place-items-center rounded-lg hover:bg-white/[0.035] ${favorite ? 'text-[#f6c95d]' : 'text-[#687d92]'}`}><Star size={16} fill={favorite ? 'currentColor' : 'none'}/></button></div></div>
+          <div className="flex items-center border-b border-[#172737] bg-[#08111a] px-4"><div className="min-w-[240px]"><button type="button" onClick={() => searchRef.current?.focus()} className="flex items-center gap-1 text-[15px] font-extrabold tracking-[-0.025em] text-[#f3f7fb]">{displaySymbol(market?.symbol)}<ChevronDown size={14}/></button><span className="mt-1 block text-[8px] text-[#5f7388]">{marketLabel(market)}</span></div><div className="ml-4"><strong className="block font-mono text-[17px] tracking-[-0.02em] text-[#edf5fb]">{market?.bid || '—'}</strong><span className={`mt-1 block text-[8px] font-semibold ${market?.live ? 'text-[#35d49f]' : market?.isStale ? 'text-[#e7bd58]' : 'text-[#718398]'}`}>{market?.sessionOpen === false ? 'SESSION CLOSED' : market?.live ? 'LIVE' : market?.isStale ? 'STALE' : market?.marketState || 'WAITING'}</span></div><div className="ml-auto flex items-center gap-4"><div className="hidden text-right xl:block"><span className="block text-[7px] uppercase tracking-[0.08em] text-[#506477]">Valuation</span><b className={`mt-1 block text-[9px] ${valuationStatus === 'LIVE' ? 'text-[#3dd9a4]' : valuationStatus === 'STALE' ? 'text-[#e7bd58]' : 'text-[#a0b0bf]'}`}>{valuationStatus}</b></div><button type="button" onClick={() => watchlists?.toggleSymbol?.(activeSymbol)} className={`grid size-8 place-items-center rounded-lg hover:bg-white/[0.035] ${favorite ? 'text-[#f6c95d]' : 'text-[#687d92]'}`}><Star size={16} fill={favorite ? 'currentColor' : 'none'}/></button></div></div>
 
           <PropRiskStrip account={account} plannedRisk={plannedRisk} compact />
 
