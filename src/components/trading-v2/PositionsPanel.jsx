@@ -5,7 +5,6 @@ import {
   MoreHorizontal,
   Minus,
   Plus,
-  Repeat2,
   ShieldCheck,
   SlidersHorizontal,
   Trash2,
