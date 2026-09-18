@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Activity, ShieldAlert, Target, TrendingDown } from 'lucide-react';
+import { calculateAccountRiskSummary } from '../../utils/accountRisk.js';
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
@@ -24,26 +25,12 @@ function Meter({ label, value, limit, tone = 'neutral' }) {
   );
 }
 
-export function calculateRiskSummary(account, plannedRisk = 0) {
-  const initialBalance = Number(account?.initialBalance) || 0;
-  const equity = Number(account?.equity) || initialBalance;
-  const dailyStartEquity = Number(account?.dailyStartEquity) || equity;
-  const dailyLossLimit = Number(account?.dailyLossLimit) || 0;
-  const maxLossLimit = Number(account?.maxLossLimit) || 0;
-  const profitTarget = Number(account?.profitTarget) || 0;
-  const dailyLossUsed = Math.max(0, dailyStartEquity - equity);
-  const maxLossUsed = Math.max(0, initialBalance - equity);
-  const profit = Math.max(0, equity - initialBalance);
-  const remainingDaily = Math.max(0, dailyLossLimit - dailyLossUsed);
-  const remainingMax = Math.max(0, maxLossLimit - maxLossUsed);
-  const postTradeDaily = Math.max(0, remainingDaily - Math.max(0, Number(plannedRisk) || 0));
-  return { initialBalance, equity, dailyLossLimit, maxLossLimit, profitTarget, dailyLossUsed, maxLossUsed, profit, remainingDaily, remainingMax, postTradeDaily };
-}
+export const calculateRiskSummary = calculateAccountRiskSummary;
 
 export default function PropRiskStrip({ account, plannedRisk = 0, compact = false }) {
-  const risk = useMemo(() => calculateRiskSummary(account, plannedRisk), [account, plannedRisk]);
+  const risk = useMemo(() => calculateAccountRiskSummary(account, plannedRisk), [account, plannedRisk]);
   const hasChallengeRules = risk.dailyLossLimit > 0 || risk.maxLossLimit > 0 || risk.profitTarget > 0;
-  const riskWarning = risk.dailyLossLimit > 0 && plannedRisk > 0 && plannedRisk >= risk.remainingDaily * 0.75;
+  const riskWarning = risk.dailyLossLimit > 0 && plannedRisk > 0 && (!risk.riskAvailabilityLive || plannedRisk >= risk.remainingDaily * 0.75);
   const currency = account?.currency || 'USD';
   const valuation = String(account?.valuationStatus || 'WAITING').toUpperCase();
 
@@ -84,7 +71,7 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
   return (
     <section className="mt-2.5 rounded-[18px] border border-[#183044] bg-[#08131d] px-3 py-2.5 shadow-[inset_0_1px_rgba(255,255,255,0.018)]">
       <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0"><div className="flex items-center gap-1.5"><ShieldAlert size={13} className="text-[#5fcaff]"/><b className="text-[10px] text-[#dce7ef]">Challenge Risk</b></div><p className="mt-1 text-[8px] text-[#61768b]">Pre-trade loss room and target progress</p></div>
+        <div className="min-w-0"><div className="flex items-center gap-1.5"><ShieldAlert size={13} className="text-[#5fcaff]"/><b className="text-[10px] text-[#dce7ef]">Challenge Risk</b></div><p className="mt-1 text-[8px] text-[#61768b]">{risk.riskAvailabilityLive ? 'Backend-aligned loss room and target progress' : 'New risk availability is paused until valuation and policy are authoritative'}</p></div>
         <div className="text-right"><span className="block text-[7px] uppercase tracking-[0.08em] text-[#5d7286]">Available today</span><b className={`mt-0.5 block text-[13px] ${riskWarning ? 'text-[#ff707b]' : 'text-[#e7eef4]'}`}>{money(risk.remainingDaily, currency)}</b></div>
       </div>
 
