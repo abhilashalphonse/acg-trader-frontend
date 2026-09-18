@@ -159,7 +159,7 @@ export default function DesktopTerminal({
   };
 
   return (
-    <div ref={shellRef} className="relative h-dvh min-h-[720px] overflow-hidden bg-[#02070c] text-[#f4f8fb]">
+    <div ref={shellRef} className="relative h-dvh min-h-0 overflow-hidden bg-[#02070c] text-[#f4f8fb]">
       {notice && <div className="absolute right-4 top-[72px] z-[120] flex max-w-[390px] items-center gap-3 rounded-xl border border-[#24445a] bg-[#0b1b28]/95 px-3 py-2.5 text-[10px] font-semibold text-[#dce9f2] shadow-[0_16px_48px_rgba(0,0,0,.45)]"><span>{notice}</span><button type="button" onClick={() => setNotice('')} className="grid size-6 place-items-center rounded-md text-[#8094a7]"><X size={13}/></button></div>}
 
       <header className="flex h-16 items-center border-b border-[#172737] bg-[#060d14] px-4 shadow-[0_1px_0_rgba(255,255,255,0.015)]">
