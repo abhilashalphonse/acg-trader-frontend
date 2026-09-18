@@ -176,23 +176,24 @@ export default function ChartArea({
         <DrawingLayer symbol={symbol} timeframe={chartTimeframe} tool={selectedTool} onToolChange={onSelectTool} disabled={Boolean(tradePlan)} coordinateApi={coordinateApi} />
         <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} />
         {!tradePlan && (
-          <div className="absolute right-[78px] top-2 z-30 flex items-center overflow-hidden rounded-md border border-[#1b2c3d] bg-[#09131d]/92 text-[8px] font-bold backdrop-blur-sm">
+          <div className="absolute right-[78px] top-2 z-30 flex items-center gap-1.5 rounded-md border border-[#1b2c3d] bg-[#09131d]/92 px-1.5 py-1.5 backdrop-blur-sm">
             <button
               type="button"
               onClick={() => setShowBidLine(value => !value)}
-              className={`px-2 py-1 transition ${showBidLine ? "text-[#2dd39b]" : "text-[#536575]"}`}
-              title="Show or hide Bid line"
+              aria-label="Toggle Bid line"
+              title="Bid line"
+              className={`grid h-4 w-7 place-items-center rounded transition ${showBidLine ? "opacity-100" : "opacity-30"}`}
             >
-              BID
+              <span className="block h-px w-5 bg-[#2dd39b]" />
             </button>
-            <span className="h-4 w-px bg-[#1b2c3d]" />
             <button
               type="button"
               onClick={() => setShowAskLine(value => !value)}
-              className={`px-2 py-1 transition ${showAskLine ? "text-[#f05d68]" : "text-[#536575]"}`}
-              title="Show or hide Ask line"
+              aria-label="Toggle Ask line"
+              title="Ask line"
+              className={`grid h-4 w-7 place-items-center rounded transition ${showAskLine ? "opacity-100" : "opacity-30"}`}
             >
-              ASK
+              <span className="block h-px w-5 bg-[#f05d68]" />
             </button>
           </div>
         )}
