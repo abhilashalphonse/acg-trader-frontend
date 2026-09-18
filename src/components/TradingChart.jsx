@@ -161,7 +161,7 @@ export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick
     chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
     seriesRef.current = series; volumeRef.current = volume; marketLineRef.current = null; positionLinesRef.current = []; setError('');
     const timeScale = chart.timeScale();
-    const coordinateApi = { toData(point) { if (!point) return null; const time = timeScale.coordinateToTime(Number(point.x)); const price = series.coordinateToPrice(Number(point.y)); return time == null || price == null || !Number.isFinite(Number(price)) ? null : { time, price: Number(price) }; }, toScreen(point) { if (!point || point.time == null || point.price == null) return null; const x = timeScale.timeToCoordinate(point.time); const y = series.priceToCoordinate(Number(point.price)); return x == null || y == null ? null : { x: Number(x), y: Number(y) }; }, subscribe(handler) { const rangeHandler = () => handler?.(); const sizeHandler = () => handler?.(); timeScale.subscribeVisibleLogicalRangeChange(rangeHandler); timeScale.subscribeSizeChange(sizeHandler); return () => { timeScale.unsubscribeVisibleLogicalRangeChange(rangeHandler); timeScale.unsubscribeSizeChange(sizeHandler); }; } };
+    const coordinateApi = { toData(point) { if (!point) return null; const time = timeScale.coordinateToTime(Number(point.x)); const price = series.coordinateToPrice(Number(point.y)); return time == null || price == null || !Number.isFinite(Number(price)) ? null : { time, price: Number(price) }; }, toScreen(point) { if (!point || point.time == null || point.price == null) return null; const x = timeScale.timeToCoordinate(point.time); const y = series.priceToCoordinate(Number(point.price)); return x == null || y == null ? null : { x: Number(x), y: Number(y) }; }, priceToY(price) { const y = series.priceToCoordinate(Number(price)); return y == null ? null : Number(y); }, yToPrice(y) { const price = series.coordinateToPrice(Number(y)); return price == null || !Number.isFinite(Number(price)) ? null : Number(price); }, subscribe(handler) { const rangeHandler = () => handler?.(); const sizeHandler = () => handler?.(); timeScale.subscribeVisibleLogicalRangeChange(rangeHandler); timeScale.subscribeSizeChange(sizeHandler); return () => { timeScale.unsubscribeVisibleLogicalRangeChange(rangeHandler); timeScale.unsubscribeSizeChange(sizeHandler); }; } };
     coordinateCallbackRef.current?.(coordinateApi);
     const controller = new AbortController();
     let disposed = false;
@@ -211,14 +211,13 @@ export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick
     positionLinesRef.current = [];
 
     const openPositions = (Array.isArray(positions) ? positions : []).filter(position =>
-      String(position?.status || '').toUpperCase() === 'OPEN'
-      && String(position?.symbol || '').toUpperCase() === String(symbol || '').toUpperCase()
-      && Number.isFinite(Number(position?.entryPrice))
+      String(position?.symbol || '').toUpperCase() === String(symbol || '').toUpperCase()
+      && Number.isFinite(Number(position?.entry ?? position?.entryPrice))
     );
 
     positionLinesRef.current = openPositions.map(position =>
       series.createPriceLine({
-        price: Number(position.entryPrice),
+        price: Number(position.entry ?? position.entryPrice),
         color: chartTokens.blue,
         lineWidth: 1,
         lineStyle: LineStyle.Solid,
