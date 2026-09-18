@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { X, Search, Bell, UserRound, Activity, Star, Clock3, Settings, HelpCircle, ShieldCheck } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { X, Search, Bell, UserRound, Activity, Star, Clock3, Settings, ShieldCheck } from 'lucide-react';
 import IndicatorManager from './IndicatorManager.jsx';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 
@@ -49,6 +49,7 @@ export default function FrontendSheet({
   const [query, setQuery] = useState('');
   const [message, setMessage] = useState('');
   const [marketGroupFilter, setMarketGroupFilter] = useState('All');
+  const [visibleMarketLimit, setVisibleMarketLimit] = useState(60);
   const filteredMarkets = useMemo(() => {
     const q = query.trim().toLowerCase();
     return markets.filter(item => {
@@ -60,35 +61,37 @@ export default function FrontendSheet({
     });
   }, [marketGroupFilter, markets, query]);
 
-  const titleMap = { search: 'Search markets', notifications: 'Notifications', profile: 'Account', instruments: 'Select instrument', indicators: 'Indicators', watchlist: 'Watchlist', markets: 'Markets', history: 'History', more: 'Terminal' };
-  const trigger = label => setMessage(`${label} is not available in this terminal build.`);
+  useEffect(() => {
+    setVisibleMarketLimit(60);
+  }, [marketGroupFilter, query, type]);
+
+  const titleMap = { search: 'Search markets', notifications: 'Notifications', profile: 'Account', instruments: 'Select instrument', indicators: 'Indicators', watchlist: 'Watchlist', markets: 'Markets', history: 'History', more: 'Terminal', help: 'Help & support' };
 
   const renderMarkets = favoritesOnly => {
     const watched = new Set(watchlists?.activeSymbols || []);
-    const list = favoritesOnly ? filteredMarkets.filter(item => watched.has(item.symbol)) : filteredMarkets;
-    if (!list.length) return <div className="grid min-h-36 place-items-center rounded-xl border border-[#182b3b] bg-[#08131c] px-5 text-center text-[9px] text-[#687d91]">No instruments match this search.</div>;
+    const source = favoritesOnly ? filteredMarkets.filter(item => watched.has(item.symbol)) : filteredMarkets;
+    const list = source.slice(0, visibleMarketLimit);
+    if (!source.length) return <div className="grid min-h-36 place-items-center rounded-xl border border-[#182b3b] bg-[#08131c] px-5 text-center text-[9px] text-[#687d91]">No instruments match this search.</div>;
     return <div className="space-y-1.5">{list.map(item => {
       const isWatched = watched.has(item.symbol);
-      return <div key={item.symbol} className={`flex items-center gap-2 rounded-xl border px-2 py-2 ${activeSymbol === item.symbol ? 'border-[#245071] bg-[#0d2536]' : 'border-[#182b3b] bg-[#08131c]'}`}><button type="button" onClick={() => { onSelectSymbol(item.symbol); onClose(); }} className="flex min-w-0 flex-1 items-center justify-between px-1 py-1 text-left"><div className="flex min-w-0 items-center gap-2.5"><InstrumentAvatar instrument={item} size={32}/><div className="min-w-0"><div className="flex items-center gap-2"><strong className="text-[12px] text-[#eef4f8]">{item.displaySymbol || symbolLabel(item.symbol)}</strong><span className="rounded-md bg-[#10202d] px-1.5 py-0.5 text-[7px] font-bold text-[#738ba0]">{marketGroup(item)}</span></div><p className="mt-1 truncate text-[9px] text-[#6f8296]">{item.name || 'Market instrument'}</p></div></div><div className="ml-3 text-right"><b className="block text-[11px] text-[#dce5ec]">{item.bid ?? '—'}</b><span className={`mt-1 block text-[8px] ${item.live ? 'text-[#31d79d]' : item.isStale ? 'text-[#e8c35f]' : 'text-[#71869a]'}`}>{item.subscribed ? (item.live ? 'Live' : item.isStale ? 'Stale' : item.marketState || 'Waiting') : 'Open for quote'}</span></div></button><button type="button" onClick={() => watchlists?.toggleSymbol?.(item.symbol)} aria-label={isWatched ? 'Remove from watchlist' : 'Add to watchlist'} className={`grid size-9 shrink-0 place-items-center rounded-lg ${isWatched ? 'text-[#f6c95d]' : 'text-[#60758a] hover:bg-white/[0.04] hover:text-[#f6c95d]'}`}><Star size={16} fill={isWatched ? 'currentColor' : 'none'}/></button></div>;
-    })}</div>;
+      return <div key={item.symbol} className={`flex items-center gap-2 rounded-xl border px-2 py-2 ${activeSymbol === item.symbol ? 'border-[#245071] bg-[#0d2536]' : 'border-[#182b3b] bg-[#08131c]'}`}><button type="button" onClick={() => { onSelectSymbol(item.symbol); onClose(); }} className="flex min-w-0 flex-1 items-center justify-between px-1 py-1 text-left"><div className="flex min-w-0 items-center gap-2.5"><InstrumentAvatar instrument={item} size={32}/><div className="min-w-0"><div className="flex items-center gap-2"><strong className="text-[12px] text-[#eef4f8]">{item.displaySymbol || symbolLabel(item.symbol)}</strong><span className="rounded-md bg-[#10202d] px-1.5 py-0.5 text-[7px] font-bold text-[#738ba0]">{marketGroup(item)}</span></div><p className="mt-1 truncate text-[9px] text-[#6f8296]">{item.name || 'Market instrument'}</p></div></div><div className="ml-3 text-right"><b className="block text-[11px] text-[#dce5ec]">{item.subscribed ? (item.bid ?? '—') : '—'}</b><span className={`mt-1 block text-[8px] ${item.live ? 'text-[#31d79d]' : item.isStale ? 'text-[#e8c35f]' : 'text-[#71869a]'}`}>{item.subscribed ? (item.sessionOpen === false ? 'Closed' : item.live ? 'Live' : item.isStale ? 'Stale' : item.marketState || 'Waiting') : 'Open for quote'}</span></div></button><button type="button" onClick={() => watchlists?.toggleSymbol?.(item.symbol)} aria-label={isWatched ? 'Remove from watchlist' : 'Add to watchlist'} className={`grid size-9 shrink-0 place-items-center rounded-lg ${isWatched ? 'text-[#f6c95d]' : 'text-[#60758a] hover:bg-white/[0.04] hover:text-[#f6c95d]'}`}><Star size={16} fill={isWatched ? 'currentColor' : 'none'}/></button></div>;
+    })}{source.length > list.length && <button type="button" onClick={() => setVisibleMarketLimit(limit => limit + 60)} className="h-10 w-full rounded-xl border border-[#1a3040] bg-[#0a1721] text-[9px] font-bold text-[#69cfff]">Show more · {source.length - list.length} remaining</button>}</div>;
   };
-
-  const actionRows = rows => <div className="space-y-1.5">{rows.map(([label, Icon]) => <button key={label} type="button" onClick={() => trigger(label)} className="flex w-full items-center justify-between rounded-xl border border-[#182b3a] bg-[#08131c] px-3 py-3 text-[11px] font-semibold text-[#cbd6df] active:bg-[#0c2130]"><span className="flex items-center gap-2"><Icon size={15} className="text-[#7b91a6]"/>{label}</span><span className="text-[#4e6579]">›</span></button>)}</div>;
 
   const isIndicators = type === 'indicators';
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/55 px-2 backdrop-blur-[2px]" onMouseDown={onClose}>
       <section onMouseDown={event => event.stopPropagation()} className={`${isIndicators ? 'max-h-[90dvh]' : 'max-h-[84dvh]'} mb-[max(8px,env(safe-area-inset-bottom))] w-full max-w-[444px] overflow-hidden rounded-[24px] border border-[#203343] bg-[#071019] shadow-[0_30px_90px_rgba(0,0,0,.65)]`}>
-        <header className="flex items-center justify-between border-b border-[#152634] px-4 py-3.5"><div><h2 className="text-[15px] font-black text-[#f3f7fb]">{titleMap[type] || 'ACG Trader'}</h2><p className="mt-0.5 text-[9px] text-[#6e8195]">{isIndicators ? 'Technical studies · live chart' : type === 'more' ? 'Profiles, preferences and shortcuts' : 'Frontend preview'}</p></div><button type="button" onClick={onClose} className="grid size-9 place-items-center rounded-xl border border-[#1c2e3d] bg-[#0b1721] text-[#93a6b8]"><X size={17}/></button></header>
+        <header className="flex items-center justify-between border-b border-[#152634] px-4 py-3.5"><div><h2 className="text-[15px] font-black text-[#f3f7fb]">{titleMap[type] || 'ACG Trader'}</h2><p className="mt-0.5 text-[9px] text-[#6e8195]">{isIndicators ? 'Technical studies · live chart' : type === 'more' ? 'Profiles, preferences and shortcuts' : type === 'notifications' ? 'Terminal and risk alerts' : type === 'profile' ? 'Trading account summary' : type === 'help' ? 'Using ACG Trader' : 'Markets and terminal tools'}</p></div><button type="button" onClick={onClose} className="grid size-9 place-items-center rounded-xl border border-[#1c2e3d] bg-[#0b1721] text-[#93a6b8]"><X size={17}/></button></header>
         <div className={`${isIndicators ? 'max-h-[calc(90dvh-70px)]' : 'max-h-[calc(84dvh-70px)]'} overflow-y-auto p-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
           {message && <div className="mb-3 rounded-xl border border-[#24445a] bg-[#0d2332] px-3 py-2.5 text-[9px] leading-4 text-[#a9c5d8]">{message}</div>}
           {(type === 'search' || type === 'instruments' || type === 'markets') && <><div className="mb-2 flex h-11 items-center gap-2 rounded-xl border border-[#1b2d3d] bg-[#0a151f] px-3"><Search size={16} className="text-[#6f8295]"/><input autoFocus={type === 'search'} value={query} onChange={e => setQuery(e.target.value)} placeholder="Search 300 markets…" className="min-w-0 flex-1 bg-transparent text-[12px] text-[#eef4f8] outline-none placeholder:text-[#53677b]"/></div><div className="mb-3 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{MARKET_GROUPS.map(group => <button key={group} type="button" onClick={() => setMarketGroupFilter(group)} className={`shrink-0 rounded-lg border px-2.5 py-1.5 text-[8px] font-bold ${marketGroupFilter === group ? 'border-[#245071] bg-[#113149] text-[#62cbff]' : 'border-[#1a2d3d] bg-[#08131c] text-[#71869a]'}`}>{group}</button>)}</div>{renderMarkets(false)}</>}
           {type === 'watchlist' && renderMarkets(true)}
-          {type === 'notifications' && <div className="space-y-2"><button type="button" onClick={() => trigger('Price alerts')} className="w-full rounded-xl border border-[#1a2e3e] bg-[#0a151f] p-3 text-left"><div className="flex items-start gap-2"><Bell size={16} className="mt-0.5 text-[#55c7ff]"/><div><b className="text-[11px] text-[#edf3f7]">Price alert ready</b><p className="mt-1 text-[9px] leading-4 text-[#73869a]">Tap to open the frontend alert state.</p></div></div></button><button type="button" onClick={() => trigger('Risk notifications')} className="w-full rounded-xl border border-[#1a2e3e] bg-[#0a151f] p-3 text-left"><div className="flex items-start gap-2"><ShieldCheck size={16} className="mt-0.5 text-[#42d7a2]"/><div><b className="text-[11px] text-[#edf3f7]">Risk status</b><p className="mt-1 text-[9px] leading-4 text-[#73869a]">Pre-trade challenge risk is now shown beside the ticket.</p></div></div></button></div>}
-          {type === 'profile' && <div className="space-y-2"><div className="flex items-center gap-3 rounded-2xl border border-[#1a2d3d] bg-[#0a151f] p-3"><div className="grid size-11 place-items-center rounded-full bg-[#10283a] text-[#67ccff]"><UserRound size={21}/></div><div><b className="text-[12px] text-[#f0f5f9]">{account.accountCode || 'Trading account'}</b><p className="mt-1 text-[9px] text-[#718398]">{account.accountType || 'ACG Trader'} · {account.status || 'UNKNOWN'}</p></div></div>{actionRows([['Account settings', Settings], ['Trading preferences', Activity], ['Help & support', HelpCircle]])}</div>}
+          {type === 'notifications' && <div className="space-y-2"><div className="rounded-xl border border-[#1a2e3e] bg-[#0a151f] p-3"><div className="flex items-start gap-2"><Bell size={16} className="mt-0.5 text-[#55c7ff]"/><div><b className="text-[11px] text-[#edf3f7]">Terminal alerts</b><p className="mt-1 text-[9px] leading-4 text-[#73869a]">Execution, connection and market-state alerts appear automatically while you trade.</p></div></div></div><div className="rounded-xl border border-[#1a2e3e] bg-[#0a151f] p-3"><div className="flex items-start gap-2"><ShieldCheck size={16} className="mt-0.5 text-[#42d7a2]"/><div><b className="text-[11px] text-[#edf3f7]">Risk alerts</b><p className="mt-1 text-[9px] leading-4 text-[#73869a]">Challenge limits and exposure blocks are shown beside the order ticket.</p></div></div></div></div>}
+          {type === 'profile' && <div className="space-y-2"><div className="flex items-center gap-3 rounded-2xl border border-[#1a2d3d] bg-[#0a151f] p-3"><div className="grid size-11 place-items-center rounded-full bg-[#10283a] text-[#67ccff]"><UserRound size={21}/></div><div className="min-w-0"><b className="block truncate text-[12px] text-[#f0f5f9]">{account.accountCode || 'Trading account'}</b><p className="mt-1 text-[9px] text-[#718398]">{account.accountType || 'ACG Trader'} · {account.status || 'UNKNOWN'}</p></div></div><div className="grid grid-cols-2 gap-2"><Pref label="Currency" value={account.currency || 'USD'}/><Pref label="Leverage" value={account.leverage ? `1:${account.leverage}` : '—'}/><Pref label="Valuation" value={account.valuationStatus || 'Waiting'}/><Pref label="Trading" value={account.tradingEnabled === false ? 'Disabled' : 'Enabled'}/></div></div>}
           {type === 'indicators' && <IndicatorManager applied={indicators} favorites={indicatorFavorites} onAdd={onAddIndicator} onRemove={onRemoveIndicator} onToggleVisible={onToggleIndicator} onUpdate={onUpdateIndicator} onToggleFavorite={onToggleIndicatorFavorite} />}
-          {type === 'history' && <div className="grid h-40 place-items-center text-center"><button type="button" onClick={() => trigger('Trade history')} className="rounded-2xl px-6 py-5"><Clock3 size={24} className="mx-auto text-[#526b80]"/><b className="mt-3 block text-[11px] text-[#a8b7c5]">History is in the terminal panel</b><p className="mt-1 text-[9px] text-[#62768a]">Closed positions and the execution journal now update locally.</p></button></div>}
+          {type === 'history' && <div className="grid h-40 place-items-center text-center"><div className="rounded-2xl px-6 py-5"><Clock3 size={24} className="mx-auto text-[#526b80]"/><b className="mt-3 block text-[11px] text-[#a8b7c5]">History is available from the History tab</b><p className="mt-1 text-[9px] text-[#62768a]">Executed deals, orders and this browser session are shown there.</p></div></div>}
           {type === 'more' && (
             <div className="space-y-4">
               <section>
@@ -104,12 +107,10 @@ export default function FrontendSheet({
               <section className="rounded-2xl border border-[#193143] bg-[#08131c] p-3">
                 <div className="flex items-center gap-2"><Settings size={14} className="text-[#7d91a5]"/><b className="text-[10px] text-[#dbe5ed]">Saved terminal preferences</b></div>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-[8px]"><Pref label="Timeframe" value={terminalPrefs.timeframe || '1m'}/><Pref label="Chart" value={terminalPrefs.chartMode || 'candles'}/><Pref label="Sizing" value={terminalPrefs.sizingMode || 'lots'}/><Pref label="Risk" value={`${Number(terminalPrefs.riskPercent || 0.5).toFixed(2)}%`}/><Pref label="Lots" value={Number(terminalPrefs.lots || 0.1).toFixed(2)}/><Pref label="Order" value={terminalPrefs.orderType || 'market'}/></div>
-              </section>
-
-              {actionRows([['Favorites', Star], ['Platform status', Activity], ['Help', HelpCircle]])}
-            </div>
+              </section></div>
           )}
-        </div>
+           {type === 'help' && <div className="space-y-2"><div className="rounded-2xl border border-[#1a2d3d] bg-[#0a151f] p-4"><b className="text-[11px] text-[#edf3f7]">Trading help</b><p className="mt-2 text-[9px] leading-4 text-[#71869a]">Use Search to find markets, Chart to place and manage trades, Trade for positions and orders, and History for completed activity.</p></div><div className="rounded-2xl border border-[#1a2d3d] bg-[#0a151f] p-4"><b className="text-[11px] text-[#edf3f7]">Account or challenge support</b><p className="mt-2 text-[9px] leading-4 text-[#71869a]">Account, payment and challenge support is handled from your ACG Funded account.</p></div></div>}
+       </div>
       </section>
     </div>
   );
