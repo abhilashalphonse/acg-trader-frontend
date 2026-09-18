@@ -30,6 +30,7 @@ function displaySymbol(symbol = '') {
 }
 
 function money(value, currency = 'USD') {
+  if (value === null || value === undefined || value === '') return '—';
   const number = Number(value);
   if (!Number.isFinite(number)) return '—';
   try {
