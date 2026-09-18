@@ -72,9 +72,22 @@ export default function PositionsPanel({
     const raw = position[field];
     const current = raw === null || raw === undefined || raw === '' ? NaN : Number(raw);
     const entry = Number(position.entry);
-    const base = Number.isFinite(current) && current > 0 ? current : entry;
-    const step = pipStep(entry);
-    onUpdatePosition(position.id, { [field]: base + direction * step });
+    const executable = Number(position.closePrice);
+    const reference = Number.isFinite(executable) && executable > 0 ? executable : entry;
+    const step = pipStep(reference);
+
+    // For the first protection value, start on the valid side of the
+    // executable market price instead of the historical entry price.
+    if (!Number.isFinite(current) || current <= 0) {
+      const isBuy = String(position.side).toUpperCase() === 'BUY';
+      const offset = field === 'sl'
+        ? (isBuy ? -step : step)
+        : (isBuy ? step : -step);
+      onUpdatePosition(position.id, { [field]: reference + offset });
+      return;
+    }
+
+    onUpdatePosition(position.id, { [field]: current + direction * step });
   };
 
   const applyCustomClose = position => {
