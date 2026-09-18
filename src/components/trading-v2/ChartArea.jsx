@@ -104,7 +104,6 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument }) {
   const entryY = yFor('entry');
   const slY = yFor('sl');
   const tpY = yFor('tp');
-  const limitY = yFor('limitPrice');
   const rewardTop = entryY != null && tpY != null ? Math.min(entryY, tpY) : null;
   const rewardHeight = entryY != null && tpY != null ? Math.abs(entryY - tpY) : 0;
   const riskTop = entryY != null && slY != null ? Math.min(entryY, slY) : null;
