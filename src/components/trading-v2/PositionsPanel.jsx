@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import { formatInstrumentPrice, instrumentForSymbol, instrumentPipSize } from '../../utils/instrumentFormatting.js';
+import InstrumentAvatar from './InstrumentAvatar.jsx';
 
 const tabs = [
   { id: 'positions', label: 'Positions' },
@@ -153,6 +154,7 @@ export default function PositionsPanel({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex min-w-0 items-center gap-2">
+                        <InstrumentAvatar instrument={instrumentForSymbol(markets, position.symbol)} size={24}/>
                         <strong className="truncate text-[13px] font-black tracking-[-0.025em] text-[#f0f5f9]">{formatSymbol(position.symbol)}</strong>
                         <span className={`rounded-md px-1.5 py-1 text-[7px] font-black leading-none ${sideBuy ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{position.side}</span>
                         {position.trailingEnabled && <span className="rounded-md border border-[#25445a] bg-[#0c2230] px-1.5 py-1 text-[7px] font-bold text-[#5bc8ff]">TRAIL {position.trailingPips}p</span>}
@@ -214,7 +216,7 @@ export default function PositionsPanel({
           {pendingOrders.map(order => (
             <div key={order.id} className="rounded-xl border border-[#142533] bg-[#08121b] px-3 py-2.5">
               <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0"><div className="flex items-center gap-1.5"><strong className="truncate text-[11px] text-[#f0f5f9]">{formatSymbol(order.symbol || 'Current symbol')}</strong><span className={`rounded-md px-1.5 py-1 text-[7px] font-black ${order.side === 'buy' ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{String(order.side).toUpperCase()} {String(order.orderType).toUpperCase()}</span></div><p className="mt-1 text-[8px] text-[#718398]">{Number(order.lots || 0).toFixed(2)} lots · Entry {formatInstrumentPrice(order.entry, instrumentForSymbol(markets, order.symbol))} · {order.expiration}</p></div>
+                <div className="min-w-0"><div className="flex items-center gap-1.5"><InstrumentAvatar instrument={instrumentForSymbol(markets, order.symbol)} size={22}/><strong className="truncate text-[11px] text-[#f0f5f9]">{formatSymbol(order.symbol || 'Current symbol')}</strong><span className={`rounded-md px-1.5 py-1 text-[7px] font-black ${order.side === 'buy' ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{String(order.side).toUpperCase()} {String(order.orderType).toUpperCase()}</span></div><p className="mt-1 text-[8px] text-[#718398]">{Number(order.lots || 0).toFixed(2)} lots · Entry {formatInstrumentPrice(order.entry, instrumentForSymbol(markets, order.symbol))} · {order.expiration}</p></div>
                 <div className="flex shrink-0 items-center gap-1"><button type="button" onClick={() => onModifyPending(order.id)} className="grid size-8 place-items-center rounded-lg border border-[#203747] bg-[#0b1822] text-[#8fa5b8]" aria-label="Modify pending order"><SlidersHorizontal size={13}/></button><button type="button" onClick={() => onCancelPending(order.id)} className="grid size-8 place-items-center rounded-lg border border-[#5b2931] bg-[#251217] text-[#ff7480]" aria-label="Cancel pending order"><X size={13}/></button></div>
               </div>
               <div className="mt-2 grid grid-cols-3 gap-1.5 text-[8px]"><div className="rounded-lg bg-[#0a151f] px-2 py-1.5 text-[#718398]">SL <b className="ml-1 text-[#c9d5de]">{formatInstrumentPrice(order.sl, instrumentForSymbol(markets, order.symbol))}</b></div><div className="rounded-lg bg-[#0a151f] px-2 py-1.5 text-[#718398]">TP <b className="ml-1 text-[#c9d5de]">{formatInstrumentPrice(order.tp, instrumentForSymbol(markets, order.symbol))}</b></div><div className="rounded-lg bg-[#0a151f] px-2 py-1.5 text-[#718398]">Status <b className="ml-1 text-[#5bc8ff]">Pending</b></div></div>
@@ -226,7 +228,7 @@ export default function PositionsPanel({
 
       {tab === 'history' && (
         <div className="space-y-1.5 p-2">
-          {!positionHistory.length ? <div className="grid h-[122px] place-items-center text-[10px] font-medium text-[#607387]">Closed positions will appear here</div> : positionHistory.map((item, index) => <div key={`${item.id}-${index}`} className="flex items-center justify-between rounded-xl border border-[#142533] bg-[#08121b] px-3 py-2.5"><div><div className="flex items-center gap-1.5"><strong className="text-[11px] text-[#f0f5f9]">{formatSymbol(item.symbol)}</strong><span className="rounded-md bg-[#101f2a] px-1.5 py-1 text-[7px] font-bold text-[#7f95a8]">{item.closeType || 'Closed'}</span></div><p className="mt-1 text-[8px] text-[#63758a]">{item.side} · {Number(item.volume).toFixed(2)} lots · {item.closedAt}</p></div><b className={`text-[11px] ${Number(item.pnl) >= 0 ? 'text-[#31d79d]' : 'text-[#ff6975]'}`}>{formatPnl(item.pnl)}</b></div>)}
+          {!positionHistory.length ? <div className="grid h-[122px] place-items-center text-[10px] font-medium text-[#607387]">Closed positions will appear here</div> : positionHistory.map((item, index) => <div key={`${item.id}-${index}`} className="flex items-center justify-between rounded-xl border border-[#142533] bg-[#08121b] px-3 py-2.5"><div><div className="flex items-center gap-1.5"><InstrumentAvatar instrument={instrumentForSymbol(markets, item.symbol)} size={22}/><strong className="text-[11px] text-[#f0f5f9]">{formatSymbol(item.symbol)}</strong><span className="rounded-md bg-[#101f2a] px-1.5 py-1 text-[7px] font-bold text-[#7f95a8]">{item.closeType || 'Closed'}</span></div><p className="mt-1 text-[8px] text-[#63758a]">{item.side} · {Number(item.volume).toFixed(2)} lots · {item.closedAt}</p></div><b className={`text-[11px] ${Number(item.pnl) >= 0 ? 'text-[#31d79d]' : 'text-[#ff6975]'}`}>{formatPnl(item.pnl)}</b></div>)}
         </div>
       )}
 
