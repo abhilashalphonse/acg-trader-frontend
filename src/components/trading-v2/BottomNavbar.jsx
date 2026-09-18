@@ -28,7 +28,6 @@ export default function BottomNavbar({ active = 'chart', onChange = () => {} }) 
           );
         })}
       </div>
-      <div className="pointer-events-none mx-auto mt-1 h-1 w-28 rounded-full bg-white/90" />
     </nav>
   );
 }
