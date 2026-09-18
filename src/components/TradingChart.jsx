@@ -25,14 +25,6 @@ function volumeForBar(bar) {
   return Number.isFinite(bar.volume) && bar.volume > 0 ? bar.volume : 0;
 }
 function toSeriesPoint(bar, mode) { return mode === 'line' ? { time: bar.time, value: bar.close } : bar; }
-function priceFormatForInstrument(instrument) {
-  return {
-    type: 'price',
-    precision: instrumentDigits(instrument),
-    minMove: instrumentTickSize(instrument),
-  };
-}
-
 function indicatorLabel(indicator) {
   const settings = indicator.settings || {};
   if (indicator.id === 'ema') return `EMA ${settings.period || 20}`;
