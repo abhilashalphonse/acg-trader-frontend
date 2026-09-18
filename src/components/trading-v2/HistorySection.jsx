@@ -1,14 +1,18 @@
 import React, { useMemo, useState } from 'react';
 import { Check, ChevronDown, Share2 } from 'lucide-react';
 import { useDurableTradingHistory } from '../../hooks/useDurableTradingHistory.js';
+import { formatInstrumentPrice, instrumentForSymbol } from '../../utils/instrumentFormatting.js';
 
-function money(value, signed = false) {
+function money(value, currency = 'USD', signed = false) {
   const number = Number(value);
   if (!Number.isFinite(number)) return '—';
-  const sign = signed && number > 0 ? '+' : '';
-  return `${sign}${number < 0 ? '-' : ''}$${Math.abs(number).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  try {
+    const formatted = new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(number));
+    return `${number < 0 ? '-' : signed && number > 0 ? '+' : ''}${formatted}`;
+  } catch {
+    return `${number < 0 ? '-' : signed && number > 0 ? '+' : ''}${Math.abs(number).toFixed(2)} ${currency}`;
+  }
 }
-function price(value) { const number = Number(value); if (!Number.isFinite(number)) return '—'; return number.toFixed(Math.abs(number) > 100 ? 2 : 5); }
 function symbolLabel(symbol = '') { if (symbol.includes('/')) return symbol; return /^[A-Z]{6}$/.test(symbol) ? `${symbol.slice(0, 3)}/${symbol.slice(3)}` : symbol; }
 function sideTone(side) { return String(side).toUpperCase() === 'BUY' ? 'bg-[#0d3328] text-[#43d9a6]' : 'bg-[#351820] text-[#ff717d]'; }
 function eventDate(item) { return item?.executedAt || item?.closedAt || item?.filledAt || item?.cancelledAt || item?.expiredAt || item?.rejectedAt || item?.updatedAt || item?.createdAt || item?.receivedAt; }
@@ -43,7 +47,7 @@ function normalizeDeal(deal) {
   };
 }
 
-export default function HistorySection({ positionHistory = [], journal = [], onOpenChart = () => {}, onNotice = () => {} }) {
+export default function HistorySection({ positionHistory = [], journal = [], markets = [], accountCurrency = 'USD', onOpenChart = () => {}, onNotice = () => {} }) {
   const durable = useDurableTradingHistory();
   const [tab, setTab] = useState('deals');
   const [period, setPeriod] = useState('Recent');
@@ -68,7 +72,7 @@ export default function HistorySection({ positionHistory = [], journal = [], onO
   }, [filteredDeals]);
 
   const shareSummary = async () => {
-    const text = `ACG Trader · ${period}\nRealized P&L ${money(stats.realized, true)}\n${filteredDeals.length} closing deals · ${stats.wins} wins · ${stats.losses} losses`;
+    const text = `ACG Trader · ${period}\nRealized P&L ${money(stats.realized, accountCurrency, true)}\n${filteredDeals.length} closing deals · ${stats.wins} wins · ${stats.losses} losses`;
     try {
       if (navigator.share) await navigator.share({ title: 'ACG Trader performance', text });
       else if (navigator.clipboard) { await navigator.clipboard.writeText(text); onNotice('Performance summary copied'); }
@@ -100,16 +104,16 @@ export default function HistorySection({ positionHistory = [], journal = [], onO
       {tab === 'deals' && <>
         <div className="mt-4 rounded-[22px] border border-[#193044] bg-[linear-gradient(145deg,#0d1e2b,#08131d_65%)] p-4 shadow-[0_18px_50px_rgba(0,0,0,.22)]">
           <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-[#62788c]">Realized P&amp;L · {period}</p>
-          <strong className={`mt-1.5 block text-[30px] font-black tracking-[-0.05em] ${stats.realized >= 0 ? 'text-[#43d9a6]' : 'text-[#ff6f7a]'}`}>{money(stats.realized, true)}</strong>
+          <strong className={`mt-1.5 block text-[30px] font-black tracking-[-0.05em] ${stats.realized >= 0 ? 'text-[#43d9a6]' : 'text-[#ff6f7a]'}`}>{money(stats.realized, accountCurrency, true)}</strong>
           <div className="mt-4 grid grid-cols-3 gap-2 border-t border-[#173044] pt-3"><SummaryStat label="Deals" value={filteredDeals.length}/><SummaryStat label="W / L" value={`${stats.wins} / ${stats.losses}`}/><SummaryStat label="Volume" value={`${stats.lots.toFixed(2)} lots`}/></div>
-          {stats.commission !== 0 && <div className="mt-3 text-[8px] text-[#667b90]">Commission <b className="text-[#a8b6c2]">{money(stats.commission)}</b></div>}
+          {stats.commission !== 0 && <div className="mt-3 text-[8px] text-[#667b90]">Commission <b className="text-[#a8b6c2]">{money(stats.commission, accountCurrency)}</b></div>}
         </div>
         <div className="mt-4 space-y-2">
           {!filteredDeals.length && <Empty title="No matching closing deals" subtitle="Executed closing deals will appear here." />}
           {filteredDeals.map(deal => {
             const expanded = expandedId === deal.id;
             const positive = Number(deal.pnl) >= 0;
-            return <article key={deal.id} className="overflow-hidden rounded-[18px] border border-[#172b3a] bg-[#08131c]"><button type="button" onClick={() => setExpandedId(expanded ? null : deal.id)} className="w-full px-3.5 py-3 text-left"><div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2"><strong className="text-[12px] font-black text-[#f0f5f8]">{symbolLabel(deal.symbol)}</strong><span className={`rounded-md px-1.5 py-1 text-[7px] font-black ${sideTone(deal.side)}`}>{String(deal.side).toUpperCase()} · {Number(deal.volume).toFixed(2)}</span></div><p className="mt-2 text-[8px] text-[#5f7488]">{deal.closedAt || 'Executed'} · {deal.closeType || 'CLOSE'}</p></div><b className={`text-[15px] font-black ${positive ? 'text-[#43d9a6]' : 'text-[#ff6f7a]'}`}>{money(deal.pnl, true)}</b></div></button>{expanded && <div className="border-t border-[#152938] bg-[#07111a] p-3.5"><div className="grid grid-cols-2 gap-3"><Detail label="Execution" value={price(deal.closePrice ?? deal.entry)}/><Detail label="Commission" value={money(deal.commission || 0)}/><Detail label="Swap" value={money(deal.swap || 0)}/><Detail label="Type" value={deal.closeType || 'CLOSE'}/></div><button type="button" onClick={() => onOpenChart(deal.symbol)} className="mt-3 h-10 w-full rounded-xl border border-[#21445b] bg-[#0c2230] text-[9px] font-bold text-[#62cbff]">View on Chart</button></div>}</article>;
+            return <article key={deal.id} className="overflow-hidden rounded-[18px] border border-[#172b3a] bg-[#08131c]"><button type="button" onClick={() => setExpandedId(expanded ? null : deal.id)} className="w-full px-3.5 py-3 text-left"><div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2"><strong className="text-[12px] font-black text-[#f0f5f8]">{symbolLabel(deal.symbol)}</strong><span className={`rounded-md px-1.5 py-1 text-[7px] font-black ${sideTone(deal.side)}`}>{String(deal.side).toUpperCase()} · {Number(deal.volume).toFixed(2)}</span></div><p className="mt-2 text-[8px] text-[#5f7488]">{deal.closedAt || 'Executed'} · {deal.closeType || 'CLOSE'}</p></div><b className={`text-[15px] font-black ${positive ? 'text-[#43d9a6]' : 'text-[#ff6f7a]'}`}>{money(deal.pnl, accountCurrency, true)}</b></div></button>{expanded && <div className="border-t border-[#152938] bg-[#07111a] p-3.5"><div className="grid grid-cols-2 gap-3"><Detail label="Execution" value={formatInstrumentPrice(deal.closePrice ?? deal.entry, instrumentForSymbol(markets, deal.symbol))}/><Detail label="Commission" value={money(deal.commission || 0, accountCurrency)}/><Detail label="Swap" value={money(deal.swap || 0, accountCurrency)}/><Detail label="Type" value={deal.closeType || 'CLOSE'}/></div><button type="button" onClick={() => onOpenChart(deal.symbol)} className="mt-3 h-10 w-full rounded-xl border border-[#21445b] bg-[#0c2230] text-[9px] font-bold text-[#62cbff]">View on Chart</button></div>}</article>;
           })}
         </div>
       </>}
