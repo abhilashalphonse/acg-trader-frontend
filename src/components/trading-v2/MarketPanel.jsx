@@ -39,6 +39,7 @@ export default function MarketPanel({
       />
       <ChartArea
         symbol={market.symbol}
+        instrument={market}
         chartTimeframe={mapTimeframe(timeframe)}
         tick={tick}
         price={market.bid}
