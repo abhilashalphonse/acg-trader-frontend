@@ -98,6 +98,7 @@ export default function TradingTerminalV2({
   markets = [],
   activeSymbol = market?.symbol,
   onSelectSymbol = () => {},
+  watchlists = null,
 }) {
   const shellRef = useRef(null);
   const nativeFullscreenRequestedRef = useRef(false);
@@ -112,7 +113,8 @@ export default function TradingTerminalV2({
   const [chartMode, setChartMode] = useState(prefsRef.current.chartMode || 'candles');
   const [selectedTool, setSelectedTool] = useState('cursor');
   const [activeNav, setActiveNav] = useState('trade');
-  const [favorite, setFavorite] = useState(true);
+  const favorite = watchlists?.isWatched?.(activeSymbol) === true;
+  const setFavorite = () => watchlists?.toggleSymbol?.(activeSymbol);
   const [chartFocus, setChartFocus] = useState(false);
   const [lots, setLots] = useState(Number(prefsRef.current.lots) || 0.10);
   const [sizingMode, setSizingMode] = useState(prefsRef.current.sizingMode || 'lots');
@@ -558,6 +560,7 @@ export default function TradingTerminalV2({
           markets={markets}
           activeSymbol={activeSymbol}
           onSelectSymbol={onSelectSymbol}
+          watchlists={watchlists}
           positions={positions}
           positionHistory={positionHistory}
           pendingOrders={pendingOrders}
@@ -602,7 +605,7 @@ export default function TradingTerminalV2({
           exposureBlockReason={exposure.reason}
         />
         <ExecutionStatus event={executionEvent} instrument={market} onDismiss={() => setExecutionEvent(null)} />
-        {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} onSelectSymbol={symbol => { onSelectSymbol(symbol); setOverlay(null); }} {...indicatorSheetProps} />}
+        {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} watchlists={watchlists} onSelectSymbol={symbol => { onSelectSymbol(symbol); setOverlay(null); }} {...indicatorSheetProps} />}
       </>
     );
   }
@@ -648,7 +651,7 @@ export default function TradingTerminalV2({
         ) : (
           <>
             {activeNav === 'watchlist' ? (
-              <WatchlistSection markets={markets} activeSymbol={activeSymbol} onOpenTrade={openTradeFromWatchlist} onAddInstrument={() => setOverlay('search')} />
+              <WatchlistSection markets={markets} activeSymbol={activeSymbol} onOpenTrade={openTradeFromWatchlist} onAddInstrument={() => setOverlay('search')} watchlists={watchlists} />
             ) : (
               <>
                 <TopBar balance={`${account.currency === 'EUR' ? '€' : '$'}${Number(account.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} live={trading.connection.status === 'ready'} onSearch={() => setOverlay('search')} onNotifications={() => setOverlay('notifications')} onProfile={() => setOverlay('profile')} />
