@@ -173,7 +173,7 @@ export default function ChartArea({
         <TradingChart symbol={symbol} timeframe={chartTimeframe} tick={tick} chartMode={chartMode} bidPrice={price} askPrice={ask} indicators={indicators} onCoordinateApi={setCoordinateApi} />
         <DrawingLayer symbol={symbol} timeframe={chartTimeframe} tool={selectedTool} onToolChange={onSelectTool} disabled={Boolean(tradePlan)} coordinateApi={coordinateApi} />
         <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} />
-        {!tradePlan && !embedded && <div className="pointer-events-none absolute right-0 top-[31%] z-10 flex -translate-y-1/2 flex-col items-end"><span className="rounded-l-md bg-[#22a77d] px-2 py-1 text-[10px] font-extrabold leading-none text-[#e9fff8] shadow-[0_0_14px_rgba(34,167,125,0.18)]">{formattedPrice}</span><small className="mt-0.5 rounded-bl bg-[#16684f] px-2 py-0.5 text-[8px] font-semibold leading-none text-[#a6e7cf]">{formatCountdown(remaining)}</small></div>}
+        {!tradePlan && !embedded && <div className="pointer-events-none absolute bottom-1 right-[74px] z-10 rounded bg-[#08111a]/80 px-1.5 py-0.5 text-[8px] font-semibold tabular-nums text-[#6f8295] backdrop-blur-sm">{formatCountdown(remaining)}</div>}
       </div>
     </div>
   );
