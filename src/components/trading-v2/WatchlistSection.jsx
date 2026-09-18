@@ -1,31 +1,45 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowDownUp, ChevronDown, Plus, Search, Star, X } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  Check,
+  ChevronDown,
+  GripVertical,
+  Pencil,
+  Plus,
+  Star,
+  Trash2,
+} from 'lucide-react';
 import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
 
-function displaySymbol(symbol = '') {
+function displaySymbol(item) {
+  const symbol = item?.displaySymbol || item?.symbol || '';
   if (symbol.includes('/')) return symbol;
   if (/^[A-Z]{6}$/.test(symbol)) return `${symbol.slice(0, 3)}/${symbol.slice(3)}`;
-  return symbol;
-}
-
-function marketName(item) {
-  return item?.name || item?.displaySymbol || displaySymbol(item?.symbol);
+  return symbol || '—';
 }
 
 function numericChange(value) {
-  const parsed = Number.parseFloat(String(value ?? '').replace('%', '').replace('+', ''));
-  return Number.isFinite(parsed) ? parsed : 0;
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number.parseFloat(String(value).replace('%', '').replace('+', ''));
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
-function marketGroup(item) {
-  const assetClass = String(item?.assetClass || '').toUpperCase();
-  if (assetClass === 'FOREX') return 'Forex';
-  if (assetClass === 'METAL') return 'Metals';
-  if (assetClass === 'INDEX') return 'Indices';
-  if (assetClass === 'EQUITY') return 'Stocks';
-  if (assetClass === 'CRYPTO') return 'Crypto';
-  if (assetClass === 'ENERGY' || assetClass === 'OTHER') return 'Commodities';
-  return 'Other';
+function changeLabel(value) {
+  const change = numericChange(value);
+  if (change === null) return '—';
+  return `${change > 0 ? '+' : ''}${change.toFixed(2)}%`;
+}
+
+function marketStatus(item) {
+  if (item?.sessionOpen === false) return { label: 'CLOSED', className: 'text-[#8a9bab]', dot: 'bg-[#627486]' };
+  if (item?.live === true) return { label: 'LIVE', className: 'text-[#42d9a5]', dot: 'bg-[#42d9a5]' };
+  if (item?.isStale === true) return { label: 'STALE', className: 'text-[#e8c35f]', dot: 'bg-[#e8c35f]' };
+
+  const state = String(item?.marketState || 'WAITING').toUpperCase();
+  if (state === 'SUBSCRIPTION_ERROR' || state === 'ERROR') return { label: 'ERROR', className: 'text-[#ff7882]', dot: 'bg-[#ff7882]' };
+  if (state === 'DISCONNECTED') return { label: 'OFFLINE', className: 'text-[#ff7882]', dot: 'bg-[#ff7882]' };
+  return { label: state === 'WAITING' ? 'WAITING' : state, className: 'text-[#71869a]', dot: 'bg-[#60758a]' };
 }
 
 export default function WatchlistSection({
@@ -35,85 +49,220 @@ export default function WatchlistSection({
   onAddInstrument = () => {},
   watchlists = null,
 }) {
-  const [query, setQuery] = useState('');
-  const [scope, setScope] = useState('watchlist');
-  const [sort, setSort] = useState('symbol');
-  const [sortOpen, setSortOpen] = useState(false);
   const [listOpen, setListOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draggedSymbol, setDraggedSymbol] = useState(null);
 
   const workspace = watchlists?.workspace || { activeListId: 'favorites', lists: [] };
   const activeList = watchlists?.activeList || { id: 'favorites', name: 'Favorites', symbols: [] };
-  const favorites = useMemo(() => new Set(activeList.symbols || []), [activeList.symbols]);
 
-  const rows = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    let list = markets.filter(item => {
-      const searchable = `${item.symbol} ${item.displaySymbol || ''} ${marketName(item)} ${marketGroup(item)} ${item.assetClass || ''}`.toLowerCase();
-      return !q || searchable.includes(q);
-    });
-    if (scope === 'watchlist') list = list.filter(item => favorites.has(item.symbol));
-    return [...list].sort((a, b) => {
-      if (sort === 'change') return Math.abs(numericChange(b.change)) - Math.abs(numericChange(a.change));
-      if (sort === 'spread') return Math.abs(Number(a.ask) - Number(a.bid)) - Math.abs(Number(b.ask) - Number(b.bid));
-      return String(a.symbol).localeCompare(String(b.symbol));
-    });
-  }, [favorites, markets, query, scope, sort]);
+  const marketBySymbol = useMemo(
+    () => new Map(markets.map(item => [item.symbol, item])),
+    [markets],
+  );
+
+  const rows = useMemo(
+    () => (activeList.symbols || []).map(symbol => marketBySymbol.get(symbol)).filter(Boolean),
+    [activeList.symbols, marketBySymbol],
+  );
 
   const createList = () => {
     const name = window.prompt('Watchlist name', 'New Watchlist')?.trim();
     if (!name) return;
     watchlists?.createList?.(name);
-    setScope('watchlist');
+    setEditing(false);
     setListOpen(false);
   };
 
-  const watchedMarkets = markets.filter(item => favorites.has(item.symbol));
-  const gainers = watchedMarkets.filter(item => numericChange(item.change) > 0).length;
-  const losers = watchedMarkets.filter(item => numericChange(item.change) < 0).length;
+  const dropOn = targetSymbol => {
+    if (!draggedSymbol || draggedSymbol === targetSymbol) return;
+    watchlists?.moveSymbol?.(draggedSymbol, targetSymbol);
+    setDraggedSymbol(null);
+  };
 
   return (
-    <section className="min-h-[calc(100dvh-98px)] px-3 pb-5 pt-2">
-      <header className="pb-3 pt-1">
-        <div className="flex items-start justify-between gap-3">
-          <div><p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#5e7489]">Markets</p><h1 className="mt-1 text-[26px] font-black tracking-[-0.045em] text-[#f5f8fb]">Watchlist</h1><p className="mt-1 text-[10px] text-[#6f8296]">Your saved markets, shared across desktop and mobile.</p></div>
-          <button type="button" onClick={onAddInstrument} className="mt-1 flex h-10 items-center gap-1.5 rounded-xl border border-[#234258] bg-[#0c2130] px-3 text-[10px] font-extrabold text-[#64c9ff] shadow-[inset_0_1px_rgba(255,255,255,.03)]"><Plus size={15} /> Add</button>
+    <section className="min-h-[calc(100dvh-98px)] px-3 pb-5 pt-3">
+      <header className="flex items-start justify-between gap-3 pb-4">
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#5e7489]">Markets</p>
+          <h1 className="mt-1 text-[26px] font-black tracking-[-0.045em] text-[#f5f8fb]">Watchlist</h1>
+          <p className="mt-1 text-[10px] text-[#6f8296]">Fast access to the markets you actually trade.</p>
         </div>
+        <button
+          type="button"
+          onClick={onAddInstrument}
+          className="mt-1 flex h-10 items-center gap-1.5 rounded-xl border border-[#234258] bg-[#0c2130] px-3 text-[10px] font-extrabold text-[#64c9ff] shadow-[inset_0_1px_rgba(255,255,255,.03)]"
+        >
+          <Plus size={15} /> Add
+        </button>
       </header>
 
-      <div className="grid grid-cols-3 gap-2 pb-3"><Stat label="Watching" value={activeList.symbols.length} /><Stat label="Up" value={gainers} positive /><Stat label="Down" value={losers} negative /></div>
+      <div className="relative mb-3">
+        <button
+          type="button"
+          onClick={() => setListOpen(value => !value)}
+          className="flex h-9 items-center gap-2 rounded-lg px-1.5 text-left text-[#d5e0e9] hover:bg-white/[0.025]"
+        >
+          <Star size={13} className="text-[#f6c85c]" fill="currentColor" />
+          <span className="text-[10px] font-bold">{activeList.name}</span>
+          <span className="text-[8px] text-[#60758a]">{activeList.symbols.length}</span>
+          <ChevronDown size={11} className="text-[#60758a]" />
+        </button>
 
-      <div className="sticky top-0 z-20 -mx-1 bg-[#050b12]/95 px-1 pb-2 pt-1 backdrop-blur-xl">
-        <div className="flex h-11 items-center gap-2 rounded-[14px] border border-[#1a2d3d] bg-[#09141e] px-3 shadow-[inset_0_1px_rgba(255,255,255,.02)]"><Search size={16} className="shrink-0 text-[#64798e]" /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search symbol, name or asset class…" className="min-w-0 flex-1 bg-transparent text-[12px] font-semibold text-[#e9f0f5] outline-none placeholder:font-medium placeholder:text-[#52677b]" />{query && <button type="button" onClick={() => setQuery('')} className="grid size-7 place-items-center rounded-lg text-[#71859a] hover:bg-white/[0.04] hover:text-white"><X size={14} /></button>}</div>
-
-        <div className="mt-2 flex items-center gap-2">
-          <div className="relative min-w-0 flex-1">
-            <button type="button" onClick={() => setListOpen(value => !value)} className="flex h-10 w-full items-center justify-between rounded-xl border border-[#192c3c] bg-[#08131d] px-3 text-left"><span className="min-w-0"><b className="block truncate text-[9px] text-[#d9e4ec]">{activeList.name}</b><small className="mt-0.5 block text-[7px] text-[#5d7286]">{activeList.symbols.length} instruments</small></span><ChevronDown size={12} className="text-[#6e8296]"/></button>
-            {listOpen && <div className="absolute left-0 top-12 z-40 w-full min-w-[190px] overflow-hidden rounded-xl border border-[#223544] bg-[#0a151f] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.5)]">{workspace.lists.map(list => <button key={list.id} type="button" onClick={() => { watchlists?.setActiveListId?.(list.id); setScope('watchlist'); setListOpen(false); }} className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[10px] font-semibold ${activeList.id === list.id ? 'bg-[#102c40] text-[#61caff]' : 'text-[#b3c0cc] hover:bg-white/[0.04]'}`}><span>{list.name}</span><span className="text-[7px] text-[#62778b]">{list.symbols.length}</span></button>)}<button type="button" onClick={createList} className="mt-1 flex w-full items-center gap-2 rounded-lg border-t border-[#172938] px-2.5 py-2.5 text-left text-[9px] font-bold text-[#62caff]"><Plus size={12}/>New watchlist</button></div>}
+        {listOpen && (
+          <div className="absolute left-0 top-10 z-40 min-w-[210px] overflow-hidden rounded-xl border border-[#223544] bg-[#0a151f] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.5)]">
+            {workspace.lists.map(list => (
+              <button
+                key={list.id}
+                type="button"
+                onClick={() => {
+                  watchlists?.setActiveListId?.(list.id);
+                  setEditing(false);
+                  setListOpen(false);
+                }}
+                className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[10px] font-semibold ${activeList.id === list.id ? 'bg-[#102c40] text-[#61caff]' : 'text-[#b3c0cc] hover:bg-white/[0.04]'}`}
+              >
+                <span>{list.name}</span>
+                <span className="text-[7px] text-[#62778b]">{list.symbols.length}</span>
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={createList}
+              className="mt-1 flex w-full items-center gap-2 border-t border-[#172938] px-2.5 py-2.5 text-left text-[9px] font-bold text-[#62caff]"
+            >
+              <Plus size={12} /> New watchlist
+            </button>
           </div>
-
-          <div className="flex rounded-xl border border-[#192c3c] bg-[#08131d] p-1"><button type="button" onClick={() => setScope('watchlist')} className={`h-8 rounded-lg px-2.5 text-[8px] font-extrabold transition ${scope === 'watchlist' ? 'bg-[#113149] text-[#62cbff]' : 'text-[#73879b]'}`}>LIST</button><button type="button" onClick={() => setScope('all')} className={`h-8 rounded-lg px-2.5 text-[8px] font-extrabold transition ${scope === 'all' ? 'bg-[#113149] text-[#62cbff]' : 'text-[#73879b]'}`}>ALL</button></div>
-
-          <div className="relative"><button type="button" onClick={() => setSortOpen(value => !value)} className="flex h-10 items-center gap-1.5 rounded-xl border border-[#192c3c] bg-[#08131d] px-2.5 text-[8px] font-bold text-[#8396aa]"><ArrowDownUp size={12} /> {sort === 'symbol' ? 'A–Z' : sort === 'change' ? 'Move' : 'Spread'} <ChevronDown size={10} /></button>{sortOpen && <div className="absolute right-0 top-12 z-40 w-[132px] overflow-hidden rounded-xl border border-[#223544] bg-[#0a151f] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.5)]">{[['symbol', 'A–Z'], ['change', 'Biggest move'], ['spread', 'Tightest spread']].map(([id, label]) => <button key={id} type="button" onClick={() => { setSort(id); setSortOpen(false); }} className={`w-full rounded-lg px-2.5 py-2 text-left text-[10px] font-semibold ${sort === id ? 'bg-[#102c40] text-[#61caff]' : 'text-[#b3c0cc] hover:bg-white/[0.04]'}`}>{label}</button>)}</div>}</div>
-        </div>
+        )}
       </div>
 
-      <div className="mt-1 overflow-hidden rounded-[20px] border border-[#172a39] bg-gradient-to-b from-[#09141d] to-[#071019] shadow-[0_16px_45px_rgba(0,0,0,.22)]">
-        <div className="grid grid-cols-[minmax(0,1fr)_72px_72px_28px] gap-1 border-b border-[#152634] px-3 py-2.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#52677b]"><span>Instrument</span><span className="text-right">Bid</span><span className="text-right">Ask</span><span /></div>
+      <div className="overflow-hidden rounded-[18px] border border-[#172a39] bg-gradient-to-b from-[#09141d] to-[#071019] shadow-[0_16px_45px_rgba(0,0,0,.22)]">
+        {!editing && (
+          <div className="grid grid-cols-[minmax(0,1fr)_70px_70px_52px] gap-1 border-b border-[#152634] px-3 py-2.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#52677b]">
+            <span>Instrument</span>
+            <span className="text-right">Bid</span>
+            <span className="text-right">Ask</span>
+            <span className="text-right">Move</span>
+          </div>
+        )}
 
-        {rows.length ? rows.map(item => {
+        {editing && (
+          <div className="flex items-center justify-between border-b border-[#152634] px-3 py-2.5">
+            <span className="text-[8px] font-bold uppercase tracking-[0.08em] text-[#52677b]">Arrange watchlist</span>
+            <span className="text-[8px] text-[#5f7488]">Drag or use arrows</span>
+          </div>
+        )}
+
+        {rows.length ? rows.map((item, index) => {
           const selected = item.symbol === activeSymbol;
+          const status = marketStatus(item);
           const change = numericChange(item.change);
-          const positive = change >= 0;
-          const watched = favorites.has(item.symbol);
-          const spread = Math.abs(Number(item.ask) - Number(item.bid));
-          const spreadText = Number.isFinite(spread) ? formatInstrumentPrice(spread, item) : '—';
-          return <div key={item.symbol} className={`relative border-b border-[#111f2c] last:border-b-0 ${selected ? 'bg-[#0b2030]' : ''}`}>{selected && <span className="absolute bottom-2 left-0 top-2 w-0.5 rounded-r bg-[#4ac4ff]" />}<div className="grid grid-cols-[minmax(0,1fr)_72px_72px_28px] items-center gap-1 px-3 py-3"><button type="button" onClick={() => onOpenTrade(item.symbol)} className="min-w-0 text-left"><div className="flex items-center gap-2"><div className="grid size-8 shrink-0 place-items-center rounded-[10px] border border-[#1b3040] bg-[#0c1822] text-[9px] font-black text-[#9eb1c3]">{displaySymbol(item.symbol).replace('/', '').slice(0, 2)}</div><div className="min-w-0"><div className="flex items-center gap-1.5"><strong className="truncate text-[12px] font-black tracking-[-0.02em] text-[#eef4f8]">{item.displaySymbol || displaySymbol(item.symbol)}</strong>{item.subscribed && <span className={`rounded-md px-1.5 py-0.5 text-[7px] font-extrabold ${positive ? 'bg-[#0d3228] text-[#43d9a6]' : 'bg-[#351820] text-[#ff707b]'}`}>{positive ? '+' : ''}{item.change ?? '0.00%'}</span>}</div><div className="mt-1 flex items-center gap-1.5 text-[8px] text-[#60758a]"><span className="truncate">{marketName(item)}</span><span className="size-0.5 rounded-full bg-[#40566a]"/><span>{marketGroup(item)}</span></div></div></div></button><button type="button" onClick={() => onOpenTrade(item.symbol)} className="text-right"><strong className="block font-mono text-[10px] text-[#cbd7df]">{formatInstrumentPrice(item.bid, item)}</strong><span className="mt-1 block text-[7px] text-[#5f7387]">{item.subscribed ? `Spread ${spreadText}` : 'Open for quote'}</span></button><button type="button" onClick={() => onOpenTrade(item.symbol)} className="text-right"><strong className="block font-mono text-[10px] text-[#9fb2c2]">{formatInstrumentPrice(item.ask, item)}</strong><span className="mt-1 block text-[7px] text-[#52677a]">Tap to trade</span></button><button type="button" onClick={() => watchlists?.toggleSymbol?.(item.symbol)} aria-label={watched ? `Remove from ${activeList.name}` : `Add to ${activeList.name}`} className={`grid size-7 place-items-center rounded-lg ${watched ? 'text-[#f6c85c]' : 'text-[#50667a] hover:bg-white/[0.04] hover:text-[#f6c85c]'}`}><Star size={15} fill={watched ? 'currentColor' : 'none'} /></button></div></div>;
-        }) : <div className="grid min-h-[240px] place-items-center px-8 text-center"><div><Star size={26} className="mx-auto text-[#466075]"/><strong className="mt-3 block text-[12px] text-[#aebdca]">{scope === 'watchlist' ? `${activeList.name} is empty` : 'No markets found'}</strong><p className="mt-1 text-[9px] leading-4 text-[#62778b]">{scope === 'watchlist' ? 'Browse all markets and star the instruments you want in this list.' : 'Try another symbol, market name or asset class.'}</p>{scope === 'watchlist' && <button type="button" onClick={() => setScope('all')} className="mt-3 rounded-xl border border-[#214057] bg-[#0d2231] px-4 py-2.5 text-[10px] font-bold text-[#61caff]">Browse all markets</button>}</div></div>}
+          const changeClass = change === null
+            ? 'text-[#65798d]'
+            : change > 0
+              ? 'text-[#43d9a6]'
+              : change < 0
+                ? 'text-[#ff707b]'
+                : 'text-[#8fa1b2]';
+
+          if (editing) {
+            return (
+              <div
+                key={item.symbol}
+                draggable
+                onDragStart={() => setDraggedSymbol(item.symbol)}
+                onDragEnd={() => setDraggedSymbol(null)}
+                onDragOver={event => event.preventDefault()}
+                onDrop={() => dropOn(item.symbol)}
+                className={`flex items-center gap-2 border-b border-[#111f2c] px-3 py-2.5 last:border-b-0 ${draggedSymbol === item.symbol ? 'opacity-50' : ''}`}
+              >
+                <GripVertical size={15} className="shrink-0 cursor-grab text-[#53687b]" />
+                <div className="min-w-0 flex-1">
+                  <strong className="block truncate text-[11px] font-black text-[#eaf1f6]">{displaySymbol(item)}</strong>
+                  <span className={`mt-1 flex items-center gap-1.5 text-[7px] font-bold ${status.className}`}>
+                    <span className={`size-1.5 rounded-full ${status.dot}`} />
+                    {status.label}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => watchlists?.moveSymbolBy?.(item.symbol, -1)}
+                  disabled={index === 0}
+                  className="grid size-8 place-items-center rounded-lg text-[#7e92a5] hover:bg-white/[0.04] hover:text-white disabled:opacity-20"
+                  aria-label={`Move ${item.symbol} up`}
+                >
+                  <ArrowUp size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => watchlists?.moveSymbolBy?.(item.symbol, 1)}
+                  disabled={index === rows.length - 1}
+                  className="grid size-8 place-items-center rounded-lg text-[#7e92a5] hover:bg-white/[0.04] hover:text-white disabled:opacity-20"
+                  aria-label={`Move ${item.symbol} down`}
+                >
+                  <ArrowDown size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => watchlists?.removeSymbol?.(item.symbol)}
+                  className="grid size-8 place-items-center rounded-lg text-[#8a6670] hover:bg-[#31151c] hover:text-[#ff7882]"
+                  aria-label={`Remove ${item.symbol} from watchlist`}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            );
+          }
+
+          return (
+            <button
+              key={item.symbol}
+              type="button"
+              onClick={() => onOpenTrade(item.symbol)}
+              className={`relative grid w-full grid-cols-[minmax(0,1fr)_70px_70px_52px] items-center gap-1 border-b border-[#111f2c] px-3 py-3 text-left last:border-b-0 ${selected ? 'bg-[#0b2030]' : 'hover:bg-white/[0.018]'}`}
+            >
+              {selected && <span className="absolute bottom-2 left-0 top-2 w-0.5 rounded-r bg-[#4ac4ff]" />}
+              <span className="min-w-0">
+                <strong className="block truncate text-[11px] font-black tracking-[-0.015em] text-[#edf3f7]">{displaySymbol(item)}</strong>
+                <span className={`mt-1 flex items-center gap-1.5 text-[7px] font-bold ${status.className}`}>
+                  <span className={`size-1.5 rounded-full ${status.dot}`} />
+                  {status.label}
+                </span>
+              </span>
+              <strong className="text-right font-mono text-[10px] font-semibold text-[#cbd7df]">{formatInstrumentPrice(item.bid, item)}</strong>
+              <strong className="text-right font-mono text-[10px] font-semibold text-[#9fb2c2]">{formatInstrumentPrice(item.ask, item)}</strong>
+              <strong className={`text-right font-mono text-[9px] font-bold ${changeClass}`}>{changeLabel(item.change)}</strong>
+            </button>
+          );
+        }) : (
+          <div className="grid min-h-[220px] place-items-center px-8 text-center">
+            <div>
+              <Star size={25} className="mx-auto text-[#466075]" />
+              <strong className="mt-3 block text-[12px] text-[#aebdca]">{activeList.name} is empty</strong>
+              <p className="mt-1 text-[9px] leading-4 text-[#62778b]">Add the markets you trade most. The full 300-market universe stays in Add markets.</p>
+              <button
+                type="button"
+                onClick={onAddInstrument}
+                className="mt-3 rounded-xl border border-[#214057] bg-[#0d2231] px-4 py-2.5 text-[10px] font-bold text-[#61caff]"
+              >
+                Add markets
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {rows.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setEditing(value => !value)}
+          className={`mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-xl border text-[10px] font-bold transition ${editing ? 'border-[#23506e] bg-[#0d2536] text-[#68ccff]' : 'border-[#172a39] bg-[#08131c] text-[#74899d] hover:text-[#b9c8d5]'}`}
+        >
+          {editing ? <Check size={14} /> : <Pencil size={13} />}
+          {editing ? 'Done editing' : 'Edit watchlist'}
+        </button>
+      )}
     </section>
   );
-}
-
-function Stat({ label, value, positive, negative }) {
-  return <div className="rounded-[14px] border border-[#172a39] bg-[#08131c] px-3 py-2.5"><span className="block text-[8px] font-semibold uppercase tracking-[0.08em] text-[#596e82]">{label}</span><strong className={`mt-1 block text-[16px] font-black ${positive ? 'text-[#3cd6a1]' : negative ? 'text-[#ff6874]' : 'text-[#dfe8ef]'}`}>{value}</strong></div>;
 }
