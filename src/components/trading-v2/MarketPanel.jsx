@@ -21,6 +21,7 @@ export default function MarketPanel({
   indicators = [],
   onSelectInstrument = () => {},
   onIndicators = () => {},
+  onCommitProtection = () => {},
 }) {
   return (
     <section className="overflow-hidden rounded-[22px] border border-[#182938] bg-gradient-to-b from-[#0a141e] to-[#071019] shadow-[0_16px_45px_rgba(0,0,0,0.26)]">
@@ -46,6 +47,7 @@ export default function MarketPanel({
         onSelectTool={setSelectedTool}
         tradePlan={tradePlan}
         onTradePlanChange={onTradePlanChange}
+        onCommitProtection={onCommitProtection}
         indicators={indicators}
       />
     </section>
