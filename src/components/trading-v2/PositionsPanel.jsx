@@ -33,9 +33,14 @@ function formatSymbol(symbol = '') {
   return symbol;
 }
 
-function formatPnl(value) {
+function formatPnl(value, currency = 'USD') {
   const number = Number(value) || 0;
-  return `${number >= 0 ? '+' : '-'}$${Math.abs(number).toFixed(2)}`;
+  try {
+    const formatted = new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(number));
+    return `${number >= 0 ? '+' : '-'}${formatted}`;
+  } catch {
+    return `${number >= 0 ? '+' : '-'}${Math.abs(number).toFixed(2)} ${currency || ''}`.trim();
+  }
 }
 
 function pipStep(entry) {
@@ -162,7 +167,7 @@ export default function PositionsPanel({
                       <p className="mt-1.5 text-[9px] text-[#6f8296]"><b className="text-[#cbd6df]">{Number(position.volume).toFixed(2)} lots</b><span className="mx-1.5 text-[#34495b]">•</span>Entry {formatPrice(position.entry)}</p>
                     </div>
                     <div className="flex shrink-0 items-start gap-2">
-                      <div className="text-right"><span className="block text-[8px] font-semibold uppercase tracking-[0.08em] text-[#5f7388]">P&amp;L</span><b className={`mt-1 block text-[14px] font-black ${positive ? 'text-[#3dd9a4]' : 'text-[#ff6975]'}`}>{formatPnl(position.pnl)}</b></div>
+                      <div className="text-right"><span className="block text-[8px] font-semibold uppercase tracking-[0.08em] text-[#5f7388]">P&amp;L</span><b className={`mt-1 block text-[14px] font-black ${positive ? 'text-[#3dd9a4]' : 'text-[#ff6975]'}`}>{formatPnl(position.pnl, position.pnlCurrency)}</b></div>
                       <button type="button" onClick={() => setExpandedId(expanded ? null : position.id)} aria-label="More position controls" className={`grid size-8 place-items-center rounded-lg border transition ${expanded ? 'border-[#29516a] bg-[#0d2b3e] text-[#5bc8ff]' : 'border-[#1b2d3c] bg-[#0b1720] text-[#788da2]'}`}><MoreHorizontal size={16}/></button>
                     </div>
                   </div>

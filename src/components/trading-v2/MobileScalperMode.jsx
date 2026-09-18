@@ -40,11 +40,17 @@ export default function MobileScalperMode({
   indicators = [],
   account,
   plannedRisk = 0,
+  exposureAllowed = true,
+  exposureBlockReason = 'New exposure is temporarily unavailable',
   onExit,
 }) {
-  const spread = Number.isFinite(market?.spread)
-    ? `${(market.spread * 10000).toFixed(1)} pips`
-    : '0.5 pips';
+  const pipSize = Number(market?.pipSize);
+  const bid = Number(market?.bid);
+  const ask = Number(market?.ask);
+  const spreadPips = Number.isFinite(pipSize) && pipSize > 0 && Number.isFinite(bid) && Number.isFinite(ask)
+    ? Math.abs(ask - bid) / pipSize
+    : null;
+  const spread = Number.isFinite(spreadPips) ? `${spreadPips.toFixed(1)} pips` : '—';
 
   return (
     <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-[#050b12]">
@@ -67,11 +73,11 @@ export default function MobileScalperMode({
       </div>
 
       <div className="min-h-0 flex-1 bg-[#061019]">
-        <ChartArea symbol={market?.symbol} chartTimeframe={mapTimeframe(timeframe)} tick={tick} price={market?.bid} ask={market?.ask} chartMode={chartMode} selectedTool={selectedTool} onSelectTool={tradePlan && !tradePlan.open ? () => {} : setSelectedTool} focusMode tradePlan={tradePlan} onTradePlanChange={onTradePlanChange} onCommitProtection={onCommitProtection} indicators={indicators} />
+        <ChartArea symbol={market?.symbol} chartTimeframe={mapTimeframe(timeframe)} tick={tick} price={market?.bid} ask={market?.ask} chartMode={chartMode} selectedTool={selectedTool} onSelectTool={tradePlan && !tradePlan.open ? () => {} : setSelectedTool} focusMode tradePlan={tradePlan} onTradePlanChange={onTradePlanChange} indicators={indicators} positions={positions} onUpdatePosition={onUpdatePosition} />
       </div>
 
       <div className="shrink-0"><PropRiskStrip account={account} plannedRisk={plannedRisk} compact /></div>
-      <ExecutionPanel market={market} lots={lots} onLotsChange={setLots} focusMode sizingMode={sizingMode} onSizingModeChange={setSizingMode} riskPercent={riskPercent} onRiskPercentChange={setRiskPercent} orderType={orderType} onOrderTypeChange={setOrderType} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={onManualOrder} onTradePlanChange={onTradePlanChange} />
+      <ExecutionPanel market={market} account={account} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={setLots} focusMode sizingMode={sizingMode} onSizingModeChange={setSizingMode} riskPercent={riskPercent} onRiskPercentChange={setRiskPercent} orderType={orderType} onOrderTypeChange={setOrderType} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={onManualOrder} onTradePlanChange={onTradePlanChange} />
     </div>
   );
 }

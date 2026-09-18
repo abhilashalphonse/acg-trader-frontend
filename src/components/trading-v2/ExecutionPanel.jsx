@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronDown, Minus, Plus, X, Check, SlidersHorizontal, Clock3 } from 'lucide-react';
 import { normalizeVolumeToStep } from '../../utils/tradingCommandNormalization.js';
+import { calculateRiskSizedLots, estimateStopRisk, riskSizingSupported } from '../../utils/tradingRisk.js';
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const orderTypes = [
@@ -19,24 +20,20 @@ function defaultSpecifiedExpiry() {
   return localDateTimeValue(new Date(Date.now() + 60 * 60 * 1000));
 }
 
-function getPlanMetrics(plan, riskPercent, manualLots = 0.1) {
+function getPlanMetrics(plan, riskPercent, manualLots = 0.1, market, account) {
   if (!plan) return null;
   const entry = Number(plan.entry) || 0;
   const sl = Number(plan.sl) || entry;
   const tp = Number(plan.tp) || entry;
-  const pipSize = entry > 100 ? 0.01 : 0.0001;
+  const pipSize = Number(market?.pipSize) || (entry > 100 ? 0.01 : 0.0001);
   const slPips = Math.max(0.1, Math.abs(entry - sl) / pipSize);
   const tpPips = Math.max(0.1, Math.abs(tp - entry) / pipSize);
-  const equity = Number(plan.accountEquity);
-  const hasEquity = Number.isFinite(equity) && equity > 0;
-  const lots = plan.sizingMode === 'risk' && hasEquity
-    ? clamp((equity * (riskPercent / 100)) / Math.max(slPips * 10, 0.01), 0.01, 100)
-    : manualLots;
-  const riskDollars = plan.sizingMode === 'risk' && hasEquity
-    ? +(equity * (riskPercent / 100)).toFixed(2)
-    : +(slPips * lots * 10).toFixed(2);
-  const reward = +(riskDollars * (tpPips / slPips)).toFixed(2);
-  return { slPips, tpPips, riskDollars, lots, rr: tpPips / slPips, reward };
+  const supported = riskSizingSupported(market, account?.currency);
+  const riskLots = calculateRiskSizedLots(plan, riskPercent, account?.equity, market, account?.currency);
+  const lots = plan.sizingMode === 'risk' ? (riskLots ?? manualLots) : manualLots;
+  const riskAmount = estimateStopRisk(plan, lots, market, account?.currency);
+  const reward = riskAmount == null ? null : riskAmount * (tpPips / slPips);
+  return { slPips, tpPips, riskDollars: riskAmount, lots, rr: tpPips / slPips, reward, riskSupported: supported };
 }
 
 function Metric({ label, value }) {
@@ -50,7 +47,18 @@ function finiteQuote(value) {
 
 function formatCommission(value) {
   const number = Number(value);
-  return Number.isFinite(number) ? `$${number.toFixed(2)}/lot` : '—';
+  return Number.isFinite(number) ? `${number.toFixed(2)}/lot` : '—';
+}
+
+function formatMoney(value, currency = 'USD', signed = false) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '—';
+  try {
+    const formatted = new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(number));
+    return `${signed && number > 0 ? '+' : number < 0 ? '-' : ''}${formatted}`;
+  } catch {
+    return `${number.toFixed(2)} ${currency || ''}`.trim();
+  }
 }
 
 export default function ExecutionPanel({
@@ -71,6 +79,9 @@ export default function ExecutionPanel({
   onModifyPlan = () => {},
   onManualOrder = () => {},
   onTradePlanChange = () => {},
+  exposureAllowed = true,
+  exposureBlockReason = 'New exposure is temporarily unavailable',
+  account = {},
 }) {
   const [internalLots, setInternalLots] = useState(0.10);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -82,17 +93,19 @@ export default function ExecutionPanel({
   const maxVolume = Math.max(Number(market?.maxVolume) || 100, minVolume);
   const decrease = () => setLots(normalizeVolumeToStep(Math.max(minVolume, Number(lots) - volumeStep), market));
   const increase = () => setLots(normalizeVolumeToStep(Math.min(maxVolume, Number(lots) + volumeStep), market, { rounding: 'nearest' }));
-  const rawMetrics = useMemo(() => getPlanMetrics(tradePlan, riskPercent, tradePlan?.manualLots ?? lots), [tradePlan, riskPercent, lots]);
+  const rawMetrics = useMemo(() => getPlanMetrics(tradePlan, riskPercent, tradePlan?.manualLots ?? lots, market, account), [account, market, tradePlan, riskPercent, lots]);
   const metrics = useMemo(() => rawMetrics ? { ...rawMetrics, lots: normalizeVolumeToStep(rawMetrics.lots, market) } : null, [market, rawMetrics]);
-  const executableQuote = finiteQuote(market?.bid) && finiteQuote(market?.ask) && market?.isStale !== true && market?.sessionOpen !== false && market?.marketState !== 'WAITING' && market?.marketState !== 'DISCONNECTED';
+  const executableQuote = finiteQuote(market?.bid) && finiteQuote(market?.ask) && market?.isStale !== true && market?.sessionOpen !== false && !['WAITING', 'DISCONNECTED', 'ERROR', 'DISABLED', 'STALE'].includes(String(market?.marketState || '').toUpperCase());
+  const riskModeSupported = sizingMode !== 'risk' || riskSizingSupported(market, account?.currency);
+  const canSubmitExposure = executableQuote && exposureAllowed && riskModeSupported;
   const pipSize = Number(market?.pipSize);
   const bid = Number(market?.bid);
   const ask = Number(market?.ask);
   const spreadPips = Number.isFinite(pipSize) && pipSize > 0 && Number.isFinite(bid) && Number.isFinite(ask) ? Math.abs(ask - bid) / pipSize : null;
-  const marketHint = market?.sessionOpen === false ? 'Session closed' : market?.isStale ? 'Quote stale' : !executableQuote ? 'Waiting for quote' : orderType === 'market' ? (sizingMode === 'risk' ? 'Tap Buy/Sell' : `${spreadPips?.toFixed(1) ?? '—'} pips`) : 'Tap side to place on chart';
+  const marketHint = !exposureAllowed ? exposureBlockReason : !riskModeSupported ? 'Risk % sizing requires the instrument P&L currency to match the account currency' : market?.sessionOpen === false ? 'Session closed' : market?.isStale ? 'Quote stale' : !executableQuote ? 'Waiting for quote' : orderType === 'market' ? (sizingMode === 'risk' ? 'Tap Buy/Sell' : `${spreadPips?.toFixed(1) ?? '—'} pips`) : 'Tap side to place on chart';
 
   const clickSide = side => {
-    if (!executableQuote || !market?.symbol) return;
+    if (!canSubmitExposure || !market?.symbol) return;
     if (orderType !== 'market') {
       onStartPlan(side, orderType);
       return;
@@ -131,7 +144,7 @@ export default function ExecutionPanel({
               <div className="px-1 py-2"><span className="block text-[7px] text-[#718398]">LOTS</span><b className="mt-0.5 block text-[10px]">{metrics?.lots.toFixed(2)}</b></div>
               <div className="px-1 py-2"><span className="block text-[7px] text-[#718398]">R:R</span><b className="mt-0.5 block text-[10px]">1:{metrics?.rr.toFixed(1)}</b></div>
             </div>
-            {isOpen ? <button type="button" onClick={() => onModifyPlan(isModifying ? 'open' : 'modifying')} className="h-10 shrink-0 rounded-xl border border-[#294054] bg-[#0d1a25] px-3 text-[10px] font-bold text-[#dbe5ed]"><SlidersHorizontal size={13} className="mr-1 inline"/>{isModifying ? 'Done' : 'Modify'}</button> : <button type="button" disabled={!executableQuote} onClick={onExecutePlan} className={`h-10 shrink-0 rounded-xl px-3 text-[9px] font-black disabled:cursor-not-allowed disabled:opacity-40 ${tradePlan.side === 'buy' ? 'border border-[#16865f] bg-[#0c5b45] text-[#6df0bd]' : 'border border-[#8a2b39] bg-[#4a1b25] text-[#ff818b]'}`}><Check size={13} className="mr-1 inline"/>{tradePlan.pending ? 'PLACE' : side}</button>}
+            {isOpen ? <button type="button" onClick={() => onModifyPlan(isModifying ? 'open' : 'modifying')} className="h-10 shrink-0 rounded-xl border border-[#294054] bg-[#0d1a25] px-3 text-[10px] font-bold text-[#dbe5ed]"><SlidersHorizontal size={13} className="mr-1 inline"/>{isModifying ? 'Done' : 'Modify'}</button> : <button type="button" disabled={!canSubmitExposure} onClick={onExecutePlan} className={`h-10 shrink-0 rounded-xl px-3 text-[9px] font-black disabled:cursor-not-allowed disabled:opacity-40 ${tradePlan.side === 'buy' ? 'border border-[#16865f] bg-[#0c5b45] text-[#6df0bd]' : 'border border-[#8a2b39] bg-[#4a1b25] text-[#ff818b]'}`}><Check size={13} className="mr-1 inline"/>{tradePlan.pending ? 'PLACE' : side}</button>}
           </div>
         </section>
       );
@@ -156,9 +169,9 @@ export default function ExecutionPanel({
           </div>
         )}
 
-        <div className="mt-1.5 flex items-center justify-between rounded-xl border border-[#193044] bg-[#091723] px-3 py-2 text-[10px]"><span className="text-[#7f91a4]">Risk <b className="ml-1 text-[#f2f5f8]">${metrics?.riskDollars.toFixed(2)}</b></span><span className="text-[#7f91a4]">Potential <b className="ml-1 text-[#55dba9]">+${metrics?.reward.toFixed(2)}</b></span><span className="text-[#7f91a4]">TP <b className="ml-1 text-[#f2f5f8]">{metrics?.tpPips.toFixed(1)}p</b></span></div>
+        <div className="mt-1.5 flex items-center justify-between rounded-xl border border-[#193044] bg-[#091723] px-3 py-2 text-[10px]"><span className="text-[#7f91a4]">Risk <b className="ml-1 text-[#f2f5f8]">{formatMoney(metrics?.riskDollars, account?.currency)}</b></span><span className="text-[#7f91a4]">Potential <b className="ml-1 text-[#55dba9]">{formatMoney(metrics?.reward, account?.currency, true)}</b></span><span className="text-[#7f91a4]">TP <b className="ml-1 text-[#f2f5f8]">{metrics?.tpPips.toFixed(1)}p</b></span></div>
 
-        <div className="mt-2 grid grid-cols-2 gap-2">{isOpen ? <><button type="button" onClick={() => onModifyPlan(isModifying ? 'open' : 'modifying')} className="h-11 rounded-xl border border-[#294054] bg-[#0d1a25] text-[12px] font-bold text-[#dbe5ed]"><SlidersHorizontal size={14} className="mr-1 inline"/>{isModifying ? 'Done' : 'Modify'}</button><button type="button" onClick={onCancelPlan} className="h-11 rounded-xl border border-[#8a2b39] bg-[#3b1720] text-[12px] font-bold text-[#ff818b]">Close</button></> : <><button type="button" onClick={onCancelPlan} className="h-11 rounded-xl border border-[#273847] bg-[#0d1822] text-[12px] font-bold text-[#b8c5d0]">Cancel</button><button type="button" disabled={!executableQuote} onClick={onExecutePlan} className={`h-11 rounded-xl text-[12px] font-black disabled:cursor-not-allowed disabled:opacity-40 ${tradePlan.side === 'buy' ? 'border border-[#16865f] bg-[#0c5b45] text-[#6df0bd]' : 'border border-[#8a2b39] bg-[#4a1b25] text-[#ff818b]'}`}><Check size={14} className="mr-1 inline"/>{tradePlan.pending ? (tradePlan.editingOrderId ? 'Update Order' : 'Place Order') : `Execute ${side}`}</button></>}</div>
+        <div className="mt-2 grid grid-cols-2 gap-2">{isOpen ? <><button type="button" onClick={() => onModifyPlan(isModifying ? 'open' : 'modifying')} className="h-11 rounded-xl border border-[#294054] bg-[#0d1a25] text-[12px] font-bold text-[#dbe5ed]"><SlidersHorizontal size={14} className="mr-1 inline"/>{isModifying ? 'Done' : 'Modify'}</button><button type="button" onClick={onCancelPlan} className="h-11 rounded-xl border border-[#8a2b39] bg-[#3b1720] text-[12px] font-bold text-[#ff818b]">Close</button></> : <><button type="button" onClick={onCancelPlan} className="h-11 rounded-xl border border-[#273847] bg-[#0d1822] text-[12px] font-bold text-[#b8c5d0]">Cancel</button><button type="button" disabled={!canSubmitExposure} onClick={onExecutePlan} className={`h-11 rounded-xl text-[12px] font-black disabled:cursor-not-allowed disabled:opacity-40 ${tradePlan.side === 'buy' ? 'border border-[#16865f] bg-[#0c5b45] text-[#6df0bd]' : 'border border-[#8a2b39] bg-[#4a1b25] text-[#ff818b]'}`}><Check size={14} className="mr-1 inline"/>{tradePlan.pending ? (tradePlan.editingOrderId ? 'Update Order' : 'Place Order') : `Execute ${side}`}</button></>}</div>
       </section>
     );
   }
@@ -171,9 +184,9 @@ export default function ExecutionPanel({
         <span className="text-[8px] text-[#60758a]">{orderType === 'market' ? 'Server market execution' : 'Server pending order'}</span>
       </div>
       <div className={`grid ${focusMode ? 'grid-cols-[minmax(0,1fr)_94px_minmax(0,1fr)] gap-1.5' : 'grid-cols-[minmax(0,1fr)_100px_minmax(0,1fr)] gap-2'}`}>
-        <button type="button" disabled={!executableQuote} onClick={() => clickSide('sell')} className={`flex ${focusMode ? 'h-[58px] px-3' : 'h-[66px] px-4'} flex-col items-start justify-center rounded-[14px] border border-[#8a2b39] bg-gradient-to-br from-[#461b24] via-[#32131b] to-[#251017] text-left text-[#ff6975] disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.99]`}><span className="text-[10px] font-extrabold tracking-[0.045em]">SELL</span><strong className={`${focusMode ? 'text-[21px]' : 'text-[27px]'} mt-1 font-black leading-none tracking-[-0.04em] text-[#f9f3f4]`}>{market?.bid || '—'}</strong></button>
+        <button type="button" disabled={!canSubmitExposure} onClick={() => clickSide('sell')} className={`flex ${focusMode ? 'h-[58px] px-3' : 'h-[66px] px-4'} flex-col items-start justify-center rounded-[14px] border border-[#8a2b39] bg-gradient-to-br from-[#461b24] via-[#32131b] to-[#251017] text-left text-[#ff6975] disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.99]`}><span className="text-[10px] font-extrabold tracking-[0.045em]">SELL</span><strong className={`${focusMode ? 'text-[21px]' : 'text-[27px]'} mt-1 font-black leading-none tracking-[-0.04em] text-[#f9f3f4]`}>{market?.bid || '—'}</strong></button>
         <div className={`grid ${focusMode ? 'h-[58px]' : 'h-[66px]'} grid-cols-2 grid-rows-[auto_auto_1fr] items-center rounded-[14px] border border-[#1c2d3d] bg-[#09131d] px-2 py-1 text-center`}><button type="button" onClick={() => setPickerOpen(v => !v)} className="col-span-2 mx-auto flex items-center gap-1 text-[14px] font-black leading-none text-[#f4f7fb]">{sizingMode === 'lots' ? lots.toFixed(2) : `${riskPercent.toFixed(2)}%`} <ChevronDown size={12} className="text-[#74879d]"/></button><span className="col-span-2 text-[8px] font-medium text-[#718398]">{sizingMode === 'lots' ? 'Lots' : 'Risk'}</span><div className="col-span-2 flex items-end justify-between pt-0.5"><button type="button" onClick={() => sizingMode === 'lots' ? decrease() : onRiskPercentChange(Math.max(0.1, +(riskPercent - 0.1).toFixed(2)))} className="grid h-5 w-[29px] place-items-center rounded-md border border-[#142535] bg-[#0e1b27] text-[#93a4b7]"><Minus size={13}/></button><button type="button" onClick={() => sizingMode === 'lots' ? increase() : onRiskPercentChange(Math.min(5, +(riskPercent + 0.1).toFixed(2)))} className="grid h-5 w-[29px] place-items-center rounded-md border border-[#142535] bg-[#0e1b27] text-[#93a4b7]"><Plus size={13}/></button></div></div>
-        <button type="button" disabled={!executableQuote} onClick={() => clickSide('buy')} className={`flex ${focusMode ? 'h-[58px] px-3' : 'h-[66px] px-4'} flex-col items-end justify-center rounded-[14px] border border-[#16865f] bg-gradient-to-bl from-[#0b6048] via-[#0b4838] to-[#0b2e27] text-right text-[#44dda9] disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.99]`}><span className="text-[10px] font-extrabold tracking-[0.045em]">BUY</span><strong className={`${focusMode ? 'text-[21px]' : 'text-[27px]'} mt-1 font-black leading-none tracking-[-0.04em] text-[#f3fbf8]`}>{market?.ask || '—'}</strong></button>
+        <button type="button" disabled={!canSubmitExposure} onClick={() => clickSide('buy')} className={`flex ${focusMode ? 'h-[58px] px-3' : 'h-[66px] px-4'} flex-col items-end justify-center rounded-[14px] border border-[#16865f] bg-gradient-to-bl from-[#0b6048] via-[#0b4838] to-[#0b2e27] text-right text-[#44dda9] disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.99]`}><span className="text-[10px] font-extrabold tracking-[0.045em]">BUY</span><strong className={`${focusMode ? 'text-[21px]' : 'text-[27px]'} mt-1 font-black leading-none tracking-[-0.04em] text-[#f3fbf8]`}>{market?.ask || '—'}</strong></button>
       </div>
     </>
   );

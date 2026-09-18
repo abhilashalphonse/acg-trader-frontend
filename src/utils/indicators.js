@@ -118,10 +118,11 @@ function vwapValues(bars) {
   let cumulativeVolume = 0;
   return bars.map(bar => {
     const typical = (Number(bar.high) + Number(bar.low) + Number(bar.close)) / 3;
-    const volume = Number(bar.volume) > 0 ? Number(bar.volume) : 1;
+    const volume = Number(bar.volume);
+    if (!Number.isFinite(volume) || volume <= 0) return cumulativeVolume > 0 ? cumulativePV / cumulativeVolume : null;
     cumulativePV += typical * volume;
     cumulativeVolume += volume;
-    return cumulativeVolume ? cumulativePV / cumulativeVolume : typical;
+    return cumulativePV / cumulativeVolume;
   });
 }
 

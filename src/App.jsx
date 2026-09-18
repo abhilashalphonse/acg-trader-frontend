@@ -1,12 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import TradingTerminalV2 from './pages/TradingTerminalV2.jsx';
-import MobileTraderShell from './pages/MobileTraderShell.jsx';
+import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import TerminalStatusBanner from './components/TerminalStatusBanner.jsx';
 import { useInstrumentCatalog } from './hooks/useInstrumentCatalog.js';
 import { useMarketData } from './hooks/useMarketData.js';
 import { useTraderAuth } from './hooks/useTraderAuth.js';
 import { useTradingStore } from './hooks/useTradingStore.js';
 import { deriveTerminalStatus } from './utils/terminalStatus.js';
+
+const TradingTerminalV2 = lazy(() => import('./pages/TradingTerminalV2.jsx'));
+const MobileTraderShell = lazy(() => import('./pages/MobileTraderShell.jsx'));
 
 function useDesktopLayout() {
   const [isDesktop, setIsDesktop] = useState(() => (
@@ -87,9 +88,11 @@ export default function App() {
   return (
     <>
       <TerminalStatusBanner status={terminalStatus} />
-      {isDesktop
-        ? <TradingTerminalV2 {...sharedProps} />
-        : <MobileTraderShell {...sharedProps} />}
+      <Suspense fallback={<div className="grid min-h-dvh place-items-center bg-[#050b12] text-sm font-semibold text-[#7e93a7]">Loading trading terminal…</div>}>
+        {isDesktop
+          ? <TradingTerminalV2 {...sharedProps} />
+          : <MobileTraderShell {...sharedProps} />}
+      </Suspense>
     </>
   );
 }

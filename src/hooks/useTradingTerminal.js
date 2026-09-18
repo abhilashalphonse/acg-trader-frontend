@@ -46,10 +46,22 @@ function partialVolume(position, percentage, instrument) {
   return normalized.toFixed(decimalPlaces(step));
 }
 
+function livePositionValuation(position, instrument) {
+  const side = String(position?.side || '').toUpperCase();
+  const closePrice = Number(side === 'BUY' ? instrument?.bid : instrument?.ask);
+  const entryPrice = Number(position?.entryPrice);
+  const contractSize = Number(position?.contractSize ?? instrument?.contractSize);
+  const volume = Number(position?.openVolume);
+  if (![closePrice, entryPrice, contractSize, volume].every(Number.isFinite) || contractSize <= 0 || volume <= 0) return null;
+  const difference = side === 'BUY' ? closePrice - entryPrice : entryPrice - closePrice;
+  return { closePrice, floatingPnl: difference * contractSize * volume };
+}
+
 function normalizePosition(position, valuation, instrument) {
   const trailingPoints = nullableNumber(position?.trailing?.distancePoints);
   const ratio = pointsPerPip(instrument);
-  return { id: String(position.id), accountId: String(position.accountId), positionId: position.positionId, symbol: position.symbol, side: String(position.side || '').toUpperCase(), volume: numberOr(position.openVolume), openVolume: position.openVolume, volumeStep: position.volumeStep, entry: numberOr(position.entryPrice), sl: nullableNumber(position.stopLoss), tp: nullableNumber(position.takeProfit), pnl: nullableNumber(valuation?.floatingPnl) ?? 0, closePrice: nullableNumber(valuation?.closePrice), valuationStatus: valuation?.valuationStatus || 'WAITING', margin: numberOr(position.margin), source: 'server', trailingEnabled: Boolean(position?.trailing?.enabled), trailingPoints, trailingPips: trailingPoints == null ? 5 : Math.max(1, trailingPoints / ratio), openedAt: displayTime(position.openedAt, 'Open'), raw: position };
+  const live = instrument?.isStale === true ? null : livePositionValuation(position, instrument);
+  return { id: String(position.id), accountId: String(position.accountId), positionId: position.positionId, symbol: position.symbol, side: String(position.side || '').toUpperCase(), volume: numberOr(position.openVolume), openVolume: position.openVolume, volumeStep: position.volumeStep, entry: numberOr(position.entryPrice), sl: nullableNumber(position.stopLoss), tp: nullableNumber(position.takeProfit), pnl: nullableNumber(live?.floatingPnl) ?? nullableNumber(valuation?.floatingPnl) ?? 0, pnlCurrency: position?.quoteCurrency || valuation?.quoteCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || 'USD', closePrice: nullableNumber(live?.closePrice) ?? nullableNumber(valuation?.closePrice), valuationStatus: live ? 'LIVE' : (valuation?.valuationStatus || 'WAITING'), margin: numberOr(position.margin), source: live ? 'live-quote' : 'server', trailingEnabled: Boolean(position?.trailing?.enabled), trailingPoints, trailingPips: trailingPoints == null ? 5 : Math.max(1, trailingPoints / ratio), openedAt: displayTime(position.openedAt, 'Open'), raw: position };
 }
 function normalizePendingOrder(order) {
   const type = String(order.type || '').toUpperCase();
@@ -76,7 +88,7 @@ export function useTradingTerminal(markets = []) {
   const { trading, connection, commands, requestSnapshot } = useTradingStore();
   const [positionValuations, setPositionValuations] = useState({});
   const [history, setHistory] = useState({ orders: [], deals: [], positions: [], loaded: false });
-  const [commandState, setCommandState] = useState({ pending: false, error: null, lastResult: null });
+  const [commandState, setCommandState] = useState({ pending: false, uncertain: false, error: null, lastResult: null });
   const busyRef = useRef(0);
 
   const accountId = useMemo(() => { const granted = auth.principal?.accountIds?.map(String) || []; const loaded = Object.keys(trading.accountsById); return granted.find(id => loaded.includes(id)) || granted[0] || loaded[0] || null; }, [auth.principal?.accountIds, trading.accountsById]);
@@ -86,7 +98,19 @@ export function useTradingTerminal(markets = []) {
   const rawPositions = useMemo(() => Object.values(trading.positionsById).filter(item => (!accountId || String(item.accountId) === String(accountId)) && item.status !== 'CLOSED').sort((a, b) => new Date(b.openedAt || 0) - new Date(a.openedAt || 0)), [accountId, trading.positionsById]);
   const positions = useMemo(() => rawPositions.map(position => normalizePosition(position, positionValuations[position.id], markets.find(item => item.symbol === position.symbol))), [markets, positionValuations, rawPositions]);
   const pendingOrders = useMemo(() => Object.values(trading.ordersById).filter(order => (!accountId || String(order.accountId) === String(accountId)) && ACTIVE_ORDER_STATUSES.has(String(order.status || '').toUpperCase()) && String(order.type || '').toUpperCase() !== 'MARKET').sort((a, b) => new Date(b.createdAt || b.receivedAt || 0) - new Date(a.createdAt || a.receivedAt || 0)).map(normalizePendingOrder), [accountId, trading.ordersById]);
-  const positionHistory = useMemo(() => (history.loaded ? history.deals : trading.fills).filter(fill => String(fill.type || '').toUpperCase() !== 'OPEN').map(normalizeHistoryFill), [history, trading.fills]);
+  const positionHistory = useMemo(() => {
+    const source = history.loaded ? [...trading.fills, ...history.deals] : trading.fills;
+    const seen = new Set();
+    return source
+      .filter(fill => String(fill.type || '').toUpperCase() !== 'OPEN')
+      .filter(fill => {
+        const id = String(fill?.id || '');
+        if (!id || seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      })
+      .map(normalizeHistoryFill);
+  }, [history.deals, history.loaded, trading.fills]);
 
   useEffect(() => { if (!accountId || connection.status !== 'ready') return; requestSnapshot([accountId]); }, [accountId, connection.status, requestSnapshot]);
   useEffect(() => {
@@ -141,8 +165,75 @@ export function useTradingTerminal(markets = []) {
     };
   }, [commands, connection.status, rawPositions]);
 
-  const run = useCallback(async operation => { busyRef.current += 1; setCommandState(current => ({ ...current, pending: true, error: null })); try { const result = await operation(); setCommandState({ pending: busyRef.current > 1, error: null, lastResult: result }); return result; } catch (error) { setCommandState({ pending: busyRef.current > 1, error, lastResult: null }); throw error; } finally { busyRef.current = Math.max(0, busyRef.current - 1); if (busyRef.current === 0) setCommandState(current => ({ ...current, pending: false })); } }, []);
+  const run = useCallback(async operation => {
+    busyRef.current += 1;
+    setCommandState(current => ({ ...current, pending: true, error: null }));
+    try {
+      const result = await operation();
+      setCommandState(current => ({ ...current, pending: busyRef.current > 1, error: null, lastResult: result }));
+      return result;
+    } catch (error) {
+      const uncertain = error?.code === 'EXECUTION_STATUS_UNKNOWN';
+      setCommandState(current => ({ ...current, pending: busyRef.current > 1, uncertain: current.uncertain || uncertain, error, lastResult: null }));
+      throw error;
+    } finally {
+      busyRef.current = Math.max(0, busyRef.current - 1);
+      if (busyRef.current === 0) setCommandState(current => ({ ...current, pending: false }));
+    }
+  }, []);
   const requireAccount = useCallback(() => { if (!accountId) throw new Error('No trading account is available for this session'); return accountId; }, [accountId]);
+
+  const executeExposureCommand = useCallback(async ({ accountId: targetAccountId, clientOrderId, submit }) => {
+    const ambiguous = error => ['REQUEST_TIMEOUT', 'NETWORK_ERROR', 'COMMAND_IN_PROGRESS'].includes(String(error?.code || ''));
+    let lastError = null;
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        return await submit();
+      } catch (error) {
+        if (!ambiguous(error)) throw error;
+        lastError = error;
+        if (attempt === 0) await new Promise(resolve => window.setTimeout(resolve, 150));
+      }
+    }
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      try {
+        const response = await commands.historyOrders(targetAccountId, { limit: 100 });
+        const order = (response?.items || []).find(item => String(item?.clientOrderId || '') === String(clientOrderId));
+        if (order) {
+          requestSnapshot([targetAccountId]);
+          return { order, reconciled: true, executionStatus: order.status || 'CONFIRMED' };
+        }
+      } catch (error) {
+        if (!ambiguous(error)) throw error;
+        lastError = error;
+      }
+      await new Promise(resolve => window.setTimeout(resolve, 250 * (attempt + 1)));
+    }
+
+    requestSnapshot([targetAccountId]);
+    const error = new Error('Execution status is unknown because the backend response could not be confirmed. New exposure is paused until account state is reconciled.');
+    error.code = 'EXECUTION_STATUS_UNKNOWN';
+    error.clientOrderId = clientOrderId;
+    error.cause = lastError;
+    throw error;
+  }, [commands, requestSnapshot]);
+
+  useEffect(() => {
+    if (!commandState.uncertain || !accountId || connection.status !== 'ready') return undefined;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      void commands.historyOrders(accountId, { limit: 100 }, controller.signal)
+        .then(() => {
+          if (controller.signal.aborted) return;
+          requestSnapshot([accountId]);
+          setCommandState(current => ({ ...current, uncertain: false, error: current.error?.code === 'EXECUTION_STATUS_UNKNOWN' ? null : current.error }));
+        })
+        .catch(() => {});
+    }, 750);
+    return () => { controller.abort(); window.clearTimeout(timer); };
+  }, [accountId, commandState.uncertain, commands, connection.status, requestSnapshot]);
 
   const instrumentForSymbol = useCallback(symbol => markets.find(item => item.symbol === String(symbol || '').toUpperCase()) || null, [markets]);
 
@@ -150,9 +241,11 @@ export function useTradingTerminal(markets = []) {
     const normalizedSymbol = String(symbol || '').toUpperCase();
     const normalizedSide = String(side || '').toUpperCase();
     const instrument = instrumentForSymbol(normalizedSymbol);
-    return run(() => commands.openMarketOrder({
-      accountId: requireAccount(),
-      clientOrderId: commandId('open'),
+    const targetAccountId = requireAccount();
+    const clientOrderId = commandId('open');
+    const command = {
+      accountId: targetAccountId,
+      clientOrderId,
       symbol: normalizedSymbol,
       side: normalizedSide,
       volume: String(normalizeVolumeToStep(volume, instrument)),
@@ -160,8 +253,13 @@ export function useTradingTerminal(markets = []) {
       takeProfit: normalizeProtectionPrice(takeProfit, instrument, normalizedSide, 'tp'),
       requestedPrice,
       source: sourceForViewport(),
+    };
+    return run(() => executeExposureCommand({
+      accountId: targetAccountId,
+      clientOrderId,
+      submit: () => commands.openMarketOrder(command),
     }));
-  }, [commands, instrumentForSymbol, requireAccount, run]);
+  }, [commands, executeExposureCommand, instrumentForSymbol, requireAccount, run]);
 
   const placePendingOrder = useCallback(({ symbol, side, type, volume, entry, limitPrice = null, stopLoss = null, takeProfit = null, timeInForce = 'GTC', expiresAt = null }) => {
     const normalizedSymbol = String(symbol || '').toUpperCase();
@@ -173,9 +271,11 @@ export function useTradingTerminal(markets = []) {
       ? normalizePriceToTick(limitPrice, instrument, pendingPriceDirection(normalizedType, normalizedSide, 'limit'))
       : null;
     const tif = normalizeTimeInForce(timeInForce);
-    return run(() => commands.placePendingOrder({
-      accountId: requireAccount(),
-      clientOrderId: commandId('pending'),
+    const targetAccountId = requireAccount();
+    const clientOrderId = commandId('pending');
+    const command = {
+      accountId: targetAccountId,
+      clientOrderId,
       symbol: normalizedSymbol,
       side: normalizedSide,
       type: normalizedType,
@@ -187,8 +287,13 @@ export function useTradingTerminal(markets = []) {
       timeInForce: tif,
       expiresAt: tif === 'SPECIFIED' ? normalizeExpiryToIso(expiresAt) : null,
       source: sourceForViewport(),
+    };
+    return run(() => executeExposureCommand({
+      accountId: targetAccountId,
+      clientOrderId,
+      submit: () => commands.placePendingOrder(command),
     }));
-  }, [commands, instrumentForSymbol, requireAccount, run]);
+  }, [commands, executeExposureCommand, instrumentForSymbol, requireAccount, run]);
 
   const cancelPendingOrder = useCallback(orderId => run(() => commands.cancelPendingOrder(String(orderId), { accountId: requireAccount(), clientRequestId: commandId('cancel') })), [commands, requireAccount, run]);
 
@@ -248,6 +353,8 @@ export function useTradingTerminal(markets = []) {
     return run(() => commands.reversePosition(String(positionId), { accountId: requireAccount(), clientRequestId: commandId('reverse'), source: sourceForViewport() }));
   }, [commands, rawPositions, requireAccount, run]);
 
+  const refreshState = useCallback(() => accountId ? requestSnapshot([accountId]) : false, [accountId, requestSnapshot]);
+
   const replacePendingOrder = useCallback((orderId, replacement) => {
     const existing = pendingOrders.find(item => String(item.id) === String(orderId));
     if (!existing) return Promise.reject(new Error('Pending order was not found'));
@@ -277,5 +384,5 @@ export function useTradingTerminal(markets = []) {
     }));
   }, [commands, instrumentForSymbol, pendingOrders, requireAccount, run]);
 
-  return { accountId, account, rawAccount, valuation, positions, pendingOrders, positionHistory, historyOrders: history.orders, historyDeals: history.deals, historyPositions: history.positions, historyLoaded: history.loaded, fills: trading.fills, orders: Object.values(trading.ordersById), connection, commandState, tradingReady: Boolean(accountId && rawAccount && account.tradingEnabled && connection.status === 'ready'), openMarketOrder, placePendingOrder, replacePendingOrder, cancelPendingOrder, closePosition, closeAllPositions, updatePosition, movePositionToBreakEven, setPositionTrailing, duplicatePosition, reversePosition, errorMessage };
+  return { accountId, account, rawAccount, valuation, positions, pendingOrders, positionHistory, historyOrders: history.orders, historyDeals: history.deals, historyPositions: history.positions, historyLoaded: history.loaded, fills: trading.fills, orders: Object.values(trading.ordersById), connection, commandState, tradingReady: Boolean(accountId && rawAccount && account.tradingEnabled && connection.status === 'ready' && !commandState.uncertain), refreshState, openMarketOrder, placePendingOrder, replacePendingOrder, cancelPendingOrder, closePosition, closeAllPositions, updatePosition, movePositionToBreakEven, setPositionTrailing, duplicatePosition, reversePosition, errorMessage };
 }

@@ -21,9 +21,7 @@ const indicatorColors = {
 };
 
 function volumeForBar(bar) {
-  if (Number.isFinite(bar.volume) && bar.volume > 0) return bar.volume;
-  const range = Math.max(0.000001, Math.abs(bar.high - bar.low));
-  return Math.max(1, Math.round(range * 10000000));
+  return Number.isFinite(bar.volume) && bar.volume > 0 ? bar.volume : 0;
 }
 function toSeriesPoint(bar, mode) { return mode === 'line' ? { time: bar.time, value: bar.close } : bar; }
 function priceFormatForSymbol(symbol) {

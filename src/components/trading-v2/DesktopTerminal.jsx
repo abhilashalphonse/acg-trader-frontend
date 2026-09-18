@@ -105,6 +105,8 @@ export default function DesktopTerminal({
   onModifyPlan = () => {},
   onTradePlanChange = () => {},
   onOpenSettings = () => {},
+  exposureAllowed = true,
+  exposureBlockReason = 'New exposure is temporarily unavailable',
 }) {
   const shellRef = useRef(null);
   const searchRef = useRef(null);
@@ -117,7 +119,7 @@ export default function DesktopTerminal({
   const accountPnl = Number(account?.floatingPnl ?? (Number(account?.equity) - Number(account?.balance)));
   const valuationStatus = String(account?.valuationStatus || 'WAITING').toUpperCase();
   const accountStatus = String(account?.status || 'UNKNOWN').toUpperCase();
-  const canOpen = executableMarket(market) && accountStatus === 'ACTIVE' && account?.tradingEnabled === true && valuationStatus === 'LIVE';
+  const canOpen = exposureAllowed && executableMarket(market) && accountStatus === 'ACTIVE' && account?.tradingEnabled === true && valuationStatus === 'LIVE';
 
   const filteredMarkets = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -136,7 +138,7 @@ export default function DesktopTerminal({
 
   const submitOneClick = order => {
     if (!canOpen) {
-      setNotice('New exposure is unavailable until account, valuation and market state are live.');
+      setNotice(exposureBlockReason || 'New exposure is unavailable until account, valuation and market state are live.');
       return;
     }
     onManualOrder(order);

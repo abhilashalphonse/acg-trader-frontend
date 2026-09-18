@@ -79,7 +79,8 @@ export default function DrawingLayer({
   }, [symbol, timeframe]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') window.localStorage.setItem(storageKey(symbol, timeframe), JSON.stringify(drawings));
+    if (typeof window === 'undefined') return;
+    try { window.localStorage.setItem(storageKey(symbol, timeframe), JSON.stringify(drawings)); } catch { /* drawings remain available for the current session */ }
   }, [drawings, symbol, timeframe]);
 
   useEffect(() => {

@@ -65,11 +65,6 @@ function clearFederationTicketFromUrl() {
   window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
 }
 
-function shouldDiscardFederationTicket(error) {
-  const status = Number(error?.status);
-  return Number.isFinite(status) && status >= 400 && status < 500;
-}
-
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [status, setStatus] = useState('bootstrapping');
@@ -152,14 +147,16 @@ export function AuthProvider({ children }) {
       void (async () => {
         const ticket = federationTicketFromUrl();
         if (ticket) {
+          // Remove one-time federation credentials from browser history/referrers
+          // before making any network request. A failed exchange requires a fresh
+          // launch from ACG Funded instead of leaving the ticket in the URL.
+          clearFederationTicketFromUrl();
           try {
             const response = await authApi.exchangeFederationTicket(ticket, controller.signal);
             if (controller.signal.aborted) return;
             commitSession(sessionFromAuthResponse(response));
-            clearFederationTicketFromUrl();
           } catch (nextError) {
             if (controller.signal.aborted) return;
-            if (shouldDiscardFederationTicket(nextError)) clearFederationTicketFromUrl();
             invalidateSession(nextError);
           }
           return;

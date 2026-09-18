@@ -14,6 +14,8 @@ import useTradingHotkeys from '../hooks/useTradingHotkeys.js';
 import { useTradingTerminal } from '../hooks/useTradingTerminal.js';
 import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
 import { normalizePriceToTick, normalizeProtectionPrice, normalizeVolumeToStep, pendingPriceDirection } from '../utils/tradingCommandNormalization.js';
+import { calculateRiskSizedLots, estimateStopRisk } from '../utils/tradingRisk.js';
+import { exposureAvailability } from '../utils/exposureAvailability.js';
 
 const INDICATOR_STORAGE_KEY = 'acg-trader-indicators-v1';
 const INDICATOR_FAVORITES_KEY = 'acg-trader-indicator-favorites-v1';
@@ -67,22 +69,17 @@ function pipSize(price) {
   return Number(price) > 100 ? 0.01 : 0.0001;
 }
 
-function calculatedLots(plan, riskPercent, manualLots, equity) {
+function calculatedLots(plan, riskPercent, manualLots, equity, instrument, accountCurrency) {
   if (!plan || plan.sizingMode !== 'risk') return Math.max(0.01, Number(manualLots) || 0.01);
-  const pip = pipSize(plan.entry);
-  const slPips = Math.max(0.1, Math.abs(Number(plan.entry) - Number(plan.sl)) / pip);
-  const riskAmount = Math.max(0, Number(equity) || 0) * (Number(riskPercent) / 100);
-  return Math.max(0.01, Math.min(100, riskAmount / Math.max(slPips * 10, 0.01)));
+  return calculateRiskSizedLots(plan, riskPercent, equity, instrument, accountCurrency);
 }
 
-function estimatedRisk(plan, riskPercent, manualLots, equity) {
+function estimatedRisk(plan, riskPercent, manualLots, equity, instrument, accountCurrency) {
   if (!plan) return 0;
-  const entry = Number(plan.entry) || 0;
-  const sl = Number(plan.sl) || entry;
-  const pip = pipSize(entry);
-  const slPips = Math.max(0.1, Math.abs(entry - sl) / pip);
-  if (plan.sizingMode === 'risk') return Math.max(0, Number(equity) || 0) * (Number(riskPercent) / 100);
-  return slPips * (Number(plan.manualLots ?? manualLots) || 0) * 10;
+  const lots = plan.sizingMode === 'risk'
+    ? calculateRiskSizedLots(plan, riskPercent, equity, instrument, accountCurrency)
+    : Number(plan.manualLots ?? manualLots);
+  return estimateStopRisk(plan, lots, instrument, accountCurrency);
 }
 
 function fillEvent(result, fallback) {
@@ -122,7 +119,7 @@ export default function TradingTerminalV2({
   const [sizingMode, setSizingMode] = useState(prefsRef.current.sizingMode || 'lots');
   const [riskPercent, setRiskPercent] = useState(Number(prefsRef.current.riskPercent) || 0.5);
   const [orderType, setOrderType] = useState(prefsRef.current.orderType || 'market');
-  const [hotkeysEnabled, setHotkeysEnabled] = useState(prefsRef.current.hotkeysEnabled !== false);
+  const [hotkeysEnabled, setHotkeysEnabled] = useState(prefsRef.current.hotkeysEnabled === true);
   const [tradePlan, setTradePlan] = useState(null);
   const [journal, setJournal] = useState([]);
   const [executionEvent, setExecutionEvent] = useState(null);
@@ -130,6 +127,7 @@ export default function TradingTerminalV2({
   const [indicatorFavorites, setIndicatorFavorites] = useState(loadIndicatorFavorites);
   const [overlay, setOverlay] = useState(null);
   const [notice, setNotice] = useState('');
+  const exposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market, commandState: trading.commandState });
 
   useEffect(() => {
     const onFullscreenChange = () => {
@@ -148,16 +146,16 @@ export default function TradingTerminalV2({
   }, []);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') window.localStorage.setItem(INDICATOR_STORAGE_KEY, JSON.stringify(indicators));
+    if (typeof window !== 'undefined') try { window.localStorage.setItem(INDICATOR_STORAGE_KEY, JSON.stringify(indicators)); } catch { /* preferences are non-critical */ }
   }, [indicators]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') window.localStorage.setItem(INDICATOR_FAVORITES_KEY, JSON.stringify(indicatorFavorites));
+    if (typeof window !== 'undefined') try { window.localStorage.setItem(INDICATOR_FAVORITES_KEY, JSON.stringify(indicatorFavorites)); } catch { /* preferences are non-critical */ }
   }, [indicatorFavorites]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    window.localStorage.setItem(TERMINAL_PREFS_KEY, JSON.stringify({ timeframe, chartMode, lots, sizingMode, riskPercent, orderType, hotkeysEnabled }));
+    try { window.localStorage.setItem(TERMINAL_PREFS_KEY, JSON.stringify({ timeframe, chartMode, lots, sizingMode, riskPercent, orderType, hotkeysEnabled })); } catch { /* preferences are non-critical */ }
   }, [timeframe, chartMode, lots, sizingMode, riskPercent, orderType, hotkeysEnabled]);
 
   const showNotice = message => {
@@ -178,14 +176,16 @@ export default function TradingTerminalV2({
 
   const handleTradingError = (error, context = 'Trading command') => {
     const message = trading.errorMessage(error);
-    setExecutionEvent(current => current ? { ...current, status: 'rejected', message } : { status: 'rejected', message });
-    logEvent('error', `${context}: ${message}`);
+    const unknown = error?.code === 'EXECUTION_STATUS_UNKNOWN';
+    setExecutionEvent(current => current ? { ...current, status: unknown ? 'unknown' : 'rejected', message } : { status: unknown ? 'unknown' : 'rejected', message });
+    logEvent(unknown ? 'warning' : 'error', `${context}: ${message}`);
     showNotice(message);
     dismissExecutionLater();
   };
 
   const runMarketExecution = async ({ side, executionLots, symbol, requestedPrice, stopLoss = null, takeProfit = null }) => {
     if (!symbol || !trading.accountId) return null;
+    if (!exposure.allowed) { showNotice(exposure.reason); return null; }
     const base = { side: String(side).toUpperCase(), lots: Number(executionLots), symbol, requestedPrice: Number(requestedPrice) };
     setExecutionEvent({ ...base, status: 'submitting' });
     logEvent('execution', `${base.side} ${base.lots.toFixed(2)} ${symbol} submitted`, base);
@@ -254,6 +254,7 @@ export default function TradingTerminalV2({
     terminalPrefs: { timeframe, chartMode, lots, sizingMode, riskPercent, orderType, hotkeysEnabled },
     onToggleHotkeys: () => setHotkeysEnabled(value => !value),
     onApplyTradingProfile: applyTradingProfile,
+    account,
   };
 
   const closePosition = async (id, percentage = 100) => {
@@ -272,10 +273,16 @@ export default function TradingTerminalV2({
   const closeAllPositions = async () => {
     if (!positions.length) return;
     try {
-      await trading.closeAllPositions();
+      const result = await trading.closeAllPositions();
+      trading.refreshState();
       if (tradePlan?.open) setTradePlan(null);
-      logEvent('position', `Close all submitted for ${positions.length} positions`);
-      showNotice('All positions closed');
+      if (result?.complete === false) {
+        logEvent('warning', `Close all partially completed: ${result.closed || 0} closed, ${result.failed || 0} failed`);
+        showNotice(`${result.closed || 0} positions closed; ${result.failed || 0} still require attention`);
+      } else {
+        logEvent('position', `Close all completed for ${result?.closed ?? positions.length} positions`);
+        showNotice('All positions closed');
+      }
     } catch (error) {
       handleTradingError(error, 'Close all');
     }
@@ -310,6 +317,7 @@ export default function TradingTerminalV2({
   };
 
   const reversePosition = async id => {
+    if (!exposure.allowed) { showNotice(exposure.reason); return; }
     const position = positions.find(item => String(item.id) === String(id));
     if (!position) return;
     try {
@@ -336,6 +344,7 @@ export default function TradingTerminalV2({
   };
 
   const duplicatePosition = async id => {
+    if (!exposure.allowed) { showNotice(exposure.reason); return null; }
     const position = positions.find(item => String(item.id) === String(id));
     if (!position) return;
     try {
@@ -412,7 +421,10 @@ export default function TradingTerminalV2({
 
   const executePlan = async () => {
     if (!tradePlan || trading.commandState.pending) return;
-    const volume = normalizeVolumeToStep(calculatedLots(tradePlan, riskPercent, tradePlan.manualLots ?? lots, account.equity), market);
+    if (!exposure.allowed) { showNotice(exposure.reason); return; }
+    const calculated = calculatedLots(tradePlan, riskPercent, tradePlan.manualLots ?? lots, account.equity, market, account.currency);
+    if (calculated == null) { showNotice('Risk % sizing is unavailable because this instrument P&L requires currency conversion. Use Lots sizing.'); return; }
+    const volume = normalizeVolumeToStep(calculated, market);
     if (tradePlan.pending) {
       const request = {
         symbol: market?.symbol,
@@ -449,7 +461,7 @@ export default function TradingTerminalV2({
       stopLoss: tradePlan.sl,
       takeProfit: tradePlan.tp,
     });
-    if (result?.position) {
+    if (result?.position || result?.reconciled || String(result?.order?.status || '').toUpperCase() === 'FILLED') {
       setTradePlan(null);
     }
   };
@@ -466,7 +478,7 @@ export default function TradingTerminalV2({
   };
 
   const manualOrder = order => {
-    if (trading.commandState.pending) return;
+    if (trading.commandState.pending || !exposure.allowed) { if (!exposure.allowed) showNotice(exposure.reason); return; }
     void runMarketExecution({
       side: order.side,
       executionLots: normalizeVolumeToStep(order.lots, markets.find(item => item.symbol === order.symbol) || market),
@@ -517,7 +529,7 @@ export default function TradingTerminalV2({
   };
 
   const hotkeyTrade = side => {
-    if (tradePlan || trading.commandState.pending) return;
+    if (tradePlan || trading.commandState.pending || !exposure.allowed) return;
     if (orderType !== 'market') startPlan(side, orderType);
     else if (sizingMode === 'risk') startPlan(side, 'market');
     else manualOrder({ side, lots, price: side === 'buy' ? market?.ask : market?.bid, symbol: market?.symbol });
@@ -535,7 +547,7 @@ export default function TradingTerminalV2({
     onTimeframe: setTimeframe,
   });
 
-  const plannedRisk = estimatedRisk(tradePlan, riskPercent, lots, account.equity);
+  const plannedRisk = estimatedRisk(tradePlan, riskPercent, lots, account.equity, market, account.currency);
 
   if (isDesktop) {
     return (
@@ -586,6 +598,8 @@ export default function TradingTerminalV2({
           onModifyPlan={modifyPlan}
           onTradePlanChange={updatePlan}
           onOpenSettings={() => setOverlay('more')}
+          exposureAllowed={exposure.allowed}
+          exposureBlockReason={exposure.reason}
         />
         <ExecutionStatus event={executionEvent} onDismiss={() => setExecutionEvent(null)} />
         {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} onSelectSymbol={symbol => { onSelectSymbol(symbol); setOverlay(null); }} {...indicatorSheetProps} />}
@@ -639,7 +653,7 @@ export default function TradingTerminalV2({
                 <div className="px-2">
                   <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={tradePlan} onTradePlanChange={updatePlan} positions={positions} onUpdatePosition={updatePosition} onSelectInstrument={() => setOverlay('instruments')} onIndicators={() => setOverlay('indicators')} indicators={indicators} />
                   <PropRiskStrip account={account} plannedRisk={plannedRisk} />
-                  <ExecutionPanel market={market} lots={lots} onLotsChange={setLots} sizingMode={sizingMode} onSizingModeChange={setSizingMode} riskPercent={riskPercent} onRiskPercentChange={setRiskPercent} orderType={orderType} onOrderTypeChange={setOrderType} tradePlan={tradePlan} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} />
+                  <ExecutionPanel market={market} account={account} exposureAllowed={exposure.allowed} exposureBlockReason={exposure.reason} lots={lots} onLotsChange={setLots} sizingMode={sizingMode} onSizingModeChange={setSizingMode} riskPercent={riskPercent} onRiskPercentChange={setRiskPercent} orderType={orderType} onOrderTypeChange={setOrderType} tradePlan={tradePlan} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} />
                   <PositionsPanel positions={positions} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={closePosition} onCloseAll={closeAllPositions} onBreakEven={movePositionToBreakEven} onReverse={reversePosition} onUpdatePosition={updatePosition} onSetTrailing={setPositionTrailing} onDuplicate={duplicatePosition} onCancelPending={cancelPendingOrder} onModifyPending={modifyPendingOrder} />
                 </div>
               </>

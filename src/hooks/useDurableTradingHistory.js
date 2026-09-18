@@ -27,5 +27,27 @@ export function useDurableTradingHistory() {
     return () => controller.abort();
   }, [accountId, commands, connection.status]);
 
-  return { accountId, ...state };
+  const mergedOrders = useMemo(() => {
+    const source = state.loaded ? [...Object.values(trading.ordersById), ...state.orders] : Object.values(trading.ordersById);
+    const seen = new Set();
+    return source.filter(item => {
+      const id = String(item?.id || '');
+      if (!id || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  }, [state.loaded, state.orders, trading.ordersById]);
+
+  const mergedDeals = useMemo(() => {
+    const source = state.loaded ? [...trading.fills, ...state.deals] : trading.fills;
+    const seen = new Set();
+    return source.filter(item => {
+      const id = String(item?.id || '');
+      if (!id || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  }, [state.deals, state.loaded, trading.fills]);
+
+  return { accountId, ...state, orders: mergedOrders, deals: mergedDeals };
 }

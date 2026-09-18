@@ -49,24 +49,30 @@ export function useMarketData(instruments, activeSymbol) {
   const symbols = useMemo(() => [...new Set((instruments || []).map(item => item.symbol).filter(Boolean))], [instruments]);
 
   useEffect(() => {
-    const controller = new AbortController();
+    let disposed = false;
+    let controller = new AbortController();
     let timer = null;
     const refresh = async () => {
       try {
         const response = await marketApi.status(controller.signal);
-        if (!controller.signal.aborted) {
+        if (!disposed && !controller.signal.aborted) {
           setGatewayStatus(response);
           setError(null);
         }
       } catch (nextError) {
-        if (!controller.signal.aborted) setError(nextError);
+        if (!disposed && !controller.signal.aborted) setError(nextError);
+      } finally {
+        if (!disposed) timer = window.setTimeout(() => {
+          controller = new AbortController();
+          void refresh();
+        }, connection.status === 'ready' ? 15000 : 3000);
       }
     };
     void refresh();
-    timer = window.setInterval(() => void refresh(), connection.status === 'ready' ? 15000 : 3000);
     return () => {
+      disposed = true;
       controller.abort();
-      if (timer) window.clearInterval(timer);
+      if (timer) window.clearTimeout(timer);
     };
   }, [connection.status]);
 
@@ -77,24 +83,31 @@ export function useMarketData(instruments, activeSymbol) {
 
   useEffect(() => {
     if (!symbols.length) return undefined;
-    const controller = new AbortController();
+    let disposed = false;
+    let controller = new AbortController();
     let timer = null;
+    const shouldPoll = !authenticated || connection.status !== 'ready';
     const refresh = async () => {
       try {
         const response = await marketApi.quotes(symbols, controller.signal);
-        if (!controller.signal.aborted) {
+        if (!disposed && !controller.signal.aborted) {
           ingestQuotes(response?.quotes || []);
           setError(null);
         }
       } catch (nextError) {
-        if (!controller.signal.aborted) setError(nextError);
+        if (!disposed && !controller.signal.aborted) setError(nextError);
+      } finally {
+        if (!disposed && shouldPoll) timer = window.setTimeout(() => {
+          controller = new AbortController();
+          void refresh();
+        }, 2000);
       }
     };
     void refresh();
-    if (!authenticated || connection.status !== 'ready') timer = window.setInterval(() => void refresh(), 2000);
     return () => {
+      disposed = true;
       controller.abort();
-      if (timer) window.clearInterval(timer);
+      if (timer) window.clearTimeout(timer);
     };
   }, [authenticated, connection.status, ingestQuotes, symbols]);
 

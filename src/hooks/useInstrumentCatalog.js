@@ -10,6 +10,7 @@ function normalizeInstrument(item) {
     digits: Number.isFinite(Number(item.digits)) ? Number(item.digits) : 5,
     tickSize: item.tickSize == null ? null : Number(item.tickSize),
     pipSize: item.pipSize == null ? null : Number(item.pipSize),
+    contractSize: item.contractSize == null ? null : Number(item.contractSize),
     minVolume: item.minVolume == null ? null : Number(item.minVolume),
     maxVolume: item.maxVolume == null ? null : Number(item.maxVolume),
     volumeStep: item.volumeStep == null ? null : Number(item.volumeStep),
@@ -21,26 +22,52 @@ export function useInstrumentCatalog() {
   const [state, setState] = useState({ instruments: [], allInstruments: [], loading: true, error: null, asOf: null });
 
   useEffect(() => {
-    const controller = new AbortController();
-    void Promise.all([
-      marketApi.instruments(controller.signal),
-      marketApi.status(controller.signal),
-    ]).then(([catalogResponse, statusResponse]) => {
-      if (controller.signal.aborted) return;
-      const allInstruments = (catalogResponse?.instruments || []).map(normalizeInstrument).filter(Boolean);
-      const configured = new Set((statusResponse?.symbols || []).map(item => String(item?.symbol || '').toUpperCase()).filter(Boolean));
-      const instruments = allInstruments.filter(item => configured.has(item.symbol));
-      setState({
-        instruments,
-        allInstruments,
-        loading: false,
-        error: null,
-        asOf: catalogResponse?.asOf || null,
-      });
-    }).catch(error => {
-      if (!controller.signal.aborted) setState(current => ({ ...current, loading: false, error }));
-    });
-    return () => controller.abort();
+    let disposed = false;
+    let controller = null;
+    let timer = null;
+
+    const schedule = delay => {
+      if (disposed) return;
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(() => void refresh(), delay);
+    };
+
+    const refresh = async () => {
+      controller?.abort();
+      controller = new AbortController();
+      try {
+        const [catalogResponse, statusResponse] = await Promise.all([
+          marketApi.instruments(controller.signal),
+          marketApi.status(controller.signal),
+        ]);
+        if (disposed || controller.signal.aborted) return;
+        const allInstruments = (catalogResponse?.instruments || []).map(normalizeInstrument).filter(Boolean);
+        const configured = new Set((statusResponse?.symbols || []).map(item => String(item?.symbol || '').toUpperCase()).filter(Boolean));
+        const instruments = allInstruments.filter(item => configured.has(item.symbol));
+        setState({ instruments, allInstruments, loading: false, error: null, asOf: catalogResponse?.asOf || null });
+        schedule(60000);
+      } catch (error) {
+        if (disposed || controller.signal.aborted) return;
+        setState(current => ({ ...current, loading: false, error }));
+        schedule(state.instruments.length ? 30000 : 5000);
+      }
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        if (timer) window.clearTimeout(timer);
+        void refresh();
+      }
+    };
+
+    void refresh();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      disposed = true;
+      controller?.abort();
+      if (timer) window.clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, []);
 
   const bySymbol = useMemo(() => Object.fromEntries(state.instruments.map(item => [item.symbol, item])), [state.instruments]);
