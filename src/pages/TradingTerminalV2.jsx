@@ -16,6 +16,8 @@ import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
 import { normalizePriceToTick, normalizeProtectionPrice, normalizeVolumeToStep, pendingPriceDirection } from '../utils/tradingCommandNormalization.js';
 import { calculateRiskSizedLots, estimateStopRisk } from '../utils/tradingRisk.js';
 import { exposureAvailability } from '../utils/exposureAvailability.js';
+import { formatInstrumentPrice, instrumentPipSize } from '../utils/instrumentFormatting.js';
+import { normalizeTradePlanPatch } from '../utils/tradePlanNormalization.js';
 
 const INDICATOR_STORAGE_KEY = 'acg-trader-indicators-v1';
 const INDICATOR_FAVORITES_KEY = 'acg-trader-indicator-favorites-v1';
@@ -63,10 +65,6 @@ function loadTerminalPrefs() {
   } catch {
     return {};
   }
-}
-
-function pipSize(price) {
-  return Number(price) > 100 ? 0.01 : 0.0001;
 }
 
 function calculatedLots(plan, riskPercent, manualLots, equity, instrument, accountCurrency) {
@@ -201,7 +199,8 @@ export default function TradingTerminalV2({
       });
       const filled = fillEvent(result, base);
       setExecutionEvent(filled);
-      logEvent('fill', `${base.side} ${base.lots.toFixed(2)} ${symbol} filled @ ${Number(filled.fillPrice).toFixed(Number(filled.fillPrice) > 100 ? 2 : 5)}`, filled);
+      const instrument = markets.find(item => item.symbol === symbol) || market;
+      logEvent('fill', `${base.side} ${base.lots.toFixed(2)} ${symbol} filled @ ${formatInstrumentPrice(filled.fillPrice, instrument)}`, filled);
       dismissExecutionLater();
       return result;
     } catch (error) {
@@ -397,7 +396,7 @@ export default function TradingTerminalV2({
       showNotice('Executable market price is unavailable');
       return;
     }
-    const pip = Number(market?.pipSize) || pipSize(marketPrice);
+    const pip = instrumentPipSize(market);
     const pending = requestedType !== 'market';
     const sideUpper = String(side).toUpperCase();
     let entry = marketPrice;
@@ -475,7 +474,7 @@ export default function TradingTerminalV2({
     setTradePlan(plan => plan ? { ...plan, stage } : plan);
   };
   const updatePlan = patch => {
-    setTradePlan(plan => plan ? { ...plan, ...patch } : plan);
+    setTradePlan(plan => plan ? { ...plan, ...normalizeTradePlanPatch(plan, patch, market) } : plan);
   };
 
   const manualOrder = order => {
@@ -602,7 +601,7 @@ export default function TradingTerminalV2({
           exposureAllowed={exposure.allowed}
           exposureBlockReason={exposure.reason}
         />
-        <ExecutionStatus event={executionEvent} onDismiss={() => setExecutionEvent(null)} />
+        <ExecutionStatus event={executionEvent} instrument={market} onDismiss={() => setExecutionEvent(null)} />
         {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} onSelectSymbol={symbol => { onSelectSymbol(symbol); setOverlay(null); }} {...indicatorSheetProps} />}
       </>
     );
@@ -655,14 +654,14 @@ export default function TradingTerminalV2({
                   <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={tradePlan} onTradePlanChange={updatePlan} positions={positions} onUpdatePosition={updatePosition} onSelectInstrument={() => setOverlay('instruments')} onIndicators={() => setOverlay('indicators')} indicators={indicators} />
                   <PropRiskStrip account={account} plannedRisk={plannedRisk} />
                   <ExecutionPanel market={market} account={account} exposureAllowed={exposure.allowed} exposureBlockReason={exposure.reason} lots={lots} onLotsChange={setLots} sizingMode={sizingMode} onSizingModeChange={setSizingMode} riskPercent={riskPercent} onRiskPercentChange={setRiskPercent} orderType={orderType} onOrderTypeChange={setOrderType} tradePlan={tradePlan} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} />
-                  <PositionsPanel positions={positions} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={closePosition} onCloseAll={closeAllPositions} onBreakEven={movePositionToBreakEven} onReverse={reversePosition} onUpdatePosition={updatePosition} onSetTrailing={setPositionTrailing} onDuplicate={duplicatePosition} onCancelPending={cancelPendingOrder} onModifyPending={modifyPendingOrder} />
+                  <PositionsPanel positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={closePosition} onCloseAll={closeAllPositions} onBreakEven={movePositionToBreakEven} onReverse={reversePosition} onUpdatePosition={updatePosition} onSetTrailing={setPositionTrailing} onDuplicate={duplicatePosition} onCancelPending={cancelPendingOrder} onModifyPending={modifyPendingOrder} />
                 </div>
               </>
             )}
             <BottomNavbar active={activeNav} onChange={handleNav} />
           </>
         )}
-        <ExecutionStatus event={executionEvent} onDismiss={() => setExecutionEvent(null)} />
+        <ExecutionStatus event={executionEvent} instrument={market} onDismiss={() => setExecutionEvent(null)} />
         {notice && <div className="fixed left-1/2 top-[74px] z-[120] w-[calc(100%-24px)] max-w-[420px] -translate-x-1/2 rounded-xl border border-[#254155] bg-[#0b1b28]/95 px-3 py-2.5 text-center text-[10px] font-semibold text-[#dce9f2] shadow-[0_16px_48px_rgba(0,0,0,.45)] backdrop-blur-xl">{notice}</div>}
         {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} onSelectSymbol={symbol => { onSelectSymbol(symbol); if (activeNav === 'watchlist') setActiveNav('trade'); }} {...indicatorSheetProps} />}
       </main>
