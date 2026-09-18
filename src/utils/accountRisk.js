@@ -2,6 +2,7 @@ const DAILY_REFERENCE = 'DAILY_START_EQUITY';
 const MAX_REFERENCE = 'INITIAL_BALANCE';
 
 function finiteNumber(value, fallback = null) {
+  if (value === null || value === undefined || value === '') return fallback;
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : fallback;
 }
