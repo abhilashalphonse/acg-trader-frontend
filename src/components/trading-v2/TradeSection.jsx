@@ -61,7 +61,7 @@ export default function TradeSection({
 
       <div className="rounded-[22px] border border-[#193044] bg-[linear-gradient(145deg,#0d1e2b,#08131d_65%)] p-4 shadow-[0_18px_50px_rgba(0,0,0,.24)]">
         <div className="flex items-end justify-between gap-3">
-          <div><p className="text-[8px] font-bold uppercase tracking-[0.14em] text-[#63798d]">Floating P&amp;L</p><strong className={`mt-1 block text-[28px] font-black tracking-[-0.045em] ${floating >= 0 ? 'text-[#43d9a6]' : 'text-[#ff6f7a]'}`}>{floating >= 0 ? '+' : '-'}${Math.abs(floating).toFixed(2)}</strong></div>
+          <div><p className="text-[8px] font-bold uppercase tracking-[0.14em] text-[#63798d]">Floating P&amp;L</p><strong className={`mt-1 block text-[28px] font-black tracking-[-0.045em] ${Number(floating) >= 0 ? 'text-[#43d9a6]' : 'text-[#ff6f7a]'}`}>{money(floating, currency, true)}</strong></div>
           <div className="text-right"><span className="text-[8px] font-semibold uppercase tracking-[0.12em] text-[#5e7488]">Equity</span><b className="mt-1 block text-[14px] text-[#eef4f8]">{money(equity, currency)}</b></div>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-3 border-t border-[#173044] pt-3">
