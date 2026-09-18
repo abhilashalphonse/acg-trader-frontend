@@ -114,7 +114,7 @@ export default function ExecutionPanel({
     </div>
   );
 
-  if (tradePlan) {
+  if (tradePlan && !tradePlan.open) {
     const side = tradePlan.side === 'buy' ? 'BUY' : 'SELL';
     const accent = tradePlan.side === 'buy' ? '#42d7a2' : '#ff6975';
     const isOpen = tradePlan.open;
