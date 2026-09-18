@@ -213,27 +213,12 @@ export function useTradingTerminal(markets = []) {
     }
 
     requestSnapshot([targetAccountId]);
-    const error = new Error('Execution status is unknown because the backend response could not be confirmed. New exposure is paused until account state is reconciled.');
+    const error = new Error('Execution status is unknown because the backend response could not be confirmed. New exposure stays paused until the terminal is reloaded and authoritative account state is restored.');
     error.code = 'EXECUTION_STATUS_UNKNOWN';
     error.clientOrderId = clientOrderId;
     error.cause = lastError;
     throw error;
   }, [commands, requestSnapshot]);
-
-  useEffect(() => {
-    if (!commandState.uncertain || !accountId || connection.status !== 'ready') return undefined;
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => {
-      void commands.historyOrders(accountId, { limit: 100 }, controller.signal)
-        .then(() => {
-          if (controller.signal.aborted) return;
-          requestSnapshot([accountId]);
-          setCommandState(current => ({ ...current, uncertain: false, error: current.error?.code === 'EXECUTION_STATUS_UNKNOWN' ? null : current.error }));
-        })
-        .catch(() => {});
-    }, 750);
-    return () => { controller.abort(); window.clearTimeout(timer); };
-  }, [accountId, commandState.uncertain, commands, connection.status, requestSnapshot]);
 
   const instrumentForSymbol = useCallback(symbol => markets.find(item => item.symbol === String(symbol || '').toUpperCase()) || null, [markets]);
 
