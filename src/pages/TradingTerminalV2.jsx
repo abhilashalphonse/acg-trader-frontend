@@ -13,6 +13,7 @@ import ExecutionStatus from '../components/trading-v2/ExecutionStatus.jsx';
 import useTradingHotkeys from '../hooks/useTradingHotkeys.js';
 import { useTradingTerminal } from '../hooks/useTradingTerminal.js';
 import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
+import { normalizePriceToTick, normalizeProtectionPrice, normalizeVolumeToStep, pendingPriceDirection } from '../utils/tradingCommandNormalization.js';
 
 const INDICATOR_STORAGE_KEY = 'acg-trader-indicators-v1';
 const INDICATOR_FAVORITES_KEY = 'acg-trader-indicator-favorites-v1';
@@ -288,8 +289,10 @@ export default function TradingTerminalV2({
       if (tradePlan?.positionId === id) setTradePlan(plan => plan ? { ...plan, ...patch } : plan);
       logEvent('modify', `${position.symbol} protection updated`);
       showNotice('Position protection updated');
+      return true;
     } catch (error) {
       handleTradingError(error, `Modify ${position.symbol}`);
+      return false;
     }
   };
 
@@ -386,12 +389,16 @@ export default function TradingTerminalV2({
     }
     const pip = Number(market?.pipSize) || pipSize(marketPrice);
     const pending = requestedType !== 'market';
+    const sideUpper = String(side).toUpperCase();
     let entry = marketPrice;
     if (requestedType === 'limit') entry = side === 'buy' ? marketPrice - 5 * pip : marketPrice + 5 * pip;
     if (requestedType === 'stop' || requestedType === 'stop-limit') entry = side === 'buy' ? marketPrice + 5 * pip : marketPrice - 5 * pip;
-    const sl = side === 'buy' ? entry - 4.2 * pip : entry + 4.2 * pip;
-    const tp = side === 'buy' ? entry + 8.4 * pip : entry - 8.4 * pip;
-    const limitPrice = requestedType === 'stop-limit' ? (side === 'buy' ? entry - 1.5 * pip : entry + 1.5 * pip) : null;
+    entry = normalizePriceToTick(entry, market, pendingPriceDirection(requestedType, sideUpper, 'entry'));
+    const sl = normalizeProtectionPrice(side === 'buy' ? entry - 4.2 * pip : entry + 4.2 * pip, market, sideUpper, 'sl');
+    const tp = normalizeProtectionPrice(side === 'buy' ? entry + 8.4 * pip : entry - 8.4 * pip, market, sideUpper, 'tp');
+    const limitPrice = requestedType === 'stop-limit'
+      ? normalizePriceToTick(side === 'buy' ? entry + 1.5 * pip : entry - 1.5 * pip, market, pendingPriceDirection(requestedType, sideUpper, 'limit'))
+      : null;
     setTradePlan({ side, entry, sl, tp, limitPrice, marketPrice, orderType: requestedType, pending, sizingMode, manualLots: lots, expiration: 'GTC', stage: 'planning', open: false });
   };
 
@@ -405,7 +412,7 @@ export default function TradingTerminalV2({
 
   const executePlan = async () => {
     if (!tradePlan || trading.commandState.pending) return;
-    const volume = calculatedLots(tradePlan, riskPercent, tradePlan.manualLots ?? lots, account.equity);
+    const volume = normalizeVolumeToStep(calculatedLots(tradePlan, riskPercent, tradePlan.manualLots ?? lots, account.equity), market);
     if (tradePlan.pending) {
       const request = {
         symbol: market?.symbol,
@@ -417,7 +424,7 @@ export default function TradingTerminalV2({
         stopLoss: tradePlan.sl,
         takeProfit: tradePlan.tp,
         timeInForce: tradePlan.expiration || 'GTC',
-        expiresAt: tradePlan.expiresAt || null,
+        expiresAt: tradePlan.expirationAt || tradePlan.expiresAt || null,
       };
       setExecutionEvent({ side: tradePlan.side, lots: volume, symbol: market?.symbol, requestedPrice: tradePlan.entry, status: 'submitting' });
       try {
@@ -447,14 +454,14 @@ export default function TradingTerminalV2({
     }
   };
 
-  const modifyPlan = stage => setTradePlan(plan => plan ? { ...plan, stage } : plan);
-  const updatePlan = patch => {
-    if (tradePlan?.open && tradePlan.positionId) {
-      const positionPatch = {};
-      if (Object.prototype.hasOwnProperty.call(patch, 'sl')) positionPatch.sl = patch.sl;
-      if (Object.prototype.hasOwnProperty.call(patch, 'tp')) positionPatch.tp = patch.tp;
-      if (Object.keys(positionPatch).length) void updatePosition(tradePlan.positionId, positionPatch);
+  const modifyPlan = async stage => {
+    if (tradePlan?.open && tradePlan.positionId && stage === 'open' && tradePlan.stage === 'modifying') {
+      const applied = await updatePosition(tradePlan.positionId, { sl: tradePlan.sl, tp: tradePlan.tp });
+      if (!applied) return;
     }
+    setTradePlan(plan => plan ? { ...plan, stage } : plan);
+  };
+  const updatePlan = patch => {
     setTradePlan(plan => plan ? { ...plan, ...patch } : plan);
   };
 
@@ -462,7 +469,7 @@ export default function TradingTerminalV2({
     if (trading.commandState.pending) return;
     void runMarketExecution({
       side: order.side,
-      executionLots: order.lots,
+      executionLots: normalizeVolumeToStep(order.lots, markets.find(item => item.symbol === order.symbol) || market),
       symbol: order.symbol,
       requestedPrice: order.price,
     });
@@ -524,7 +531,7 @@ export default function TradingTerminalV2({
     onCancel: () => tradePlan && cancelPlan(),
     onCloseLatest: () => positions[0] && void closePosition(positions[0].id, 100),
     onCloseAll: () => void closeAllPositions(),
-    onLotsDelta: delta => setLots(value => Math.max(0.01, +(value + delta).toFixed(2))),
+    onLotsDelta: delta => setLots(value => normalizeVolumeToStep(Number(value) + delta, market, { rounding: 'nearest' })),
     onTimeframe: setTimeframe,
   });
 
