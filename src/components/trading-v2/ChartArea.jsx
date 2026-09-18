@@ -23,9 +23,8 @@ function formatCountdown(totalSeconds) {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-function TradePlanOverlay({ plan, onChange, onCommitProtection = () => {} }) {
+function TradePlanOverlay({ plan, onChange }) {
   const layerRef = useRef(null);
-  const pendingProtectionRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [positions, setPositions] = useState({ tp: 27, entry: 50, limit: 57, sl: 69 });
 
@@ -63,14 +62,12 @@ function TradePlanOverlay({ plan, onChange, onCommitProtection = () => {} }) {
         setPositions(p => ({ ...p, sl: bounded }));
         const pips = Math.max(0.5, Math.abs(bounded - positions.entry) * 0.22);
         const sl = isBuy ? plan.entry - pips * pip : plan.entry + pips * pip;
-        pendingProtectionRef.current = { ...(pendingProtectionRef.current || {}), sl };
         onChange({ sl, stage: 'dragging-sl' });
       } else if (dragging === 'tp') {
         const bounded = isBuy ? Math.min(positions.entry - 6, next) : Math.max(positions.entry + 6, next);
         setPositions(p => ({ ...p, tp: bounded }));
         const pips = Math.max(0.5, Math.abs(bounded - positions.entry) * 0.34);
         const tp = isBuy ? plan.entry + pips * pip : plan.entry - pips * pip;
-        pendingProtectionRef.current = { ...(pendingProtectionRef.current || {}), tp };
         onChange({ tp, stage: 'dragging-tp' });
       } else if (dragging === 'entry') {
         setPositions(p => ({ ...p, entry: next }));
@@ -88,11 +85,7 @@ function TradePlanOverlay({ plan, onChange, onCommitProtection = () => {} }) {
     };
     const up = () => {
       setDragging(null);
-      if (plan.open && pendingProtectionRef.current) {
-        void onCommitProtection(pendingProtectionRef.current);
-      }
-      pendingProtectionRef.current = null;
-      onChange({ stage: plan.open ? 'open' : 'ready' });
+      onChange({ stage: 'ready' });
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up, { once: true });
