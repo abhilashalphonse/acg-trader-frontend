@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ChevronDown, Minus, Plus, X, Check, SlidersHorizontal, Clock3 } from 'lucide-react';
 import { normalizeVolumeToStep } from '../../utils/tradingCommandNormalization.js';
 import { calculateRiskSizedLots, estimateStopRisk, riskSizingSupported } from '../../utils/tradingRisk.js';
+import { instrumentPipSize } from '../../utils/instrumentFormatting.js';
 
 const orderTypes = [
   ['market', 'Market'],
@@ -24,7 +25,7 @@ function getPlanMetrics(plan, riskPercent, manualLots = 0.1, market, account) {
   const entry = Number(plan.entry) || 0;
   const sl = Number(plan.sl) || entry;
   const tp = Number(plan.tp) || entry;
-  const pipSize = Number(market?.pipSize) || (entry > 100 ? 0.01 : 0.0001);
+  const pipSize = instrumentPipSize(market);
   const slPips = Math.max(0.1, Math.abs(entry - sl) / pipSize);
   const tpPips = Math.max(0.1, Math.abs(tp - entry) / pipSize);
   const supported = riskSizingSupported(market, account?.currency);
