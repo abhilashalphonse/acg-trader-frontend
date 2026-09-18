@@ -117,8 +117,9 @@ export default function PositionsPanel({
   };
 
   const applyCustomClose = position => {
-    const value = Math.max(1, Math.min(100, Number(customClose[position.id]) || 0));
-    if (!value) return;
+    const raw = Number(customClose[position.id]);
+    if (!Number.isFinite(raw) || raw <= 0) return;
+    const value = Math.max(1, Math.min(100, raw));
     onClosePosition(position.id, value);
     setCustomClose(current => ({ ...current, [position.id]: '' }));
   };
