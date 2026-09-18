@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, ExternalLink, MoreHorizontal, Plus, X } from 'lucide-react';
 import { formatInstrumentPrice, instrumentForSymbol } from '../../utils/instrumentFormatting.js';
 
