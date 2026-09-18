@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, ExternalLink, MoreHorizontal, Plus, X } from 'lucide-react';
+import { formatInstrumentPrice, instrumentForSymbol } from '../../utils/instrumentFormatting.js';
 
 function money(value, currency = 'USD', signed = false) {
   const number = Number(value);
@@ -10,13 +11,6 @@ function money(value, currency = 'USD', signed = false) {
   } catch {
     return `${number < 0 ? '-' : signed && number > 0 ? '+' : ''}${Math.abs(number).toFixed(2)} ${currency}`;
   }
-}
-
-function price(value) {
-  if (value === null || value === undefined || value === '') return '—';
-  const number = Number(value);
-  if (!Number.isFinite(number) || number <= 0) return '—';
-  return number.toFixed(Math.abs(number) > 100 ? 2 : 5);
 }
 
 function symbolLabel(symbol = '') {
@@ -51,7 +45,8 @@ export default function TradeSection({
   const freeMargin = Number(account.freeMargin);
   const marginLevel = account.marginLevel == null ? null : Number(account.marginLevel);
 
-  const marketFor = symbol => markets.find(item => item.symbol === symbol);
+  const marketFor = symbol => instrumentForSymbol(markets, symbol);
+  const price = (value, symbol) => formatInstrumentPrice(value, marketFor(symbol));
 
   return (
     <section className="min-h-[calc(100dvh-98px)] px-3 pb-6 pt-3">
@@ -95,11 +90,11 @@ export default function TradeSection({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2"><strong className="text-[13px] font-black text-[#f1f5f8]">{symbolLabel(position.symbol)}</strong><span className={`rounded-md px-1.5 py-1 text-[7px] font-black ${sideTone(position.side)}`}>{String(position.side).toUpperCase()} · {Number(position.volume).toFixed(2)}</span></div>
-                    <div className="mt-2 flex items-center gap-2 font-mono text-[9px] text-[#72869a]"><span>{price(position.entry)}</span><span className="text-[#354c60]">→</span><span className="text-[#afbdc9]">{price(current)}</span></div>
+                    <div className="mt-2 flex items-center gap-2 font-mono text-[9px] text-[#72869a]"><span>{price(position.entry, position.symbol)}</span><span className="text-[#354c60]">→</span><span className="text-[#afbdc9]">{price(current, position.symbol)}</span></div>
                   </div>
                   <div className="flex items-start gap-2"><div className="text-right"><b className={`block text-[15px] font-black ${positive ? 'text-[#42d8a5]' : 'text-[#ff6d79]'}`}>{money(position.pnl, position.pnlCurrency || currency, true)}</b><span className="mt-1 block text-[8px] text-[#5d7286]">P&amp;L</span></div>{expanded ? <ChevronUp size={15} className="mt-1 text-[#6e8498]"/> : <ChevronDown size={15} className="mt-1 text-[#6e8498]"/>}</div>
                 </div>
-                <div className="mt-3 grid grid-cols-2 gap-2"><MiniMetric label="SL" value={price(position.sl)} /><MiniMetric label="TP" value={price(position.tp)} /></div>
+                <div className="mt-3 grid grid-cols-2 gap-2"><MiniMetric label="SL" value={price(position.sl, position.symbol)} /><MiniMetric label="TP" value={price(position.tp, position.symbol)} /></div>
               </button>
 
               {expanded && <div className="border-t border-[#152938] bg-[#07111a] px-3.5 pb-3.5 pt-3">
@@ -116,7 +111,7 @@ export default function TradeSection({
         {!pendingOrders.length && <EmptyState title="No pending orders" subtitle="Limit and stop orders will appear here." compact />}
         {pendingOrders.map(order => {
           const side = String(order.side).toUpperCase();
-          return <article key={order.id} className="rounded-[17px] border border-[#172b3a] bg-[#08131c] px-3.5 py-3"><div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2"><strong className="text-[12px] font-black text-[#eff4f8]">{symbolLabel(order.symbol)}</strong><span className={`rounded-md px-1.5 py-1 text-[7px] font-black ${sideTone(side)}`}>{side} {String(order.orderType || 'order').toUpperCase()}</span></div><p className="mt-2 text-[9px] text-[#71859a]">{Number(order.lots || order.manualLots || 0).toFixed(2)} lots · Entry <b className="font-mono text-[#c1ccd6]">{price(order.entry)}</b></p><div className="mt-2 flex gap-3 text-[8px] text-[#60758a]"><span>SL <b className="text-[#9eb0bf]">{price(order.sl)}</b></span><span>TP <b className="text-[#9eb0bf]">{price(order.tp)}</b></span></div></div><button type="button" className="grid size-8 place-items-center rounded-lg border border-[#1a3040] bg-[#0b1822] text-[#74899d]"><MoreHorizontal size={15}/></button></div><div className="mt-3 grid grid-cols-3 gap-2"><button type="button" onClick={() => onOpenChart(order.symbol)} className="h-9 rounded-xl border border-[#1b3c51] bg-[#0b1f2c] text-[8px] font-bold text-[#5fc9ff]">Chart</button><button type="button" onClick={() => onModifyPending(order.id)} className="h-9 rounded-xl border border-[#263745] bg-[#0b1720] text-[8px] font-bold text-[#b5c3ce]">Modify</button><button type="button" onClick={() => onCancelPending(order.id)} className="h-9 rounded-xl border border-[#512b34] bg-[#211218] text-[8px] font-bold text-[#ff7984]">Cancel</button></div></article>;
+          return <article key={order.id} className="rounded-[17px] border border-[#172b3a] bg-[#08131c] px-3.5 py-3"><div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2"><strong className="text-[12px] font-black text-[#eff4f8]">{symbolLabel(order.symbol)}</strong><span className={`rounded-md px-1.5 py-1 text-[7px] font-black ${sideTone(side)}`}>{side} {String(order.orderType || 'order').toUpperCase()}</span></div><p className="mt-2 text-[9px] text-[#71859a]">{Number(order.lots || order.manualLots || 0).toFixed(2)} lots · Entry <b className="font-mono text-[#c1ccd6]">{price(order.entry, order.symbol)}</b></p><div className="mt-2 flex gap-3 text-[8px] text-[#60758a]"><span>SL <b className="text-[#9eb0bf]">{price(order.sl, order.symbol)}</b></span><span>TP <b className="text-[#9eb0bf]">{price(order.tp, order.symbol)}</b></span></div></div><button type="button" className="grid size-8 place-items-center rounded-lg border border-[#1a3040] bg-[#0b1822] text-[#74899d]"><MoreHorizontal size={15}/></button></div><div className="mt-3 grid grid-cols-3 gap-2"><button type="button" onClick={() => onOpenChart(order.symbol)} className="h-9 rounded-xl border border-[#1b3c51] bg-[#0b1f2c] text-[8px] font-bold text-[#5fc9ff]">Chart</button><button type="button" onClick={() => onModifyPending(order.id)} className="h-9 rounded-xl border border-[#263745] bg-[#0b1720] text-[8px] font-bold text-[#b5c3ce]">Modify</button><button type="button" onClick={() => onCancelPending(order.id)} className="h-9 rounded-xl border border-[#512b34] bg-[#211218] text-[8px] font-bold text-[#ff7984]">Cancel</button></div></article>;
         })}
       </div>
     </section>
