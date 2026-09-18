@@ -31,7 +31,15 @@ export function TradingProvider({ children }) {
   const requestConnectionStatus = useCallback(() => socketRef.current?.requestStatus() || false, []);
   const ingestQuotes = useCallback(quotes => dispatch({ type: 'market/quotes', payload: quotes }), []);
   const requireToken = useCallback(() => { if (!auth.accessToken) throw new ApiError('Trading authentication is required', { status: 401, code: 'TRADER_AUTH_REQUIRED' }); return auth.accessToken; }, [auth.accessToken]);
-  const executeCommand = useCallback(async executor => { const result = await executor(); if (result && typeof result === 'object') dispatch({ type: 'trading/command-result', payload: result }); return result; }, []);
+  const executeCommand = useCallback(async executor => {
+    const result = await executor();
+    if (result && typeof result === 'object') {
+      dispatch({ type: 'trading/command-result', payload: result });
+      const accountId = result?.account?.id || result?.valuation?.accountId || result?.position?.accountId || result?.order?.accountId || result?.deal?.accountId;
+      if (accountId) socketRef.current?.requestSnapshot([String(accountId)]);
+    }
+    return result;
+  }, []);
 
   const commands = useMemo(() => ({
     accountValuation: (accountId, signal) => tradingApi.accountValuation(requireToken(), accountId, signal),
