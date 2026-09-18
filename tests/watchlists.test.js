@@ -31,3 +31,12 @@ test('workspace normalization repairs an invalid active list id', () => {
   }, catalog(['EURUSD']));
   assert.equal(workspace.activeListId, 'one');
 });
+
+
+test('watchlist order is preserved during normalization', () => {
+  const workspace = normalizeWatchlistWorkspace({
+    activeListId: 'favorites',
+    lists: [{ id: 'favorites', name: 'Favorites', symbols: ['XAUUSD', 'EURUSD', 'NVDA'] }],
+  }, catalog(['EURUSD', 'XAUUSD', 'NVDA']));
+  assert.deepEqual(workspace.lists[0].symbols, ['XAUUSD', 'EURUSD', 'NVDA']);
+});
