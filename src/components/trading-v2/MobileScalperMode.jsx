@@ -34,6 +34,7 @@ export default function MobileScalperMode({
   onModifyPlan,
   onManualOrder,
   onTradePlanChange,
+  onCommitProtection = () => {},
   onIndicators = () => {},
   indicators = [],
   account,
@@ -65,7 +66,7 @@ export default function MobileScalperMode({
       </div>
 
       <div className="min-h-0 flex-1 bg-[#061019]">
-        <ChartArea symbol={market?.symbol} chartTimeframe={mapTimeframe(timeframe)} tick={tick} price={market?.bid} ask={market?.ask} chartMode={chartMode} selectedTool={selectedTool} onSelectTool={tradePlan ? () => {} : setSelectedTool} focusMode tradePlan={tradePlan} onTradePlanChange={onTradePlanChange} indicators={indicators} />
+        <ChartArea symbol={market?.symbol} chartTimeframe={mapTimeframe(timeframe)} tick={tick} price={market?.bid} ask={market?.ask} chartMode={chartMode} selectedTool={selectedTool} onSelectTool={tradePlan ? () => {} : setSelectedTool} focusMode tradePlan={tradePlan} onTradePlanChange={onTradePlanChange} onCommitProtection={onCommitProtection} indicators={indicators} />
       </div>
 
       <div className="shrink-0"><PropRiskStrip account={account} plannedRisk={plannedRisk} compact /></div>
