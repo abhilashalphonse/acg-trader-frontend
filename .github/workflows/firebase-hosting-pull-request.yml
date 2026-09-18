@@ -1,0 +1,48 @@
+name: Preview ACG Trader on Firebase Hosting
+
+on:
+  pull_request:
+
+permissions:
+  checks: write
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: acg-trader-firebase-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build preview
+        run: npm run build
+        env:
+          VITE_ACG_TRADER_API_BASE: ${{ secrets.VITE_ACG_TRADER_API_BASE }}
+          VITE_ACG_TRADER_WS_URL: ${{ secrets.VITE_ACG_TRADER_WS_URL }}
+          VITE_ACG_TRADER_HTTP_TIMEOUT_MS: 10000
+
+      - name: Deploy preview channel
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ACG_TRADER }}
+          projectId: acg-trader
+          channelId: pr-${{ github.event.pull_request.number }}
+          expires: 7d
