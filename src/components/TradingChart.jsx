@@ -12,6 +12,7 @@ import { fetchCandles, mergeLiveBarIntoCache, normalizeCandle, toBackendTimefram
 import { useTraderAuth } from '../hooks/useTraderAuth.js';
 import { useTradingStore } from '../hooks/useTradingStore.js';
 import { calculateIndicatorData } from '../utils/indicators.js';
+import { instrumentDigits, instrumentTickSize } from '../utils/instrumentFormatting.js';
 
 const chartTokens = {
   background: '#080f17', text: '#718399', gridline: '#1b2b39', buy: '#2dd39b', sell: '#f05d68', blue: '#53c7ff', crosshair: '#71869b', crosshairLabel: '#172633',
@@ -24,18 +25,14 @@ function volumeForBar(bar) {
   return Number.isFinite(bar.volume) && bar.volume > 0 ? bar.volume : 0;
 }
 function toSeriesPoint(bar, mode) { return mode === 'line' ? { time: bar.time, value: bar.close } : bar; }
-function priceFormatForSymbol(symbol) {
-  if (symbol.includes('JPY')) return { type: 'price', precision: 3, minMove: 0.001 };
-  if (symbol.startsWith('XAU')) return { type: 'price', precision: 2, minMove: 0.01 };
-  if (symbol === 'US30') return { type: 'price', precision: 1, minMove: 0.1 };
-  return { type: 'price', precision: 5, minMove: 0.00001 };
+function priceFormatForInstrument(instrument) {
+  return {
+    type: 'price',
+    precision: instrumentDigits(instrument),
+    minMove: instrumentTickSize(instrument),
+  };
 }
-function decimalsForSymbol(symbol) {
-  if (symbol.includes('JPY')) return 3;
-  if (symbol.startsWith('XAU')) return 2;
-  if (symbol === 'US30') return 1;
-  return 5;
-}
+
 function indicatorLabel(indicator) {
   const settings = indicator.settings || {};
   if (indicator.id === 'ema') return `EMA ${settings.period || 20}`;
@@ -50,7 +47,7 @@ function indicatorLabel(indicator) {
   return indicator.name || indicator.id;
 }
 
-export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick = null, chartMode = 'candles', bidPrice = null, positions = [], indicators = [], onCoordinateApi = () => {} }) {
+export default function TradingChart({ symbol = 'EURUSD', instrument = null, timeframe = 'M1', tick = null, chartMode = 'candles', bidPrice = null, positions = [], indicators = [], onCoordinateApi = () => {} }) {
   const { authenticated } = useTraderAuth();
   const { market, subscribeMarket } = useTradingStore();
   const hostRef = useRef(null);
@@ -77,7 +74,7 @@ export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick
   const candleKey = symbol && backendTimeframe ? `${String(symbol).toUpperCase()}:${backendTimeframe}` : null;
   const rawLiveCandle = candleKey ? market.candlesByKey[candleKey] : null;
   const liveCandle = useMemo(() => rawLiveCandle ? normalizeCandle(rawLiveCandle) : null, [rawLiveCandle]);
-  const decimals = useMemo(() => decimalsForSymbol(symbol), [symbol]);
+  const decimals = useMemo(() => instrumentDigits(instrument), [instrument]);
   const visibleIndicators = useMemo(() => indicators.filter(item => item.visible !== false), [indicators]);
   const showVolume = useMemo(() => indicators.some(item => item.id === 'volume' && item.visible !== false), [indicators]);
 
@@ -153,7 +150,7 @@ export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick
       handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true }, handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
     });
     chartRef.current = chart;
-    const priceFormat = priceFormatForSymbol(symbol);
+    const priceFormat = priceFormatForInstrument(instrument);
     const series = chartMode === 'line' ? chart.addSeries(LineSeries, { color: chartTokens.blue, lineWidth: 2, priceFormat, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: true }) : chart.addSeries(CandlestickSeries, { upColor: chartTokens.buy, downColor: chartTokens.sell, wickUpColor: chartTokens.buy, wickDownColor: chartTokens.sell, borderVisible: false, priceFormat, priceLineVisible: false, lastValueVisible: false });
     const volume = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: 'volume', lastValueVisible: false, priceLineVisible: false });
     chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
@@ -174,7 +171,7 @@ export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick
       } catch (e) { if (e?.name === 'AbortError' || disposed) return; console.error('Trading chart data failed', e); setError(e?.message || 'Unable to load market data'); }
     })();
     return () => { disposed = true; controller.abort(); coordinateCallbackRef.current?.(null); if (indicatorFrameRef.current) window.cancelAnimationFrame(indicatorFrameRef.current); indicatorFrameRef.current = null; chart.unsubscribeCrosshairMove(crosshairHandler); indicatorSeriesRef.current = []; indicatorBindingsRef.current = []; indicatorPanesRef.current = 0; chartRef.current = null; seriesRef.current = null; volumeRef.current = null; marketLineRef.current = null; positionLinesRef.current = []; lastBarRef.current = null; barsRef.current = []; barsByTimeRef.current = new Map(); chart.remove(); };
-  }, [symbol, timeframe, chartMode, renderIndicators]);
+  }, [symbol, timeframe, chartMode, renderIndicators, instrument]);
 
   useEffect(() => { indicatorsRef.current = indicators; if (chartRef.current && barsRef.current.length) renderIndicators(chartRef.current, barsRef.current); }, [indicators, renderIndicators]);
   useEffect(() => { volumeRef.current?.applyOptions({ visible: showVolume }); }, [showVolume, symbol, timeframe, chartMode]);
