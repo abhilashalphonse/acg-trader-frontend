@@ -7,13 +7,11 @@ import { TradingProvider } from './store/TradingProvider.jsx';
 import './index.css';
 
 createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <AuthProvider>
-      <TradingProvider>
-        <SessionGate>
-          <App />
-        </SessionGate>
-      </TradingProvider>
-    </AuthProvider>
-  </React.StrictMode>,
+  <AuthProvider>
+    <TradingProvider>
+      <SessionGate>
+        <App />
+      </SessionGate>
+    </TradingProvider>
+  </AuthProvider>,
 );
