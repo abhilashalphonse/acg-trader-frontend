@@ -58,6 +58,17 @@ function calculatedLots(plan, riskPercent, manualLots, equity) {
   return Math.max(0.01, Math.min(100, riskAmount / Math.max(slPips * 10, 0.01)));
 }
 
+function normalizeExecutionVolume(value, instrument) {
+  const step = Math.max(Number(instrument?.volumeStep) || 0.01, 0.00000001);
+  const min = Math.max(Number(instrument?.minVolume) || step, step);
+  const max = Math.max(Number(instrument?.maxVolume) || 100, min);
+  const requested = Math.max(min, Math.min(max, Number(value) || min));
+  const units = Math.floor((requested + step * 1e-8) / step);
+  const normalized = Math.max(min, Math.min(max, units * step));
+  const decimals = Math.max(0, String(step).split('.')[1]?.length || 0);
+  return Number(normalized.toFixed(decimals));
+}
+
 function estimatedRisk(plan, riskPercent, manualLots, equity) {
   if (!plan) return 0;
   const entry = Number(plan.entry) || 0;
@@ -291,7 +302,10 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
   const executePlan = async () => {
     if (!tradePlan || trading.commandState.pending) return;
-    const volume = calculatedLots(tradePlan, riskPercent, tradePlan.manualLots ?? lots, account.equity);
+    const volume = normalizeExecutionVolume(
+      calculatedLots(tradePlan, riskPercent, tradePlan.manualLots ?? lots, account.equity),
+      market,
+    );
     if (tradePlan.pending) {
       const request = {
         symbol: market?.symbol,
@@ -333,7 +347,9 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
   const manualOrder = order => {
     if (trading.commandState.pending) return;
-    void runMarketExecution({ side: order.side, executionLots: order.lots, symbol: order.symbol, requestedPrice: order.price });
+    const instrument = markets.find(item => item.symbol === order.symbol) || market;
+    const executionLots = normalizeExecutionVolume(order.lots, instrument);
+    void runMarketExecution({ side: order.side, executionLots, symbol: order.symbol, requestedPrice: order.price });
   };
 
   const updatePlan = patch => {
