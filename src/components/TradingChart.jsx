@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BarChart3, Grid2X2, Pause, Play, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import {
   CandlestickSeries,
   ColorType,
@@ -72,11 +71,7 @@ export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick
   const indicatorFrameRef = useRef(null);
   const coordinateCallbackRef = useRef(onCoordinateApi);
   const [error, setError] = useState('');
-  const [showGrid, setShowGrid] = useState(true);
   const [showVolume, setShowVolume] = useState(true);
-  const [autoScroll, setAutoScroll] = useState(true);
-  const [chartShift, setChartShift] = useState(true);
-  const [barSpacing, setBarSpacing] = useState(7);
   const [displayBar, setDisplayBar] = useState(null);
 
   const backendTimeframe = useMemo(() => {
@@ -183,9 +178,7 @@ export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick
   }, [symbol, timeframe, chartMode, renderIndicators]);
 
   useEffect(() => { indicatorsRef.current = indicators; if (chartRef.current && barsRef.current.length) renderIndicators(chartRef.current, barsRef.current); }, [indicators, renderIndicators]);
-  useEffect(() => { chartRef.current?.applyOptions({ grid: { vertLines: { visible: showGrid, color: chartTokens.gridline, style: LineStyle.Dotted }, horzLines: { visible: showGrid, color: chartTokens.gridline, style: LineStyle.Dotted } } }); }, [showGrid]);
   useEffect(() => { volumeRef.current?.applyOptions({ visible: showVolume }); }, [showVolume, symbol, timeframe, chartMode]);
-  useEffect(() => { chartRef.current?.timeScale().applyOptions({ rightOffset: chartShift ? 10 : 2, barSpacing }); }, [chartShift, barSpacing, symbol, timeframe, chartMode]);
   useEffect(() => {
     const series = seriesRef.current; if (!series) return;
     const liveBid = Number(tick?.bid ?? bidPrice); const liveAsk = Number(tick?.ask ?? askPrice);
@@ -204,13 +197,11 @@ export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick
     lastBarRef.current = next;
     seriesRef.current.update(toSeriesPoint(next, chartMode));
     volumeRef.current?.update({ time: next.time, value: volumeForBar(next), color: next.close >= next.open ? 'rgba(45,211,155,0.34)' : 'rgba(255,95,105,0.32)' });
-    setDisplayBar(next); scheduleIndicatorUpdate(); if (autoScroll) chartRef.current?.timeScale().scrollToRealTime(); mergeLiveBarIntoCache(symbol, timeframe, next, 160);
-  }, [autoScroll, chartMode, liveCandle, scheduleIndicatorUpdate, symbol, timeframe]);
+    setDisplayBar(next); scheduleIndicatorUpdate(); chartRef.current?.timeScale().scrollToRealTime(); mergeLiveBarIntoCache(symbol, timeframe, next, 160);
+  }, [chartMode, liveCandle, scheduleIndicatorUpdate, symbol, timeframe]);
 
-  const resetView = () => { const chart = chartRef.current; const bars = barsRef.current; if (!chart || !bars.length) return; setBarSpacing(7); chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, bars.length - 48), to: bars.length + (chartShift ? 9 : 2) }); };
   const ohlc = displayBar;
   const format = value => Number.isFinite(Number(value)) ? Number(value).toFixed(decimals) : '—';
-  const toolButton = active => `grid size-[25px] place-items-center rounded-md border transition ${active ? 'border-[#2d5874] bg-[#123149] text-[#56c8ff]' : 'border-transparent text-[#71879c] hover:border-[#243847] hover:bg-[#0e1c28] hover:text-[#d4e1ec]'}`;
 
   return <div className="relative size-full min-h-0 min-w-0 overflow-hidden bg-[#080f17]">
     <div ref={hostRef} className="absolute inset-0" />
@@ -218,9 +209,6 @@ export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick
       <div className="font-bold tracking-[0.03em] text-[#dce8f2]">{symbol},{timeframe}</div>
       <div className="mt-0.5 flex flex-wrap gap-x-1.5 whitespace-nowrap font-medium"><span>O <b className="text-[#aab9c8]">{format(ohlc?.open)}</b></span><span>H <b className="text-[#aab9c8]">{format(ohlc?.high)}</b></span><span>L <b className="text-[#aab9c8]">{format(ohlc?.low)}</b></span><span>C <b className="text-[#aab9c8]">{format(ohlc?.close)}</b></span></div>
       {visibleIndicators.length > 0 && <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[7px] font-semibold text-[#8298ac]">{visibleIndicators.map(indicator => <span key={indicator.instanceId}>{indicatorLabel(indicator)}</span>)}</div>}
-    </div>
-    <div className="absolute right-[54px] top-2 z-30 flex items-center gap-0.5 rounded-lg border border-[#203241] bg-[#08131d]/88 p-1 shadow-[0_5px_20px_rgba(0,0,0,0.22)] backdrop-blur-md">
-      <button type="button" title="Grid" aria-label="Toggle chart grid" onClick={() => setShowGrid(v => !v)} className={toolButton(showGrid)}><Grid2X2 size={14} /></button><button type="button" title="Volumes" aria-label="Toggle volumes" onClick={() => setShowVolume(v => !v)} className={toolButton(showVolume)}><BarChart3 size={14} /></button><button type="button" title="Auto scroll" aria-label="Toggle auto scroll" onClick={() => setAutoScroll(v => !v)} className={toolButton(autoScroll)}>{autoScroll ? <Play size={13} /> : <Pause size={13} />}</button><button type="button" title="Chart shift" aria-label="Toggle chart shift" onClick={() => setChartShift(v => !v)} className={toolButton(chartShift)}><span className="text-[9px] font-black leading-none">⇥</span></button><button type="button" title="Zoom out" aria-label="Zoom out" onClick={() => setBarSpacing(v => Math.max(3, +(v - 1.25).toFixed(2)))} className={toolButton(false)}><ZoomOut size={14} /></button><button type="button" title="Zoom in" aria-label="Zoom in" onClick={() => setBarSpacing(v => Math.min(18, +(v + 1.25).toFixed(2)))} className={toolButton(false)}><ZoomIn size={14} /></button><button type="button" title="Reset chart view" aria-label="Reset chart view" onClick={resetView} className={toolButton(false)}><RotateCcw size={13} /></button>
     </div>
     {error && <div className="absolute inset-0 z-40 grid place-items-center bg-[#080f17]/95 px-5 text-center text-[10px] font-medium text-[#718399]">{error}</div>}
   </div>;
