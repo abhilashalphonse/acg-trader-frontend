@@ -318,7 +318,6 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     }
     const pip = instrumentPipSize(market);
     const pending = requestedType !== 'market';
-    const sideUpper = String(side).toUpperCase();
     let entry = marketPrice;
     if (requestedType === 'limit') entry = side === 'buy' ? marketPrice - 5 * pip : marketPrice + 5 * pip;
     if (requestedType === 'stop' || requestedType === 'stop-limit') entry = side === 'buy' ? marketPrice + 5 * pip : marketPrice - 5 * pip;
