@@ -4,6 +4,7 @@ import { useTraderAuth } from '../../hooks/useTraderAuth.js';
 import { useTradingStore } from '../../hooks/useTradingStore.js';
 
 function money(value, currency = 'USD') {
+  if (value === null || value === undefined || value === '') return '—';
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return '—';
   try {
