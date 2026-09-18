@@ -1,5 +1,4 @@
 name: Deploy ACG Trader to Firebase Hosting
-# Rebuild marker: production env refreshed
 
 on:
   push:
@@ -12,6 +11,11 @@ permissions:
 concurrency:
   group: acg-trader-firebase-production
   cancel-in-progress: true
+
+env:
+  VITE_ACG_TRADER_API_BASE: https://acg-trader-backend-production.up.railway.app
+  VITE_ACG_TRADER_WS_URL: wss://acg-trader-backend-production.up.railway.app/v1/ws
+  VITE_ACG_TRADER_HTTP_TIMEOUT_MS: 10000
 
 jobs:
   deploy:
@@ -33,10 +37,6 @@ jobs:
 
       - name: Build production frontend
         run: npm run build
-        env:
-          VITE_ACG_TRADER_API_BASE: ${{ secrets.VITE_ACG_TRADER_API_BASE }}
-          VITE_ACG_TRADER_WS_URL: ${{ secrets.VITE_ACG_TRADER_WS_URL }}
-          VITE_ACG_TRADER_HTTP_TIMEOUT_MS: 10000
 
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
