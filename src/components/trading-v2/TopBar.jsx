@@ -38,11 +38,11 @@ export default function TopBar({
   const stateLabel = live ? 'Live' : connection.status !== 'ready' ? 'Reconnecting' : valuationStatus !== 'LIVE' ? valuationStatus : accountStatus;
 
   return (
-    <header className="flex h-[60px] items-center justify-between gap-2 px-3">
+    <header className="flex h-[60px] items-center justify-between gap-1.5 px-2.5 sm:gap-2 sm:px-3">
       <div className="min-w-0 leading-none">
         <div className="flex items-center gap-1.5 whitespace-nowrap text-[15px] font-extrabold tracking-[-0.025em] text-[#f7f9fc]">
           <span>ACG Trader</span>
-          <span className="rounded-md bg-[#0d2b42] px-1.5 py-1 text-[9px] font-extrabold tracking-[0.04em] text-[#55bdff]">V2</span>
+          <span className="hidden rounded-md bg-[#0d2b42] px-1.5 py-1 text-[9px] font-extrabold tracking-[0.04em] text-[#55bdff] min-[360px]:inline">V2</span>
         </div>
         <p className="mt-1.5 truncate text-[9px] font-medium text-[#65788e]">{account?.accountCode || 'Trading terminal'}</p>
       </div>
@@ -56,7 +56,7 @@ export default function TopBar({
           <Bell size={18} />
         </button>
 
-        <button type="button" onClick={onProfile} className="flex h-9 min-w-[94px] flex-col justify-center rounded-xl border border-[#1a2b3b] bg-[#09131d] px-2.5 text-left shadow-[inset_0_1px_rgba(255,255,255,0.02)] active:scale-[0.99]">
+        <button type="button" onClick={onProfile} className="flex h-9 min-w-[78px] flex-col justify-center rounded-xl min-[390px]:min-w-[94px] border border-[#1a2b3b] bg-[#09131d] px-2.5 text-left shadow-[inset_0_1px_rgba(255,255,255,0.02)] active:scale-[0.99]">
           <strong className="whitespace-nowrap text-[11px] font-extrabold tracking-[-0.015em] text-[#f6f9fc]">{money(balance, currency)}</strong>
           <span className="mt-0.5 flex items-center gap-1 text-[8px] font-medium text-[#77899d]">
             <span className={`size-1.5 rounded-full ${live ? 'bg-[#31dfa3]' : valuationStatus === 'STALE' ? 'bg-[#eab84e]' : 'bg-[#66788c]'}`} />
@@ -64,7 +64,7 @@ export default function TopBar({
           </span>
         </button>
 
-        <button type="button" onClick={onProfile} aria-label="Profile" className="grid size-9 place-items-center rounded-full border border-[#1a2b3b] bg-gradient-to-br from-[#102235] to-[#0a131e] text-[#99adc3] shadow-[0_5px_18px_rgba(0,0,0,0.25)] active:scale-95">
+        <button type="button" onClick={onProfile} aria-label="Profile" className="hidden size-9 place-items-center rounded-full border min-[380px]:grid border-[#1a2b3b] bg-gradient-to-br from-[#102235] to-[#0a131e] text-[#99adc3] shadow-[0_5px_18px_rgba(0,0,0,0.25)] active:scale-95">
           <UserRound size={18} fill="currentColor" className="opacity-90" />
         </button>
       </div>
