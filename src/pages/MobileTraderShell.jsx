@@ -89,7 +89,7 @@ function estimatedRisk(plan, riskPercent, manualLots, equity, instrument, accoun
     ? calculateRiskSizedLots(plan, riskPercent, equity, instrument, accountCurrency)
     : Number(plan.manualLots ?? manualLots);
   if (sizedLots == null) return null;
-  return estimateStopRisk(plan, normalizeVolumeToStep(sizedLots, instrument), instrument, accountCurrency);
+  return estimateStopRisk(plan, normalizeExecutionVolume(sizedLots, instrument), instrument, accountCurrency);
 }
 
 function stamp() {
