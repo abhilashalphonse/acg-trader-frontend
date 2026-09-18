@@ -38,7 +38,7 @@ function gatewayStateFor(status, symbol) {
   return rows.find(item => String(item?.symbol || '').toUpperCase() === symbol) || null;
 }
 
-export function useMarketData(instruments, activeSymbol) {
+export function useMarketData(instruments, activeSymbol, requestedSymbols = null) {
   const { authenticated } = useTraderAuth();
   const { market, connection, subscribeMarket, ingestQuotes } = useTradingStore();
   const [error, setError] = useState(null);
@@ -46,7 +46,15 @@ export function useMarketData(instruments, activeSymbol) {
   const [gatewayStatus, setGatewayStatus] = useState(null);
   const previousQuotesRef = useRef({});
 
-  const symbols = useMemo(() => [...new Set((instruments || []).map(item => item.symbol).filter(Boolean))], [instruments]);
+  const universeSymbols = useMemo(() => [...new Set((instruments || []).map(item => item.symbol).filter(Boolean))], [instruments]);
+  const symbols = useMemo(() => {
+    if (!Array.isArray(requestedSymbols)) return universeSymbols;
+    const allowed = new Set(universeSymbols);
+    return [...new Set([...requestedSymbols, activeSymbol].filter(Boolean))]
+      .map(symbol => String(symbol).toUpperCase())
+      .filter(symbol => allowed.has(symbol));
+  }, [activeSymbol, requestedSymbols, universeSymbols]);
+  const subscribedSet = useMemo(() => new Set(symbols), [symbols]);
 
   useEffect(() => {
     let disposed = false;
@@ -115,7 +123,7 @@ export function useMarketData(instruments, activeSymbol) {
     const updates = {};
     let changed = false;
     for (const symbol of symbols) {
-      const quote = market.quotesBySymbol[symbol];
+      const quote = subscribedSet.has(symbol) ? market.quotesBySymbol[symbol] : null;
       if (!quote || previousQuotesRef.current[symbol] === quote) continue;
       const previous = previousQuotesRef.current[symbol];
       updates[symbol] = {
@@ -148,10 +156,11 @@ export function useMarketData(instruments, activeSymbol) {
       live: Boolean(quote) && !isStale && gateway?.state !== 'DISCONNECTED',
       marketState: gateway?.state || (quote ? (isStale ? 'STALE' : 'LIVE') : 'WAITING'),
       sessionOpen: instrument.sessionOpen === true,
+      subscribed: subscribedSet.has(symbol),
       change: null,
       ...itemDirections,
     };
-  }), [directions, gatewayStatus, instruments, market.quotesBySymbol]);
+  }), [directions, gatewayStatus, instruments, market.quotesBySymbol, subscribedSet]);
 
   const activeQuote = activeSymbol ? market.quotesBySymbol[activeSymbol] : null;
   const activeRaw = activeSymbol ? (market.ticksBySymbol[activeSymbol] || activeQuote || null) : null;
@@ -168,5 +177,6 @@ export function useMarketData(instruments, activeSymbol) {
     gatewayStatus,
     error: connection.error || error,
     source: 'acg-trader-backend',
+    subscribedSymbols: symbols,
   };
 }
