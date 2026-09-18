@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, ExternalLink, MoreHorizontal, Plus, X } from 'l
 import { formatInstrumentPrice, instrumentForSymbol } from '../../utils/instrumentFormatting.js';
 
 function money(value, currency = 'USD', signed = false) {
+  if (value === null || value === undefined || value === '') return '—';
   const number = Number(value);
   if (!Number.isFinite(number)) return '—';
   try {
