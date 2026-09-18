@@ -79,7 +79,8 @@ function estimatedRisk(plan, riskPercent, manualLots, equity, instrument, accoun
   const lots = plan.sizingMode === 'risk'
     ? calculateRiskSizedLots(plan, riskPercent, equity, instrument, accountCurrency)
     : Number(plan.manualLots ?? manualLots);
-  return estimateStopRisk(plan, lots, instrument, accountCurrency);
+  if (lots == null) return null;
+  return estimateStopRisk(plan, normalizeVolumeToStep(lots, instrument), instrument, accountCurrency);
 }
 
 function fillEvent(result, fallback) {

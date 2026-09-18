@@ -60,7 +60,10 @@ function livePositionValuation(position, instrument) {
 function normalizePosition(position, valuation, instrument) {
   const trailingPoints = nullableNumber(position?.trailing?.distancePoints);
   const ratio = pointsPerPip(instrument);
-  const live = instrument?.isStale === true ? null : livePositionValuation(position, instrument);
+  const marketState = String(instrument?.marketState || '').toUpperCase();
+  const live = instrument?.isStale === true || (marketState && marketState !== 'LIVE')
+    ? null
+    : livePositionValuation(position, instrument);
   return { id: String(position.id), accountId: String(position.accountId), positionId: position.positionId, symbol: position.symbol, side: String(position.side || '').toUpperCase(), volume: numberOr(position.openVolume), openVolume: position.openVolume, volumeStep: position.volumeStep, entry: numberOr(position.entryPrice), sl: nullableNumber(position.stopLoss), tp: nullableNumber(position.takeProfit), pnl: nullableNumber(live?.floatingPnl) ?? nullableNumber(valuation?.floatingPnl) ?? 0, pnlCurrency: position?.quoteCurrency || valuation?.quoteCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || 'USD', closePrice: nullableNumber(live?.closePrice) ?? nullableNumber(valuation?.closePrice), valuationStatus: live ? 'LIVE' : (valuation?.valuationStatus || 'WAITING'), margin: numberOr(position.margin), source: live ? 'live-quote' : 'server', trailingEnabled: Boolean(position?.trailing?.enabled), trailingPoints, trailingPips: trailingPoints == null ? 5 : Math.max(1, trailingPoints / ratio), openedAt: displayTime(position.openedAt, 'Open'), raw: position };
 }
 function normalizePendingOrder(order) {

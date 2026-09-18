@@ -3,7 +3,6 @@ import { ChevronDown, Minus, Plus, X, Check, SlidersHorizontal, Clock3 } from 'l
 import { normalizeVolumeToStep } from '../../utils/tradingCommandNormalization.js';
 import { calculateRiskSizedLots, estimateStopRisk, riskSizingSupported } from '../../utils/tradingRisk.js';
 
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const orderTypes = [
   ['market', 'Market'],
   ['limit', 'Limit'],
@@ -30,7 +29,8 @@ function getPlanMetrics(plan, riskPercent, manualLots = 0.1, market, account) {
   const tpPips = Math.max(0.1, Math.abs(tp - entry) / pipSize);
   const supported = riskSizingSupported(market, account?.currency);
   const riskLots = calculateRiskSizedLots(plan, riskPercent, account?.equity, market, account?.currency);
-  const lots = plan.sizingMode === 'risk' ? (riskLots ?? manualLots) : manualLots;
+  const requestedLots = plan.sizingMode === 'risk' ? (riskLots ?? manualLots) : manualLots;
+  const lots = normalizeVolumeToStep(requestedLots, market);
   const riskAmount = estimateStopRisk(plan, lots, market, account?.currency);
   const reward = riskAmount == null ? null : riskAmount * (tpPips / slPips);
   return { slPips, tpPips, riskDollars: riskAmount, lots, rr: tpPips / slPips, reward, riskSupported: supported };
@@ -51,6 +51,7 @@ function formatCommission(value) {
 }
 
 function formatMoney(value, currency = 'USD', signed = false) {
+  if (value === null || value === undefined || value === '') return '—';
   const number = Number(value);
   if (!Number.isFinite(number)) return '—';
   try {
@@ -93,8 +94,7 @@ export default function ExecutionPanel({
   const maxVolume = Math.max(Number(market?.maxVolume) || 100, minVolume);
   const decrease = () => setLots(normalizeVolumeToStep(Math.max(minVolume, Number(lots) - volumeStep), market));
   const increase = () => setLots(normalizeVolumeToStep(Math.min(maxVolume, Number(lots) + volumeStep), market, { rounding: 'nearest' }));
-  const rawMetrics = useMemo(() => getPlanMetrics(tradePlan, riskPercent, tradePlan?.manualLots ?? lots, market, account), [account, market, tradePlan, riskPercent, lots]);
-  const metrics = useMemo(() => rawMetrics ? { ...rawMetrics, lots: normalizeVolumeToStep(rawMetrics.lots, market) } : null, [market, rawMetrics]);
+  const metrics = useMemo(() => getPlanMetrics(tradePlan, riskPercent, tradePlan?.manualLots ?? lots, market, account), [account, market, tradePlan, riskPercent, lots]);
   const executableQuote = finiteQuote(market?.bid) && finiteQuote(market?.ask) && market?.isStale !== true && market?.sessionOpen !== false && !['WAITING', 'DISCONNECTED', 'ERROR', 'DISABLED', 'STALE'].includes(String(market?.marketState || '').toUpperCase());
   const riskModeSupported = sizingMode !== 'risk' || riskSizingSupported(market, account?.currency);
   const canSubmitExposure = executableQuote && exposureAllowed && riskModeSupported;
