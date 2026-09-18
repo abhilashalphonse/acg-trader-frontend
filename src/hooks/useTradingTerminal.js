@@ -82,9 +82,13 @@ function normalizeHistoryFill(fill) { return { id: String(fill.id), accountId: S
 function normalizeAccount(account, valuation) {
   const durable = account?.state || {};
   const policy = account?.riskPolicy || {};
+  const hasValuation = Boolean(valuation);
+  const valuationNumber = (key, fallback) => hasValuation
+    ? nullableNumber(valuation?.[key])
+    : nullableNumber(fallback);
   return {
     id: account?.id || null, accountCode: account?.accountCode || null, accountType: account?.accountType || null, currency: account?.currency || 'USD', status: account?.status || 'UNKNOWN', tradingEnabled: account?.tradingEnabled === true, leverage: account?.leverage || null,
-    initialBalance: numberOr(durable.initialBalance), balance: numberOr(valuation?.balance ?? durable.balance), equity: numberOr(valuation?.equity ?? durable.equity), floatingPnl: numberOr(valuation?.floatingPnl ?? durable.floatingPnl), margin: numberOr(valuation?.usedMargin ?? durable.usedMargin), usedMargin: numberOr(valuation?.usedMargin ?? durable.usedMargin), freeMargin: numberOr(valuation?.freeMargin ?? durable.freeMargin), marginLevel: nullableNumber(valuation?.marginLevel), dailyStartEquity: numberOr(durable.dailyStartEquity), realizedPnlToday: numberOr(durable.realizedPnlToday), valuationStatus: valuation?.valuationStatus || 'WAITING', complete: valuation?.complete !== false, staleSymbols: valuation?.staleSymbols || [],
+    initialBalance: nullableNumber(durable.initialBalance), balance: valuationNumber('balance', durable.balance), equity: valuationNumber('equity', durable.equity), floatingPnl: valuationNumber('floatingPnl', durable.floatingPnl), margin: valuationNumber('usedMargin', durable.usedMargin), usedMargin: valuationNumber('usedMargin', durable.usedMargin), freeMargin: valuationNumber('freeMargin', durable.freeMargin), marginLevel: hasValuation ? nullableNumber(valuation?.marginLevel) : null, dailyStartEquity: nullableNumber(durable.dailyStartEquity), realizedPnlToday: nullableNumber(durable.realizedPnlToday), valuationStatus: valuation?.valuationStatus || 'WAITING', complete: valuation?.complete !== false, staleSymbols: valuation?.staleSymbols || [],
     dailyLossLimit: numberOr(policy?.dailyLoss?.limit), dailyLossReference: policy?.dailyLoss?.reference || 'DAILY_START_EQUITY', maxLossLimit: numberOr(policy?.maxLoss?.limit), maxLossReference: policy?.maxLoss?.reference || 'INITIAL_BALANCE', profitTarget: numberOr(policy?.profitTarget), riskPolicy: policy, challenge: account?.challenge || {}, riskDayKey: account?.riskDayKey || null, riskTimezone: account?.riskTimezone || 'UTC',
   };
 }
