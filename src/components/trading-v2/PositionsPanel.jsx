@@ -28,7 +28,9 @@ function formatSymbol(symbol = '') {
 }
 
 function formatPnl(value, currency = 'USD') {
-  const number = Number(value) || 0;
+  if (value === null || value === undefined || value === '') return '—';
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '—';
   try {
     const formatted = new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(number));
     return `${number >= 0 ? '+' : '-'}${formatted}`;
