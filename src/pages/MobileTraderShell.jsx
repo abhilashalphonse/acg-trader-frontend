@@ -69,14 +69,19 @@ function normalizeExecutionVolume(value, instrument) {
   return Number(normalized.toFixed(decimals));
 }
 
-function normalizePriceToTick(value, instrument) {
+function normalizePriceToTick(value, instrument, direction = 'nearest') {
   if (value === null || value === undefined || value === '') return value;
   const numeric = Number(value);
   const tick = Number(instrument?.tickSize);
   if (!Number.isFinite(numeric) || !Number.isFinite(tick) || tick <= 0) return value;
   const decimals = Math.max(0, String(instrument?.tickSize ?? tick).split('.')[1]?.length || 0);
-  const normalized = Math.round(numeric / tick) * tick;
-  return Number(normalized.toFixed(decimals));
+  const units = numeric / tick;
+  const snappedUnits = direction === 'down'
+    ? Math.floor(units + 1e-10)
+    : direction === 'up'
+      ? Math.ceil(units - 1e-10)
+      : Math.round(units);
+  return Number((snappedUnits * tick).toFixed(decimals));
 }
 
 function estimatedRisk(plan, riskPercent, manualLots, equity) {
@@ -226,9 +231,12 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     const position = positions.find(item => String(item.id) === String(id));
     if (!position || (!Object.prototype.hasOwnProperty.call(patch, 'sl') && !Object.prototype.hasOwnProperty.call(patch, 'tp'))) return;
     const instrument = markets.find(item => item.symbol === position.symbol) || market;
+    const isBuy = String(position.side).toUpperCase() === 'BUY';
+    const slDirection = isBuy ? 'down' : 'up';
+    const tpDirection = isBuy ? 'up' : 'down';
     const normalizedPatch = {
-      ...(Object.prototype.hasOwnProperty.call(patch, 'sl') ? { sl: normalizePriceToTick(patch.sl, instrument) } : {}),
-      ...(Object.prototype.hasOwnProperty.call(patch, 'tp') ? { tp: normalizePriceToTick(patch.tp, instrument) } : {}),
+      ...(Object.prototype.hasOwnProperty.call(patch, 'sl') ? { sl: normalizePriceToTick(patch.sl, instrument, slDirection) } : {}),
+      ...(Object.prototype.hasOwnProperty.call(patch, 'tp') ? { tp: normalizePriceToTick(patch.tp, instrument, tpDirection) } : {}),
     };
     try {
       await trading.updatePosition(id, normalizedPatch);
