@@ -9,6 +9,7 @@ import {
   normalizeVolumeToStep,
   pendingPriceDirection,
 } from '../utils/tradingCommandNormalization.js';
+import { executeWithOrderReconciliation } from '../utils/executionReconciliation.js';
 
 const ACTIVE_ORDER_STATUSES = new Set(['PENDING', 'ACCEPTED', 'TRIGGERED']);
 
@@ -57,14 +58,18 @@ function livePositionValuation(position, instrument) {
   return { closePrice, floatingPnl: difference * contractSize * volume };
 }
 
-function normalizePosition(position, valuation, instrument) {
+function normalizePosition(position, valuation, instrument, accountCurrency) {
   const trailingPoints = nullableNumber(position?.trailing?.distancePoints);
   const ratio = pointsPerPip(instrument);
   const marketState = String(instrument?.marketState || '').toUpperCase();
-  const live = instrument?.isStale === true || (marketState && marketState !== 'LIVE')
+  const pnlCurrency = String(position?.quoteCurrency || valuation?.quoteCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || '').toUpperCase();
+  const normalizedAccountCurrency = String(accountCurrency || '').toUpperCase();
+  const canValueLocally = Boolean(pnlCurrency && normalizedAccountCurrency && pnlCurrency === normalizedAccountCurrency);
+  const live = !canValueLocally || instrument?.isStale === true || (marketState && marketState !== 'LIVE')
     ? null
     : livePositionValuation(position, instrument);
-  return { id: String(position.id), accountId: String(position.accountId), positionId: position.positionId, symbol: position.symbol, side: String(position.side || '').toUpperCase(), volume: numberOr(position.openVolume), openVolume: position.openVolume, volumeStep: position.volumeStep, entry: numberOr(position.entryPrice), sl: nullableNumber(position.stopLoss), tp: nullableNumber(position.takeProfit), pnl: nullableNumber(live?.floatingPnl) ?? nullableNumber(valuation?.floatingPnl) ?? 0, pnlCurrency: position?.quoteCurrency || valuation?.quoteCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || 'USD', closePrice: nullableNumber(live?.closePrice) ?? nullableNumber(valuation?.closePrice), valuationStatus: live ? 'LIVE' : (valuation?.valuationStatus || 'WAITING'), margin: numberOr(position.margin), source: live ? 'live-quote' : 'server', trailingEnabled: Boolean(position?.trailing?.enabled), trailingPoints, trailingPips: trailingPoints == null ? 5 : Math.max(1, trailingPoints / ratio), openedAt: displayTime(position.openedAt, 'Open'), raw: position };
+  const serverPnl = nullableNumber(valuation?.floatingPnl);
+  return { id: String(position.id), accountId: String(position.accountId), positionId: position.positionId, symbol: position.symbol, side: String(position.side || '').toUpperCase(), volume: numberOr(position.openVolume), openVolume: position.openVolume, volumeStep: position.volumeStep, entry: numberOr(position.entryPrice), sl: nullableNumber(position.stopLoss), tp: nullableNumber(position.takeProfit), pnl: nullableNumber(live?.floatingPnl) ?? serverPnl, pnlCurrency: pnlCurrency || normalizedAccountCurrency || 'USD', closePrice: nullableNumber(live?.closePrice) ?? nullableNumber(valuation?.closePrice), valuationStatus: live ? 'LIVE' : (valuation?.valuationStatus || 'WAITING'), margin: numberOr(position.margin), source: live ? 'live-account-currency' : 'server-position-valuation', trailingEnabled: Boolean(position?.trailing?.enabled), trailingPoints, trailingPips: trailingPoints == null ? 5 : Math.max(1, trailingPoints / ratio), openedAt: displayTime(position.openedAt, 'Open'), raw: position };
 }
 function normalizePendingOrder(order) {
   const type = String(order.type || '').toUpperCase();
@@ -80,7 +85,7 @@ function normalizeAccount(account, valuation) {
   return {
     id: account?.id || null, accountCode: account?.accountCode || null, accountType: account?.accountType || null, currency: account?.currency || 'USD', status: account?.status || 'UNKNOWN', tradingEnabled: account?.tradingEnabled === true, leverage: account?.leverage || null,
     initialBalance: numberOr(durable.initialBalance), balance: numberOr(valuation?.balance ?? durable.balance), equity: numberOr(valuation?.equity ?? durable.equity), floatingPnl: numberOr(valuation?.floatingPnl ?? durable.floatingPnl), margin: numberOr(valuation?.usedMargin ?? durable.usedMargin), usedMargin: numberOr(valuation?.usedMargin ?? durable.usedMargin), freeMargin: numberOr(valuation?.freeMargin ?? durable.freeMargin), marginLevel: nullableNumber(valuation?.marginLevel), dailyStartEquity: numberOr(durable.dailyStartEquity), realizedPnlToday: numberOr(durable.realizedPnlToday), valuationStatus: valuation?.valuationStatus || 'WAITING', complete: valuation?.complete !== false, staleSymbols: valuation?.staleSymbols || [],
-    dailyLossLimit: numberOr(policy?.dailyLoss?.limit), maxLossLimit: numberOr(policy?.maxLoss?.limit), profitTarget: numberOr(policy?.profitTarget), riskPolicy: policy, challenge: account?.challenge || {}, riskDayKey: account?.riskDayKey || null, riskTimezone: account?.riskTimezone || 'UTC',
+    dailyLossLimit: numberOr(policy?.dailyLoss?.limit), dailyLossReference: policy?.dailyLoss?.reference || 'DAILY_START_EQUITY', maxLossLimit: numberOr(policy?.maxLoss?.limit), maxLossReference: policy?.maxLoss?.reference || 'INITIAL_BALANCE', profitTarget: numberOr(policy?.profitTarget), riskPolicy: policy, challenge: account?.challenge || {}, riskDayKey: account?.riskDayKey || null, riskTimezone: account?.riskTimezone || 'UTC',
   };
 }
 function sourceForViewport() { return typeof window !== 'undefined' && window.matchMedia?.('(max-width: 1023px)').matches ? 'MOBILE' : 'WEB'; }
@@ -99,7 +104,7 @@ export function useTradingTerminal(markets = []) {
   const valuation = accountId ? trading.valuationsByAccountId[accountId] || null : null;
   const account = useMemo(() => normalizeAccount(rawAccount, valuation), [rawAccount, valuation]);
   const rawPositions = useMemo(() => Object.values(trading.positionsById).filter(item => (!accountId || String(item.accountId) === String(accountId)) && item.status !== 'CLOSED').sort((a, b) => new Date(b.openedAt || 0) - new Date(a.openedAt || 0)), [accountId, trading.positionsById]);
-  const positions = useMemo(() => rawPositions.map(position => normalizePosition(position, positionValuations[position.id], markets.find(item => item.symbol === position.symbol))), [markets, positionValuations, rawPositions]);
+  const positions = useMemo(() => rawPositions.map(position => normalizePosition(position, positionValuations[position.id], markets.find(item => item.symbol === position.symbol), account.currency)), [account.currency, markets, positionValuations, rawPositions]);
   const pendingOrders = useMemo(() => Object.values(trading.ordersById).filter(order => (!accountId || String(order.accountId) === String(accountId)) && ACTIVE_ORDER_STATUSES.has(String(order.status || '').toUpperCase()) && String(order.type || '').toUpperCase() !== 'MARKET').sort((a, b) => new Date(b.createdAt || b.receivedAt || 0) - new Date(a.createdAt || a.receivedAt || 0)).map(normalizePendingOrder), [accountId, trading.ordersById]);
   const positionHistory = useMemo(() => {
     const source = history.loaded ? [...trading.fills, ...history.deals] : trading.fills;
@@ -186,42 +191,18 @@ export function useTradingTerminal(markets = []) {
   }, []);
   const requireAccount = useCallback(() => { if (!accountId) throw new Error('No trading account is available for this session'); return accountId; }, [accountId]);
 
-  const executeExposureCommand = useCallback(async ({ accountId: targetAccountId, clientOrderId, submit }) => {
-    const ambiguous = error => ['REQUEST_TIMEOUT', 'NETWORK_ERROR', 'COMMAND_IN_PROGRESS'].includes(String(error?.code || ''));
-    let lastError = null;
-
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      try {
-        return await submit();
-      } catch (error) {
-        if (!ambiguous(error)) throw error;
-        lastError = error;
-        if (attempt === 0) await new Promise(resolve => window.setTimeout(resolve, 150));
-      }
-    }
-
-    for (let attempt = 0; attempt < 4; attempt += 1) {
-      try {
-        const response = await commands.historyOrders(targetAccountId, { limit: 100 });
-        const order = (response?.items || []).find(item => String(item?.clientOrderId || '') === String(clientOrderId));
-        if (order) {
-          requestSnapshot([targetAccountId]);
-          return { order, reconciled: true, executionStatus: order.status || 'CONFIRMED' };
-        }
-      } catch (error) {
-        if (!ambiguous(error)) throw error;
-        lastError = error;
-      }
-      await new Promise(resolve => window.setTimeout(resolve, 250 * (attempt + 1)));
-    }
-
-    requestSnapshot([targetAccountId]);
-    const error = new Error('Execution status is unknown because the backend response could not be confirmed. New exposure stays paused until the terminal is reloaded and authoritative account state is restored.');
-    error.code = 'EXECUTION_STATUS_UNKNOWN';
-    error.clientOrderId = clientOrderId;
-    error.cause = lastError;
+  const executeExposureCommand = useCallback(({ accountId: targetAccountId, clientOrderId, submit }) => executeWithOrderReconciliation({
+    submit,
+    clientOrderId,
+    findOrder: async id => {
+      const response = await commands.historyOrders(targetAccountId, { limit: 100 });
+      return (response?.items || []).find(item => String(item?.clientOrderId || '') === String(id)) || null;
+    },
+    onReconciled: () => requestSnapshot([targetAccountId]),
+  }).catch(error => {
+    if (error?.code === 'EXECUTION_STATUS_UNKNOWN') requestSnapshot([targetAccountId]);
     throw error;
-  }, [commands, requestSnapshot]);
+  }), [commands, requestSnapshot]);
 
   const instrumentForSymbol = useCallback(symbol => markets.find(item => item.symbol === String(symbol || '').toUpperCase()) || null, [markets]);
 
