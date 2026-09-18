@@ -99,10 +99,46 @@ export function useTradingTerminal(markets = []) {
   }, [accountId, commands, connection.status]);
 
   useEffect(() => {
-    if (!rawPositions.length || connection.status !== 'ready') { if (!rawPositions.length) setPositionValuations({}); return undefined; }
-    let disposed = false; const controller = new AbortController();
-    const refresh = async () => { const results = await Promise.allSettled(rawPositions.map(position => commands.positionValuation(position.id, controller.signal))); if (disposed || controller.signal.aborted) return; setPositionValuations(current => { const next = { ...current }; rawPositions.forEach((position, index) => { if (results[index]?.status === 'fulfilled') next[position.id] = results[index].value; else if (results[index]?.reason?.status === 404) delete next[position.id]; }); return next; }); };
-    void refresh(); const timer = window.setInterval(() => void refresh(), 1000); return () => { disposed = true; controller.abort(); window.clearInterval(timer); };
+    if (!rawPositions.length || connection.status !== 'ready') {
+      if (!rawPositions.length) setPositionValuations({});
+      return undefined;
+    }
+
+    let disposed = false;
+    let controller = new AbortController();
+
+    const refresh = async () => {
+      const results = await Promise.allSettled(
+        rawPositions.map(position => commands.positionValuation(position.id, controller.signal)),
+      );
+      if (disposed || controller.signal.aborted) return;
+
+      setPositionValuations(current => {
+        const next = { ...current };
+        rawPositions.forEach((position, index) => {
+          if (results[index]?.status === 'fulfilled') next[position.id] = results[index].value;
+          else if (results[index]?.reason?.status === 404) delete next[position.id];
+        });
+        return next;
+      });
+    };
+
+    void refresh();
+
+    // Position valuation is a fallback REST refresh. Account valuation itself is
+    // already realtime over WebSocket, so avoid 1-second HTTP polling that can
+    // exceed the global API rate limit with even one open position.
+    const timer = window.setInterval(() => {
+      controller.abort();
+      controller = new AbortController();
+      void refresh();
+    }, 15000);
+
+    return () => {
+      disposed = true;
+      controller.abort();
+      window.clearInterval(timer);
+    };
   }, [commands, connection.status, rawPositions]);
 
   const run = useCallback(async operation => { busyRef.current += 1; setCommandState(current => ({ ...current, pending: true, error: null })); try { const result = await operation(); setCommandState({ pending: busyRef.current > 1, error: null, lastResult: result }); return result; } catch (error) { setCommandState({ pending: busyRef.current > 1, error, lastResult: null }); throw error; } finally { busyRef.current = Math.max(0, busyRef.current - 1); if (busyRef.current === 0) setCommandState(current => ({ ...current, pending: false })); } }, []);
