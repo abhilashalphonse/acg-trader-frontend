@@ -115,6 +115,14 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const [notice, setNotice] = useState('');
   const exposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market, commandState: trading.commandState });
 
+  useEffect(() => {
+    if (chartFocus || typeof window === 'undefined') return;
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+    });
+  }, [activeNav, activeSymbol, chartFocus]);
+
   useEffect(() => () => {
     if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
     if (executionDismissRef.current) window.clearTimeout(executionDismissRef.current);

@@ -139,7 +139,7 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
 
   const markets = useMemo(() => (instruments || []).map(instrument => {
     const symbol = instrument.symbol;
-    const quote = market.quotesBySymbol[symbol];
+    const quote = subscribedSet.has(symbol) ? market.quotesBySymbol[symbol] : null;
     const digits = Number.isFinite(Number(instrument.digits)) ? Number(instrument.digits) : 5;
     const itemDirections = directions[symbol] || { direction: 'flat', bidDirection: 'flat', askDirection: 'flat' };
     const gateway = gatewayStateFor(gatewayStatus, symbol);

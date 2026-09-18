@@ -20,16 +20,11 @@ function displaySymbol(item) {
   return symbol || '—';
 }
 
-function numericChange(value) {
-  if (value === null || value === undefined || value === '') return null;
-  const parsed = Number.parseFloat(String(value).replace('%', '').replace('+', ''));
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function changeLabel(value) {
-  const change = numericChange(value);
-  if (change === null) return '—';
-  return `${change > 0 ? '+' : ''}${change.toFixed(2)}%`;
+function spreadLabel(item) {
+  const bid = Number(item?.bid);
+  const ask = Number(item?.ask);
+  if (!item?.subscribed || !Number.isFinite(bid) || !Number.isFinite(ask)) return '—';
+  return formatInstrumentPrice(Math.abs(ask - bid), item);
 }
 
 function marketStatus(item) {
@@ -144,7 +139,7 @@ export default function WatchlistSection({
             <span>Instrument</span>
             <span className="text-right">Bid</span>
             <span className="text-right">Ask</span>
-            <span className="text-right">Move</span>
+            <span className="text-right">Spread</span>
           </div>
         )}
 
@@ -158,14 +153,6 @@ export default function WatchlistSection({
         {rows.length ? rows.map((item, index) => {
           const selected = item.symbol === activeSymbol;
           const status = marketStatus(item);
-          const change = numericChange(item.change);
-          const changeClass = change === null
-            ? 'text-[#65798d]'
-            : change > 0
-              ? 'text-[#43d9a6]'
-              : change < 0
-                ? 'text-[#ff707b]'
-                : 'text-[#8fa1b2]';
 
           if (editing) {
             return (
@@ -237,7 +224,7 @@ export default function WatchlistSection({
               </span>
               <strong className="text-right font-mono text-[10px] font-semibold text-[#cbd7df]">{formatInstrumentPrice(item.bid, item)}</strong>
               <strong className="text-right font-mono text-[10px] font-semibold text-[#9fb2c2]">{formatInstrumentPrice(item.ask, item)}</strong>
-              <strong className={`text-right font-mono text-[9px] font-bold ${changeClass}`}>{changeLabel(item.change)}</strong>
+              <strong className="text-right font-mono text-[9px] font-bold text-[#8397aa]">{spreadLabel(item)}</strong>
             </button>
           );
         }) : (
