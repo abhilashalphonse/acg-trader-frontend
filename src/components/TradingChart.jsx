@@ -198,7 +198,7 @@ export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick
           lineWidth: 1,
           lineStyle: LineStyle.Solid,
           axisLabelVisible: true,
-          title: 'BID',
+          title: '',
         });
       } else {
         bidLineRef.current.applyOptions({ price: liveBid });
@@ -216,7 +216,7 @@ export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick
           lineWidth: 1,
           lineStyle: LineStyle.Solid,
           axisLabelVisible: true,
-          title: 'ASK',
+          title: '',
         });
       } else {
         askLineRef.current.applyOptions({ price: liveAsk });
