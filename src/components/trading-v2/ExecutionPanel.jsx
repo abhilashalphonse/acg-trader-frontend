@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronDown, Minus, Plus, X, Check, SlidersHorizontal, Clock3 } from 'lucide-react';
+import { normalizeVolumeToStep } from '../../utils/tradingCommandNormalization.js';
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const orderTypes = [
@@ -76,9 +77,13 @@ export default function ExecutionPanel({
   const [orderPickerOpen, setOrderPickerOpen] = useState(false);
   const lots = controlledLots ?? internalLots;
   const setLots = onLotsChange ?? setInternalLots;
-  const decrease = () => setLots(Math.max(0.01, +(lots - 0.01).toFixed(2)));
-  const increase = () => setLots(+(lots + 0.01).toFixed(2));
-  const metrics = useMemo(() => getPlanMetrics(tradePlan, riskPercent, tradePlan?.manualLots ?? lots), [tradePlan, riskPercent, lots]);
+  const volumeStep = Math.max(Number(market?.volumeStep) || 0.01, 0.00000001);
+  const minVolume = Math.max(Number(market?.minVolume) || volumeStep, volumeStep);
+  const maxVolume = Math.max(Number(market?.maxVolume) || 100, minVolume);
+  const decrease = () => setLots(normalizeVolumeToStep(Math.max(minVolume, Number(lots) - volumeStep), market));
+  const increase = () => setLots(normalizeVolumeToStep(Math.min(maxVolume, Number(lots) + volumeStep), market, { rounding: 'nearest' }));
+  const rawMetrics = useMemo(() => getPlanMetrics(tradePlan, riskPercent, tradePlan?.manualLots ?? lots), [tradePlan, riskPercent, lots]);
+  const metrics = useMemo(() => rawMetrics ? { ...rawMetrics, lots: normalizeVolumeToStep(rawMetrics.lots, market) } : null, [market, rawMetrics]);
   const executableQuote = finiteQuote(market?.bid) && finiteQuote(market?.ask) && market?.isStale !== true && market?.sessionOpen !== false && market?.marketState !== 'WAITING' && market?.marketState !== 'DISCONNECTED';
   const pipSize = Number(market?.pipSize);
   const bid = Number(market?.bid);
@@ -145,9 +150,9 @@ export default function ExecutionPanel({
           <div className="mt-1.5 space-y-1.5">
             <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <span className="flex shrink-0 items-center gap-1 text-[8px] font-bold text-[#718398]"><Clock3 size={11}/> Expiry</span>
-              {['GTC', 'Today', 'Specified'].map(value => <button key={value} type="button" onClick={() => onTradePlanChange({ expiration: value, ...(value === 'Specified' && !tradePlan.expirationAt ? { expirationAt: defaultSpecifiedExpiry() } : {}) })} className={`shrink-0 rounded-lg border px-2.5 py-1.5 text-[8px] font-bold ${tradePlan.expiration === value ? 'border-[#245477] bg-[#0d2a3e] text-[#63caff]' : 'border-[#1a2c3b] bg-[#0a151f] text-[#718398]'}`}>{value}</button>)}
+              {[['GTC', 'GTC'], ['TODAY', 'Today'], ['SPECIFIED', 'Specified']].map(([value, label]) => <button key={value} type="button" onClick={() => onTradePlanChange({ expiration: value, ...(value === 'SPECIFIED' && !tradePlan.expirationAt ? { expirationAt: defaultSpecifiedExpiry() } : {}) })} className={`shrink-0 rounded-lg border px-2.5 py-1.5 text-[8px] font-bold ${String(tradePlan.expiration || 'GTC').toUpperCase() === value ? 'border-[#245477] bg-[#0d2a3e] text-[#63caff]' : 'border-[#1a2c3b] bg-[#0a151f] text-[#718398]'}`}>{label}</button>)}
             </div>
-            {tradePlan.expiration === 'Specified' && <label className="flex items-center gap-2 rounded-xl border border-[#1a3040] bg-[#091720] px-2.5 py-2"><Clock3 size={12} className="shrink-0 text-[#5f7488]"/><span className="shrink-0 text-[8px] font-bold text-[#718398]">Expires</span><input type="datetime-local" min={localDateTimeValue(new Date())} value={tradePlan.expirationAt || defaultSpecifiedExpiry()} onChange={event => onTradePlanChange({ expirationAt: event.target.value })} className="min-w-0 flex-1 bg-transparent text-[9px] font-semibold text-[#c8d5df] outline-none [color-scheme:dark]"/></label>}
+            {String(tradePlan.expiration || '').toUpperCase() === 'SPECIFIED' && <label className="flex items-center gap-2 rounded-xl border border-[#1a3040] bg-[#091720] px-2.5 py-2"><Clock3 size={12} className="shrink-0 text-[#5f7488]"/><span className="shrink-0 text-[8px] font-bold text-[#718398]">Expires</span><input type="datetime-local" min={localDateTimeValue(new Date())} value={tradePlan.expirationAt || defaultSpecifiedExpiry()} onChange={event => onTradePlanChange({ expirationAt: event.target.value })} className="min-w-0 flex-1 bg-transparent text-[9px] font-semibold text-[#c8d5df] outline-none [color-scheme:dark]"/></label>}
           </div>
         )}
 
