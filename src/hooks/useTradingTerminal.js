@@ -10,6 +10,11 @@ import {
   pendingPriceDirection,
 } from '../utils/tradingCommandNormalization.js';
 import { executeWithOrderReconciliation } from '../utils/executionReconciliation.js';
+import {
+  calculateLocalPositionValuation,
+  canUseLocalPositionValuation,
+  positionPnlCurrency,
+} from '../utils/positionValuation.js';
 
 const ACTIVE_ORDER_STATUSES = new Set(['PENDING', 'ACCEPTED', 'TRIGGERED']);
 
@@ -47,27 +52,14 @@ function partialVolume(position, percentage, instrument) {
   return normalized.toFixed(decimalPlaces(step));
 }
 
-function livePositionValuation(position, instrument) {
-  const side = String(position?.side || '').toUpperCase();
-  const closePrice = Number(side === 'BUY' ? instrument?.bid : instrument?.ask);
-  const entryPrice = Number(position?.entryPrice);
-  const contractSize = Number(position?.contractSize ?? instrument?.contractSize);
-  const volume = Number(position?.openVolume);
-  if (![closePrice, entryPrice, contractSize, volume].every(Number.isFinite) || contractSize <= 0 || volume <= 0) return null;
-  const difference = side === 'BUY' ? closePrice - entryPrice : entryPrice - closePrice;
-  return { closePrice, floatingPnl: difference * contractSize * volume };
-}
-
 function normalizePosition(position, valuation, instrument, accountCurrency) {
   const trailingPoints = nullableNumber(position?.trailing?.distancePoints);
   const ratio = pointsPerPip(instrument);
-  const marketState = String(instrument?.marketState || '').toUpperCase();
-  const pnlCurrency = String(position?.quoteCurrency || valuation?.quoteCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || '').toUpperCase();
+  const pnlCurrency = positionPnlCurrency(position, valuation, instrument);
   const normalizedAccountCurrency = String(accountCurrency || '').toUpperCase();
-  const canValueLocally = Boolean(pnlCurrency && normalizedAccountCurrency && pnlCurrency === normalizedAccountCurrency);
-  const live = !canValueLocally || instrument?.isStale === true || (marketState && marketState !== 'LIVE')
-    ? null
-    : livePositionValuation(position, instrument);
+  const live = canUseLocalPositionValuation(position, valuation, instrument, accountCurrency)
+    ? calculateLocalPositionValuation(position, instrument)
+    : null;
   const serverPnl = nullableNumber(valuation?.floatingPnl);
   return { id: String(position.id), accountId: String(position.accountId), positionId: position.positionId, symbol: position.symbol, side: String(position.side || '').toUpperCase(), volume: numberOr(position.openVolume), openVolume: position.openVolume, volumeStep: position.volumeStep, entry: numberOr(position.entryPrice), sl: nullableNumber(position.stopLoss), tp: nullableNumber(position.takeProfit), pnl: nullableNumber(live?.floatingPnl) ?? serverPnl, pnlCurrency: pnlCurrency || normalizedAccountCurrency || 'USD', closePrice: nullableNumber(live?.closePrice) ?? nullableNumber(valuation?.closePrice), valuationStatus: live ? 'LIVE' : (valuation?.valuationStatus || 'WAITING'), margin: numberOr(position.margin), source: live ? 'live-account-currency' : 'server-position-valuation', trailingEnabled: Boolean(position?.trailing?.enabled), trailingPoints, trailingPips: trailingPoints == null ? 5 : Math.max(1, trailingPoints / ratio), openedAt: displayTime(position.openedAt, 'Open'), raw: position };
 }
