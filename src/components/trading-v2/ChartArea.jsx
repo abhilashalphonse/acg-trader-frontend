@@ -106,7 +106,7 @@ function TradePlanOverlay({ plan, onChange, onCommitProtection = () => {} }) {
     };
   }, [dragging, onChange, plan, positions.entry, metrics.slPips, metrics.tpPips]);
 
-  if (!plan) return null;
+  if (!plan || plan.open) return null;
   const isBuy = plan.side === 'buy';
   const rewardTop = Math.min(positions.tp, positions.entry);
   const rewardHeight = Math.abs(positions.entry - positions.tp);
@@ -133,6 +133,107 @@ function TradePlanOverlay({ plan, onChange, onCommitProtection = () => {} }) {
   );
 }
 
+function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, onUpdatePosition = () => {} }) {
+  const layerRef = useRef(null);
+  const [dragging, setDragging] = useState(null);
+  const [preview, setPreview] = useState({});
+  const [, forceLayout] = useState(0);
+
+  const activePositions = useMemo(
+    () => (Array.isArray(positions) ? positions : []).filter(position =>
+      String(position?.symbol || '').toUpperCase() === String(symbol || '').toUpperCase()
+    ),
+    [positions, symbol],
+  );
+
+  useEffect(() => {
+    if (!coordinateApi?.subscribe) return undefined;
+    return coordinateApi.subscribe(() => forceLayout(value => value + 1));
+  }, [coordinateApi]);
+
+  useEffect(() => {
+    if (!dragging || !coordinateApi?.yToPrice) return undefined;
+
+    const move = event => {
+      const rect = layerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const clientY = event.touches?.[0]?.clientY ?? event.clientY;
+      const price = coordinateApi.yToPrice(clientY - rect.top);
+      if (!Number.isFinite(price)) return;
+      const key = `${dragging.positionId}:${dragging.kind}`;
+      setPreview(current => ({ ...current, [key]: price }));
+    };
+
+    const up = async event => {
+      const rect = layerRef.current?.getBoundingClientRect();
+      const clientY = event.changedTouches?.[0]?.clientY ?? event.clientY;
+      const price = rect ? coordinateApi.yToPrice(clientY - rect.top) : null;
+      const current = dragging;
+      setDragging(null);
+      if (Number.isFinite(price)) {
+        try {
+          await onUpdatePosition(current.positionId, { [current.kind]: price });
+        } finally {
+          const key = `${current.positionId}:${current.kind}`;
+          setPreview(values => {
+            const next = { ...values };
+            delete next[key];
+            return next;
+          });
+        }
+      }
+    };
+
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up, { once: true });
+    window.addEventListener('touchmove', move, { passive: false });
+    window.addEventListener('touchend', up, { once: true });
+    return () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('touchmove', move);
+      window.removeEventListener('touchend', up);
+    };
+  }, [coordinateApi, dragging, onUpdatePosition]);
+
+  if (!coordinateApi?.priceToY || !activePositions.length) return null;
+
+  const renderLine = (position, kind, color, label) => {
+    const key = `${position.id}:${kind}`;
+    const source = Object.prototype.hasOwnProperty.call(preview, key) ? preview[key] : position[kind];
+    const price = Number(source);
+    if (!Number.isFinite(price)) return null;
+    const y = coordinateApi.priceToY(price);
+    if (!Number.isFinite(y)) return null;
+    const decimals = Number(position.entry) > 100 ? 2 : 5;
+
+    return (
+      <div key={key} className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: y }}>
+        <div className="relative h-px" style={{ backgroundColor: color }}>
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded border px-1.5 py-0.5 text-[7px] font-black" style={{ borderColor: `${color}88`, backgroundColor: '#08111acc', color }}>{label}</span>
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-1.5 py-0.5 text-[8px] font-bold tabular-nums" style={{ backgroundColor: color, color: kind === 'sl' ? '#2b0810' : '#032219' }}>{price.toFixed(decimals)}</span>
+          <button
+            type="button"
+            aria-label={`Drag ${label}`}
+            onPointerDown={event => { event.preventDefault(); event.stopPropagation(); setDragging({ positionId: position.id, kind }); }}
+            onTouchStart={event => { event.preventDefault(); event.stopPropagation(); setDragging({ positionId: position.id, kind }); }}
+            className="pointer-events-auto absolute inset-x-0 top-1/2 h-5 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent"
+          />
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div ref={layerRef} className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
+      {activePositions.flatMap(position => [
+        renderLine(position, 'tp', '#35d79d', 'TP'),
+        renderLine(position, 'sl', '#ff5968', 'SL'),
+      ])}
+    </div>
+  );
+}
+
 export default function ChartArea({
   symbol,
   chartTimeframe,
@@ -147,7 +248,7 @@ export default function ChartArea({
   hideToolbar = false,
   tradePlan,
   onTradePlanChange = () => {},
-  onCommitProtection = () => {},
+  onUpdatePosition = () => {},
   indicators = [],
   positions = [],
 }) {
@@ -186,7 +287,8 @@ export default function ChartArea({
       <div className={`relative min-h-0 min-w-0 overflow-hidden ${embedded ? '' : 'rounded-xl border border-[#1b2c3d]'} bg-[#080f17]`}>
         <TradingChart symbol={symbol} timeframe={chartTimeframe} tick={tick} chartMode={chartMode} bidPrice={price} positions={positions} indicators={indicators} onCoordinateApi={setCoordinateApi} />
         <DrawingLayer symbol={symbol} timeframe={chartTimeframe} tool={selectedTool} onToolChange={onSelectTool} disabled={Boolean(tradePlan)} coordinateApi={coordinateApi} />
-        <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} onCommitProtection={onCommitProtection} />
+        <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} />
+        {!tradePlan && <OpenPositionProtectionOverlay symbol={symbol} positions={positions} coordinateApi={coordinateApi} onUpdatePosition={onUpdatePosition} />}
 
         {!tradePlan && !embedded && <div className="pointer-events-none absolute bottom-1 right-[74px] z-10 rounded bg-[#08111a]/80 px-1.5 py-0.5 text-[8px] font-semibold tabular-nums text-[#6f8295] backdrop-blur-sm">{formatCountdown(remaining)}</div>}
       </div>
