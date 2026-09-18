@@ -5,6 +5,7 @@ import { calculateAccountRiskSummary } from '../../utils/accountRisk.js';
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 function money(value, currency = 'USD') {
+  if (value === null || value === undefined || value === '') return '—';
   const number = Number(value);
   if (!Number.isFinite(number)) return '—';
   try {
