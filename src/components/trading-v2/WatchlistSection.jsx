@@ -11,6 +11,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
+import InstrumentAvatar from './InstrumentAvatar.jsx';
 
 function displaySymbol(item) {
   const symbol = item?.displaySymbol || item?.symbol || '';
@@ -178,6 +179,7 @@ export default function WatchlistSection({
                 className={`flex items-center gap-2 border-b border-[#111f2c] px-3 py-2.5 last:border-b-0 ${draggedSymbol === item.symbol ? 'opacity-50' : ''}`}
               >
                 <GripVertical size={15} className="shrink-0 cursor-grab text-[#53687b]" />
+                <InstrumentAvatar instrument={item} size={28} />
                 <div className="min-w-0 flex-1">
                   <strong className="block truncate text-[11px] font-black text-[#eaf1f6]">{displaySymbol(item)}</strong>
                   <span className={`mt-1 flex items-center gap-1.5 text-[7px] font-bold ${status.className}`}>
@@ -223,11 +225,14 @@ export default function WatchlistSection({
               className={`relative grid w-full grid-cols-[minmax(0,1fr)_70px_70px_52px] items-center gap-1 border-b border-[#111f2c] px-3 py-3 text-left last:border-b-0 ${selected ? 'bg-[#0b2030]' : 'hover:bg-white/[0.018]'}`}
             >
               {selected && <span className="absolute bottom-2 left-0 top-2 w-0.5 rounded-r bg-[#4ac4ff]" />}
-              <span className="min-w-0">
-                <strong className="block truncate text-[11px] font-black tracking-[-0.015em] text-[#edf3f7]">{displaySymbol(item)}</strong>
-                <span className={`mt-1 flex items-center gap-1.5 text-[7px] font-bold ${status.className}`}>
-                  <span className={`size-1.5 rounded-full ${status.dot}`} />
-                  {status.label}
+              <span className="flex min-w-0 items-center gap-2">
+                <InstrumentAvatar instrument={item} size={30} />
+                <span className="min-w-0">
+                  <strong className="block truncate text-[11px] font-black tracking-[-0.015em] text-[#edf3f7]">{displaySymbol(item)}</strong>
+                  <span className={`mt-1 flex items-center gap-1.5 text-[7px] font-bold ${status.className}`}>
+                    <span className={`size-1.5 rounded-full ${status.dot}`} />
+                    {status.label}
+                  </span>
                 </span>
               </span>
               <strong className="text-right font-mono text-[10px] font-semibold text-[#cbd7df]">{formatInstrumentPrice(item.bid, item)}</strong>

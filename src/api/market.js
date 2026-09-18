@@ -13,6 +13,10 @@ export const marketApi = Object.freeze({
     return apiRequest(`/v1/instruments/${encodeURIComponent(symbol)}`, { signal });
   },
 
+  instrumentIdentity(symbol, signal) {
+    return apiRequest(`/v1/instruments/${encodeURIComponent(symbol)}/identity`, { signal });
+  },
+
   quotes(symbols, signal) {
     return apiRequest('/v1/market/quotes', {
       query: { symbols: Array.isArray(symbols) ? symbols : [symbols] },

@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronDown, Star } from 'lucide-react';
+import InstrumentAvatar from './InstrumentAvatar.jsx';
 
 const names = {
   AUDCAD: 'Australian Dollar / Canadian Dollar',
@@ -21,12 +22,15 @@ export default function InstrumentHeader({ market, favorite, onFavorite, onSelec
 
   return (
     <div className="grid grid-cols-[minmax(0,1.15fr)_auto_auto_auto] items-center gap-2 px-4 pb-3 pt-4">
-      <div className="min-w-0">
-        <button type="button" onClick={onSelectInstrument} className="flex items-center gap-1 border-0 bg-transparent p-0 text-left text-[21px] font-black tracking-[-0.045em] text-[#f5f7fb] active:scale-[0.99]">
-          <span>{symbol}</span>
-          <ChevronDown size={18} className="mt-0.5 shrink-0 text-[#e8eef5]" strokeWidth={2.3} />
-        </button>
-        <p className="mt-1.5 truncate text-[10px] font-medium tracking-[-0.01em] text-[#788aa0]">{names[market.symbol] || symbol}</p>
+      <div className="flex min-w-0 items-center gap-2.5">
+        <InstrumentAvatar instrument={market} size={36}/>
+        <div className="min-w-0">
+          <button type="button" onClick={onSelectInstrument} className="flex items-center gap-1 border-0 bg-transparent p-0 text-left text-[21px] font-black tracking-[-0.045em] text-[#f5f7fb] active:scale-[0.99]">
+            <span>{market.displaySymbol || symbol}</span>
+            <ChevronDown size={18} className="mt-0.5 shrink-0 text-[#e8eef5]" strokeWidth={2.3} />
+          </button>
+          <p className="mt-1.5 truncate text-[10px] font-medium tracking-[-0.01em] text-[#788aa0]">{market.name || names[market.symbol] || symbol}</p>
+        </div>
       </div>
 
       <div className="text-right">
