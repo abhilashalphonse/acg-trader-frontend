@@ -1,0 +1,45 @@
+name: Deploy ACG Trader to Firebase Hosting
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: acg-trader-firebase-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production frontend
+        run: npm run build
+        env:
+          VITE_ACG_TRADER_API_BASE: ${{ secrets.VITE_ACG_TRADER_API_BASE }}
+          VITE_ACG_TRADER_WS_URL: ${{ secrets.VITE_ACG_TRADER_WS_URL }}
+          VITE_ACG_TRADER_HTTP_TIMEOUT_MS: 10000
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ACG_TRADER }}
+          projectId: acg-trader
+          channelId: live
