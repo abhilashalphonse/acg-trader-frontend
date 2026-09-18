@@ -186,10 +186,35 @@ export default function DesktopTerminal({
         </aside>
 
         <aside className="min-h-0 overflow-hidden border-r border-[#172737] bg-[#071019]">
-          <div className="flex h-14 items-center justify-between border-b border-[#172737] px-3"><div><strong className="block text-[10px] font-extrabold tracking-[0.08em] text-[#dce7f1]">MARKET WATCH</strong><span className="mt-1 block text-[8px] text-[#5f7388]">{markets.length} backend instruments</span></div><button type="button" onClick={() => searchRef.current?.focus()} className="grid size-7 place-items-center rounded-md text-[#65798d] hover:bg-white/[0.03]" title="Search"><Search size={14}/></button></div>
-          <div className="p-2"><div className="flex h-8 items-center gap-2 rounded-lg border border-[#182938] bg-[#09131d] px-2 text-[#687c91]"><Search size={13}/><input ref={searchRef} value={search} onChange={event => setSearch(event.target.value)} placeholder="Search instruments" className="min-w-0 flex-1 bg-transparent text-[9px] text-[#c7d4e0] outline-none placeholder:text-[#52667a]"/></div></div>
-          <div className="grid grid-cols-[1fr_.72fr_.72fr] border-y border-[#152433] px-3 py-2 text-[7px] font-bold uppercase tracking-[0.08em] text-[#52667a]"><span>Instrument</span><span className="text-right">Bid</span><span className="text-right">Ask</span></div>
-          <div className="max-h-[calc(100dvh-160px)] overflow-y-auto">{filteredMarkets.map(item => { const selected = item.symbol === activeSymbol; return <button key={item.symbol} type="button" onClick={() => onSelectSymbol(item.symbol)} className={`grid w-full grid-cols-[1fr_.72fr_.72fr] items-center border-b border-[#111f2c] px-3 py-2.5 text-left transition ${selected ? 'bg-[#0d2232] shadow-[inset_2px_0_#49bfff]' : 'hover:bg-[#0a1722]'}`}><span className="min-w-0"><b className="block text-[10px] text-[#dce7f1]">{displaySymbol(item.symbol)}</b><small className={`mt-1 block truncate text-[7px] ${item.live ? 'text-[#38d6a2]' : item.isStale ? 'text-[#e7bd58]' : 'text-[#687d92]'}`}>{item.live ? 'LIVE' : item.isStale ? 'STALE' : item.marketState || 'WAITING'}</small></span><b className="text-right font-mono text-[9px] text-[#a9bac9]">{item.bid || '—'}</b><span className="text-right font-mono text-[9px] text-[#8ea1b5]">{item.ask || '—'}</span></button>; })}</div>
+          <div className="flex h-14 items-center justify-between border-b border-[#172737] px-3">
+            <div className="min-w-0">
+              <strong className="block text-[10px] font-extrabold tracking-[0.08em] text-[#dce7f1]">{activeNav === 'markets' ? 'MARKETS' : 'WATCHLIST'}</strong>
+              <span className="mt-1 block truncate text-[8px] text-[#5f7388]">{activeNav === 'markets' ? `${markets.length} instruments` : `${watchlists?.activeList?.name || 'Favorites'} · ${watchlists?.activeSymbols?.length || 0}`}</span>
+            </div>
+            <button type="button" onClick={() => searchRef.current?.focus()} className="grid size-7 place-items-center rounded-md text-[#65798d] hover:bg-white/[0.03]" title="Search all markets"><Search size={14}/></button>
+          </div>
+          <div className="p-2"><div className="flex h-8 items-center gap-2 rounded-lg border border-[#182938] bg-[#09131d] px-2 text-[#687c91]"><Search size={13}/><input ref={searchRef} value={search} onChange={event => setSearch(event.target.value)} placeholder="Search all 300 markets" className="min-w-0 flex-1 bg-transparent text-[9px] text-[#c7d4e0] outline-none placeholder:text-[#52667a]"/></div></div>
+          <div className="grid grid-cols-[1fr_.68fr_.68fr_28px] border-y border-[#152433] px-3 py-2 text-[7px] font-bold uppercase tracking-[0.08em] text-[#52667a]"><span>Instrument</span><span className="text-right">Bid</span><span className="text-right">Ask</span><span /></div>
+          <div className="max-h-[calc(100dvh-160px)] overflow-y-auto">{filteredMarkets.map(item => {
+            const selected = item.symbol === activeSymbol;
+            const watched = watchlists?.isWatched?.(item.symbol) === true;
+            const statusLabel = item.sessionOpen === false ? 'CLOSED' : item.live ? 'LIVE' : item.isStale ? 'STALE' : String(item.marketState || 'WAITING').toUpperCase();
+            const statusClass = item.sessionOpen === false
+              ? 'text-[#788b9d]'
+              : item.live
+                ? 'text-[#38d6a2]'
+                : item.isStale
+                  ? 'text-[#e7bd58]'
+                  : statusLabel === 'ERROR' || statusLabel === 'SUBSCRIPTION_ERROR' || statusLabel === 'DISCONNECTED'
+                    ? 'text-[#ff7882]'
+                    : 'text-[#687d92]';
+            return <div key={item.symbol} className={`grid grid-cols-[1fr_.68fr_.68fr_28px] items-center border-b border-[#111f2c] px-3 py-1.5 transition ${selected ? 'bg-[#0d2232] shadow-[inset_2px_0_#49bfff]' : 'hover:bg-[#0a1722]'}`}>
+              <button type="button" onClick={() => onSelectSymbol(item.symbol)} className="min-w-0 py-1 text-left"><b className="block text-[10px] text-[#dce7f1]">{item.displaySymbol || displaySymbol(item.symbol)}</b><small className={`mt-1 block truncate text-[7px] ${statusClass}`}>{statusLabel}</small></button>
+              <button type="button" onClick={() => onSelectSymbol(item.symbol)} className="py-2 text-right font-mono text-[9px] font-bold text-[#a9bac9]">{item.bid || '—'}</button>
+              <button type="button" onClick={() => onSelectSymbol(item.symbol)} className="py-2 text-right font-mono text-[9px] text-[#8ea1b5]">{item.ask || '—'}</button>
+              <button type="button" onClick={() => watchlists?.toggleSymbol?.(item.symbol)} className={`grid size-7 place-items-center rounded-md ${watched ? 'text-[#f6c95d]' : 'text-[#53687b] hover:bg-white/[0.04] hover:text-[#f6c95d]'}`} title={watched ? 'Remove from watchlist' : 'Add to watchlist'} aria-label={watched ? `Remove ${item.symbol} from watchlist` : `Add ${item.symbol} to watchlist`}><Star size={13} fill={watched ? 'currentColor' : 'none'}/></button>
+            </div>;
+          })}</div>
         </aside>
 
         <section className="grid min-h-0 grid-rows-[60px_36px_44px_minmax(0,1fr)_104px_250px] bg-[#060d14] 2xl:grid-rows-[62px_36px_46px_minmax(0,1fr)_108px_260px]">
