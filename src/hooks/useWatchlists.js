@@ -131,6 +131,42 @@ export function useWatchlists(instruments = []) {
       : [...symbols, normalized]);
   }, [updateActiveSymbols]);
 
+  const removeSymbol = useCallback(symbol => {
+    const normalized = String(symbol || '').trim().toUpperCase();
+    if (!normalized) return;
+    updateActiveSymbols(symbols => symbols.filter(item => item !== normalized));
+  }, [updateActiveSymbols]);
+
+  const moveSymbol = useCallback((sourceSymbol, targetSymbol) => {
+    const source = String(sourceSymbol || '').trim().toUpperCase();
+    const target = String(targetSymbol || '').trim().toUpperCase();
+    if (!source || !target || source === target) return;
+    updateActiveSymbols(symbols => {
+      const from = symbols.indexOf(source);
+      const to = symbols.indexOf(target);
+      if (from < 0 || to < 0) return symbols;
+      const next = [...symbols];
+      next.splice(from, 1);
+      next.splice(to, 0, source);
+      return next;
+    });
+  }, [updateActiveSymbols]);
+
+  const moveSymbolBy = useCallback((symbol, delta) => {
+    const normalized = String(symbol || '').trim().toUpperCase();
+    if (!normalized || !Number.isInteger(delta) || delta === 0) return;
+    updateActiveSymbols(symbols => {
+      const from = symbols.indexOf(normalized);
+      if (from < 0) return symbols;
+      const to = Math.min(symbols.length - 1, Math.max(0, from + delta));
+      if (to === from) return symbols;
+      const next = [...symbols];
+      next.splice(from, 1);
+      next.splice(to, 0, normalized);
+      return next;
+    });
+  }, [updateActiveSymbols]);
+
   const createList = useCallback(name => {
     const trimmed = String(name || '').trim();
     if (!trimmed) return null;
@@ -141,5 +177,16 @@ export function useWatchlists(instruments = []) {
 
   const isWatched = useCallback(symbol => activeSet.has(String(symbol || '').trim().toUpperCase()), [activeSet]);
 
-  return { workspace, activeList, activeSymbols, isWatched, toggleSymbol, setActiveListId, createList };
+  return {
+    workspace,
+    activeList,
+    activeSymbols,
+    isWatched,
+    toggleSymbol,
+    removeSymbol,
+    moveSymbol,
+    moveSymbolBy,
+    setActiveListId,
+    createList,
+  };
 }
