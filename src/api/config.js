@@ -1,6 +1,15 @@
 const DEFAULT_API_BASE = 'http://localhost:4000';
 const DEFAULT_WS_PATH = '/v1/ws';
 
+function configuredApiBase() {
+  const explicit = import.meta.env.VITE_ACG_TRADER_API_BASE;
+  if (explicit) return explicit;
+  if (import.meta.env.PROD) {
+    throw new Error('VITE_ACG_TRADER_API_BASE is required for production ACG Trader builds');
+  }
+  return DEFAULT_API_BASE;
+}
+
 function trimTrailingSlash(value) {
   return String(value || '').replace(/\/+$/, '');
 }
@@ -36,9 +45,9 @@ function deriveWebSocketUrl(apiBase, configured) {
 }
 
 export const traderConfig = Object.freeze({
-  apiBase: normalizeApiBase(import.meta.env.VITE_ACG_TRADER_API_BASE),
+  apiBase: normalizeApiBase(configuredApiBase()),
   wsUrl: deriveWebSocketUrl(
-    normalizeApiBase(import.meta.env.VITE_ACG_TRADER_API_BASE),
+    normalizeApiBase(configuredApiBase()),
     import.meta.env.VITE_ACG_TRADER_WS_URL,
   ),
   requestTimeoutMs: Math.max(1000, Number(import.meta.env.VITE_ACG_TRADER_HTTP_TIMEOUT_MS) || 10000),
