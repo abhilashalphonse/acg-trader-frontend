@@ -71,19 +71,20 @@ export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick
   const indicatorFrameRef = useRef(null);
   const coordinateCallbackRef = useRef(onCoordinateApi);
   const [error, setError] = useState('');
-  const [showVolume, setShowVolume] = useState(true);
   const [displayBar, setDisplayBar] = useState(null);
 
   const backendTimeframe = useMemo(() => {
     try { return toBackendTimeframe(timeframe); } catch { return null; }
   }, [timeframe]);
   const candleKey = symbol && backendTimeframe ? `${String(symbol).toUpperCase()}:${backendTimeframe}` : null;
-  const liveCandle = candleKey ? normalizeCandle(market.candlesByKey[candleKey]) : null;
+  const rawLiveCandle = candleKey ? market.candlesByKey[candleKey] : null;
+  const liveCandle = useMemo(() => rawLiveCandle ? normalizeCandle(rawLiveCandle) : null, [rawLiveCandle]);
   const decimals = useMemo(() => decimalsForSymbol(symbol), [symbol]);
   const visibleIndicators = useMemo(() => indicators.filter(item => item.visible !== false), [indicators]);
+  const showVolume = useMemo(() => indicators.some(item => item.id === 'volume' && item.visible !== false), [indicators]);
 
   useEffect(() => { coordinateCallbackRef.current = onCoordinateApi; }, [onCoordinateApi]);
-  useEffect(() => { indicatorsRef.current = indicators; setShowVolume(indicators.some(item => item.id === 'volume' && item.visible !== false)); }, [indicators]);
+  useEffect(() => { indicatorsRef.current = indicators; }, [indicators]);
   useEffect(() => {
     if (!authenticated || !symbol || !backendTimeframe) return undefined;
     return subscribeMarket({ quotes: [String(symbol).toUpperCase()], candles: [{ symbol: String(symbol).toUpperCase(), timeframe: backendTimeframe }] });
