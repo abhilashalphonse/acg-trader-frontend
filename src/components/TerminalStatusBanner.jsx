@@ -17,7 +17,7 @@ function StatusIcon({ code, severity }) {
 export default function TerminalStatusBanner({ status }) {
   if (!status) return null;
   return (
-    <div className="pointer-events-none fixed left-1/2 top-2 z-[200] w-[calc(100%-16px)] max-w-[720px] -translate-x-1/2 px-1">
+    <div className="pointer-events-none fixed left-1/2 top-[64px] z-[200] w-[calc(100%-16px)] max-w-[460px] -translate-x-1/2 px-1">
       <div className={`flex items-start gap-2.5 rounded-xl border px-3 py-2.5 shadow-[0_14px_38px_rgba(0,0,0,.38)] backdrop-blur-xl ${TONES[status.severity] || TONES.info}`}>
         <span className="mt-0.5 shrink-0"><StatusIcon code={status.code} severity={status.severity} /></span>
         <div className="min-w-0">
