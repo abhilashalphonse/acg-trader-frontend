@@ -243,8 +243,10 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       if (tradePlan?.positionId === id) setTradePlan(plan => plan ? { ...plan, ...normalizedPatch } : plan);
       logEvent('modify', `${position.symbol} protection updated`);
       showNotice('Position protection updated');
+      return true;
     } catch (error) {
       handleTradingError(error, `Modify ${position.symbol}`);
+      return false;
     }
   };
 
@@ -306,12 +308,23 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     }
     const pip = Number(market?.pipSize) || pipSize(marketPrice);
     const pending = requestedType !== 'market';
+    const sideUpper = String(side).toUpperCase();
     let entry = marketPrice;
     if (requestedType === 'limit') entry = side === 'buy' ? marketPrice - 5 * pip : marketPrice + 5 * pip;
     if (requestedType === 'stop' || requestedType === 'stop-limit') entry = side === 'buy' ? marketPrice + 5 * pip : marketPrice - 5 * pip;
-    const sl = side === 'buy' ? entry - 4.2 * pip : entry + 4.2 * pip;
-    const tp = side === 'buy' ? entry + 8.4 * pip : entry - 8.4 * pip;
-    const limitPrice = requestedType === 'stop-limit' ? (side === 'buy' ? entry - 1.5 * pip : entry + 1.5 * pip) : null;
+    const entryDirection = requestedType === 'limit'
+      ? (side === 'buy' ? 'down' : 'up')
+      : requestedType === 'stop' || requestedType === 'stop-limit'
+        ? (side === 'buy' ? 'up' : 'down')
+        : 'nearest';
+    entry = normalizePriceToTick(entry, market, entryDirection);
+    const slDirection = side === 'buy' ? 'down' : 'up';
+    const tpDirection = side === 'buy' ? 'up' : 'down';
+    const sl = normalizePriceToTick(side === 'buy' ? entry - 4.2 * pip : entry + 4.2 * pip, market, slDirection);
+    const tp = normalizePriceToTick(side === 'buy' ? entry + 8.4 * pip : entry - 8.4 * pip, market, tpDirection);
+    const limitPrice = requestedType === 'stop-limit'
+      ? normalizePriceToTick(side === 'buy' ? entry + 1.5 * pip : entry - 1.5 * pip, market, side === 'buy' ? 'up' : 'down')
+      : null;
     setTradePlan({ side, entry, sl, tp, limitPrice, marketPrice, orderType: requestedType, pending, sizingMode, manualLots: lots, expiration: 'GTC', stage: 'planning', open: false });
   };
 
@@ -340,7 +353,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
         stopLoss: tradePlan.sl,
         takeProfit: tradePlan.tp,
         timeInForce: tradePlan.expiration || 'GTC',
-        expiresAt: tradePlan.expiresAt || null,
+        expiresAt: tradePlan.expirationAt || tradePlan.expiresAt || null,
       };
       setExecutionEvent({ side: tradePlan.side, lots: volume, symbol: market?.symbol, requestedPrice: tradePlan.entry, status: 'submitting' });
       try {
@@ -375,13 +388,15 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     void runMarketExecution({ side: order.side, executionLots, symbol: order.symbol, requestedPrice: order.price });
   };
 
-  const updatePlan = patch => {
-    if (tradePlan?.open && tradePlan.positionId) {
-      const positionPatch = {};
-      if (Object.prototype.hasOwnProperty.call(patch, 'sl')) positionPatch.sl = patch.sl;
-      if (Object.prototype.hasOwnProperty.call(patch, 'tp')) positionPatch.tp = patch.tp;
-      if (Object.keys(positionPatch).length) void updatePosition(tradePlan.positionId, positionPatch);
+  const modifyPlan = async stage => {
+    if (tradePlan?.open && tradePlan.positionId && stage === 'open' && tradePlan.stage === 'modifying') {
+      const applied = await updatePosition(tradePlan.positionId, { sl: tradePlan.sl, tp: tradePlan.tp });
+      if (!applied) return;
     }
+    setTradePlan(plan => plan ? { ...plan, stage } : plan);
+  };
+
+  const updatePlan = patch => {
     setTradePlan(plan => plan ? { ...plan, ...patch } : plan);
   };
 
@@ -476,7 +491,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       <div className="px-2">
         <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={tradePlan} onTradePlanChange={updatePlan} onSelectInstrument={() => setOverlay('instruments')} onIndicators={() => setOverlay('indicators')} indicators={indicators} />
         <PropRiskStrip account={account} plannedRisk={plannedRisk} />
-        <ExecutionPanel market={market} lots={lots} onLotsChange={setLots} sizingMode={sizingMode} onSizingModeChange={setSizingMode} riskPercent={riskPercent} onRiskPercentChange={setRiskPercent} orderType={orderType} onOrderTypeChange={setOrderType} tradePlan={tradePlan} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={stage => setTradePlan(plan => plan ? { ...plan, stage } : plan)} onManualOrder={manualOrder} onTradePlanChange={updatePlan} />
+        <ExecutionPanel market={market} lots={lots} onLotsChange={setLots} sizingMode={sizingMode} onSizingModeChange={setSizingMode} riskPercent={riskPercent} onRiskPercentChange={setRiskPercent} orderType={orderType} onOrderTypeChange={setOrderType} tradePlan={tradePlan} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} />
         <PositionsPanel positions={positions} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={closePosition} onCloseAll={closeAllPositions} onBreakEven={movePositionToBreakEven} onReverse={reversePosition} onUpdatePosition={updatePosition} onSetTrailing={setPositionTrailing} onDuplicate={duplicatePosition} onCancelPending={cancelPendingOrder} onModifyPending={modifyPendingOrder} />
       </div>
     </>
@@ -486,7 +501,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     <div className="min-h-dvh bg-[#02070c] font-sans text-[#f5f8fb] antialiased">
       <main ref={shellRef} className={chartFocus ? 'relative mx-auto h-dvh w-full max-w-[460px] overflow-hidden bg-[#050b12]' : 'relative mx-auto min-h-dvh w-full max-w-[460px] overflow-x-hidden bg-[#050b12] bg-[radial-gradient(circle_at_top,rgba(26,79,116,0.20),transparent_36%)] pb-[98px]'}>
         {chartFocus ? (
-          <MobileScalperMode market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} lots={lots} setLots={setLots} sizingMode={sizingMode} setSizingMode={setSizingMode} riskPercent={riskPercent} setRiskPercent={setRiskPercent} orderType={orderType} setOrderType={setOrderType} tradePlan={tradePlan} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={stage => setTradePlan(plan => plan ? { ...plan, stage } : plan)} onManualOrder={manualOrder} onTradePlanChange={updatePlan} onIndicators={() => setOverlay('indicators')} indicators={indicators} account={account} plannedRisk={plannedRisk} onExit={exitChartFocus} />
+          <MobileScalperMode market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} lots={lots} setLots={setLots} sizingMode={sizingMode} setSizingMode={setSizingMode} riskPercent={riskPercent} setRiskPercent={setRiskPercent} orderType={orderType} setOrderType={setOrderType} tradePlan={tradePlan} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} onIndicators={() => setOverlay('indicators')} indicators={indicators} account={account} plannedRisk={plannedRisk} onExit={exitChartFocus} />
         ) : (
           <>
             {activeNav === 'watchlist' && <WatchlistSection markets={markets} activeSymbol={activeSymbol} onOpenTrade={openChart} onAddInstrument={() => setOverlay('search')} />}
