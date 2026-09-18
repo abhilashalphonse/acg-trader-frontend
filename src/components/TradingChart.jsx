@@ -181,10 +181,44 @@ export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick
   useEffect(() => { indicatorsRef.current = indicators; if (chartRef.current && barsRef.current.length) renderIndicators(chartRef.current, barsRef.current); }, [indicators, renderIndicators]);
   useEffect(() => { volumeRef.current?.applyOptions({ visible: showVolume }); }, [showVolume, symbol, timeframe, chartMode]);
   useEffect(() => {
-    const series = seriesRef.current; if (!series) return;
-    const liveBid = Number(tick?.bid ?? bidPrice); const liveAsk = Number(tick?.ask ?? askPrice);
-    if (Number.isFinite(liveBid)) { if (!bidLineRef.current) bidLineRef.current = series.createPriceLine({ price: liveBid, color: 'rgba(45,211,155,0.82)', lineWidth: 1, lineStyle: LineStyle.Dotted, axisLabelVisible: false, title: '' }); else bidLineRef.current.applyOptions({ price: liveBid }); }
-    if (Number.isFinite(liveAsk)) { if (!askLineRef.current) askLineRef.current = series.createPriceLine({ price: liveAsk, color: 'rgba(255,95,105,0.62)', lineWidth: 1, lineStyle: LineStyle.Dashed, axisLabelVisible: true, title: 'ASK' }); else askLineRef.current.applyOptions({ price: liveAsk }); }
+    const series = seriesRef.current;
+    if (!series) return;
+
+    const liveBid = Number(tick?.bid ?? bidPrice);
+    const liveAsk = Number(tick?.ask ?? askPrice);
+
+    // MT5-style market lines: continuous, price-scale anchored and tick-driven.
+    // Candles represent the Bid market; Ask is shown separately so the visible
+    // vertical distance between the two lines is the live spread.
+    if (Number.isFinite(liveBid)) {
+      if (!bidLineRef.current) {
+        bidLineRef.current = series.createPriceLine({
+          price: liveBid,
+          color: chartTokens.buy,
+          lineWidth: 1,
+          lineStyle: LineStyle.Solid,
+          axisLabelVisible: true,
+          title: 'BID',
+        });
+      } else {
+        bidLineRef.current.applyOptions({ price: liveBid });
+      }
+    }
+
+    if (Number.isFinite(liveAsk)) {
+      if (!askLineRef.current) {
+        askLineRef.current = series.createPriceLine({
+          price: liveAsk,
+          color: chartTokens.sell,
+          lineWidth: 1,
+          lineStyle: LineStyle.Solid,
+          axisLabelVisible: true,
+          title: 'ASK',
+        });
+      } else {
+        askLineRef.current.applyOptions({ price: liveAsk });
+      }
+    }
   }, [tick?.bid, tick?.ask, bidPrice, askPrice, symbol, timeframe, chartMode]);
 
   useEffect(() => {
