@@ -119,8 +119,16 @@ export default function InstrumentAvatar({ instrument, size = 30, className = ''
   const [identity, setIdentity] = useState(() => embeddedIdentity(instrument) || identityCache.get(symbol) || null);
   const [broken, setBroken] = useState(false);
 
+  const embedded = embeddedIdentity(instrument);
+  const embeddedKey = [
+    embedded?.status || '',
+    embedded?.logoUrl || '',
+    embedded?.baseLogoUrl || '',
+    embedded?.quoteLogoUrl || '',
+    embedded?.checkedAt || '',
+  ].join('|');
+
   useEffect(() => {
-    const embedded = embeddedIdentity(instrument);
     if (embedded) {
       identityCache.set(symbol, embedded);
       setIdentity(embedded);
@@ -128,7 +136,7 @@ export default function InstrumentAvatar({ instrument, size = 30, className = ''
       setIdentity(identityCache.get(symbol) || null);
     }
     setBroken(false);
-  }, [instrument, symbol]);
+  }, [embeddedKey, symbol]);
 
   useEffect(() => {
     if (!symbol || identity || !REMOTE_IDENTITY_CLASSES.has(assetClass)) return undefined;
