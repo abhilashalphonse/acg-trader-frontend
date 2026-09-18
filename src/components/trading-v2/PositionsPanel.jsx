@@ -12,6 +12,7 @@ import {
   TrendingDown,
   X,
 } from 'lucide-react';
+import { formatInstrumentPrice, instrumentForSymbol, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 
 const tabs = [
   { id: 'positions', label: 'Positions' },
@@ -19,13 +20,6 @@ const tabs = [
   { id: 'history', label: 'History' },
   { id: 'journal', label: 'Journal' },
 ];
-
-function formatPrice(value) {
-  if (value === null || value === undefined || value === '') return '—';
-  const number = Number(value);
-  if (!Number.isFinite(number) || number <= 0) return '—';
-  return number.toFixed(Math.abs(number) > 100 ? 2 : 5);
-}
 
 function formatSymbol(symbol = '') {
   if (symbol.includes('/')) return symbol;
@@ -43,12 +37,9 @@ function formatPnl(value, currency = 'USD') {
   }
 }
 
-function pipStep(entry) {
-  return Number(entry) > 100 ? 0.01 : 0.0001;
-}
-
 export default function PositionsPanel({
   positions = [],
+  markets = [],
   positionHistory = [],
   pendingOrders = [],
   journal = [],
@@ -93,7 +84,8 @@ export default function PositionsPanel({
     const entry = Number(position.entry);
     const executable = Number(position.closePrice);
     const reference = Number.isFinite(executable) && executable > 0 ? executable : entry;
-    const step = pipStep(reference);
+    const instrument = instrumentForSymbol(markets, position.symbol);
+    const step = instrumentPipSize(instrument);
 
     let next;
     if (!Number.isFinite(current) || current <= 0) {
@@ -164,7 +156,7 @@ export default function PositionsPanel({
                         <span className={`rounded-md px-1.5 py-1 text-[7px] font-black leading-none ${sideBuy ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{position.side}</span>
                         {position.trailingEnabled && <span className="rounded-md border border-[#25445a] bg-[#0c2230] px-1.5 py-1 text-[7px] font-bold text-[#5bc8ff]">TRAIL {position.trailingPips}p</span>}
                       </div>
-                      <p className="mt-1.5 text-[9px] text-[#6f8296]"><b className="text-[#cbd6df]">{Number(position.volume).toFixed(2)} lots</b><span className="mx-1.5 text-[#34495b]">•</span>Entry {formatPrice(position.entry)}</p>
+                      <p className="mt-1.5 text-[9px] text-[#6f8296]"><b className="text-[#cbd6df]">{Number(position.volume).toFixed(2)} lots</b><span className="mx-1.5 text-[#34495b]">•</span>Entry {formatInstrumentPrice(position.entry, instrumentForSymbol(markets, position.symbol))}</p>
                     </div>
                     <div className="flex shrink-0 items-start gap-2">
                       <div className="text-right"><span className="block text-[8px] font-semibold uppercase tracking-[0.08em] text-[#5f7388]">P&amp;L</span><b className={`mt-1 block text-[14px] font-black ${positive ? 'text-[#3dd9a4]' : 'text-[#ff6975]'}`}>{formatPnl(position.pnl, position.pnlCurrency)}</b></div>
@@ -173,8 +165,8 @@ export default function PositionsPanel({
                   </div>
 
                   <div className="mt-2.5 grid grid-cols-2 gap-1.5">
-                    <div className="flex items-center justify-between rounded-xl border border-[#152936] bg-[#0a161f] px-2.5 py-2"><span className="text-[8px] font-semibold text-[#63778b]">SL</span><b className="text-[9px] font-semibold text-[#c5d0da]">{formatPrice(position.sl)}</b></div>
-                    <div className="flex items-center justify-between rounded-xl border border-[#152936] bg-[#0a161f] px-2.5 py-2"><span className="text-[8px] font-semibold text-[#63778b]">TP</span><b className="text-[9px] font-semibold text-[#c5d0da]">{formatPrice(position.tp)}</b></div>
+                    <div className="flex items-center justify-between rounded-xl border border-[#152936] bg-[#0a161f] px-2.5 py-2"><span className="text-[8px] font-semibold text-[#63778b]">SL</span><b className="text-[9px] font-semibold text-[#c5d0da]">{formatInstrumentPrice(position.sl, instrumentForSymbol(markets, position.symbol))}</b></div>
+                    <div className="flex items-center justify-between rounded-xl border border-[#152936] bg-[#0a161f] px-2.5 py-2"><span className="text-[8px] font-semibold text-[#63778b]">TP</span><b className="text-[9px] font-semibold text-[#c5d0da]">{formatInstrumentPrice(position.tp, instrumentForSymbol(markets, position.symbol))}</b></div>
                   </div>
                 </div>
 
@@ -192,7 +184,7 @@ export default function PositionsPanel({
                       <button type="button" onClick={() => onDuplicate(position.id)} className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#1b3040] bg-[#0b1822] text-[10px] font-bold text-[#b8c6d2]"><Copy size={14}/>Duplicate</button>
                     </div>
 
-                    {editing && <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2 rounded-xl border border-[#183144] bg-[#091923] p-2"><Adjust label="SL" value={formatPrice((protectionDrafts[position.id] || {}).sl)} onMinus={() => nudge(position, 'sl', -1)} onPlus={() => nudge(position, 'sl', 1)} /><Adjust label="TP" value={formatPrice((protectionDrafts[position.id] || {}).tp)} onMinus={() => nudge(position, 'tp', -1)} onPlus={() => nudge(position, 'tp', 1)} /><button type="button" onClick={() => applyProtectionDraft(position)} className="grid size-9 place-items-center rounded-lg border border-[#176347] bg-[#0d2f25] text-[#44dda9]" aria-label="Apply modification"><Check size={14}/></button></div>}
+                    {editing && <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2 rounded-xl border border-[#183144] bg-[#091923] p-2"><Adjust label="SL" value={formatInstrumentPrice((protectionDrafts[position.id] || {}).sl, instrumentForSymbol(markets, position.symbol))} onMinus={() => nudge(position, 'sl', -1)} onPlus={() => nudge(position, 'sl', 1)} /><Adjust label="TP" value={formatInstrumentPrice((protectionDrafts[position.id] || {}).tp, instrumentForSymbol(markets, position.symbol))} onMinus={() => nudge(position, 'tp', -1)} onPlus={() => nudge(position, 'tp', 1)} /><button type="button" onClick={() => applyProtectionDraft(position)} className="grid size-9 place-items-center rounded-lg border border-[#176347] bg-[#0d2f25] text-[#44dda9]" aria-label="Apply modification"><Check size={14}/></button></div>}
 
                     <div className="rounded-xl border border-[#183144] bg-[#091923] p-2.5">
                       <div className="flex items-center justify-between gap-2">
@@ -221,11 +213,11 @@ export default function PositionsPanel({
           {pendingOrders.map(order => (
             <div key={order.id} className="rounded-xl border border-[#142533] bg-[#08121b] px-3 py-2.5">
               <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0"><div className="flex items-center gap-1.5"><strong className="truncate text-[11px] text-[#f0f5f9]">{formatSymbol(order.symbol || 'Current symbol')}</strong><span className={`rounded-md px-1.5 py-1 text-[7px] font-black ${order.side === 'buy' ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{String(order.side).toUpperCase()} {String(order.orderType).toUpperCase()}</span></div><p className="mt-1 text-[8px] text-[#718398]">{Number(order.lots || 0).toFixed(2)} lots · Entry {formatPrice(order.entry)} · {order.expiration}</p></div>
+                <div className="min-w-0"><div className="flex items-center gap-1.5"><strong className="truncate text-[11px] text-[#f0f5f9]">{formatSymbol(order.symbol || 'Current symbol')}</strong><span className={`rounded-md px-1.5 py-1 text-[7px] font-black ${order.side === 'buy' ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{String(order.side).toUpperCase()} {String(order.orderType).toUpperCase()}</span></div><p className="mt-1 text-[8px] text-[#718398]">{Number(order.lots || 0).toFixed(2)} lots · Entry {formatInstrumentPrice(order.entry, instrumentForSymbol(markets, order.symbol))} · {order.expiration}</p></div>
                 <div className="flex shrink-0 items-center gap-1"><button type="button" onClick={() => onModifyPending(order.id)} className="grid size-8 place-items-center rounded-lg border border-[#203747] bg-[#0b1822] text-[#8fa5b8]" aria-label="Modify pending order"><SlidersHorizontal size={13}/></button><button type="button" onClick={() => onCancelPending(order.id)} className="grid size-8 place-items-center rounded-lg border border-[#5b2931] bg-[#251217] text-[#ff7480]" aria-label="Cancel pending order"><X size={13}/></button></div>
               </div>
-              <div className="mt-2 grid grid-cols-3 gap-1.5 text-[8px]"><div className="rounded-lg bg-[#0a151f] px-2 py-1.5 text-[#718398]">SL <b className="ml-1 text-[#c9d5de]">{formatPrice(order.sl)}</b></div><div className="rounded-lg bg-[#0a151f] px-2 py-1.5 text-[#718398]">TP <b className="ml-1 text-[#c9d5de]">{formatPrice(order.tp)}</b></div><div className="rounded-lg bg-[#0a151f] px-2 py-1.5 text-[#718398]">Status <b className="ml-1 text-[#5bc8ff]">Pending</b></div></div>
-              {order.orderType === 'stop-limit' && <div className="mt-1.5 rounded-lg border border-[#30264a] bg-[#151126] px-2 py-1.5 text-[8px] text-[#8f7ab2]">Limit price <b className="ml-1 text-[#c4a8ff]">{formatPrice(order.limitPrice)}</b></div>}
+              <div className="mt-2 grid grid-cols-3 gap-1.5 text-[8px]"><div className="rounded-lg bg-[#0a151f] px-2 py-1.5 text-[#718398]">SL <b className="ml-1 text-[#c9d5de]">{formatInstrumentPrice(order.sl, instrumentForSymbol(markets, order.symbol))}</b></div><div className="rounded-lg bg-[#0a151f] px-2 py-1.5 text-[#718398]">TP <b className="ml-1 text-[#c9d5de]">{formatInstrumentPrice(order.tp, instrumentForSymbol(markets, order.symbol))}</b></div><div className="rounded-lg bg-[#0a151f] px-2 py-1.5 text-[#718398]">Status <b className="ml-1 text-[#5bc8ff]">Pending</b></div></div>
+              {order.orderType === 'stop-limit' && <div className="mt-1.5 rounded-lg border border-[#30264a] bg-[#151126] px-2 py-1.5 text-[8px] text-[#8f7ab2]">Limit price <b className="ml-1 text-[#c4a8ff]">{formatInstrumentPrice(order.limitPrice, instrumentForSymbol(markets, order.symbol))}</b></div>}
             </div>
           ))}
         </div>
