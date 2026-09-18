@@ -87,7 +87,7 @@ function fillEvent(result, fallback) {
   };
 }
 
-export default function MobileTraderShell({ market, tick, markets = [], activeSymbol, onSelectSymbol = () => {} }) {
+export default function MobileTraderShell({ market, tick, markets = [], activeSymbol, onSelectSymbol = () => {}, watchlists = null }) {
   const shellRef = useRef(null);
   const noticeTimerRef = useRef(null);
   const executionDismissRef = useRef(null);
@@ -99,7 +99,8 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const [timeframe, setTimeframe] = useState(prefsRef.current.timeframe || '1m');
   const [chartMode, setChartMode] = useState(prefsRef.current.chartMode || 'candles');
   const [selectedTool, setSelectedTool] = useState('cursor');
-  const [favorite, setFavorite] = useState(true);
+  const favorite = watchlists?.isWatched?.(activeSymbol) === true;
+  const setFavorite = () => watchlists?.toggleSymbol?.(activeSymbol);
   const [chartFocus, setChartFocus] = useState(false);
   const [lots, setLots] = useState(Number(prefsRef.current.lots) || 0.10);
   const [sizingMode, setSizingMode] = useState(prefsRef.current.sizingMode || 'lots');
@@ -488,7 +489,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
           <MobileScalperMode market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} lots={lots} setLots={setLots} sizingMode={sizingMode} setSizingMode={setSizingMode} riskPercent={riskPercent} setRiskPercent={setRiskPercent} orderType={orderType} setOrderType={setOrderType} tradePlan={tradePlan} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} positions={positions} onUpdatePosition={updatePosition} onIndicators={() => setOverlay('indicators')} indicators={indicators} account={account} plannedRisk={plannedRisk} exposureAllowed={exposure.allowed} exposureBlockReason={exposure.reason} onExit={exitChartFocus} />
         ) : (
           <>
-            {activeNav === 'watchlist' && <WatchlistSection markets={markets} activeSymbol={activeSymbol} onOpenTrade={openChart} onAddInstrument={() => setOverlay('search')} />}
+            {activeNav === 'watchlist' && <WatchlistSection markets={markets} activeSymbol={activeSymbol} onOpenTrade={openChart} onAddInstrument={() => setOverlay('search')} watchlists={watchlists} />}
             {activeNav === 'chart' && chartContent}
             {activeNav === 'trade' && <TradeSection account={account} positions={positions} pendingOrders={pendingOrders} markets={markets} onOpenChart={openChart} onClosePosition={closePosition} onCloseAll={closeAllPositions} onCancelPending={cancelPendingOrder} onModifyPending={modifyPendingOrder} onNewOrder={() => openChart(activeSymbol)} />}
             {activeNav === 'history' && <HistorySection positionHistory={positionHistory} journal={journal} markets={markets} accountCurrency={account.currency} onOpenChart={openChart} onNotice={showNotice} />}
@@ -499,7 +500,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
         <ExecutionStatus event={executionEvent} instrument={market} onDismiss={() => setExecutionEvent(null)} />
         {notice && <div className="fixed left-1/2 top-[74px] z-[120] w-[calc(100%-24px)] max-w-[420px] -translate-x-1/2 rounded-xl border border-[#254155] bg-[#0b1b28]/95 px-3 py-2.5 text-center text-[10px] font-semibold text-[#dce9f2] shadow-[0_16px_48px_rgba(0,0,0,.45)] backdrop-blur-xl">{notice}</div>}
-        {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} onSelectSymbol={symbol => { onSelectSymbol(symbol); if (overlay === 'search' || overlay === 'instruments') setActiveNav('chart'); }} {...indicatorSheetProps} />}
+        {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} watchlists={watchlists} onSelectSymbol={symbol => { onSelectSymbol(symbol); if (overlay === 'search' || overlay === 'instruments') setActiveNav('chart'); }} {...indicatorSheetProps} />}
       </main>
     </div>
   );
