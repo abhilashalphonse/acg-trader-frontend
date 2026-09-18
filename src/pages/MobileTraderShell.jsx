@@ -16,6 +16,12 @@ import { useTradingTerminal } from '../hooks/useTradingTerminal.js';
 import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
 import { calculateRiskSizedLots, estimateStopRisk } from '../utils/tradingRisk.js';
 import { exposureAvailability } from '../utils/exposureAvailability.js';
+import {
+  normalizePriceToTick,
+  normalizeProtectionPrice,
+  normalizeVolumeToStep,
+  pendingPriceDirection,
+} from '../utils/tradingCommandNormalization.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../utils/instrumentFormatting.js';
 import { normalizeTradePlanPatch } from '../utils/tradePlanNormalization.js';
 
@@ -57,39 +63,13 @@ function calculatedLots(plan, riskPercent, manualLots, equity, instrument, accou
   return calculateRiskSizedLots(plan, riskPercent, equity, instrument, accountCurrency);
 }
 
-function normalizeExecutionVolume(value, instrument) {
-  const step = Math.max(Number(instrument?.volumeStep) || 0.01, 0.00000001);
-  const min = Math.max(Number(instrument?.minVolume) || step, step);
-  const max = Math.max(Number(instrument?.maxVolume) || 100, min);
-  const requested = Math.max(min, Math.min(max, Number(value) || min));
-  const units = Math.floor((requested + step * 1e-8) / step);
-  const normalized = Math.max(min, Math.min(max, units * step));
-  const decimals = Math.max(0, String(step).split('.')[1]?.length || 0);
-  return Number(normalized.toFixed(decimals));
-}
-
-function normalizePriceToTick(value, instrument, direction = 'nearest') {
-  if (value === null || value === undefined || value === '') return value;
-  const numeric = Number(value);
-  const tick = Number(instrument?.tickSize);
-  if (!Number.isFinite(numeric) || !Number.isFinite(tick) || tick <= 0) return value;
-  const decimals = Math.max(0, String(instrument?.tickSize ?? tick).split('.')[1]?.length || 0);
-  const units = numeric / tick;
-  const snappedUnits = direction === 'down'
-    ? Math.floor(units + 1e-10)
-    : direction === 'up'
-      ? Math.ceil(units - 1e-10)
-      : Math.round(units);
-  return Number((snappedUnits * tick).toFixed(decimals));
-}
-
 function estimatedRisk(plan, riskPercent, manualLots, equity, instrument, accountCurrency) {
   if (!plan) return 0;
   const sizedLots = plan.sizingMode === 'risk'
     ? calculateRiskSizedLots(plan, riskPercent, equity, instrument, accountCurrency)
     : Number(plan.manualLots ?? manualLots);
   if (sizedLots == null) return null;
-  return estimateStopRisk(plan, normalizeExecutionVolume(sizedLots, instrument), instrument, accountCurrency);
+  return estimateStopRisk(plan, normalizeVolumeToStep(sizedLots, instrument), instrument, accountCurrency);
 }
 
 function stamp() {
@@ -321,18 +301,12 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     let entry = marketPrice;
     if (requestedType === 'limit') entry = side === 'buy' ? marketPrice - 5 * pip : marketPrice + 5 * pip;
     if (requestedType === 'stop' || requestedType === 'stop-limit') entry = side === 'buy' ? marketPrice + 5 * pip : marketPrice - 5 * pip;
-    const entryDirection = requestedType === 'limit'
-      ? (side === 'buy' ? 'down' : 'up')
-      : requestedType === 'stop' || requestedType === 'stop-limit'
-        ? (side === 'buy' ? 'up' : 'down')
-        : 'nearest';
-    entry = normalizePriceToTick(entry, market, entryDirection);
-    const slDirection = side === 'buy' ? 'down' : 'up';
-    const tpDirection = side === 'buy' ? 'up' : 'down';
-    const sl = normalizePriceToTick(side === 'buy' ? entry - 4.2 * pip : entry + 4.2 * pip, market, slDirection);
-    const tp = normalizePriceToTick(side === 'buy' ? entry + 8.4 * pip : entry - 8.4 * pip, market, tpDirection);
+    const sideUpper = String(side).toUpperCase();
+    entry = normalizePriceToTick(entry, market, pendingPriceDirection(requestedType, sideUpper, 'entry'));
+    const sl = normalizeProtectionPrice(side === 'buy' ? entry - 4.2 * pip : entry + 4.2 * pip, market, sideUpper, 'sl');
+    const tp = normalizeProtectionPrice(side === 'buy' ? entry + 8.4 * pip : entry - 8.4 * pip, market, sideUpper, 'tp');
     const limitPrice = requestedType === 'stop-limit'
-      ? normalizePriceToTick(side === 'buy' ? entry + 1.5 * pip : entry - 1.5 * pip, market, side === 'buy' ? 'up' : 'down')
+      ? normalizePriceToTick(side === 'buy' ? entry + 1.5 * pip : entry - 1.5 * pip, market, pendingPriceDirection(requestedType, sideUpper, 'limit'))
       : null;
     setTradePlan({ side, entry, sl, tp, limitPrice, marketPrice, orderType: requestedType, pending, sizingMode, manualLots: lots, expiration: 'GTC', stage: 'planning', open: false });
   };
@@ -350,7 +324,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     if (!exposure.allowed) { showNotice(exposure.reason); return; }
     const calculated = calculatedLots(tradePlan, riskPercent, tradePlan.manualLots ?? lots, account.equity, market, account.currency);
     if (calculated == null) { showNotice('Risk % sizing is unavailable because this instrument P&L requires currency conversion. Use Lots sizing.'); return; }
-    const volume = normalizeExecutionVolume(calculated, market);
+    const volume = normalizeVolumeToStep(calculated, market);
     if (tradePlan.pending) {
       const request = {
         symbol: market?.symbol,
@@ -393,7 +367,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const manualOrder = order => {
     if (trading.commandState.pending || !exposure.allowed) { if (!exposure.allowed) showNotice(exposure.reason); return; }
     const instrument = markets.find(item => item.symbol === order.symbol) || market;
-    const executionLots = normalizeExecutionVolume(order.lots, instrument);
+    const executionLots = normalizeVolumeToStep(order.lots, instrument);
     void runMarketExecution({ side: order.side, executionLots, symbol: order.symbol, requestedPrice: order.price });
   };
 
