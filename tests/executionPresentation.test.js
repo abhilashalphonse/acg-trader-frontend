@@ -53,5 +53,5 @@ test('displayed pending plan values equal the values execution normalization wil
   const commandRisk = Math.abs(commandEntry - commandSl) * instrument.contractSize * executionLots;
 
   assert.equal(Number(displayedRisk.toFixed(8)), Number(commandRisk.toFixed(8)));
-  assert.equal(executionLots % instrument.volumeStep < 1e-9, true);
+  assert.equal(normalizeVolumeToStep(executionLots, instrument), executionLots);
 });
