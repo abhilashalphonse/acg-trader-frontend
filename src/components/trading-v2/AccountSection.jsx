@@ -1,5 +1,6 @@
 import React from 'react';
 import { Bell, ChevronRight, CircleHelp, Gauge, Settings, ShieldCheck, SlidersHorizontal, UserRound } from 'lucide-react';
+import { calculateAccountRiskSummary } from '../../utils/accountRisk.js';
 
 function money(value, currency = 'USD') {
   const number = Number(value);
@@ -25,16 +26,16 @@ function statusClass(status) {
 
 export default function AccountSection({ account = {}, onOpenSheet = () => {} }) {
   const currency = account.currency || 'USD';
-  const initial = Number(account.initialBalance);
   const balance = Number(account.balance);
   const equity = Number(account.equity);
-  const target = Number(account.profitTarget) || 0;
-  const dailyLossLimit = Number(account.dailyLossLimit) || 0;
-  const maxLossLimit = Number(account.maxLossLimit) || 0;
+  const risk = calculateAccountRiskSummary(account);
+  const target = risk.profitTarget;
+  const dailyLossLimit = risk.dailyLossLimit;
+  const maxLossLimit = risk.maxLossLimit;
   const hasChallengeRules = target > 0 || dailyLossLimit > 0 || maxLossLimit > 0;
-  const targetProfit = Number.isFinite(initial) && Number.isFinite(equity) ? Math.max(0, equity - initial) : 0;
-  const dailyLoss = Number.isFinite(equity) ? Math.max(0, (Number(account.dailyStartEquity) || equity) - equity) : 0;
-  const maxLoss = Number.isFinite(initial) && Number.isFinite(equity) ? Math.max(0, initial - equity) : 0;
+  const targetProfit = risk.profit;
+  const dailyLoss = risk.dailyLossUsed;
+  const maxLoss = risk.maxLossUsed;
   const status = String(account.status || 'UNKNOWN').toUpperCase();
   const valuation = String(account.valuationStatus || 'WAITING').toUpperCase();
 
