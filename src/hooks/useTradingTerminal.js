@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTraderAuth } from './useTraderAuth.js';
 import { useTradingStore } from './useTradingStore.js';
+import {
+  normalizeExpiryToIso,
+  normalizePriceToTick,
+  normalizeProtectionPrice,
+  normalizeTimeInForce,
+  normalizeVolumeToStep,
+  pendingPriceDirection,
+} from '../utils/tradingCommandNormalization.js';
 
 const ACTIVE_ORDER_STATUSES = new Set(['PENDING', 'ACCEPTED', 'TRIGGERED']);
 
@@ -13,7 +21,30 @@ function nullableNumber(value) { if (value === null || value === undefined || va
 function displayTime(value, fallback = '—') { if (!value) return fallback; const date = new Date(value); if (Number.isNaN(date.getTime())) return fallback; return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }); }
 function decimalPlaces(step) { const text = String(step ?? ''); const point = text.indexOf('.'); return point < 0 ? 0 : text.length - point - 1; }
 function pointsPerPip(instrument) { const tickSize = Number(instrument?.tickSize); const pip = Number(instrument?.pipSize); return Number.isFinite(tickSize) && tickSize > 0 && Number.isFinite(pip) && pip > 0 ? pip / tickSize : 1; }
-function partialVolume(position, percentage) { const openVolume = numberOr(position?.openVolume); const percent = Math.max(1, Math.min(100, numberOr(percentage, 100))); if (percent >= 100) return null; const step = Math.max(Number(position?.volumeStep) || 0.01, 0.00000001); const raw = openVolume * percent / 100; const units = Math.floor((raw + step * 1e-8) / step); const normalized = Math.max(step, units * step); if (normalized >= openVolume - step / 2) return null; return normalized.toFixed(decimalPlaces(step)); }
+function partialVolume(position, percentage, instrument) {
+  const openVolume = numberOr(position?.openVolume);
+  const percent = Math.max(1, Math.min(100, numberOr(percentage, 100)));
+  if (percent >= 100) return null;
+
+  const step = Math.max(Number(position?.volumeStep || instrument?.volumeStep) || 0.01, 0.00000001);
+  const minVolume = Math.max(Number(instrument?.minVolume) || step, step);
+  const raw = openVolume * percent / 100;
+  const units = Math.floor((raw + step * 1e-8) / step);
+  const normalized = units * step;
+  const remaining = openVolume - normalized;
+
+  if (normalized < minVolume - step * 1e-8 || normalized <= 0) {
+    throw new Error(`A ${percent}% partial close is below the minimum tradable volume of ${minVolume}`);
+  }
+  if (remaining > step * 1e-8 && remaining < minVolume - step * 1e-8) {
+    throw new Error(`A ${percent}% partial close would leave less than the minimum tradable volume of ${minVolume}`);
+  }
+  if (normalized >= openVolume - step * 1e-8) {
+    throw new Error('Partial close resolves to the full position size; use Close instead');
+  }
+
+  return normalized.toFixed(decimalPlaces(step));
+}
 
 function normalizePosition(position, valuation, instrument) {
   const trailingPoints = nullableNumber(position?.trailing?.distancePoints);
@@ -77,17 +108,138 @@ export function useTradingTerminal(markets = []) {
   const run = useCallback(async operation => { busyRef.current += 1; setCommandState(current => ({ ...current, pending: true, error: null })); try { const result = await operation(); setCommandState({ pending: busyRef.current > 1, error: null, lastResult: result }); return result; } catch (error) { setCommandState({ pending: busyRef.current > 1, error, lastResult: null }); throw error; } finally { busyRef.current = Math.max(0, busyRef.current - 1); if (busyRef.current === 0) setCommandState(current => ({ ...current, pending: false })); } }, []);
   const requireAccount = useCallback(() => { if (!accountId) throw new Error('No trading account is available for this session'); return accountId; }, [accountId]);
 
-  const openMarketOrder = useCallback(({ symbol, side, volume, stopLoss = null, takeProfit = null, requestedPrice = null }) => run(() => commands.openMarketOrder({ accountId: requireAccount(), clientOrderId: commandId('open'), symbol: String(symbol || '').toUpperCase(), side: String(side || '').toUpperCase(), volume: String(volume), stopLoss, takeProfit, requestedPrice, source: sourceForViewport() })), [commands, requireAccount, run]);
-  const placePendingOrder = useCallback(({ symbol, side, type, volume, entry, limitPrice = null, stopLoss = null, takeProfit = null, timeInForce = 'GTC', expiresAt = null }) => { const normalizedType = String(type || '').replace('-', '_').toUpperCase(); return run(() => commands.placePendingOrder({ accountId: requireAccount(), clientOrderId: commandId('pending'), symbol: String(symbol || '').toUpperCase(), side: String(side || '').toUpperCase(), type: normalizedType, volume: String(volume), limitPrice: normalizedType === 'LIMIT' ? entry : normalizedType === 'STOP_LIMIT' ? limitPrice : null, stopPrice: normalizedType === 'STOP' || normalizedType === 'STOP_LIMIT' ? entry : null, stopLoss, takeProfit, timeInForce, expiresAt: timeInForce === 'SPECIFIED' ? expiresAt : null, source: sourceForViewport() })); }, [commands, requireAccount, run]);
+  const instrumentForSymbol = useCallback(symbol => markets.find(item => item.symbol === String(symbol || '').toUpperCase()) || null, [markets]);
+
+  const openMarketOrder = useCallback(({ symbol, side, volume, stopLoss = null, takeProfit = null, requestedPrice = null }) => {
+    const normalizedSymbol = String(symbol || '').toUpperCase();
+    const normalizedSide = String(side || '').toUpperCase();
+    const instrument = instrumentForSymbol(normalizedSymbol);
+    return run(() => commands.openMarketOrder({
+      accountId: requireAccount(),
+      clientOrderId: commandId('open'),
+      symbol: normalizedSymbol,
+      side: normalizedSide,
+      volume: String(normalizeVolumeToStep(volume, instrument)),
+      stopLoss: normalizeProtectionPrice(stopLoss, instrument, normalizedSide, 'sl'),
+      takeProfit: normalizeProtectionPrice(takeProfit, instrument, normalizedSide, 'tp'),
+      requestedPrice,
+      source: sourceForViewport(),
+    }));
+  }, [commands, instrumentForSymbol, requireAccount, run]);
+
+  const placePendingOrder = useCallback(({ symbol, side, type, volume, entry, limitPrice = null, stopLoss = null, takeProfit = null, timeInForce = 'GTC', expiresAt = null }) => {
+    const normalizedSymbol = String(symbol || '').toUpperCase();
+    const normalizedSide = String(side || '').toUpperCase();
+    const normalizedType = String(type || '').replace('-', '_').toUpperCase();
+    const instrument = instrumentForSymbol(normalizedSymbol);
+    const normalizedEntry = normalizePriceToTick(entry, instrument, pendingPriceDirection(normalizedType, normalizedSide, 'entry'));
+    const normalizedLimit = normalizedType === 'STOP_LIMIT'
+      ? normalizePriceToTick(limitPrice, instrument, pendingPriceDirection(normalizedType, normalizedSide, 'limit'))
+      : null;
+    const tif = normalizeTimeInForce(timeInForce);
+    return run(() => commands.placePendingOrder({
+      accountId: requireAccount(),
+      clientOrderId: commandId('pending'),
+      symbol: normalizedSymbol,
+      side: normalizedSide,
+      type: normalizedType,
+      volume: String(normalizeVolumeToStep(volume, instrument)),
+      limitPrice: normalizedType === 'LIMIT' ? normalizedEntry : normalizedType === 'STOP_LIMIT' ? normalizedLimit : null,
+      stopPrice: normalizedType === 'STOP' || normalizedType === 'STOP_LIMIT' ? normalizedEntry : null,
+      stopLoss: normalizeProtectionPrice(stopLoss, instrument, normalizedSide, 'sl'),
+      takeProfit: normalizeProtectionPrice(takeProfit, instrument, normalizedSide, 'tp'),
+      timeInForce: tif,
+      expiresAt: tif === 'SPECIFIED' ? normalizeExpiryToIso(expiresAt) : null,
+      source: sourceForViewport(),
+    }));
+  }, [commands, instrumentForSymbol, requireAccount, run]);
+
   const cancelPendingOrder = useCallback(orderId => run(() => commands.cancelPendingOrder(String(orderId), { accountId: requireAccount(), clientRequestId: commandId('cancel') })), [commands, requireAccount, run]);
-  const closePosition = useCallback((positionId, percentage = 100) => { const position = rawPositions.find(item => String(item.id) === String(positionId)); if (!position) return Promise.reject(new Error('Open position was not found')); return run(() => commands.closePosition(String(positionId), { accountId: requireAccount(), clientOrderId: commandId('close'), volume: partialVolume(position, percentage), requestedPrice: null, source: sourceForViewport() })); }, [commands, rawPositions, requireAccount, run]);
+
+  const closePosition = useCallback((positionId, percentage = 100) => {
+    const position = rawPositions.find(item => String(item.id) === String(positionId));
+    if (!position) return Promise.reject(new Error('Open position was not found'));
+    const instrument = instrumentForSymbol(position.symbol);
+    return run(() => commands.closePosition(String(positionId), {
+      accountId: requireAccount(),
+      clientOrderId: commandId('close'),
+      volume: partialVolume(position, percentage, instrument),
+      requestedPrice: null,
+      source: sourceForViewport(),
+    }));
+  }, [commands, instrumentForSymbol, rawPositions, requireAccount, run]);
+
   const closeAllPositions = useCallback(() => run(() => commands.closeAllPositions(requireAccount(), { accountId: requireAccount(), clientRequestId: commandId('close-all'), source: sourceForViewport() })), [commands, requireAccount, run]);
-  const updatePosition = useCallback((positionId, patch) => run(() => commands.updatePositionProtection(String(positionId), { accountId: requireAccount(), clientRequestId: commandId('protect'), ...(Object.prototype.hasOwnProperty.call(patch, 'sl') ? { stopLoss: patch.sl } : {}), ...(Object.prototype.hasOwnProperty.call(patch, 'tp') ? { takeProfit: patch.tp } : {}), source: sourceForViewport() })), [commands, requireAccount, run]);
+
+  const updatePosition = useCallback((positionId, patch) => {
+    const position = rawPositions.find(item => String(item.id) === String(positionId));
+    if (!position) return Promise.reject(new Error('Open position was not found'));
+    const instrument = instrumentForSymbol(position.symbol);
+    const side = String(position.side || '').toUpperCase();
+    return run(() => commands.updatePositionProtection(String(positionId), {
+      accountId: requireAccount(),
+      clientRequestId: commandId('protect'),
+      ...(Object.prototype.hasOwnProperty.call(patch, 'sl') ? { stopLoss: normalizeProtectionPrice(patch.sl, instrument, side, 'sl') } : {}),
+      ...(Object.prototype.hasOwnProperty.call(patch, 'tp') ? { takeProfit: normalizeProtectionPrice(patch.tp, instrument, side, 'tp') } : {}),
+      source: sourceForViewport(),
+    }));
+  }, [commands, instrumentForSymbol, rawPositions, requireAccount, run]);
+
   const movePositionToBreakEven = useCallback(positionId => run(() => commands.movePositionToBreakEven(String(positionId), { accountId: requireAccount(), clientRequestId: commandId('be'), source: sourceForViewport() })), [commands, requireAccount, run]);
-  const setPositionTrailing = useCallback((positionId, enabled, pips = 5) => { const position = rawPositions.find(item => String(item.id) === String(positionId)); const instrument = markets.find(item => item.symbol === position?.symbol); const distancePoints = Math.max(1, numberOr(pips, 5) * pointsPerPip(instrument)); return run(() => commands.configureTrailingStop(String(positionId), { accountId: requireAccount(), clientRequestId: commandId('trail'), enabled: Boolean(enabled), distancePoints: enabled ? String(distancePoints) : null, source: sourceForViewport() })); }, [commands, markets, rawPositions, requireAccount, run]);
-  const duplicatePosition = useCallback(positionId => { const position = rawPositions.find(item => String(item.id) === String(positionId)); if (!position) return Promise.reject(new Error('Open position was not found')); return openMarketOrder({ symbol: position.symbol, side: position.side, volume: position.openVolume }); }, [openMarketOrder, rawPositions]);
-  const reversePosition = useCallback(positionId => { const position = rawPositions.find(item => String(item.id) === String(positionId)); if (!position) return Promise.reject(new Error('Open position was not found')); return run(() => commands.reversePosition(String(positionId), { accountId: requireAccount(), clientRequestId: commandId('reverse'), source: sourceForViewport() })); }, [commands, rawPositions, requireAccount, run]);
-  const replacePendingOrder = useCallback((orderId, replacement) => { const existing = pendingOrders.find(item => String(item.id) === String(orderId)); if (!existing) return Promise.reject(new Error('Pending order was not found')); const normalizedType = String(existing.orderType || '').replace('-', '_').toUpperCase(); return run(() => commands.amendPendingOrder(String(orderId), { accountId: requireAccount(), clientRequestId: commandId('amend'), volume: String(replacement.volume ?? replacement.lots ?? existing.volume), limitPrice: normalizedType === 'LIMIT' ? replacement.entry : normalizedType === 'STOP_LIMIT' ? replacement.limitPrice : undefined, stopPrice: normalizedType === 'STOP' || normalizedType === 'STOP_LIMIT' ? replacement.entry : undefined, stopLoss: replacement.stopLoss ?? replacement.sl, takeProfit: replacement.takeProfit ?? replacement.tp, timeInForce: replacement.timeInForce ?? replacement.expiration, expiresAt: (replacement.timeInForce ?? replacement.expiration) === 'SPECIFIED' ? (replacement.expiresAt ?? replacement.expirationAt) : null })); }, [commands, pendingOrders, requireAccount, run]);
+
+  const setPositionTrailing = useCallback((positionId, enabled, pips = 5) => {
+    const position = rawPositions.find(item => String(item.id) === String(positionId));
+    const instrument = instrumentForSymbol(position?.symbol);
+    const distancePoints = Math.max(1, numberOr(pips, 5) * pointsPerPip(instrument));
+    return run(() => commands.configureTrailingStop(String(positionId), {
+      accountId: requireAccount(),
+      clientRequestId: commandId('trail'),
+      enabled: Boolean(enabled),
+      distancePoints: enabled ? String(distancePoints) : null,
+      source: sourceForViewport(),
+    }));
+  }, [commands, instrumentForSymbol, rawPositions, requireAccount, run]);
+
+  const duplicatePosition = useCallback(positionId => {
+    const position = rawPositions.find(item => String(item.id) === String(positionId));
+    if (!position) return Promise.reject(new Error('Open position was not found'));
+    return openMarketOrder({ symbol: position.symbol, side: position.side, volume: position.openVolume });
+  }, [openMarketOrder, rawPositions]);
+
+  const reversePosition = useCallback(positionId => {
+    const position = rawPositions.find(item => String(item.id) === String(positionId));
+    if (!position) return Promise.reject(new Error('Open position was not found'));
+    return run(() => commands.reversePosition(String(positionId), { accountId: requireAccount(), clientRequestId: commandId('reverse'), source: sourceForViewport() }));
+  }, [commands, rawPositions, requireAccount, run]);
+
+  const replacePendingOrder = useCallback((orderId, replacement) => {
+    const existing = pendingOrders.find(item => String(item.id) === String(orderId));
+    if (!existing) return Promise.reject(new Error('Pending order was not found'));
+
+    const normalizedType = String(existing.orderType || '').replace('-', '_').toUpperCase();
+    const normalizedSide = String(existing.side || '').toUpperCase();
+    const instrument = instrumentForSymbol(existing.symbol);
+    const replacementEntry = replacement.entry ?? existing.entry;
+    const entry = normalizePriceToTick(replacementEntry, instrument, pendingPriceDirection(normalizedType, normalizedSide, 'entry'));
+    const limit = normalizedType === 'STOP_LIMIT'
+      ? normalizePriceToTick(replacement.limitPrice ?? existing.limitPrice, instrument, pendingPriceDirection(normalizedType, normalizedSide, 'limit'))
+      : undefined;
+    const tif = normalizeTimeInForce(replacement.timeInForce ?? replacement.expiration ?? existing.expiration);
+
+    return run(() => commands.amendPendingOrder(String(orderId), {
+      accountId: requireAccount(),
+      clientRequestId: commandId('amend'),
+      volume: String(normalizeVolumeToStep(replacement.volume ?? replacement.lots ?? existing.volume, instrument)),
+      limitPrice: normalizedType === 'LIMIT' ? entry : normalizedType === 'STOP_LIMIT' ? limit : undefined,
+      stopPrice: normalizedType === 'STOP' || normalizedType === 'STOP_LIMIT' ? entry : undefined,
+      stopLoss: normalizeProtectionPrice(replacement.stopLoss ?? replacement.sl, instrument, normalizedSide, 'sl'),
+      takeProfit: normalizeProtectionPrice(replacement.takeProfit ?? replacement.tp, instrument, normalizedSide, 'tp'),
+      timeInForce: tif,
+      expiresAt: tif === 'SPECIFIED'
+        ? normalizeExpiryToIso(replacement.expiresAt ?? replacement.expirationAt ?? existing.expiresAt)
+        : null,
+    }));
+  }, [commands, instrumentForSymbol, pendingOrders, requireAccount, run]);
 
   return { accountId, account, rawAccount, valuation, positions, pendingOrders, positionHistory, historyOrders: history.orders, historyDeals: history.deals, historyPositions: history.positions, historyLoaded: history.loaded, fills: trading.fills, orders: Object.values(trading.ordersById), connection, commandState, tradingReady: Boolean(accountId && rawAccount && account.tradingEnabled && connection.status === 'ready'), openMarketOrder, placePendingOrder, replacePendingOrder, cancelPendingOrder, closePosition, closeAllPositions, updatePosition, movePositionToBreakEven, setPositionTrailing, duplicatePosition, reversePosition, errorMessage };
 }
