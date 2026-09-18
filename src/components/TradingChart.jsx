@@ -52,7 +52,7 @@ function indicatorLabel(indicator) {
   return indicator.name || indicator.id;
 }
 
-export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick = null, chartMode = 'candles', bidPrice = null, askPrice = null, indicators = [], onCoordinateApi = () => {} }) {
+export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick = null, chartMode = 'candles', bidPrice = null, askPrice = null, showBidLine = true, showAskLine = true, indicators = [], onCoordinateApi = () => {} }) {
   const { authenticated } = useTraderAuth();
   const { market, subscribeMarket } = useTradingStore();
   const hostRef = useRef(null);
@@ -190,7 +190,7 @@ export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick
     // MT5-style market lines: continuous, price-scale anchored and tick-driven.
     // Candles represent the Bid market; Ask is shown separately so the visible
     // vertical distance between the two lines is the live spread.
-    if (Number.isFinite(liveBid)) {
+    if (showBidLine && Number.isFinite(liveBid)) {
       if (!bidLineRef.current) {
         bidLineRef.current = series.createPriceLine({
           price: liveBid,
@@ -203,9 +203,12 @@ export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick
       } else {
         bidLineRef.current.applyOptions({ price: liveBid });
       }
+    } else if (bidLineRef.current) {
+      try { series.removePriceLine(bidLineRef.current); } catch { /* disposed */ }
+      bidLineRef.current = null;
     }
 
-    if (Number.isFinite(liveAsk)) {
+    if (showAskLine && Number.isFinite(liveAsk)) {
       if (!askLineRef.current) {
         askLineRef.current = series.createPriceLine({
           price: liveAsk,
@@ -218,8 +221,11 @@ export default function TradingChart({ symbol = 'EURUSD', timeframe = 'M1', tick
       } else {
         askLineRef.current.applyOptions({ price: liveAsk });
       }
+    } else if (askLineRef.current) {
+      try { series.removePriceLine(askLineRef.current); } catch { /* disposed */ }
+      askLineRef.current = null;
     }
-  }, [tick?.bid, tick?.ask, bidPrice, askPrice, symbol, timeframe, chartMode]);
+  }, [tick?.bid, tick?.ask, bidPrice, askPrice, showBidLine, showAskLine, symbol, timeframe, chartMode]);
 
   useEffect(() => {
     if (!liveCandle || !seriesRef.current) return;
