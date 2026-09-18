@@ -60,6 +60,7 @@ export default function PositionsPanel({
   const [tab, setTab] = useState('positions');
   const [expandedId, setExpandedId] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const [protectionDrafts, setProtectionDrafts] = useState({});
   const [customClose, setCustomClose] = useState({});
 
   const counts = useMemo(() => ({
@@ -69,26 +70,50 @@ export default function PositionsPanel({
     journal: journal.length,
   }), [positions, pendingOrders, positionHistory, journal]);
 
+  const startProtectionEdit = position => {
+    setEditingId(position.id);
+    setProtectionDrafts(current => ({
+      ...current,
+      [position.id]: {
+        sl: position.sl,
+        tp: position.tp,
+      },
+    }));
+  };
+
   const nudge = (position, field, direction) => {
-    const raw = position[field];
+    const draft = protectionDrafts[position.id] || { sl: position.sl, tp: position.tp };
+    const raw = draft[field];
     const current = raw === null || raw === undefined || raw === '' ? NaN : Number(raw);
     const entry = Number(position.entry);
     const executable = Number(position.closePrice);
     const reference = Number.isFinite(executable) && executable > 0 ? executable : entry;
     const step = pipStep(reference);
 
-    // For the first protection value, start on the valid side of the
-    // executable market price instead of the historical entry price.
+    let next;
     if (!Number.isFinite(current) || current <= 0) {
       const isBuy = String(position.side).toUpperCase() === 'BUY';
       const offset = field === 'sl'
         ? (isBuy ? -step : step)
         : (isBuy ? step : -step);
-      onUpdatePosition(position.id, { [field]: reference + offset });
-      return;
+      next = reference + offset;
+    } else {
+      next = current + direction * step;
     }
 
-    onUpdatePosition(position.id, { [field]: current + direction * step });
+    setProtectionDrafts(currentDrafts => ({
+      ...currentDrafts,
+      [position.id]: {
+        ...(currentDrafts[position.id] || { sl: position.sl, tp: position.tp }),
+        [field]: next,
+      },
+    }));
+  };
+
+  const applyProtectionDraft = position => {
+    const draft = protectionDrafts[position.id];
+    if (draft) onUpdatePosition(position.id, { sl: draft.sl, tp: draft.tp });
+    setEditingId(null);
   };
 
   const applyCustomClose = position => {
@@ -157,11 +182,11 @@ export default function PositionsPanel({
                 {expanded && (
                   <div className="space-y-2 border-t border-[#172a38] bg-[#07111a] p-2.5">
                     <div className="grid grid-cols-2 gap-2">
-                      <button type="button" onClick={() => setEditingId(editing ? null : position.id)} className={`flex h-10 items-center justify-center gap-2 rounded-xl border text-[10px] font-bold ${editing ? 'border-[#235773] bg-[#0d2b3e] text-[#64cfff]' : 'border-[#1b3040] bg-[#0b1822] text-[#b8c6d2]'}`}><SlidersHorizontal size={14}/>Modify SL / TP</button>
+                      <button type="button" onClick={() => editing ? setEditingId(null) : startProtectionEdit(position)} className={`flex h-10 items-center justify-center gap-2 rounded-xl border text-[10px] font-bold ${editing ? 'border-[#235773] bg-[#0d2b3e] text-[#64cfff]' : 'border-[#1b3040] bg-[#0b1822] text-[#b8c6d2]'}`}><SlidersHorizontal size={14}/>Modify SL / TP</button>
                       <button type="button" onClick={() => onDuplicate(position.id)} className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#1b3040] bg-[#0b1822] text-[10px] font-bold text-[#b8c6d2]"><Copy size={14}/>Duplicate</button>
                     </div>
 
-                    {editing && <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2 rounded-xl border border-[#183144] bg-[#091923] p-2"><Adjust label="SL" value={formatPrice(position.sl)} onMinus={() => nudge(position, 'sl', -1)} onPlus={() => nudge(position, 'sl', 1)} /><Adjust label="TP" value={formatPrice(position.tp)} onMinus={() => nudge(position, 'tp', -1)} onPlus={() => nudge(position, 'tp', 1)} /><button type="button" onClick={() => setEditingId(null)} className="grid size-9 place-items-center rounded-lg border border-[#176347] bg-[#0d2f25] text-[#44dda9]" aria-label="Apply modification"><Check size={14}/></button></div>}
+                    {editing && <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2 rounded-xl border border-[#183144] bg-[#091923] p-2"><Adjust label="SL" value={formatPrice((protectionDrafts[position.id] || {}).sl)} onMinus={() => nudge(position, 'sl', -1)} onPlus={() => nudge(position, 'sl', 1)} /><Adjust label="TP" value={formatPrice((protectionDrafts[position.id] || {}).tp)} onMinus={() => nudge(position, 'tp', -1)} onPlus={() => nudge(position, 'tp', 1)} /><button type="button" onClick={() => applyProtectionDraft(position)} className="grid size-9 place-items-center rounded-lg border border-[#176347] bg-[#0d2f25] text-[#44dda9]" aria-label="Apply modification"><Check size={14}/></button></div>}
 
                     <div className="rounded-xl border border-[#183144] bg-[#091923] p-2.5">
                       <div className="flex items-center justify-between gap-2">
