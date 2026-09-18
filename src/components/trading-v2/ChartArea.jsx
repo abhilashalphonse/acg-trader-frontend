@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Crosshair, TrendingUp, SlidersHorizontal, Square, Type, Shapes, Ruler } from 'lucide-react';
 import TradingChart from '../TradingChart.jsx';
 import DrawingLayer from './DrawingLayer.jsx';
+import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 
 const tools = [
   ['cursor', Crosshair, 'Select'],
@@ -23,70 +24,58 @@ function formatCountdown(totalSeconds) {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-function TradePlanOverlay({ plan, onChange }) {
+function TradePlanOverlay({ plan, onChange, coordinateApi, instrument }) {
   const layerRef = useRef(null);
   const [dragging, setDragging] = useState(null);
-  const [positions, setPositions] = useState({ tp: 27, entry: 50, limit: 57, sl: 69 });
+  const [preview, setPreview] = useState({});
+  const [, forceLayout] = useState(0);
 
   useEffect(() => {
-    if (!plan) return;
-    const isBuy = plan.side === 'buy';
-    if (plan.pending) {
-      setPositions({ tp: isBuy ? 24 : 76, entry: isBuy ? (plan.orderType === 'limit' ? 58 : 42) : (plan.orderType === 'limit' ? 42 : 58), limit: isBuy ? 48 : 52, sl: isBuy ? 76 : 24 });
-    } else {
-      setPositions({ tp: isBuy ? 27 : 73, entry: 50, limit: 57, sl: isBuy ? 69 : 31 });
-    }
-  }, [plan?.side, plan?.pending, plan?.orderType]);
+    if (!coordinateApi?.subscribe) return undefined;
+    return coordinateApi.subscribe(() => forceLayout(value => value + 1));
+  }, [coordinateApi]);
 
   const metrics = useMemo(() => {
-    const entry = Number(plan?.entry) || 0;
-    const sl = Number(plan?.sl) || entry;
-    const tp = Number(plan?.tp) || entry;
-    const pip = entry > 100 ? 0.01 : 0.0001;
+    const entry = Number(plan?.entry);
+    const sl = Number(plan?.sl);
+    const tp = Number(plan?.tp);
+    const pip = instrumentPipSize(instrument);
+    if (![entry, sl, tp, pip].every(Number.isFinite) || pip <= 0) return { slPips: 0, tpPips: 0 };
     return { slPips: Math.abs(entry - sl) / pip, tpPips: Math.abs(tp - entry) / pip };
-  }, [plan]);
+  }, [instrument, plan]);
 
   useEffect(() => {
-    if (!dragging) return undefined;
-    const move = event => {
-      const rect = layerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const clientY = event.touches?.[0]?.clientY ?? event.clientY;
-      const raw = ((clientY - rect.top) / rect.height) * 100;
-      const next = Math.min(88, Math.max(12, raw));
-      const isBuy = plan.side === 'buy';
-      const pip = plan.entry > 100 ? 0.01 : 0.0001;
+    if (!dragging || !coordinateApi?.yToPrice) return undefined;
+    const field = dragging === 'limit' ? 'limitPrice' : dragging;
 
-      if (dragging === 'sl') {
-        const bounded = isBuy ? Math.max(positions.entry + 6, next) : Math.min(positions.entry - 6, next);
-        setPositions(p => ({ ...p, sl: bounded }));
-        const pips = Math.max(0.5, Math.abs(bounded - positions.entry) * 0.22);
-        const sl = isBuy ? plan.entry - pips * pip : plan.entry + pips * pip;
-        onChange({ sl, stage: 'dragging-sl' });
-      } else if (dragging === 'tp') {
-        const bounded = isBuy ? Math.min(positions.entry - 6, next) : Math.max(positions.entry + 6, next);
-        setPositions(p => ({ ...p, tp: bounded }));
-        const pips = Math.max(0.5, Math.abs(bounded - positions.entry) * 0.34);
-        const tp = isBuy ? plan.entry + pips * pip : plan.entry - pips * pip;
-        onChange({ tp, stage: 'dragging-tp' });
-      } else if (dragging === 'entry') {
-        setPositions(p => ({ ...p, entry: next }));
-        const market = Number(plan.marketPrice) || Number(plan.entry) || 0;
-        const deltaPips = (50 - next) * 0.18;
-        const entry = market + deltaPips * pip;
-        const slDistance = Math.max(2, metrics.slPips) * pip;
-        const tpDistance = Math.max(4, metrics.tpPips) * pip;
-        onChange({ entry, sl: isBuy ? entry - slDistance : entry + slDistance, tp: isBuy ? entry + tpDistance : entry - tpDistance, stage: 'dragging-entry' });
-      } else if (dragging === 'limit') {
-        setPositions(p => ({ ...p, limit: next }));
-        const offsetPips = Math.max(0.5, Math.abs(next - positions.entry) * 0.14);
-        onChange({ limitPrice: isBuy ? plan.entry - offsetPips * pip : plan.entry + offsetPips * pip, stage: 'dragging-limit' });
-      }
+    const priceFromEvent = event => {
+      const rect = layerRef.current?.getBoundingClientRect();
+      if (!rect) return null;
+      const clientY = event.touches?.[0]?.clientY ?? event.changedTouches?.[0]?.clientY ?? event.clientY;
+      const price = coordinateApi.yToPrice(clientY - rect.top);
+      return Number.isFinite(price) ? price : null;
     };
-    const up = () => {
+
+    const move = event => {
+      const price = priceFromEvent(event);
+      if (price == null) return;
+      event.preventDefault?.();
+      setPreview(current => ({ ...current, [field]: price }));
+    };
+
+    const up = event => {
+      const price = priceFromEvent(event);
+      const currentField = field;
       setDragging(null);
-      onChange({ stage: 'ready' });
+      setPreview(current => {
+        const next = { ...current };
+        delete next[currentField];
+        return next;
+      });
+      if (price != null) onChange({ [currentField]: price, stage: 'ready' });
+      else onChange({ stage: 'ready' });
     };
+
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up, { once: true });
     window.addEventListener('touchmove', move, { passive: false });
@@ -97,36 +86,60 @@ function TradePlanOverlay({ plan, onChange }) {
       window.removeEventListener('touchmove', move);
       window.removeEventListener('touchend', up);
     };
-  }, [dragging, onChange, plan, positions.entry, metrics.slPips, metrics.tpPips]);
+  }, [coordinateApi, dragging, onChange]);
 
-  if (!plan || plan.open) return null;
+  if (!plan || plan.open || !coordinateApi?.priceToY) return null;
   const isBuy = plan.side === 'buy';
-  const rewardTop = Math.min(positions.tp, positions.entry);
-  const rewardHeight = Math.abs(positions.entry - positions.tp);
-  const riskTop = Math.min(positions.entry, positions.sl);
-  const riskHeight = Math.abs(positions.sl - positions.entry);
-  const decimals = Number(plan.entry) > 100 ? 2 : 5;
+  const sourcePrice = field => {
+    if (Object.prototype.hasOwnProperty.call(preview, field)) return Number(preview[field]);
+    return Number(plan[field]);
+  };
+  const yFor = field => {
+    const price = sourcePrice(field);
+    if (!Number.isFinite(price)) return null;
+    const y = coordinateApi.priceToY(price);
+    return Number.isFinite(y) ? y : null;
+  };
 
-  const line = (kind, top, color, label, value, draggable) => (
-    <div className="absolute left-0 right-0 z-30" style={{ top: `${top}%` }}><div className="relative h-px" style={{ backgroundColor: color, boxShadow: `0 0 10px ${color}55` }}><span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-md border px-1.5 py-1 text-[8px] font-black tracking-[0.03em]" style={{ borderColor: `${color}99`, backgroundColor: '#09121bcc', color }}>{label}</span><span className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-1.5 py-1 text-[9px] font-extrabold" style={{ backgroundColor: color, color: kind === 'sl' ? '#2b0810' : '#032219' }}>{value}</span>{draggable && <button type="button" aria-label={`Drag ${label}`} onPointerDown={event => { event.preventDefault(); setDragging(kind); }} onTouchStart={event => { event.preventDefault(); setDragging(kind); }} className="absolute right-[54px] top-1/2 size-7 -translate-y-1/2 touch-none rounded-full border-2 bg-[#071019] shadow-[0_0_0_5px_rgba(255,255,255,0.04)]" style={{ borderColor: color }} />}</div></div>
-  );
+  const entryY = yFor('entry');
+  const slY = yFor('sl');
+  const tpY = yFor('tp');
+  const limitY = yFor('limitPrice');
+  const rewardTop = entryY != null && tpY != null ? Math.min(entryY, tpY) : null;
+  const rewardHeight = entryY != null && tpY != null ? Math.abs(entryY - tpY) : 0;
+  const riskTop = entryY != null && slY != null ? Math.min(entryY, slY) : null;
+  const riskHeight = entryY != null && slY != null ? Math.abs(entryY - slY) : 0;
 
-  const entryLabel = plan.pending ? `${isBuy ? 'BUY' : 'SELL'} ${String(plan.orderType || '').toUpperCase()}` : isBuy ? `BUY${plan.open ? ' • OPEN' : ''}` : `SELL${plan.open ? ' • OPEN' : ''}`;
+  const line = (kind, field, color, label, value, draggable) => {
+    const top = yFor(field);
+    if (top == null) return null;
+    return (
+      <div className="absolute left-0 right-0 z-30" style={{ top }}>
+        <div className="relative h-px" style={{ backgroundColor: color, boxShadow: `0 0 10px ${color}55` }}>
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-md border px-1.5 py-1 text-[8px] font-black tracking-[0.03em]" style={{ borderColor: `${color}99`, backgroundColor: '#09121bcc', color }}>{label}</span>
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-1.5 py-1 text-[9px] font-extrabold" style={{ backgroundColor: color, color: kind === 'sl' ? '#2b0810' : '#032219' }}>{value}</span>
+          {draggable && <button type="button" aria-label={`Drag ${label}`} onPointerDown={event => { event.preventDefault(); event.stopPropagation(); setDragging(kind); onChange({ stage: `dragging-${kind}` }); }} onTouchStart={event => { event.preventDefault(); event.stopPropagation(); setDragging(kind); onChange({ stage: `dragging-${kind}` }); }} className="absolute right-[54px] top-1/2 size-7 -translate-y-1/2 touch-none rounded-full border-2 bg-[#071019] shadow-[0_0_0_5px_rgba(255,255,255,0.04)]" style={{ borderColor: color }} />}
+        </div>
+      </div>
+    );
+  };
+
+  const entryLabel = plan.pending ? `${isBuy ? 'BUY' : 'SELL'} ${String(plan.orderType || '').toUpperCase()}` : (isBuy ? 'BUY' : 'SELL');
 
   return (
     <div ref={layerRef} className="absolute inset-0 z-20 touch-none overflow-hidden rounded-xl">
-      <div className="pointer-events-none absolute left-[42%] right-0" style={{ top: `${rewardTop}%`, height: `${rewardHeight}%`, background: 'linear-gradient(90deg, rgba(22,134,95,0.10), rgba(34,167,125,0.20))' }} />
-      <div className="pointer-events-none absolute left-[42%] right-0" style={{ top: `${riskTop}%`, height: `${riskHeight}%`, background: 'linear-gradient(90deg, rgba(138,43,57,0.10), rgba(255,68,91,0.17))' }} />
-      {line('tp', positions.tp, '#35d79d', 'TP', `+${metrics.tpPips.toFixed(1)}p`, true)}
-      {line('entry', positions.entry, '#42a5ff', entryLabel, Number(plan.entry).toFixed(decimals), Boolean(plan.pending && !plan.open))}
-      {plan.pending && plan.orderType === 'stop-limit' && line('limit', positions.limit, '#b58cff', 'LIMIT', Number(plan.limitPrice ?? plan.entry).toFixed(decimals), !plan.open)}
-      {line('sl', positions.sl, '#ff5968', 'SL', `-${metrics.slPips.toFixed(1)}p`, true)}
-      {dragging && <div className="pointer-events-none absolute right-[86px] z-40 rounded-lg border border-white/10 bg-[#071019]/95 px-2.5 py-1.5 text-right shadow-xl" style={{ top: `${((dragging === 'sl' ? positions.sl : dragging === 'tp' ? positions.tp : dragging === 'limit' ? positions.limit : positions.entry) - 12)}%` }}><div className="text-[8px] uppercase tracking-[0.12em] text-[#708397]">{dragging === 'sl' ? 'Stop loss' : dragging === 'tp' ? 'Take profit' : dragging === 'limit' ? 'Limit price' : 'Entry price'}</div><strong className={`mt-0.5 block text-[11px] ${dragging === 'sl' ? 'text-[#ff6b78]' : dragging === 'tp' ? 'text-[#53e0ad]' : 'text-[#69bdff]'}`}>{dragging === 'sl' ? `-${metrics.slPips.toFixed(1)} pips` : dragging === 'tp' ? `+${metrics.tpPips.toFixed(1)} pips` : Number(dragging === 'limit' ? plan.limitPrice : plan.entry).toFixed(decimals)}</strong></div>}
+      {rewardTop != null && <div className="pointer-events-none absolute left-[42%] right-0" style={{ top: rewardTop, height: rewardHeight, background: 'linear-gradient(90deg, rgba(22,134,95,0.10), rgba(34,167,125,0.20))' }} />}
+      {riskTop != null && <div className="pointer-events-none absolute left-[42%] right-0" style={{ top: riskTop, height: riskHeight, background: 'linear-gradient(90deg, rgba(138,43,57,0.10), rgba(255,68,91,0.17))' }} />}
+      {line('tp', 'tp', '#35d79d', 'TP', `+${metrics.tpPips.toFixed(1)}p`, true)}
+      {line('entry', 'entry', '#42a5ff', entryLabel, formatInstrumentPrice(sourcePrice('entry'), instrument), Boolean(plan.pending))}
+      {plan.pending && plan.orderType === 'stop-limit' && line('limit', 'limitPrice', '#b58cff', 'LIMIT', formatInstrumentPrice(sourcePrice('limitPrice'), instrument), true)}
+      {line('sl', 'sl', '#ff5968', 'SL', `-${metrics.slPips.toFixed(1)}p`, true)}
+      {dragging && <div className="pointer-events-none absolute right-[86px] top-3 z-40 rounded-lg border border-white/10 bg-[#071019]/95 px-2.5 py-1.5 text-right shadow-xl"><div className="text-[8px] uppercase tracking-[0.12em] text-[#708397]">{dragging === 'sl' ? 'Stop loss' : dragging === 'tp' ? 'Take profit' : dragging === 'limit' ? 'Limit price' : 'Entry price'}</div><strong className={`mt-0.5 block text-[11px] ${dragging === 'sl' ? 'text-[#ff6b78]' : dragging === 'tp' ? 'text-[#53e0ad]' : 'text-[#69bdff]'}`}>{formatInstrumentPrice(sourcePrice(dragging === 'limit' ? 'limitPrice' : dragging), instrument)}</strong></div>}
     </div>
   );
 }
 
-function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, onUpdatePosition = () => {} }) {
+function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, instrument, onUpdatePosition = () => {} }) {
   const layerRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [preview, setPreview] = useState({});
@@ -198,13 +211,13 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
     if (!Number.isFinite(price)) return null;
     const y = coordinateApi.priceToY(price);
     if (!Number.isFinite(y)) return null;
-    const decimals = Number(position.entry) > 100 ? 2 : 5;
+    const displayPrice = value => formatInstrumentPrice(value, instrument);
 
     return (
       <div key={key} className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: y }}>
         <div className="relative h-px" style={{ backgroundColor: color }}>
           <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded border px-1.5 py-0.5 text-[7px] font-black" style={{ borderColor: `${color}88`, backgroundColor: '#08111acc', color }}>{label}</span>
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-1.5 py-0.5 text-[8px] font-bold tabular-nums" style={{ backgroundColor: color, color: kind === 'sl' ? '#2b0810' : '#032219' }}>{price.toFixed(decimals)}</span>
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-1.5 py-0.5 text-[8px] font-bold tabular-nums" style={{ backgroundColor: color, color: kind === 'sl' ? '#2b0810' : '#032219' }}>{displayPrice(price)}</span>
           <button
             type="button"
             aria-label={`Drag ${label}`}
@@ -229,6 +242,7 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
 
 export default function ChartArea({
   symbol,
+  instrument = null,
   chartTimeframe,
   tick,
   price,
@@ -278,10 +292,10 @@ export default function ChartArea({
       {!hideToolbar && <aside className={toolbarClass} aria-label="Drawing tools">{tools.map(([id, Icon, label]) => <button key={id} type="button" title={label} onClick={() => !tradePlan && onSelectTool(id)} aria-label={label} disabled={Boolean(tradePlan)} className={`grid ${focusMode ? 'size-[29px]' : 'size-[27px]'} shrink-0 place-items-center rounded-lg transition ${selectedTool === id ? 'bg-[#0f3149] text-[#59c8ff]' : 'text-[#74879c] hover:bg-white/[0.035] hover:text-[#d7e4f1]'} disabled:cursor-not-allowed disabled:opacity-30`}><Icon size={focusMode ? 17 : 16} strokeWidth={1.75} /></button>)}</aside>}
 
       <div className={`relative min-h-0 min-w-0 overflow-hidden ${embedded ? '' : 'rounded-xl border border-[#1b2c3d]'} bg-[#080f17]`}>
-        <TradingChart symbol={symbol} timeframe={chartTimeframe} tick={tick} chartMode={chartMode} bidPrice={price} positions={positions} indicators={indicators} onCoordinateApi={setCoordinateApi} />
+        <TradingChart symbol={symbol} instrument={instrument} timeframe={chartTimeframe} tick={tick} chartMode={chartMode} bidPrice={price} positions={positions} indicators={indicators} onCoordinateApi={setCoordinateApi} />
         <DrawingLayer symbol={symbol} timeframe={chartTimeframe} tool={selectedTool} onToolChange={onSelectTool} disabled={Boolean(tradePlan)} coordinateApi={coordinateApi} />
-        <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} />
-        {!tradePlan && <OpenPositionProtectionOverlay symbol={symbol} positions={positions} coordinateApi={coordinateApi} onUpdatePosition={onUpdatePosition} />}
+        <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} coordinateApi={coordinateApi} instrument={instrument} />
+        {!tradePlan && <OpenPositionProtectionOverlay symbol={symbol} positions={positions} coordinateApi={coordinateApi} instrument={instrument} onUpdatePosition={onUpdatePosition} />}
 
         {!tradePlan && !embedded && <div className="pointer-events-none absolute bottom-1 right-[74px] z-10 rounded bg-[#08111a]/80 px-1.5 py-0.5 text-[8px] font-semibold tabular-nums text-[#6f8295] backdrop-blur-sm">{formatCountdown(remaining)}</div>}
       </div>
