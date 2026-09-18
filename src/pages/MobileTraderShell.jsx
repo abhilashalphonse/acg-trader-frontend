@@ -69,6 +69,16 @@ function normalizeExecutionVolume(value, instrument) {
   return Number(normalized.toFixed(decimals));
 }
 
+function normalizePriceToTick(value, instrument) {
+  if (value === null || value === undefined || value === '') return value;
+  const numeric = Number(value);
+  const tick = Number(instrument?.tickSize);
+  if (!Number.isFinite(numeric) || !Number.isFinite(tick) || tick <= 0) return value;
+  const decimals = Math.max(0, String(instrument?.tickSize ?? tick).split('.')[1]?.length || 0);
+  const normalized = Math.round(numeric / tick) * tick;
+  return Number(normalized.toFixed(decimals));
+}
+
 function estimatedRisk(plan, riskPercent, manualLots, equity) {
   if (!plan) return 0;
   const entry = Number(plan.entry) || 0;
@@ -215,9 +225,14 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const updatePosition = async (id, patch) => {
     const position = positions.find(item => String(item.id) === String(id));
     if (!position || (!Object.prototype.hasOwnProperty.call(patch, 'sl') && !Object.prototype.hasOwnProperty.call(patch, 'tp'))) return;
+    const instrument = markets.find(item => item.symbol === position.symbol) || market;
+    const normalizedPatch = {
+      ...(Object.prototype.hasOwnProperty.call(patch, 'sl') ? { sl: normalizePriceToTick(patch.sl, instrument) } : {}),
+      ...(Object.prototype.hasOwnProperty.call(patch, 'tp') ? { tp: normalizePriceToTick(patch.tp, instrument) } : {}),
+    };
     try {
-      await trading.updatePosition(id, patch);
-      if (tradePlan?.positionId === id) setTradePlan(plan => plan ? { ...plan, ...patch } : plan);
+      await trading.updatePosition(id, normalizedPatch);
+      if (tradePlan?.positionId === id) setTradePlan(plan => plan ? { ...plan, ...normalizedPatch } : plan);
       logEvent('modify', `${position.symbol} protection updated`);
       showNotice('Position protection updated');
     } catch (error) {
