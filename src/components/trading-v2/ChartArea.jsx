@@ -140,6 +140,8 @@ export default function ChartArea({
   const timeframeSeconds = secondsByTimeframe[chartTimeframe] || 60;
   const [remaining, setRemaining] = useState(() => timeframeSeconds - (Math.floor(Date.now() / 1000) % timeframeSeconds));
   const [coordinateApi, setCoordinateApi] = useState(null);
+  const [showBidLine, setShowBidLine] = useState(true);
+  const [showAskLine, setShowAskLine] = useState(true);
   const oscillatorCount = indicators.filter(item => item.visible !== false && oscillatorIds.has(item.id)).length;
 
   useEffect(() => {
@@ -170,9 +172,30 @@ export default function ChartArea({
       {!hideToolbar && <aside className={toolbarClass} aria-label="Drawing tools">{tools.map(([id, Icon, label]) => <button key={id} type="button" title={label} onClick={() => !tradePlan && onSelectTool(id)} aria-label={label} disabled={Boolean(tradePlan)} className={`grid ${focusMode ? 'size-[29px]' : 'size-[27px]'} shrink-0 place-items-center rounded-lg transition ${selectedTool === id ? 'bg-[#0f3149] text-[#59c8ff]' : 'text-[#74879c] hover:bg-white/[0.035] hover:text-[#d7e4f1]'} disabled:cursor-not-allowed disabled:opacity-30`}><Icon size={focusMode ? 17 : 16} strokeWidth={1.75} /></button>)}</aside>}
 
       <div className={`relative min-h-0 min-w-0 overflow-hidden ${embedded ? '' : 'rounded-xl border border-[#1b2c3d]'} bg-[#080f17]`}>
-        <TradingChart symbol={symbol} timeframe={chartTimeframe} tick={tick} chartMode={chartMode} bidPrice={price} askPrice={ask} indicators={indicators} onCoordinateApi={setCoordinateApi} />
+        <TradingChart symbol={symbol} timeframe={chartTimeframe} tick={tick} chartMode={chartMode} bidPrice={price} askPrice={ask} showBidLine={showBidLine} showAskLine={showAskLine} indicators={indicators} onCoordinateApi={setCoordinateApi} />
         <DrawingLayer symbol={symbol} timeframe={chartTimeframe} tool={selectedTool} onToolChange={onSelectTool} disabled={Boolean(tradePlan)} coordinateApi={coordinateApi} />
         <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} />
+        {!tradePlan && (
+          <div className="absolute right-[78px] top-2 z-30 flex items-center overflow-hidden rounded-md border border-[#1b2c3d] bg-[#09131d]/92 text-[8px] font-bold backdrop-blur-sm">
+            <button
+              type="button"
+              onClick={() => setShowBidLine(value => !value)}
+              className={`px-2 py-1 transition ${showBidLine ? "text-[#2dd39b]" : "text-[#536575]"}`}
+              title="Show or hide Bid line"
+            >
+              BID
+            </button>
+            <span className="h-4 w-px bg-[#1b2c3d]" />
+            <button
+              type="button"
+              onClick={() => setShowAskLine(value => !value)}
+              className={`px-2 py-1 transition ${showAskLine ? "text-[#f05d68]" : "text-[#536575]"}`}
+              title="Show or hide Ask line"
+            >
+              ASK
+            </button>
+          </div>
+        )}
         {!tradePlan && !embedded && <div className="pointer-events-none absolute bottom-1 right-[74px] z-10 rounded bg-[#08111a]/80 px-1.5 py-0.5 text-[8px] font-semibold tabular-nums text-[#6f8295] backdrop-blur-sm">{formatCountdown(remaining)}</div>}
       </div>
     </div>
