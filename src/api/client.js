@@ -98,11 +98,12 @@ export async function apiRequest(path, {
   abort.cleanup();
 
   if (!response.ok) {
-    throw new ApiError(payload?.message || `Request failed (${response.status})`, {
+    const backendError = payload?.error && typeof payload.error === 'object' ? payload.error : payload;
+    throw new ApiError(backendError?.message || `Request failed (${response.status})`, {
       status: response.status,
-      code: payload?.code || 'REQUEST_FAILED',
-      details: payload?.details ?? null,
-      requestId: response.headers.get('x-request-id'),
+      code: backendError?.code || 'REQUEST_FAILED',
+      details: backendError?.details ?? null,
+      requestId: backendError?.requestId || response.headers.get('x-request-id'),
     });
   }
 
