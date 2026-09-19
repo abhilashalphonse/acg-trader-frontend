@@ -1,0 +1,172 @@
+/*
+ * ACG Trader — Black Pro
+ * Visual-only skin. Layout, sizing, execution behavior and component structure
+ * remain unchanged.
+ */
+:root {
+  color-scheme: dark;
+  --acg-black: #050505;
+  --acg-surface-1: #0b0b0c;
+  --acg-surface-2: #111113;
+  --acg-surface-3: #171719;
+  --acg-border: #242426;
+  --acg-text: #f1f1f2;
+  --acg-text-2: #b4b4b8;
+  --acg-muted: #7b7b81;
+  --acg-cyan: #53c7ff;
+  --acg-buy: #2dd39b;
+  --acg-sell: #f05d68;
+}
+html,body,#root{background:var(--acg-black)!important;color:var(--acg-text)}
+body{scrollbar-color:#303034 #0a0a0b}
+
+/* Primary canvases */
+[class*="bg-[#02070c]"],
+[class*="bg-[#050b12]"],
+[class*="bg-[#050c13]"],
+[class*="bg-[#070d13]"],
+[class*="bg-[#071019]"],
+[class*="bg-[#080f17]"]{background-color:var(--acg-black)!important}
+
+[class*="bg-[#08131d]"],
+[class*="bg-[#09131d]"],
+[class*="bg-[#0a141e]"],
+[class*="bg-[#0a151f]"],
+[class*="bg-[#0a161f]"],
+[class*="bg-[#0a1822]"],
+[class*="bg-[#0b1720]"],
+[class*="bg-[#0b1a25]"],
+[class*="bg-[#0b1c28]"]{background-color:var(--acg-surface-1)!important}
+
+[class*="bg-[#0d1822]"],
+[class*="bg-[#0d1a24]"],
+[class*="bg-[#0e1b27]"],
+[class*="bg-[#101d27]"],
+[class*="bg-[#122431]"],
+[class*="bg-[#122533]"]{background-color:var(--acg-surface-2)!important}
+
+/* Remove blue cast from structural borders */
+[class*="border-[#122431]"],
+[class*="border-[#152938]"],
+[class*="border-[#162637]"],
+[class*="border-[#162a38]"],
+[class*="border-[#172737]"],
+[class*="border-[#172938]"],
+[class*="border-[#172d3e]"],
+[class*="border-[#183044]"],
+[class*="border-[#183142]"],
+[class*="border-[#1a2b3a]"],
+[class*="border-[#1a2c3a]"],
+[class*="border-[#1a2c3c]"],
+[class*="border-[#1a2d3d]"],
+[class*="border-[#1a3040]"],
+[class*="border-[#1b2c3d]"],
+[class*="border-[#1b3445]"],
+[class*="border-[#1b3446]"],
+[class*="border-[#1c2d3d]"],
+[class*="border-[#1c2d3e]"],
+[class*="border-[#213242]"],
+[class*="border-[#243442]"],
+[class*="border-[#263745]"],
+[class*="border-[#263a49]"]{border-color:var(--acg-border)!important}
+
+/* Neutralize blue-gray copy; keep ACG cyan untouched */
+[class*="text-[#4e6478]"],
+[class*="text-[#506477]"],
+[class*="text-[#52687c]"],
+[class*="text-[#53697d]"],
+[class*="text-[#596f83]"],
+[class*="text-[#5d7185]"],
+[class*="text-[#5d7286]"],
+[class*="text-[#5d7287]"],
+[class*="text-[#5e7488]"],
+[class*="text-[#607488]"],
+[class*="text-[#60758a]"],
+[class*="text-[#61768a]"],
+[class*="text-[#61768b]"],
+[class*="text-[#62778b]"],
+[class*="text-[#65788e]"],
+[class*="text-[#667b8f]"],
+[class*="text-[#6f8295]"],
+[class*="text-[#718398]"],
+[class*="text-[#71869a]"],
+[class*="text-[#718da3]"],
+[class*="text-[#73889d]"],
+[class*="text-[#74879b]"],
+[class*="text-[#74879c]"],
+[class*="text-[#75879b]"],
+[class*="text-[#77899d]"],
+[class*="text-[#788aa0]"],
+[class*="text-[#7a8ba0]"],
+[class*="text-[#7c90a7]"],
+[class*="text-[#7f95a8]"],
+[class*="text-[#8295a9]"],
+[class*="text-[#8397aa]"],
+[class*="text-[#8799ac]"],
+[class*="text-[#8799ad]"],
+[class*="text-[#8ba0b8]"],
+[class*="text-[#8da0b1]"],
+[class*="text-[#8da0b4]"],
+[class*="text-[#93a4b7]"],
+[class*="text-[#9cb0c3]"],
+[class*="text-[#9db0c6]"],
+[class*="text-[#9eafbe]"],
+[class*="text-[#9fb0c2]"],
+[class*="text-[#9fb2c2]"]{color:var(--acg-muted)!important}
+
+[class*="text-[#a8b6c2]"],
+[class*="text-[#aab9c5]"],
+[class*="text-[#aebdca]"],
+[class*="text-[#b5c3ce]"],
+[class*="text-[#b6c2d0]"],
+[class*="text-[#b9c6d1]"],
+[class*="text-[#b9c7d2]"],
+[class*="text-[#c4d0da]"],
+[class*="text-[#c8d4de]"],
+[class*="text-[#cbd6df]"],
+[class*="text-[#cbd7df]"],
+[class*="text-[#cbd7e0]"],
+[class*="text-[#d6e0e8]"],
+[class*="text-[#d8e2ea]"],
+[class*="text-[#dbe4eb]"],
+[class*="text-[#dce5ec]"],
+[class*="text-[#dce6ed]"],
+[class*="text-[#dce6ee]"],
+[class*="text-[#dce7ef]"],
+[class*="text-[#dce7f3]"],
+[class*="text-[#dfe8ef]"]{color:var(--acg-text-2)!important}
+
+[class*="text-[#e6edf3]"],
+[class*="text-[#e7eef4]"],
+[class*="text-[#edf3f7]"],
+[class*="text-[#eef4f8]"],
+[class*="text-[#f1f7fc]"],
+[class*="text-[#f3fbf8]"],
+[class*="text-[#f4f7fb]"],
+[class*="text-[#f4f8fc]"],
+[class*="text-[#f5f7fb]"],
+[class*="text-[#f6f9fc]"],
+[class*="text-[#f7f9fc]"],
+[class*="text-[#f9f3f4]"]{color:var(--acg-text)!important}
+
+/* Selection surfaces are neutral; cyan remains the selected signal */
+[class*="bg-[#0b2133]"],
+[class*="bg-[#0d2231]"],
+[class*="bg-[#0f3149]"],
+[class*="bg-[#10324a]"],
+[class*="bg-[#172737]"]{background-color:var(--acg-surface-3)!important}
+
+.v2-lightweight-chart,.v2-chart-error{background:var(--acg-black)!important}
+
+button:focus-visible,input:focus-visible,select:focus-visible,[role="button"]:focus-visible{
+  outline:2px solid rgba(83,199,255,.72);
+  outline-offset:2px;
+}
+
+/* Restrained execution semantics */
+[class*="border-[#8a2b39]"]{border-color:#5a252d!important}
+[class*="border-[#16865f]"]{border-color:#1d5d47!important}
+[class*="bg-[#4a1b25]"]{background-color:#170b0e!important}
+[class*="bg-[#0c5b45]"]{background-color:#09140f!important}
+
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}

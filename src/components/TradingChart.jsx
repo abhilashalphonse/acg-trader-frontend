@@ -15,7 +15,14 @@ import { calculateIndicatorData } from '../utils/indicators.js';
 import { instrumentDigits, instrumentTickSize } from '../utils/instrumentFormatting.js';
 
 const chartTokens = {
-  background: '#080f17', text: '#718399', gridline: '#1b2b39', buy: '#2dd39b', sell: '#f05d68', blue: '#53c7ff', crosshair: '#71869b', crosshairLabel: '#172633',
+  background: '#050505',
+  text: '#8b8b8f',
+  gridline: '#181818',
+  buy: '#2dd39b',
+  sell: '#f05d68',
+  blue: '#53c7ff',
+  crosshair: '#6f7075',
+  crosshairLabel: '#1b1b1d',
 };
 const indicatorColors = {
   ema: ['#54c8ff'], sma: ['#f0c35c'], vwap: ['#b38cff'], bollinger: ['#65b6df', '#7f91a4', '#65b6df'], rsi: ['#b68cff'], atr: ['#f0ad5c'], macd: ['#55c8ff', '#ffb55f'], stochastic: ['#58d5ff', '#ff7fbd'],
@@ -135,11 +142,11 @@ export default function TradingChart({ symbol = 'EURUSD', instrument = null, tim
     if (!hostRef.current) return undefined;
     const chart = createChart(hostRef.current, {
       autoSize: true,
-      layout: { background: { type: ColorType.Solid, color: chartTokens.background }, textColor: chartTokens.text, attributionLogo: true, fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif', fontSize: 10, panes: { separatorColor: '#1b2b39', separatorHoverColor: 'rgba(83,199,255,0.18)', enableResize: true } },
+      layout: { background: { type: ColorType.Solid, color: chartTokens.background }, textColor: chartTokens.text, attributionLogo: true, fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif', fontSize: 10, panes: { separatorColor: '#202022', separatorHoverColor: 'rgba(83,199,255,0.18)', enableResize: true } },
       grid: { vertLines: { visible: true, color: chartTokens.gridline, style: LineStyle.Dotted }, horzLines: { visible: true, color: chartTokens.gridline, style: LineStyle.Dotted } },
       crosshair: { mode: CrosshairMode.Normal, vertLine: { visible: true, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: true, labelBackgroundColor: chartTokens.crosshairLabel }, horzLine: { visible: true, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: true, labelBackgroundColor: chartTokens.crosshairLabel } },
-      rightPriceScale: { visible: true, borderVisible: true, borderColor: '#213242', ticksVisible: true, scaleMargins: { top: 0.09, bottom: 0.24 } },
-      timeScale: { visible: true, borderVisible: true, borderColor: '#213242', ticksVisible: true, timeVisible: true, secondsVisible: ['S1', 'S5', 'S15', 'S30'].includes(timeframe), rightOffset: 10, barSpacing: 7, minBarSpacing: 3, fixLeftEdge: false, lockVisibleTimeRangeOnResize: true },
+      rightPriceScale: { visible: true, borderVisible: true, borderColor: '#252527', ticksVisible: true, scaleMargins: { top: 0.09, bottom: 0.24 } },
+      timeScale: { visible: true, borderVisible: true, borderColor: '#252527', ticksVisible: true, timeVisible: true, secondsVisible: ['S1', 'S5', 'S15', 'S30'].includes(timeframe), rightOffset: 10, barSpacing: 7, minBarSpacing: 3, fixLeftEdge: false, lockVisibleTimeRangeOnResize: true },
       handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true }, handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
     });
     chartRef.current = chart;
@@ -239,13 +246,13 @@ export default function TradingChart({ symbol = 'EURUSD', instrument = null, tim
   const ohlc = displayBar;
   const format = value => Number.isFinite(Number(value)) ? Number(value).toFixed(decimals) : '—';
 
-  return <div className="relative size-full min-h-0 min-w-0 overflow-hidden bg-[#080f17]">
+  return <div className="relative size-full min-h-0 min-w-0 overflow-hidden bg-[#050505]">
     <div ref={hostRef} className="absolute inset-0" />
-    <div className="pointer-events-none absolute left-2 top-2 z-20 max-w-[68%] px-1 text-[8px] leading-[1.45] text-[#8295a9] [text-shadow:0_1px_2px_#080f17,0_0_5px_#080f17]">
+    <div className="pointer-events-none absolute left-2 top-2 z-20 max-w-[68%] px-1 text-[8px] leading-[1.45] text-[#8295a9] [text-shadow:0_1px_2px_ #050505,0_0_5px_ #050505]">
       <div className="font-bold tracking-[0.03em] text-[#dce8f2]">{symbol},{timeframe}</div>
       <div className="mt-0.5 flex flex-wrap gap-x-1.5 whitespace-nowrap font-medium"><span>O <b className="text-[#aab9c8]">{format(ohlc?.open)}</b></span><span>H <b className="text-[#aab9c8]">{format(ohlc?.high)}</b></span><span>L <b className="text-[#aab9c8]">{format(ohlc?.low)}</b></span><span>C <b className="text-[#aab9c8]">{format(ohlc?.close)}</b></span></div>
       {visibleIndicators.length > 0 && <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[7px] font-semibold text-[#8298ac]">{visibleIndicators.map(indicator => <span key={indicator.instanceId}>{indicatorLabel(indicator)}</span>)}</div>}
     </div>
-    {error && <div className="absolute inset-0 z-40 grid place-items-center bg-[#080f17]/95 px-5 text-center text-[10px] font-medium text-[#718399]">{error}</div>}
+    {error && <div className="absolute inset-0 z-40 grid place-items-center bg-[#050505]/95 px-5 text-center text-[10px] font-medium text-[#718399]">{error}</div>}
   </div>;
 }
