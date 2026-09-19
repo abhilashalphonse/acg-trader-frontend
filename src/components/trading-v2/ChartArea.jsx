@@ -14,7 +14,7 @@ const tools = [
   ['text', Type, 'Text'],
 ];
 
-const secondsByTimeframe = { S1: 1, S5: 5, S15: 15, S30: 30, M1: 60, M5: 300, M15: 900, H1: 3600, H4: 14400, D1: 86400 };
+const secondsByTimeframe = { M1: 60, M5: 300, M15: 900, M30: 1800, H1: 3600, H4: 14400, D1: 86400, W1: 604800 };
 const oscillatorIds = new Set(['rsi', 'macd', 'atr', 'stochastic']);
 
 function formatCountdown(totalSeconds) {
