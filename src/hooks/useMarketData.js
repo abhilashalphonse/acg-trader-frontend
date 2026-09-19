@@ -122,6 +122,8 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
 
   useEffect(() => {
     if (!activeSymbol || !accessToken) return undefined;
+    const activeInstrument = (instruments || []).find(item => item.symbol === activeSymbol);
+    if (activeInstrument?.sessionOpen === false) return undefined;
     const gateway = gatewayStateFor(gatewayStatus, activeSymbol);
     const state = String(gateway?.state || '').toUpperCase();
     if (!['REFRESHING', 'STALE', 'UNAVAILABLE'].includes(state)) return undefined;
@@ -144,7 +146,7 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
       });
 
     return () => controller.abort();
-  }, [accessToken, activeSymbol, gatewayStatus, ingestQuotes]);
+  }, [accessToken, activeSymbol, gatewayStatus, ingestQuotes, instruments]);
 
   useEffect(() => {
     const updates = {};
@@ -170,7 +172,12 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
     const digits = Number.isFinite(Number(instrument.digits)) ? Number(instrument.digits) : 5;
     const itemDirections = directions[symbol] || { direction: 'flat', bidDirection: 'flat', askDirection: 'flat' };
     const gateway = gatewayStateFor(gatewayStatus, symbol);
-    const isStale = quote ? Boolean(quote.isStale) : Boolean(gateway?.isStale ?? true);
+    const sessionOpen = instrument.sessionOpen === true;
+    const rawStale = quote ? Boolean(quote.isStale) : Boolean(gateway?.isStale ?? true);
+    const isStale = sessionOpen ? rawStale : false;
+    const marketState = sessionOpen
+      ? (gateway?.state || (quote ? (isStale ? 'STALE' : 'LIVE') : 'WAITING'))
+      : 'CLOSED';
     return {
       ...instrument,
       bid: formatPrice(quote?.bid, digits),
@@ -180,9 +187,9 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
       timestamp: quote?.providerTimestampMs ?? quote?.receivedAtMs ?? quote?.timeMs ?? null,
       dayVolume: quote?.dayVolume ?? null,
       isStale,
-      live: Boolean(quote) && !isStale && !['DISCONNECTED', 'UNAVAILABLE'].includes(String(gateway?.state || '').toUpperCase()),
-      marketState: gateway?.state || (quote ? (isStale ? 'STALE' : 'LIVE') : 'WAITING'),
-      sessionOpen: instrument.sessionOpen === true,
+      live: sessionOpen && Boolean(quote) && !isStale && !['DISCONNECTED', 'UNAVAILABLE'].includes(String(gateway?.state || '').toUpperCase()),
+      marketState,
+      sessionOpen,
       subscribed: subscribedSet.has(symbol),
       change: null,
       ...itemDirections,
