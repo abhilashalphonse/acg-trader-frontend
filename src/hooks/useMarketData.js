@@ -39,7 +39,7 @@ function gatewayStateFor(status, symbol) {
 }
 
 export function useMarketData(instruments, activeSymbol, requestedSymbols = null) {
-  const { authenticated } = useTraderAuth();
+  const { authenticated, accessToken } = useTraderAuth();
   const { market, connection, subscribeMarket, ingestQuotes } = useTradingStore();
   const [error, setError] = useState(null);
   const [directions, setDirections] = useState({});
@@ -121,7 +121,7 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
   }, [authenticated, connection.status, ingestQuotes, symbols]);
 
   useEffect(() => {
-    if (!activeSymbol) return undefined;
+    if (!activeSymbol || !accessToken) return undefined;
     const gateway = gatewayStateFor(gatewayStatus, activeSymbol);
     const state = String(gateway?.state || '').toUpperCase();
     if (!['REFRESHING', 'STALE', 'UNAVAILABLE'].includes(state)) return undefined;
@@ -132,7 +132,7 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
     activeRefreshRef.current = { symbol: activeSymbol, at: now };
 
     const controller = new AbortController();
-    void marketApi.refreshQuote(activeSymbol, controller.signal)
+    void marketApi.refreshQuote(activeSymbol, accessToken, controller.signal)
       .then(response => {
         if (!controller.signal.aborted && response?.quote) {
           ingestQuotes([response.quote]);
@@ -144,7 +144,7 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
       });
 
     return () => controller.abort();
-  }, [activeSymbol, gatewayStatus, ingestQuotes]);
+  }, [accessToken, activeSymbol, gatewayStatus, ingestQuotes]);
 
   useEffect(() => {
     const updates = {};
