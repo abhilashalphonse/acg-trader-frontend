@@ -7,6 +7,7 @@ import {
   Plus,
   ShieldCheck,
   SlidersHorizontal,
+  Share2,
   Trash2,
   TrendingDown,
   X,
@@ -14,6 +15,7 @@ import {
 import { formatInstrumentPrice, instrumentForSymbol, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 import { estimatePositionPnlAtPrice, positionDistancePips } from '../../utils/tradingRisk.js';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
+import SharePositionSheet from './SharePositionSheet.jsx';
 
 const tabs = [
   { id: 'positions', label: 'Positions' },
@@ -62,6 +64,7 @@ export default function PositionsPanel({
   const [editingField, setEditingField] = useState(null);
   const [protectionDrafts, setProtectionDrafts] = useState({});
   const [customClose, setCustomClose] = useState({});
+  const [sharePosition, setSharePosition] = useState(null);
 
   const counts = useMemo(() => ({
     positions: positions.length,
@@ -228,9 +231,10 @@ export default function PositionsPanel({
 
                 {expanded && (
                   <div className="space-y-2 border-t border-white/[0.07] bg-black p-2.5">
-                    <div className="grid grid-cols-2 gap-2">
-                      <button type="button" onClick={() => editing ? cancelProtectionEdit() : startProtectionEdit(position)} className={`flex h-10 items-center justify-center gap-2 rounded-xl border text-[10px] font-bold ${editing ? 'border-white/[0.13] bg-[#080808] text-[#53c7ff]' : 'border-white/[0.08] bg-black text-[#b3b3b3]'}`}><SlidersHorizontal size={14}/>{editing ? 'Editing SL / TP' : 'Modify SL / TP'}</button>
-                      <button type="button" onClick={() => onDuplicate(position.id)} className="flex h-10 items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-black text-[10px] font-bold text-[#b3b3b3]"><Copy size={14}/>Duplicate</button>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button type="button" onClick={() => editing ? cancelProtectionEdit() : startProtectionEdit(position)} className={`flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md border text-[9px] font-bold ${editing ? 'border-white/[0.13] bg-[#080808] text-[#53c7ff]' : 'border-white/[0.08] bg-black text-[#b3b3b3]'}`}><SlidersHorizontal size={13}/><span className="truncate">{editing ? 'Editing' : 'SL / TP'}</span></button>
+                      <button type="button" onClick={() => onDuplicate(position.id)} className="flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md border border-white/[0.08] bg-black text-[9px] font-bold text-[#b3b3b3]"><Copy size={13}/><span className="truncate">Duplicate</span></button>
+                      <button type="button" onClick={() => setSharePosition(position)} className="flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md border border-white/[0.08] bg-black text-[9px] font-bold text-[#d4d4d4]"><Share2 size={13}/><span className="truncate">Share P&amp;L</span></button>
                     </div>
 
                     {editing && (() => {
@@ -313,6 +317,13 @@ export default function PositionsPanel({
         <div className="max-h-[340px] overflow-y-auto p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {!journal.length ? <div className="grid h-[122px] place-items-center text-center text-[10px] text-[#737373]"><div><b className="block text-[#b3b3b3]">Journal is ready</b><span className="mt-1 block">Orders, fills and management actions will be recorded here.</span></div></div> : journal.map(item => <div key={item.id} className="grid grid-cols-[58px_1fr] gap-2 border-b border-white/[0.07] px-2 py-2.5 last:border-b-0"><span className="font-mono text-[8px] text-[#737373]">{item.time}</span><div><div className="flex items-center gap-1.5"><span className={`size-1.5 rounded-full ${item.type === 'fill' ? 'bg-[#3ad7a1]' : item.type === 'order' ? 'bg-[#101010]' : item.type === 'modify' ? 'bg-[#f0c35c]' : 'bg-[#101010]'}`} /><b className="text-[9px] font-semibold text-[#b3b3b3]">{item.message}</b></div>{item.latencyMs != null && <span className="mt-1 block text-[7px] text-[#737373]">Execution {item.latencyMs}ms</span>}</div></div>)}
         </div>
+      )}
+      {sharePosition && (
+        <SharePositionSheet
+          position={sharePosition}
+          instrument={instrumentForSymbol(markets, sharePosition.symbol)}
+          onClose={() => setSharePosition(null)}
+        />
       )}
     </section>
   );
