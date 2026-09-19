@@ -95,7 +95,12 @@ export default function App() {
 
   return (
     <>
-      <TerminalStatusBanner status={terminalStatus} />
+      <TerminalStatusBanner
+        status={terminalStatus}
+        actionLabel={auth.status === 'reauth-required' ? 'Reconnect' : null}
+        actionBusy={auth.refreshing}
+        onAction={auth.status === 'reauth-required' ? () => { void auth.refreshSession().catch(() => {}); } : null}
+      />
       <Suspense fallback={<div className="grid min-h-dvh place-items-center bg-[#050b12] text-sm font-semibold text-[#7e93a7]">Loading trading terminal…</div>}>
         {isDesktop
           ? <TradingTerminalV2 {...sharedProps} />
