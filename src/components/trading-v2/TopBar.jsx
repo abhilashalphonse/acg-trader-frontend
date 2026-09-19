@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { Bell, Search, UserRound } from 'lucide-react';
 import { useTraderAuth } from '../../hooks/useTraderAuth.js';
 import { useTradingStore } from '../../hooks/useTradingStore.js';
-import AcgTraderLogo from '../branding/AcgTraderLogo.jsx';
 
 function money(value, currency = 'USD') {
   if (value === null || value === undefined || value === '') return '—';
@@ -41,8 +40,8 @@ export default function TopBar({
   return (
     <header className="flex h-[60px] items-center justify-between gap-1.5 px-2.5 sm:gap-2 sm:px-3">
       <div className="min-w-0 leading-none">
-        <div className="flex items-center gap-1.5 whitespace-nowrap">
-          <AcgTraderLogo iconClassName="h-[22px] w-[22px]" textClassName="text-[15px]" />
+        <div className="flex items-center gap-1.5 whitespace-nowrap text-[15px] font-extrabold tracking-[-0.025em] text-[#f7f9fc]">
+          <span>ACG Trader</span>
           <span className="hidden rounded-md bg-[#101010] px-1.5 py-1 text-[9px] font-extrabold tracking-[0.04em] text-[#55bdff] min-[360px]:inline">V2</span>
         </div>
         <p className="mt-1.5 truncate text-[9px] font-medium text-[#77777d]">{account?.accountCode || 'Trading terminal'}</p>

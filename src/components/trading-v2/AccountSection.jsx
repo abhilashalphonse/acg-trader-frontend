@@ -3,7 +3,6 @@ import { Bell, Camera, Check, ChevronRight, CircleHelp, Gauge, ImageOff, Save, S
 import { calculateAccountRiskSummary } from '../../utils/accountRisk.js';
 import { useTraderProfile } from '../../hooks/useTraderProfile.js';
 import { compressShareProfileImage } from '../../utils/profileImage.js';
-import AcgTraderLogo from '../branding/AcgTraderLogo.jsx';
 
 function money(value, currency = 'USD') {
   if (value === null || value === undefined || value === '') return '—';
@@ -97,7 +96,7 @@ export default function AccountSection({ account = {}, onOpenSheet = () => {} })
 
   return (
     <section className="min-h-[calc(100dvh-98px)] px-3 pb-6 pt-3">
-      <header className="pb-4"><AcgTraderLogo iconClassName="h-5 w-5" textClassName="text-[12px]" /><h1 className="mt-2 text-[26px] font-black tracking-[-0.045em] text-[#f5f8fb]">Account</h1><p className="mt-1 text-[10px] text-[#718397]">Balance, equity, margin and challenge risk.</p></header>
+      <header className="pb-4"><p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#5f7488]">ACG Trader</p><h1 className="mt-1 text-[26px] font-black tracking-[-0.045em] text-[#f5f8fb]">Account</h1><p className="mt-1 text-[10px] text-[#718397]">Balance, equity, margin and challenge risk.</p></header>
 
       <div className="border-y border-white/[0.08] bg-black py-3">
         <div className="flex items-start justify-between gap-3"><div><span className="text-[8px] font-bold uppercase tracking-[0.12em] text-[#60768a]">Trading account</span><strong className="mt-1.5 block text-[20px] font-black tracking-[-0.04em] text-[#f0f5f8]">{account.accountCode || '—'}</strong><p className="mt-1 text-[9px] text-[#71869a]">{currency}{account.leverage ? ` • 1:${account.leverage}` : ''}</p></div><span className={`rounded-full border px-2.5 py-1.5 text-[8px] font-black ${statusClass(status)}`}>{status}</span></div>

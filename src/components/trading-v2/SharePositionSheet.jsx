@@ -10,7 +10,6 @@ import {
 } from '../../utils/positionShare.js';
 import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
 import { useTraderProfile } from '../../hooks/useTraderProfile.js';
-import AcgTraderLogo from '../branding/AcgTraderLogo.jsx';
 
 export default function SharePositionSheet({ position, instrument, onClose = () => {} }) {
   const [blob, setBlob] = useState(null);
@@ -70,7 +69,7 @@ export default function SharePositionSheet({ position, instrument, onClose = () 
       <section className="relative z-10 w-full max-w-[430px] border border-white/[0.10] bg-black sm:rounded-lg">
         <header className="flex h-12 items-center justify-between border-b border-white/[0.08] px-4">
           <div>
-            <AcgTraderLogo iconClassName="h-4 w-4" textClassName="text-[12px]" />
+            <b className="block text-[12px] text-[#f5f5f5]">ACG Trader</b>
             <span className="mt-0.5 block text-[8px] text-[#737373]">Share position P&amp;L · {profile.shareTemplate === 'PHOTO' && profile.sharePhotoDataUrl ? 'Photo' : 'Performance'} template</span>
           </div>
           <button type="button" onClick={onClose} className="grid size-8 place-items-center rounded-md border border-white/[0.08] text-[#a3a3a3]" aria-label="Close"><X size={14}/></button>

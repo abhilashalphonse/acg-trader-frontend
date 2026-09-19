@@ -156,29 +156,6 @@ function drawCircleAvatar(ctx, image, x, y, size, name) {
   ctx.stroke();
 }
 
-function drawAcgBrand(ctx, x, y, scale = 0.12) {
-  const paths = [
-    ['M160 64H352C410 64 448 102 448 160V240C390 190 350 176 280 176H176C176 140 165 100 160 64Z', '#00d8f4', '#0072ff'],
-    ['M448 160V352C448 410 410 448 352 448H272C322 390 336 350 336 280V176C372 176 412 165 448 160Z', '#0072ff', '#0033aa'],
-    ['M352 448H160C102 448 64 410 64 352V272C122 322 162 336 232 336H336C336 372 347 412 352 448Z', '#0033aa', '#0055ff'],
-    ['M64 352V160C64 102 102 64 160 64H240C190 122 176 162 176 232V336C140 336 100 347 64 352Z', '#0055ff', '#00d8f4'],
-  ];
-
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(scale, scale);
-  paths.forEach(([pathData, from, to], index) => {
-    const gradient = index === 1
-      ? ctx.createLinearGradient(0, 0, 0, 512)
-      : ctx.createLinearGradient(0, 0, 512, 512);
-    gradient.addColorStop(0, from);
-    gradient.addColorStop(1, to);
-    ctx.fillStyle = gradient;
-    ctx.fill(new Path2D(pathData));
-  });
-  ctx.restore();
-}
-
 export async function renderPositionSharePng(model, profile = {}) {
   if (typeof document === 'undefined') throw new Error('Image generation is only available in the browser.');
 
@@ -311,13 +288,9 @@ export async function renderPositionSharePng(model, profile = {}) {
   ctx.lineTo(1080, 1210);
   ctx.stroke();
 
-  drawAcgBrand(ctx, 76, 1241, 0.13);
   ctx.fillStyle = '#f5f5f5';
-  ctx.font = '900 34px Inter, Arial, sans-serif';
-  ctx.fillText('ACG', 150, 1294);
-  ctx.fillStyle = '#b3b3b3';
-  ctx.font = '700 31px Inter, Arial, sans-serif';
-  ctx.fillText('Trader', 224, 1294);
+  ctx.font = '900 36px Inter, Arial, sans-serif';
+  ctx.fillText('ACG Trader', 82, 1294);
 
   ctx.fillStyle = '#6f6f6f';
   ctx.font = '600 19px Inter, Arial, sans-serif';
