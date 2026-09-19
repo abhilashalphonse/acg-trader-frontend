@@ -172,6 +172,8 @@ export async function renderPositionSharePng(model, profile = {}) {
   const resultColor = positive ? '#2ddb9f' : '#ff5f6d';
   const sideColor = model.side === 'BUY' ? '#2ddb9f' : '#ff5f6d';
   const cyan = '#53c7ff';
+  const white = '#f5f5f5';
+  const muted = '#7f858b';
 
   ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -179,144 +181,221 @@ export async function renderPositionSharePng(model, profile = {}) {
   if (photoTemplate) {
     drawImageCover(ctx, photo, 0, 0, canvas.width, canvas.height);
     const shade = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    shade.addColorStop(0, 'rgba(0,0,0,0.34)');
-    shade.addColorStop(0.5, 'rgba(0,0,0,0.60)');
+    shade.addColorStop(0, 'rgba(0,0,0,0.38)');
+    shade.addColorStop(0.42, 'rgba(0,0,0,0.62)');
     shade.addColorStop(1, 'rgba(0,0,0,0.96)');
     ctx.fillStyle = shade;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   } else {
-    const glow = ctx.createRadialGradient(860, 160, 20, 860, 160, 760);
+    const glow = ctx.createRadialGradient(940, 120, 30, 940, 120, 720);
     glow.addColorStop(0, 'rgba(83,199,255,0.16)');
-    glow.addColorStop(0.45, 'rgba(20,66,88,0.08)');
+    glow.addColorStop(0.42, 'rgba(33,104,135,0.07)');
     glow.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  ctx.strokeStyle = 'rgba(83,199,255,0.13)';
+  // ACG structural frame.
+  ctx.strokeStyle = 'rgba(83,199,255,0.18)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(48, 48, 984, 1254);
+
+  // Very subtle terminal grid. It should read as atmosphere, not content.
+  ctx.strokeStyle = 'rgba(83,199,255,0.055)';
   ctx.lineWidth = 1;
-  for (let x = 82; x <= 998; x += 114) {
-    ctx.beginPath(); ctx.moveTo(x, 250); ctx.lineTo(x, 1130); ctx.stroke();
+  for (let x = 82; x <= 998; x += 152) {
+    ctx.beginPath();
+    ctx.moveTo(x, 300);
+    ctx.lineTo(x, 1082);
+    ctx.stroke();
   }
-  for (let y = 250; y <= 1130; y += 110) {
-    ctx.beginPath(); ctx.moveTo(82, y); ctx.lineTo(998, y); ctx.stroke();
+  for (let y = 330; y <= 1082; y += 126) {
+    ctx.beginPath();
+    ctx.moveTo(82, y);
+    ctx.lineTo(998, y);
+    ctx.stroke();
   }
 
-  ctx.fillStyle = '#f5f5f5';
-  ctx.font = '900 28px Inter, Arial, sans-serif';
-  ctx.fillText('ACG TRADER', 82, 96);
+  // Soft market-trace motif unique to ACG's terminal language.
+  ctx.strokeStyle = 'rgba(83,199,255,0.14)';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(610, 208);
+  ctx.lineTo(690, 184);
+  ctx.lineTo(746, 220);
+  ctx.lineTo(822, 146);
+  ctx.lineTo(884, 172);
+  ctx.lineTo(958, 112);
+  ctx.stroke();
+
+  // Header.
+  ctx.fillStyle = white;
+  ctx.font = '900 30px Inter, Arial, sans-serif';
+  ctx.fillText('ACG TRADER', 82, 108);
   ctx.fillStyle = cyan;
-  ctx.font = '800 17px Inter, Arial, sans-serif';
-  ctx.fillText('/ POSITION SNAPSHOT', 265, 95);
+  ctx.font = '800 16px Inter, Arial, sans-serif';
+  ctx.fillText('POSITION / LIVE SNAPSHOT', 278, 107);
 
-  ctx.strokeStyle = 'rgba(83,199,255,0.35)';
+  ctx.strokeStyle = 'rgba(83,199,255,0.34)';
   ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.moveTo(82, 126); ctx.lineTo(998, 126); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(82, 136);
+  ctx.lineTo(998, 136);
+  ctx.stroke();
 
-  drawCircleAvatar(ctx, photo, 82, 160, 74, displayName);
-  ctx.fillStyle = '#f5f5f5';
-  ctx.font = '800 31px Inter, Arial, sans-serif';
-  ctx.fillText(displayName, 180, 196);
-  ctx.fillStyle = '#737373';
-  ctx.font = '650 18px Inter, Arial, sans-serif';
-  ctx.fillText('TRADER PROFILE', 180, 224);
+  // Trader identity.
+  drawCircleAvatar(ctx, photo, 82, 166, 74, displayName);
+  ctx.fillStyle = white;
+  ctx.font = '800 30px Inter, Arial, sans-serif';
+  ctx.fillText(displayName, 180, 199);
+  ctx.fillStyle = muted;
+  ctx.font = '700 17px Inter, Arial, sans-serif';
+  ctx.fillText('TRADER PROFILE', 180, 226);
 
-  ctx.fillStyle = '#f5f5f5';
-  const symbolSize = fitText(ctx, model.symbol, 690, 62, 40, 850);
+  drawRoundedRect(ctx, 852, 168, 146, 46, 8, 'rgba(83,199,255,0.28)', 'rgba(0,0,0,0.38)');
+  ctx.fillStyle = cyan;
+  ctx.font = '800 18px Inter, Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('LIVE', 925, 198);
+  ctx.textAlign = 'left';
+
+  // Instrument.
+  ctx.fillStyle = white;
+  const symbolSize = fitText(ctx, model.symbol, 720, 64, 40, 850);
   ctx.font = '850 ' + symbolSize + 'px Inter, Arial, sans-serif';
   ctx.fillText(model.symbol, 82, 360);
 
-  drawRoundedRect(ctx, 82, 390, 146, 48, 6, sideColor, 'rgba(0,0,0,0.45)');
+  drawRoundedRect(ctx, 82, 392, 146, 48, 7, sideColor, 'rgba(0,0,0,0.42)');
   ctx.fillStyle = sideColor;
   ctx.font = '800 20px Inter, Arial, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(model.side, 155, 421);
+  ctx.fillText(model.side, 155, 423);
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#a3a3a3';
-  ctx.font = '700 21px Inter, Arial, sans-serif';
-  ctx.fillText(model.volume.toFixed(2) + ' LOTS', 256, 421);
 
-  ctx.strokeStyle = 'rgba(83,199,255,0.40)';
-  ctx.lineWidth = 4;
-  ctx.beginPath(); ctx.moveTo(82, 505); ctx.lineTo(82, 748); ctx.stroke();
-  ctx.fillStyle = '#a3a3a3';
-  ctx.font = '750 22px Inter, Arial, sans-serif';
-  ctx.fillText(model.roiPercent == null ? 'OPEN P&L' : 'RETURN ON MARGIN', 116, 545);
+  ctx.fillStyle = '#b7b7b7';
+  ctx.font = '700 21px Inter, Arial, sans-serif';
+  ctx.fillText(model.volume.toFixed(2) + ' LOTS', 258, 423);
+
+  // Hero result panel.
+  drawRoundedRect(ctx, 82, 492, 916, 304, 14, 'rgba(83,199,255,0.16)', 'rgba(3,8,12,0.76)');
+  ctx.fillStyle = cyan;
+  ctx.fillRect(82, 492, 5, 304);
+
+  ctx.fillStyle = '#9b9b9b';
+  ctx.font = '800 19px Inter, Arial, sans-serif';
+  ctx.fillText(model.roiPercent == null ? 'OPEN P&L' : 'RETURN ON MARGIN', 120, 542);
 
   if (model.roiPercent != null) {
     const roiText = (model.roiPercent >= 0 ? '+' : '') + model.roiPercent.toFixed(2) + '%';
-    const roiSize = fitText(ctx, roiText, 820, 126, 78, 900);
+    const roiSize = fitText(ctx, roiText, 790, 124, 78, 900);
     ctx.fillStyle = resultColor;
     ctx.font = '900 ' + roiSize + 'px Inter, Arial, sans-serif';
-    ctx.fillText(roiText, 112, 674);
-    ctx.fillStyle = '#f5f5f5';
-    ctx.font = '850 45px Inter, Arial, sans-serif';
-    ctx.fillText(formatSharePnl(model.pnl, model.currency), 116, 734);
+    ctx.fillText(roiText, 116, 675);
+
+    ctx.fillStyle = white;
+    ctx.font = '850 47px Inter, Arial, sans-serif';
+    ctx.fillText(formatSharePnl(model.pnl, model.currency), 120, 742);
+
+    ctx.fillStyle = muted;
+    ctx.font = '700 17px Inter, Arial, sans-serif';
+    ctx.fillText('UNREALIZED P&L', 120, 772);
   } else {
     const pnlText = formatSharePnl(model.pnl, model.currency);
-    const pnlSize = fitText(ctx, pnlText, 820, 112, 70, 900);
+    const pnlSize = fitText(ctx, pnlText, 790, 112, 70, 900);
     ctx.fillStyle = resultColor;
     ctx.font = '900 ' + pnlSize + 'px Inter, Arial, sans-serif';
-    ctx.fillText(pnlText, 112, 665);
+    ctx.fillText(pnlText, 116, 674);
+
+    ctx.fillStyle = muted;
+    ctx.font = '700 17px Inter, Arial, sans-serif';
+    ctx.fillText('LIVE MARK-TO-MARKET', 120, 730);
   }
 
-  ctx.fillStyle = '#737373';
-  ctx.font = '700 18px Inter, Arial, sans-serif';
-  ctx.fillText('LIVE MARK-TO-MARKET', 116, 772);
+  // Three compact metric tiles.
+  const tileY = 846;
+  const tileW = 288;
+  const tileGap = 26;
+  const tileXs = [82, 82 + tileW + tileGap, 82 + (tileW + tileGap) * 2];
+  const stats = [
+    ['ENTRY', model.entryDisplay || '—', white],
+    ['LAST', model.currentDisplay || '—', white],
+    ['MOVE', formatSharePips(model.pips), resultColor],
+  ];
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+  stats.forEach(([label, value, color], index) => {
+    const x = tileXs[index];
+    drawRoundedRect(ctx, x, tileY, tileW, 138, 12, 'rgba(255,255,255,0.09)', 'rgba(8,8,8,0.92)');
+    ctx.fillStyle = index === 2 ? 'rgba(83,199,255,0.85)' : '#777777';
+    ctx.font = '800 16px Inter, Arial, sans-serif';
+    ctx.fillText(label, x + 22, tileY + 34);
+
+    ctx.fillStyle = color;
+    const valueSize = fitText(ctx, value, tileW - 44, index === 2 ? 29 : 31, 18, 800);
+    ctx.font = index === 2
+      ? '800 ' + valueSize + 'px Inter, Arial, sans-serif'
+      : '750 ' + valueSize + 'px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.fillText(value, x + 22, tileY + 88);
+
+    if (index < 2) {
+      ctx.fillStyle = '#555555';
+      ctx.font = '650 14px Inter, Arial, sans-serif';
+      ctx.fillText(index === 0 ? 'POSITION OPEN' : 'MARK PRICE', x + 22, tileY + 116);
+    }
+  });
+
+  // Status line.
+  ctx.strokeStyle = 'rgba(83,199,255,0.14)';
   ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(82, 835); ctx.lineTo(998, 835); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(82, 1046);
+  ctx.lineTo(998, 1046);
+  ctx.stroke();
 
-  const statX = [82, 410, 738];
-  const labels = ['ENTRY', 'LAST', 'MOVE'];
-  const values = [model.entryDisplay || '—', model.currentDisplay || '—', formatSharePips(model.pips)];
-  for (let i = 0; i < 3; i += 1) {
-    ctx.fillStyle = '#737373';
-    ctx.font = '750 17px Inter, Arial, sans-serif';
-    ctx.fillText(labels[i], statX[i], 895);
-    ctx.fillStyle = i === 2 ? resultColor : '#f5f5f5';
-    ctx.font = i === 2 ? '800 29px Inter, Arial, sans-serif' : '750 31px ui-monospace, SFMono-Regular, Menlo, monospace';
-    ctx.fillText(values[i], statX[i], 940);
-  }
+  ctx.fillStyle = '#777777';
+  ctx.font = '700 16px Inter, Arial, sans-serif';
+  ctx.fillText('POSITION STATUS', 82, 1094);
 
-  ctx.strokeStyle = 'rgba(83,199,255,0.16)';
-  ctx.beginPath(); ctx.moveTo(82, 1002); ctx.lineTo(998, 1002); ctx.stroke();
-
-  ctx.fillStyle = '#8a8a8a';
-  ctx.font = '650 18px Inter, Arial, sans-serif';
-  ctx.fillText('POSITION STATUS', 82, 1060);
-  ctx.fillStyle = '#f5f5f5';
+  ctx.fillStyle = white;
   ctx.font = '800 21px Inter, Arial, sans-serif';
-  ctx.fillText('OPEN / LIVE', 82, 1094);
+  ctx.fillText('OPEN / LIVE', 82, 1128);
 
   const date = model.generatedAt instanceof Date ? model.generatedAt : new Date(model.generatedAt);
-  const stamp = Number.isNaN(date.getTime()) ? '' : date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
-  ctx.fillStyle = '#737373';
-  ctx.font = '600 18px Inter, Arial, sans-serif';
+  const stamp = Number.isNaN(date.getTime())
+    ? ''
+    : date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+
+  ctx.fillStyle = '#686868';
+  ctx.font = '600 17px Inter, Arial, sans-serif';
   ctx.textAlign = 'right';
-  ctx.fillText(stamp, 998, 1094);
+  ctx.fillText(stamp, 998, 1128);
   ctx.textAlign = 'left';
 
+  // Footer band.
   ctx.fillStyle = '#050505';
-  ctx.fillRect(0, 1184, 1080, 166);
-  ctx.strokeStyle = 'rgba(83,199,255,0.24)';
-  ctx.beginPath(); ctx.moveTo(0, 1184); ctx.lineTo(1080, 1184); ctx.stroke();
-  ctx.fillStyle = '#f5f5f5';
-  ctx.font = '900 35px Inter, Arial, sans-serif';
-  ctx.fillText('ACG Trader', 82, 1266);
+  ctx.fillRect(49, 1184, 982, 117);
+  ctx.strokeStyle = 'rgba(83,199,255,0.20)';
+  ctx.beginPath();
+  ctx.moveTo(49, 1184);
+  ctx.lineTo(1031, 1184);
+  ctx.stroke();
+
+  ctx.fillStyle = white;
+  ctx.font = '900 34px Inter, Arial, sans-serif';
+  ctx.fillText('ACG Trader', 82, 1248);
   ctx.fillStyle = cyan;
-  ctx.fillRect(82, 1287, 190, 4);
-  ctx.fillStyle = '#6f6f6f';
-  ctx.font = '650 18px Inter, Arial, sans-serif';
+  ctx.fillRect(82, 1268, 152, 4);
+
+  ctx.fillStyle = '#696969';
+  ctx.font = '650 17px Inter, Arial, sans-serif';
   ctx.textAlign = 'right';
-  ctx.fillText('TERMINAL PERFORMANCE CARD', 998, 1265);
+  ctx.fillText('TRADE. TRACK. IMPROVE.', 998, 1248);
   ctx.textAlign = 'left';
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Unable to generate share image.')), 'image/png', 0.96);
   });
 }
+
 export function downloadPositionShare(blob, model) {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
