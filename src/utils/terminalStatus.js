@@ -16,6 +16,10 @@ export function deriveTerminalStatus({
     return status('SESSION_LOADING', 'info', 'Preparing trading session', 'Authenticating ACG Trader and restoring your account state.', true);
   }
 
+  if (authStatus === 'reauth-required') {
+    return status('AUTH_RECONNECT_REQUIRED', 'danger', 'Session needs authentication', 'Your terminal remains visible, but trading is read-only until the secure session reconnects.', true);
+  }
+
   if (!authenticated) {
     return status('AUTH_REQUIRED', 'danger', 'Trading session required', 'Open ACG Trader from ACG Funded or sign in with your trading credentials.', true);
   }
