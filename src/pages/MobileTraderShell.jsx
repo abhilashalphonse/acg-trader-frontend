@@ -48,11 +48,21 @@ function loadIndicatorFavorites() {
   return defaults;
 }
 
+const ALLOWED_TIMEFRAMES = new Set(['1m', '5m', '15m', '30m', '1H', '4H', '1D', '1W']);
+
+function normalizeTimeframePreference(value) {
+  const raw = String(value || '');
+  const aliases = { '1h': '1H', '4h': '4H', '1d': '1D', D: '1D', '1w': '1W' };
+  const normalized = aliases[raw] || raw;
+  return ALLOWED_TIMEFRAMES.has(normalized) ? normalized : '1m';
+}
+
 function loadTerminalPrefs() {
   if (typeof window === 'undefined') return {};
   try {
     const stored = JSON.parse(window.localStorage.getItem(TERMINAL_PREFS_KEY) || '{}');
-    return stored && typeof stored === 'object' ? stored : {};
+    if (!stored || typeof stored !== 'object') return {};
+    return { ...stored, timeframe: normalizeTimeframePreference(stored.timeframe) };
   } catch {
     return {};
   }
@@ -439,7 +449,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const applyTradingProfile = profile => {
     if (!profile) return;
     const settings = profile.settings || {};
-    if (settings.timeframe) setTimeframe(settings.timeframe);
+    if (settings.timeframe) setTimeframe(normalizeTimeframePreference(settings.timeframe));
     if (settings.chartMode) setChartMode(settings.chartMode);
     if (settings.sizingMode) setSizingMode(settings.sizingMode);
     if (Number.isFinite(Number(settings.riskPercent))) setRiskPercent(Number(settings.riskPercent));
