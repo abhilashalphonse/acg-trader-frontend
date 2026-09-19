@@ -10,6 +10,48 @@ import { deriveTerminalStatus } from './utils/terminalStatus.js';
 const TradingTerminalV2 = lazy(() => import('./pages/TradingTerminalV2.jsx'));
 const MobileTraderShell = lazy(() => import('./pages/MobileTraderShell.jsx'));
 
+const LAST_SYMBOL_STORAGE_KEY = 'acg-trader-last-symbol-v1';
+const FX_PRIORITY = ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD'];
+
+function storedLastSymbol() {
+  if (typeof window === 'undefined') return null;
+  try {
+    return String(window.localStorage.getItem(LAST_SYMBOL_STORAGE_KEY) || '').trim().toUpperCase() || null;
+  } catch {
+    return null;
+  }
+}
+
+function chooseStartupSymbol(instruments, watchlistSymbols, lastSymbol) {
+  const bySymbol = new Map(instruments.map(item => [String(item.symbol).toUpperCase(), item]));
+  const exists = symbol => Boolean(symbol && bySymbol.has(symbol));
+  const isOpen = symbol => exists(symbol) && bySymbol.get(symbol)?.sessionOpen === true;
+  const watched = (watchlistSymbols || []).map(symbol => String(symbol).toUpperCase()).filter(exists);
+
+  // Returning traders should land back in their own trading context, not a catalog default.
+  if (lastSymbol && watched.includes(lastSymbol) && isOpen(lastSymbol)) return lastSymbol;
+
+  const openWatched = watched.find(isOpen);
+  if (openWatched) return openWatched;
+
+  // First-use / empty-watchlist priority: liquid FX majors first.
+  const openFx = FX_PRIORITY.find(isOpen);
+  if (openFx) return openFx;
+
+  if (isOpen('XAUUSD')) return 'XAUUSD';
+
+  // Crypto is the sensible continuity fallback when conventional sessions are closed.
+  if (isOpen('BTCUSD')) return 'BTCUSD';
+
+  const anyOpen = instruments.find(item => item.sessionOpen === true)?.symbol;
+  if (anyOpen) return anyOpen;
+
+  // Last-resort display only when the backend reports every configured market closed.
+  if (exists('BTCUSD')) return 'BTCUSD';
+  if (lastSymbol && exists(lastSymbol)) return lastSymbol;
+  return watched[0] || instruments[0]?.symbol || null;
+}
+
 function useDesktopLayout() {
   const [isDesktop, setIsDesktop] = useState(() => (
     typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)').matches : false
@@ -38,8 +80,21 @@ export default function App() {
   useEffect(() => {
     if (!instruments.length) return;
     const currentExists = activeSymbol && instruments.some(item => item.symbol === activeSymbol);
-    if (!currentExists) setActiveSymbol(instruments.find(item => item.sessionOpen)?.symbol || instruments[0].symbol);
-  }, [activeSymbol, instruments]);
+    if (currentExists) return;
+
+    setActiveSymbol(
+      chooseStartupSymbol(
+        instruments,
+        watchlists.activeSymbols,
+        storedLastSymbol(),
+      ),
+    );
+  }, [activeSymbol, instruments, watchlists.activeSymbols]);
+
+  useEffect(() => {
+    if (!activeSymbol || typeof window === 'undefined') return;
+    try { window.localStorage.setItem(LAST_SYMBOL_STORAGE_KEY, activeSymbol); } catch { /* non-critical preference */ }
+  }, [activeSymbol]);
 
   const subscriptionSymbols = useMemo(
     () => [...new Set([...watchlists.activeSymbols, activeSymbol].filter(Boolean))],
