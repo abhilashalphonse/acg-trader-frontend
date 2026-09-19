@@ -25,7 +25,7 @@ export default function MarketPanel({
   onUpdatePosition = () => {},
 }) {
   return (
-    <section className="overflow-hidden rounded-[22px] border border-[#182938] bg-gradient-to-b from-[#0a141e] to-[#071019] shadow-[0_16px_45px_rgba(0,0,0,0.26)]">
+    <section className="overflow-hidden rounded-[22px] border border-white/[0.08] bg-[#080808] shadow-[0_16px_45px_rgba(0,0,0,0.26)]">
       <InstrumentHeader market={market} favorite={favorite} onFavorite={() => setFavorite(v => !v)} onSelectInstrument={onSelectInstrument} />
       <ChartControls
         timeframe={timeframe}

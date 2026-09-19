@@ -22,9 +22,9 @@ export default function ExecutionStatus({ event, instrument = null, onDismiss = 
   const priceLabel = formatInstrumentPrice(price, instrument);
 
   return (
-    <div className={`fixed left-1/2 top-[72px] z-[140] w-[calc(100%-24px)] max-w-[430px] -translate-x-1/2 overflow-hidden rounded-xl border shadow-[0_16px_50px_rgba(0,0,0,.48)] backdrop-blur-xl ${danger ? 'border-[#64313a] bg-[#28141a]/96' : warning ? 'border-[#665321] bg-[#2a220f]/96' : 'border-[#24445a] bg-[#0a1a26]/96'}`}>
+    <div className={`fixed left-1/2 top-[72px] z-[140] w-[calc(100%-24px)] max-w-[430px] -translate-x-1/2 overflow-hidden rounded-xl border shadow-[0_16px_50px_rgba(0,0,0,.48)] backdrop-blur-xl ${danger ? 'border-[#64313a] bg-[#28141a]/96' : warning ? 'border-[#665321] bg-[#2a220f]/96' : 'border-white/[0.08] bg-[#101010]/96'}`}>
       <div className="flex items-center gap-2.5 px-3 py-2.5">
-        <div className={`grid size-8 shrink-0 place-items-center rounded-lg ${danger ? 'bg-[#3a1720] text-[#ff7a85]' : warning ? 'bg-[#3a3015] text-[#f0d06b]' : positive ? 'bg-[#0d3026] text-[#4de0ab]' : 'bg-[#10283a] text-[#64caff]'}`}>
+        <div className={`grid size-8 shrink-0 place-items-center rounded-lg ${danger ? 'bg-[#3a1720] text-[#ff7a85]' : warning ? 'bg-[#101010] text-[#f0d06b]' : positive ? 'bg-[#0d3026] text-[#4de0ab]' : 'bg-[#101010] text-[#64caff]'}`}>
           <Icon size={14} className={status === 'submitting' ? 'animate-spin' : ''}/>
         </div>
         <div className="min-w-0 flex-1">
@@ -34,7 +34,7 @@ export default function ExecutionStatus({ event, instrument = null, onDismiss = 
         </div>
         <button type="button" onClick={onDismiss} className="grid size-7 shrink-0 place-items-center rounded-md text-[#70869a] hover:bg-white/[0.04] hover:text-white" aria-label="Dismiss execution status"><X size={13}/></button>
       </div>
-      <div className="h-0.5 bg-[#122a39]"><div className={`h-full transition-all duration-300 ${danger ? 'bg-[#ff6672]' : 'bg-[#51c8ff]'}`} style={{ width: status === 'submitting' ? '28%' : status === 'accepted' ? '62%' : '100%' }} /></div>
+      <div className="h-0.5 bg-[#101010]"><div className={`h-full transition-all duration-300 ${danger ? 'bg-[#ff6672]' : 'bg-[#101010]'}`} style={{ width: status === 'submitting' ? '28%' : status === 'accepted' ? '62%' : '100%' }} /></div>
     </div>
   );
 }

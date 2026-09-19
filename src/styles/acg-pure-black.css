@@ -1,6 +1,6 @@
 /*
  * ACG Trader — Pure Black
- * Monochrome terminal skin. Layout and behavior are intentionally untouched.
+ * Final monochrome terminal guardrail. Active components use the same tokens directly; this layer prevents legacy or fallback surfaces from reintroducing navy.
  *
  * Hierarchy:
  *   #000000  terminal/chart canvas
@@ -224,4 +224,16 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
 
 @media(prefers-reduced-motion:reduce){
   *{scroll-behavior:auto!important}
+}
+
+
+/* Final guardrails for legacy/fallback markup. */
+[class*="bg-gradient-to-"][class*="from-[#0"],
+[class*="bg-gradient-to-"][class*="from-[#1"]{
+  background-image:none!important;
+  background-color:var(--acg-panel)!important;
+}
+[class*="divide-[#1"],
+[class*="divide-[#2"]{
+  border-color:var(--acg-border)!important;
 }

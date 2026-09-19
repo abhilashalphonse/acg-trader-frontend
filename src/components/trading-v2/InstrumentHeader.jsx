@@ -64,7 +64,7 @@ export default function InstrumentHeader({ market, favorite, onFavorite, onSelec
         type="button"
         aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
         onClick={onFavorite}
-        className={`grid size-8 shrink-0 place-items-center rounded-lg border border-[#1c2d3e] bg-[#0a141e] shadow-[inset_0_1px_rgba(255,255,255,0.02)] active:scale-95 ${favorite ? 'text-[#ffc856]' : 'text-[#667b8f]'}`}
+        className={`grid size-8 shrink-0 place-items-center rounded-lg border border-white/[0.08] bg-[#080808] shadow-[inset_0_1px_rgba(255,255,255,0.02)] active:scale-95 ${favorite ? 'text-[#ffc856]' : 'text-[#667b8f]'}`}
       >
         <Star size={16} fill={favorite ? 'currentColor' : 'none'} strokeWidth={1.8} />
       </button>

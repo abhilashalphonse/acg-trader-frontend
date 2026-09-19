@@ -28,14 +28,14 @@ function spreadLabel(item) {
 }
 
 function marketStatus(item) {
-  if (item?.sessionOpen === false) return { label: 'CLOSED', className: 'text-[#8a9bab]', dot: 'bg-[#627486]' };
+  if (item?.sessionOpen === false) return { label: 'CLOSED', className: 'text-[#8a9bab]', dot: 'bg-[#101010]' };
   if (item?.live === true) return { label: 'LIVE', className: 'text-[#42d9a5]', dot: 'bg-[#42d9a5]' };
-  if (item?.isStale === true) return { label: 'STALE', className: 'text-[#e8c35f]', dot: 'bg-[#e8c35f]' };
+  if (item?.isStale === true) return { label: 'STALE', className: 'text-[#e8c35f]', dot: 'bg-[#101010]' };
 
   const state = String(item?.marketState || 'WAITING').toUpperCase();
   if (state === 'SUBSCRIPTION_ERROR' || state === 'ERROR') return { label: 'ERROR', className: 'text-[#ff7882]', dot: 'bg-[#ff7882]' };
   if (state === 'DISCONNECTED') return { label: 'OFFLINE', className: 'text-[#ff7882]', dot: 'bg-[#ff7882]' };
-  return { label: state === 'WAITING' ? 'WAITING' : state, className: 'text-[#71869a]', dot: 'bg-[#60758a]' };
+  return { label: state === 'WAITING' ? 'WAITING' : state, className: 'text-[#71869a]', dot: 'bg-[#101010]' };
 }
 
 export default function WatchlistSection({
@@ -87,7 +87,7 @@ export default function WatchlistSection({
         <button
           type="button"
           onClick={onAddInstrument}
-          className="mt-1 flex h-10 items-center gap-1.5 rounded-xl border border-[#234258] bg-[#0c2130] px-3 text-[10px] font-extrabold text-[#64c9ff] shadow-[inset_0_1px_rgba(255,255,255,.03)]"
+          className="mt-1 flex h-10 items-center gap-1.5 rounded-xl border border-white/[0.08] bg-[#101010] px-3 text-[10px] font-extrabold text-[#64c9ff] shadow-[inset_0_1px_rgba(255,255,255,.03)]"
         >
           <Plus size={15} /> Add
         </button>
@@ -106,7 +106,7 @@ export default function WatchlistSection({
         </button>
 
         {listOpen && (
-          <div className="absolute left-0 top-10 z-40 min-w-[210px] overflow-hidden rounded-xl border border-[#223544] bg-[#0a151f] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.5)]">
+          <div className="absolute left-0 top-10 z-40 min-w-[210px] overflow-hidden rounded-xl border border-white/[0.08] bg-[#080808] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.5)]">
             {workspace.lists.map(list => (
               <button
                 key={list.id}
@@ -116,7 +116,7 @@ export default function WatchlistSection({
                   setEditing(false);
                   setListOpen(false);
                 }}
-                className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[10px] font-semibold ${activeList.id === list.id ? 'bg-[#102c40] text-[#61caff]' : 'text-[#b3c0cc] hover:bg-white/[0.04]'}`}
+                className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[10px] font-semibold ${activeList.id === list.id ? 'bg-[#101010] text-[#61caff]' : 'text-[#b3c0cc] hover:bg-white/[0.04]'}`}
               >
                 <span>{list.name}</span>
                 <span className="text-[7px] text-[#62778b]">{list.symbols.length}</span>
@@ -125,7 +125,7 @@ export default function WatchlistSection({
             <button
               type="button"
               onClick={createList}
-              className="mt-1 flex w-full items-center gap-2 border-t border-[#172938] px-2.5 py-2.5 text-left text-[9px] font-bold text-[#62caff]"
+              className="mt-1 flex w-full items-center gap-2 border-t border-white/[0.08] px-2.5 py-2.5 text-left text-[9px] font-bold text-[#62caff]"
             >
               <Plus size={12} /> New watchlist
             </button>
@@ -133,9 +133,9 @@ export default function WatchlistSection({
         )}
       </div>
 
-      <div className="overflow-hidden rounded-[18px] border border-[#172a39] bg-gradient-to-b from-[#09141d] to-[#071019] shadow-[0_16px_45px_rgba(0,0,0,.22)]">
+      <div className="overflow-hidden rounded-[18px] border border-white/[0.08] bg-[#080808] shadow-[0_16px_45px_rgba(0,0,0,.22)]">
         {!editing && (
-          <div className="grid grid-cols-[minmax(0,1fr)_70px_70px_52px] gap-1 border-b border-[#152634] px-3 py-2.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#52677b]">
+          <div className="grid grid-cols-[minmax(0,1fr)_70px_70px_52px] gap-1 border-b border-white/[0.08] px-3 py-2.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#52677b]">
             <span>Instrument</span>
             <span className="text-right">Bid</span>
             <span className="text-right">Ask</span>
@@ -144,7 +144,7 @@ export default function WatchlistSection({
         )}
 
         {editing && (
-          <div className="flex items-center justify-between border-b border-[#152634] px-3 py-2.5">
+          <div className="flex items-center justify-between border-b border-white/[0.08] px-3 py-2.5">
             <span className="text-[8px] font-bold uppercase tracking-[0.08em] text-[#52677b]">Arrange watchlist</span>
             <span className="text-[8px] text-[#5f7488]">Drag or use arrows</span>
           </div>
@@ -163,7 +163,7 @@ export default function WatchlistSection({
                 onDragEnd={() => setDraggedSymbol(null)}
                 onDragOver={event => event.preventDefault()}
                 onDrop={() => dropOn(item.symbol)}
-                className={`flex items-center gap-2 border-b border-[#111f2c] px-3 py-2.5 last:border-b-0 ${draggedSymbol === item.symbol ? 'opacity-50' : ''}`}
+                className={`flex items-center gap-2 border-b border-white/[0.08] px-3 py-2.5 last:border-b-0 ${draggedSymbol === item.symbol ? 'opacity-50' : ''}`}
               >
                 <GripVertical size={15} className="shrink-0 cursor-grab text-[#53687b]" />
                 <InstrumentAvatar instrument={item} size={28} />
@@ -209,9 +209,9 @@ export default function WatchlistSection({
               key={item.symbol}
               type="button"
               onClick={() => onOpenTrade(item.symbol)}
-              className={`relative grid w-full grid-cols-[minmax(0,1fr)_70px_70px_52px] items-center gap-1 border-b border-[#111f2c] px-3 py-3 text-left last:border-b-0 ${selected ? 'bg-[#0b2030]' : 'hover:bg-white/[0.018]'}`}
+              className={`relative grid w-full grid-cols-[minmax(0,1fr)_70px_70px_52px] items-center gap-1 border-b border-white/[0.08] px-3 py-3 text-left last:border-b-0 ${selected ? 'bg-[#101010]' : 'hover:bg-white/[0.018]'}`}
             >
-              {selected && <span className="absolute bottom-2 left-0 top-2 w-0.5 rounded-r bg-[#4ac4ff]" />}
+              {selected && <span className="absolute bottom-2 left-0 top-2 w-0.5 rounded-r bg-[#101010]" />}
               <span className="flex min-w-0 items-center gap-2">
                 <InstrumentAvatar instrument={item} size={30} />
                 <span className="min-w-0">
@@ -236,7 +236,7 @@ export default function WatchlistSection({
               <button
                 type="button"
                 onClick={onAddInstrument}
-                className="mt-3 rounded-xl border border-[#214057] bg-[#0d2231] px-4 py-2.5 text-[10px] font-bold text-[#61caff]"
+                className="mt-3 rounded-xl border border-white/[0.08] bg-[#101010] px-4 py-2.5 text-[10px] font-bold text-[#61caff]"
               >
                 Add markets
               </button>
@@ -249,7 +249,7 @@ export default function WatchlistSection({
         <button
           type="button"
           onClick={() => setEditing(value => !value)}
-          className={`mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-xl border text-[10px] font-bold transition ${editing ? 'border-[#23506e] bg-[#0d2536] text-[#68ccff]' : 'border-[#172a39] bg-[#08131c] text-[#74899d] hover:text-[#b9c8d5]'}`}
+          className={`mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-xl border text-[10px] font-bold transition ${editing ? 'border-white/[0.13] bg-[#101010] text-[#68ccff]' : 'border-white/[0.08] bg-[#080808] text-[#74899d] hover:text-[#b9c8d5]'}`}
         >
           {editing ? <Check size={14} /> : <Pencil size={13} />}
           {editing ? 'Done editing' : 'Edit watchlist'}

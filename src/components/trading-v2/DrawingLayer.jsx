@@ -20,7 +20,7 @@ function lineStyle(selected, color = '#64caff') {
 
 function Handle({ point, onPointerDown }) {
   if (!point) return null;
-  return <circle cx={point.x} cy={point.y} r="5" fill="#071019" stroke="#7bd4ff" strokeWidth="2" vectorEffect="non-scaling-stroke" className="pointer-events-auto cursor-grab" onPointerDown={onPointerDown} />;
+  return <circle cx={point.x} cy={point.y} r="5" fill="#000000" stroke="#7bd4ff" strokeWidth="2" vectorEffect="non-scaling-stroke" className="pointer-events-auto cursor-grab" onPointerDown={onPointerDown} />;
 }
 
 function DrawingShape({ drawing, selected, resolvePoint, size, onSelect, onStartHandle }) {
@@ -49,7 +49,7 @@ function DrawingShape({ drawing, selected, resolvePoint, size, onSelect, onStart
   }
 
   if (drawing.type === 'text') {
-    return <g {...common}><text x={a.x} y={a.y} fill={selected ? '#ffffff' : '#d8e4ee'} fontSize="10" fontWeight="600" style={{ paintOrder: 'stroke', stroke: '#071019', strokeWidth: 3 }}>{drawing.text || 'Text'}</text>{selected && <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />}</g>;
+    return <g {...common}><text x={a.x} y={a.y} fill={selected ? '#ffffff' : '#d8e4ee'} fontSize="10" fontWeight="600" style={{ paintOrder: 'stroke', stroke: '#000000', strokeWidth: 3 }}>{drawing.text || 'Text'}</text>{selected && <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />}</g>;
   }
 
   return <g><line x1={a.x} y1={a.y} x2={b.x} y2={b.y} {...lineStyle(selected)} {...common} />{selected && <><Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} /><Handle point={b} onPointerDown={event => onStartHandle(event, drawing.id, 'b')} /></>}</g>;
@@ -240,7 +240,7 @@ export default function DrawingLayer({
       </svg>
 
       {selected && !disabled && (
-        <div className="pointer-events-auto absolute right-2 top-11 z-20 flex items-center gap-1 rounded-lg border border-[#243746] bg-[#08131d]/94 p-1 shadow-xl">
+        <div className="pointer-events-auto absolute right-2 top-11 z-20 flex items-center gap-1 rounded-lg border border-white/[0.08] bg-[#080808]/94 p-1 shadow-xl">
           <span className="px-1.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#74899d]">{selected.type}</span>
           <button type="button" onClick={deleteSelected} className="grid size-7 place-items-center rounded-md text-[#ff7480] hover:bg-[#35151d]" aria-label="Delete drawing"><Trash2 size={13}/></button>
           <button type="button" onClick={() => setSelectedId(null)} className="grid size-7 place-items-center rounded-md text-[#8194a7] hover:bg-white/[0.04]" aria-label="Deselect drawing"><X size={13}/></button>

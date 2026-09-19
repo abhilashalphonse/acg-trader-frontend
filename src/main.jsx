@@ -6,7 +6,7 @@ import AppErrorBoundary from './components/AppErrorBoundary.jsx';
 import { AuthProvider } from './auth/AuthProvider.jsx';
 import { TradingProvider } from './store/TradingProvider.jsx';
 import './index.css';
-import './styles/acg-black-pro.css';
+import './styles/acg-pure-black.css';
 
 createRoot(document.getElementById('root')).render(
   <AppErrorBoundary>
