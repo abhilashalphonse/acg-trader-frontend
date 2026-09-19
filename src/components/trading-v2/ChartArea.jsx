@@ -3,6 +3,7 @@ import { Crosshair, TrendingUp, SlidersHorizontal, Square, Type, Shapes, Ruler }
 import TradingChart from '../TradingChart.jsx';
 import DrawingLayer from './DrawingLayer.jsx';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
+import { estimatePositionPnlAtPrice, positionDistancePips } from '../../utils/tradingRisk.js';
 
 const tools = [
   ['cursor', Crosshair, 'Select'],
@@ -22,6 +23,22 @@ function formatCountdown(totalSeconds) {
   const minutes = Math.floor(safe / 60);
   const seconds = safe % 60;
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function formatProjectedPnl(value, currency = 'USD') {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '—';
+  try {
+    const amount = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency || 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(Math.abs(numeric));
+    return `${numeric >= 0 ? '+' : '-'}${amount}`;
+  } catch {
+    return `${numeric >= 0 ? '+' : '-'}${Math.abs(numeric).toFixed(2)} ${currency || ''}`.trim();
+  }
 }
 
 function TradePlanOverlay({ plan, onChange, coordinateApi, instrument }) {
@@ -211,12 +228,18 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
     const y = coordinateApi.priceToY(price);
     if (!Number.isFinite(y)) return null;
     const displayPrice = value => formatInstrumentPrice(value, instrument);
+    const projectedPnl = estimatePositionPnlAtPrice(position, price, instrument);
+    const pips = positionDistancePips(position, price, instrument);
+    const currency = position?.pnlCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || 'USD';
+    const previewText = projectedPnl == null
+      ? `${displayPrice(price)} · ${pips?.toFixed(1) ?? '—'}p`
+      : `${displayPrice(price)} · ${formatProjectedPnl(projectedPnl, currency)} · ${pips?.toFixed(1) ?? '—'}p`;
 
     return (
       <div key={key} className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: y }}>
         <div className="relative h-px" style={{ backgroundColor: color }}>
           <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded border px-1.5 py-0.5 text-[7px] font-black" style={{ borderColor: `${color}88`, backgroundColor: 'rgba(8,8,8,0.92)', color }}>{label}</span>
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-1.5 py-0.5 text-[8px] font-bold tabular-nums" style={{ backgroundColor: color, color: kind === 'sl' ? '#2b0810' : '#032219' }}>{displayPrice(price)}</span>
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded border px-1.5 py-0.5 text-[8px] font-bold tabular-nums" style={{ borderColor: `${color}66`, backgroundColor: 'rgba(8,8,8,0.94)', color }}>{previewText}</span>
           <button
             type="button"
             aria-label={`Drag ${label}`}

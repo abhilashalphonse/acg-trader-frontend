@@ -36,3 +36,37 @@ export function estimateStopRisk(plan, lots, instrument, accountCurrency) {
   if (!Number.isFinite(lossPerLot) || !Number.isFinite(numericLots) || numericLots <= 0) return null;
   return lossPerLot * numericLots;
 }
+
+
+function finitePositive(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+}
+
+export function positionDistancePips(position, targetPrice, instrument) {
+  const entry = Number(position?.entry ?? position?.entryPrice);
+  const target = Number(targetPrice);
+  const pipSize = finitePositive(instrument?.pipSize) || finitePositive(instrument?.tickSize);
+  if (!Number.isFinite(entry) || !Number.isFinite(target) || !pipSize) return null;
+  return Math.abs(target - entry) / pipSize;
+}
+
+export function estimatePositionPnlAtPrice(position, targetPrice, instrument) {
+  const entry = Number(position?.entry ?? position?.entryPrice);
+  const target = Number(targetPrice);
+  const volume = Number(position?.volume ?? position?.lots);
+  if (![entry, target, volume].every(Number.isFinite) || volume <= 0) return null;
+
+  const side = String(position?.side || '').toUpperCase();
+  if (side !== 'BUY' && side !== 'SELL') return null;
+
+  const signedMove = side === 'BUY' ? target - entry : entry - target;
+  const tickSize = finitePositive(instrument?.tickSize);
+  const tickValue = finitePositive(instrument?.tickValue);
+  if (tickSize && tickValue) return (signedMove / tickSize) * tickValue * volume;
+
+  const contractSize = finitePositive(instrument?.contractSize);
+  if (contractSize) return signedMove * contractSize * volume;
+
+  return null;
+}

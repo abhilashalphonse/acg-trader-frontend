@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import { formatInstrumentPrice, instrumentForSymbol, instrumentPipSize } from '../../utils/instrumentFormatting.js';
+import { estimatePositionPnlAtPrice, positionDistancePips } from '../../utils/tradingRisk.js';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 
 const tabs = [
@@ -58,6 +59,7 @@ export default function PositionsPanel({
   const [tab, setTab] = useState('positions');
   const [expandedId, setExpandedId] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const [editingField, setEditingField] = useState(null);
   const [protectionDrafts, setProtectionDrafts] = useState({});
   const [customClose, setCustomClose] = useState({});
 
@@ -68,19 +70,50 @@ export default function PositionsPanel({
     journal: journal.length,
   }), [positions, pendingOrders, positionHistory, journal]);
 
-  const startProtectionEdit = position => {
+  const buildProtectionDraft = position => {
+    const instrument = instrumentForSymbol(markets, position.symbol);
+    const sl = position.sl === null || position.sl === undefined || position.sl === '' ? null : Number(position.sl);
+    const tp = position.tp === null || position.tp === undefined || position.tp === '' ? null : Number(position.tp);
+    return {
+      sl: Number.isFinite(sl) ? sl : null,
+      tp: Number.isFinite(tp) ? tp : null,
+      slInput: Number.isFinite(sl) ? formatInstrumentPrice(sl, instrument, '') : '',
+      tpInput: Number.isFinite(tp) ? formatInstrumentPrice(tp, instrument, '') : '',
+    };
+  };
+
+  const startProtectionEdit = (position, field = null) => {
+    setExpandedId(position.id);
     setEditingId(position.id);
+    setEditingField(field);
     setProtectionDrafts(current => ({
       ...current,
-      [position.id]: {
-        sl: position.sl,
-        tp: position.tp,
-      },
+      [position.id]: buildProtectionDraft(position),
     }));
   };
 
+  const updateProtectionInput = (position, field, rawValue) => {
+    const cleaned = String(rawValue ?? '').replace(',', '.').replace(/[^0-9.]/g, '');
+    const firstDot = cleaned.indexOf('.');
+    const normalizedInput = firstDot < 0
+      ? cleaned
+      : cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, '');
+    const parsed = normalizedInput === '' || normalizedInput === '.' ? null : Number(normalizedInput);
+    setProtectionDrafts(current => {
+      const base = current[position.id] || buildProtectionDraft(position);
+      return {
+        ...current,
+        [position.id]: {
+          ...base,
+          [field + 'Input']: normalizedInput,
+          [field]: Number.isFinite(parsed) && parsed > 0 ? parsed : null,
+        },
+      };
+    });
+  };
+
   const nudge = (position, field, direction) => {
-    const draft = protectionDrafts[position.id] || { sl: position.sl, tp: position.tp };
+    const draft = protectionDrafts[position.id] || buildProtectionDraft(position);
     const raw = draft[field];
     const current = raw === null || raw === undefined || raw === '' ? NaN : Number(raw);
     const entry = Number(position.entry);
@@ -100,19 +133,32 @@ export default function PositionsPanel({
       next = current + direction * step;
     }
 
-    setProtectionDrafts(currentDrafts => ({
-      ...currentDrafts,
-      [position.id]: {
-        ...(currentDrafts[position.id] || { sl: position.sl, tp: position.tp }),
-        [field]: next,
-      },
-    }));
+    setProtectionDrafts(currentDrafts => {
+      const base = currentDrafts[position.id] || buildProtectionDraft(position);
+      return {
+        ...currentDrafts,
+        [position.id]: {
+          ...base,
+          [field]: next,
+          [field + 'Input']: formatInstrumentPrice(next, instrument, String(next)),
+        },
+      };
+    });
   };
 
-  const applyProtectionDraft = position => {
-    const draft = protectionDrafts[position.id];
-    if (draft) onUpdatePosition(position.id, { sl: draft.sl, tp: draft.tp });
+  const cancelProtectionEdit = () => {
     setEditingId(null);
+    setEditingField(null);
+  };
+
+  const applyProtectionDraft = async position => {
+    const draft = protectionDrafts[position.id];
+    if (!draft) return;
+    const ok = await onUpdatePosition(position.id, { sl: draft.sl, tp: draft.tp });
+    if (ok !== false) {
+      setEditingId(null);
+      setEditingField(null);
+    }
   };
 
   const applyCustomClose = position => {
@@ -168,8 +214,8 @@ export default function PositionsPanel({
                   </div>
 
                   <div className="mt-2.5 grid grid-cols-2 gap-1.5">
-                    <div className="flex items-center justify-between rounded-md border border-white/[0.07] bg-[#080808] px-2.5 py-2"><span className="text-[8px] font-semibold text-[#737373]">SL</span><b className="text-[9px] font-semibold text-[#b3b3b3]">{formatInstrumentPrice(position.sl, instrumentForSymbol(markets, position.symbol))}</b></div>
-                    <div className="flex items-center justify-between rounded-md border border-white/[0.07] bg-[#080808] px-2.5 py-2"><span className="text-[8px] font-semibold text-[#737373]">TP</span><b className="text-[9px] font-semibold text-[#b3b3b3]">{formatInstrumentPrice(position.tp, instrumentForSymbol(markets, position.symbol))}</b></div>
+                    <button type="button" onClick={() => startProtectionEdit(position, 'sl')} className="flex items-center justify-between rounded-md border border-white/[0.07] bg-[#080808] px-2.5 py-2 text-left transition hover:border-white/[0.14]"><span className="text-[8px] font-semibold text-[#737373]">SL</span><b className="text-[9px] font-semibold text-[#b3b3b3]">{position.sl == null ? '+ Add SL' : formatInstrumentPrice(position.sl, instrumentForSymbol(markets, position.symbol))}</b></button>
+                    <button type="button" onClick={() => startProtectionEdit(position, 'tp')} className="flex items-center justify-between rounded-md border border-white/[0.07] bg-[#080808] px-2.5 py-2 text-left transition hover:border-white/[0.14]"><span className="text-[8px] font-semibold text-[#737373]">TP</span><b className="text-[9px] font-semibold text-[#b3b3b3]">{position.tp == null ? '+ Add TP' : formatInstrumentPrice(position.tp, instrumentForSymbol(markets, position.symbol))}</b></button>
                   </div>
                 </div>
 
@@ -183,11 +229,42 @@ export default function PositionsPanel({
                 {expanded && (
                   <div className="space-y-2 border-t border-white/[0.07] bg-black p-2.5">
                     <div className="grid grid-cols-2 gap-2">
-                      <button type="button" onClick={() => editing ? setEditingId(null) : startProtectionEdit(position)} className={`flex h-10 items-center justify-center gap-2 rounded-xl border text-[10px] font-bold ${editing ? 'border-white/[0.13] bg-[#080808] text-[#53c7ff]' : 'border-white/[0.08] bg-black text-[#b3b3b3]'}`}><SlidersHorizontal size={14}/>Modify SL / TP</button>
+                      <button type="button" onClick={() => editing ? cancelProtectionEdit() : startProtectionEdit(position)} className={`flex h-10 items-center justify-center gap-2 rounded-xl border text-[10px] font-bold ${editing ? 'border-white/[0.13] bg-[#080808] text-[#53c7ff]' : 'border-white/[0.08] bg-black text-[#b3b3b3]'}`}><SlidersHorizontal size={14}/>{editing ? 'Editing SL / TP' : 'Modify SL / TP'}</button>
                       <button type="button" onClick={() => onDuplicate(position.id)} className="flex h-10 items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-black text-[10px] font-bold text-[#b3b3b3]"><Copy size={14}/>Duplicate</button>
                     </div>
 
-                    {editing && <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2 rounded-xl border border-white/[0.08] bg-black p-2"><Adjust label="SL" value={formatInstrumentPrice((protectionDrafts[position.id] || {}).sl, instrumentForSymbol(markets, position.symbol))} onMinus={() => nudge(position, 'sl', -1)} onPlus={() => nudge(position, 'sl', 1)} /><Adjust label="TP" value={formatInstrumentPrice((protectionDrafts[position.id] || {}).tp, instrumentForSymbol(markets, position.symbol))} onMinus={() => nudge(position, 'tp', -1)} onPlus={() => nudge(position, 'tp', 1)} /><button type="button" onClick={() => applyProtectionDraft(position)} className="grid size-9 place-items-center rounded-lg border border-[#23664f] bg-black text-[#44dda9]" aria-label="Apply modification"><Check size={14}/></button></div>}
+                    {editing && (() => {
+                      const draft = protectionDrafts[position.id] || buildProtectionDraft(position);
+                      const instrument = instrumentForSymbol(markets, position.symbol);
+                      return <div className="space-y-2 border border-white/[0.08] bg-black p-2">
+                        <ProtectionEditor
+                          label="SL"
+                          position={position}
+                          instrument={instrument}
+                          value={draft.sl}
+                          inputValue={draft.slInput}
+                          autoFocus={editingField === 'sl'}
+                          onInput={value => updateProtectionInput(position, 'sl', value)}
+                          onMinus={() => nudge(position, 'sl', -1)}
+                          onPlus={() => nudge(position, 'sl', 1)}
+                        />
+                        <ProtectionEditor
+                          label="TP"
+                          position={position}
+                          instrument={instrument}
+                          value={draft.tp}
+                          inputValue={draft.tpInput}
+                          autoFocus={editingField === 'tp'}
+                          onInput={value => updateProtectionInput(position, 'tp', value)}
+                          onMinus={() => nudge(position, 'tp', -1)}
+                          onPlus={() => nudge(position, 'tp', 1)}
+                        />
+                        <div className="flex items-center justify-end gap-2 border-t border-white/[0.07] pt-2">
+                          <button type="button" onClick={cancelProtectionEdit} className="h-8 rounded-md border border-white/[0.08] px-3 text-[9px] font-bold text-[#a3a3a3]">Cancel</button>
+                          <button type="button" onClick={() => applyProtectionDraft(position)} className="flex h-8 items-center gap-1.5 rounded-md border border-[#23664f] bg-[rgb(4,20,14)] px-3 text-[9px] font-black text-[#44dda9]"><Check size={12}/>Apply</button>
+                        </div>
+                      </div>;
+                    })()}
 
                     <div className="border-t border-white/[0.08] bg-black p-2.5">
                       <div className="flex items-center justify-between gap-2">
@@ -251,6 +328,29 @@ function QuickAction({ label, onClick, tone = 'neutral' }) {
   return <button type="button" onClick={onClick} className={`h-10 text-[8px] font-black tracking-[0.045em] ${tones[tone]}`}>{label}</button>;
 }
 
-function Adjust({ label, value, onMinus, onPlus }) {
-  return <div className="flex items-center gap-1 rounded-lg border border-white/[0.08] bg-black px-1.5 py-1"><span className="mr-1 text-[8px] font-bold text-[#737373]">{label}</span><button type="button" onClick={onMinus} className="grid size-6 place-items-center rounded-md bg-[#080808] text-[#a3a3a3]"><Minus size={11}/></button><b className="min-w-0 flex-1 text-center text-[8px] text-[#d4d4d4]">{value}</b><button type="button" onClick={onPlus} className="grid size-6 place-items-center rounded-md bg-[#080808] text-[#a3a3a3]"><Plus size={11}/></button></div>;
+function ProtectionEditor({ label, position, instrument, value, inputValue, autoFocus = false, onInput, onMinus, onPlus }) {
+  const pnl = estimatePositionPnlAtPrice(position, value, instrument);
+  const pips = positionDistancePips(position, value, instrument);
+  const currency = position?.pnlCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || 'USD';
+  const pnlTone = pnl == null ? 'text-[#737373]' : pnl >= 0 ? 'text-[#49d9a7]' : 'text-[#ff7782]';
+
+  return <div className="grid grid-cols-[30px_1fr_30px] items-center gap-1.5">
+    <button type="button" onClick={onMinus} className="grid size-[30px] place-items-center rounded-md border border-white/[0.08] bg-[#080808] text-[#a3a3a3]" aria-label={`Decrease ${label}`}><Minus size={11}/></button>
+    <label className="min-w-0 rounded-md border border-white/[0.08] bg-[#080808] px-2 py-1.5">
+      <span className="flex items-center justify-between gap-2">
+        <span className="text-[7px] font-black text-[#737373]">{label}</span>
+        <span className={`text-[7px] font-bold ${pnlTone}`}>{pnl == null ? 'Preview unavailable' : `${formatPnl(pnl, currency)} · ${pips?.toFixed(1) ?? '—'} pips`}</span>
+      </span>
+      <input
+        inputMode="decimal"
+        autoFocus={autoFocus}
+        value={inputValue ?? ''}
+        placeholder={`Enter ${label} price`}
+        onFocus={event => event.currentTarget.select()}
+        onChange={event => onInput(event.target.value)}
+        className="mt-1 w-full bg-transparent font-mono text-[11px] font-bold tabular-nums text-[#f5f5f5] outline-none placeholder:text-[#525252]"
+      />
+    </label>
+    <button type="button" onClick={onPlus} className="grid size-[30px] place-items-center rounded-md border border-white/[0.08] bg-[#080808] text-[#a3a3a3]" aria-label={`Increase ${label}`}><Plus size={11}/></button>
+  </div>;
 }

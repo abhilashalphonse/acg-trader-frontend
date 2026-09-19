@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateRiskSizedLots, estimateStopRisk, riskSizingSupported } from '../src/utils/tradingRisk.js';
+import { calculateRiskSizedLots, estimatePositionPnlAtPrice, estimateStopRisk, positionDistancePips, riskSizingSupported } from '../src/utils/tradingRisk.js';
 import { exposureAvailability } from '../src/utils/exposureAvailability.js';
 
 const xau = { pnlCurrency: 'USD', quoteCurrency: 'USD', contractSize: 100 };
@@ -43,4 +43,18 @@ test('new exposure is allowed only with live account and executable market', () 
     commandState: { uncertain: false },
   });
   assert.equal(result.allowed, true);
+});
+
+
+test('position protection preview calculates buy and sell P&L from contract size', () => {
+  const btc = { pnlCurrency: 'USD', quoteCurrency: 'USD', contractSize: 1, pipSize: 0.01, tickSize: 0.01 };
+  assert.equal(estimatePositionPnlAtPrice({ side: 'BUY', entry: 80000, volume: 0.5 }, 80100, btc), 50);
+  assert.equal(estimatePositionPnlAtPrice({ side: 'SELL', entry: 80000, volume: 0.5 }, 79900, btc), 50);
+  assert.equal(estimatePositionPnlAtPrice({ side: 'SELL', entry: 80000, volume: 0.5 }, 80100, btc), -50);
+  assert.equal(positionDistancePips({ entry: 80000 }, 80001, btc), 100);
+});
+
+test('position protection preview prefers instrument tick value when provided', () => {
+  const instrument = { tickSize: 0.25, tickValue: 12.5, contractSize: 999 };
+  assert.equal(estimatePositionPnlAtPrice({ side: 'BUY', entry: 100, volume: 2 }, 100.5, instrument), 50);
 });
