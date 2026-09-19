@@ -24,9 +24,10 @@ export const marketApi = Object.freeze({
     });
   },
 
-  refreshQuote(symbol, signal) {
+  refreshQuote(symbol, token, signal) {
     return apiRequest('/v1/market/quote/refresh', {
       method: 'POST',
+      token,
       body: { symbol },
       signal,
     });
