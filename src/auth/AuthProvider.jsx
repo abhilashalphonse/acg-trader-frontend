@@ -106,6 +106,14 @@ export function AuthProvider({ children }) {
   const refreshSession = useCallback(async () => {
     if (refreshPromiseRef.current) return refreshPromiseRef.current;
 
+    const scheduleRetry = () => {
+      if (typeof window === 'undefined' || retryTimerRef.current) return;
+      retryTimerRef.current = window.setTimeout(() => {
+        retryTimerRef.current = null;
+        void refreshSession().catch(() => {});
+      }, NETWORK_RETRY_MS);
+    };
+
     const task = (async () => {
       setRefreshing(true);
       const legacyAccessToken = sessionRef.current?.accessToken || readLegacyStoredSession()?.accessToken || null;
@@ -126,12 +134,12 @@ export function AuthProvider({ children }) {
               throw secondError;
             }
             setError(secondError);
-            scheduleNetworkRetry();
+            scheduleRetry();
             throw secondError;
           }
         } else {
           setError(firstError);
-          scheduleNetworkRetry();
+          scheduleRetry();
           throw firstError;
         }
       }
@@ -147,14 +155,6 @@ export function AuthProvider({ children }) {
     refreshPromiseRef.current = task;
     return task;
   }, [commitSession, markReauthRequired]);
-
-  const scheduleNetworkRetry = useCallback(() => {
-    if (typeof window === 'undefined' || retryTimerRef.current) return;
-    retryTimerRef.current = window.setTimeout(() => {
-      retryTimerRef.current = null;
-      void refreshSession().catch(() => {});
-    }, NETWORK_RETRY_MS);
-  }, [refreshSession]);
 
   const exchangeTicket = useCallback(async ticket => {
     setStatus('authenticating');
