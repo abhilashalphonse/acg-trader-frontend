@@ -56,13 +56,13 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
     }
 
     return (
-      <section className="mt-2.5 rounded-[18px] border border-white/[0.08] bg-[#080808] px-3 py-2.5 shadow-[inset_0_1px_rgba(255,255,255,0.018)]">
+      <section className="mt-2.5 border-y border-white/[0.08] bg-black px-1 py-3">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0"><div className="flex items-center gap-1.5"><Activity size={13} className="text-[#5fcaff]"/><b className="text-[10px] text-[#dce7ef]">Account Health</b></div><p className="mt-1 text-[8px] text-[#61768b]">Live account valuation</p></div>
           <div className="text-right"><span className="block text-[7px] uppercase tracking-[0.08em] text-[#5d7286]">Valuation</span><b className={`mt-0.5 block text-[11px] ${valuation === 'LIVE' ? 'text-[#52dba8]' : valuation === 'STALE' ? 'text-[#e8c35f]' : 'text-[#a8b6c2]'}`}>{valuation}</b></div>
         </div>
         <div className="mt-2.5 grid grid-cols-3 gap-2"><HealthStat label="Equity" value={money(account?.equity, currency)}/><HealthStat label="Free margin" value={money(account?.freeMargin, currency)}/><HealthStat label="Floating P&L" value={money(account?.floatingPnl, currency)}/></div>
-        {plannedRisk > 0 && <div className="mt-2.5 rounded-xl border border-white/[0.08] bg-[#101010] px-2.5 py-2 text-[8px] font-semibold text-[#7f95a8]">Estimated ticket risk <b className="text-[#e6edf3]">{money(plannedRisk, currency)}</b>. Challenge limits are not available for this account.</div>}
+        {plannedRisk > 0 && <div className="mt-2.5 border-t border-white/[0.08] px-0 py-2 text-[8px] font-semibold text-[#7f95a8]">Estimated ticket risk <b className="text-[#e6edf3]">{money(plannedRisk, currency)}</b>. Challenge limits are not available for this account.</div>}
       </section>
     );
   }
@@ -79,7 +79,7 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
   }
 
   return (
-    <section className="mt-2.5 rounded-[18px] border border-white/[0.08] bg-[#080808] px-3 py-2.5 shadow-[inset_0_1px_rgba(255,255,255,0.018)]">
+    <section className="mt-2.5 border-y border-white/[0.08] bg-black px-1 py-3">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0"><div className="flex items-center gap-1.5"><ShieldAlert size={13} className="text-[#5fcaff]"/><b className="text-[10px] text-[#dce7ef]">Challenge Risk</b></div><p className="mt-1 text-[8px] text-[#61768b]">{risk.riskAvailabilityLive ? 'Current loss room and target progress' : 'Risk availability is paused until account valuation is live'}</p></div>
         <div className="text-right"><span className="block text-[7px] uppercase tracking-[0.08em] text-[#5d7286]">Available today</span><b className={`mt-0.5 block text-[13px] ${riskWarning ? 'text-[#ff707b]' : 'text-[#e7eef4]'}`}>{money(risk.remainingDaily, currency)}</b></div>
@@ -113,7 +113,7 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
       </div>
 
       {plannedRisk > 0 && (
-        <div className={`mt-2.5 flex items-center justify-between rounded-xl border px-2.5 py-2 ${riskWarning ? 'border-[#5d2b34] bg-[#101010]' : 'border-white/[0.08] bg-[#101010]'}`}>
+        <div className={`mt-2.5 flex items-center justify-between border-t px-0 py-2 ${riskWarning ? 'border-[#5d2b34] bg-[#101010]' : 'border-white/[0.08] bg-[#101010]'}`}>
           <span className={`flex items-center gap-1.5 text-[8px] font-semibold ${riskWarning ? 'text-[#ff818b]' : 'text-[#7f95a8]'}`}><TrendingDown size={12}/>Risk at SL <b className="text-[#e6edf3]">{money(plannedRisk, currency)}</b></span>
           <span className="flex items-center gap-1 text-[8px] text-[#71869a]"><Target size={11}/>Remaining <b className={riskWarning ? 'text-[#ff818b]' : 'text-[#57d9aa]'}>{money(risk.postTradeDaily, currency)}</b></span>
         </div>
@@ -123,5 +123,5 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
 }
 
 function HealthStat({ label, value }) {
-  return <div className="rounded-xl border border-white/[0.08] bg-[#101010] px-2.5 py-2"><span className="block text-[7px] font-bold uppercase tracking-[0.08em] text-[#5d7287]">{label}</span><b className="mt-1 block truncate text-[9px] text-[#d6e0e8]">{value}</b></div>;
+  return <div className="border-t border-white/[0.08] px-0 py-2"><span className="block text-[7px] font-bold uppercase tracking-[0.08em] text-[#5d7287]">{label}</span><b className="mt-1 block truncate text-[9px] text-[#d6e0e8]">{value}</b></div>;
 }

@@ -68,7 +68,7 @@ export default function MobileScalperMode({
               <div className="mt-1 flex items-center gap-2.5 text-[9px] font-semibold text-[#74879c]"><span>Bid <b className="text-[#44dda9]">{market?.bid || '—'}</b></span><span>Ask <b className="text-[#ff6975]">{market?.ask || '—'}</b></span><span>Spread <b className="text-[#aebdcb]">{spread}</b></span></div>
             </div>
           </div>
-          <button type="button" onClick={onExit} aria-label="Exit chart focus mode" className="grid size-9 shrink-0 place-items-center rounded-xl border border-white/[0.08] bg-[#080808] text-[#93a5b7] shadow-[inset_0_1px_rgba(255,255,255,0.025)]"><X size={18}/></button>
+          <button type="button" onClick={onExit} aria-label="Exit chart focus mode" className="grid size-9 shrink-0 place-items-center rounded-md border border-white/[0.08] bg-[#080808] text-[#93a5b7] shadow-[inset_0_1px_rgba(255,255,255,0.025)]"><X size={18}/></button>
         </div>
       </header>
 

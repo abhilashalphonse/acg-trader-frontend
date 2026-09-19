@@ -106,7 +106,7 @@ export default function WatchlistSection({
         </button>
 
         {listOpen && (
-          <div className="absolute left-0 top-10 z-40 min-w-[210px] overflow-hidden rounded-xl border border-white/[0.08] bg-[#080808] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.5)]">
+          <div className="absolute left-0 top-10 z-40 min-w-[210px] overflow-hidden rounded-md border border-white/[0.08] bg-[#080808] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.5)]">
             {workspace.lists.map(list => (
               <button
                 key={list.id}
@@ -133,7 +133,7 @@ export default function WatchlistSection({
         )}
       </div>
 
-      <div className="overflow-hidden rounded-[18px] border border-white/[0.08] bg-[#080808] shadow-[0_16px_45px_rgba(0,0,0,.22)]">
+      <div className="overflow-hidden border-y border-white/[0.08] bg-black">
         {!editing && (
           <div className="grid grid-cols-[minmax(0,1fr)_70px_70px_52px] gap-1 border-b border-white/[0.08] px-3 py-2.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#52677b]">
             <span>Instrument</span>
@@ -249,7 +249,7 @@ export default function WatchlistSection({
         <button
           type="button"
           onClick={() => setEditing(value => !value)}
-          className={`mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-xl border text-[10px] font-bold transition ${editing ? 'border-white/[0.13] bg-[#101010] text-[#68ccff]' : 'border-white/[0.08] bg-[#080808] text-[#74899d] hover:text-[#b9c8d5]'}`}
+          className={`mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-md border text-[10px] font-bold transition ${editing ? 'border-white/[0.13] bg-[#101010] text-[#68ccff]' : 'border-white/[0.08] bg-[#080808] text-[#74899d] hover:text-[#b9c8d5]'}`}
         >
           {editing ? <Check size={14} /> : <Pencil size={13} />}
           {editing ? 'Done editing' : 'Edit watchlist'}

@@ -38,7 +38,7 @@ export default function IndicatorManager({
 
   return (
     <div>
-      <div className="flex h-11 items-center gap-2 rounded-xl border border-white/[0.08] bg-[#080808] px-3">
+      <div className="flex h-11 items-center gap-2 rounded-md border border-white/[0.08] bg-[#080808] px-3">
         <Search size={15} className="text-[#6f8295]" />
         <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search indicators" className="min-w-0 flex-1 bg-transparent text-[11px] text-[#eef4f8] outline-none placeholder:text-[#53677b]" />
       </div>
@@ -50,7 +50,7 @@ export default function IndicatorManager({
             {applied.map(indicator => {
               const editing = editingId === indicator.instanceId;
               return (
-                <div key={indicator.instanceId} className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#080808]">
+                <div key={indicator.instanceId} className="overflow-hidden rounded-md border border-white/[0.08] bg-[#080808]">
                   <div className="flex items-center gap-2 px-3 py-2.5">
                     <button type="button" onClick={() => onToggleVisible(indicator.instanceId)} className={`grid size-6 shrink-0 place-items-center rounded-md border text-[10px] ${indicator.visible !== false ? 'border-white/[0.13] bg-[#101010] text-[#65cfff]' : 'border-white/[0.08] bg-[#101010] text-[#526779]'}`} aria-label="Toggle indicator visibility">{indicator.visible !== false ? <Check size={12}/> : '—'}</button>
                     <button type="button" onClick={() => setEditingId(editing ? null : indicator.instanceId)} className="min-w-0 flex-1 text-left"><b className="block truncate text-[11px] text-[#eaf1f6]">{indicator.name}</b><span className="mt-0.5 block text-[8px] text-[#6c8094]">{summary(indicator) || 'No parameters'}</span></button>
@@ -75,10 +75,10 @@ export default function IndicatorManager({
           const appliedCount = applied.filter(item => item.id === definition.id).length;
           const favorite = favorites.includes(definition.id);
           return (
-            <div key={definition.id} className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[#080808] px-3 py-2.5">
+            <div key={definition.id} className="flex items-center gap-2 rounded-md border border-white/[0.08] bg-[#080808] px-3 py-2.5">
               <button type="button" onClick={() => onToggleFavorite(definition.id)} className={`grid size-7 shrink-0 place-items-center rounded-lg ${favorite ? 'text-[#ffc95b]' : 'text-[#536a7e]'}`} aria-label={favorite ? 'Remove favorite' : 'Add favorite'}><Star size={14} fill={favorite ? 'currentColor' : 'none'}/></button>
               <div className="min-w-0 flex-1"><b className="block truncate text-[11px] text-[#eaf1f6]">{definition.name}</b><span className="mt-0.5 block text-[8px] text-[#667b8e]">{definition.category}{appliedCount ? ` · ${appliedCount} applied` : ''}</span></div>
-              <button type="button" onClick={() => onAdd(definition.id)} className="h-8 rounded-lg border border-[#245070] bg-[#101010] px-3 text-[9px] font-black text-[#62caff]">ADD</button>
+              <button type="button" onClick={() => onAdd(definition.id)} className="h-8 rounded-md border border-[#245070] bg-[#101010] px-3 text-[9px] font-black text-[#62caff]">ADD</button>
             </div>
           );
         })}
@@ -89,7 +89,7 @@ export default function IndicatorManager({
 }
 
 function NumberField({ label, value, min = 1, max = 500, step = 1, onChange }) {
-  return <label className="block"><span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">{label}</span><input type="number" min={min} max={max} step={step} value={value} onChange={event => onChange(Number(event.target.value))} className="h-9 w-full rounded-lg border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] font-semibold text-[#dbe5ed] outline-none focus:border-[#53c7ff]" /></label>;
+  return <label className="block"><span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">{label}</span><input type="number" min={min} max={max} step={step} value={value} onChange={event => onChange(Number(event.target.value))} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] font-semibold text-[#dbe5ed] outline-none focus:border-[#53c7ff]" /></label>;
 }
 
 function SettingsPanel({ indicator, onUpdate }) {

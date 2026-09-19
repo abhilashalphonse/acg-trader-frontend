@@ -33,16 +33,16 @@ export default function ChartControls({
     : 'flex items-center gap-2 px-2.5 pb-2';
 
   const timeframeClass = focusMode
-    ? 'flex h-9 min-w-0 flex-1 items-center overflow-x-auto rounded-xl border border-white/[0.08] bg-[#080808] px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
-    : 'flex h-10 min-w-0 flex-1 items-center overflow-x-auto rounded-xl border border-white/[0.08] bg-[#080808] px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+    ? 'flex h-9 min-w-0 flex-1 items-center overflow-x-auto rounded-md border border-white/[0.08] bg-[#080808] px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+    : 'flex h-10 min-w-0 flex-1 items-center overflow-x-auto rounded-md border border-white/[0.08] bg-[#080808] px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
 
   const actionsClass = focusMode
-    ? 'flex h-9 shrink-0 items-center overflow-hidden rounded-xl border border-white/[0.08] bg-[#080808]'
-    : 'flex h-10 shrink-0 items-center overflow-hidden rounded-xl border border-white/[0.08] bg-[#080808]';
+    ? 'flex h-9 shrink-0 items-center overflow-hidden rounded-md border border-white/[0.08] bg-[#080808]'
+    : 'flex h-10 shrink-0 items-center overflow-hidden rounded-md border border-white/[0.08] bg-[#080808]';
 
   const fullScreenClass = focusMode
-    ? 'grid size-9 shrink-0 place-items-center rounded-xl border border-white/[0.08] bg-[#080808] text-[#8da0b4]'
-    : 'grid size-10 shrink-0 place-items-center rounded-xl border border-white/[0.08] bg-[#080808] text-[#8da0b4]';
+    ? 'grid size-9 shrink-0 place-items-center rounded-md border border-white/[0.08] bg-[#080808] text-[#8da0b4]'
+    : 'grid size-10 shrink-0 place-items-center rounded-md border border-white/[0.08] bg-[#080808] text-[#8da0b4]';
 
   return (
     <div className={`${rootClass} ${disabled ? 'opacity-55' : ''}`}>
@@ -53,8 +53,8 @@ export default function ChartControls({
             type="button"
             disabled={disabled}
             onClick={() => onTimeframe(tf)}
-            className={`${focusMode ? 'h-7 min-w-[25px] px-1 text-[9px]' : 'h-8 min-w-[27px] px-1 text-[10px]'} shrink-0 rounded-lg font-bold transition ${
-              timeframe === tf ? 'bg-[#101010] text-[#f4f8fc] shadow-[inset_0_1px_rgba(255,255,255,0.04)]' : 'text-[#788aa0] hover:text-[#dce7f3]'
+            className={`${focusMode ? 'h-7 min-w-[25px] px-1 text-[9px]' : 'h-8 min-w-[27px] px-1 text-[10px]'} shrink-0 rounded font-bold transition ${
+              timeframe === tf ? 'bg-[#101010] text-[#f4f8fc] ' : 'text-[#788aa0] hover:text-[#dce7f3]'
             }`}
           >
             {tf}

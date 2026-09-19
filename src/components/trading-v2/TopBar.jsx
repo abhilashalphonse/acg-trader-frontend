@@ -52,11 +52,11 @@ export default function TopBar({
           <Search size={20} strokeWidth={2} />
         </button>
 
-        <button type="button" onClick={onNotifications} aria-label="Notifications" className="relative grid size-9 place-items-center rounded-xl border border-white/[0.08] bg-black text-[#a0a0a5] shadow-[inset_0_1px_rgba(255,255,255,0.02)] active:scale-95">
+        <button type="button" onClick={onNotifications} aria-label="Notifications" className="relative grid size-9 place-items-center rounded-md border border-white/[0.08] bg-black text-[#a0a0a5]  active:scale-95">
           <Bell size={18} />
         </button>
 
-        <button type="button" onClick={onProfile} className="flex h-9 min-w-[78px] flex-col justify-center rounded-xl min-[390px]:min-w-[94px] border border-white/[0.08] bg-black px-2.5 text-left shadow-[inset_0_1px_rgba(255,255,255,0.02)] active:scale-[0.99]">
+        <button type="button" onClick={onProfile} className="flex h-9 min-w-[78px] flex-col justify-center rounded-xl min-[390px]:min-w-[94px] border border-white/[0.08] bg-black px-2.5 text-left  active:scale-[0.99]">
           <strong className="whitespace-nowrap text-[11px] font-extrabold tracking-[-0.015em] text-[#f6f9fc]">{money(balance, currency)}</strong>
           <span className="mt-0.5 flex items-center gap-1 text-[8px] font-medium text-[#7e7e84]">
             <span className={`size-1.5 rounded-full ${live ? 'bg-[#31dfa3]' : valuationStatus === 'STALE' ? 'bg-[#eab84e]' : 'bg-[#101010]'}`} />
@@ -64,7 +64,7 @@ export default function TopBar({
           </span>
         </button>
 
-        <button type="button" onClick={onProfile} aria-label="Profile" className="hidden size-9 place-items-center rounded-full border min-[380px]:grid border-white/[0.08] bg-[#080808] text-[#99adc3] shadow-[0_5px_18px_rgba(0,0,0,0.25)] active:scale-95">
+        <button type="button" onClick={onProfile} aria-label="Profile" className="hidden size-9 place-items-center rounded-md border min-[380px]:grid border-white/[0.08] bg-[#080808] text-[#99adc3]  active:scale-95">
           <UserRound size={18} fill="currentColor" className="opacity-90" />
         </button>
       </div>

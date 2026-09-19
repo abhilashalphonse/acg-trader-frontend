@@ -124,7 +124,7 @@ export default function PositionsPanel({
   };
 
   return (
-    <section className="mt-3 overflow-visible rounded-[18px] border border-white/[0.08] bg-black">
+    <section className="mt-3 overflow-visible border-y border-white/[0.08] bg-black">
       <div className="flex h-[50px] items-center justify-between gap-2 border-b border-white/[0.07] px-3">
         <div className="flex h-full min-w-0 items-stretch gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {tabs.map(item => (
@@ -149,7 +149,7 @@ export default function PositionsPanel({
             const sideBuy = position.side === 'BUY';
 
             return (
-              <article key={position.id} className="overflow-hidden rounded-[14px] border border-white/[0.08] bg-black">
+              <article key={position.id} className="overflow-hidden border-b border-white/[0.08] bg-black last:border-b-0">
                 <div className="px-3 pb-2.5 pt-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -168,8 +168,8 @@ export default function PositionsPanel({
                   </div>
 
                   <div className="mt-2.5 grid grid-cols-2 gap-1.5">
-                    <div className="flex items-center justify-between rounded-xl border border-white/[0.07] bg-black px-2.5 py-2"><span className="text-[8px] font-semibold text-[#737373]">SL</span><b className="text-[9px] font-semibold text-[#b3b3b3]">{formatInstrumentPrice(position.sl, instrumentForSymbol(markets, position.symbol))}</b></div>
-                    <div className="flex items-center justify-between rounded-xl border border-white/[0.07] bg-black px-2.5 py-2"><span className="text-[8px] font-semibold text-[#737373]">TP</span><b className="text-[9px] font-semibold text-[#b3b3b3]">{formatInstrumentPrice(position.tp, instrumentForSymbol(markets, position.symbol))}</b></div>
+                    <div className="flex items-center justify-between rounded-md border border-white/[0.07] bg-[#080808] px-2.5 py-2"><span className="text-[8px] font-semibold text-[#737373]">SL</span><b className="text-[9px] font-semibold text-[#b3b3b3]">{formatInstrumentPrice(position.sl, instrumentForSymbol(markets, position.symbol))}</b></div>
+                    <div className="flex items-center justify-between rounded-md border border-white/[0.07] bg-[#080808] px-2.5 py-2"><span className="text-[8px] font-semibold text-[#737373]">TP</span><b className="text-[9px] font-semibold text-[#b3b3b3]">{formatInstrumentPrice(position.tp, instrumentForSymbol(markets, position.symbol))}</b></div>
                   </div>
                 </div>
 
@@ -189,7 +189,7 @@ export default function PositionsPanel({
 
                     {editing && <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2 rounded-xl border border-white/[0.08] bg-black p-2"><Adjust label="SL" value={formatInstrumentPrice((protectionDrafts[position.id] || {}).sl, instrumentForSymbol(markets, position.symbol))} onMinus={() => nudge(position, 'sl', -1)} onPlus={() => nudge(position, 'sl', 1)} /><Adjust label="TP" value={formatInstrumentPrice((protectionDrafts[position.id] || {}).tp, instrumentForSymbol(markets, position.symbol))} onMinus={() => nudge(position, 'tp', -1)} onPlus={() => nudge(position, 'tp', 1)} /><button type="button" onClick={() => applyProtectionDraft(position)} className="grid size-9 place-items-center rounded-lg border border-[#23664f] bg-black text-[#44dda9]" aria-label="Apply modification"><Check size={14}/></button></div>}
 
-                    <div className="rounded-xl border border-white/[0.08] bg-black p-2.5">
+                    <div className="border-t border-white/[0.08] bg-black p-2.5">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2"><ShieldCheck size={15} className={position.trailingEnabled ? 'text-[#53c7ff]' : 'text-[#737373]'}/><div><b className="block text-[10px] text-[#d4d4d4]">Trailing Stop</b><span className="mt-0.5 block text-[8px] text-[#737373]">Automatically moves the stop as price advances</span></div></div>
                         <button type="button" onClick={() => onSetTrailing(position.id, !position.trailingEnabled, position.trailingPips)} className={`relative h-6 w-11 rounded-full transition ${position.trailingEnabled ? 'bg-[#101010]' : 'bg-[#101010]'}`} aria-label="Toggle trailing stop"><span className={`absolute top-1 size-4 rounded-full bg-white transition ${position.trailingEnabled ? 'left-6' : 'left-1'}`} /></button>
@@ -197,7 +197,7 @@ export default function PositionsPanel({
                       <div className="mt-2 flex items-center gap-2"><span className="text-[8px] font-semibold text-[#737373]">Distance</span><button type="button" onClick={() => onSetTrailing(position.id, true, Math.max(1, Number(position.trailingPips) - 1))} className="grid size-7 place-items-center rounded-lg border border-white/[0.08] bg-[#080808] text-[#a3a3a3]"><Minus size={12}/></button><b className="min-w-[54px] rounded-lg border border-white/[0.08] bg-black px-2 py-1.5 text-center text-[9px] text-[#d4d4d4]">{position.trailingPips || 5} pips</b><button type="button" onClick={() => onSetTrailing(position.id, true, Number(position.trailingPips || 5) + 1)} className="grid size-7 place-items-center rounded-lg border border-white/[0.08] bg-[#080808] text-[#a3a3a3]"><Plus size={12}/></button></div>
                     </div>
 
-                    <div className="rounded-xl border border-white/[0.08] bg-black p-2.5">
+                    <div className="border-t border-white/[0.08] bg-black p-2.5">
                       <div className="flex items-center gap-2 text-[#b3b3b3]"><TrendingDown size={14}/><b className="text-[10px]">Partial close</b></div>
                       <div className="mt-2 grid grid-cols-4 gap-1.5">{[25, 50, 75, 100].map(percent => <button key={percent} type="button" onClick={() => onClosePosition(position.id, percent)} className="h-8 rounded-lg border border-white/[0.08] bg-black text-[9px] font-bold text-[#b3b3b3] active:bg-[#080808]">{percent === 100 ? 'ALL' : `${percent}%`}</button>)}</div>
                       <div className="mt-2 flex items-center gap-2"><input inputMode="numeric" value={customClose[position.id] ?? ''} onChange={event => setCustomClose(current => ({ ...current, [position.id]: event.target.value.replace(/[^0-9]/g, '').slice(0, 3) }))} placeholder="Custom %" className="h-9 min-w-0 flex-1 rounded-lg border border-white/[0.08] bg-black px-3 text-[9px] font-semibold text-[#e5e5e5] outline-none placeholder:text-[#525252]"/><button type="button" onClick={() => applyCustomClose(position)} className="h-9 rounded-lg border border-[#642832] bg-black px-3 text-[9px] font-bold text-[#ff7a86]">Close</button></div>
@@ -214,7 +214,7 @@ export default function PositionsPanel({
         <div className="space-y-1.5 p-2">
           {!pendingOrders.length && <div className="grid h-[138px] place-items-center text-center text-[10px] font-medium text-[#737373]"><div><b className="block text-[#b3b3b3]">No pending orders</b><span className="mt-1 block">Choose Limit, Stop, or Stop Limit above</span></div></div>}
           {pendingOrders.map(order => (
-            <div key={order.id} className="rounded-xl border border-white/[0.08] bg-black px-3 py-2.5">
+            <div key={order.id} className="border-b border-white/[0.08] bg-black px-3 py-2.5 last:border-b-0">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0"><div className="flex items-center gap-1.5"><InstrumentAvatar instrument={instrumentForSymbol(markets, order.symbol)} size={22}/><strong className="truncate text-[11px] text-[#f5f5f5]">{formatSymbol(order.symbol || 'Current symbol')}</strong><span className={`rounded-md px-1.5 py-1 text-[7px] font-black ${order.side === 'buy' ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{String(order.side).toUpperCase()} {String(order.orderType).toUpperCase()}</span></div><p className="mt-1 text-[8px] text-[#737373]">{Number(order.lots || 0).toFixed(2)} lots · Entry {formatInstrumentPrice(order.entry, instrumentForSymbol(markets, order.symbol))} · {order.expiration}</p></div>
                 <div className="flex shrink-0 items-center gap-1"><button type="button" onClick={() => onModifyPending(order.id)} className="grid size-8 place-items-center rounded-lg border border-white/[0.08] bg-black text-[#a3a3a3]" aria-label="Modify pending order"><SlidersHorizontal size={13}/></button><button type="button" onClick={() => onCancelPending(order.id)} className="grid size-8 place-items-center rounded-lg border border-[#642832] bg-black text-[#ff7480]" aria-label="Cancel pending order"><X size={13}/></button></div>
@@ -228,7 +228,7 @@ export default function PositionsPanel({
 
       {tab === 'history' && (
         <div className="space-y-1.5 p-2">
-          {!positionHistory.length ? <div className="grid h-[122px] place-items-center text-[10px] font-medium text-[#737373]">Closed positions will appear here</div> : positionHistory.map((item, index) => <div key={`${item.id}-${index}`} className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-black px-3 py-2.5"><div><div className="flex items-center gap-1.5"><InstrumentAvatar instrument={instrumentForSymbol(markets, item.symbol)} size={22}/><strong className="text-[11px] text-[#f5f5f5]">{formatSymbol(item.symbol)}</strong><span className="rounded-md bg-[#080808] px-1.5 py-1 text-[7px] font-bold text-[#a3a3a3]">{item.closeType || 'Closed'}</span></div><p className="mt-1 text-[8px] text-[#737373]">{item.side} · {Number(item.volume).toFixed(2)} lots · {item.closedAt}</p></div><b className={`text-[11px] ${Number(item.pnl) >= 0 ? 'text-[#31d79d]' : 'text-[#ff6975]'}`}>{formatPnl(item.pnl)}</b></div>)}
+          {!positionHistory.length ? <div className="grid h-[122px] place-items-center text-[10px] font-medium text-[#737373]">Closed positions will appear here</div> : positionHistory.map((item, index) => <div key={`${item.id}-${index}`} className="flex items-center justify-between border-b border-white/[0.08] bg-black px-3 py-2.5 last:border-b-0"><div><div className="flex items-center gap-1.5"><InstrumentAvatar instrument={instrumentForSymbol(markets, item.symbol)} size={22}/><strong className="text-[11px] text-[#f5f5f5]">{formatSymbol(item.symbol)}</strong><span className="rounded-md bg-[#080808] px-1.5 py-1 text-[7px] font-bold text-[#a3a3a3]">{item.closeType || 'Closed'}</span></div><p className="mt-1 text-[8px] text-[#737373]">{item.side} · {Number(item.volume).toFixed(2)} lots · {item.closedAt}</p></div><b className={`text-[11px] ${Number(item.pnl) >= 0 ? 'text-[#31d79d]' : 'text-[#ff6975]'}`}>{formatPnl(item.pnl)}</b></div>)}
         </div>
       )}
 

@@ -11,7 +11,7 @@ const items = [
 
 export default function BottomNavbar({ active = 'chart', onChange = () => {} }) {
   return (
-    <nav className="fixed bottom-0 left-1/2 z-40 w-full max-w-[460px] -translate-x-1/2 border-t border-[#202022] bg-[#080808]/96 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-1.5 backdrop-blur-xl" aria-label="Primary navigation">
+    <nav className="fixed bottom-0 left-1/2 z-40 w-full max-w-[460px] -translate-x-1/2 border-t border-[#202022] bg-black px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-1.5" aria-label="Primary navigation">
       <div className="grid grid-cols-5 gap-1">
         {items.map(({ id, label, Icon }) => {
           const selected = active === id;

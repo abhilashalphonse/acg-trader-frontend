@@ -160,11 +160,11 @@ export default function DesktopTerminal({
 
   return (
     <div ref={shellRef} className="relative h-dvh min-h-0 overflow-hidden bg-black text-[#f4f8fb]">
-      {notice && <div className="absolute right-4 top-[72px] z-[120] flex max-w-[390px] items-center gap-3 rounded-xl border border-white/[0.08] bg-[#101010]/95 px-3 py-2.5 text-[10px] font-semibold text-[#dce9f2] shadow-[0_16px_48px_rgba(0,0,0,.45)]"><span>{notice}</span><button type="button" onClick={() => setNotice('')} className="grid size-6 place-items-center rounded-md text-[#8094a7]"><X size={13}/></button></div>}
+      {notice && <div className="absolute right-4 top-[72px] z-[120] flex max-w-[390px] items-center gap-3 rounded-md border border-white/[0.08] bg-[#101010]/95 px-3 py-2.5 text-[10px] font-semibold text-[#dce9f2] shadow-[0_16px_48px_rgba(0,0,0,.45)]"><span>{notice}</span><button type="button" onClick={() => setNotice('')} className="grid size-6 place-items-center rounded-md text-[#8094a7]"><X size={13}/></button></div>}
 
       <header className="flex h-16 items-center border-b border-white/[0.08] bg-[#080808] px-4 shadow-[0_1px_0_rgba(255,255,255,0.015)]">
         <div className="flex min-w-[205px] items-center gap-2"><span className="text-[17px] font-extrabold tracking-[-0.03em]">ACG Trader</span><span className="rounded-md bg-[#101010] px-1.5 py-1 text-[9px] font-extrabold tracking-[0.05em] text-[#56c6ff]">V2</span></div>
-        <div className="ml-3 hidden items-stretch divide-x divide-white/[0.08] rounded-xl border border-white/[0.08] bg-[#080808] xl:flex">{[
+        <div className="ml-3 hidden items-stretch divide-x divide-white/[0.08] rounded-md border border-white/[0.08] bg-[#080808] xl:flex">{[
           ['Balance', money(account?.balance, currency)],
           ['Equity', money(account?.equity, currency)],
           ['Floating P/L', formatPnl(accountPnl, currency)],
@@ -181,7 +181,7 @@ export default function DesktopTerminal({
 
       <div className="grid h-[calc(100dvh-64px)] min-h-[656px] grid-cols-[58px_230px_minmax(0,1fr)] 2xl:grid-cols-[62px_270px_minmax(0,1fr)]">
         <aside className="flex min-h-0 flex-col items-center border-r border-white/[0.08] bg-[#080808] py-2">
-          {navItems.map(([id, Icon, label]) => { const active = activeNav === id; return <button key={id} type="button" title={label} onClick={() => handleNav(id)} className={`mb-1 flex h-12 w-11 flex-col items-center justify-center gap-1 rounded-xl text-[7px] font-semibold transition ${active ? 'bg-[#101010] text-[#53c7ff]' : 'text-[#65798e] hover:bg-white/[0.03] hover:text-[#c8d6e3]'}`}><Icon size={18} strokeWidth={1.8}/><span>{label}</span></button>; })}
+          {navItems.map(([id, Icon, label]) => { const active = activeNav === id; return <button key={id} type="button" title={label} onClick={() => handleNav(id)} className={`mb-1 flex h-12 w-11 flex-col items-center justify-center gap-1 rounded-md text-[7px] font-semibold transition ${active ? 'border-l-2 border-[#53c7ff] bg-transparent text-[#53c7ff]' : 'text-[#65798e] hover:bg-white/[0.03] hover:text-[#c8d6e3]'}`}><Icon size={18} strokeWidth={1.8}/><span>{label}</span></button>; })}
           <div className="flex-1" />
           <button type="button" onClick={onOpenSettings} title="Settings" className="grid size-11 place-items-center rounded-xl text-[#65798e] hover:bg-white/[0.03] hover:text-white"><Settings size={18}/></button>
         </aside>
@@ -209,7 +209,7 @@ export default function DesktopTerminal({
                   : statusLabel === 'ERROR' || statusLabel === 'SUBSCRIPTION_ERROR' || statusLabel === 'DISCONNECTED'
                     ? 'text-[#ff7882]'
                     : 'text-[#687d92]';
-            return <div key={item.symbol} className={`grid grid-cols-[1fr_.68fr_.68fr_28px] items-center border-b border-white/[0.08] px-3 py-1.5 transition ${selected ? 'bg-[#101010] shadow-[inset_2px_0_#49bfff]' : 'hover:bg-[#101010]'}`}>
+            return <div key={item.symbol} className={`grid grid-cols-[1fr_.68fr_.68fr_28px] items-center border-b border-white/[0.08] px-3 py-1.5 transition ${selected ? 'border-l-2 border-[#53c7ff] bg-[#080808]' : 'hover:bg-[#080808]'}`}>
               <button type="button" onClick={() => onSelectSymbol(item.symbol)} className="flex min-w-0 items-center gap-2 py-1 text-left"><InstrumentAvatar instrument={item} size={26}/><span className="min-w-0"><b className="block truncate text-[10px] text-[#dce7f1]">{item.displaySymbol || displaySymbol(item.symbol)}</b><small className={`mt-1 block truncate text-[7px] ${statusClass}`}>{statusLabel}</small></span></button>
               <button type="button" onClick={() => onSelectSymbol(item.symbol)} className="py-2 text-right font-mono text-[9px] font-bold text-[#a9bac9]">{item.bid || '—'}</button>
               <button type="button" onClick={() => onSelectSymbol(item.symbol)} className="py-2 text-right font-mono text-[9px] text-[#8ea1b5]">{item.ask || '—'}</button>
