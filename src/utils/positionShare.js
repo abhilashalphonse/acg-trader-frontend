@@ -232,9 +232,6 @@ export async function renderPositionSharePng(model, profile = {}) {
   ctx.fillStyle = white;
   ctx.font = '900 30px Inter, Arial, sans-serif';
   ctx.fillText('ACG TRADER', 82, 108);
-  ctx.fillStyle = cyan;
-  ctx.font = '800 16px Inter, Arial, sans-serif';
-  ctx.fillText('POSITION / LIVE SNAPSHOT', 278, 107);
 
   ctx.strokeStyle = 'rgba(83,199,255,0.34)';
   ctx.lineWidth = 3;
@@ -311,36 +308,31 @@ export async function renderPositionSharePng(model, profile = {}) {
     ctx.fillText('LIVE MARK-TO-MARKET', 120, 730);
   }
 
-  // Three compact metric tiles.
+  // Two balanced metric tiles.
   const tileY = 846;
-  const tileW = 288;
+  const tileW = 445;
   const tileGap = 26;
-  const tileXs = [82, 82 + tileW + tileGap, 82 + (tileW + tileGap) * 2];
+  const tileXs = [82, 82 + tileW + tileGap];
   const stats = [
-    ['ENTRY', model.entryDisplay || '—', white],
-    ['LAST', model.currentDisplay || '—', white],
-    ['MOVE', formatSharePips(model.pips), resultColor],
+    ['ENTRY', model.entryDisplay || '—', 'POSITION OPEN'],
+    ['LAST', model.currentDisplay || '—', 'MARK PRICE'],
   ];
 
-  stats.forEach(([label, value, color], index) => {
+  stats.forEach(([label, value, helper], index) => {
     const x = tileXs[index];
     drawRoundedRect(ctx, x, tileY, tileW, 138, 12, 'rgba(255,255,255,0.09)', 'rgba(8,8,8,0.92)');
-    ctx.fillStyle = index === 2 ? 'rgba(83,199,255,0.85)' : '#777777';
+    ctx.fillStyle = '#777777';
     ctx.font = '800 16px Inter, Arial, sans-serif';
     ctx.fillText(label, x + 22, tileY + 34);
 
-    ctx.fillStyle = color;
-    const valueSize = fitText(ctx, value, tileW - 44, index === 2 ? 29 : 31, 18, 800);
-    ctx.font = index === 2
-      ? '800 ' + valueSize + 'px Inter, Arial, sans-serif'
-      : '750 ' + valueSize + 'px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.fillStyle = white;
+    const valueSize = fitText(ctx, value, tileW - 44, 34, 20, 800);
+    ctx.font = '750 ' + valueSize + 'px ui-monospace, SFMono-Regular, Menlo, monospace';
     ctx.fillText(value, x + 22, tileY + 88);
 
-    if (index < 2) {
-      ctx.fillStyle = '#555555';
-      ctx.font = '650 14px Inter, Arial, sans-serif';
-      ctx.fillText(index === 0 ? 'POSITION OPEN' : 'MARK PRICE', x + 22, tileY + 116);
-    }
+    ctx.fillStyle = '#555555';
+    ctx.font = '650 14px Inter, Arial, sans-serif';
+    ctx.fillText(helper, x + 22, tileY + 116);
   });
 
   // Status line.
