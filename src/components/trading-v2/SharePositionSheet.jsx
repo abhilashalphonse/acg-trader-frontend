@@ -55,12 +55,12 @@ export default function SharePositionSheet({ position, instrument, onClose = () 
   }, []);
 
   const handleSave = () => {
-    if (!blob) return;
+    if (!blob || busy) return;
     downloadPositionShare(blob, model);
   };
 
   const handleShare = async () => {
-    if (!blob) return;
+    if (!blob || busy) return;
     setError('');
     try {
       await sharePositionPnl(blob, model);
@@ -70,62 +70,65 @@ export default function SharePositionSheet({ position, instrument, onClose = () 
     }
   };
 
+  const disabled = !blob || busy || profileLoading;
+
   return (
     <div
-      className="fixed inset-0 z-[200] overflow-hidden bg-black sm:grid sm:place-items-center sm:bg-black/85 sm:p-4"
+      className="fixed inset-0 z-[200] overflow-hidden bg-black overscroll-none sm:grid sm:place-items-center sm:bg-black/85 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label="Share position P&L"
     >
       <button type="button" className="absolute inset-0 hidden sm:block" onClick={onClose} aria-label="Close share preview" />
 
-      <section className="relative z-10 flex h-[100dvh] min-h-0 w-full flex-col overflow-hidden bg-black sm:h-[min(92dvh,900px)] sm:max-w-[460px] sm:rounded-lg sm:border sm:border-white/[0.10]">
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/[0.08] px-4">
+      <section className="relative z-10 grid h-[100svh] max-h-[100dvh] min-h-0 w-full grid-rows-[56px_minmax(0,1fr)_auto] overflow-hidden bg-black sm:h-[min(92dvh,900px)] sm:max-w-[460px] sm:rounded-lg sm:border sm:border-white/[0.10]">
+        <header className="flex h-14 min-h-0 items-center justify-between border-b border-white/[0.08] px-4">
           <div className="min-w-0">
-            <b className="block text-[12px] font-black text-[#f5f5f5]">Share position P&amp;L</b>
-            <span className="mt-0.5 block truncate text-[8px] text-[#737373]">
+            <b className="block text-[12px] font-black leading-none text-[#f5f5f5]">Share position P&amp;L</b>
+            <span className="mt-1 block truncate text-[8px] leading-none text-[#737373]">
               ACG Trader · {profile.shareTemplate === 'PHOTO' && profile.sharePhotoDataUrl ? 'Photo' : 'Performance'} template
             </span>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="grid size-9 shrink-0 place-items-center rounded-md border border-white/[0.08] bg-[#080808] text-[#a3a3a3]"
+            className="grid size-9 shrink-0 touch-manipulation appearance-none place-items-center rounded-md border border-white/[0.08] bg-[#080808] text-[#a3a3a3]"
             aria-label="Close"
           >
             <X size={15} />
           </button>
         </header>
 
-        <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden px-3 py-3">
-          <div className="flex h-full w-full min-h-0 items-center justify-center overflow-hidden rounded-md border border-white/[0.08] bg-[#050505] shadow-[0_20px_60px_rgba(0,0,0,.55)]">
+        <main className="flex min-h-0 items-center justify-center overflow-hidden p-3">
+          <div className="flex h-full min-h-0 w-full items-center justify-center overflow-hidden rounded-md bg-black">
             {previewUrl ? (
               <img
                 src={previewUrl}
                 alt={model.symbol + ' ' + model.side + ' unrealized P&L share card'}
-                className="block h-auto max-h-full w-auto max-w-full object-contain"
+                className="block max-h-full max-w-full select-none object-contain"
+                draggable={false}
               />
             ) : (
-              <div className="grid h-full min-h-[300px] w-full place-items-center text-[10px] text-[#737373]">
+              <div className="grid h-full min-h-[280px] w-full place-items-center rounded-md border border-white/[0.08] bg-[#050505] text-[10px] text-[#737373]">
                 {busy || profileLoading ? 'Generating share image…' : 'Preview unavailable'}
               </div>
             )}
           </div>
-        </div>
+        </main>
 
-        {error && (
-          <div className="mx-3 mb-2 shrink-0 rounded-md border border-[#642832] bg-black px-3 py-2 text-[9px] text-[#ff7a86]">
-            {error}
-          </div>
-        )}
+        <div className="relative z-20 shrink-0 border-t border-white/[0.08] bg-black px-3 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
+          {error && (
+            <div className="mb-2 rounded-md border border-[#642832] bg-black px-3 py-2 text-[9px] text-[#ff7a86]">
+              {error}
+            </div>
+          )}
 
-        <footer className="shrink-0 border-t border-white/[0.08] bg-black px-3 pt-3 pb-[max(12px,env(safe-area-inset-bottom))]">
-          <div className="grid w-full grid-cols-2 gap-2">
+          <div className="flex w-full gap-2">
             <button
               type="button"
-              disabled={!blob || busy}
+              disabled={disabled}
               onClick={handleSave}
-              className="flex h-12 min-w-0 items-center justify-center gap-2 overflow-hidden rounded-md border border-white/[0.10] bg-[#080808] px-3 text-[10px] font-bold text-[#f5f5f5] disabled:opacity-40"
+              className="box-border flex h-12 min-w-0 flex-1 touch-manipulation appearance-none items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-md border border-white/[0.10] bg-[#080808] px-3 text-[10px] font-bold leading-none text-[#f5f5f5] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Download size={15} className="shrink-0" />
               <span className="truncate">Save PNG</span>
@@ -133,15 +136,15 @@ export default function SharePositionSheet({ position, instrument, onClose = () 
 
             <button
               type="button"
-              disabled={!blob || busy}
+              disabled={disabled}
               onClick={handleShare}
-              className="flex h-12 min-w-0 items-center justify-center gap-2 overflow-hidden rounded-md border border-[#236b8b] bg-[#05090c] px-3 text-[10px] font-black text-[#53c7ff] disabled:opacity-40"
+              className="box-border flex h-12 min-w-0 flex-1 touch-manipulation appearance-none items-center justify-center gap-2 overflow-hidden whitespace-nowrap rounded-md border border-[#236b8b] bg-[#05090c] px-3 text-[10px] font-black leading-none text-[#53c7ff] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Share2 size={15} className="shrink-0" />
               <span className="truncate">Share</span>
             </button>
           </div>
-        </footer>
+        </div>
       </section>
     </div>
   );
