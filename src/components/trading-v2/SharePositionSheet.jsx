@@ -3,12 +3,9 @@ import { Download, Share2, X } from 'lucide-react';
 import {
   buildPositionShareModel,
   downloadPositionShare,
-  formatSharePips,
-  formatSharePnl,
   renderPositionSharePng,
   sharePositionPnl,
 } from '../../utils/positionShare.js';
-import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
 import { useTraderProfile } from '../../hooks/useTraderProfile.js';
 
 export default function SharePositionSheet({ position, instrument, onClose = () => {} }) {
@@ -23,6 +20,7 @@ export default function SharePositionSheet({ position, instrument, onClose = () 
     let cancelled = false;
     let objectUrl = '';
     if (profileLoading) return undefined;
+
     setBusy(true);
     setError('');
     renderPositionSharePng(model, profile)
@@ -45,6 +43,14 @@ export default function SharePositionSheet({ position, instrument, onClose = () 
     };
   }, [model, profile, profileLoading]);
 
+  useEffect(() => {
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, []);
+
   const handleShare = async () => {
     if (!blob) return;
     setError('');
@@ -61,41 +67,41 @@ export default function SharePositionSheet({ position, instrument, onClose = () 
     downloadPositionShare(blob, model);
   };
 
-  const positive = Number(model.pnl) >= 0;
-
   return (
-    <div className="fixed inset-0 z-[180] flex items-end justify-center bg-black/80 p-0 backdrop-blur-[2px] sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label="Share position P&L">
-      <button type="button" className="absolute inset-0 cursor-default" onClick={onClose} aria-label="Close share preview" />
-      <section className="relative z-10 w-full max-w-[430px] border border-white/[0.10] bg-black sm:rounded-lg">
-        <header className="flex h-12 items-center justify-between border-b border-white/[0.08] px-4">
-          <div>
-            <b className="block text-[12px] text-[#f5f5f5]">ACG Trader</b>
-            <span className="mt-0.5 block text-[8px] text-[#737373]">Share position P&amp;L · {profile.shareTemplate === 'PHOTO' && profile.sharePhotoDataUrl ? 'Photo' : 'Performance'} template</span>
+    <div className="fixed inset-0 z-[180] bg-black sm:grid sm:place-items-center sm:bg-black/85 sm:p-4" role="dialog" aria-modal="true" aria-label="Share position P&L">
+      <button type="button" className="absolute inset-0 hidden cursor-default sm:block" onClick={onClose} aria-label="Close share preview" />
+
+      <section className="relative z-10 flex h-[100dvh] w-full flex-col overflow-hidden bg-black sm:h-auto sm:max-h-[92dvh] sm:max-w-[430px] sm:rounded-lg sm:border sm:border-white/[0.10]">
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/[0.08] px-4">
+          <div className="min-w-0">
+            <b className="block text-[12px] text-[#f5f5f5]">Share position P&amp;L</b>
+            <span className="mt-0.5 block truncate text-[8px] text-[#737373]">
+              ACG Trader · {profile.shareTemplate === 'PHOTO' && profile.sharePhotoDataUrl ? 'Photo' : 'Performance'} template
+            </span>
           </div>
-          <button type="button" onClick={onClose} className="grid size-8 place-items-center rounded-md border border-white/[0.08] text-[#a3a3a3]" aria-label="Close"><X size={14}/></button>
+          <button type="button" onClick={onClose} className="grid size-9 shrink-0 place-items-center rounded-md border border-white/[0.08] bg-black text-[#a3a3a3]" aria-label="Close"><X size={15}/></button>
         </header>
 
-        <div className="p-3">
-          <div className="overflow-hidden border border-white/[0.08] bg-[#080808]">
+        <div className="flex min-h-0 flex-1 flex-col p-3">
+          <div className="grid min-h-0 flex-1 place-items-center overflow-hidden border border-white/[0.08] bg-[#050505]">
             {previewUrl ? (
-              <img src={previewUrl} alt={model.symbol + ' ' + model.side + ' unrealized P&L share card'} className="block aspect-[4/5] w-full object-cover" />
+              <img
+                src={previewUrl}
+                alt={model.symbol + ' ' + model.side + ' unrealized P&L share card'}
+                className="block max-h-full max-w-full object-contain"
+              />
             ) : (
-              <div className="grid aspect-[4/5] place-items-center text-[10px] text-[#737373]">{busy || profileLoading ? 'Generating share image…' : 'Preview unavailable'}</div>
+              <div className="grid h-full min-h-[320px] w-full place-items-center text-[10px] text-[#737373]">
+                {busy || profileLoading ? 'Generating share image…' : 'Preview unavailable'}
+              </div>
             )}
           </div>
 
-          <div className="mt-3 grid grid-cols-2 gap-2 border-y border-white/[0.08] py-2 text-[9px]">
-            <div><span className="block text-[#737373]">Position</span><b className="mt-1 block text-[#f5f5f5]">{model.symbol} · {model.side} · {model.volume.toFixed(2)} lots</b></div>
-            <div className="text-right"><span className="block text-[#737373]">{model.roiPercent == null ? 'Unrealized P&L' : 'Trading ROI'}</span><b className={'mt-1 block ' + (positive ? 'text-[#2ddb9f]' : 'text-[#ff5f6d]')}>{model.roiPercent == null ? formatSharePnl(model.pnl, model.currency) : `${model.roiPercent >= 0 ? '+' : ''}${model.roiPercent.toFixed(2)}%`}</b></div>
-            <div><span className="block text-[#737373]">Entry</span><b className="mt-1 block font-mono text-[#d4d4d4]">{formatInstrumentPrice(model.entryPrice, instrument)}</b></div>
-            <div className="text-right"><span className="block text-[#737373]">Current · Distance</span><b className="mt-1 block font-mono text-[#d4d4d4]">{formatInstrumentPrice(model.currentPrice, instrument)} · {formatSharePips(model.pips)}</b></div>
-          </div>
+          {error && <div className="mt-2 shrink-0 border border-[#642832] bg-black px-3 py-2 text-[9px] text-[#ff7a86]">{error}</div>}
 
-          {error && <div className="mt-2 border border-[#642832] bg-black px-3 py-2 text-[9px] text-[#ff7a86]">{error}</div>}
-
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button type="button" disabled={!blob || busy} onClick={handleSave} className="flex h-10 items-center justify-center gap-2 rounded-md border border-white/[0.10] bg-black text-[10px] font-bold text-[#d4d4d4] disabled:opacity-40"><Download size={14}/>Save PNG</button>
-            <button type="button" disabled={!blob || busy} onClick={handleShare} className="acg-execution-buy flex h-10 items-center justify-center gap-2 rounded-md border bg-black text-[10px] font-black text-[#2ddb9f] disabled:opacity-40"><Share2 size={14}/>Share</button>
+          <div className="mt-3 grid shrink-0 grid-cols-2 gap-2 pb-[max(0px,env(safe-area-inset-bottom))]">
+            <button type="button" disabled={!blob || busy} onClick={handleSave} className="flex h-11 items-center justify-center gap-2 rounded-md border border-white/[0.10] bg-black text-[10px] font-bold text-[#d4d4d4] disabled:opacity-40"><Download size={14}/>Save PNG</button>
+            <button type="button" disabled={!blob || busy} onClick={handleShare} className="flex h-11 items-center justify-center gap-2 rounded-md border border-[#236b8b] bg-black text-[10px] font-black text-[#53c7ff] disabled:opacity-40"><Share2 size={14}/>Share</button>
           </div>
         </div>
       </section>

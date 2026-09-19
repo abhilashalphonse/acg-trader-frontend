@@ -169,140 +169,154 @@ export async function renderPositionSharePng(model, profile = {}) {
   const photo = await loadCanvasImage(profile?.sharePhotoDataUrl || null).catch(() => null);
   const photoTemplate = profile?.shareTemplate === 'PHOTO' && Boolean(photo);
   const positive = Number(model.pnl) >= 0;
-  const accent = positive ? '#2ddb9f' : '#ff5f6d';
+  const resultColor = positive ? '#2ddb9f' : '#ff5f6d';
   const sideColor = model.side === 'BUY' ? '#2ddb9f' : '#ff5f6d';
+  const cyan = '#53c7ff';
 
   ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   if (photoTemplate) {
     drawImageCover(ctx, photo, 0, 0, canvas.width, canvas.height);
-    const photoShade = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    photoShade.addColorStop(0, 'rgba(0,0,0,0.24)');
-    photoShade.addColorStop(0.48, 'rgba(0,0,0,0.42)');
-    photoShade.addColorStop(1, 'rgba(0,0,0,0.96)');
-    ctx.fillStyle = photoShade;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    const sideShade = ctx.createLinearGradient(0, 0, canvas.width, 0);
-    sideShade.addColorStop(0, 'rgba(0,0,0,0.42)');
-    sideShade.addColorStop(0.7, 'rgba(0,0,0,0.02)');
-    ctx.fillStyle = sideShade;
+    const shade = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    shade.addColorStop(0, 'rgba(0,0,0,0.34)');
+    shade.addColorStop(0.5, 'rgba(0,0,0,0.60)');
+    shade.addColorStop(1, 'rgba(0,0,0,0.96)');
+    ctx.fillStyle = shade;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   } else {
-    const glow = ctx.createRadialGradient(880, 170, 30, 880, 170, 820);
-    glow.addColorStop(0, positive ? 'rgba(45,219,159,0.22)' : 'rgba(255,95,109,0.20)');
-    glow.addColorStop(0.5, positive ? 'rgba(5,69,48,0.10)' : 'rgba(92,18,29,0.09)');
+    const glow = ctx.createRadialGradient(860, 160, 20, 860, 160, 760);
+    glow.addColorStop(0, 'rgba(83,199,255,0.16)');
+    glow.addColorStop(0.45, 'rgba(20,66,88,0.08)');
     glow.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  drawCircleAvatar(ctx, photo, 82, 76, 82, displayName);
+  ctx.strokeStyle = 'rgba(83,199,255,0.13)';
+  ctx.lineWidth = 1;
+  for (let x = 82; x <= 998; x += 114) {
+    ctx.beginPath(); ctx.moveTo(x, 250); ctx.lineTo(x, 1130); ctx.stroke();
+  }
+  for (let y = 250; y <= 1130; y += 110) {
+    ctx.beginPath(); ctx.moveTo(82, y); ctx.lineTo(998, y); ctx.stroke();
+  }
+
   ctx.fillStyle = '#f5f5f5';
-  ctx.font = '800 34px Inter, Arial, sans-serif';
-  ctx.fillText(displayName, 190, 118);
+  ctx.font = '900 28px Inter, Arial, sans-serif';
+  ctx.fillText('ACG TRADER', 82, 96);
+  ctx.fillStyle = cyan;
+  ctx.font = '800 17px Inter, Arial, sans-serif';
+  ctx.fillText('/ POSITION SNAPSHOT', 265, 95);
 
-  ctx.fillStyle = '#8a8a8a';
-  ctx.font = '600 20px Inter, Arial, sans-serif';
-  ctx.fillText('ACG Trader', 190, 151);
+  ctx.strokeStyle = 'rgba(83,199,255,0.35)';
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(82, 126); ctx.lineTo(998, 126); ctx.stroke();
+
+  drawCircleAvatar(ctx, photo, 82, 160, 74, displayName);
+  ctx.fillStyle = '#f5f5f5';
+  ctx.font = '800 31px Inter, Arial, sans-serif';
+  ctx.fillText(displayName, 180, 196);
+  ctx.fillStyle = '#737373';
+  ctx.font = '650 18px Inter, Arial, sans-serif';
+  ctx.fillText('TRADER PROFILE', 180, 224);
 
   ctx.fillStyle = '#f5f5f5';
-  const symbolSize = fitText(ctx, model.symbol, 800, 66, 42, 800);
-  ctx.font = '800 ' + symbolSize + 'px Inter, Arial, sans-serif';
-  ctx.fillText(model.symbol, 82, 306);
+  const symbolSize = fitText(ctx, model.symbol, 690, 62, 40, 850);
+  ctx.font = '850 ' + symbolSize + 'px Inter, Arial, sans-serif';
+  ctx.fillText(model.symbol, 82, 360);
 
-  drawRoundedRect(ctx, 82, 340, 154, 54, 8, sideColor, 'rgba(0,0,0,0.46)');
+  drawRoundedRect(ctx, 82, 390, 146, 48, 6, sideColor, 'rgba(0,0,0,0.45)');
   ctx.fillStyle = sideColor;
-  ctx.font = '800 23px Inter, Arial, sans-serif';
+  ctx.font = '800 20px Inter, Arial, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(model.side, 159, 375);
+  ctx.fillText(model.side, 155, 421);
   ctx.textAlign = 'left';
+  ctx.fillStyle = '#a3a3a3';
+  ctx.font = '700 21px Inter, Arial, sans-serif';
+  ctx.fillText(model.volume.toFixed(2) + ' LOTS', 256, 421);
 
-  ctx.fillStyle = '#b0b0b0';
-  ctx.font = '600 24px Inter, Arial, sans-serif';
-  ctx.fillText(model.volume.toFixed(2) + ' lots', 266, 375);
-
-  ctx.fillStyle = '#e5e5e5';
-  ctx.font = '650 30px Inter, Arial, sans-serif';
-  ctx.fillText(model.roiPercent == null ? 'Unrealized P&L' : 'Trading ROI%', 82, 528);
+  ctx.strokeStyle = 'rgba(83,199,255,0.40)';
+  ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(82, 505); ctx.lineTo(82, 748); ctx.stroke();
+  ctx.fillStyle = '#a3a3a3';
+  ctx.font = '750 22px Inter, Arial, sans-serif';
+  ctx.fillText(model.roiPercent == null ? 'OPEN P&L' : 'RETURN ON MARGIN', 116, 545);
 
   if (model.roiPercent != null) {
     const roiText = (model.roiPercent >= 0 ? '+' : '') + model.roiPercent.toFixed(2) + '%';
-    const roiSize = fitText(ctx, roiText, 900, 132, 80, 900);
-    ctx.fillStyle = accent;
+    const roiSize = fitText(ctx, roiText, 820, 126, 78, 900);
+    ctx.fillStyle = resultColor;
     ctx.font = '900 ' + roiSize + 'px Inter, Arial, sans-serif';
-    ctx.fillText(roiText, 82, 675);
-
+    ctx.fillText(roiText, 112, 674);
     ctx.fillStyle = '#f5f5f5';
-    ctx.font = '800 50px Inter, Arial, sans-serif';
-    ctx.fillText(formatSharePnl(model.pnl, model.currency), 84, 760);
-
-    ctx.fillStyle = '#949494';
-    ctx.font = '600 23px Inter, Arial, sans-serif';
-    ctx.fillText('Unrealized P&L', 84, 797);
+    ctx.font = '850 45px Inter, Arial, sans-serif';
+    ctx.fillText(formatSharePnl(model.pnl, model.currency), 116, 734);
   } else {
     const pnlText = formatSharePnl(model.pnl, model.currency);
-    const pnlSize = fitText(ctx, pnlText, 900, 118, 72, 900);
-    ctx.fillStyle = accent;
+    const pnlSize = fitText(ctx, pnlText, 820, 112, 70, 900);
+    ctx.fillStyle = resultColor;
     ctx.font = '900 ' + pnlSize + 'px Inter, Arial, sans-serif';
-    ctx.fillText(pnlText, 82, 682);
-
-    ctx.fillStyle = positive ? '#72e9bd' : '#ff9098';
-    ctx.font = '750 34px Inter, Arial, sans-serif';
-    ctx.fillText(formatSharePips(model.pips), 84, 744);
+    ctx.fillText(pnlText, 112, 665);
   }
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.fillStyle = '#737373';
+  ctx.font = '700 18px Inter, Arial, sans-serif';
+  ctx.fillText('LIVE MARK-TO-MARKET', 116, 772);
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.10)';
   ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(82, 858);
-  ctx.lineTo(998, 858);
-  ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(82, 835); ctx.lineTo(998, 835); ctx.stroke();
+
+  const statX = [82, 410, 738];
+  const labels = ['ENTRY', 'LAST', 'MOVE'];
+  const values = [model.entryDisplay || '—', model.currentDisplay || '—', formatSharePips(model.pips)];
+  for (let i = 0; i < 3; i += 1) {
+    ctx.fillStyle = '#737373';
+    ctx.font = '750 17px Inter, Arial, sans-serif';
+    ctx.fillText(labels[i], statX[i], 895);
+    ctx.fillStyle = i === 2 ? resultColor : '#f5f5f5';
+    ctx.font = i === 2 ? '800 29px Inter, Arial, sans-serif' : '750 31px ui-monospace, SFMono-Regular, Menlo, monospace';
+    ctx.fillText(values[i], statX[i], 940);
+  }
+
+  ctx.strokeStyle = 'rgba(83,199,255,0.16)';
+  ctx.beginPath(); ctx.moveTo(82, 1002); ctx.lineTo(998, 1002); ctx.stroke();
 
   ctx.fillStyle = '#8a8a8a';
-  ctx.font = '650 23px Inter, Arial, sans-serif';
-  ctx.fillText('Entry Price', 82, 924);
-  ctx.fillText('Last Price', 586, 924);
-
+  ctx.font = '650 18px Inter, Arial, sans-serif';
+  ctx.fillText('POSITION STATUS', 82, 1060);
   ctx.fillStyle = '#f5f5f5';
-  ctx.font = '700 43px ui-monospace, SFMono-Regular, Menlo, monospace';
-  ctx.fillText(model.entryDisplay || '—', 82, 986);
-  ctx.fillText(model.currentDisplay || '—', 586, 986);
-
-  ctx.fillStyle = '#777777';
-  ctx.font = '600 23px Inter, Arial, sans-serif';
-  ctx.fillText('Distance', 82, 1068);
-  ctx.fillStyle = positive ? '#72e9bd' : '#ff9098';
-  ctx.font = '750 32px Inter, Arial, sans-serif';
-  ctx.fillText(formatSharePips(model.pips), 82, 1114);
+  ctx.font = '800 21px Inter, Arial, sans-serif';
+  ctx.fillText('OPEN / LIVE', 82, 1094);
 
   const date = model.generatedAt instanceof Date ? model.generatedAt : new Date(model.generatedAt);
   const stamp = Number.isNaN(date.getTime()) ? '' : date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
-  ctx.fillStyle = '#686868';
-  ctx.font = '600 20px Inter, Arial, sans-serif';
-  ctx.fillText(stamp, 82, 1172);
-
-  ctx.strokeStyle = 'rgba(255,255,255,0.10)';
-  ctx.beginPath();
-  ctx.moveTo(0, 1210);
-  ctx.lineTo(1080, 1210);
-  ctx.stroke();
-
-  ctx.fillStyle = '#f5f5f5';
-  ctx.font = '900 36px Inter, Arial, sans-serif';
-  ctx.fillText('ACG Trader', 82, 1294);
-
-  ctx.fillStyle = '#6f6f6f';
-  ctx.font = '600 19px Inter, Arial, sans-serif';
+  ctx.fillStyle = '#737373';
+  ctx.font = '600 18px Inter, Arial, sans-serif';
   ctx.textAlign = 'right';
-  ctx.fillText('Trade. Track. Improve.', 998, 1292);
+  ctx.fillText(stamp, 998, 1094);
+  ctx.textAlign = 'left';
+
+  ctx.fillStyle = '#050505';
+  ctx.fillRect(0, 1184, 1080, 166);
+  ctx.strokeStyle = 'rgba(83,199,255,0.24)';
+  ctx.beginPath(); ctx.moveTo(0, 1184); ctx.lineTo(1080, 1184); ctx.stroke();
+  ctx.fillStyle = '#f5f5f5';
+  ctx.font = '900 35px Inter, Arial, sans-serif';
+  ctx.fillText('ACG Trader', 82, 1266);
+  ctx.fillStyle = cyan;
+  ctx.fillRect(82, 1287, 190, 4);
+  ctx.fillStyle = '#6f6f6f';
+  ctx.font = '650 18px Inter, Arial, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('TERMINAL PERFORMANCE CARD', 998, 1265);
   ctx.textAlign = 'left';
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Unable to generate share image.')), 'image/png', 0.96);
   });
 }
-
 export function downloadPositionShare(blob, model) {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
