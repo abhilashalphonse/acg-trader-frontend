@@ -1,16 +1,14 @@
 import { marketApi } from '../api/market.js';
 
 const BACKEND_TIMEFRAMES = Object.freeze({
-  S1: '1s',
-  S5: '5s',
-  S15: '15s',
-  S30: '30s',
   M1: '1m',
   M5: '5m',
   M15: '15m',
+  M30: '30m',
   H1: '1h',
   H4: '4h',
   D1: '1d',
+  W1: '1w',
 });
 
 const UI_TIMEFRAMES = Object.freeze(Object.fromEntries(
