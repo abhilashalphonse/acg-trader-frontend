@@ -95,7 +95,91 @@ function fitText(ctx, text, maxWidth, startSize, minSize = 22, weight = 700) {
   return size;
 }
 
-export async function renderPositionSharePng(model) {
+function loadCanvasImage(src) {
+  return new Promise((resolve, reject) => {
+    if (!src) return resolve(null);
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('Unable to load profile image.'));
+    image.src = src;
+  });
+}
+
+function drawImageCover(ctx, image, x, y, width, height) {
+  if (!image) return;
+  const sourceRatio = image.width / image.height;
+  const targetRatio = width / height;
+  let sx = 0;
+  let sy = 0;
+  let sw = image.width;
+  let sh = image.height;
+
+  if (sourceRatio > targetRatio) {
+    sw = image.height * targetRatio;
+    sx = (image.width - sw) / 2;
+  } else {
+    sh = image.width / targetRatio;
+    sy = (image.height - sh) / 2;
+  }
+  ctx.drawImage(image, sx, sy, sw, sh, x, y, width, height);
+}
+
+function drawCircleAvatar(ctx, image, x, y, size, name) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+  ctx.clip();
+
+  if (image) {
+    drawImageCover(ctx, image, x, y, size, size);
+  } else {
+    const gradient = ctx.createLinearGradient(x, y, x + size, y + size);
+    gradient.addColorStop(0, '#16384d');
+    gradient.addColorStop(1, '#0a1720');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(x, y, size, size);
+    ctx.fillStyle = '#f5f5f5';
+    ctx.font = `800 ${Math.round(size * 0.34)}px Inter, Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const initials = String(name || 'Trader').trim().split(/\s+/).slice(0, 2).map(part => part[0] || '').join('').toUpperCase() || 'T';
+    ctx.fillText(initials, x + size / 2, y + size / 2 + 1);
+  }
+
+  ctx.restore();
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.strokeStyle = 'rgba(255,255,255,0.20)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+function drawAcgBrand(ctx, x, y, scale = 0.12) {
+  const paths = [
+    ['M160 64H352C410 64 448 102 448 160V240C390 190 350 176 280 176H176C176 140 165 100 160 64Z', '#00d8f4', '#0072ff'],
+    ['M448 160V352C448 410 410 448 352 448H272C322 390 336 350 336 280V176C372 176 412 165 448 160Z', '#0072ff', '#0033aa'],
+    ['M352 448H160C102 448 64 410 64 352V272C122 322 162 336 232 336H336C336 372 347 412 352 448Z', '#0033aa', '#0055ff'],
+    ['M64 352V160C64 102 102 64 160 64H240C190 122 176 162 176 232V336C140 336 100 347 64 352Z', '#0055ff', '#00d8f4'],
+  ];
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  paths.forEach(([pathData, from, to], index) => {
+    const gradient = index === 1
+      ? ctx.createLinearGradient(0, 0, 0, 512)
+      : ctx.createLinearGradient(0, 0, 512, 512);
+    gradient.addColorStop(0, from);
+    gradient.addColorStop(1, to);
+    ctx.fillStyle = gradient;
+    ctx.fill(new Path2D(pathData));
+  });
+  ctx.restore();
+}
+
+export async function renderPositionSharePng(model, profile = {}) {
   if (typeof document === 'undefined') throw new Error('Image generation is only available in the browser.');
 
   const canvas = document.createElement('canvas');
@@ -104,137 +188,148 @@ export async function renderPositionSharePng(model) {
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas rendering is unavailable.');
 
+  const displayName = String(profile?.displayName || 'Trader').trim() || 'Trader';
+  const photo = await loadCanvasImage(profile?.sharePhotoDataUrl || null).catch(() => null);
+  const photoTemplate = profile?.shareTemplate === 'PHOTO' && Boolean(photo);
   const positive = Number(model.pnl) >= 0;
   const accent = positive ? '#2ddb9f' : '#ff5f6d';
-  const accentSoft = positive ? 'rgba(45,219,159,0.18)' : 'rgba(255,95,109,0.16)';
   const sideColor = model.side === 'BUY' ? '#2ddb9f' : '#ff5f6d';
 
   ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const glow = ctx.createRadialGradient(850, 180, 40, 850, 180, 780);
-  glow.addColorStop(0, accentSoft);
-  glow.addColorStop(0.55, positive ? 'rgba(5,69,48,0.09)' : 'rgba(92,18,29,0.08)');
-  glow.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (photoTemplate) {
+    drawImageCover(ctx, photo, 0, 0, canvas.width, canvas.height);
+    const photoShade = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    photoShade.addColorStop(0, 'rgba(0,0,0,0.24)');
+    photoShade.addColorStop(0.48, 'rgba(0,0,0,0.42)');
+    photoShade.addColorStop(1, 'rgba(0,0,0,0.96)');
+    ctx.fillStyle = photoShade;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const sideShade = ctx.createLinearGradient(0, 0, canvas.width, 0);
+    sideShade.addColorStop(0, 'rgba(0,0,0,0.42)');
+    sideShade.addColorStop(0.7, 'rgba(0,0,0,0.02)');
+    ctx.fillStyle = sideShade;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  } else {
+    const glow = ctx.createRadialGradient(880, 170, 30, 880, 170, 820);
+    glow.addColorStop(0, positive ? 'rgba(45,219,159,0.22)' : 'rgba(255,95,109,0.20)');
+    glow.addColorStop(0.5, positive ? 'rgba(5,69,48,0.10)' : 'rgba(92,18,29,0.09)');
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
 
-  const bottomFade = ctx.createLinearGradient(0, 900, 0, 1350);
-  bottomFade.addColorStop(0, 'rgba(0,0,0,0)');
-  bottomFade.addColorStop(1, 'rgba(255,255,255,0.025)');
-  ctx.fillStyle = bottomFade;
-  ctx.fillRect(0, 800, canvas.width, 550);
-
+  drawCircleAvatar(ctx, photo, 82, 76, 82, displayName);
   ctx.fillStyle = '#f5f5f5';
   ctx.font = '800 34px Inter, Arial, sans-serif';
-  ctx.fillText('ACG TRADER', 82, 104);
+  ctx.fillText(displayName, 190, 118);
 
-  drawRoundedRect(ctx, 824, 66, 174, 52, 10, 'rgba(255,255,255,0.13)', '#080808');
   ctx.fillStyle = '#8a8a8a';
-  ctx.font = '800 19px Inter, Arial, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('OPEN POSITION', 911, 100);
-  ctx.textAlign = 'left';
+  ctx.font = '600 20px Inter, Arial, sans-serif';
+  ctx.fillText('ACG Trader', 190, 151);
 
   ctx.fillStyle = '#f5f5f5';
-  const symbolSize = fitText(ctx, model.symbol, 720, 66, 42, 800);
+  const symbolSize = fitText(ctx, model.symbol, 800, 66, 42, 800);
   ctx.font = '800 ' + symbolSize + 'px Inter, Arial, sans-serif';
-  ctx.fillText(model.symbol, 82, 260);
+  ctx.fillText(model.symbol, 82, 306);
 
-  drawRoundedRect(ctx, 82, 294, 154, 54, 8, sideColor, '#000000');
+  drawRoundedRect(ctx, 82, 340, 154, 54, 8, sideColor, 'rgba(0,0,0,0.46)');
   ctx.fillStyle = sideColor;
   ctx.font = '800 23px Inter, Arial, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(model.side, 159, 329);
+  ctx.fillText(model.side, 159, 375);
   ctx.textAlign = 'left';
 
-  ctx.fillStyle = '#9a9a9a';
+  ctx.fillStyle = '#b0b0b0';
   ctx.font = '600 24px Inter, Arial, sans-serif';
-  ctx.fillText(model.volume.toFixed(2) + ' lots', 266, 329);
+  ctx.fillText(model.volume.toFixed(2) + ' lots', 266, 375);
 
-  ctx.fillStyle = '#b5b5b5';
-  ctx.font = '650 28px Inter, Arial, sans-serif';
-  ctx.fillText(model.roiPercent == null ? 'Unrealized P&L' : 'Trading ROI', 82, 482);
+  ctx.fillStyle = '#e5e5e5';
+  ctx.font = '650 30px Inter, Arial, sans-serif';
+  ctx.fillText(model.roiPercent == null ? 'Unrealized P&L' : 'Trading ROI%', 82, 528);
 
   if (model.roiPercent != null) {
     const roiText = (model.roiPercent >= 0 ? '+' : '') + model.roiPercent.toFixed(2) + '%';
-    const roiSize = fitText(ctx, roiText, 900, 128, 78, 900);
+    const roiSize = fitText(ctx, roiText, 900, 132, 80, 900);
     ctx.fillStyle = accent;
     ctx.font = '900 ' + roiSize + 'px Inter, Arial, sans-serif';
-    ctx.fillText(roiText, 82, 620);
+    ctx.fillText(roiText, 82, 675);
 
     ctx.fillStyle = '#f5f5f5';
-    ctx.font = '800 46px Inter, Arial, sans-serif';
-    ctx.fillText(formatSharePnl(model.pnl, model.currency), 84, 704);
+    ctx.font = '800 50px Inter, Arial, sans-serif';
+    ctx.fillText(formatSharePnl(model.pnl, model.currency), 84, 760);
 
-    ctx.fillStyle = '#777777';
-    ctx.font = '600 24px Inter, Arial, sans-serif';
-    ctx.fillText('Unrealized P&L', 84, 742);
+    ctx.fillStyle = '#949494';
+    ctx.font = '600 23px Inter, Arial, sans-serif';
+    ctx.fillText('Unrealized P&L', 84, 797);
   } else {
     const pnlText = formatSharePnl(model.pnl, model.currency);
-    const pnlSize = fitText(ctx, pnlText, 900, 112, 68, 900);
+    const pnlSize = fitText(ctx, pnlText, 900, 118, 72, 900);
     ctx.fillStyle = accent;
     ctx.font = '900 ' + pnlSize + 'px Inter, Arial, sans-serif';
-    ctx.fillText(pnlText, 82, 625);
+    ctx.fillText(pnlText, 82, 682);
 
-    ctx.fillStyle = '#8a8a8a';
-    ctx.font = '700 30px Inter, Arial, sans-serif';
-    ctx.fillText(formatSharePips(model.pips), 84, 694);
+    ctx.fillStyle = positive ? '#72e9bd' : '#ff9098';
+    ctx.font = '750 34px Inter, Arial, sans-serif';
+    ctx.fillText(formatSharePips(model.pips), 84, 744);
   }
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.09)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(82, 818);
-  ctx.lineTo(998, 818);
+  ctx.moveTo(82, 858);
+  ctx.lineTo(998, 858);
   ctx.stroke();
 
-  ctx.fillStyle = '#777777';
+  ctx.fillStyle = '#8a8a8a';
   ctx.font = '650 23px Inter, Arial, sans-serif';
-  ctx.fillText('Entry Price', 82, 884);
-  ctx.fillText('Last Price', 586, 884);
+  ctx.fillText('Entry Price', 82, 924);
+  ctx.fillText('Last Price', 586, 924);
 
   ctx.fillStyle = '#f5f5f5';
   ctx.font = '700 43px ui-monospace, SFMono-Regular, Menlo, monospace';
-  ctx.fillText(model.entryDisplay || '—', 82, 945);
-  ctx.fillText(model.currentDisplay || '—', 586, 945);
+  ctx.fillText(model.entryDisplay || '—', 82, 986);
+  ctx.fillText(model.currentDisplay || '—', 586, 986);
 
   ctx.fillStyle = '#777777';
-  ctx.font = '600 24px Inter, Arial, sans-serif';
-  ctx.fillText('Distance', 82, 1028);
-
+  ctx.font = '600 23px Inter, Arial, sans-serif';
+  ctx.fillText('Distance', 82, 1068);
   ctx.fillStyle = positive ? '#72e9bd' : '#ff9098';
-  ctx.font = '750 33px Inter, Arial, sans-serif';
-  ctx.fillText(formatSharePips(model.pips), 82, 1077);
+  ctx.font = '750 32px Inter, Arial, sans-serif';
+  ctx.fillText(formatSharePips(model.pips), 82, 1114);
 
   const date = model.generatedAt instanceof Date ? model.generatedAt : new Date(model.generatedAt);
   const stamp = Number.isNaN(date.getTime()) ? '' : date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
-  ctx.fillStyle = '#606060';
-  ctx.font = '600 21px Inter, Arial, sans-serif';
-  ctx.fillText(stamp, 82, 1151);
+  ctx.fillStyle = '#686868';
+  ctx.font = '600 20px Inter, Arial, sans-serif';
+  ctx.fillText(stamp, 82, 1172);
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.10)';
   ctx.beginPath();
-  ctx.moveTo(0, 1200);
-  ctx.lineTo(1080, 1200);
+  ctx.moveTo(0, 1210);
+  ctx.lineTo(1080, 1210);
   ctx.stroke();
 
+  drawAcgBrand(ctx, 76, 1241, 0.13);
   ctx.fillStyle = '#f5f5f5';
-  ctx.font = '900 36px Inter, Arial, sans-serif';
-  ctx.fillText('ACG', 82, 1281);
-  ctx.fillStyle = '#53c7ff';
-  ctx.fillText('TRADER', 174, 1281);
+  ctx.font = '900 34px Inter, Arial, sans-serif';
+  ctx.fillText('ACG', 150, 1294);
+  ctx.fillStyle = '#b3b3b3';
+  ctx.font = '700 31px Inter, Arial, sans-serif';
+  ctx.fillText('Trader', 224, 1294);
 
   ctx.fillStyle = '#6f6f6f';
-  ctx.font = '600 20px Inter, Arial, sans-serif';
+  ctx.font = '600 19px Inter, Arial, sans-serif';
   ctx.textAlign = 'right';
-  ctx.fillText('Trade. Track. Improve.', 998, 1280);
+  ctx.fillText('Trade. Track. Improve.', 998, 1292);
   ctx.textAlign = 'left';
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Unable to generate share image.')), 'image/png', 0.96);
   });
 }
+
 export function downloadPositionShare(blob, model) {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');

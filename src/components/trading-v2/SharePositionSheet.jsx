@@ -9,20 +9,24 @@ import {
   sharePositionPnl,
 } from '../../utils/positionShare.js';
 import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
+import { useTraderProfile } from '../../hooks/useTraderProfile.js';
+import AcgTraderLogo from '../branding/AcgTraderLogo.jsx';
 
 export default function SharePositionSheet({ position, instrument, onClose = () => {} }) {
   const [blob, setBlob] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
+  const { profile, loading: profileLoading } = useTraderProfile();
   const model = useMemo(() => buildPositionShareModel(position, instrument), [instrument, position]);
 
   useEffect(() => {
     let cancelled = false;
     let objectUrl = '';
+    if (profileLoading) return undefined;
     setBusy(true);
     setError('');
-    renderPositionSharePng(model)
+    renderPositionSharePng(model, profile)
       .then(nextBlob => {
         if (cancelled) return;
         setBlob(nextBlob);
@@ -40,7 +44,7 @@ export default function SharePositionSheet({ position, instrument, onClose = () 
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [model]);
+  }, [model, profile, profileLoading]);
 
   const handleShare = async () => {
     if (!blob) return;
@@ -66,8 +70,8 @@ export default function SharePositionSheet({ position, instrument, onClose = () 
       <section className="relative z-10 w-full max-w-[430px] border border-white/[0.10] bg-black sm:rounded-lg">
         <header className="flex h-12 items-center justify-between border-b border-white/[0.08] px-4">
           <div>
-            <b className="block text-[12px] text-[#f5f5f5]">Share Position P&amp;L</b>
-            <span className="text-[8px] text-[#737373]">Open position · Unrealized result</span>
+            <AcgTraderLogo iconClassName="h-4 w-4" textClassName="text-[12px]" />
+            <span className="mt-0.5 block text-[8px] text-[#737373]">Share position P&amp;L · {profile.shareTemplate === 'PHOTO' && profile.sharePhotoDataUrl ? 'Photo' : 'Performance'} template</span>
           </div>
           <button type="button" onClick={onClose} className="grid size-8 place-items-center rounded-md border border-white/[0.08] text-[#a3a3a3]" aria-label="Close"><X size={14}/></button>
         </header>
@@ -77,7 +81,7 @@ export default function SharePositionSheet({ position, instrument, onClose = () 
             {previewUrl ? (
               <img src={previewUrl} alt={model.symbol + ' ' + model.side + ' unrealized P&L share card'} className="block aspect-[4/5] w-full object-cover" />
             ) : (
-              <div className="grid aspect-[4/5] place-items-center text-[10px] text-[#737373]">{busy ? 'Generating share image…' : 'Preview unavailable'}</div>
+              <div className="grid aspect-[4/5] place-items-center text-[10px] text-[#737373]">{busy || profileLoading ? 'Generating share image…' : 'Preview unavailable'}</div>
             )}
           </div>
 

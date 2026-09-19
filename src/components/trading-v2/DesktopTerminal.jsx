@@ -19,6 +19,7 @@ import ExecutionPanel from './ExecutionPanel.jsx';
 import PositionsPanel from './PositionsPanel.jsx';
 import PropRiskStrip from './PropRiskStrip.jsx';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
+import AcgTraderLogo from '../branding/AcgTraderLogo.jsx';
 
 const timeframes = [['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], ['1H', '1H'], ['4H', '4H'], ['1D', '1D'], ['1W', '1W']];
 const chartTimeframeMap = { '1m': 'M1', '5m': 'M5', '15m': 'M15', '30m': 'M30', '1H': 'H1', '4H': 'H4', '1D': 'D1', '1W': 'W1' };
@@ -163,7 +164,7 @@ export default function DesktopTerminal({
       {notice && <div className="absolute right-4 top-[72px] z-[120] flex max-w-[390px] items-center gap-3 rounded-md border border-white/[0.08] bg-[#101010]/95 px-3 py-2.5 text-[10px] font-semibold text-[#dce9f2] shadow-[0_16px_48px_rgba(0,0,0,.45)]"><span>{notice}</span><button type="button" onClick={() => setNotice('')} className="grid size-6 place-items-center rounded-md text-[#8094a7]"><X size={13}/></button></div>}
 
       <header className="flex h-16 items-center border-b border-white/[0.08] bg-[#080808] px-4 shadow-[0_1px_0_rgba(255,255,255,0.015)]">
-        <div className="flex min-w-[205px] items-center gap-2"><span className="text-[17px] font-extrabold tracking-[-0.03em]">ACG Trader</span><span className="rounded-md bg-[#101010] px-1.5 py-1 text-[9px] font-extrabold tracking-[0.05em] text-[#56c6ff]">V2</span></div>
+        <div className="flex min-w-[205px] items-center gap-2"><AcgTraderLogo iconClassName="h-7 w-7" textClassName="text-[17px]" /><span className="rounded-md bg-[#101010] px-1.5 py-1 text-[9px] font-extrabold tracking-[0.05em] text-[#56c6ff]">V2</span></div>
         <div className="ml-3 hidden items-stretch divide-x divide-white/[0.08] rounded-md border border-white/[0.08] bg-[#080808] xl:flex">{[
           ['Balance', money(account?.balance, currency)],
           ['Equity', money(account?.equity, currency)],
