@@ -1,5 +1,7 @@
 import { apiRequest } from './client.js';
 
+const REFRESH_HEADERS = Object.freeze({ 'X-ACG-Refresh': '1' });
+
 export const authApi = Object.freeze({
   login({ tenant, login, password }, signal) {
     return apiRequest('/v1/auth/login', {
@@ -17,14 +19,24 @@ export const authApi = Object.freeze({
     });
   },
 
+  refresh(token = null, signal) {
+    return apiRequest('/v1/auth/refresh', {
+      method: 'POST',
+      token,
+      headers: REFRESH_HEADERS,
+      signal,
+    });
+  },
+
   me(token, signal) {
     return apiRequest('/v1/auth/me', { token, signal });
   },
 
-  logout(token, signal) {
+  logout(token = null, signal) {
     return apiRequest('/v1/auth/logout', {
       method: 'POST',
       token,
+      headers: REFRESH_HEADERS,
       signal,
     });
   },
