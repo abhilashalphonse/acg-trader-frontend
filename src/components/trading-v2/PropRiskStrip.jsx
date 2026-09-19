@@ -15,13 +15,22 @@ function money(value, currency = 'USD') {
   }
 }
 
-function Meter({ label, value, limit, tone = 'neutral' }) {
+function Meter({ label, value, limit, headline, tone = 'neutral', currency = 'USD' }) {
   const percent = limit > 0 ? clamp((value / limit) * 100, 0, 100) : 0;
   const barClass = tone === 'danger' ? 'bg-[#ff6370]' : tone === 'success' ? 'bg-[#39d7a1]' : 'bg-[#57c7ff]';
   return (
     <div className="min-w-0 flex-1">
-      <div className="flex items-center justify-between gap-2 text-[7px] font-bold uppercase tracking-[0.07em] text-[#60758a]"><span>{label}</span><span>{percent.toFixed(0)}%</span></div>
-      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[#122431]"><div className={`h-full rounded-full ${barClass}`} style={{ width: `${percent}%` }} /></div>
+      <div className="flex items-center justify-between gap-2 text-[7px] font-bold uppercase tracking-[0.07em] text-[#60758a]">
+        <span>{label}</span>
+        <span className="text-[#aab9c5]">{headline}</span>
+      </div>
+      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[#122431]">
+        <div className={`h-full rounded-full ${barClass}`} style={{ width: `${percent}%` }} />
+      </div>
+      <div className="mt-1 flex items-center justify-between gap-1 text-[6px] font-semibold text-[#53697d]">
+        <span className="truncate">{money(value, currency)} / {money(limit, currency)}</span>
+        <span className="shrink-0">{percent.toFixed(0)}% used</span>
+      </div>
     </div>
   );
 }
@@ -77,9 +86,30 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
       </div>
 
       <div className="mt-2.5 grid grid-cols-3 gap-3">
-        <Meter label="Daily loss" value={risk.dailyLossUsed} limit={risk.dailyLossLimit} tone={risk.dailyLossUsed / Math.max(1, risk.dailyLossLimit) > 0.7 ? 'danger' : 'neutral'} />
-        <Meter label="Max loss" value={risk.maxLossUsed} limit={risk.maxLossLimit} tone={risk.maxLossUsed / Math.max(1, risk.maxLossLimit) > 0.7 ? 'danger' : 'neutral'} />
-        <Meter label="Profit target" value={risk.profit} limit={risk.profitTarget} tone="success" />
+        <Meter
+          label="Daily loss"
+          value={risk.dailyLossUsed}
+          limit={risk.dailyLossLimit}
+          headline={`${risk.dailyLossPercent.toFixed(2)}%`}
+          tone={risk.dailyLimitUsedPercent > 70 ? 'danger' : 'neutral'}
+          currency={currency}
+        />
+        <Meter
+          label="Max loss"
+          value={risk.maxLossUsed}
+          limit={risk.maxLossLimit}
+          headline={`${risk.maxLossPercent.toFixed(2)}%`}
+          tone={risk.maxLimitUsedPercent > 70 ? 'danger' : 'neutral'}
+          currency={currency}
+        />
+        <Meter
+          label="Profit target"
+          value={risk.profit}
+          limit={risk.profitTarget}
+          headline={`${risk.profitProgressPercent.toFixed(0)}%`}
+          tone="success"
+          currency={currency}
+        />
       </div>
 
       {plannedRisk > 0 && (

@@ -21,6 +21,11 @@ test('matches backend ChallengeRiskEngine equity thresholds', () => {
   assert.equal(risk.maxBreachEquity, 90000);
   assert.equal(risk.dailyLossUsed, 4000);
   assert.equal(risk.maxLossUsed, 2000);
+  assert.equal(risk.dailyLossPercent, 4);
+  assert.equal(risk.maxLossPercent, 2);
+  assert.equal(risk.dailyLimitUsedPercent, 80);
+  assert.equal(risk.maxLimitUsedPercent, 20);
+  assert.equal(risk.profitProgressPercent, 0);
   assert.equal(risk.remainingDaily, 1000);
   assert.equal(risk.remainingMax, 8000);
   assert.equal(risk.postTradeDaily, 500);
@@ -40,4 +45,20 @@ test('never advertises risk for an unsupported policy reference', () => {
   assert.equal(risk.policySupported, false);
   assert.equal(risk.remainingDaily, 0);
   assert.equal(risk.remainingMax, 0);
+});
+
+test('separates account loss percentage from challenge-limit utilization', () => {
+  const risk = calculateAccountRiskSummary({
+    ...account,
+    dailyStartEquity: 100000,
+    equity: 99880,
+  });
+
+  assert.equal(risk.dailyLossUsed, 120);
+  assert.equal(risk.maxLossUsed, 120);
+  assert.equal(risk.dailyLossPercent, 0.12);
+  assert.equal(risk.maxLossPercent, 0.12);
+  assert.equal(risk.dailyLimitUsedPercent, 2.4);
+  assert.equal(risk.maxLimitUsedPercent, 1.2);
+  assert.equal(risk.remainingDaily, 4880);
 });

@@ -28,6 +28,11 @@ export function calculateAccountRiskSummary(account, plannedRisk = 0) {
   const rawRemainingDaily = Math.max(0, equity - dailyBreachEquity);
   const rawRemainingMax = Math.max(0, equity - maxBreachEquity);
   const profit = Math.max(0, equity - initialBalance);
+  const dailyLossPercent = initialBalance > 0 ? (dailyLossUsed / initialBalance) * 100 : 0;
+  const maxLossPercent = initialBalance > 0 ? (maxLossUsed / initialBalance) * 100 : 0;
+  const dailyLimitUsedPercent = dailyLossLimit > 0 ? Math.min(100, (dailyLossUsed / dailyLossLimit) * 100) : 0;
+  const maxLimitUsedPercent = maxLossLimit > 0 ? Math.min(100, (maxLossUsed / maxLossLimit) * 100) : 0;
+  const profitProgressPercent = profitTarget > 0 ? Math.min(100, (profit / profitTarget) * 100) : 0;
 
   const valuationLive = String(account?.valuationStatus || '').toUpperCase() === 'LIVE' && account?.complete !== false;
   // ChallengeRiskEngine only evaluates LIVE complete valuations. A non-live or
@@ -56,7 +61,12 @@ export function calculateAccountRiskSummary(account, plannedRisk = 0) {
     maxBreachEquity,
     dailyLossUsed,
     maxLossUsed,
+    dailyLossPercent,
+    maxLossPercent,
+    dailyLimitUsedPercent,
+    maxLimitUsedPercent,
     profit,
+    profitProgressPercent,
     rawRemainingDaily,
     rawRemainingMax,
     remainingDaily,
