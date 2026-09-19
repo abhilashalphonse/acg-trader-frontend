@@ -1,1 +1,20 @@
 @import "tailwindcss";
+
+
+/* Prevent mobile browser focus zoom from changing the app scale.
+   iOS Safari zooms focused form controls when their computed font-size is below 16px. */
+@media (max-width: 767px) {
+  input,
+  textarea,
+  select,
+  button[role="combobox"],
+  [contenteditable="true"] {
+    font-size: 16px !important;
+  }
+}
+
+html,
+body {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
