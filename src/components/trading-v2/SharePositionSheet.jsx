@@ -75,15 +75,15 @@ export default function SharePositionSheet({ position, instrument, onClose = () 
         <div className="p-3">
           <div className="overflow-hidden border border-white/[0.08] bg-[#080808]">
             {previewUrl ? (
-              <img src={previewUrl} alt={model.symbol + ' ' + model.side + ' unrealized P&L share card'} className="block aspect-square w-full object-cover" />
+              <img src={previewUrl} alt={model.symbol + ' ' + model.side + ' unrealized P&L share card'} className="block aspect-[4/5] w-full object-cover" />
             ) : (
-              <div className="grid aspect-square place-items-center text-[10px] text-[#737373]">{busy ? 'Generating share image…' : 'Preview unavailable'}</div>
+              <div className="grid aspect-[4/5] place-items-center text-[10px] text-[#737373]">{busy ? 'Generating share image…' : 'Preview unavailable'}</div>
             )}
           </div>
 
           <div className="mt-3 grid grid-cols-2 gap-2 border-y border-white/[0.08] py-2 text-[9px]">
             <div><span className="block text-[#737373]">Position</span><b className="mt-1 block text-[#f5f5f5]">{model.symbol} · {model.side} · {model.volume.toFixed(2)} lots</b></div>
-            <div className="text-right"><span className="block text-[#737373]">Unrealized P&amp;L</span><b className={'mt-1 block ' + (positive ? 'text-[#2ddb9f]' : 'text-[#ff5f6d]')}>{formatSharePnl(model.pnl, model.currency)}</b></div>
+            <div className="text-right"><span className="block text-[#737373]">{model.roiPercent == null ? 'Unrealized P&L' : 'Trading ROI'}</span><b className={'mt-1 block ' + (positive ? 'text-[#2ddb9f]' : 'text-[#ff5f6d]')}>{model.roiPercent == null ? formatSharePnl(model.pnl, model.currency) : `${model.roiPercent >= 0 ? '+' : ''}${model.roiPercent.toFixed(2)}%`}</b></div>
             <div><span className="block text-[#737373]">Entry</span><b className="mt-1 block font-mono text-[#d4d4d4]">{formatInstrumentPrice(model.entryPrice, instrument)}</b></div>
             <div className="text-right"><span className="block text-[#737373]">Current · Distance</span><b className="mt-1 block font-mono text-[#d4d4d4]">{formatInstrumentPrice(model.currentPrice, instrument)} · {formatSharePips(model.pips)}</b></div>
           </div>

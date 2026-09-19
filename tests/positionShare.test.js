@@ -11,6 +11,7 @@ test('share model uses the live normalized position values shown in the terminal
     closePrice: 81786.05,
     pnl: -14.47,
     pnlCurrency: 'USD',
+    margin: 72.35,
   };
   const instrument = { symbol: 'BTCUSD', displaySymbol: 'BTC/USD', pipSize: 0.01, digits: 2 };
   const model = buildPositionShareModel(position, instrument, new Date('2026-09-19T17:45:00Z'));
@@ -21,6 +22,7 @@ test('share model uses the live normalized position values shown in the terminal
   assert.equal(model.entryDisplay, '81767.96');
   assert.equal(model.currentDisplay, '81786.05');
   assert.equal(model.pnl, -14.47);
+  assert.ok(Math.abs(model.roiPercent - (-20)) < 1e-9);
   assert.ok(Math.abs(model.pips - (-1809)) < 1e-9);
 });
 
@@ -43,4 +45,13 @@ test('share formatting preserves sign and unrealized distance', () => {
   assert.match(formatSharePnl(-14.47, 'USD'), /^-\$14\.47$/);
   assert.equal(formatSharePips(12.345), '+12.3 pips');
   assert.equal(formatSharePips(-8.55), '-8.6 pips');
+});
+
+
+test('share model omits ROI when position margin is unavailable', () => {
+  const model = buildPositionShareModel(
+    { symbol: 'BTCUSD', side: 'BUY', volume: 0.25, entry: 80000, closePrice: 80100, pnl: 25, pnlCurrency: 'USD' },
+    { symbol: 'BTCUSD', displaySymbol: 'BTC/USD', pipSize: 0.01, digits: 2 },
+  );
+  assert.equal(model.roiPercent, null);
 });

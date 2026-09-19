@@ -21,6 +21,8 @@ export function buildPositionShareModel(position, instrument, now = new Date()) 
   const currentPrice = finiteNumber(position?.closePrice) ?? fallbackClose;
   const pnl = finiteNumber(position?.pnl ?? position?.floatingPnl);
   const volume = finiteNumber(position?.volume ?? position?.openVolume) ?? 0;
+  const margin = finiteNumber(position?.margin);
+  const roiPercent = margin != null && margin > 0 && pnl != null ? (pnl / margin) * 100 : null;
   const pipSize = instrumentPipSize(instrument);
   const rawMove = entryPrice != null && currentPrice != null && Number.isFinite(pipSize) && pipSize > 0
     ? (currentPrice - entryPrice) / pipSize
@@ -33,6 +35,8 @@ export function buildPositionShareModel(position, instrument, now = new Date()) 
     symbol: String(instrument?.displaySymbol || position?.symbol || '—'),
     side: side === 'SELL' ? 'SELL' : 'BUY',
     volume,
+    margin,
+    roiPercent,
     entryPrice,
     currentPrice,
     pnl,
@@ -96,115 +100,141 @@ export async function renderPositionSharePng(model) {
 
   const canvas = document.createElement('canvas');
   canvas.width = 1080;
-  canvas.height = 1080;
+  canvas.height = 1350;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas rendering is unavailable.');
 
   const positive = Number(model.pnl) >= 0;
+  const accent = positive ? '#2ddb9f' : '#ff5f6d';
+  const accentSoft = positive ? 'rgba(45,219,159,0.18)' : 'rgba(255,95,109,0.16)';
   const sideColor = model.side === 'BUY' ? '#2ddb9f' : '#ff5f6d';
-  const pnlColor = positive ? '#2ddb9f' : '#ff5f6d';
 
   ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.09)';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(34, 34, 1012, 1012);
+  const glow = ctx.createRadialGradient(850, 180, 40, 850, 180, 780);
+  glow.addColorStop(0, accentSoft);
+  glow.addColorStop(0.55, positive ? 'rgba(5,69,48,0.09)' : 'rgba(92,18,29,0.08)');
+  glow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const bottomFade = ctx.createLinearGradient(0, 900, 0, 1350);
+  bottomFade.addColorStop(0, 'rgba(0,0,0,0)');
+  bottomFade.addColorStop(1, 'rgba(255,255,255,0.025)');
+  ctx.fillStyle = bottomFade;
+  ctx.fillRect(0, 800, canvas.width, 550);
 
   ctx.fillStyle = '#f5f5f5';
   ctx.font = '800 34px Inter, Arial, sans-serif';
-  ctx.fillText('ACG TRADER', 78, 105);
+  ctx.fillText('ACG TRADER', 82, 104);
 
-  drawRoundedRect(ctx, 842, 71, 160, 50, 10, 'rgba(255,255,255,0.12)', '#080808');
-  ctx.fillStyle = '#9ca3af';
-  ctx.font = '800 20px Inter, Arial, sans-serif';
+  drawRoundedRect(ctx, 824, 66, 174, 52, 10, 'rgba(255,255,255,0.13)', '#080808');
+  ctx.fillStyle = '#8a8a8a';
+  ctx.font = '800 19px Inter, Arial, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('LIVE POSITION', 922, 103);
+  ctx.fillText('OPEN POSITION', 911, 100);
   ctx.textAlign = 'left';
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-  ctx.beginPath();
-  ctx.moveTo(78, 150);
-  ctx.lineTo(1002, 150);
-  ctx.stroke();
-
-  const symbolSize = fitText(ctx, model.symbol, 650, 72, 42, 800);
   ctx.fillStyle = '#f5f5f5';
-  ctx.font = `800 ${symbolSize}px Inter, Arial, sans-serif`;
-  ctx.fillText(model.symbol, 78, 260);
+  const symbolSize = fitText(ctx, model.symbol, 720, 66, 42, 800);
+  ctx.font = '800 ' + symbolSize + 'px Inter, Arial, sans-serif';
+  ctx.fillText(model.symbol, 82, 260);
 
-  drawRoundedRect(ctx, 78, 295, 174, 58, 9, sideColor, '#000000');
+  drawRoundedRect(ctx, 82, 294, 154, 54, 8, sideColor, '#000000');
   ctx.fillStyle = sideColor;
-  ctx.font = '800 25px Inter, Arial, sans-serif';
+  ctx.font = '800 23px Inter, Arial, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(model.side, 165, 333);
+  ctx.fillText(model.side, 159, 329);
   ctx.textAlign = 'left';
 
-  ctx.fillStyle = '#737373';
+  ctx.fillStyle = '#9a9a9a';
   ctx.font = '600 24px Inter, Arial, sans-serif';
-  ctx.fillText(`${model.volume.toFixed(2)} lots`, 278, 333);
+  ctx.fillText(model.volume.toFixed(2) + ' lots', 266, 329);
 
-  ctx.fillStyle = '#737373';
-  ctx.font = '700 23px Inter, Arial, sans-serif';
-  ctx.fillText('UNREALIZED P&L', 78, 445);
+  ctx.fillStyle = '#b5b5b5';
+  ctx.font = '650 28px Inter, Arial, sans-serif';
+  ctx.fillText(model.roiPercent == null ? 'Unrealized P&L' : 'Trading ROI', 82, 482);
 
-  const pnlText = formatSharePnl(model.pnl, model.currency);
-  const pnlSize = fitText(ctx, pnlText, 860, 112, 64, 900);
-  ctx.fillStyle = pnlColor;
-  ctx.font = `900 ${pnlSize}px Inter, Arial, sans-serif`;
-  ctx.fillText(pnlText, 78, 565);
+  if (model.roiPercent != null) {
+    const roiText = (model.roiPercent >= 0 ? '+' : '') + model.roiPercent.toFixed(2) + '%';
+    const roiSize = fitText(ctx, roiText, 900, 128, 78, 900);
+    ctx.fillStyle = accent;
+    ctx.font = '900 ' + roiSize + 'px Inter, Arial, sans-serif';
+    ctx.fillText(roiText, 82, 620);
 
-  ctx.fillStyle = positive ? '#70e7bc' : '#ff8992';
-  ctx.font = '700 31px Inter, Arial, sans-serif';
-  ctx.fillText(formatSharePips(model.pips), 80, 620);
-
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-  ctx.beginPath();
-  ctx.moveTo(78, 678);
-  ctx.lineTo(1002, 678);
-  ctx.stroke();
-
-  const rows = [
-    ['ENTRY', model.entryDisplay],
-    ['CURRENT', model.currentDisplay],
-    ['SIZE', `${model.volume.toFixed(2)} lots`],
-  ];
-
-  rows.forEach(([label, value], index) => {
-    const y = 748 + index * 72;
-    ctx.fillStyle = '#737373';
-    ctx.font = '700 21px Inter, Arial, sans-serif';
-    ctx.fillText(label, 78, y);
     ctx.fillStyle = '#f5f5f5';
-    ctx.font = '700 29px ui-monospace, SFMono-Regular, Menlo, monospace';
-    ctx.textAlign = 'right';
-    ctx.fillText(value || '—', 1002, y);
-    ctx.textAlign = 'left';
-  });
+    ctx.font = '800 46px Inter, Arial, sans-serif';
+    ctx.fillText(formatSharePnl(model.pnl, model.currency), 84, 704);
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillStyle = '#777777';
+    ctx.font = '600 24px Inter, Arial, sans-serif';
+    ctx.fillText('Unrealized P&L', 84, 742);
+  } else {
+    const pnlText = formatSharePnl(model.pnl, model.currency);
+    const pnlSize = fitText(ctx, pnlText, 900, 112, 68, 900);
+    ctx.fillStyle = accent;
+    ctx.font = '900 ' + pnlSize + 'px Inter, Arial, sans-serif';
+    ctx.fillText(pnlText, 82, 625);
+
+    ctx.fillStyle = '#8a8a8a';
+    ctx.font = '700 30px Inter, Arial, sans-serif';
+    ctx.fillText(formatSharePips(model.pips), 84, 694);
+  }
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.09)';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(78, 963);
-  ctx.lineTo(1002, 963);
+  ctx.moveTo(82, 818);
+  ctx.lineTo(998, 818);
   ctx.stroke();
 
-  ctx.fillStyle = '#737373';
-  ctx.font = '600 19px Inter, Arial, sans-serif';
-  ctx.fillText('Generated by ACG Trader', 78, 1009);
+  ctx.fillStyle = '#777777';
+  ctx.font = '650 23px Inter, Arial, sans-serif';
+  ctx.fillText('Entry Price', 82, 884);
+  ctx.fillText('Last Price', 586, 884);
+
+  ctx.fillStyle = '#f5f5f5';
+  ctx.font = '700 43px ui-monospace, SFMono-Regular, Menlo, monospace';
+  ctx.fillText(model.entryDisplay || '—', 82, 945);
+  ctx.fillText(model.currentDisplay || '—', 586, 945);
+
+  ctx.fillStyle = '#777777';
+  ctx.font = '600 24px Inter, Arial, sans-serif';
+  ctx.fillText('Distance', 82, 1028);
+
+  ctx.fillStyle = positive ? '#72e9bd' : '#ff9098';
+  ctx.font = '750 33px Inter, Arial, sans-serif';
+  ctx.fillText(formatSharePips(model.pips), 82, 1077);
 
   const date = model.generatedAt instanceof Date ? model.generatedAt : new Date(model.generatedAt);
-  const stamp = Number.isNaN(date.getTime())
-    ? ''
-    : date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+  const stamp = Number.isNaN(date.getTime()) ? '' : date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+  ctx.fillStyle = '#606060';
+  ctx.font = '600 21px Inter, Arial, sans-serif';
+  ctx.fillText(stamp, 82, 1151);
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.beginPath();
+  ctx.moveTo(0, 1200);
+  ctx.lineTo(1080, 1200);
+  ctx.stroke();
+
+  ctx.fillStyle = '#f5f5f5';
+  ctx.font = '900 36px Inter, Arial, sans-serif';
+  ctx.fillText('ACG', 82, 1281);
+  ctx.fillStyle = '#53c7ff';
+  ctx.fillText('TRADER', 174, 1281);
+
+  ctx.fillStyle = '#6f6f6f';
+  ctx.font = '600 20px Inter, Arial, sans-serif';
   ctx.textAlign = 'right';
-  ctx.fillText(stamp, 1002, 1009);
+  ctx.fillText('Trade. Track. Improve.', 998, 1280);
   ctx.textAlign = 'left';
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Unable to generate share image.')), 'image/png', 0.96);
   });
 }
-
 export function downloadPositionShare(blob, model) {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
@@ -221,7 +251,9 @@ export async function sharePositionPnl(blob, model) {
   const file = new File([blob], 'acg-trader-position-pnl.png', { type: 'image/png' });
   const payload = {
     title: `${model.symbol} ${model.side} P&L`,
-    text: `Open position P&L shared from ACG Trader: ${formatSharePnl(model.pnl, model.currency)}`,
+    text: model.roiPercent == null
+      ? 'Open position P&L shared from ACG Trader: ' + formatSharePnl(model.pnl, model.currency)
+      : 'Open position ROI shared from ACG Trader: ' + (model.roiPercent >= 0 ? '+' : '') + model.roiPercent.toFixed(2) + '% · ' + formatSharePnl(model.pnl, model.currency),
     files: [file],
   };
 
