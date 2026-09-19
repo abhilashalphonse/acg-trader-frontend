@@ -24,6 +24,14 @@ export const marketApi = Object.freeze({
     });
   },
 
+  refreshQuote(symbol, signal) {
+    return apiRequest('/v1/market/quote/refresh', {
+      method: 'POST',
+      body: { symbol },
+      signal,
+    });
+  },
+
   candles({ symbol, timeframe, limit = 160 }, signal) {
     return apiRequest('/v1/market/candles', {
       query: { symbol, timeframe, limit },
