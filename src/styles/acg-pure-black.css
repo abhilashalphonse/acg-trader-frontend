@@ -237,3 +237,20 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
 [class*="divide-[#2"]{
   border-color:var(--acg-border)!important;
 }
+
+
+/* Execution controls are semantic exceptions to neutral structural borders. */
+.acg-execution-sell {
+  border-color: #7a2935 !important;
+  background: #000 !important;
+}
+.acg-execution-sell:hover:not(:disabled) {
+  border-color: #a33a49 !important;
+}
+.acg-execution-buy {
+  border-color: #176a4c !important;
+  background: #000 !important;
+}
+.acg-execution-buy:hover:not(:disabled) {
+  border-color: #23956d !important;
+}
