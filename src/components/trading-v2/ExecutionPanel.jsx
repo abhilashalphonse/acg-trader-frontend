@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, Minus, Plus, X, Check, SlidersHorizontal, Clock3 } from 'lucide-react';
-import { normalizeVolumeToStep } from '../../utils/tradingCommandNormalization.js';
+import { decimalPlaces, normalizeVolumeToStep } from '../../utils/tradingCommandNormalization.js';
 import { calculateRiskSizedLots, estimateStopRisk, riskSizingSupported } from '../../utils/tradingRisk.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 
@@ -86,6 +86,8 @@ export default function ExecutionPanel({
   account = {},
 }) {
   const [internalLots, setInternalLots] = useState(0.10);
+  const [lotInput, setLotInput] = useState('0.10');
+  const [lotInputFocused, setLotInputFocused] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [orderPickerOpen, setOrderPickerOpen] = useState(false);
   const lots = controlledLots ?? internalLots;
@@ -93,8 +95,51 @@ export default function ExecutionPanel({
   const volumeStep = Math.max(Number(market?.volumeStep) || 0.01, 0.00000001);
   const minVolume = Math.max(Number(market?.minVolume) || volumeStep, volumeStep);
   const maxVolume = Math.max(Number(market?.maxVolume) || 100, minVolume);
-  const decrease = () => setLots(normalizeVolumeToStep(Math.max(minVolume, Number(lots) - volumeStep), market));
-  const increase = () => setLots(normalizeVolumeToStep(Math.min(maxVolume, Number(lots) + volumeStep), market, { rounding: 'nearest' }));
+  const volumeDecimals = Math.min(8, Math.max(0, decimalPlaces(market?.volumeStep ?? volumeStep)));
+  const formatLots = value => Number(value).toFixed(volumeDecimals);
+  const normalizedLots = normalizeVolumeToStep(lots, market, { rounding: 'nearest' });
+
+  useEffect(() => {
+    if (!lotInputFocused) setLotInput(formatLots(normalizedLots));
+  }, [lotInputFocused, normalizedLots, volumeDecimals]);
+
+  const commitLotInput = () => {
+    const text = String(lotInput || '').trim();
+    const numeric = Number(text);
+    const next = Number.isFinite(numeric) && numeric > 0
+      ? normalizeVolumeToStep(numeric, market, { rounding: 'nearest' })
+      : normalizedLots;
+    setLots(next);
+    setLotInput(formatLots(next));
+    setLotInputFocused(false);
+  };
+
+  const updateLotInput = value => {
+    const sanitized = String(value || '').replace(/[^0-9.]/g, '');
+    const firstDot = sanitized.indexOf('.');
+    const normalizedText = firstDot < 0
+      ? sanitized
+      : sanitized.slice(0, firstDot + 1) + sanitized.slice(firstDot + 1).replace(/\./g, '');
+    setLotInput(normalizedText);
+  };
+
+  const decrease = () => {
+    const next = normalizeVolumeToStep(Math.max(minVolume, Number(lots) - volumeStep), market, { rounding: 'nearest' });
+    setLots(next);
+    setLotInput(formatLots(next));
+  };
+  const increase = () => {
+    const next = normalizeVolumeToStep(Math.min(maxVolume, Number(lots) + volumeStep), market, { rounding: 'nearest' });
+    setLots(next);
+    setLotInput(formatLots(next));
+  };
+
+  const lotPresets = useMemo(() => {
+    const candidates = [minVolume, 0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5]
+      .filter(value => value >= minVolume && value <= maxVolume)
+      .map(value => normalizeVolumeToStep(value, market, { rounding: 'nearest' }));
+    return [...new Set(candidates)].slice(0, 8);
+  }, [market, minVolume, maxVolume]);
   const metrics = useMemo(() => getPlanMetrics(tradePlan, riskPercent, tradePlan?.manualLots ?? lots, market, account), [account, market, tradePlan, riskPercent, lots]);
   const executableQuote = finiteQuote(market?.bid) && finiteQuote(market?.ask) && market?.isStale !== true && market?.sessionOpen !== false && !['WAITING', 'DISCONNECTED', 'ERROR', 'DISABLED', 'STALE'].includes(String(market?.marketState || '').toUpperCase());
   const riskModeSupported = sizingMode !== 'risk' || riskSizingSupported(market, account?.currency);
@@ -116,9 +161,34 @@ export default function ExecutionPanel({
   };
 
   const sizingPicker = pickerOpen && (
-    <div className={`absolute z-50 w-[176px] overflow-hidden rounded-lg border border-white/[0.10] bg-[#101010] p-1 shadow-[0_18px_55px_rgba(0,0,0,0.5)] ${focusMode ? 'bottom-[72px] left-1/2 -translate-x-1/2' : 'bottom-[112px] left-1/2 -translate-x-1/2'}`}>
-      <button type="button" onClick={() => { onSizingModeChange('lots'); setPickerOpen(false); }} className={`flex w-full items-center justify-between rounded-md px-3 py-2.5 text-left text-[11px] ${sizingMode === 'lots' ? 'bg-[#101010] text-[#60caff]' : 'text-[#c0ccd7]'}`}><span><b className="block">Lots</b><small className="text-[#718398]">MT5-style manual size</small></span>{sizingMode === 'lots' && <Check size={14}/>}</button>
-      <button type="button" onClick={() => { onSizingModeChange('risk'); setPickerOpen(false); }} className={`mt-1 flex w-full items-center justify-between rounded-md px-3 py-2.5 text-left text-[11px] ${sizingMode === 'risk' ? 'bg-[#101010] text-[#60caff]' : 'text-[#c0ccd7]'}`}><span><b className="block">Risk %</b><small className="text-[#718398]">Chart trade planner</small></span>{sizingMode === 'risk' && <Check size={14}/>}</button>
+    <div className={`absolute z-50 w-[196px] overflow-hidden rounded-lg border border-white/[0.10] bg-[#101010] p-1.5 shadow-[0_18px_55px_rgba(0,0,0,0.5)] ${focusMode ? 'bottom-[72px] left-1/2 -translate-x-1/2' : 'bottom-[112px] left-1/2 -translate-x-1/2'}`}>
+      <button type="button" onClick={() => { onSizingModeChange('lots'); setPickerOpen(false); }} className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-[10px] ${sizingMode === 'lots' ? 'bg-[#181818] text-[#60caff]' : 'text-[#c0ccd7]'}`}><span><b className="block">Lots</b><small className="text-[#718398]">Type exact size or use presets</small></span>{sizingMode === 'lots' && <Check size={13}/>}</button>
+
+      {sizingMode === 'lots' && (
+        <div className="mt-1.5 border-t border-white/[0.08] px-1 pt-1.5">
+          <span className="block px-1 pb-1 text-[7px] font-bold uppercase tracking-[0.1em] text-[#737373]">Quick sizes</span>
+          <div className="grid grid-cols-4 gap-1">
+            {lotPresets.map(value => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => {
+                  const next = normalizeVolumeToStep(value, market, { rounding: 'nearest' });
+                  setLots(next);
+                  setLotInput(formatLots(next));
+                  setPickerOpen(false);
+                }}
+                className={`h-7 rounded-md border text-[8px] font-bold tabular-nums ${Math.abs(Number(lots) - value) < volumeStep / 2 ? 'border-[#2d708f] bg-[#181818] text-[#53c7ff]' : 'border-white/[0.08] bg-black text-[#b3b3b3]'}`}
+              >
+                {formatLots(value)}
+              </button>
+            ))}
+          </div>
+          <span className="mt-1.5 block px-1 text-[7px] text-[#666]">Min {formatLots(minVolume)} · Step {formatLots(volumeStep)} · Max {formatLots(maxVolume)}</span>
+        </div>
+      )}
+
+      <button type="button" onClick={() => { onSizingModeChange('risk'); setPickerOpen(false); }} className={`mt-1.5 flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-[10px] ${sizingMode === 'risk' ? 'bg-[#181818] text-[#60caff]' : 'text-[#c0ccd7]'}`}><span><b className="block">Risk %</b><small className="text-[#718398]">Chart trade planner</small></span>{sizingMode === 'risk' && <Check size={13}/>}</button>
     </div>
   );
 
@@ -186,7 +256,45 @@ export default function ExecutionPanel({
       </div>
       <div className={`grid ${focusMode ? 'grid-cols-[minmax(0,1fr)_94px_minmax(0,1fr)] gap-1.5' : 'grid-cols-[minmax(0,1fr)_88px_minmax(0,1fr)] gap-1.5 sm:grid-cols-[minmax(0,1fr)_100px_minmax(0,1fr)] sm:gap-2'}`}>
         <button type="button" disabled={!canSubmitExposure} onClick={() => clickSide('sell')} className={`flex ${focusMode ? 'h-[58px] px-3' : 'h-[66px] px-3 sm:px-4'} min-w-0 flex-col items-start justify-center acg-execution-sell rounded-md border bg-black text-left text-[#ff5f6d] transition-colors disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.99]`}><span className="text-[10px] font-extrabold tracking-[0.045em]">SELL</span><strong className={`${focusMode ? 'text-[21px]' : 'text-[clamp(21px,6.2vw,27px)]'} mt-1 max-w-full whitespace-nowrap font-black tabular-nums leading-none tracking-[-0.04em] text-[#f9f3f4]`}>{market?.bid || '—'}</strong></button>
-        <div className={`grid ${focusMode ? 'h-[58px]' : 'h-[66px]'} grid-cols-2 grid-rows-[auto_auto_1fr] items-center rounded-md border border-white/[0.08] bg-black px-2 py-1 text-center`}><button type="button" onClick={() => setPickerOpen(v => !v)} className="col-span-2 mx-auto flex items-center gap-1 text-[14px] font-black leading-none text-[#f4f7fb]">{sizingMode === 'lots' ? lots.toFixed(2) : `${riskPercent.toFixed(2)}%`} <ChevronDown size={12} className="text-[#74879d]"/></button><span className="col-span-2 text-[8px] font-medium text-[#718398]">{sizingMode === 'lots' ? 'Lots' : 'Risk'}</span><div className="col-span-2 flex items-end justify-between pt-0.5"><button type="button" onClick={() => sizingMode === 'lots' ? decrease() : onRiskPercentChange(Math.max(0.1, +(riskPercent - 0.1).toFixed(2)))} className="grid h-5 w-[29px] place-items-center rounded-md border border-white/[0.08] bg-[#080808] text-[#a0a0a5]"><Minus size={13}/></button><button type="button" onClick={() => sizingMode === 'lots' ? increase() : onRiskPercentChange(Math.min(5, +(riskPercent + 0.1).toFixed(2)))} className="grid h-5 w-[29px] place-items-center rounded-md border border-white/[0.08] bg-[#080808] text-[#a0a0a5]"><Plus size={13}/></button></div></div>
+        <div className={`grid ${focusMode ? 'h-[58px]' : 'h-[66px]'} grid-cols-2 grid-rows-[auto_auto_1fr] items-center rounded-md border border-white/[0.08] bg-black px-2 py-1 text-center`}>
+          {sizingMode === 'lots' ? (
+            <div className="col-span-2 mx-auto flex min-w-0 items-center justify-center">
+              <input
+                type="text"
+                inputMode="decimal"
+                enterKeyHint="done"
+                aria-label="Lot size"
+                value={lotInput}
+                onFocus={event => {
+                  setLotInputFocused(true);
+                  requestAnimationFrame(() => event.currentTarget.select());
+                }}
+                onChange={event => updateLotInput(event.target.value)}
+                onBlur={commitLotInput}
+                onKeyDown={event => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    event.currentTarget.blur();
+                  }
+                  if (event.key === 'Escape') {
+                    event.preventDefault();
+                    setLotInput(formatLots(normalizedLots));
+                    event.currentTarget.blur();
+                  }
+                }}
+                className="w-[52px] min-w-0 bg-transparent p-0 text-right text-[14px] font-black leading-none tabular-nums text-[#f4f7fb] outline-none"
+              />
+              <button type="button" onClick={() => setPickerOpen(v => !v)} className="ml-0.5 grid size-5 shrink-0 place-items-center text-[#74879d]" aria-label="Lot size presets"><ChevronDown size={12}/></button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => setPickerOpen(v => !v)} className="col-span-2 mx-auto flex items-center gap-1 text-[14px] font-black leading-none text-[#f4f7fb]">{riskPercent.toFixed(2)}% <ChevronDown size={12} className="text-[#74879d]"/></button>
+          )}
+          <span className="col-span-2 text-[8px] font-medium text-[#718398]">{sizingMode === 'lots' ? 'Lots' : 'Risk'}</span>
+          <div className="col-span-2 flex items-end justify-between pt-0.5">
+            <button type="button" onClick={() => sizingMode === 'lots' ? decrease() : onRiskPercentChange(Math.max(0.1, +(riskPercent - 0.1).toFixed(2)))} className="grid h-5 w-[29px] place-items-center rounded-md border border-white/[0.08] bg-[#080808] text-[#a0a0a5]"><Minus size={13}/></button>
+            <button type="button" onClick={() => sizingMode === 'lots' ? increase() : onRiskPercentChange(Math.min(5, +(riskPercent + 0.1).toFixed(2)))} className="grid h-5 w-[29px] place-items-center rounded-md border border-white/[0.08] bg-[#080808] text-[#a0a0a5]"><Plus size={13}/></button>
+          </div>
+        </div>
         <button type="button" disabled={!canSubmitExposure} onClick={() => clickSide('buy')} className={`flex ${focusMode ? 'h-[58px] px-3' : 'h-[66px] px-3 sm:px-4'} min-w-0 flex-col items-end justify-center acg-execution-buy rounded-md border bg-black text-right text-[#2ddb9f] transition-colors disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.99]`}><span className="text-[10px] font-extrabold tracking-[0.045em]">BUY</span><strong className={`${focusMode ? 'text-[21px]' : 'text-[clamp(21px,6.2vw,27px)]'} mt-1 max-w-full whitespace-nowrap font-black tabular-nums leading-none tracking-[-0.04em] text-[#f3fbf8]`}>{market?.ask || '—'}</strong></button>
       </div>
     </>
