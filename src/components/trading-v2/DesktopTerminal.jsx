@@ -20,8 +20,8 @@ import PositionsPanel from './PositionsPanel.jsx';
 import PropRiskStrip from './PropRiskStrip.jsx';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 
-const timeframes = [['1s', '1s'], ['5s', '5s'], ['15s', '15s'], ['30s', '30s'], ['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['1h', '1h'], ['4h', '4h'], ['D', '1d']];
-const chartTimeframeMap = { '1s': 'S1', '5s': 'S5', '15s': 'S15', '30s': 'S30', '1m': 'M1', '5m': 'M5', '15m': 'M15', '1h': 'H1', '4h': 'H4', '1d': 'D1' };
+const timeframes = [['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], ['1H', '1H'], ['4H', '4H'], ['1D', '1D'], ['1W', '1W']];
+const chartTimeframeMap = { '1m': 'M1', '5m': 'M5', '15m': 'M15', '30m': 'M30', '1H': 'H1', '4H': 'H4', '1D': 'D1', '1W': 'W1' };
 const navItems = [['trade', CandlestickChart, 'Trade'], ['watchlist', Star, 'Watchlist'], ['markets', List, 'Markets'], ['history', History, 'History'], ['more', MoreHorizontal, 'More']];
 
 function displaySymbol(symbol = '') {
