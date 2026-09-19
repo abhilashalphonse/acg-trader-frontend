@@ -14,7 +14,7 @@ function StatusIcon({ code, severity }) {
   return <CircleDot size={14} />;
 }
 
-export default function TerminalStatusBanner({ status }) {
+export default function TerminalStatusBanner({ status, actionLabel = null, onAction = null, actionBusy = false }) {
   const [dismissedKey, setDismissedKey] = useState(null);
   const previousKeyRef = useRef(null);
   const pointerStartRef = useRef(null);
@@ -68,14 +68,26 @@ export default function TerminalStatusBanner({ status }) {
           <p className="mt-0.5 text-[8px] font-medium leading-relaxed opacity-80">{status.message}</p>
           {status.severity !== 'danger' && <span className="mt-1 block text-[7px] font-semibold opacity-50">Swipe up or close</span>}
         </div>
-        <button
-          type="button"
-          onClick={dismiss}
-          aria-label="Dismiss status"
-          className="grid size-7 shrink-0 place-items-center rounded-lg text-current opacity-60 transition hover:bg-white/10 hover:opacity-100 active:scale-95"
-        >
-          <X size={13} />
-        </button>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {actionLabel && onAction && (
+            <button
+              type="button"
+              onClick={onAction}
+              disabled={actionBusy}
+              className="h-7 rounded-lg border border-current/20 bg-white/5 px-2.5 text-[8px] font-black text-current transition hover:bg-white/10 disabled:cursor-wait disabled:opacity-50"
+            >
+              {actionBusy ? 'Reconnecting…' : actionLabel}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={dismiss}
+            aria-label="Dismiss status"
+            className="grid size-7 place-items-center rounded-lg text-current opacity-60 transition hover:bg-white/10 hover:opacity-100 active:scale-95"
+          >
+            <X size={13} />
+          </button>
+        </div>
       </div>
     </div>
   );
