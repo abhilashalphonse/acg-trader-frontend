@@ -1,20 +1,18 @@
 import React from 'react';
 import { CandlestickChart, ChartNoAxesCombined, Maximize2, Minimize2 } from 'lucide-react';
 
-const timeframes = ['1s', '5s', '15s', '30s', '1m', '5m', '15m', '1h', '4h', 'D'];
+const timeframes = ['1m', '5m', '15m', '30m', '1H', '4H', '1D', '1W'];
 
 export function mapTimeframe(tf) {
   const map = {
-    '1s': 'S1',
-    '5s': 'S5',
-    '15s': 'S15',
-    '30s': 'S30',
     '1m': 'M1',
     '5m': 'M5',
     '15m': 'M15',
-    '1h': 'H1',
-    '4h': 'H4',
-    D: 'D1',
+    '30m': 'M30',
+    '1H': 'H1',
+    '4H': 'H4',
+    '1D': 'D1',
+    '1W': 'W1',
   };
   return map[tf] || 'M1';
 }
