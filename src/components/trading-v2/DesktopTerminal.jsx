@@ -309,7 +309,7 @@ export default function DesktopTerminal({
             </div>
 
             <div className="min-h-0 min-w-0 bg-[#080808]">
-              <ChartArea symbol={market?.symbol} instrument={market} chartTimeframe={chartTimeframeMap[timeframe] || 'M1'} tick={tick} price={market?.bid} ask={market?.ask} chartMode={chartMode} selectedTool={selectedTool} onSelectTool={onSelectedToolChange} embedded tradePlan={tradePlan} onTradePlanChange={onTradePlanChange} onUpdatePosition={onUpdatePosition} indicators={indicators} positions={positions}/>
+              <ChartArea desktopEnhanced symbol={market?.symbol} instrument={market} chartTimeframe={chartTimeframeMap[timeframe] || 'M1'} tick={tick} price={market?.bid} ask={market?.ask} chartMode={chartMode} selectedTool={selectedTool} onSelectTool={onSelectedToolChange} embedded tradePlan={tradePlan} onTradePlanChange={onTradePlanChange} onUpdatePosition={onUpdatePosition} indicators={indicators} positions={positions}/>
             </div>
           </section>
 
