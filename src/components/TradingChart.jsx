@@ -11,7 +11,7 @@ import {
 import { fetchCandles, mergeLiveBarIntoCache, normalizeCandle, toBackendTimeframe } from '../services/marketData.js';
 import { useTraderAuth } from '../hooks/useTraderAuth.js';
 import { useTradingStore } from '../hooks/useTradingStore.js';
-import { calculateIndicatorData, indicatorVisibleOnTimeframe } from '../utils/indicators.js';
+import { calculateIndicatorData, indicatorVisibleOnTimeframe, requiredIndicatorHistory } from '../utils/indicators.js';
 import { instrumentDigits, instrumentTickSize } from '../utils/instrumentFormatting.js';
 import { Eye, EyeOff, Settings2, X } from 'lucide-react';
 
@@ -107,8 +107,30 @@ export default function TradingChart({
   const liveCandle = useMemo(() => rawLiveCandle ? normalizeCandle(rawLiveCandle) : null, [rawLiveCandle]);
   const decimals = instrumentDigits(instrument);
   const minMove = instrumentTickSize(instrument);
+  const indicatorInstrument = useMemo(() => ({
+    session: instrument?.session || null,
+    tradingSession: instrument?.tradingSession || null,
+    regularSession: instrument?.regularSession || null,
+    sessionTimezone: instrument?.sessionTimezone || null,
+    exchangeTimezone: instrument?.exchangeTimezone || null,
+    timeZone: instrument?.timeZone || null,
+    timezone: instrument?.timezone || null,
+    sessionStart: instrument?.sessionStart || null,
+    marketOpen: instrument?.marketOpen || null,
+  }), [
+    instrument?.session,
+    instrument?.tradingSession,
+    instrument?.regularSession,
+    instrument?.sessionTimezone,
+    instrument?.exchangeTimezone,
+    instrument?.timeZone,
+    instrument?.timezone,
+    instrument?.sessionStart,
+    instrument?.marketOpen,
+  ]);
   const visibleIndicators = useMemo(() => indicators.filter(item => indicatorVisibleOnTimeframe(item, timeframe)), [indicators, timeframe]);
   const showVolume = useMemo(() => indicators.some(item => item.id === 'volume' && indicatorVisibleOnTimeframe(item, timeframe)), [indicators, timeframe]);
+  const historyLimit = useMemo(() => requiredIndicatorHistory(indicators, timeframe), [indicators, timeframe]);
 
   useEffect(() => { coordinateCallbackRef.current = onCoordinateApi; }, [onCoordinateApi]);
   useEffect(() => { indicatorsRef.current = indicators; }, [indicators]);
@@ -131,7 +153,7 @@ export default function TradingChart({
     clearIndicatorSeries(chart);
     let paneIndex = 1;
     indicatorsRef.current.filter(item => item.id !== 'volume' && indicatorVisibleOnTimeframe(item, timeframe)).forEach((indicator, indicatorIndex) => {
-      const result = calculateIndicatorData(indicator, bars);
+      const result = calculateIndicatorData(indicator, bars, { instrument: indicatorInstrument });
       if (!result) return;
       const colors = fallbackIndicatorColors[indicator.id] || ['#53c7ff', '#f0ad5c', '#b38cff'];
       const targetPane = result.kind === 'overlay' ? 0 : paneIndex++;
@@ -176,18 +198,18 @@ export default function TradingChart({
         setPaneLayout([]);
       }
     });
-  }, [clearIndicatorSeries, timeframe]);
+  }, [clearIndicatorSeries, indicatorInstrument, timeframe]);
 
   const updateIndicatorData = useCallback(bars => {
     if (!bars?.length) return;
     indicatorBindingsRef.current.forEach(binding => {
       const indicator = indicatorsRef.current.find(item => item.instanceId === binding.instanceId) || binding.indicator;
-      const result = calculateIndicatorData(indicator, bars);
+      const result = calculateIndicatorData(indicator, bars, { instrument: indicatorInstrument });
       if (!result) return;
       binding.lines.forEach(lineBinding => { const line = result.lines?.find(item => item.key === lineBinding.key); if (line) lineBinding.series.setData(line.data); });
       if (binding.histogram && result.histogram) binding.histogram.setData(result.histogram.map(point => ({ ...point, color: point.value >= 0 ? 'rgba(45,211,155,0.45)' : 'rgba(255,95,105,0.45)' })));
     });
-  }, []);
+  }, [indicatorInstrument]);
   const scheduleIndicatorUpdate = useCallback(() => {
     if (indicatorFrameRef.current) return;
     indicatorFrameRef.current = window.requestAnimationFrame(() => { indicatorFrameRef.current = null; updateIndicatorData(barsRef.current); });
@@ -226,7 +248,7 @@ export default function TradingChart({
     chart.subscribeCrosshairMove(crosshairHandler);
     void (async () => {
       try {
-        const bars = await fetchCandles(symbol, timeframe, 160, controller.signal);
+        const bars = await fetchCandles(symbol, timeframe, historyLimit, controller.signal);
         if (disposed) return;
         if (!bars.length) throw new Error('No market candles returned');
         barsRef.current = bars; barsByTimeRef.current = new Map(bars.map(bar => [Number(bar.time), bar])); series.setData(bars.map(bar => toSeriesPoint(bar, chartMode))); volume.setData(bars.map(bar => {
@@ -236,7 +258,7 @@ export default function TradingChart({
       } catch (e) { if (e?.name === 'AbortError' || disposed) return; console.error('Trading chart data failed', e); setError(e?.message || 'Unable to load market data'); }
     })();
     return () => { disposed = true; controller.abort(); timeScale.unsubscribeVisibleLogicalRangeChange(visibleRangeHandler); coordinateCallbackRef.current?.(null); if (indicatorFrameRef.current) window.cancelAnimationFrame(indicatorFrameRef.current); indicatorFrameRef.current = null; chart.unsubscribeCrosshairMove(crosshairHandler); indicatorSeriesRef.current = []; indicatorBindingsRef.current = []; indicatorPanesRef.current = 0; chartRef.current = null; seriesRef.current = null; volumeRef.current = null; marketLineRef.current = null; askLineRef.current = null; positionLinesRef.current = []; lastBarRef.current = null; barsRef.current = []; barsByTimeRef.current = new Map(); chart.remove(); };
-  }, [symbol, timeframe, chartMode, renderIndicators, decimals, minMove]);
+  }, [symbol, timeframe, chartMode, renderIndicators, decimals, minMove, historyLimit]);
 
   useEffect(() => { indicatorsRef.current = indicators; if (chartRef.current && barsRef.current.length) renderIndicators(chartRef.current, barsRef.current); }, [indicators, renderIndicators]);
   useEffect(() => {
@@ -364,7 +386,7 @@ export default function TradingChart({
     if (liveVolume != null) {
       volumeRef.current?.update({ time: next.time, value: liveVolume, color: next.close >= next.open ? 'rgba(45,211,155,0.34)' : 'rgba(255,95,105,0.32)' });
     }
-    setDisplayBar(next); scheduleIndicatorUpdate(); if (shouldAutoFollow) chartRef.current?.timeScale().scrollToRealTime(); mergeLiveBarIntoCache(symbol, timeframe, next, 160);
+    setDisplayBar(next); scheduleIndicatorUpdate(); if (shouldAutoFollow) chartRef.current?.timeScale().scrollToRealTime(); mergeLiveBarIntoCache(symbol, timeframe, next, historyLimit);
   }, [chartMode, liveCandle, scheduleIndicatorUpdate, symbol, timeframe]);
 
   const ohlc = displayBar;
