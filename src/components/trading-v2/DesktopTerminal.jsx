@@ -40,6 +40,19 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, Number(value)));
 }
 
+function desktopWidthBounds(viewportWidth) {
+  const width = Number(viewportWidth) || 1440;
+  const navWidth = width >= 1536 ? 54 : 50;
+  const workspaceWidth = Math.max(0, width - navWidth);
+  const sidebarMin = 320;
+  const tierMax = width < 1400 ? 500 : width < 1700 ? 580 : width < 2200 ? 620 : 680;
+  const percentageMax = workspaceWidth * (width >= 2200 ? 0.40 : 0.42);
+  const chartProtectedMax = workspaceWidth - 700;
+  const sidebarMax = Math.max(sidebarMin, Math.floor(Math.min(tierMax, percentageMax, chartProtectedMax)));
+  const defaultSidebar = width >= 1600 ? Math.min(420, sidebarMax) : Math.min(380, sidebarMax);
+  return { sidebarMin, sidebarMax, defaultSidebar };
+}
+
 function desktopHeightBounds(viewportHeight, dockCollapsed = false, dockHeight = 0) {
   const height = Number(viewportHeight) || 900;
   const compact = height <= 900;
@@ -56,9 +69,11 @@ function desktopHeightBounds(viewportHeight, dockCollapsed = false, dockHeight =
 
 function loadDesktopLayout() {
   const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 900;
+  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1440;
   const initialBounds = desktopHeightBounds(viewportHeight);
+  const widthBounds = desktopWidthBounds(viewportWidth);
   const fallback = {
-    sidebarWidth: typeof window !== 'undefined' && window.innerWidth >= 1600 ? 420 : 380,
+    sidebarWidth: widthBounds.defaultSidebar,
     dockHeight: initialBounds.defaultDock,
     sidebarCollapsed: false,
     dockCollapsed: false,
@@ -72,7 +87,7 @@ function loadDesktopLayout() {
     const dockHeight = clamp(stored.dockHeight || fallback.dockHeight, initialBounds.dockMin, initialBounds.dockMax);
     const bounds = desktopHeightBounds(viewportHeight, dockCollapsed, dockHeight);
     return {
-      sidebarWidth: clamp(stored.sidebarWidth || fallback.sidebarWidth, 310, 480),
+      sidebarWidth: clamp(stored.sidebarWidth || fallback.sidebarWidth, widthBounds.sidebarMin, widthBounds.sidebarMax),
       dockHeight,
       sidebarCollapsed: stored.sidebarCollapsed === true,
       dockCollapsed,
@@ -215,6 +230,7 @@ export default function DesktopTerminal({
   const [requestedDockTab, setRequestedDockTab] = useState(null);
   const [desktopLayout, setDesktopLayout] = useState(loadDesktopLayout);
   const [viewportHeight, setViewportHeight] = useState(() => typeof window !== 'undefined' ? window.innerHeight : 900);
+  const [viewportWidth, setViewportWidth] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1440);
   const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
   const [chartMenuOpen, setChartMenuOpen] = useState(false);
   const [riskPopoverOpen, setRiskPopoverOpen] = useState(false);
@@ -230,7 +246,10 @@ export default function DesktopTerminal({
   }, [desktopLayout]);
 
   useEffect(() => {
-    const onResize = () => setViewportHeight(window.innerHeight);
+    const onResize = () => {
+      setViewportHeight(window.innerHeight);
+      setViewportWidth(window.innerWidth);
+    };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
@@ -238,13 +257,15 @@ export default function DesktopTerminal({
   useEffect(() => {
     setDesktopLayout(current => {
       const bounds = desktopHeightBounds(viewportHeight, current.dockCollapsed, current.dockHeight);
+      const widthBounds = desktopWidthBounds(viewportWidth);
       const dockHeight = clamp(current.dockHeight, bounds.dockMin, bounds.dockMax);
       const adjustedBounds = desktopHeightBounds(viewportHeight, current.dockCollapsed, dockHeight);
       const watchlistHeight = clamp(current.watchlistHeight, adjustedBounds.watchlistMin, adjustedBounds.watchlistMax);
-      if (dockHeight === current.dockHeight && watchlistHeight === current.watchlistHeight) return current;
-      return { ...current, dockHeight, watchlistHeight };
+      const sidebarWidth = clamp(current.sidebarWidth, widthBounds.sidebarMin, widthBounds.sidebarMax);
+      if (dockHeight === current.dockHeight && watchlistHeight === current.watchlistHeight && sidebarWidth === current.sidebarWidth) return current;
+      return { ...current, dockHeight, watchlistHeight, sidebarWidth };
     });
-  }, [viewportHeight]);
+  }, [viewportHeight, viewportWidth]);
 
   useEffect(() => {
     try { window.localStorage.setItem(MULTI_CHART_KEY, JSON.stringify(multiChart)); } catch { /* optional preference */ }
@@ -302,9 +323,10 @@ export default function DesktopTerminal({
   };
 
   const heightBounds = desktopHeightBounds(viewportHeight, desktopLayout.dockCollapsed, desktopLayout.dockHeight);
+  const widthBounds = desktopWidthBounds(viewportWidth);
   const sidebarWidth = desktopLayout.sidebarCollapsed ? 0 : desktopLayout.sidebarWidth;
   const dockHeight = desktopLayout.dockCollapsed ? 0 : desktopLayout.dockHeight;
-  const updateSidebarWidth = value => setDesktopLayout(current => ({ ...current, sidebarWidth: clamp(value, 310, 480), sidebarCollapsed: false }));
+  const updateSidebarWidth = value => setDesktopLayout(current => ({ ...current, sidebarWidth: clamp(value, widthBounds.sidebarMin, widthBounds.sidebarMax), sidebarCollapsed: false }));
   const updateDockHeight = value => setDesktopLayout(current => {
     const bounds = desktopHeightBounds(viewportHeight, false, value);
     const nextDock = clamp(value, bounds.dockMin, bounds.dockMax);
@@ -325,7 +347,7 @@ export default function DesktopTerminal({
   const resetDesktopLayout = () => {
     const bounds = desktopHeightBounds(window.innerHeight);
     setDesktopLayout({
-      sidebarWidth: window.innerWidth >= 1600 ? 420 : 380,
+      sidebarWidth: desktopWidthBounds(window.innerWidth).defaultSidebar,
       dockHeight: bounds.defaultDock,
       sidebarCollapsed: false,
       dockCollapsed: false,
@@ -361,7 +383,7 @@ export default function DesktopTerminal({
       return {
         ...current,
         ...layout,
-        sidebarWidth: clamp(layout.sidebarWidth ?? current.sidebarWidth, 310, 480),
+        sidebarWidth: clamp(layout.sidebarWidth ?? current.sidebarWidth, widthBounds.sidebarMin, widthBounds.sidebarMax),
         dockHeight,
         watchlistHeight: clamp(layout.watchlistHeight ?? current.watchlistHeight ?? adjustedBounds.defaultWatchlist, adjustedBounds.watchlistMin, adjustedBounds.watchlistMax),
       };
@@ -657,8 +679,8 @@ export default function DesktopTerminal({
             <ResizeHandle
               axis="x"
               value={desktopLayout.sidebarWidth}
-              min={310}
-              max={480}
+              min={widthBounds.sidebarMin}
+              max={widthBounds.sidebarMax}
               deltaMultiplier={-1}
               onChange={updateSidebarWidth}
               ariaLabel="Resize right trading panel"
