@@ -425,13 +425,16 @@ export default function DesktopOrderTicket({
           )}
         </div>
 
-        <div className="rounded-md border border-white/[0.06] bg-black px-2 py-1.5">
-          <div className="mb-1 text-[6px] font-black uppercase tracking-[0.08em] text-[#506477]">After this trade</div>
-          <div className="grid grid-cols-4 gap-2">
-            <FieldMetric label="Risk" value={Number.isFinite(planMetrics?.riskAmount) ? `${money(planMetrics.riskAmount, currency, true)} · ${Number.isFinite(riskGuard.tradeRiskPercent) ? `${riskGuard.tradeRiskPercent.toFixed(2)}%` : ''}` : '—'} tone={Number.isFinite(riskBufferUsage) && riskBufferUsage >= 50 ? 'danger' : 'default'} />
-            <FieldMetric label="Margin" value={money(previewMargin, currency, true)} />
-            <FieldMetric label="Free" value={money(freeAfter, currency, true)} tone={Number.isFinite(freeAfter) && freeAfter < 0 ? 'danger' : 'default'} />
-            <FieldMetric label="R:R" value={Number.isFinite(planMetrics?.rr) ? `1:${planMetrics.rr.toFixed(2)}` : '—'} tone="accent" />
+        <div className="rounded-md border border-white/[0.06] bg-black px-2 py-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <span className="block text-[6px] font-black uppercase tracking-[0.08em] text-[#506477]">Margin required</span>
+              <strong className="mt-0.5 block font-mono text-[11px] font-bold tabular-nums text-[#E6EDF3]">{money(previewMargin, currency, true)}</strong>
+            </div>
+            <div className="text-right">
+              <span className="block text-[6px] font-black uppercase tracking-[0.08em] text-[#506477]">Free margin after</span>
+              <strong className={`mt-0.5 block font-mono text-[11px] font-bold tabular-nums ${Number.isFinite(freeAfter) && freeAfter < 0 ? 'text-[#FF6F7A]' : 'text-[#E6EDF3]'}`}>{money(freeAfter, currency, true)}</strong>
+            </div>
           </div>
         </div>
 
@@ -501,10 +504,10 @@ export default function DesktopOrderTicket({
           <div className="grid grid-cols-3 gap-x-3 gap-y-2 rounded-md border border-white/[0.06] bg-black px-2 py-2">
             <FieldMetric label="Spread" value={Number.isFinite(spreadPips) ? `${spreadPips.toFixed(1)}p` : '—'} />
             <FieldMetric label="Leverage" value={effectiveLeverage(account, market) ? `1:${effectiveLeverage(account, market)}` : '—'} />
-            <FieldMetric label="Reward" value={Number.isFinite(planMetrics?.reward) ? money(planMetrics.reward, currency) : '—'} tone="success" />
+            <FieldMetric label="Risk at SL" value={Number.isFinite(planMetrics?.riskAmount) ? money(planMetrics.riskAmount, currency) : '—'} tone={Number.isFinite(riskBufferUsage) && riskBufferUsage >= 50 ? 'danger' : 'default'} />
+            <FieldMetric label="R:R" value={Number.isFinite(planMetrics?.rr) ? `1:${planMetrics.rr.toFixed(2)}` : '—'} tone="accent" />
             <FieldMetric label="Daily room" value={challenge.riskAvailabilityLive ? money(challenge.remainingDaily, currency) : '—'} />
             <FieldMetric label="After SL" value={challenge.riskAvailabilityLive && Number.isFinite(planMetrics?.riskAmount) ? money(challenge.postTradeDaily, currency) : '—'} tone={Number.isFinite(riskBufferUsage) && riskBufferUsage >= 50 ? 'danger' : 'success'} />
-            <FieldMetric label="Max room" value={challenge.riskAvailabilityLive ? money(challenge.remainingMax, currency) : '—'} />
           </div>
         )}
       </div>
