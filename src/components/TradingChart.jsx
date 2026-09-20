@@ -125,7 +125,7 @@ export default function TradingChart({
     indicatorBindingsRef.current = [];
     for (let index = indicatorPanesRef.current; index >= 1; index -= 1) { try { if (chart.panes().length > index) chart.removePane(index); } catch { /* disposed */ } }
     indicatorPanesRef.current = 0;
-  }, []);
+  }, [instrument]);
 
   const renderIndicators = useCallback((chart, bars) => {
     if (!chart || !bars?.length) return;
@@ -177,7 +177,7 @@ export default function TradingChart({
         setPaneLayout([]);
       }
     });
-  }, [clearIndicatorSeries, timeframe]);
+  }, [clearIndicatorSeries, instrument, timeframe]);
 
   const updateIndicatorData = useCallback(bars => {
     if (!bars?.length) return;
@@ -365,7 +365,7 @@ export default function TradingChart({
     if (liveVolume != null) {
       volumeRef.current?.update({ time: next.time, value: liveVolume, color: next.close >= next.open ? 'rgba(45,211,155,0.34)' : 'rgba(255,95,105,0.32)' });
     }
-    setDisplayBar(next); scheduleIndicatorUpdate(); if (shouldAutoFollow) chartRef.current?.timeScale().scrollToRealTime(); mergeLiveBarIntoCache(symbol, timeframe, next, 160);
+    setDisplayBar(next); scheduleIndicatorUpdate(); if (shouldAutoFollow) chartRef.current?.timeScale().scrollToRealTime(); mergeLiveBarIntoCache(symbol, timeframe, next, historyLimit);
   }, [chartMode, liveCandle, scheduleIndicatorUpdate, symbol, timeframe]);
 
   const ohlc = displayBar;
