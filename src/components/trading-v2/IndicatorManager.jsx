@@ -100,14 +100,75 @@ function NumberField({ label, value, min = 1, max = 500, step = 1, onChange }) {
   return <label className="block"><span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">{label}</span><input type="number" min={min} max={max} step={step} value={value} onChange={event => onChange(Number(event.target.value))} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] font-semibold text-[#dbe5ed] outline-none focus:border-[#53c7ff]" /></label>;
 }
 
+function SelectField({ label, value, onChange, options }) {
+  return <label className="block"><span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">{label}</span><select value={value} onChange={event => onChange(event.target.value)} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] font-semibold text-[#dbe5ed] outline-none focus:border-[#53c7ff]">{options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
+}
+
+function StyleFields({ label = 'Line', style = {}, onChange }) {
+  const palette = ['#54c8ff', '#f0c35c', '#b38cff', '#35d79d', '#ff6673', '#d8e4ee'];
+  return (
+    <div className="rounded-md border border-white/[0.07] bg-[#0a0a0a] p-2.5">
+      <span className="mb-2 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">{label}</span>
+      <div className="flex items-center gap-1.5">
+        {palette.map(color => <button key={color} type="button" onClick={() => onChange({ ...style, color })} className={`size-5 rounded-full border-2 ${style.color === color ? 'border-white' : 'border-transparent'}`} style={{ backgroundColor: color }} aria-label={`Set ${label} color ${color}`} />)}
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <SelectField label="Width" value={String(style.width || 2)} onChange={width => onChange({ ...style, width: Number(width) })} options={[1,2,3,4].map(value => ({ value: String(value), label: `${value} px` }))}/>
+        <SelectField label="Style" value={style.lineStyle || 'solid'} onChange={lineStyle => onChange({ ...style, lineStyle })} options={[{value:'solid',label:'Solid'},{value:'dashed',label:'Dashed'},{value:'dotted',label:'Dotted'}]}/>
+      </div>
+    </div>
+  );
+}
+
+const SOURCE_OPTIONS = [
+  { value: 'close', label: 'Close' },
+  { value: 'open', label: 'Open' },
+  { value: 'high', label: 'High' },
+  { value: 'low', label: 'Low' },
+  { value: 'hl2', label: 'HL2' },
+  { value: 'hlc3', label: 'HLC3' },
+  { value: 'ohlc4', label: 'OHLC4' },
+];
+
+const TIMEFRAME_OPTIONS = [
+  { value: 'all', label: 'All timeframes' },
+  { value: 'M1', label: '1 minute' },
+  { value: 'M5', label: '5 minutes' },
+  { value: 'M15', label: '15 minutes' },
+  { value: 'M30', label: '30 minutes' },
+  { value: 'H1', label: '1 hour' },
+  { value: 'H4', label: '4 hours' },
+  { value: 'D1', label: '1 day' },
+  { value: 'W1', label: '1 week' },
+];
+
 function SettingsPanel({ indicator, onUpdate }) {
   const s = indicator.settings || {};
-  let fields = null;
-  if (['ema', 'sma'].includes(indicator.id)) fields = <NumberField label="Period" value={s.period || 20} min={1} max={500} onChange={period => onUpdate({ period })}/>;
-  if (['rsi', 'atr'].includes(indicator.id)) fields = <NumberField label="Period" value={s.period || 14} min={2} max={200} onChange={period => onUpdate({ period })}/>;
-  if (indicator.id === 'bollinger') fields = <div className="grid grid-cols-2 gap-2"><NumberField label="Period" value={s.period || 20} min={2} max={200} onChange={period => onUpdate({ period })}/><NumberField label="Deviation" value={s.deviation || 2} min={0.1} max={10} step={0.1} onChange={deviation => onUpdate({ deviation })}/></div>;
-  if (indicator.id === 'macd') fields = <div className="grid grid-cols-3 gap-2"><NumberField label="Fast" value={s.fast || 12} min={1} max={100} onChange={fast => onUpdate({ fast })}/><NumberField label="Slow" value={s.slow || 26} min={2} max={200} onChange={slow => onUpdate({ slow })}/><NumberField label="Signal" value={s.signal || 9} min={1} max={100} onChange={signal => onUpdate({ signal })}/></div>;
-  if (indicator.id === 'stochastic') fields = <div className="grid grid-cols-2 gap-2"><NumberField label="%K" value={s.kPeriod || 14} min={2} max={100} onChange={kPeriod => onUpdate({ kPeriod })}/><NumberField label="%D" value={s.dPeriod || 3} min={1} max={50} onChange={dPeriod => onUpdate({ dPeriod })}/></div>;
-  if (!fields) return <div className="border-t border-white/[0.08] px-3 py-2.5 text-[8px] text-[#667b8e]">This indicator has no adjustable parameters.</div>;
-  return <div className="border-t border-white/[0.08] bg-[#080808]/70 px-3 py-2.5">{fields}</div>;
+  const patchStyle = (key, value) => onUpdate({ [key]: value });
+  const supportsSource = ['ema', 'sma', 'vwap', 'bollinger', 'rsi', 'macd'].includes(indicator.id);
+
+  return (
+    <div className="border-t border-white/[0.08] bg-[#080808]/70 px-3 py-3">
+      <div className="space-y-3">
+        {supportsSource && <SelectField label="Source" value={s.source || (indicator.id === 'vwap' ? 'hlc3' : 'close')} onChange={source => onUpdate({ source })} options={SOURCE_OPTIONS} />}
+
+        {['ema', 'sma'].includes(indicator.id) && <NumberField label="Period" value={s.period || 20} min={1} max={500} onChange={period => onUpdate({ period })}/>}
+        {['rsi', 'atr'].includes(indicator.id) && <NumberField label="Period" value={s.period || 14} min={2} max={200} onChange={period => onUpdate({ period })}/>}
+        {indicator.id === 'bollinger' && <div className="grid grid-cols-2 gap-2"><NumberField label="Period" value={s.period || 20} min={2} max={200} onChange={period => onUpdate({ period })}/><NumberField label="Deviation" value={s.deviation || 2} min={0.1} max={10} step={0.1} onChange={deviation => onUpdate({ deviation })}/></div>}
+        {indicator.id === 'macd' && <div className="grid grid-cols-3 gap-2"><NumberField label="Fast" value={s.fast || 12} min={1} max={100} onChange={fast => onUpdate({ fast })}/><NumberField label="Slow" value={s.slow || 26} min={2} max={200} onChange={slow => onUpdate({ slow })}/><NumberField label="Signal" value={s.signal || 9} min={1} max={100} onChange={signal => onUpdate({ signal })}/></div>}
+        {indicator.id === 'stochastic' && <div className="grid grid-cols-2 gap-2"><NumberField label="%K" value={s.kPeriod || 14} min={2} max={100} onChange={kPeriod => onUpdate({ kPeriod })}/><NumberField label="%D" value={s.dPeriod || 3} min={1} max={50} onChange={dPeriod => onUpdate({ dPeriod })}/></div>}
+
+        {indicator.id === 'vwap' && <SelectField label="Session reset" value={s.sessionReset || 'utc-day'} onChange={sessionReset => onUpdate({ sessionReset })} options={[{value:'utc-day',label:'UTC day'},{value:'utc-week',label:'UTC week'},{value:'none',label:'Continuous'}]} />}
+
+        {indicator.id === 'rsi' && <div className="grid grid-cols-2 gap-2"><NumberField label="Lower guide" value={s.lowerGuide ?? 30} min={0} max={100} onChange={lowerGuide => onUpdate({ lowerGuide })}/><NumberField label="Upper guide" value={s.upperGuide ?? 70} min={0} max={100} onChange={upperGuide => onUpdate({ upperGuide })}/></div>}
+        {indicator.id === 'stochastic' && <div className="grid grid-cols-2 gap-2"><NumberField label="Lower guide" value={s.lowerGuide ?? 20} min={0} max={100} onChange={lowerGuide => onUpdate({ lowerGuide })}/><NumberField label="Upper guide" value={s.upperGuide ?? 80} min={0} max={100} onChange={upperGuide => onUpdate({ upperGuide })}/></div>}
+
+        {indicator.id !== 'volume' && <StyleFields label={indicator.id === 'bollinger' ? 'Outer bands' : indicator.id === 'macd' ? 'MACD line' : indicator.id === 'stochastic' ? '%K line' : 'Line'} style={s.style || {}} onChange={style => patchStyle('style', style)} />}
+        {indicator.id === 'bollinger' && <StyleFields label="Middle band" style={s.midStyle || {}} onChange={style => patchStyle('midStyle', style)} />}
+        {['macd', 'stochastic'].includes(indicator.id) && <StyleFields label={indicator.id === 'macd' ? 'Signal line' : '%D line'} style={s.signalStyle || {}} onChange={style => patchStyle('signalStyle', style)} />}
+
+        <SelectField label="Visible on" value={Array.isArray(s.timeframeVisibility) ? 'all' : (s.timeframeVisibility || 'all')} onChange={timeframeVisibility => onUpdate({ timeframeVisibility })} options={TIMEFRAME_OPTIONS} />
+      </div>
+    </div>
+  );
 }

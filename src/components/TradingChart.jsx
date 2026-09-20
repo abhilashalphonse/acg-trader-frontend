@@ -11,7 +11,7 @@ import {
 import { fetchCandles, mergeLiveBarIntoCache, normalizeCandle, toBackendTimeframe } from '../services/marketData.js';
 import { useTraderAuth } from '../hooks/useTraderAuth.js';
 import { useTradingStore } from '../hooks/useTradingStore.js';
-import { calculateIndicatorData } from '../utils/indicators.js';
+import { calculateIndicatorData, indicatorVisibleOnTimeframe } from '../utils/indicators.js';
 import { instrumentDigits, instrumentTickSize } from '../utils/instrumentFormatting.js';
 import { Eye, EyeOff, Settings2, X } from 'lucide-react';
 
@@ -30,9 +30,15 @@ const chartTokens = {
 const DEFAULT_BARS_BACK = 44;
 const DEFAULT_RIGHT_BARS = 7;
 
-const indicatorColors = {
+const fallbackIndicatorColors = {
   ema: ['#54c8ff'], sma: ['#f0c35c'], vwap: ['#b38cff'], bollinger: ['#65b6df', '#7f91a4', '#65b6df'], rsi: ['#b68cff'], atr: ['#f0ad5c'], macd: ['#55c8ff', '#ffb55f'], stochastic: ['#58d5ff', '#ff7fbd'],
 };
+
+function chartLineStyle(value) {
+  if (value === 'dashed') return LineStyle.Dashed;
+  if (value === 'dotted') return LineStyle.Dotted;
+  return LineStyle.Solid;
+}
 
 function volumeForBar(bar) {
   return Number.isFinite(bar?.volume) && bar.volume >= 0 ? bar.volume : null;
@@ -101,8 +107,8 @@ export default function TradingChart({
   const liveCandle = useMemo(() => rawLiveCandle ? normalizeCandle(rawLiveCandle) : null, [rawLiveCandle]);
   const decimals = instrumentDigits(instrument);
   const minMove = instrumentTickSize(instrument);
-  const visibleIndicators = useMemo(() => indicators.filter(item => item.visible !== false), [indicators]);
-  const showVolume = useMemo(() => indicators.some(item => item.id === 'volume' && item.visible !== false), [indicators]);
+  const visibleIndicators = useMemo(() => indicators.filter(item => indicatorVisibleOnTimeframe(item, timeframe)), [indicators, timeframe]);
+  const showVolume = useMemo(() => indicators.some(item => item.id === 'volume' && indicatorVisibleOnTimeframe(item, timeframe)), [indicators, timeframe]);
 
   useEffect(() => { coordinateCallbackRef.current = onCoordinateApi; }, [onCoordinateApi]);
   useEffect(() => { indicatorsRef.current = indicators; }, [indicators]);
@@ -124,14 +130,23 @@ export default function TradingChart({
     if (!chart || !bars?.length) return;
     clearIndicatorSeries(chart);
     let paneIndex = 1;
-    indicatorsRef.current.filter(item => item.visible !== false && item.id !== 'volume').forEach((indicator, indicatorIndex) => {
+    indicatorsRef.current.filter(item => item.id !== 'volume' && indicatorVisibleOnTimeframe(item, timeframe)).forEach((indicator, indicatorIndex) => {
       const result = calculateIndicatorData(indicator, bars);
       if (!result) return;
-      const colors = indicatorColors[indicator.id] || ['#53c7ff', '#f0ad5c', '#b38cff'];
+      const colors = fallbackIndicatorColors[indicator.id] || ['#53c7ff', '#f0ad5c', '#b38cff'];
       const targetPane = result.kind === 'overlay' ? 0 : paneIndex++;
       const binding = { instanceId: indicator.instanceId, indicator, lines: [], histogram: null };
       result.lines?.forEach((line, lineIndex) => {
-        const series = chart.addSeries(LineSeries, { color: colors[lineIndex % colors.length], lineWidth: line.key === 'bb-mid' ? 1 : 2, lineStyle: line.key === 'bb-mid' ? LineStyle.Dotted : LineStyle.Solid, priceLineVisible: false, lastValueVisible: result.kind !== 'overlay', crosshairMarkerVisible: true, title: line.label }, targetPane);
+        const visual = line.style || {};
+        const series = chart.addSeries(LineSeries, {
+          color: visual.color || colors[lineIndex % colors.length],
+          lineWidth: Math.max(1, Math.min(4, Number(visual.width) || (line.key === 'bb-mid' ? 1 : 2))),
+          lineStyle: chartLineStyle(visual.lineStyle || (line.key === 'bb-mid' ? 'dotted' : 'solid')),
+          priceLineVisible: false,
+          lastValueVisible: result.kind !== 'overlay',
+          crosshairMarkerVisible: true,
+          title: line.label,
+        }, targetPane);
         series.setData(line.data);
         indicatorSeriesRef.current.push(series);
         binding.lines.push({ key: line.key, series });
@@ -161,7 +176,7 @@ export default function TradingChart({
         setPaneLayout([]);
       }
     });
-  }, [clearIndicatorSeries]);
+  }, [clearIndicatorSeries, timeframe]);
 
   const updateIndicatorData = useCallback(bars => {
     if (!bars?.length) return;
