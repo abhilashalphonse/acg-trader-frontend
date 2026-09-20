@@ -257,8 +257,12 @@ export default function PositionsPanel({
               {positionGroups.map(group => <div key={group.symbol} title={`${group.count} open ${group.symbol} position${group.count === 1 ? '' : 's'}`} className="flex shrink-0 items-center gap-1 rounded border border-white/[0.06] bg-black px-2 py-1 text-[7px] text-[#8597a7]"><b className="text-[#c8d4de]">{formatSymbol(group.symbol)}</b><span>{group.count}</span><span>{group.volume.toFixed(2)}L</span><span className={group.pnl >= 0 ? 'text-[#42dba6]' : 'text-[#ff727d]'}>{formatPnl(group.pnl)}</span></div>)}
             </div>
           )}
-          <div className="grid grid-cols-[1.5fr_.7fr_.75fr_1fr_1fr_1fr_1fr_1fr_148px] items-center border-b border-white/[0.06] px-3 py-2 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#5c6f82]">
-            <span>Instrument</span><span>Side</span><span className="text-right">Size</span><span className="text-right">Entry</span><span className="text-right">Current</span><span className="text-right">SL</span><span className="text-right">TP</span><span className="text-right">P&amp;L</span><span />
+          <div className="grid grid-cols-[1.45fr_1.55fr_1.15fr_1fr_170px] items-center border-b border-white/[0.06] px-3 py-2 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#5c6f82]">
+            <span>Position</span>
+            <span>Market</span>
+            <span>Protection</span>
+            <span className="text-right">P&amp;L</span>
+            <span className="text-right">Actions</span>
           </div>
           {!positions.length && <div className="grid h-[110px] place-items-center text-center text-[10px] text-[#6F8191]"><div><b className="block text-[#A1AFBC]">No open positions</b><span className="mt-1 block">Market executions will appear here</span></div></div>}
           {positions.map(position => {
@@ -269,32 +273,60 @@ export default function PositionsPanel({
               <div
                 key={position.id}
                 onClick={() => onSelectPosition(position.id)}
-                className={`grid cursor-pointer grid-cols-[1.4fr_.7fr_.75fr_1fr_1fr_1fr_1fr_1fr_136px] items-center border-b px-3 py-2 text-[9px] transition ${String(selectedPositionId) === String(position.id) ? 'border-[#315b72] bg-[#0b141a]' : 'border-white/[0.06] hover:bg-white/[0.015]'}`}
+                className={`relative grid cursor-pointer grid-cols-[1.45fr_1.55fr_1.15fr_1fr_170px] items-center border-b px-3 py-2.5 text-[9px] transition ${String(selectedPositionId) === String(position.id) ? 'border-[#315b72] bg-[#0b141a]' : 'border-white/[0.06] hover:bg-white/[0.015]'}`}
               >
+                {String(selectedPositionId) === String(position.id) && <span className="absolute inset-y-1 left-0 w-0.5 rounded-r bg-[#59C7FF]" />}
+
                 <div className="flex min-w-0 items-center gap-2">
                   <InstrumentAvatar instrument={instrument} size={20}/>
-                  <strong className="truncate text-[10px] text-[#f2f5f7]">{formatSymbol(position.symbol)}</strong>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <strong className="truncate text-[10px] text-[#f2f5f7]">{formatSymbol(position.symbol)}</strong>
+                      <span className={`w-fit rounded px-1.5 py-0.5 text-[7px] font-black ${sideBuy ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{position.side}</span>
+                    </div>
+                    <span className="mt-0.5 block font-mono text-[8px] text-[#7f8f9e]">{Number(position.volume).toFixed(2)} lots</span>
+                  </div>
                 </div>
-                <span className={`w-fit rounded px-1.5 py-0.5 text-[8px] font-bold ${sideBuy ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{position.side}</span>
-                <span className="text-right font-mono text-[#c4cbd2]">{Number(position.volume).toFixed(2)}</span>
-                <span className="text-right font-mono text-[#b9c3cc]">{formatInstrumentPrice(position.entry, instrument)}</span>
-                <span className="text-right font-mono text-[#d3dbe2]">{formatInstrumentPrice(position.closePrice, instrument)}</span>
-                <button type="button" onClick={() => startProtectionEdit(position, 'sl')} className="text-right font-mono text-[#8e9aa5] hover:text-white">{position.sl == null ? '+ SL' : formatInstrumentPrice(position.sl, instrument)}</button>
-                <button type="button" onClick={() => startProtectionEdit(position, 'tp')} className="text-right font-mono text-[#8e9aa5] hover:text-white">{position.tp == null ? '+ TP' : formatInstrumentPrice(position.tp, instrument)}</button>
-                <strong className={`text-right font-mono text-[10px] ${positive ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{formatPnl(position.pnl, position.pnlCurrency)}</strong>
+
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 font-mono text-[9px]">
+                    <span className="text-[#b9c3cc]">{formatInstrumentPrice(position.entry, instrument)}</span>
+                    <span className="text-[#44515D]">→</span>
+                    <span className="text-[#d3dbe2]">{formatInstrumentPrice(position.closePrice, instrument)}</span>
+                  </div>
+                  <div className="mt-0.5 flex items-center gap-3 text-[7px] uppercase tracking-[0.06em] text-[#53677a]">
+                    <span>Entry</span>
+                    <span>Current</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button type="button" onClick={event => { event.stopPropagation(); startProtectionEdit(position, 'sl'); }} className={`h-7 rounded border px-2 font-mono text-[7px] font-bold ${position.sl == null ? 'border-white/[0.06] text-[#8295A7] hover:text-white' : 'border-[#5e2932] text-[#FF6F7A]'}`}>{position.sl == null ? '+ SL' : `SL ${formatInstrumentPrice(position.sl, instrument)}`}</button>
+                  <button type="button" onClick={event => { event.stopPropagation(); startProtectionEdit(position, 'tp'); }} className={`h-7 rounded border px-2 font-mono text-[7px] font-bold ${position.tp == null ? 'border-white/[0.06] text-[#8295A7] hover:text-white' : 'border-[#245b48] text-[#42D7A1]'}`}>{position.tp == null ? '+ TP' : `TP ${formatInstrumentPrice(position.tp, instrument)}`}</button>
+                </div>
+
+                <div className="text-right">
+                  <strong className={`block font-mono text-[11px] ${positive ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{formatPnl(position.pnl, position.pnlCurrency)}</strong>
+                  <span className={`mt-0.5 block font-mono text-[7px] ${positive ? 'text-[#2f9e79]' : 'text-[#a24b55]'}`}>
+                    {Number.isFinite(Number(position.entry)) && Number(position.entry) > 0 && Number.isFinite(Number(position.closePrice))
+                      ? `${((sideBuy ? Number(position.closePrice) - Number(position.entry) : Number(position.entry) - Number(position.closePrice)) / Number(position.entry) * 100).toFixed(2)}%`
+                      : '—'}
+                  </span>
+                </div>
+
                 <div className="relative flex items-center justify-end gap-1">
-                  <button type="button" onClick={() => onBreakEven(position.id)} className="h-7 rounded border border-white/[0.06] px-2 text-[7px] font-bold text-[#48d8a4] hover:bg-white/[0.025]">BE</button>
-                  <button type="button" onClick={() => onClosePosition(position.id, 50)} className="h-7 rounded border border-white/[0.06] px-2 text-[7px] font-bold text-[#aeb8c1] hover:bg-white/[0.025]">50%</button>
-                  <button type="button" onClick={() => onClosePosition(position.id, 100)} className="h-7 rounded border border-[#51242c] px-2 text-[7px] font-bold text-[#ff727d] hover:bg-[#241015]">Close</button>
-                  <button type="button" onClick={() => setRowActionsId(rowActionsId === position.id ? null : position.id)} className="grid size-7 place-items-center rounded border border-white/[0.06] text-[#8092a2] hover:text-white"><MoreHorizontal size={11}/></button>
+                  <button type="button" onClick={event => { event.stopPropagation(); onBreakEven(position.id); }} className="h-7 rounded border border-white/[0.06] px-2 text-[7px] font-bold text-[#48d8a4] hover:bg-white/[0.025]">BE</button>
+                  <button type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, 50); }} className="h-7 rounded border border-white/[0.06] px-2 text-[7px] font-bold text-[#aeb8c1] hover:bg-white/[0.025]">Reduce</button>
+                  <button type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, 100); }} className="h-7 rounded border border-[#51242c] px-2 text-[7px] font-bold text-[#ff727d] hover:bg-[#241015]">Close</button>
+                  <button type="button" onClick={event => { event.stopPropagation(); setRowActionsId(rowActionsId === position.id ? null : position.id); }} className="grid size-7 place-items-center rounded border border-white/[0.06] text-[#8092a2] hover:text-white"><MoreHorizontal size={11}/></button>
                   {rowActionsId === position.id && (
                     <div className="absolute right-0 top-8 z-50 w-[154px] rounded-md border border-white/[0.10] bg-[#0a0a0a] p-1 shadow-xl">
-                      <button type="button" onClick={() => { onDuplicate(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[7px] text-[#b6c3ce] hover:bg-white/[0.03]">Duplicate position</button>
-                      <button type="button" onClick={() => { onReverse(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[7px] text-[#b6c3ce] hover:bg-white/[0.03]">Reverse position</button>
-                      <button type="button" onClick={() => moveBreakEvenOffset(position, 1)} className="w-full rounded px-2 py-1.5 text-left text-[7px] text-[#48d8a4] hover:bg-white/[0.03]">BE + 1 pip</button>
-                      {[5,10,20].map(pips => <button key={pips} type="button" onClick={() => { onSetTrailing(position.id, true, pips); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[7px] text-[#7fcfff] hover:bg-white/[0.03]">Trailing {pips} pips</button>)}
+                      <button type="button" onClick={event => { event.stopPropagation(); onDuplicate(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[7px] text-[#b6c3ce] hover:bg-white/[0.03]">Duplicate position</button>
+                      <button type="button" onClick={event => { event.stopPropagation(); onReverse(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[7px] text-[#b6c3ce] hover:bg-white/[0.03]">Reverse position</button>
+                      <button type="button" onClick={event => { event.stopPropagation(); moveBreakEvenOffset(position, 1); }} className="w-full rounded px-2 py-1.5 text-left text-[7px] text-[#48d8a4] hover:bg-white/[0.03]">BE + 1 pip</button>
+                      {[5,10,20].map(pips => <button key={pips} type="button" onClick={event => { event.stopPropagation(); onSetTrailing(position.id, true, pips); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[7px] text-[#7fcfff] hover:bg-white/[0.03]">Trailing {pips} pips</button>)}
                       <div className="my-1 border-t border-white/[0.06]"/>
-                      {[25,75].map(percent => <button key={percent} type="button" onClick={() => { onClosePosition(position.id, percent); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[7px] text-[#b6c3ce] hover:bg-white/[0.03]">Close {percent}%</button>)}
+                      {[25,75].map(percent => <button key={percent} type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, percent); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[7px] text-[#b6c3ce] hover:bg-white/[0.03]">Close {percent}%</button>)}
                     </div>
                   )}
                 </div>
