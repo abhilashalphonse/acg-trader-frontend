@@ -543,10 +543,6 @@ export default function TradingTerminalV2({
   };
 
   const cancelPlan = () => {
-    if (tradePlan?.open && tradePlan?.positionId) {
-      void closePosition(tradePlan.positionId, 100);
-      return;
-    }
     setTradePlan(null);
   };
 
