@@ -251,6 +251,10 @@ export default function DesktopOrderTicket({
 
   const clickSide = side => {
     if (!canSubmit || !market?.symbol) return;
+    if (pendingPlan) {
+      if (selectedSide === side) onExecutePlan();
+      return;
+    }
     if (orderType !== 'market' || sizingMode === 'risk') {
       onStartPlan(side, orderType);
       return;
@@ -444,64 +448,6 @@ export default function DesktopOrderTicket({
           </div>
         )}
 
-        <div className="grid grid-cols-[minmax(0,1fr)_108px_minmax(0,1fr)] gap-1.5">
-          <button type="button" disabled={!canSubmit} onClick={() => clickSide('sell')} className="flex h-[58px] min-w-0 flex-col justify-center rounded-md border border-[#6d2d37] bg-[#18080c] px-2.5 text-left transition hover:bg-[#210b10] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35">
-            <strong className="truncate font-mono text-[15px] font-black tracking-[-0.03em] text-[#f7edef]">{formatInstrumentPrice(market?.bid, market)}</strong>
-            <span className="mt-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-[#FF6F7A]">Sell</span>
-          </button>
-
-          <div className="grid h-[58px] grid-cols-[26px_minmax(0,1fr)_26px] items-center rounded-md border border-white/[0.06] bg-black">
-            <button type="button" onClick={() => nudgeLots(-1)} disabled={sizingMode === 'risk'} className="grid h-full place-items-center text-[#6F8191] hover:bg-white/[0.025] hover:text-white disabled:opacity-25" aria-label="Decrease lot size"><Minus size={11}/></button>
-            <div className="flex min-w-0 flex-col items-center justify-center border-x border-white/[0.05]">
-              <input
-                value={sizingMode === 'risk' && Number.isFinite(currentLots) ? currentLots.toFixed(Math.max(2, lotDecimals)) : lotInput}
-                readOnly={sizingMode === 'risk'}
-                onFocus={event => {
-                  if (sizingMode === 'risk') return;
-                  setLotFocused(true);
-                  requestAnimationFrame(() => event.currentTarget.select());
-                }}
-                onChange={event => {
-                  if (sizingMode !== 'risk') setLotInput(event.target.value.replace(/[^0-9.]/g, ''));
-                }}
-                onBlur={() => { if (sizingMode !== 'risk') commitLotInput(); }}
-                onKeyDown={event => {
-                  if (sizingMode === 'risk') return;
-                  if (event.key === 'ArrowUp') { event.preventDefault(); nudgeLots(1); }
-                  if (event.key === 'ArrowDown') { event.preventDefault(); nudgeLots(-1); }
-                  if (event.key === 'Enter') event.currentTarget.blur();
-                  if (event.key === 'Escape') {
-                    setLotInput(Number(normalizedLots).toFixed(lotDecimals));
-                    event.currentTarget.blur();
-                  }
-                }}
-                className="w-[54px] bg-transparent text-center font-mono text-[14px] font-black tabular-nums text-[#E6EDF3] outline-none"
-                inputMode="decimal"
-                aria-label="Lot size"
-              />
-              <span className="mt-0.5 text-[7px] font-semibold text-[#64788d]">{sizingMode === 'risk' ? 'calc. lot' : 'lot'}</span>
-            </div>
-            <button type="button" onClick={() => nudgeLots(1)} disabled={sizingMode === 'risk'} className="grid h-full place-items-center text-[#6F8191] hover:bg-white/[0.025] hover:text-white disabled:opacity-25" aria-label="Increase lot size"><Plus size={11}/></button>
-          </div>
-
-          <button type="button" disabled={!canSubmit} onClick={() => clickSide('buy')} className="flex h-[58px] min-w-0 flex-col items-end justify-center rounded-md border border-[#246a51] bg-[#071710] px-2.5 text-right transition hover:bg-[#092016] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35">
-            <strong className="truncate font-mono text-[15px] font-black tracking-[-0.03em] text-[#edf8f4]">{formatInstrumentPrice(market?.ask, market)}</strong>
-            <span className="mt-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-[#42D7A1]">Buy</span>
-          </button>
-        </div>
-
-        <div className="-mt-1 flex items-center justify-between px-0.5 text-[7px] font-semibold text-[#6F8191]">
-          <span>Spread {Number.isFinite(spreadPips) ? `${spreadPips.toFixed(1)}p` : '—'}</span>
-          <span>{orderFamily === 'market' ? 'Market execution' : String(orderType).replace('-', ' ')}</span>
-        </div>
-
-        {pendingPlan && (
-          <div className="flex items-center gap-1 rounded-md border border-white/[0.07] bg-[#0C1013] p-1">
-            <button type="button" onClick={onCancelPlan} className="h-8 flex-1 rounded border border-white/[0.06] text-[8px] font-bold text-[#A1AFBC]"><X size={10} className="mr-1 inline"/>Cancel plan</button>
-            <button type="button" disabled={!canSubmit} onClick={onExecutePlan} className={`h-8 flex-[1.35] rounded border text-[8px] font-black disabled:opacity-35 ${selectedSide === 'buy' ? 'border-[#246a51] bg-[#092016] text-[#42D7A1]' : 'border-[#6d2d37] bg-[#210b10] text-[#FF6F7A]'}`}><Check size={10} className="mr-1 inline"/>{tradePlan.pending ? (tradePlan.editingOrderId ? 'Update order' : 'Place order') : `Execute ${String(tradePlan.side).toUpperCase()}`}</button>
-          </div>
-        )}
-
         {warning && (
           <div className="flex items-start gap-1.5 rounded-md border border-[#57363b] bg-[#14090c] px-2 py-1.5 text-[8px] font-semibold leading-4 text-[#dba2a8]">
             <AlertTriangle size={11} className="mt-0.5 shrink-0 text-[#FF6F7A]" />
@@ -543,6 +489,77 @@ export default function DesktopOrderTicket({
             <FieldMetric label="R:R" value={Number.isFinite(planMetrics?.rr) ? `1:${planMetrics.rr.toFixed(2)}` : '—'} tone="accent" />
           </div>
         )}
+
+        {pendingPlan && (
+          <div className="flex items-center justify-between rounded-md border border-white/[0.07] bg-[#0C1013] px-2 py-1.5">
+            <div className="min-w-0">
+              <span className="block text-[7px] font-bold uppercase tracking-[0.06em] text-[#A1AFBC]">{tradePlan?.pending ? 'Pending order ready' : 'Protected market plan'}</span>
+              <span className="mt-0.5 block truncate text-[7px] text-[#6F8191]">{String(selectedSide || '').toUpperCase()} · confirm with the {String(selectedSide || '').toUpperCase()} button below</span>
+            </div>
+            <button type="button" onClick={onCancelPlan} className="ml-2 h-7 rounded border border-white/[0.06] px-2 text-[7px] font-bold text-[#8b9baa] hover:text-white"><X size={9} className="mr-1 inline"/>Cancel</button>
+          </div>
+        )}
+
+        <div className="mb-0.5 flex items-center justify-between px-0.5 text-[7px] font-semibold text-[#6F8191]">
+          <span>Spread {Number.isFinite(spreadPips) ? `${spreadPips.toFixed(1)}p` : '—'}</span>
+          <span>{pendingPlan ? `${String(selectedSide || '').toUpperCase()} plan ready` : orderFamily === 'market' ? 'Market execution' : String(orderType).replace('-', ' ')}</span>
+        </div>
+
+        <div className="grid grid-cols-[minmax(0,1fr)_108px_minmax(0,1fr)] gap-1.5">
+          <button
+            type="button"
+            disabled={!canSubmit || (pendingPlan && selectedSide !== 'sell')}
+            onClick={() => clickSide('sell')}
+            className="flex h-[58px] min-w-0 flex-col justify-center rounded-md border border-[#6d2d37] bg-[#18080c] px-2.5 text-left transition hover:bg-[#210b10] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            <strong className="truncate font-mono text-[15px] font-black tracking-[-0.03em] text-[#f7edef]">{formatInstrumentPrice(market?.bid, market)}</strong>
+            <span className="mt-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-[#FF6F7A]">{pendingPlan && selectedSide === 'sell' ? (tradePlan?.pending ? 'Place sell' : 'Execute sell') : 'Sell'}</span>
+          </button>
+
+          <div className="grid h-[58px] grid-cols-[26px_minmax(0,1fr)_26px] items-center rounded-md border border-white/[0.06] bg-black">
+            <button type="button" onClick={() => nudgeLots(-1)} disabled={sizingMode === 'risk'} className="grid h-full place-items-center text-[#6F8191] hover:bg-white/[0.025] hover:text-white disabled:opacity-25" aria-label="Decrease lot size"><Minus size={11}/></button>
+            <div className="flex min-w-0 flex-col items-center justify-center border-x border-white/[0.05]">
+              <input
+                value={sizingMode === 'risk' && Number.isFinite(currentLots) ? currentLots.toFixed(Math.max(2, lotDecimals)) : lotInput}
+                readOnly={sizingMode === 'risk'}
+                onFocus={event => {
+                  if (sizingMode === 'risk') return;
+                  setLotFocused(true);
+                  requestAnimationFrame(() => event.currentTarget.select());
+                }}
+                onChange={event => {
+                  if (sizingMode !== 'risk') setLotInput(event.target.value.replace(/[^0-9.]/g, ''));
+                }}
+                onBlur={() => { if (sizingMode !== 'risk') commitLotInput(); }}
+                onKeyDown={event => {
+                  if (sizingMode === 'risk') return;
+                  if (event.key === 'ArrowUp') { event.preventDefault(); nudgeLots(1); }
+                  if (event.key === 'ArrowDown') { event.preventDefault(); nudgeLots(-1); }
+                  if (event.key === 'Enter') event.currentTarget.blur();
+                  if (event.key === 'Escape') {
+                    setLotInput(Number(normalizedLots).toFixed(lotDecimals));
+                    event.currentTarget.blur();
+                  }
+                }}
+                className="w-[54px] bg-transparent text-center font-mono text-[14px] font-black tabular-nums text-[#E6EDF3] outline-none"
+                inputMode="decimal"
+                aria-label="Lot size"
+              />
+              <span className="mt-0.5 text-[7px] font-semibold text-[#64788d]">{sizingMode === 'risk' ? 'calc. lot' : 'lot'}</span>
+            </div>
+            <button type="button" onClick={() => nudgeLots(1)} disabled={sizingMode === 'risk'} className="grid h-full place-items-center text-[#6F8191] hover:bg-white/[0.025] hover:text-white disabled:opacity-25" aria-label="Increase lot size"><Plus size={11}/></button>
+          </div>
+
+          <button
+            type="button"
+            disabled={!canSubmit || (pendingPlan && selectedSide !== 'buy')}
+            onClick={() => clickSide('buy')}
+            className="flex h-[58px] min-w-0 flex-col items-end justify-center rounded-md border border-[#246a51] bg-[#071710] px-2.5 text-right transition hover:bg-[#092016] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            <strong className="truncate font-mono text-[15px] font-black tracking-[-0.03em] text-[#edf8f4]">{formatInstrumentPrice(market?.ask, market)}</strong>
+            <span className="mt-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-[#42D7A1]">{pendingPlan && selectedSide === 'buy' ? (tradePlan?.pending ? 'Place buy' : 'Execute buy') : 'Buy'}</span>
+          </button>
+        </div>
       </div>
     </section>
   );
