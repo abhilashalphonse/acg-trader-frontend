@@ -447,11 +447,56 @@ export default function TradingTerminalV2({
     const instrument = markets.find(item => item.symbol === position.symbol) || market;
     const reverseExposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market: instrument, commandState: trading.commandState });
     if (!reverseExposure.allowed) { showNotice(reverseExposure.reason); return; }
+
+    const currentSide = String(position.side || '').toUpperCase();
+    const nextSide = currentSide === 'BUY' ? 'SELL' : 'BUY';
+    const requestedPrice = Number(nextSide === 'BUY' ? instrument?.ask : instrument?.bid);
+    const entry = Number(position.entry);
+    const oldSl = Number(position.sl);
+    const oldTp = Number(position.tp);
+    const slDistance = Number.isFinite(entry) && Number.isFinite(oldSl) ? Math.abs(entry - oldSl) : null;
+    const tpDistance = Number.isFinite(entry) && Number.isFinite(oldTp) ? Math.abs(oldTp - entry) : null;
+    const mirroredSl = Number.isFinite(requestedPrice) && Number.isFinite(slDistance)
+      ? normalizeProtectionPrice(nextSide === 'BUY' ? requestedPrice - slDistance : requestedPrice + slDistance, instrument, nextSide, 'sl')
+      : null;
+    const mirroredTp = Number.isFinite(requestedPrice) && Number.isFinite(tpDistance)
+      ? normalizeProtectionPrice(nextSide === 'BUY' ? requestedPrice + tpDistance : requestedPrice - tpDistance, instrument, nextSide, 'tp')
+      : null;
+
+    const proposedRisk = mirroredSl == null
+      ? null
+      : estimateStopRisk({ entry: requestedPrice, sl: mirroredSl, side: nextSide.toLowerCase() }, position.volume, instrument, account.currency);
+    const guard = evaluateRiskGuard({
+      account,
+      positions: positions.filter(item => String(item.id) !== String(id)),
+      positionHistory,
+      markets,
+      proposedRisk,
+      settings: riskGuardSettings,
+    });
+    if (!guard.allowed) {
+      const message = guard.blocks[0]?.message || 'Risk Guard blocked this reversal.';
+      logEvent('warning', `Risk Guard: ${message}`);
+      showNotice(message);
+      return;
+    }
+
     try {
-      const result = await trading.reversePosition(id);
+      const result = await trading.reversePosition(id, {
+        stopLoss: mirroredSl,
+        takeProfit: mirroredTp,
+        requestedPrice: Number.isFinite(requestedPrice) ? requestedPrice : null,
+      });
       setTradePlan(null);
-      logEvent('position', `${position.symbol} reverse completed as close + opposite market order`);
-      showNotice('Position reversed');
+      logEvent('position', `${position.symbol} reverse completed as close + opposite market order`, {
+        positionId: position.id,
+        symbol: position.symbol,
+        side: nextSide,
+        lots: position.volume,
+        stopLoss: mirroredSl,
+        takeProfit: mirroredTp,
+      });
+      showNotice(mirroredSl != null || mirroredTp != null ? 'Position reversed with mirrored protection' : 'Position reversed');
       if (result?.position?.symbol && result.position.symbol !== activeSymbol) selectSymbol(result.position.symbol);
     } catch (error) {
       handleTradingError(error, `Reverse ${position.symbol}`);
