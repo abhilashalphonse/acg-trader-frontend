@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { normalizeCandle } from '../src/services/marketData.js';
+import { normalizeCandle } from '../src/utils/candleNormalization.js';
 
 function candle(overrides = {}) {
   return {
