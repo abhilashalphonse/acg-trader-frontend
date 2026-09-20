@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateRiskOrderSizing, calculateRiskSizedLots, defaultPlannerStopDistance, effectiveLeverage, estimatePositionPnlAtPrice, estimateRequiredMargin, estimateStopRisk, positionDistancePips, riskSizingSupported } from '../src/utils/tradingRisk.js';
+import { calculateRiskOrderSizing, calculateRiskSizedLots, defaultPlannerStopDistance, effectiveLeverage, estimatePositionPnlAtPrice, estimateRequiredMargin, estimateStopRisk, evaluateRiskToolSetup, positionDistancePips, riskSizingSupported } from '../src/utils/tradingRisk.js';
 import { exposureAvailability } from '../src/utils/exposureAvailability.js';
 
 const xau = { pnlCurrency: 'USD', quoteCurrency: 'USD', contractSize: 100 };
@@ -93,4 +93,63 @@ test('new exposure rejects a crossed quote before submission', () => {
   });
   assert.equal(result.allowed, false);
   assert.match(result.reason, /invalid/i);
+});
+
+
+test('risk tool rejects invalid long protection geometry', () => {
+  const instrument = { pnlCurrency: 'USD', quoteCurrency: 'USD', marginCurrency: 'USD', contractSize: 100, defaultLeverage: 100, minVolume: 0.01, maxVolume: 100, volumeStep: 0.01 };
+  const account = { currency: 'USD', leverage: 100, equity: 10000, freeMargin: 10000 };
+  const result = evaluateRiskToolSetup({ plan: { side: 'buy', entry: 2500, sl: 2501, tp: 2502 }, riskPercent: 1, account, instrument });
+  assert.equal(result.canCreateOrder, false);
+  assert.equal(result.code, 'INVALID_GEOMETRY');
+});
+
+test('risk tool reports unsupported P&L currency instead of inventing conversion', () => {
+  const instrument = { pnlCurrency: 'JPY', quoteCurrency: 'JPY', marginCurrency: 'JPY', contractSize: 100000, defaultLeverage: 100, minVolume: 0.01, maxVolume: 100, volumeStep: 0.01 };
+  const account = { currency: 'USD', leverage: 100, equity: 10000, freeMargin: 10000 };
+  const result = evaluateRiskToolSetup({ plan: { side: 'buy', entry: 150, sl: 149.9, tp: 150.2 }, riskPercent: 1, account, instrument });
+  assert.equal(result.canCreateOrder, false);
+  assert.equal(result.code, 'UNSUPPORTED_RISK_CURRENCY');
+});
+
+test('risk tool blocks requested risk below minimum tradable volume', () => {
+  const instrument = { pnlCurrency: 'USD', quoteCurrency: 'USD', marginCurrency: 'USD', contractSize: 100000, defaultLeverage: 100, minVolume: 1, maxVolume: 100, volumeStep: 1 };
+  const account = { currency: 'USD', leverage: 100, equity: 10000, freeMargin: 100000 };
+  const result = evaluateRiskToolSetup({ plan: { side: 'buy', entry: 1.1, sl: 1.09, tp: 1.12 }, riskPercent: 0.1, account, instrument });
+  assert.equal(result.canCreateOrder, false);
+  assert.equal(result.code, 'MIN_VOLUME');
+});
+
+test('risk tool blocks requested risk above maximum tradable volume', () => {
+  const instrument = { pnlCurrency: 'USD', quoteCurrency: 'USD', marginCurrency: 'USD', contractSize: 100000, defaultLeverage: 100, minVolume: 0.01, maxVolume: 0.1, volumeStep: 0.01 };
+  const account = { currency: 'USD', leverage: 100, equity: 100000, freeMargin: 100000 };
+  const result = evaluateRiskToolSetup({ plan: { side: 'buy', entry: 1.1, sl: 1.099, tp: 1.102 }, riskPercent: 1, account, instrument });
+  assert.equal(result.canCreateOrder, false);
+  assert.equal(result.code, 'MAX_VOLUME');
+});
+
+test('risk tool blocks setup when free margin cannot support risk-sized volume', () => {
+  const instrument = { assetClass: 'CRYPTO', pnlCurrency: 'USD', quoteCurrency: 'USD', marginCurrency: 'USD', contractSize: 1, defaultLeverage: 100, minVolume: 0.01, maxVolume: 1000, volumeStep: 0.01 };
+  const account = { currency: 'USD', leverage: 100, equity: 10000, freeMargin: 50 };
+  const result = evaluateRiskToolSetup({ plan: { side: 'buy', entry: 80000, sl: 79600, tp: 80800 }, riskPercent: 1, account, instrument });
+  assert.equal(result.canCreateOrder, false);
+  assert.equal(result.code, 'INSUFFICIENT_MARGIN');
+  assert.match(result.message, /maximum affordable/i);
+});
+
+test('risk tool blocks when margin requirement cannot be verified', () => {
+  const instrument = { pnlCurrency: 'USD', quoteCurrency: 'USD', marginCurrency: 'EUR', contractSize: 100, defaultLeverage: 100, minVolume: 0.01, maxVolume: 100, volumeStep: 0.01 };
+  const account = { currency: 'USD', leverage: 100, equity: 10000, freeMargin: 10000 };
+  const result = evaluateRiskToolSetup({ plan: { side: 'buy', entry: 2500, sl: 2499, tp: 2502 }, riskPercent: 1, account, instrument });
+  assert.equal(result.canCreateOrder, false);
+  assert.equal(result.code, 'MARGIN_UNAVAILABLE');
+});
+
+test('risk tool marks a valid risk-sized setup ready', () => {
+  const instrument = { pnlCurrency: 'USD', quoteCurrency: 'USD', marginCurrency: 'USD', contractSize: 100, defaultLeverage: 100, minVolume: 0.01, maxVolume: 100, volumeStep: 0.01 };
+  const account = { currency: 'USD', leverage: 100, equity: 10000, freeMargin: 10000 };
+  const result = evaluateRiskToolSetup({ plan: { side: 'buy', entry: 2500, sl: 2499, tp: 2502 }, riskPercent: 1, account, instrument });
+  assert.equal(result.canCreateOrder, true);
+  assert.equal(result.code, 'READY');
+  assert.equal(result.sizing.requestedLots, 1);
 });
