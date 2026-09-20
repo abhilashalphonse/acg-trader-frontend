@@ -40,6 +40,7 @@ function loadDesktopLayout() {
     dockHeight: 200,
     sidebarCollapsed: false,
     dockCollapsed: false,
+    watchlistHeight: 220,
   };
   if (typeof window === 'undefined') return fallback;
   try {
@@ -50,6 +51,7 @@ function loadDesktopLayout() {
       dockHeight: clamp(stored.dockHeight || fallback.dockHeight, 150, 340),
       sidebarCollapsed: stored.sidebarCollapsed === true,
       dockCollapsed: stored.dockCollapsed === true,
+      watchlistHeight: clamp(stored.watchlistHeight || fallback.watchlistHeight, 140, 420),
     };
   } catch {
     return fallback;
@@ -228,6 +230,7 @@ export default function DesktopTerminal({
   const dockHeight = desktopLayout.dockCollapsed ? 0 : desktopLayout.dockHeight;
   const updateSidebarWidth = value => setDesktopLayout(current => ({ ...current, sidebarWidth: clamp(value, 310, 480), sidebarCollapsed: false }));
   const updateDockHeight = value => setDesktopLayout(current => ({ ...current, dockHeight: clamp(value, 150, 340), dockCollapsed: false }));
+  const updateWatchlistHeight = value => setDesktopLayout(current => ({ ...current, watchlistHeight: clamp(value, 140, 420) }));
   const toggleSidebar = () => setDesktopLayout(current => ({ ...current, sidebarCollapsed: !current.sidebarCollapsed }));
   const toggleDock = () => setDesktopLayout(current => ({ ...current, dockCollapsed: !current.dockCollapsed }));
   const resetDesktopLayout = () => setDesktopLayout({
@@ -235,6 +238,7 @@ export default function DesktopTerminal({
     dockHeight: 200,
     sidebarCollapsed: false,
     dockCollapsed: false,
+    watchlistHeight: 220,
   });
 
   const workspaceSnapshot = {
@@ -260,6 +264,7 @@ export default function DesktopTerminal({
       ...layout,
       sidebarWidth: clamp(layout.sidebarWidth ?? current.sidebarWidth, 310, 480),
       dockHeight: clamp(layout.dockHeight ?? current.dockHeight, 150, 340),
+      watchlistHeight: clamp(layout.watchlistHeight ?? current.watchlistHeight ?? 220, 140, 420),
     }));
     const trading = workspace.trading || {};
     if (trading.timeframe) onTimeframeChange(trading.timeframe);
@@ -425,17 +430,34 @@ export default function DesktopTerminal({
             </div>
           </section>
 
-          <aside className={`min-h-0 flex-col border-l border-white/[0.08] bg-[#080808] ${desktopLayout.sidebarCollapsed ? 'hidden' : 'flex'}`}>
-            <DesktopWatchlist
-              markets={markets}
-              activeSymbol={activeSymbol}
-              onSelectSymbol={onSelectSymbol}
-              watchlists={watchlists}
-              mode={activeNav === 'markets' ? 'markets' : 'watchlist'}
-              searchRef={searchRef}
+          <aside
+            className={`min-h-0 border-l border-white/[0.08] bg-[#080808] ${desktopLayout.sidebarCollapsed ? 'hidden' : 'grid'}`}
+            style={{ gridTemplateRows: `${desktopLayout.watchlistHeight || 220}px 4px minmax(0,1fr)` }}
+          >
+            <div className="min-h-0 overflow-hidden">
+              <DesktopWatchlist
+                markets={markets}
+                activeSymbol={activeSymbol}
+                onSelectSymbol={onSelectSymbol}
+                watchlists={watchlists}
+                mode={activeNav === 'markets' ? 'markets' : 'watchlist'}
+                searchRef={searchRef}
+              />
+            </div>
+
+            <ResizeHandle
+              axis="y"
+              value={desktopLayout.watchlistHeight || 220}
+              min={140}
+              max={420}
+              onChange={updateWatchlistHeight}
+              ariaLabel="Resize watchlist and order ticket"
+              className="w-full"
             />
 
-            <DesktopOrderTicket market={market} markets={markets} account={account} positions={positions} positionHistory={positionHistory} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} riskGuardSettings={riskGuardSettings} onRiskGuardSettingsChange={onRiskGuardSettingsChange}/>
+            <div className="min-h-0 overflow-y-auto [scrollbar-width:thin]">
+              <DesktopOrderTicket market={market} markets={markets} account={account} positions={positions} positionHistory={positionHistory} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} riskGuardSettings={riskGuardSettings} onRiskGuardSettingsChange={onRiskGuardSettingsChange}/>
+            </div>
           </aside>
 
           <div className={`col-span-2 min-h-0 overflow-auto border-t border-white/[0.08] bg-[#080808] ${desktopLayout.dockCollapsed ? 'hidden' : ''}`}>
