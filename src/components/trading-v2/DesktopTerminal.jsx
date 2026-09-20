@@ -756,6 +756,7 @@ export default function DesktopTerminal({
                         symbol={activeSymbol}
                         timeframe={activeChartTimeframe === '1m' ? 'M1' : activeChartTimeframe === '5m' ? 'M5' : activeChartTimeframe === '15m' ? 'M15' : activeChartTimeframe === '30m' ? 'M30' : activeChartTimeframe === '1H' ? 'H1' : activeChartTimeframe === '4H' ? 'H4' : activeChartTimeframe === '1D' ? 'D1' : activeChartTimeframe === '1W' ? 'W1' : activeChartTimeframe}
                         indicators={indicators}
+                        chartInstanceId={`desktop-chart-${Math.min(Math.max(0, Number(multiChart?.activeCell) || 0), chartLayout - 1)}`}
                         onToggleIndicator={onToggleIndicator}
                         onRemoveIndicator={onRemoveIndicator}
                         onOpenIndicatorSettings={instanceId => {

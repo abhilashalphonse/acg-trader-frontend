@@ -478,6 +478,8 @@ export default function ChartArea({
   account = null,
   riskPercent = 0.5,
   onCreateRiskOrder = () => {},
+  chartInstanceId = 'chart',
+  drawingInteractionEnabled = true,
 }) {
   const timeframeSeconds = secondsByTimeframe[chartTimeframe] || 60;
   const [remaining, setRemaining] = useState(() => timeframeSeconds - (Math.floor(Date.now() / 1000) % timeframeSeconds));
@@ -577,6 +579,8 @@ export default function ChartArea({
           riskPercent={riskPercent}
           accountCurrency={accountCurrency}
           onCreateRiskOrder={onCreateRiskOrder}
+          chartInstanceId={chartInstanceId}
+          interactionEnabled={drawingInteractionEnabled}
         />}
         <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} coordinateApi={coordinateApi} instrument={instrument} lots={tradePlanLots} accountCurrency={accountCurrency} />
         {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} />}

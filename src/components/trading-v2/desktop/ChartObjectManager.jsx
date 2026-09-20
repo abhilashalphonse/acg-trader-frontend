@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -13,6 +13,12 @@ import {
   X,
 } from 'lucide-react';
 import { indicatorVisibleOnTimeframe } from '../../../utils/indicators.js';
+import {
+  getDrawingSnapshot,
+  patchDrawing,
+  removeDrawing,
+  subscribeDrawings,
+} from '../../../utils/drawingStore.js';
 
 function indicatorLabel(indicator) {
   const s = indicator?.settings || {};
@@ -43,9 +49,9 @@ function drawingLabel(drawing) {
   return labels[drawing.type] || drawing.type || 'Drawing';
 }
 
-function drawingCommand(symbol, id, action) {
+function drawingUiCommand(symbol, chartInstanceId, id, action) {
   window.dispatchEvent(new CustomEvent('acg-trader-drawing-command', {
-    detail: { symbol: String(symbol || '').toUpperCase(), id, action },
+    detail: { symbol: String(symbol || '').toUpperCase(), chartInstanceId, id, action },
   }));
 }
 
@@ -57,23 +63,28 @@ export default function ChartObjectManager({
   onRemoveIndicator = () => {},
   onOpenIndicatorSettings = () => {},
   onClose = () => {},
+  chartInstanceId = 'chart',
 }) {
-  const [drawings, setDrawings] = useState([]);
+  const drawingState = useSyncExternalStore(
+    listener => subscribeDrawings(symbol, listener),
+    () => getDrawingSnapshot(symbol),
+    () => getDrawingSnapshot(symbol),
+  );
+  const drawings = drawingState.present;
   const [selectedDrawingId, setSelectedDrawingId] = useState(null);
   const [sections, setSections] = useState({ indicators: true, drawings: true });
 
   useEffect(() => {
     const normalizedSymbol = String(symbol || '').toUpperCase();
-    const onDrawings = event => {
+    const onSelection = event => {
       const detail = event?.detail || {};
       if (String(detail.symbol || '').toUpperCase() !== normalizedSymbol) return;
-      setDrawings(Array.isArray(detail.drawings) ? detail.drawings : []);
+      if (detail.chartInstanceId !== chartInstanceId) return;
       setSelectedDrawingId(detail.selectedId || null);
     };
-    window.addEventListener('acg-trader-drawings-change', onDrawings);
-    window.dispatchEvent(new CustomEvent('acg-trader-drawings-request', { detail: { symbol: normalizedSymbol } }));
-    return () => window.removeEventListener('acg-trader-drawings-change', onDrawings);
-  }, [symbol]);
+    window.addEventListener('acg-trader-drawing-selection-change', onSelection);
+    return () => window.removeEventListener('acg-trader-drawing-selection-change', onSelection);
+  }, [chartInstanceId, symbol]);
 
   const counts = useMemo(() => ({
     indicators: indicators.length,
@@ -142,7 +153,7 @@ export default function ChartObjectManager({
                 const selected = drawing.id === selectedDrawingId;
                 return (
                   <div key={drawing.id} className={`group flex min-h-10 items-center gap-1 rounded-md border px-1.5 ${selected ? 'border-[#315B72] bg-[#0D1A22]' : 'border-transparent hover:border-white/[0.06] hover:bg-white/[0.025]'}`}>
-                    <button type="button" onClick={() => drawingCommand(symbol, drawing.id, 'select')} className="min-w-0 flex-1 px-1 text-left">
+                    <button type="button" onClick={() => { setSelectedDrawingId(drawing.id); drawingUiCommand(symbol, chartInstanceId, drawing.id, 'select'); }} className="min-w-0 flex-1 px-1 text-left">
                       <span className="block truncate text-[9px] font-semibold text-[#DDE7EE]">{drawingLabel(drawing)}</span>
                       <span className="mt-0.5 flex items-center gap-1.5 text-[7px] text-[#5F7488]">
                         <span>{drawing.type}</span>
@@ -150,11 +161,11 @@ export default function ChartObjectManager({
                         {drawing.locked && <span>· locked</span>}
                       </span>
                     </button>
-                    <button type="button" onClick={() => drawingCommand(symbol, drawing.id, 'focus')} className="grid size-7 place-items-center rounded text-[#71869A] hover:bg-white/[0.04] hover:text-[#59C7FF]" title="Locate drawing on chart"><LocateFixed size={12}/></button>
-                    <button type="button" onClick={() => drawingCommand(symbol, drawing.id, 'toggle-visibility')} className={`grid size-7 place-items-center rounded ${drawing.hidden ? 'text-[#4F6273]' : 'text-[#8298AA]'} hover:bg-white/[0.04] hover:text-white`} title={drawing.hidden ? 'Show drawing' : 'Hide drawing'}>{drawing.hidden ? <EyeOff size={12}/> : <Eye size={12}/>}</button>
-                    <button type="button" onClick={() => drawingCommand(symbol, drawing.id, 'toggle-lock')} className={`grid size-7 place-items-center rounded ${drawing.locked ? 'text-[#59C7FF]' : 'text-[#71869A]'} hover:bg-white/[0.04] hover:text-white`} title={drawing.locked ? 'Unlock drawing' : 'Lock drawing'}>{drawing.locked ? <Lock size={12}/> : <LockOpen size={12}/>}</button>
-                    <button type="button" onClick={() => drawingCommand(symbol, drawing.id, 'settings')} className="grid size-7 place-items-center rounded text-[#71869A] opacity-0 transition group-hover:opacity-100 hover:bg-white/[0.04] hover:text-[#59C7FF]" title="Drawing settings"><Settings2 size={12}/></button>
-                    <button type="button" onClick={() => drawingCommand(symbol, drawing.id, 'delete')} className="grid size-7 place-items-center rounded text-[#805F68] opacity-0 transition group-hover:opacity-100 hover:bg-[#35151d] hover:text-[#FF7380]" title="Delete drawing"><Trash2 size={12}/></button>
+                    <button type="button" onClick={() => { setSelectedDrawingId(drawing.id); drawingUiCommand(symbol, chartInstanceId, drawing.id, 'focus'); }} className="grid size-7 place-items-center rounded text-[#71869A] hover:bg-white/[0.04] hover:text-[#59C7FF]" title="Locate drawing on chart"><LocateFixed size={12}/></button>
+                    <button type="button" onClick={() => patchDrawing(symbol, drawing.id, { hidden: !drawing.hidden })} className={`grid size-7 place-items-center rounded ${drawing.hidden ? 'text-[#4F6273]' : 'text-[#8298AA]'} hover:bg-white/[0.04] hover:text-white`} title={drawing.hidden ? 'Show drawing' : 'Hide drawing'}>{drawing.hidden ? <EyeOff size={12}/> : <Eye size={12}/>}</button>
+                    <button type="button" onClick={() => patchDrawing(symbol, drawing.id, { locked: !drawing.locked })} className={`grid size-7 place-items-center rounded ${drawing.locked ? 'text-[#59C7FF]' : 'text-[#71869A]'} hover:bg-white/[0.04] hover:text-white`} title={drawing.locked ? 'Unlock drawing' : 'Lock drawing'}>{drawing.locked ? <Lock size={12}/> : <LockOpen size={12}/>}</button>
+                    <button type="button" onClick={() => { setSelectedDrawingId(drawing.id); drawingUiCommand(symbol, chartInstanceId, drawing.id, 'settings'); }} className="grid size-7 place-items-center rounded text-[#71869A] opacity-0 transition group-hover:opacity-100 hover:bg-white/[0.04] hover:text-[#59C7FF]" title="Drawing settings"><Settings2 size={12}/></button>
+                    <button type="button" onClick={() => { removeDrawing(symbol, drawing.id); if (selectedDrawingId === drawing.id) setSelectedDrawingId(null); }} className="grid size-7 place-items-center rounded text-[#805F68] opacity-0 transition group-hover:opacity-100 hover:bg-[#35151d] hover:text-[#FF7380]" title="Delete drawing"><Trash2 size={12}/></button>
                   </div>
                 );
               })}
