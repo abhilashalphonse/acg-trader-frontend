@@ -69,8 +69,8 @@ function desktopMarketPanelBounds(viewportWidth, orderPanelWidth = 380) {
 function desktopHeightBounds(viewportHeight, dockCollapsed = false, dockHeight = 0) {
   const height = Number(viewportHeight) || 900;
   const compact = height <= 900;
-  const dockMin = 140;
-  const dockMax = compact ? 180 : height <= 1050 ? 240 : 340;
+  const dockMin = 110;
+  const dockMax = compact ? Math.min(320, Math.floor(height * 0.44)) : height <= 1050 ? Math.min(420, Math.floor(height * 0.46)) : Math.min(520, Math.floor(height * 0.48));
   const defaultDock = compact ? 165 : height <= 1050 ? 200 : 230;
   const effectiveDock = dockCollapsed ? 0 : clamp(dockHeight || defaultDock, dockMin, dockMax);
   const upperWorkspaceHeight = Math.max(0, height - 52 - effectiveDock);
@@ -764,9 +764,10 @@ export default function DesktopTerminal({
               max={heightBounds.dockMax}
               deltaMultiplier={-1}
               onChange={updateDockHeight}
-              ariaLabel="Resize positions dock"
+              onDoubleClick={() => updateDockHeight(heightBounds.defaultDock)}
+              ariaLabel="Resize chart and positions dock"
               className="absolute left-0 right-0"
-              style={{ bottom: dockHeight - 2 }}
+              style={{ bottom: dockHeight - 4 }}
             />
           )}
         </div>
