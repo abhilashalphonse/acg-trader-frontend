@@ -227,6 +227,21 @@ export default function DesktopTerminal({
     });
   }, [activeSymbol]);
 
+  const activeChartIndex = Math.min(Math.max(0, Number(multiChart?.activeCell) || 0), Math.max(0, Number(multiChart?.layout || 1) - 1));
+  const activeChartTimeframe = multiChart?.cells?.[activeChartIndex]?.timeframe || timeframe;
+
+  const setDesktopTimeframe = value => {
+    onTimeframeChange(value);
+    setMultiChart(current => {
+      const layout = [1, 2, 4].includes(Number(current?.layout)) ? Number(current.layout) : 1;
+      const index = Math.min(Math.max(0, Number(current?.activeCell) || 0), layout - 1);
+      const cells = Array.from({ length: 4 }, (_, cellIndex) => current?.cells?.[cellIndex] || {});
+      if (cells[index]?.timeframe === value) return current;
+      cells[index] = { ...cells[index], timeframe: value };
+      return { ...current, cells };
+    });
+  };
+
   const sidebarWidth = desktopLayout.sidebarCollapsed ? 0 : desktopLayout.sidebarWidth;
   const dockHeight = desktopLayout.dockCollapsed ? 0 : desktopLayout.dockHeight;
   const updateSidebarWidth = value => setDesktopLayout(current => ({ ...current, sidebarWidth: clamp(value, 310, 480), sidebarCollapsed: false }));
@@ -412,7 +427,7 @@ export default function DesktopTerminal({
             <div className="flex items-center gap-1.5 border-b border-white/[0.06] bg-[#07090B] px-2.5">
               <div className="flex items-center gap-0.5">
                 {timeframes.map(([label, value]) => (
-                  <button key={value} type="button" onClick={() => onTimeframeChange(value)} disabled={Boolean(tradePlan && !tradePlan.open)} className={`h-7 min-w-8 rounded px-2 text-[8px] font-bold ${timeframe === value ? 'bg-white/[0.05] text-[#59C7FF]' : 'text-[#6F8191] hover:bg-white/[0.035] hover:text-[#E6EDF3]'} disabled:opacity-30`}>{label}</button>
+                  <button key={value} type="button" onClick={() => setDesktopTimeframe(value)} disabled={Boolean(tradePlan && !tradePlan.open)} className={`h-7 min-w-8 rounded px-2 text-[8px] font-bold ${activeChartTimeframe === value ? 'bg-white/[0.05] text-[#59C7FF]' : 'text-[#6F8191] hover:bg-white/[0.035] hover:text-[#E6EDF3]'} disabled:opacity-30`}>{label}</button>
                 ))}
               </div>
               <div className="mx-1 h-4 w-px bg-white/[0.07]"/>
@@ -443,6 +458,7 @@ export default function DesktopTerminal({
                 selectedTool={selectedTool}
                 onSelectedToolChange={onSelectedToolChange}
                 chartMode={chartMode}
+                onActiveTimeframeChange={onTimeframeChange}
                 tradePlan={tradePlan}
                 onTradePlanChange={onTradePlanChange}
                 onUpdatePosition={onUpdatePosition}
