@@ -462,6 +462,7 @@ export default function DesktopTerminal({
                 watchlists={watchlists}
                 mode={activeNav === 'markets' ? 'markets' : 'watchlist'}
                 searchRef={searchRef}
+                onNotice={setNotice}
               />
             </div>
 
