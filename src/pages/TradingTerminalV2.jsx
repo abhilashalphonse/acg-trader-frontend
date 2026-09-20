@@ -14,7 +14,7 @@ import useTradingHotkeys from '../hooks/useTradingHotkeys.js';
 import { useTradingTerminal } from '../hooks/useTradingTerminal.js';
 import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
 import { normalizePriceToTick, normalizeProtectionPrice, normalizeVolumeToStep, pendingPriceDirection } from '../utils/tradingCommandNormalization.js';
-import { calculateRiskSizedLots, estimateStopRisk } from '../utils/tradingRisk.js';
+import { calculateRiskSizedLots, estimateStopRisk, evaluateRiskToolSetup } from '../utils/tradingRisk.js';
 import { exposureAvailability } from '../utils/exposureAvailability.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../utils/instrumentFormatting.js';
 import { normalizeTradePlanPatch } from '../utils/tradePlanNormalization.js';
@@ -610,8 +610,15 @@ export default function TradingTerminalV2({
     const rawEntry = Number(setup.entry);
     const rawSl = Number(setup.sl);
     const rawTp = Number(setup.tp);
-    if (![rawEntry, rawSl, rawTp].every(Number.isFinite)) {
-      showNotice('Risk tool prices are incomplete');
+    const numericRisk = Math.max(0.01, Number(setup.riskPercent) || riskPercent);
+    const riskEvaluation = evaluateRiskToolSetup({
+      plan: { entry: rawEntry, sl: rawSl, tp: rawTp, side },
+      riskPercent: numericRisk,
+      account,
+      instrument,
+    });
+    if (!riskEvaluation.canCreateOrder) {
+      showNotice(riskEvaluation.message || 'Risk setup cannot create an order');
       return;
     }
 
@@ -629,9 +636,9 @@ export default function TradingTerminalV2({
       : normalizePriceToTick(rawEntry, instrument, pendingPriceDirection(nextOrderType, sideUpper, 'entry'));
     const sl = normalizeProtectionPrice(rawSl, instrument, sideUpper, 'sl');
     const tp = normalizeProtectionPrice(rawTp, instrument, sideUpper, 'tp');
-    const numericRisk = Math.max(0.01, Number(setup.riskPercent) || riskPercent);
-    const normalizedLots = Number.isFinite(Number(setup.lots)) && Number(setup.lots) > 0
-      ? normalizeVolumeToStep(Number(setup.lots), instrument, { rounding: 'down' })
+    const validatedLots = Number(riskEvaluation.sizing?.requestedLots);
+    const normalizedLots = Number.isFinite(validatedLots) && validatedLots > 0
+      ? normalizeVolumeToStep(validatedLots, instrument, { rounding: 'down' })
       : lots;
 
     if (setup.symbol !== activeSymbol) selectSymbol(setup.symbol);
