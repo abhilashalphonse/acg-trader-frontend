@@ -53,6 +53,18 @@ function desktopWidthBounds(viewportWidth) {
   return { sidebarMin, sidebarMax, defaultSidebar };
 }
 
+function desktopMarketPanelBounds(viewportWidth, orderPanelWidth = 380) {
+  const width = Number(viewportWidth) || 1440;
+  const navWidth = width >= 1536 ? 54 : 50;
+  const available = Math.max(0, width - navWidth - Number(orderPanelWidth || 0));
+  const panelMin = 260;
+  const tierMax = width < 1400 ? 320 : width < 1700 ? 360 : width < 2200 ? 420 : 460;
+  const chartProtectedMax = available - 700;
+  const panelMax = Math.max(panelMin, Math.floor(Math.min(tierMax, chartProtectedMax)));
+  const defaultPanel = Math.min(width >= 1700 ? 330 : 300, panelMax);
+  return { panelMin, panelMax, defaultPanel };
+}
+
 function desktopHeightBounds(viewportHeight, dockCollapsed = false, dockHeight = 0) {
   const height = Number(viewportHeight) || 900;
   const compact = height <= 900;
@@ -85,6 +97,7 @@ function loadDesktopLayout() {
     dockHeight: initialBounds.defaultDock,
     sidebarCollapsed: false,
     dockCollapsed: false,
+    marketPanelWidth: desktopMarketPanelBounds(viewportWidth, widthBounds.defaultSidebar).defaultPanel,
     watchlistHeight: initialBounds.defaultWatchlist,
   };
   if (typeof window === 'undefined') return fallback;
@@ -99,6 +112,11 @@ function loadDesktopLayout() {
       dockHeight,
       sidebarCollapsed: stored.sidebarCollapsed === true,
       dockCollapsed,
+      marketPanelWidth: clamp(
+        stored.marketPanelWidth || fallback.marketPanelWidth,
+        desktopMarketPanelBounds(viewportWidth, stored.sidebarWidth || fallback.sidebarWidth).panelMin,
+        desktopMarketPanelBounds(viewportWidth, stored.sidebarWidth || fallback.sidebarWidth).panelMax,
+      ),
       watchlistHeight: clamp(stored.watchlistHeight || fallback.watchlistHeight, bounds.watchlistMin, bounds.watchlistMax),
     };
   } catch {
@@ -232,7 +250,6 @@ export default function DesktopTerminal({
 }) {
   const shellRef = useRef(null);
   const searchRef = useRef(null);
-  const preMarketWatchlistHeightRef = useRef(null);
   const [activeNav, setActiveNav] = useState('trade');
   const [notice, setNotice] = useState('');
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -271,8 +288,10 @@ export default function DesktopTerminal({
       const adjustedBounds = desktopHeightBounds(viewportHeight, current.dockCollapsed, dockHeight);
       const watchlistHeight = clamp(current.watchlistHeight, adjustedBounds.watchlistMin, adjustedBounds.watchlistMax);
       const sidebarWidth = clamp(current.sidebarWidth, widthBounds.sidebarMin, widthBounds.sidebarMax);
-      if (dockHeight === current.dockHeight && watchlistHeight === current.watchlistHeight && sidebarWidth === current.sidebarWidth) return current;
-      return { ...current, dockHeight, watchlistHeight, sidebarWidth };
+      const marketBounds = desktopMarketPanelBounds(viewportWidth, sidebarWidth);
+      const marketPanelWidth = clamp(current.marketPanelWidth || marketBounds.defaultPanel, marketBounds.panelMin, marketBounds.panelMax);
+      if (dockHeight === current.dockHeight && watchlistHeight === current.watchlistHeight && sidebarWidth === current.sidebarWidth && marketPanelWidth === current.marketPanelWidth) return current;
+      return { ...current, dockHeight, watchlistHeight, sidebarWidth, marketPanelWidth };
     });
   }, [viewportHeight, viewportWidth]);
 
@@ -334,30 +353,28 @@ export default function DesktopTerminal({
   const heightBounds = desktopHeightBounds(viewportHeight, desktopLayout.dockCollapsed, desktopLayout.dockHeight);
   const widthBounds = desktopWidthBounds(viewportWidth);
   const sidebarWidth = desktopLayout.sidebarCollapsed ? 0 : desktopLayout.sidebarWidth;
+  const marketPanelOpen = activeNav === 'watchlist' || activeNav === 'markets';
+  const marketBounds = desktopMarketPanelBounds(viewportWidth, sidebarWidth);
+  const marketPanelWidth = marketPanelOpen ? clamp(desktopLayout.marketPanelWidth || marketBounds.defaultPanel, marketBounds.panelMin, marketBounds.panelMax) : 0;
   const dockHeight = desktopLayout.dockCollapsed ? 0 : desktopLayout.dockHeight;
-  const updateSidebarWidth = value => setDesktopLayout(current => ({ ...current, sidebarWidth: clamp(value, widthBounds.sidebarMin, widthBounds.sidebarMax), sidebarCollapsed: false }));
+  const updateSidebarWidth = value => setDesktopLayout(current => {
+    const nextSidebar = clamp(value, widthBounds.sidebarMin, widthBounds.sidebarMax);
+    const nextMarketBounds = desktopMarketPanelBounds(viewportWidth, nextSidebar);
+    return {
+      ...current,
+      sidebarWidth: nextSidebar,
+      sidebarCollapsed: false,
+      marketPanelWidth: clamp(current.marketPanelWidth || nextMarketBounds.defaultPanel, nextMarketBounds.panelMin, nextMarketBounds.panelMax),
+    };
+  });
+  const updateMarketPanelWidth = value => setDesktopLayout(current => ({
+    ...current,
+    marketPanelWidth: clamp(value, marketBounds.panelMin, marketBounds.panelMax),
+  }));
   const updateDockHeight = value => setDesktopLayout(current => {
     const bounds = desktopHeightBounds(viewportHeight, false, value);
     const nextDock = clamp(value, bounds.dockMin, bounds.dockMax);
-    const nextBounds = desktopHeightBounds(viewportHeight, false, nextDock);
-    return {
-      ...current,
-      dockHeight: nextDock,
-      dockCollapsed: false,
-      watchlistHeight: clamp(current.watchlistHeight, nextBounds.watchlistMin, nextBounds.watchlistMax),
-    };
-  });
-  const updateWatchlistHeight = value => setDesktopLayout(current => {
-    const bounds = desktopHeightBounds(viewportHeight, current.dockCollapsed, current.dockHeight);
-    return { ...current, watchlistHeight: clamp(value, bounds.watchlistMin, bounds.watchlistMax) };
-  });
-  const toggleWatchlistFocus = () => setDesktopLayout(current => {
-    const bounds = desktopHeightBounds(viewportHeight, current.dockCollapsed, current.dockHeight);
-    const midpoint = (bounds.balancedWatchlist + bounds.marketFocusWatchlist) / 2;
-    return {
-      ...current,
-      watchlistHeight: current.watchlistHeight >= midpoint ? bounds.balancedWatchlist : bounds.marketFocusWatchlist,
-    };
+    return { ...current, dockHeight: nextDock, dockCollapsed: false };
   });
   const toggleSidebar = () => setDesktopLayout(current => ({ ...current, sidebarCollapsed: !current.sidebarCollapsed }));
   const toggleDock = () => setDesktopLayout(current => ({ ...current, dockCollapsed: !current.dockCollapsed }));
@@ -368,6 +385,7 @@ export default function DesktopTerminal({
       dockHeight: bounds.defaultDock,
       sidebarCollapsed: false,
       dockCollapsed: false,
+      marketPanelWidth: desktopMarketPanelBounds(window.innerWidth, desktopWidthBounds(window.innerWidth).defaultSidebar).defaultPanel,
       watchlistHeight: bounds.defaultWatchlist,
     });
     setLayoutMenuOpen(false);
@@ -402,6 +420,11 @@ export default function DesktopTerminal({
         ...layout,
         sidebarWidth: clamp(layout.sidebarWidth ?? current.sidebarWidth, widthBounds.sidebarMin, widthBounds.sidebarMax),
         dockHeight,
+        marketPanelWidth: clamp(
+          layout.marketPanelWidth ?? current.marketPanelWidth ?? marketBounds.defaultPanel,
+          marketBounds.panelMin,
+          marketBounds.panelMax,
+        ),
         watchlistHeight: clamp(layout.watchlistHeight ?? current.watchlistHeight ?? adjustedBounds.defaultWatchlist, adjustedBounds.watchlistMin, adjustedBounds.watchlistMax),
       };
     });
@@ -446,39 +469,22 @@ export default function DesktopTerminal({
   };
 
   const handleNav = id => {
-    setActiveNav(id);
     if (id === 'more') {
       onOpenSettings();
       return;
     }
     if (id === 'history') {
+      setActiveNav('trade');
       setRequestedDockTab('history');
       setDesktopLayout(current => ({ ...current, dockCollapsed: false }));
       return;
     }
-    if (id === 'markets') {
-      setDesktopLayout(current => {
-        if (activeNav !== 'markets') preMarketWatchlistHeightRef.current = current.watchlistHeight;
-        return { ...current, sidebarCollapsed: false };
-      });
+    if (id === 'watchlist' || id === 'markets') {
+      setActiveNav(current => current === id ? 'trade' : id);
       window.setTimeout(() => searchRef.current?.focus(), 0);
       return;
     }
-    if (id === 'watchlist') {
-      setDesktopLayout(current => {
-        const bounds = desktopHeightBounds(viewportHeight, current.dockCollapsed, current.dockHeight);
-        const restored = preMarketWatchlistHeightRef.current;
-        preMarketWatchlistHeightRef.current = null;
-        return {
-          ...current,
-          sidebarCollapsed: false,
-          watchlistHeight: restored == null
-            ? current.watchlistHeight
-            : clamp(restored, bounds.watchlistMin, bounds.watchlistMax),
-        };
-      });
-      window.setTimeout(() => searchRef.current?.focus(), 0);
-    }
+    setActiveNav('trade');
   };
 
   return (
@@ -534,10 +540,24 @@ export default function DesktopTerminal({
         <div
           className="relative grid min-h-0 min-w-0 bg-[#07090B] 2xl:bg-[#07090B]"
           style={{
-            gridTemplateColumns: `minmax(0, 1fr) ${sidebarWidth}px`,
+            gridTemplateColumns: `${marketPanelWidth}px minmax(0, 1fr) ${sidebarWidth}px`,
             gridTemplateRows: `minmax(0, 1fr) ${dockHeight}px`,
           }}
         >
+          {marketPanelOpen && (
+            <aside className="min-h-0 overflow-hidden border-r border-white/[0.06] bg-[#07090B]">
+              <DesktopWatchlist
+                markets={markets}
+                activeSymbol={activeSymbol}
+                onSelectSymbol={onSelectSymbol}
+                watchlists={watchlists}
+                mode={activeNav === 'markets' ? 'markets' : 'watchlist'}
+                searchRef={searchRef}
+                onNotice={setNotice}
+              />
+            </aside>
+          )}
+
           <section className="grid min-h-0 min-w-0 grid-rows-[52px_40px_minmax(0,1fr)]">
             <div className="flex items-center border-b border-white/[0.06] bg-[#07090B] px-3">
               <div className="flex min-w-[210px] items-center gap-2">
@@ -664,49 +684,26 @@ export default function DesktopTerminal({
             </div>
           </section>
 
-          <aside
-            className={`min-h-0 border-l border-white/[0.06] bg-[#07090B] ${desktopLayout.sidebarCollapsed ? 'hidden' : 'grid'}`}
-            style={{
-              gridTemplateRows: activeNav === 'markets'
-                ? 'minmax(0,1fr)'
-                : `${desktopLayout.watchlistHeight || 220}px 4px minmax(0,1fr)`,
-            }}
-          >
-            <div className="min-h-0 overflow-hidden">
-              <DesktopWatchlist
-                markets={markets}
-                activeSymbol={activeSymbol}
-                onSelectSymbol={onSelectSymbol}
-                watchlists={watchlists}
-                mode={activeNav === 'markets' ? 'markets' : 'watchlist'}
-                searchRef={searchRef}
-                onNotice={setNotice}
-              />
-            </div>
-
-            {activeNav !== 'markets' && (
-              <>
-                <ResizeHandle
-                  axis="y"
-                  value={desktopLayout.watchlistHeight || 220}
-                  min={heightBounds.watchlistMin}
-                  max={heightBounds.watchlistMax}
-                  onChange={updateWatchlistHeight}
-                  onDoubleClick={toggleWatchlistFocus}
-                  ariaLabel="Resize watchlist and order ticket"
-                  className="w-full"
-                />
-
-                <div className="min-h-0 overflow-y-auto [scrollbar-width:thin]">
-                  <DesktopOrderTicket market={market} markets={markets} account={account} positions={positions} positionHistory={positionHistory} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} riskGuardSettings={riskGuardSettings} onRiskGuardSettingsChange={onRiskGuardSettingsChange}/>
-                </div>
-              </>
-            )}
+          <aside className={`min-h-0 overflow-y-auto border-l border-white/[0.06] bg-[#07090B] [scrollbar-width:thin] ${desktopLayout.sidebarCollapsed ? 'hidden' : 'block'}`}>
+            <DesktopOrderTicket market={market} markets={markets} account={account} positions={positions} positionHistory={positionHistory} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} riskGuardSettings={riskGuardSettings} onRiskGuardSettingsChange={onRiskGuardSettingsChange}/>
           </aside>
 
-          <div className={`col-span-2 min-h-0 overflow-auto border-t border-white/[0.06] bg-[#07090B] ${desktopLayout.dockCollapsed ? 'hidden' : ''}`}>
+          <div className={`col-span-3 min-h-0 overflow-auto border-t border-white/[0.06] bg-[#07090B] ${desktopLayout.dockCollapsed ? 'hidden' : ''}`}>
             <PositionsPanel desktopDense requestedTab={requestedDockTab} activeSymbol={activeSymbol} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending}/>
           </div>
+
+          {marketPanelOpen && (
+            <ResizeHandle
+              axis="x"
+              value={marketPanelWidth}
+              min={marketBounds.panelMin}
+              max={marketBounds.panelMax}
+              onChange={updateMarketPanelWidth}
+              ariaLabel="Resize market panel"
+              className="absolute bottom-0 top-0"
+              style={{ left: marketPanelWidth - 2 }}
+            />
+          )}
 
           {!desktopLayout.sidebarCollapsed && (
             <ResizeHandle
