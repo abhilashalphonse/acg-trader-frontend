@@ -266,9 +266,9 @@ export default function DesktopOrderTicket({
     });
   };
 
-  const startProtectedPlan = side => {
+  const startProtectedPlan = (side, protection = 'both') => {
     if (!executableQuote || !exposureAllowed) return;
-    onStartPlan(side, orderType === 'market' ? 'market' : orderType);
+    onStartPlan(side, orderType === 'market' ? 'market' : orderType, { protection });
   };
 
   const updateProtection = (field, raw) => {
@@ -399,8 +399,8 @@ export default function DesktopOrderTicket({
               <div>
                 <p className="text-[8px] leading-4 text-[#7f93a6]">Add a stop loss first. Risk sizing uses the SL distance to calculate lots.</p>
                 <div className="mt-2 grid grid-cols-2 gap-1">
-                  <button type="button" onClick={() => { startProtectedPlan('sell'); setActiveTool('sl'); }} className="h-8 rounded border border-[#5b252e] text-[8px] font-bold text-[#FF6F7A]">SELL setup</button>
-                  <button type="button" onClick={() => { startProtectedPlan('buy'); setActiveTool('sl'); }} className="h-8 rounded border border-[#1c5c47] text-[8px] font-bold text-[#42D7A1]">BUY setup</button>
+                  <button type="button" onClick={() => { startProtectedPlan('sell', 'sl'); setActiveTool('sl'); }} className="h-8 rounded border border-[#5b252e] text-[8px] font-bold text-[#FF6F7A]">SELL setup</button>
+                  <button type="button" onClick={() => { startProtectedPlan('buy', 'sl'); setActiveTool('sl'); }} className="h-8 rounded border border-[#1c5c47] text-[8px] font-bold text-[#42D7A1]">BUY setup</button>
                 </div>
               </div>
             ) : (
@@ -432,8 +432,8 @@ export default function DesktopOrderTicket({
             </div>
             {!tradePlan ? (
               <div className="grid grid-cols-2 gap-1">
-                <button type="button" onClick={() => startProtectedPlan('sell')} className="h-8 rounded border border-[#5b252e] text-[8px] font-bold text-[#FF6F7A]">SELL setup</button>
-                <button type="button" onClick={() => startProtectedPlan('buy')} className="h-8 rounded border border-[#1c5c47] text-[8px] font-bold text-[#42D7A1]">BUY setup</button>
+                <button type="button" onClick={() => startProtectedPlan('sell', activeTool === 'tp' ? 'tp' : 'sl')} className="h-8 rounded border border-[#5b252e] text-[8px] font-bold text-[#FF6F7A]">SELL setup</button>
+                <button type="button" onClick={() => startProtectedPlan('buy', activeTool === 'tp' ? 'tp' : 'sl')} className="h-8 rounded border border-[#1c5c47] text-[8px] font-bold text-[#42D7A1]">BUY setup</button>
               </div>
             ) : (
               <>
@@ -522,6 +522,17 @@ export default function DesktopOrderTicket({
           </div>
         )}
 
+        <div className="grid grid-cols-2 gap-1 rounded-md border border-white/[0.06] bg-black/35 px-2 py-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[7px] font-semibold uppercase tracking-[0.05em] text-[#6F8191]">Margin</span>
+            <strong className="font-mono text-[9px] font-bold tabular-nums text-[#E6EDF3]">{money(previewMargin, currency)}</strong>
+          </div>
+          <div className="flex items-center justify-between gap-2 border-l border-white/[0.06] pl-2">
+            <span className="text-[7px] font-semibold uppercase tracking-[0.05em] text-[#6F8191]">Free after</span>
+            <strong className={`font-mono text-[9px] font-bold tabular-nums ${Number.isFinite(freeAfter) && freeAfter < 0 ? 'text-[#FF6F7A]' : 'text-[#E6EDF3]'}`}>{money(freeAfter, currency)}</strong>
+          </div>
+        </div>
+
         <div className="mb-0.5 flex items-center justify-between px-0.5 text-[7px] font-semibold text-[#6F8191]">
           <span>Spread {Number.isFinite(spreadPips) ? `${spreadPips.toFixed(1)}p` : '—'}</span>
           <span>{pendingPlan ? `${String(selectedSide || '').toUpperCase()} plan ready` : orderFamily === 'market' ? 'Market execution' : String(orderType).replace('-', ' ')}</span>
@@ -549,8 +560,15 @@ export default function DesktopOrderTicket({
                   requestAnimationFrame(() => event.currentTarget.select());
                 }}
                 onChange={event => {
-                  setLotInput(event.target.value.replace(/[^0-9.]/g, ''));
-                }}
+                  const raw = event.target.value.replace(/[^0-9.]/g, '');
+                  setLotInput(raw);
+                  const numeric = Number(raw);
+                  if (Number.isFinite(numeric) && numeric > 0) {
+                    const next = normalizeVolumeToStep(numeric, market, { rounding: 'nearest' });
+                    onLotsChange(next);
+                    if (tradePlan) onTradePlanChange({ manualLots: next, sizingMode: 'lots' });
+                  }
+                }
                 onBlur={commitLotInput}
                 onKeyDown={event => {
                   if (event.key === 'ArrowUp') { event.preventDefault(); nudgeLots(1); }
