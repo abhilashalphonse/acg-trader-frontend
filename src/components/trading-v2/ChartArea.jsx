@@ -1,18 +1,22 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Crosshair, TrendingUp, SlidersHorizontal, Square, Type, Shapes, Ruler, Eye, EyeOff, RotateCcw, ScanLine } from 'lucide-react';
+import { Crosshair, TrendingUp, SlidersHorizontal, Square, Type, Shapes, Ruler, Eye, EyeOff, RotateCcw, ScanLine, Magnet, Lock, Unlock, Pin } from 'lucide-react';
 import TradingChart from '../TradingChart.jsx';
 import DrawingLayer from './DrawingLayer.jsx';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 import { estimatePositionPnlAtPrice, estimateStopRisk, positionDistancePips } from '../../utils/tradingRisk.js';
 
-const tools = [
-  ['cursor', Crosshair, 'Select'],
-  ['trendline', TrendingUp, 'Trend line'],
-  ['hline', SlidersHorizontal, 'Horizontal line'],
-  ['vline', Ruler, 'Vertical line'],
-  ['rectangle', Square, 'Rectangle'],
-  ['fibonacci', Shapes, 'Fibonacci'],
-  ['text', Type, 'Text'],
+const toolGroups = [
+  [['cursor', Crosshair, 'Select / move']],
+  [
+    ['trendline', TrendingUp, 'Trend line'],
+    ['hline', SlidersHorizontal, 'Horizontal line'],
+    ['vline', Ruler, 'Vertical line'],
+  ],
+  [
+    ['rectangle', Square, 'Rectangle'],
+    ['fibonacci', Shapes, 'Fibonacci retracement'],
+    ['text', Type, 'Text'],
+  ],
 ];
 
 const secondsByTimeframe = { M1: 60, M5: 300, M15: 900, M30: 1800, H1: 3600, H4: 14400, D1: 86400, W1: 604800 };
@@ -469,6 +473,10 @@ export default function ChartArea({
   const [remaining, setRemaining] = useState(() => timeframeSeconds - (Math.floor(Date.now() / 1000) % timeframeSeconds));
   const [coordinateApi, setCoordinateApi] = useState(null);
   const [showDrawings, setShowDrawings] = useState(true);
+  const [drawingSnap, setDrawingSnap] = useState(false);
+  const [lockAllDrawings, setLockAllDrawings] = useState(false);
+  const [keepDrawingTool, setKeepDrawingTool] = useState(false);
+  const [drawingCount, setDrawingCount] = useState(0);
   const oscillatorCount = indicators.filter(item => item.visible !== false && oscillatorIds.has(item.id)).length;
 
   useEffect(() => {
@@ -495,11 +503,49 @@ export default function ChartArea({
 
   return (
     <div className={areaClass}>
-      {!hideToolbar && <aside className={toolbarClass} aria-label="Drawing tools">{tools.map(([id, Icon, label]) => <button key={id} type="button" title={label} onClick={() => !tradePlan && onSelectTool(id)} aria-label={label} disabled={Boolean(tradePlan)} className={`grid ${focusMode ? 'size-[30px]' : 'size-[28px]'} shrink-0 place-items-center rounded-md transition ${selectedTool === id ? 'bg-white/[0.07] text-[#59c8ff]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:cursor-not-allowed disabled:opacity-30`}><Icon size={focusMode ? 17 : 16} strokeWidth={1.75} /></button>)}</aside>}
+      {!hideToolbar && (
+        <aside className={toolbarClass} aria-label="Drawing tools">
+          {toolGroups.map((group, groupIndex) => (
+            <React.Fragment key={groupIndex}>
+              {groupIndex > 0 && <div className="my-1 h-px w-5 shrink-0 bg-white/[0.07]" />}
+              {group.map(([id, Icon, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  title={label}
+                  onClick={() => !tradePlan && onSelectTool(id)}
+                  aria-label={label}
+                  disabled={Boolean(tradePlan)}
+                  className={`relative grid ${focusMode ? 'size-[30px]' : 'size-[28px]'} shrink-0 place-items-center rounded-md transition ${selectedTool === id ? 'bg-white/[0.08] text-[#59c8ff] ring-1 ring-inset ring-white/[0.04]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:cursor-not-allowed disabled:opacity-30`}
+                >
+                  <Icon size={focusMode ? 17 : 16} strokeWidth={1.75} />
+                </button>
+              ))}
+            </React.Fragment>
+          ))}
+          <div className="my-1 h-px w-5 shrink-0 bg-white/[0.07]" />
+          <button type="button" onClick={() => setDrawingSnap(value => !value)} disabled={Boolean(tradePlan)} className={`grid ${focusMode ? 'size-[30px]' : 'size-[28px]'} shrink-0 place-items-center rounded-md transition ${drawingSnap ? 'bg-[#10202a] text-[#59c8ff]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:opacity-30`} title="Snap drawing prices to instrument increments"><Magnet size={15}/></button>
+          <button type="button" onClick={() => setLockAllDrawings(value => !value)} disabled={Boolean(tradePlan)} className={`grid ${focusMode ? 'size-[30px]' : 'size-[28px]'} shrink-0 place-items-center rounded-md transition ${lockAllDrawings ? 'bg-[#10202a] text-[#59c8ff]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:opacity-30`} title={lockAllDrawings ? 'Unlock drawing movement' : 'Lock all drawing movement'}>{lockAllDrawings ? <Lock size={14}/> : <Unlock size={14}/>}</button>
+          <button type="button" onClick={() => setKeepDrawingTool(value => !value)} disabled={Boolean(tradePlan) || selectedTool === 'cursor'} className={`relative grid ${focusMode ? 'size-[30px]' : 'size-[28px]'} shrink-0 place-items-center rounded-md transition ${keepDrawingTool ? 'bg-[#10202a] text-[#59c8ff]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:opacity-25`} title="Keep selected drawing tool active"><Pin size={14}/>{keepDrawingTool && <span className="absolute bottom-1 right-1 size-1 rounded-full bg-[#59c8ff]"/>}</button>
+          <div className="mt-1 text-[7px] font-bold tabular-nums text-[#52616e]" title="Drawings on this symbol">{drawingCount}</div>
+        </aside>
+      )}
 
       <div className={`relative min-h-0 min-w-0 overflow-hidden bg-black`}>
         <TradingChart symbol={symbol} instrument={instrument} timeframe={chartTimeframe} tick={tick} chartMode={chartMode} bidPrice={price} askPrice={ask} positions={positions} indicators={indicators} onCoordinateApi={setCoordinateApi} showBidAskLines={desktopEnhanced} showPositionPriceLines={!desktopEnhanced} />
-        {showDrawings && <DrawingLayer symbol={symbol} timeframe={chartTimeframe} tool={selectedTool} onToolChange={onSelectTool} disabled={Boolean(tradePlan)} coordinateApi={coordinateApi} />}
+        {showDrawings && <DrawingLayer
+          symbol={symbol}
+          timeframe={chartTimeframe}
+          tool={selectedTool}
+          onToolChange={onSelectTool}
+          disabled={Boolean(tradePlan)}
+          coordinateApi={coordinateApi}
+          keepToolActive={keepDrawingTool}
+          snapEnabled={drawingSnap}
+          snapStep={instrumentPipSize(instrument)}
+          lockAll={lockAllDrawings}
+          onDrawingCountChange={setDrawingCount}
+        />}
         <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} coordinateApi={coordinateApi} instrument={instrument} lots={tradePlanLots} accountCurrency={accountCurrency} />
         {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} />}
         {desktopEnhanced && !tradePlan && <OpenPositionEntryOverlay symbol={symbol} positions={positions} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} />}
