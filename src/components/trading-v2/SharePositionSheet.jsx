@@ -79,9 +79,9 @@ export default function SharePositionSheet({ position, instrument, onClose = () 
       aria-modal="true"
       aria-label="Share position P&L"
     >
-      <button type="button" className="absolute inset-0 hidden sm:block" onClick={onClose} aria-label="Close share preview" />
+      <button type="button" className="absolute inset-0 hidden appearance-none border-0 bg-transparent p-0 sm:block" onClick={onClose} aria-label="Close share preview" />
 
-      <section className="relative z-10 grid h-[100svh] max-h-[100dvh] min-h-0 w-full grid-rows-[56px_minmax(0,1fr)_auto] overflow-hidden bg-black sm:h-[min(92dvh,900px)] sm:max-w-[460px] sm:rounded-lg sm:border sm:border-white/[0.10]">
+      <section className="relative z-10 grid h-dvh min-h-0 w-full grid-rows-[56px_minmax(0,1fr)_auto] overflow-hidden bg-black sm:h-[min(92dvh,900px)] sm:max-w-[460px] sm:rounded-lg sm:border sm:border-white/[0.10]">
         <header className="flex h-14 min-h-0 items-center justify-between border-b border-white/[0.08] px-4">
           <div className="min-w-0">
             <b className="block text-[12px] font-black leading-none text-[#f5f5f5]">Share position P&amp;L</b>
@@ -123,7 +123,7 @@ export default function SharePositionSheet({ position, instrument, onClose = () 
             </div>
           )}
 
-          <div className="flex w-full gap-2">
+          <div className="grid w-full grid-cols-2 gap-2">
             <button
               type="button"
               disabled={disabled}
