@@ -4,7 +4,9 @@ import { useTraderAuth } from '../hooks/useTraderAuth.js';
 
 export default function SessionGate({ children }) {
   const auth = useTraderAuth();
-  const [form, setForm] = useState({ tenant: '', login: '', password: '' });
+  const tenant = String(import.meta.env.VITE_ACG_TRADER_TENANT || 'acg-funded').trim();
+  const fundedUrl = String(import.meta.env.VITE_ACG_FUNDED_URL || '').trim();
+  const [form, setForm] = useState({ login: '', password: '' });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -28,11 +30,11 @@ export default function SessionGate({ children }) {
 
   const submit = async event => {
     event.preventDefault();
-    if (!form.tenant.trim() || !form.login.trim() || !form.password) return;
+    if (!tenant || !form.login.trim() || !form.password) return;
     setSubmitting(true);
     setError('');
     try {
-      await auth.login({ tenant: form.tenant.trim(), login: form.login.trim(), password: form.password });
+      await auth.login({ tenant, login: form.login.trim(), password: form.password });
     } catch (nextError) {
       setError(nextError?.message || 'Unable to sign in');
     } finally {
@@ -45,19 +47,23 @@ export default function SessionGate({ children }) {
       <form onSubmit={submit} className="w-full max-w-[390px] rounded-[22px] border border-[#1a3142] bg-[#08141e] p-5 shadow-[0_28px_80px_rgba(0,0,0,.38)]">
         <div className="grid size-10 place-items-center rounded-xl border border-[#21445d] bg-[#0b2434] text-[#62caff]"><LockKeyhole size={18}/></div>
         <h1 className="mt-4 text-[22px] font-black tracking-[-0.04em]">ACG Trader</h1>
-        <p className="mt-1.5 text-[10px] leading-relaxed text-[#71869a]">Open the terminal from ACG Funded for automatic sign-in, or use your native trading credentials.</p>
+        <p className="mt-1.5 text-[10px] leading-relaxed text-[#71869a]">Sign in with the trading credentials from your ACG Funded dashboard or credential email.</p>
 
         <div className="mt-5 space-y-2.5">
-          <Field label="Tenant" value={form.tenant} onChange={value => setForm(current => ({ ...current, tenant: value }))} autoComplete="organization" />
-          <Field label="Login" value={form.login} onChange={value => setForm(current => ({ ...current, login: value }))} autoComplete="username" />
+          <Field label="Trading account" value={form.login} onChange={value => setForm(current => ({ ...current, login: value }))} autoComplete="username" />
           <Field label="Password" value={form.password} onChange={value => setForm(current => ({ ...current, password: value }))} type="password" autoComplete="current-password" />
         </div>
 
         {(error || auth.error) && <div className="mt-3 rounded-xl border border-[#5a2a34] bg-[#251217] px-3 py-2.5 text-[9px] font-semibold text-[#ff9aa4]">{error || auth.error?.message}</div>}
 
-        <button type="submit" disabled={submitting || !form.tenant.trim() || !form.login.trim() || !form.password} className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#24658a] bg-[#0e4260] text-[10px] font-black text-[#dff5ff] disabled:cursor-not-allowed disabled:opacity-45">
+        <button type="submit" disabled={submitting || !tenant || !form.login.trim() || !form.password} className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#24658a] bg-[#0e4260] text-[10px] font-black text-[#dff5ff] disabled:cursor-not-allowed disabled:opacity-45">
           {submitting && <Loader2 size={14} className="animate-spin"/>}{submitting ? 'Signing in…' : 'Sign in'}
         </button>
+        {fundedUrl && (
+          <a href={fundedUrl} className="mt-3 flex h-10 w-full items-center justify-center text-[10px] font-semibold text-[#71869a] transition hover:text-[#dff5ff]">
+            Open ACG Funded
+          </a>
+        )}
       </form>
     </div>
   );
