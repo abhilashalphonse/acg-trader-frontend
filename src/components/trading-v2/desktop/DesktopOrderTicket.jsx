@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Check, ChevronDown, Minus, Plus, X } from 'lucide-react';
 import { calculateAccountRiskSummary } from '../../../utils/accountRisk.js';
+import { DEFAULT_RISK_GUARD_SETTINGS, evaluateRiskGuard } from '../../../utils/riskGuard.js';
 import { decimalPlaces, normalizeVolumeToStep } from '../../../utils/tradingCommandNormalization.js';
 import {
   calculateRiskOrderSizing,
@@ -78,6 +79,11 @@ export default function DesktopOrderTicket({
   onTradePlanChange = () => {},
   exposureAllowed = true,
   exposureBlockReason = 'New exposure is temporarily unavailable',
+  markets = [],
+  positions = [],
+  positionHistory = [],
+  riskGuardSettings = DEFAULT_RISK_GUARD_SETTINGS,
+  onRiskGuardSettingsChange = () => {},
 }) {
   const [lotInput, setLotInput] = useState(String(lots));
   const [lotFocused, setLotFocused] = useState(false);
@@ -155,7 +161,19 @@ export default function DesktopOrderTicket({
 
   const riskSupported = riskSizingSupported(market, currency);
   const riskSizingBlocked = sizingMode === 'risk' && Boolean(planMetrics?.riskSizing && planMetrics.riskSizing.canExecute === false);
-  const canSubmit = executableQuote && exposureAllowed && (sizingMode !== 'risk' || riskSupported) && !riskSizingBlocked;
+  const riskGuard = useMemo(() => evaluateRiskGuard({
+    account,
+    positions,
+    positionHistory,
+    markets,
+    proposedRisk: planMetrics?.riskAmount ?? null,
+    settings: riskGuardSettings,
+  }), [account, markets, planMetrics?.riskAmount, positionHistory, positions, riskGuardSettings]);
+  const canSubmit = executableQuote
+    && exposureAllowed
+    && (sizingMode !== 'risk' || riskSupported)
+    && !riskSizingBlocked
+    && riskGuard.allowed;
 
   const spreadPips = useMemo(() => {
     const pip = Number(market?.pipSize);
@@ -170,7 +188,7 @@ export default function DesktopOrderTicket({
     ? (planMetrics.riskAmount / challenge.remainingDaily) * 100
     : null;
 
-  const warning = !exposureAllowed
+  const warning = riskGuard.blocks[0]?.message || !exposureAllowed
     ? exposureBlockReason
     : !executableQuote
       ? market?.sessionOpen === false
@@ -381,6 +399,72 @@ export default function DesktopOrderTicket({
           <Metric label="Margin" value={money(previewMargin, currency)} />
           <Metric label="Free after" value={money(freeAfter, currency)} tone={Number.isFinite(freeAfter) && freeAfter < 0 ? 'danger' : 'default'} />
           <Metric label="R:R" value={Number.isFinite(planMetrics?.rr) ? `1:${planMetrics.rr.toFixed(2)}` : '—'} tone="accent" />
+        </div>
+
+        <div className={`rounded-md border px-2 py-2 ${riskGuard.enabled ? 'border-[#24485b] bg-[#071117]' : 'border-white/[0.06] bg-black'}`}>
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <strong className="text-[8px] font-black uppercase tracking-[0.08em] text-[#c9d6df]">Risk Guard</strong>
+                <span className={`rounded px-1.5 py-0.5 text-[6px] font-black uppercase ${riskGuard.mode === 'block' ? 'bg-[#251015] text-[#ff7782]' : 'bg-[#0d1a22] text-[#63caff]'}`}>{riskGuard.mode}</span>
+              </div>
+              <span className="mt-0.5 block text-[6.5px] text-[#61768a]">Personal protection; backend challenge rules remain authoritative.</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => onRiskGuardSettingsChange({ ...riskGuardSettings, enabled: !riskGuardSettings?.enabled })}
+              className={`relative h-5 w-9 rounded-full border transition ${riskGuard.enabled ? 'border-[#2a6682] bg-[#0b2938]' : 'border-white/[0.08] bg-[#111]'}`}
+              aria-label="Toggle Risk Guard"
+            >
+              <span className={`absolute top-[2px] size-3.5 rounded-full bg-white transition ${riskGuard.enabled ? 'left-[18px]' : 'left-[2px]'}`} />
+            </button>
+          </div>
+
+          {riskGuard.enabled && (
+            <>
+              <div className="mt-2 grid grid-cols-4 gap-x-2">
+                <Metric label="Trade risk" value={Number.isFinite(riskGuard.tradeRiskPercent) ? `${riskGuard.tradeRiskPercent.toFixed(2)}%` : '—'} tone={riskGuard.blocks.some(item => item.code === 'MAX_RISK_PER_TRADE') ? 'danger' : 'default'} />
+                <Metric label="Open risk" value={Number.isFinite(riskGuard.openRiskPercent) ? `${riskGuard.openRiskPercent.toFixed(2)}%` : '—'} />
+                <Metric label="After trade" value={Number.isFinite(riskGuard.projectedOpenRiskPercent) ? `${riskGuard.projectedOpenRiskPercent.toFixed(2)}%` : '—'} tone={riskGuard.blocks.some(item => item.code === 'MAX_OPEN_RISK') ? 'danger' : 'accent'} />
+                <Metric label="Loss streak" value={String(riskGuard.consecutiveLosses)} tone={riskGuard.blocks.some(item => item.code === 'LOSS_STREAK') ? 'danger' : 'default'} />
+              </div>
+
+              <div className="mt-1.5 grid grid-cols-4 gap-1">
+                <label className="rounded border border-white/[0.06] bg-black px-1.5 py-1">
+                  <span className="block text-[6px] uppercase text-[#566a7d]">Max trade</span>
+                  <div className="mt-0.5 flex items-center"><input type="number" min="0.1" max="10" step="0.1" value={riskGuardSettings?.maxRiskPerTrade ?? 1} onChange={event => onRiskGuardSettingsChange({ ...riskGuardSettings, maxRiskPerTrade: Math.max(0.1, Number(event.target.value) || 0.1) })} className="min-w-0 flex-1 bg-transparent font-mono text-[8px] font-bold text-[#dce6ef] outline-none"/><span className="text-[6px] text-[#61768a]">%</span></div>
+                </label>
+                <label className="rounded border border-white/[0.06] bg-black px-1.5 py-1">
+                  <span className="block text-[6px] uppercase text-[#566a7d]">Max open</span>
+                  <div className="mt-0.5 flex items-center"><input type="number" min="0.1" max="20" step="0.1" value={riskGuardSettings?.maxOpenRisk ?? 2} onChange={event => onRiskGuardSettingsChange({ ...riskGuardSettings, maxOpenRisk: Math.max(0.1, Number(event.target.value) || 0.1) })} className="min-w-0 flex-1 bg-transparent font-mono text-[8px] font-bold text-[#dce6ef] outline-none"/><span className="text-[6px] text-[#61768a]">%</span></div>
+                </label>
+                <label className="rounded border border-white/[0.06] bg-black px-1.5 py-1">
+                  <span className="block text-[6px] uppercase text-[#566a7d]">Daily stop</span>
+                  <div className="mt-0.5 flex items-center"><input type="number" min="0.1" max="20" step="0.1" value={riskGuardSettings?.dailyStopPercent ?? 2.5} onChange={event => onRiskGuardSettingsChange({ ...riskGuardSettings, dailyStopPercent: Math.max(0.1, Number(event.target.value) || 0.1) })} className="min-w-0 flex-1 bg-transparent font-mono text-[8px] font-bold text-[#dce6ef] outline-none"/><span className="text-[6px] text-[#61768a]">%</span></div>
+                </label>
+                <label className="rounded border border-white/[0.06] bg-black px-1.5 py-1">
+                  <span className="block text-[6px] uppercase text-[#566a7d]">Loss streak</span>
+                  <input type="number" min="1" max="20" step="1" value={riskGuardSettings?.maxConsecutiveLosses ?? 3} onChange={event => onRiskGuardSettingsChange({ ...riskGuardSettings, maxConsecutiveLosses: Math.max(1, Math.round(Number(event.target.value) || 1)) })} className="mt-0.5 w-full bg-transparent font-mono text-[8px] font-bold text-[#dce6ef] outline-none"/>
+                </label>
+              </div>
+
+              <div className="mt-1.5 grid grid-cols-2 gap-1">
+                <button type="button" onClick={() => onRiskGuardSettingsChange({ ...riskGuardSettings, mode: 'warn' })} className={`h-6 rounded border text-[7px] font-bold ${riskGuard.mode === 'warn' ? 'border-[#315b72] bg-[#0d1a22] text-[#63caff]' : 'border-white/[0.06] text-[#6d8195]'}`}>Warn only</button>
+                <button type="button" onClick={() => onRiskGuardSettingsChange({ ...riskGuardSettings, mode: 'block' })} className={`h-6 rounded border text-[7px] font-bold ${riskGuard.mode === 'block' ? 'border-[#6d2d37] bg-[#210b10] text-[#ff727d]' : 'border-white/[0.06] text-[#6d8195]'}`}>Block at limits</button>
+              </div>
+
+              {(riskGuard.blocks.length > 0 || riskGuard.warnings.length > 0) && (
+                <div className="mt-1.5 space-y-1">
+                  {[...riskGuard.blocks, ...riskGuard.warnings].slice(0, 2).map(item => (
+                    <div key={item.code} className={`flex items-start gap-1.5 rounded px-1.5 py-1 text-[6.8px] font-semibold leading-3 ${item.severity === 'limit' ? 'bg-[#16090c] text-[#e2a5ab]' : 'bg-[#0c1115] text-[#8ea3b6]'}`}>
+                      <AlertTriangle size={9} className={item.severity === 'limit' ? 'mt-0.5 shrink-0 text-[#ff727d]' : 'mt-0.5 shrink-0 text-[#6cbfe8]'} />
+                      <span>{item.message}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         <button type="button" onClick={() => setAdvancedOpen(value => !value)} className="flex h-6 w-full items-center justify-between border-t border-white/[0.06] text-[7px] font-semibold text-[#65798d] hover:text-[#c8d3dc]">
