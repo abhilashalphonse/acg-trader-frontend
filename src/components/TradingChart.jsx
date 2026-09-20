@@ -29,7 +29,7 @@ const indicatorColors = {
 };
 
 function volumeForBar(bar) {
-  return Number.isFinite(bar.volume) && bar.volume > 0 ? bar.volume : 0;
+  return Number.isFinite(bar?.volume) && bar.volume >= 0 ? bar.volume : null;
 }
 function toSeriesPoint(bar, mode) { return mode === 'line' ? { time: bar.time, value: bar.close } : bar; }
 function indicatorLabel(indicator) {
@@ -167,7 +167,10 @@ export default function TradingChart({ symbol = 'EURUSD', instrument = null, tim
         const bars = await fetchCandles(symbol, timeframe, 160, controller.signal);
         if (disposed) return;
         if (!bars.length) throw new Error('No market candles returned');
-        barsRef.current = bars; barsByTimeRef.current = new Map(bars.map(bar => [Number(bar.time), bar])); series.setData(bars.map(bar => toSeriesPoint(bar, chartMode))); volume.setData(bars.map(bar => ({ time: bar.time, value: volumeForBar(bar), color: bar.close >= bar.open ? 'rgba(45,211,155,0.34)' : 'rgba(255,95,105,0.32)' }))); lastBarRef.current = bars[bars.length - 1]; setDisplayBar(bars[bars.length - 1]); renderIndicators(chart, bars); chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, bars.length - 48), to: bars.length + 9 });
+        barsRef.current = bars; barsByTimeRef.current = new Map(bars.map(bar => [Number(bar.time), bar])); series.setData(bars.map(bar => toSeriesPoint(bar, chartMode))); volume.setData(bars.map(bar => {
+          const value = volumeForBar(bar);
+          return value == null ? null : { time: bar.time, value, color: bar.close >= bar.open ? 'rgba(45,211,155,0.34)' : 'rgba(255,95,105,0.32)' };
+        }).filter(Boolean)); lastBarRef.current = bars[bars.length - 1]; setDisplayBar(bars[bars.length - 1]); renderIndicators(chart, bars); chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, bars.length - 48), to: bars.length + 9 });
       } catch (e) { if (e?.name === 'AbortError' || disposed) return; console.error('Trading chart data failed', e); setError(e?.message || 'Unable to load market data'); }
     })();
     return () => { disposed = true; controller.abort(); coordinateCallbackRef.current?.(null); if (indicatorFrameRef.current) window.cancelAnimationFrame(indicatorFrameRef.current); indicatorFrameRef.current = null; chart.unsubscribeCrosshairMove(crosshairHandler); indicatorSeriesRef.current = []; indicatorBindingsRef.current = []; indicatorPanesRef.current = 0; chartRef.current = null; seriesRef.current = null; volumeRef.current = null; marketLineRef.current = null; positionLinesRef.current = []; lastBarRef.current = null; barsRef.current = []; barsByTimeRef.current = new Map(); chart.remove(); };
@@ -242,7 +245,10 @@ export default function TradingChart({ symbol = 'EURUSD', instrument = null, tim
     barsByTimeRef.current.set(Number(next.time), next);
     lastBarRef.current = next;
     seriesRef.current.update(toSeriesPoint(next, chartMode));
-    volumeRef.current?.update({ time: next.time, value: volumeForBar(next), color: next.close >= next.open ? 'rgba(45,211,155,0.34)' : 'rgba(255,95,105,0.32)' });
+    const liveVolume = volumeForBar(next);
+    if (liveVolume != null) {
+      volumeRef.current?.update({ time: next.time, value: liveVolume, color: next.close >= next.open ? 'rgba(45,211,155,0.34)' : 'rgba(255,95,105,0.32)' });
+    }
     setDisplayBar(next); scheduleIndicatorUpdate(); chartRef.current?.timeScale().scrollToRealTime(); mergeLiveBarIntoCache(symbol, timeframe, next, 160);
   }, [chartMode, liveCandle, scheduleIndicatorUpdate, symbol, timeframe]);
 
