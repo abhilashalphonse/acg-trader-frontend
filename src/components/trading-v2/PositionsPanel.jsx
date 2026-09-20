@@ -57,6 +57,7 @@ export default function PositionsPanel({
   onDuplicate = () => {},
   onCancelPending = () => {},
   onModifyPending = () => {},
+  desktopDense = false,
 }) {
   const [tab, setTab] = useState('positions');
   const [expandedId, setExpandedId] = useState(null);
@@ -187,7 +188,41 @@ export default function PositionsPanel({
         {tab === 'positions' && <button type="button" onClick={onCloseAll} disabled={!positions.length} className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-white/[0.09] bg-black px-2 text-[8px] font-bold text-[#d4d4d4] disabled:cursor-not-allowed disabled:opacity-35"><Trash2 size={12} className="text-[#737373]" />Close All</button>}
       </div>
 
-      {tab === 'positions' && (
+      {tab === 'positions' && desktopDense && (
+        <div className="min-w-[860px]">
+          <div className="grid grid-cols-[1.4fr_.7fr_.75fr_1fr_1fr_1fr_1fr_1fr_136px] items-center border-b border-white/[0.07] px-3 py-2 text-[7px] font-bold uppercase tracking-[0.08em] text-[#5c6f82]">
+            <span>Instrument</span><span>Side</span><span className="text-right">Size</span><span className="text-right">Entry</span><span className="text-right">Current</span><span className="text-right">SL</span><span className="text-right">TP</span><span className="text-right">P&amp;L</span><span />
+          </div>
+          {!positions.length && <div className="grid h-[110px] place-items-center text-center text-[10px] text-[#737373]"><div><b className="block text-[#b3b3b3]">No open positions</b><span className="mt-1 block">Market executions will appear here</span></div></div>}
+          {positions.map(position => {
+            const instrument = instrumentForSymbol(markets, position.symbol);
+            const positive = Number(position.pnl) >= 0;
+            const sideBuy = position.side === 'BUY';
+            return (
+              <div key={position.id} className="grid grid-cols-[1.4fr_.7fr_.75fr_1fr_1fr_1fr_1fr_1fr_136px] items-center border-b border-white/[0.06] px-3 py-2 text-[9px] hover:bg-white/[0.015]">
+                <div className="flex min-w-0 items-center gap-2">
+                  <InstrumentAvatar instrument={instrument} size={20}/>
+                  <strong className="truncate text-[10px] text-[#f2f5f7]">{formatSymbol(position.symbol)}</strong>
+                </div>
+                <span className={`w-fit rounded px-1.5 py-0.5 text-[7px] font-black ${sideBuy ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{position.side}</span>
+                <span className="text-right font-mono text-[#c4cbd2]">{Number(position.volume).toFixed(2)}</span>
+                <span className="text-right font-mono text-[#b9c3cc]">{formatInstrumentPrice(position.entry, instrument)}</span>
+                <span className="text-right font-mono text-[#d3dbe2]">{formatInstrumentPrice(position.closePrice, instrument)}</span>
+                <button type="button" onClick={() => startProtectionEdit(position, 'sl')} className="text-right font-mono text-[#8e9aa5] hover:text-white">{position.sl == null ? '+ SL' : formatInstrumentPrice(position.sl, instrument)}</button>
+                <button type="button" onClick={() => startProtectionEdit(position, 'tp')} className="text-right font-mono text-[#8e9aa5] hover:text-white">{position.tp == null ? '+ TP' : formatInstrumentPrice(position.tp, instrument)}</button>
+                <strong className={`text-right font-mono text-[10px] ${positive ? 'text-[#3dd9a4]' : 'text-[#ff6975]'}`}>{formatPnl(position.pnl, position.pnlCurrency)}</strong>
+                <div className="flex items-center justify-end gap-1">
+                  <button type="button" onClick={() => onBreakEven(position.id)} className="h-7 rounded border border-white/[0.07] px-2 text-[7px] font-bold text-[#48d8a4] hover:bg-white/[0.025]">BE</button>
+                  <button type="button" onClick={() => onClosePosition(position.id, 50)} className="h-7 rounded border border-white/[0.07] px-2 text-[7px] font-bold text-[#aeb8c1] hover:bg-white/[0.025]">50%</button>
+                  <button type="button" onClick={() => onClosePosition(position.id, 100)} className="h-7 rounded border border-[#51242c] px-2 text-[7px] font-bold text-[#ff727d] hover:bg-[#241015]">Close</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {tab === 'positions' && !desktopDense && (
         <div className="space-y-2 p-2">
           {!positions.length && <div className="grid h-[118px] place-items-center text-center text-[10px] font-medium text-[#737373]"><div><b className="block text-[#b3b3b3]">No open positions</b><span className="mt-1 block">Market executions will appear here</span></div></div>}
 
