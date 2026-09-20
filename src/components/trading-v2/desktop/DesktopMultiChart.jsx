@@ -37,13 +37,13 @@ export default function DesktopMultiChart({
   const activeCell = Math.min(Math.max(0, Number(config?.activeCell) || 0), layout - 1);
 
   const patch = next => onChange({ ...config, ...next });
-  const updateCell = (index, changes) => {
+  const updateCell = (index, changes, extra = {}) => {
     const next = Array.from({ length: Math.max(4, cells.length) }, (_, i) => cells[i] || {});
     next[index] = { ...next[index], ...changes };
     if (linked && changes.symbol) {
       for (let i = 0; i < layout; i += 1) next[i] = { ...next[i], symbol: changes.symbol };
     }
-    patch({ cells: next });
+    patch({ cells: next, ...extra });
   };
 
   const setLayout = nextLayout => patch({ layout: nextLayout, activeCell: Math.min(activeCell, nextLayout - 1) });
@@ -83,8 +83,7 @@ export default function DesktopMultiChart({
                   value={symbol || ''}
                   onChange={event => {
                     const next = event.target.value;
-                    updateCell(index, { symbol: next });
-                    patch({ activeCell: index });
+                    updateCell(index, { symbol: next }, { activeCell: index });
                     onSelectSymbol(next);
                   }}
                   className="max-w-[120px] bg-transparent text-[8px] font-black text-[#dce7ef] outline-none"
