@@ -327,14 +327,7 @@ export default function DesktopOrderTicket({
       </div>
 
       <div className="space-y-2 overflow-y-auto px-2.5 py-2.5 [scrollbar-width:thin]">
-        <div className="grid grid-cols-[1.25fr_1fr_.72fr_.72fr_30px] gap-1">
-          <button
-            type="button"
-            onClick={() => toggleTool('market')}
-            className={`h-8 rounded-md border px-2 text-[8px] font-bold uppercase tracking-[0.05em] ${orderFamily === 'market' ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-[#4f3d22] bg-[#151108] text-[#E7BD58]'}`}
-          >
-            {orderFamily === 'market' ? 'Market' : 'Pending'}
-          </button>
+        <div className="grid grid-cols-[1fr_.72fr_.72fr_30px] gap-1">
           <button type="button" onClick={openRiskSizing} className={`h-8 rounded-md border text-[8px] font-bold uppercase tracking-[0.05em] ${sizingMode === 'risk' ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] bg-black text-[#7d90a2] hover:text-white'}`}>
             Risk{sizingMode === 'risk' ? ` ${Number(riskPercent).toFixed(2)}%` : ''}
           </button>
@@ -349,12 +342,22 @@ export default function DesktopOrderTicket({
           </button>
         </div>
 
-        {activeTool === 'market' && (
-          <div className="rounded-md border border-white/[0.08] bg-[#0C1013] p-1 shadow-xl">
-            <button type="button" onClick={() => { chooseOrderFamily('market'); setActiveTool(null); }} className={`flex h-8 w-full items-center justify-between rounded px-2 text-[8px] font-bold ${orderFamily === 'market' ? 'bg-white/[0.05] text-[#E6EDF3]' : 'text-[#8ea0b1] hover:bg-white/[0.03]'}`}><span>Market</span><span className="text-[6px] text-[#6F8191]">Immediate</span></button>
-            <button type="button" onClick={() => { chooseOrderFamily('pending'); setActiveTool(null); setExpanded(true); }} className={`flex h-8 w-full items-center justify-between rounded px-2 text-[8px] font-bold ${orderFamily === 'pending' ? 'bg-white/[0.05] text-[#E7BD58]' : 'text-[#8ea0b1] hover:bg-white/[0.03]'}`}><span>Pending</span><span className="text-[6px] text-[#6F8191]">Limit / Stop</span></button>
-          </div>
-        )}
+        <div className="grid grid-cols-2 rounded-md border border-white/[0.07] bg-black p-0.5">
+          <button
+            type="button"
+            onClick={() => { chooseOrderFamily('market'); setActiveTool(null); }}
+            className={`h-8 rounded text-[8px] font-black uppercase tracking-[0.06em] ${orderFamily === 'market' ? 'bg-white/[0.06] text-[#E6EDF3]' : 'text-[#65788a] hover:text-[#cbd6df]'}`}
+          >
+            Market
+          </button>
+          <button
+            type="button"
+            onClick={() => { chooseOrderFamily('pending'); setActiveTool(null); }}
+            className={`h-8 rounded text-[8px] font-black uppercase tracking-[0.06em] ${orderFamily === 'pending' ? 'bg-[#171208] text-[#E7BD58]' : 'text-[#65788a] hover:text-[#cbd6df]'}`}
+          >
+            Pending
+          </button>
+        </div>
 
         {activeTool === 'risk' && (
           <div className="rounded-md border border-[#24485b] bg-[#071117] p-2 shadow-xl">
@@ -466,11 +469,6 @@ export default function DesktopOrderTicket({
 
         {expanded && (
           <div className="space-y-2 border-t border-white/[0.06] pt-2">
-            <div className="grid grid-cols-2 rounded-md border border-white/[0.06] bg-black p-0.5">
-              <button type="button" onClick={() => chooseOrderFamily('market')} className={`h-8 rounded text-[8px] font-bold ${orderFamily === 'market' ? 'bg-white/[0.055] text-[#E6EDF3]' : 'text-[#627589]'}`}>MARKET</button>
-              <button type="button" onClick={() => chooseOrderFamily('pending')} className={`h-8 rounded text-[8px] font-bold ${orderFamily === 'pending' ? 'bg-white/[0.055] text-[#E7BD58]' : 'text-[#627589]'}`}>PENDING</button>
-            </div>
-
             {orderFamily === 'pending' && (
               <div className="grid grid-cols-3 gap-1">
                 {ORDER_TYPES.filter(([id]) => id !== 'market').map(([id, label]) => (
