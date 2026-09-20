@@ -98,6 +98,7 @@ export default function DesktopOrderTicket({
   const [activeTool, setActiveTool] = useState(null);
   const [protectionMode, setProtectionMode] = useState({ sl: 'price', tp: 'price' });
   const [riskGuardOpen, setRiskGuardOpen] = useState(false);
+  const [appliedRiskSizing, setAppliedRiskSizing] = useState(null);
 
   const volumeStep = Math.max(Number(market?.volumeStep) || 0.01, 0.00000001);
   const minVolume = Math.max(Number(market?.minVolume) || volumeStep, volumeStep);
@@ -209,10 +210,11 @@ export default function DesktopOrderTicket({
     warning = `Planned stop uses ${riskBufferUsage.toFixed(0)}% of the remaining daily-loss buffer.`;
   }
 
-  const setLots = value => {
+  const setLots = (value, options = {}) => {
     const next = normalizeVolumeToStep(value, market, { rounding: 'nearest' });
     onLotsChange(next);
     setLotInput(Number(next).toFixed(lotDecimals));
+    if (!options.preserveRiskBadge) setAppliedRiskSizing(null);
     if (tradePlan) onTradePlanChange({ manualLots: next, sizingMode: 'lots' });
   };
 
@@ -278,7 +280,25 @@ export default function DesktopOrderTicket({
 
   const pendingPlan = Boolean(tradePlan && !tradePlan.open);
   const selectedSide = String(tradePlan?.side || '').toLowerCase();
-  const riskCalculatedLots = Number(planMetrics?.riskSizing?.requestedLots);
+  const riskSizing = planMetrics?.riskSizing || null;
+  const riskCalculatedLots = Number(riskSizing?.requestedLots);
+  const riskRequestedRaw = Number(riskSizing?.requestedRaw);
+  const riskExecutableLots = (() => {
+    if (!riskSizing) return null;
+    if (riskSizing.blockReason === 'INSUFFICIENT_MARGIN') {
+      const marginLots = Number(riskSizing.maxMarginLots);
+      return Number.isFinite(marginLots) && marginLots >= minVolume ? marginLots : null;
+    }
+    const lots = Number(riskSizing.requestedLots);
+    return Number.isFinite(lots) && lots >= minVolume ? lots : null;
+  })();
+  const riskExecutableLoss = Number.isFinite(riskExecutableLots)
+    ? estimateStopRisk(tradePlan, riskExecutableLots, market, currency)
+    : null;
+  const riskTargetLoss = Number.isFinite(Number(account?.equity))
+    ? Number(account.equity) * Number(riskPercent) / 100
+    : null;
+  const riskNeedsCap = Boolean(riskSizing?.blockReason === 'MAX_VOLUME' || riskSizing?.blockReason === 'INSUFFICIENT_MARGIN' || riskSizing?.blockReason === 'MIN_VOLUME');
   const liveLabel = market?.sessionOpen === false ? 'CLOSED' : market?.live ? 'LIVE' : market?.isStale ? 'STALE' : String(market?.marketState || 'WAITING').toUpperCase();
   const hasStopLoss = Number.isFinite(validProtectionPrice(tradePlan?.sl));
   const hasTakeProfit = Number.isFinite(validProtectionPrice(tradePlan?.tp));
@@ -299,8 +319,9 @@ export default function DesktopOrderTicket({
   };
 
   const applyCalculatedRiskLots = () => {
-    if (!Number.isFinite(riskCalculatedLots)) return;
-    setLots(riskCalculatedLots);
+    if (!Number.isFinite(riskExecutableLots)) return;
+    setLots(riskExecutableLots, { preserveRiskBadge: true });
+    setAppliedRiskSizing({ percent: Number(riskPercent), lots: riskExecutableLots });
     setMode('lots');
     setActiveTool(null);
   };
@@ -403,6 +424,7 @@ export default function DesktopOrderTicket({
     if (!Number.isFinite(numeric) || numeric <= 0) return;
     const next = normalizeVolumeToStep(numeric, market, { rounding: 'nearest' });
     onLotsChange(next);
+    setAppliedRiskSizing(null);
     if (tradePlan) onTradePlanChange({ manualLots: next, sizingMode: 'lots' });
   };
 
@@ -511,6 +533,12 @@ export default function DesktopOrderTicket({
             </div>
             <button type="button" onClick={() => nudgeLots(1)} className="grid h-10 place-items-center text-[#6F8191] hover:bg-white/[0.025] hover:text-white" aria-label="Increase lot size"><Plus size={12}/></button>
           </div>
+          {appliedRiskSizing && Math.abs(Number(appliedRiskSizing.lots) - Number(normalizedLots)) < volumeStep / 2 && (
+            <div className="mt-1.5 flex items-center justify-between rounded border border-[#315b72]/60 bg-[#0d1a22]/55 px-2 py-1">
+              <span className="text-[7px] font-semibold text-[#59C7FF]">Risk-based size applied</span>
+              <strong className="font-mono text-[7px] text-[#9bdcff]">{Number(appliedRiskSizing.percent).toFixed(2)}%</strong>
+            </div>
+          )}
           <div className="mt-1.5 grid grid-cols-5 gap-1">
             {LOT_PRESETS.filter(value => value >= minVolume && value <= maxVolume).map(value => (
               <button key={value} type="button" onClick={() => setLots(value)} className={`h-7 rounded border font-mono text-[7px] font-bold ${Math.abs(normalizedLots-value)<volumeStep/2 ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#687c90] hover:text-white'}`}>{value.toFixed(Math.max(2,lotDecimals))}</button>
@@ -534,11 +562,49 @@ export default function DesktopOrderTicket({
                     {RISK_PRESETS.map(value => <button key={value} type="button" onClick={() => setRisk(value)} className={`h-7 rounded border text-[7px] font-bold ${Math.abs(riskPercent-value)<0.001 ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#7d90a2]'}`}>{value.toFixed(2)}%</button>)}
                     <label className="flex h-7 items-center rounded border border-white/[0.06] bg-black px-1"><input type="number" min="0.1" max="5" step="0.05" value={riskPercent} onChange={event => setRisk(Math.max(0.1,Math.min(5,Number(event.target.value)||0.1)))} className="w-full bg-transparent text-center font-mono text-[8px] font-bold text-[#E6EDF3] outline-none"/><span className="text-[6px] text-[#6F8191]">%</span></label>
                   </div>
-                  <div className="mt-1.5 flex items-center justify-between rounded border border-white/[0.05] bg-black px-2 py-1.5">
-                    <span className="text-[7px] text-[#6F8191]">Calculated size</span>
-                    <strong className="font-mono text-[10px] text-[#E6EDF3]">{Number.isFinite(riskCalculatedLots) ? riskCalculatedLots.toFixed(Math.max(2,lotDecimals)) : '—'} lots</strong>
+                  <div className="mt-1.5 grid grid-cols-2 gap-1">
+                    <div className="rounded border border-white/[0.05] bg-black px-2 py-1.5">
+                      <span className="block text-[7px] text-[#6F8191]">Current size</span>
+                      <strong className="mt-0.5 block font-mono text-[10px] text-[#E6EDF3]">{Number(normalizedLots).toFixed(Math.max(2,lotDecimals))} lots</strong>
+                    </div>
+                    <div className="rounded border border-[#315b72]/50 bg-[#0d1a22]/35 px-2 py-1.5">
+                      <span className="block text-[7px] text-[#6F8191]">{riskNeedsCap ? 'Requested size' : 'Suggested size'}</span>
+                      <strong className="mt-0.5 block font-mono text-[10px] text-[#59C7FF]">{Number.isFinite(riskRequestedRaw) ? riskRequestedRaw.toFixed(Math.max(2,lotDecimals)) : Number.isFinite(riskCalculatedLots) ? riskCalculatedLots.toFixed(Math.max(2,lotDecimals)) : '—'} lots</strong>
+                    </div>
                   </div>
-                  <button type="button" onClick={applyCalculatedRiskLots} disabled={!Number.isFinite(riskCalculatedLots)} className="mt-1.5 h-7 w-full rounded border border-[#315b72] bg-[#0d1a22] text-[7px] font-black text-[#59C7FF] disabled:opacity-30">Use calculated size</button>
+
+                  <div className="mt-1 grid grid-cols-2 gap-1 rounded border border-white/[0.05] bg-black px-2 py-1.5">
+                    <div>
+                      <span className="block text-[7px] text-[#6F8191]">Target SL loss</span>
+                      <strong className="mt-0.5 block font-mono text-[9px] text-[#FF6F7A]">{Number.isFinite(riskTargetLoss) ? `-${money(Math.abs(riskTargetLoss), currency)}` : '—'}</strong>
+                    </div>
+                    <div>
+                      <span className="block text-[7px] text-[#6F8191]">{riskNeedsCap ? 'Max executable' : 'After apply'}</span>
+                      <strong className="mt-0.5 block font-mono text-[9px] text-[#E6EDF3]">{Number.isFinite(riskExecutableLots) ? `${riskExecutableLots.toFixed(Math.max(2,lotDecimals))} lots` : '—'}</strong>
+                    </div>
+                  </div>
+
+                  {riskNeedsCap && (
+                    <div className="mt-1 rounded border border-[#5a4523] bg-[#171208] px-2 py-1.5 text-[7px] leading-3.5 text-[#d8b867]">
+                      {riskSizing?.blockReason === 'MAX_VOLUME'
+                        ? `Requested risk exceeds the instrument maximum. Maximum size is ${Number.isFinite(riskExecutableLots) ? riskExecutableLots.toFixed(Math.max(2,lotDecimals)) : '—'} lots.`
+                        : riskSizing?.blockReason === 'INSUFFICIENT_MARGIN'
+                          ? `Requested risk needs more margin than available. Maximum margin-supported size is ${Number.isFinite(riskExecutableLots) ? riskExecutableLots.toFixed(Math.max(2,lotDecimals)) : '—'} lots.`
+                          : `Requested risk is below the instrument minimum. Minimum size is ${Number.isFinite(riskExecutableLots) ? riskExecutableLots.toFixed(Math.max(2,lotDecimals)) : '—'} lots.`}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={applyCalculatedRiskLots}
+                    disabled={!Number.isFinite(riskExecutableLots)}
+                    className="mt-1.5 h-8 w-full rounded border border-[#315b72] bg-[#0d1a22] text-[7px] font-black text-[#59C7FF] disabled:opacity-30"
+                  >
+                    {Number.isFinite(riskExecutableLots) ? `APPLY ${riskExecutableLots.toFixed(Math.max(2,lotDecimals))} LOTS` : 'SIZE UNAVAILABLE'}
+                  </button>
+                  {Number.isFinite(riskExecutableLoss) && (
+                    <p className="mt-1 text-center text-[7px] text-[#6F8191]">Estimated SL loss after apply: <span className="font-mono text-[#FF6F7A]">-{money(Math.abs(riskExecutableLoss), currency)}</span></p>
+                  )}
                 </>
               )}
             </div>
