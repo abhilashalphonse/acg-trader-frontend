@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Bell,
+  BookOpen,
   CandlestickChart,
   ChartNoAxesCombined,
   ChevronDown,
@@ -16,6 +17,8 @@ import {
 } from 'lucide-react';
 import ChartArea from './ChartArea.jsx';
 import DesktopOrderTicket from './desktop/DesktopOrderTicket.jsx';
+import DesktopTradeReview from './desktop/DesktopTradeReview.jsx';
+import DesktopWorkspaceMenu from './desktop/DesktopWorkspaceMenu.jsx';
 import DesktopWatchlist from './desktop/DesktopWatchlist.jsx';
 import ResizeHandle from './desktop/ResizeHandle.jsx';
 import PositionsPanel from './PositionsPanel.jsx';
@@ -113,6 +116,7 @@ export default function DesktopTerminal({
   onManualOrder = () => {},
   indicators = [],
   onOpenIndicators = () => {},
+  onIndicatorsChange = () => {},
   account = {},
   plannedRisk = 0,
   hotkeysEnabled = true,
@@ -146,6 +150,7 @@ export default function DesktopTerminal({
   const searchRef = useRef(null);
   const [activeNav, setActiveNav] = useState('trade');
   const [notice, setNotice] = useState('');
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [desktopLayout, setDesktopLayout] = useState(loadDesktopLayout);
   const favorite = watchlists?.isWatched?.(activeSymbol) === true;
 
@@ -169,6 +174,41 @@ export default function DesktopTerminal({
     sidebarCollapsed: false,
     dockCollapsed: false,
   });
+
+  const workspaceSnapshot = {
+    layout: desktopLayout,
+    trading: {
+      timeframe,
+      chartMode,
+      sizingMode,
+      riskPercent,
+      orderType,
+      symbol: activeSymbol,
+      activeListId: watchlists?.activeList?.id || null,
+      indicators,
+    },
+  };
+
+  const applyWorkspace = workspace => {
+    if (!workspace) return;
+    const layout = workspace.layout || {};
+    setDesktopLayout(current => ({
+      ...current,
+      ...layout,
+      sidebarWidth: clamp(layout.sidebarWidth ?? current.sidebarWidth, 310, 480),
+      dockHeight: clamp(layout.dockHeight ?? current.dockHeight, 150, 340),
+    }));
+    const trading = workspace.trading || {};
+    if (trading.timeframe) onTimeframeChange(trading.timeframe);
+    if (trading.chartMode) onChartModeChange(trading.chartMode);
+    if (trading.sizingMode) onSizingModeChange(trading.sizingMode);
+    if (Number.isFinite(Number(trading.riskPercent))) onRiskPercentChange(Number(trading.riskPercent));
+    if (trading.orderType) onOrderTypeChange(trading.orderType);
+    if (trading.symbol && markets.some(item => item.symbol === trading.symbol)) onSelectSymbol(trading.symbol);
+    if (trading.activeListId) watchlists?.setActiveListId?.(trading.activeListId);
+    if (Array.isArray(trading.indicators)) onIndicatorsChange(trading.indicators);
+    setNotice(`${workspace.name || 'Workspace'} applied`);
+  };
 
   const currency = account?.currency || 'USD';
   const accountPnl = Number(account?.floatingPnl ?? (Number(account?.equity) - Number(account?.balance)));
@@ -293,6 +333,8 @@ export default function DesktopTerminal({
                 <button type="button" onClick={onOpenIndicators} className={`relative grid size-6 place-items-center rounded text-[9px] font-black hover:text-white ${indicators.length ? 'bg-white/[0.05] text-[#5bc9ff]' : 'text-[#6d8298]'}`} title="Indicators">ƒx{indicators.length > 0 && <span className="absolute -right-1 -top-1 grid size-3 place-items-center rounded-full bg-[#151515] text-[5px] text-white">{indicators.length}</span>}</button>
               </div>
               <div className="ml-auto flex items-center gap-1">
+                <DesktopWorkspaceMenu snapshot={workspaceSnapshot} onApply={applyWorkspace}/>
+                <button type="button" onClick={() => setReviewOpen(true)} className="flex h-7 items-center gap-1 rounded-md border border-white/[0.07] bg-black/20 px-2 text-[7px] font-bold text-[#73889d] hover:text-white" title="Trade review"><BookOpen size={12}/>Review</button>
                 <button type="button" onClick={toggleSidebar} className={`h-6 rounded border px-2 text-[7px] font-bold uppercase tracking-[0.05em] transition ${desktopLayout.sidebarCollapsed ? 'border-[#315b72] bg-[#0d1a22] text-[#58c7ff]' : 'border-white/[0.07] bg-black/20 text-[#73889d] hover:text-white'}`} title={desktopLayout.sidebarCollapsed ? 'Show right panel' : 'Hide right panel'}>Right</button>
                 <button type="button" onClick={toggleDock} className={`h-6 rounded border px-2 text-[7px] font-bold uppercase tracking-[0.05em] transition ${desktopLayout.dockCollapsed ? 'border-[#315b72] bg-[#0d1a22] text-[#58c7ff]' : 'border-white/[0.07] bg-black/20 text-[#73889d] hover:text-white'}`} title={desktopLayout.dockCollapsed ? 'Show positions dock' : 'Hide positions dock'}>Dock</button>
                 <button type="button" onClick={resetDesktopLayout} className="h-6 rounded border border-white/[0.07] bg-black/20 px-2 text-[7px] font-bold uppercase tracking-[0.05em] text-[#73889d] hover:text-white" title="Reset desktop layout">Reset</button>
@@ -351,6 +393,14 @@ export default function DesktopTerminal({
           )}
         </div>
       </div>
+      <DesktopTradeReview
+        open={reviewOpen}
+        onClose={() => setReviewOpen(false)}
+        positionHistory={positionHistory}
+        journal={journal}
+        markets={markets}
+        onSelectSymbol={symbol => { onSelectSymbol(symbol); setReviewOpen(false); }}
+      />
     </div>
   );
 }
