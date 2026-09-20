@@ -63,6 +63,8 @@ export default function PositionsPanel({
   desktopDense = false,
   activeSymbol = null,
   requestedTab = null,
+  selectedPositionId = null,
+  onSelectPosition = () => {},
 }) {
   const [tab, setTab] = useState('positions');
 
@@ -264,7 +266,11 @@ export default function PositionsPanel({
             const positive = Number(position.pnl) >= 0;
             const sideBuy = position.side === 'BUY';
             return (
-              <div key={position.id} className="grid grid-cols-[1.4fr_.7fr_.75fr_1fr_1fr_1fr_1fr_1fr_136px] items-center border-b border-white/[0.06] px-3 py-2 text-[9px] hover:bg-white/[0.015]">
+              <div
+                key={position.id}
+                onClick={() => onSelectPosition(position.id)}
+                className={`grid cursor-pointer grid-cols-[1.4fr_.7fr_.75fr_1fr_1fr_1fr_1fr_1fr_136px] items-center border-b px-3 py-2 text-[9px] transition ${String(selectedPositionId) === String(position.id) ? 'border-[#315b72] bg-[#0b141a]' : 'border-white/[0.06] hover:bg-white/[0.015]'}`}
+              >
                 <div className="flex min-w-0 items-center gap-2">
                   <InstrumentAvatar instrument={instrument} size={20}/>
                   <strong className="truncate text-[10px] text-[#f2f5f7]">{formatSymbol(position.symbol)}</strong>
