@@ -12,6 +12,8 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+import { calculateRiskOrderSizing, estimateStopRisk } from '../../utils/tradingRisk.js';
+import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
 
 const STORAGE_PREFIX = 'acg-trader-drawings-v3';
 const LEGACY_STORAGE_PREFIX = 'acg-trader-drawings-v2';
@@ -30,6 +32,8 @@ const TOOL_DEFAULTS = {
   vline: { color: '#f0c35c' },
   fibonacci: { color: '#b78cff' },
   text: { color: '#d8e4ee', width: 1 },
+  'long-position': { color: '#35d79d' },
+  'short-position': { color: '#ff6673' },
 };
 
 function normalizeDrawing(raw) {
@@ -41,6 +45,8 @@ function normalizeDrawing(raw) {
     locked: raw.locked === true,
     hidden: raw.hidden === true,
     timeframeVisibility: raw.timeframeVisibility || 'all',
+    riskTarget: raw.riskTarget ? { ...raw.riskTarget } : null,
+    riskPercent: Number.isFinite(Number(raw.riskPercent)) ? Number(raw.riskPercent) : null,
     style: {
       ...DEFAULT_STYLE,
       ...(TOOL_DEFAULTS[raw.type] || {}),
@@ -116,6 +122,9 @@ function DrawingShape({
   onStartHandle,
   onContextMenu,
   onDoubleClick,
+  riskMetrics = null,
+  instrument = null,
+  accountCurrency = 'USD',
 }) {
   const a = resolvePoint(drawing.a);
   const b = resolvePoint(drawing.b || drawing.a);
@@ -127,6 +136,51 @@ function DrawingShape({
     onContextMenu: event => onContextMenu(event, drawing.id),
     onDoubleClick: event => onDoubleClick(event, drawing.id),
   };
+
+  if (drawing.type === 'long-position' || drawing.type === 'short-position') {
+    const target = resolvePoint(drawing.riskTarget);
+    if (!target) return null;
+    const isLong = drawing.type === 'long-position';
+    const left = Math.min(a.x, b.x);
+    const right = Math.max(a.x, b.x);
+    const width = Math.max(70, right - left);
+    const boxRight = left + width;
+    const entryY = a.y;
+    const stopY = b.y;
+    const targetY = target.y;
+    const rewardTop = Math.min(entryY, targetY);
+    const rewardHeight = Math.abs(entryY - targetY);
+    const riskTop = Math.min(entryY, stopY);
+    const riskHeight = Math.abs(entryY - stopY);
+    const lots = Number(riskMetrics?.requestedLots);
+    const riskMoney = Number(riskMetrics?.actualRisk);
+    const riskPct = Number(riskMetrics?.actualRiskPercent);
+    const rr = Number(riskMetrics?.riskReward);
+    const currency = accountCurrency || 'USD';
+    const money = value => Number.isFinite(value) ? new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 2 }).format(value) : '—';
+    return (
+      <g>
+        <rect x={left} y={rewardTop} width={width} height={Math.max(1, rewardHeight)} fill="rgba(53,215,157,0.13)" stroke="rgba(53,215,157,0.55)" strokeWidth="1" {...common}/>
+        <rect x={left} y={riskTop} width={width} height={Math.max(1, riskHeight)} fill="rgba(255,102,115,0.13)" stroke="rgba(255,102,115,0.55)" strokeWidth="1" {...common}/>
+        <line x1={left} y1={entryY} x2={boxRight} y2={entryY} stroke="#59c7ff" strokeWidth={selected ? 2 : 1.2} vectorEffect="non-scaling-stroke" {...common}/>
+        <line x1={left} y1={stopY} x2={boxRight} y2={stopY} stroke="#ff6673" strokeWidth="1.2" vectorEffect="non-scaling-stroke" {...common}/>
+        <line x1={left} y1={targetY} x2={boxRight} y2={targetY} stroke="#35d79d" strokeWidth="1.2" vectorEffect="non-scaling-stroke" {...common}/>
+        <rect x={left + 4} y={Math.min(entryY + 5, size.height - 50)} rx="4" width="172" height="43" fill="rgba(6,9,11,0.92)" stroke="rgba(255,255,255,0.08)" strokeWidth="1" className="pointer-events-none"/>
+        <text x={left + 10} y={Math.min(entryY + 18, size.height - 37)} fill="#dce7ef" fontSize="8" fontWeight="700" className="pointer-events-none">{isLong ? 'LONG' : 'SHORT'} · {Number.isFinite(rr) ? `R:R ${rr.toFixed(2)}` : 'R:R —'}</text>
+        <text x={left + 10} y={Math.min(entryY + 31, size.height - 24)} fill="#8296a7" fontSize="7" className="pointer-events-none">Risk {Number.isFinite(riskPct) ? `${riskPct.toFixed(2)}%` : '—'} · {money(riskMoney)} · {Number.isFinite(lots) ? `${lots.toFixed(2)} lot` : '— lot'}</text>
+        <text x={boxRight - 4} y={entryY - 4} textAnchor="end" fill="#59c7ff" fontSize="7" fontWeight="700" className="pointer-events-none">ENTRY {formatInstrumentPrice(drawing.a?.price, instrument)}</text>
+        <text x={boxRight - 4} y={stopY - 4} textAnchor="end" fill="#ff6673" fontSize="7" fontWeight="700" className="pointer-events-none">SL {formatInstrumentPrice(drawing.b?.price, instrument)}</text>
+        <text x={boxRight - 4} y={targetY - 4} textAnchor="end" fill="#35d79d" fontSize="7" fontWeight="700" className="pointer-events-none">TP {formatInstrumentPrice(drawing.riskTarget?.price, instrument)}</text>
+        {selected && !drawing.locked && (
+          <>
+            <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />
+            <Handle point={b} onPointerDown={event => onStartHandle(event, drawing.id, 'b')} />
+            <Handle point={target} onPointerDown={event => onStartHandle(event, drawing.id, 'riskTarget')} />
+          </>
+        )}
+      </g>
+    );
+  }
 
   if (drawing.type === 'hline') {
     return <line x1="0" y1={a.y} x2={size.width} y2={a.y} {...lineStyle(drawing, selected)} {...common} />;
@@ -239,6 +293,7 @@ function cloneDrawings(items) {
     b: item.b ? { ...item.b } : item.b,
     style: { ...(item.style || {}) },
     timeframeVisibility: Array.isArray(item.timeframeVisibility) ? [...item.timeframeVisibility] : item.timeframeVisibility,
+    riskTarget: item.riskTarget ? { ...item.riskTarget } : item.riskTarget,
   }));
 }
 
@@ -258,6 +313,11 @@ export default function DrawingLayer({
   snapStep = null,
   lockAll = false,
   onDrawingCountChange = () => {},
+  instrument = null,
+  account = null,
+  riskPercent = 0.5,
+  accountCurrency = 'USD',
+  onCreateRiskOrder = () => {},
 }) {
   const svgRef = useRef(null);
   const [history, setHistory] = useState(() => ({ past: [], present: loadDrawings(symbol, timeframe), future: [] }));
@@ -448,7 +508,7 @@ export default function DrawingLayer({
   });
 
   const selected = useMemo(() => drawings.find(item => item.id === selectedId), [drawings, selectedId]);
-  const drawingTool = !disabled && ['trendline', 'hline', 'vline', 'rectangle', 'fibonacci', 'text'].includes(tool);
+  const drawingTool = !disabled && ['trendline', 'hline', 'vline', 'rectangle', 'fibonacci', 'text', 'long-position', 'short-position'].includes(tool);
   const resolvePoint = point => coordinateApi?.toScreen?.(point) || null;
 
   const eventScreenPoint = event => {
@@ -476,6 +536,8 @@ export default function DrawingLayer({
     a,
     b,
     text,
+    riskTarget: null,
+    riskPercent: ['long-position', 'short-position'].includes(type) ? Number(riskPercent) || 0.5 : null,
     locked: false,
     hidden: false,
     timeframeVisibility: 'all',
@@ -534,7 +596,19 @@ export default function DrawingLayer({
       ...current,
       present: current.present.map(item => {
         if (item.id !== drag.id || item.locked || lockAll) return item;
-        if (drag.mode === 'a' || drag.mode === 'b') return { ...item, [drag.mode]: data };
+        if (drag.mode === 'a' || drag.mode === 'b') {
+          if (item.type === 'long-position' || item.type === 'short-position') {
+            const next = { ...item, [drag.mode]: data };
+            if (drag.mode === 'a') {
+              const delta = Number(data.price) - Number(item.a.price);
+              next.b = { ...item.b, price: Number(item.b.price) + delta };
+              if (item.riskTarget) next.riskTarget = { ...item.riskTarget, price: Number(item.riskTarget.price) + delta };
+            }
+            return next;
+          }
+          return { ...item, [drag.mode]: data };
+        }
+        if (drag.mode === 'riskTarget') return { ...item, riskTarget: data };
 
         const dx = screen.x - drag.startScreen.x;
         const dy = screen.y - drag.startScreen.y;
@@ -543,7 +617,12 @@ export default function DrawingLayer({
           if (!originalScreen) return point;
           return snapDataPoint(coordinateApi.toData?.({ x: originalScreen.x + dx, y: originalScreen.y + dy }) || point);
         };
-        return { ...item, a: movePoint(drag.original.a), b: movePoint(drag.original.b || drag.original.a) };
+        return {
+          ...item,
+          a: movePoint(drag.original.a),
+          b: movePoint(drag.original.b || drag.original.a),
+          riskTarget: drag.original.riskTarget ? movePoint(drag.original.riskTarget) : item.riskTarget,
+        };
       }),
     }));
   };
@@ -551,7 +630,22 @@ export default function DrawingLayer({
   const finishPointer = event => {
     if (draft) {
       const end = eventDataPoint(event) || draft.b;
-      const created = { ...draft, b: end };
+      let created = { ...draft, b: end };
+      if (created.type === 'long-position' || created.type === 'short-position') {
+        const entry = Number(created.a?.price);
+        const pointerStop = Number(end?.price);
+        const distance = Math.abs(pointerStop - entry);
+        const pipFallback = Number(snapStep) > 0 ? Number(snapStep) * 10 : Math.max(Math.abs(entry) * 0.001, 0.0001);
+        const riskDistance = Number.isFinite(distance) && distance > 0 ? distance : pipFallback;
+        const isLong = created.type === 'long-position';
+        const sl = isLong ? entry - riskDistance : entry + riskDistance;
+        const tp = isLong ? entry + riskDistance * 2 : entry - riskDistance * 2;
+        created = {
+          ...created,
+          b: { ...end, price: sl },
+          riskTarget: { ...end, price: tp },
+        };
+      }
       const a = coordinateApi?.toScreen?.(created.a);
       const b = coordinateApi?.toScreen?.(created.b);
       if (a && b && Math.hypot(b.x - a.x, b.y - a.y) > 8) {
@@ -588,7 +682,7 @@ export default function DrawingLayer({
       id,
       mode: 'move',
       startScreen: screen,
-      original: { a: { ...drawing.a }, b: { ...(drawing.b || drawing.a) } },
+      original: { a: { ...drawing.a }, b: { ...(drawing.b || drawing.a) }, riskTarget: drawing.riskTarget ? { ...drawing.riskTarget } : null },
       before: cloneDrawings(drawings),
     });
   };
@@ -654,6 +748,39 @@ export default function DrawingLayer({
     setContextMenu(null);
   };
 
+  const riskMetricsFor = drawing => {
+    if (!drawing || !['long-position', 'short-position'].includes(drawing.type)) return null;
+    const entry = Number(drawing.a?.price);
+    const sl = Number(drawing.b?.price);
+    const tp = Number(drawing.riskTarget?.price);
+    if (![entry, sl, tp].every(Number.isFinite)) return null;
+    const plan = { entry, sl, side: drawing.type === 'long-position' ? 'buy' : 'sell' };
+    const sizing = calculateRiskOrderSizing(plan, drawing.riskPercent ?? riskPercent, account || {}, instrument || {});
+    const riskDistance = Math.abs(entry - sl);
+    const rewardDistance = Math.abs(tp - entry);
+    return {
+      ...(sizing || {}),
+      riskReward: riskDistance > 0 ? rewardDistance / riskDistance : null,
+      plan,
+    };
+  };
+
+  const createOrderFromSelectedRisk = () => {
+    if (!selected || !['long-position', 'short-position'].includes(selected.type)) return;
+    const metrics = riskMetricsFor(selected);
+    onCreateRiskOrder({
+      symbol,
+      side: selected.type === 'long-position' ? 'buy' : 'sell',
+      entry: Number(selected.a?.price),
+      sl: Number(selected.b?.price),
+      tp: Number(selected.riskTarget?.price),
+      riskPercent: Number(selected.riskPercent ?? riskPercent),
+      lots: Number(metrics?.requestedLots),
+      sizing: metrics,
+      sourceDrawingId: selected.id,
+    });
+  };
+
   const canUndo = history.past.length > 0;
   const canRedo = history.future.length > 0;
   const visibleDrawings = drawings.filter(item => visibleOnTimeframe(item, timeframe));
@@ -686,6 +813,9 @@ export default function DrawingLayer({
             onStartHandle={startHandle}
             onContextMenu={openContext}
             onDoubleClick={openSettings}
+            riskMetrics={riskMetricsFor(drawing)}
+            instrument={instrument}
+            accountCurrency={accountCurrency}
           />
         ))}
         {draft && (
@@ -698,6 +828,9 @@ export default function DrawingLayer({
             onStartHandle={() => {}}
             onContextMenu={() => {}}
             onDoubleClick={() => {}}
+            riskMetrics={riskMetricsFor(draft)}
+            instrument={instrument}
+            accountCurrency={accountCurrency}
           />
         )}
       </svg>
@@ -710,7 +843,8 @@ export default function DrawingLayer({
       {selected && !disabled && (
         <div className="pointer-events-auto absolute right-2 top-11 z-20 flex items-center gap-0.5 rounded-md border border-white/[0.08] bg-[#080808]/96 p-1 shadow-xl backdrop-blur-sm">
           <span className="max-w-[88px] truncate px-1.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#74899d]">{selected.type}</span>
-          <button type="button" onClick={() => patchSelected({ locked: !selected.locked })} className={`grid size-7 place-items-center rounded-md ${selected.locked ? 'bg-[#172229] text-[#59c8ff]' : 'text-[#8194a7] hover:bg-white/[0.04]'}`} title={selected.locked ? 'Unlock drawing' : 'Lock drawing'}>{selected.locked ? <Lock size={13}/> : <LockOpen size={13}/>}</button>
+          {['long-position', 'short-position'].includes(selected.type) && <button type="button" onClick={createOrderFromSelectedRisk} className="h-7 rounded-md border border-[#245070] bg-[#0d1a22] px-2.5 text-[8px] font-black text-[#59c8ff] hover:bg-[#102431]" title="Load this risk setup into the order planner">Create order</button>}
+                    <button type="button" onClick={() => patchSelected({ locked: !selected.locked })} className={`grid size-7 place-items-center rounded-md ${selected.locked ? 'bg-[#172229] text-[#59c8ff]' : 'text-[#8194a7] hover:bg-white/[0.04]'}`} title={selected.locked ? 'Unlock drawing' : 'Lock drawing'}>{selected.locked ? <Lock size={13}/> : <LockOpen size={13}/>}</button>
           <button type="button" onClick={duplicateSelected} className="grid size-7 place-items-center rounded-md text-[#8194a7] hover:bg-white/[0.04] hover:text-white" title="Duplicate drawing"><Copy size={13}/></button>
           <button type="button" onClick={() => setSettingsOpen(value => !value)} className={`grid size-7 place-items-center rounded-md ${settingsOpen ? 'bg-white/[0.06] text-[#59c8ff]' : 'text-[#8194a7] hover:bg-white/[0.04]'}`} title="Drawing settings"><Settings2 size={13}/></button>
           <button type="button" onClick={deleteSelected} className="grid size-7 place-items-center rounded-md text-[#ff7480] hover:bg-[#35151d]" title="Delete drawing"><Trash2 size={13}/></button>
@@ -725,7 +859,13 @@ export default function DrawingLayer({
             <button type="button" onClick={() => setSettingsOpen(false)} className="grid size-6 place-items-center rounded text-[#71869a] hover:bg-white/[0.04]"><X size={12}/></button>
           </div>
 
-          {selected.type === 'text' && (
+          {['long-position', 'short-position'].includes(selected.type) && (
+            <label className="mt-3 block">
+              <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Risk %</span>
+              <input type="number" min="0.01" max="100" step="0.05" value={selected.riskPercent ?? riskPercent} onChange={event => patchSelected({ riskPercent: Number(event.target.value) })} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] text-[#dbe5ed] outline-none focus:border-[#53c7ff]" />
+            </label>
+          )}
+                    {selected.type === 'text' && (
             <label className="mt-3 block">
               <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Text</span>
               <input value={selected.text || ''} onChange={event => patchSelected({ text: event.target.value })} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] text-[#dbe5ed] outline-none focus:border-[#53c7ff]" />
