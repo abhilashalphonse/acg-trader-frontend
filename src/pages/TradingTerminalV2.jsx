@@ -18,10 +18,12 @@ import { calculateRiskSizedLots, estimateStopRisk } from '../utils/tradingRisk.j
 import { exposureAvailability } from '../utils/exposureAvailability.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../utils/instrumentFormatting.js';
 import { normalizeTradePlanPatch } from '../utils/tradePlanNormalization.js';
+import { DEFAULT_RISK_GUARD_SETTINGS, evaluateRiskGuard } from '../utils/riskGuard.js';
 
 const INDICATOR_STORAGE_KEY = 'acg-trader-indicators-v1';
 const INDICATOR_FAVORITES_KEY = 'acg-trader-indicator-favorites-v1';
 const TERMINAL_PREFS_KEY = 'acg-trader-terminal-prefs-v1';
+const RISK_GUARD_STORAGE_KEY = 'acg-trader-risk-guard-v1';
 
 function useDesktopLayout() {
   const [isDesktop, setIsDesktop] = useState(() => (
@@ -74,6 +76,16 @@ function loadTerminalPrefs() {
     return { ...stored, timeframe: normalizeTimeframePreference(stored.timeframe) };
   } catch {
     return {};
+  }
+}
+
+function loadRiskGuardSettings() {
+  if (typeof window === 'undefined') return { ...DEFAULT_RISK_GUARD_SETTINGS };
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(RISK_GUARD_STORAGE_KEY) || 'null');
+    return { ...DEFAULT_RISK_GUARD_SETTINGS, ...(stored && typeof stored === 'object' ? stored : {}) };
+  } catch {
+    return { ...DEFAULT_RISK_GUARD_SETTINGS };
   }
 }
 
@@ -138,6 +150,7 @@ export default function TradingTerminalV2({
   const [indicatorFavorites, setIndicatorFavorites] = useState(loadIndicatorFavorites);
   const [overlay, setOverlay] = useState(null);
   const [notice, setNotice] = useState('');
+  const [riskGuardSettings, setRiskGuardSettings] = useState(loadRiskGuardSettings);
   const exposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market, commandState: trading.commandState });
 
   useEffect(() => {
@@ -169,6 +182,11 @@ export default function TradingTerminalV2({
     try { window.localStorage.setItem(TERMINAL_PREFS_KEY, JSON.stringify({ timeframe, chartMode, lots, sizingMode, riskPercent, orderType, hotkeysEnabled })); } catch { /* preferences are non-critical */ }
   }, [timeframe, chartMode, lots, sizingMode, riskPercent, orderType, hotkeysEnabled]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try { window.localStorage.setItem(RISK_GUARD_STORAGE_KEY, JSON.stringify(riskGuardSettings)); } catch { /* preferences are non-critical */ }
+  }, [riskGuardSettings]);
+
   const showNotice = message => {
     setNotice(message);
     if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
@@ -197,6 +215,24 @@ export default function TradingTerminalV2({
   const runMarketExecution = async ({ side, executionLots, symbol, requestedPrice, stopLoss = null, takeProfit = null }) => {
     if (!symbol || !trading.accountId) return null;
     if (!exposure.allowed) { showNotice(exposure.reason); return null; }
+    const instrument = markets.find(item => item.symbol === symbol) || market;
+    const proposedRisk = stopLoss == null
+      ? null
+      : estimateStopRisk({ entry: requestedPrice, sl: stopLoss, side }, executionLots, instrument, account.currency);
+    const guard = evaluateRiskGuard({
+      account,
+      positions,
+      positionHistory,
+      markets,
+      proposedRisk,
+      settings: riskGuardSettings,
+    });
+    if (!guard.allowed) {
+      const message = guard.blocks[0]?.message || 'Risk Guard blocked this trade.';
+      logEvent('warning', `Risk Guard: ${message}`);
+      showNotice(message);
+      return null;
+    }
     const base = { side: String(side).toUpperCase(), lots: Number(executionLots), symbol, requestedPrice: Number(requestedPrice) };
     setExecutionEvent({ ...base, status: 'submitting' });
     logEvent('execution', `${base.side} ${base.lots.toFixed(2)} ${symbol} submitted`, base);
@@ -211,7 +247,6 @@ export default function TradingTerminalV2({
       });
       const filled = fillEvent(result, base);
       setExecutionEvent(filled);
-      const instrument = markets.find(item => item.symbol === symbol) || market;
       logEvent('fill', `${base.side} ${base.lots.toFixed(2)} ${symbol} filled @ ${formatInstrumentPrice(filled.fillPrice, instrument)}`, filled);
       dismissExecutionLater();
       return result;
@@ -437,6 +472,21 @@ export default function TradingTerminalV2({
     const calculated = calculatedLots(tradePlan, riskPercent, tradePlan.manualLots ?? lots, account.equity, market, account.currency);
     if (calculated == null) { showNotice('Risk % sizing is unavailable because this instrument P&L requires currency conversion. Use Lots sizing.'); return; }
     const volume = normalizeVolumeToStep(calculated, market);
+    const proposedRisk = estimateStopRisk(tradePlan, volume, market, account.currency);
+    const guard = evaluateRiskGuard({
+      account,
+      positions,
+      positionHistory,
+      markets,
+      proposedRisk,
+      settings: riskGuardSettings,
+    });
+    if (!guard.allowed) {
+      const message = guard.blocks[0]?.message || 'Risk Guard blocked this order.';
+      logEvent('warning', `Risk Guard: ${message}`);
+      showNotice(message);
+      return;
+    }
     if (tradePlan.pending) {
       const request = {
         symbol: market?.symbol,
@@ -613,6 +663,8 @@ export default function TradingTerminalV2({
           onOpenSettings={() => setOverlay('more')}
           exposureAllowed={exposure.allowed}
           exposureBlockReason={exposure.reason}
+          riskGuardSettings={riskGuardSettings}
+          onRiskGuardSettingsChange={setRiskGuardSettings}
         />
         <ExecutionStatus event={executionEvent} instrument={market} onDismiss={() => setExecutionEvent(null)} />
         {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} watchlists={watchlists} onSelectSymbol={symbol => { onSelectSymbol(symbol); setOverlay(null); }} {...indicatorSheetProps} />}
