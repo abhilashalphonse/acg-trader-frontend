@@ -63,3 +63,40 @@ test('block mode enforces per-trade and projected total open-risk limits', () =>
   assert.ok(result.blocks.some(item => item.code === 'MAX_RISK_PER_TRADE'));
   assert.ok(result.blocks.some(item => item.code === 'MAX_OPEN_RISK'));
 });
+
+
+test('loss-streak guard counts positions rather than partial-close deal fragments', () => {
+  const result = evaluateRiskGuard({
+    account,
+    positionHistory: [
+      { id: 'd3', positionId: 'p2', pnl: -25, closeType: 'CLOSE' },
+      { id: 'd2', positionId: 'p1', pnl: -20, closeType: 'CLOSE' },
+      { id: 'd1', positionId: 'p1', pnl: 10, closeType: 'PARTIAL_CLOSE' },
+      { id: 'd0', positionId: 'p0', pnl: 40, closeType: 'CLOSE' },
+    ],
+    markets: [eurusd],
+    proposedRisk: 50,
+    settings: { enabled: true, mode: 'block', maxRiskPerTrade: 5, maxOpenRisk: 5, dailyStopPercent: 5, maxConsecutiveLosses: 3 },
+  });
+
+  assert.equal(result.consecutiveLosses, 2);
+  assert.equal(result.blocks.some(item => item.code === 'LOSS_STREAK'), false);
+});
+
+test('loss-streak guard aggregates partial and final realized PnL for one position', () => {
+  const result = evaluateRiskGuard({
+    account,
+    positionHistory: [
+      { id: 'd4', positionId: 'p2', pnl: -10, closeType: 'CLOSE' },
+      { id: 'd3', positionId: 'p1', pnl: -30, closeType: 'CLOSE' },
+      { id: 'd2', positionId: 'p1', pnl: 50, closeType: 'PARTIAL_CLOSE' },
+      { id: 'd1', positionId: 'p0', pnl: -10, closeType: 'CLOSE' },
+    ],
+    markets: [eurusd],
+    proposedRisk: 50,
+    settings: { enabled: true, mode: 'block', maxRiskPerTrade: 5, maxOpenRisk: 5, dailyStopPercent: 5, maxConsecutiveLosses: 2 },
+  });
+
+  assert.equal(result.consecutiveLosses, 1);
+  assert.equal(result.blocks.some(item => item.code === 'LOSS_STREAK'), false);
+});
