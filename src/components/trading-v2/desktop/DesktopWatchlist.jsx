@@ -130,11 +130,11 @@ function statusFor(item) {
   if (item?.sessionOpen === false) return { label: 'CLOSED', tone: 'text-[#75889a]' };
   if (!quoteReady(item)) {
     const state = String(item?.marketState || '').toUpperCase();
-    if (['ERROR','SUBSCRIPTION_ERROR','DISCONNECTED','DISABLED'].includes(state)) return { label: 'QUOTE UNAVAILABLE', tone: 'text-[#ff7882]' };
+    if (['ERROR','SUBSCRIPTION_ERROR','DISCONNECTED','DISABLED'].includes(state)) return { label: 'QUOTE UNAVAILABLE', tone: 'text-[#FF6F7A]' };
     return { label: 'REFRESHING', tone: 'text-[#6f8599]' };
   }
-  if (item?.isStale) return { label: 'STALE', tone: 'text-[#e7bd58]' };
-  return { label: 'LIVE', tone: 'text-[#38d6a2]' };
+  if (item?.isStale) return { label: 'STALE', tone: 'text-[#E7BD58]' };
+  return { label: 'LIVE', tone: 'text-[#42D7A1]' };
 }
 
 function sortValue(item, key) {
@@ -295,34 +295,34 @@ export default function DesktopWatchlist({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col" onKeyDown={onKeyDown}>
-      <div className="relative flex h-11 shrink-0 items-center justify-between border-b border-white/[0.08] px-2.5">
+      <div className="relative flex h-11 shrink-0 items-center justify-between border-b border-white/[0.06] px-2.5">
         <div className="min-w-0">
           {mode === 'markets' ? (
             <>
-              <strong className="block text-[9px] font-extrabold tracking-[0.08em] text-[#dce7f1]">MARKETS</strong>
-              <span className="mt-0.5 block text-[7px] text-[#5f7388]">{markets.length} instruments · discover &amp; trade</span>
+              <strong className="block text-[11px] font-bold tracking-[0.05em] text-[#E6EDF3]">MARKETS</strong>
+              <span className="mt-0.5 block text-[8px] text-[#6F8191]">{markets.length} instruments · discover &amp; trade</span>
             </>
           ) : (
             <button type="button" onClick={() => setListMenuOpen(value => !value)} className="flex min-w-0 items-center gap-1.5 text-left">
               <span className="min-w-0">
-                <strong className="block truncate text-[9px] font-extrabold tracking-[0.06em] text-[#dce7f1]">{watchlists?.activeList?.name || 'Favorites'}</strong>
-                <span className="mt-0.5 block text-[7px] text-[#5f7388]">{watchlists?.activeSymbols?.length || 0} instruments</span>
+                <strong className="block truncate text-[11px] font-bold tracking-[0.04em] text-[#E6EDF3]">{watchlists?.activeList?.name || 'Favorites'}</strong>
+                <span className="mt-0.5 block text-[7px] text-[#6F8191]">{watchlists?.activeSymbols?.length || 0} instruments</span>
               </span>
-              <ChevronDown size={11} className="text-[#60758a]"/>
+              <ChevronDown size={11} className="text-[#6F8191]"/>
             </button>
           )}
         </div>
 
         <div className="flex items-center gap-1">
-          {mode !== 'markets' && <button type="button" onClick={() => setColumnsOpen(value => !value)} className="grid size-6 place-items-center rounded text-[#65798d] hover:bg-white/[0.03] hover:text-white" title="Watchlist columns"><Settings2 size={12}/></button>}
-          <button type="button" onClick={() => searchRef?.current?.focus()} className="grid size-6 place-items-center rounded text-[#65798d] hover:bg-white/[0.03] hover:text-white" title="Search markets"><Search size={13}/></button>
+          {mode !== 'markets' && <button type="button" onClick={() => setColumnsOpen(value => !value)} className="grid size-6 place-items-center rounded text-[#6F8191] hover:bg-white/[0.03] hover:text-white" title="Watchlist columns"><Settings2 size={12}/></button>}
+          <button type="button" onClick={() => searchRef?.current?.focus()} className="grid size-6 place-items-center rounded text-[#6F8191] hover:bg-white/[0.03] hover:text-white" title="Search markets"><Search size={13}/></button>
         </div>
 
         {listMenuOpen && mode !== 'markets' && (
-          <div className="absolute left-2 top-10 z-50 w-[210px] overflow-hidden rounded-md border border-white/[0.10] bg-[#0a0a0a] p-1 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+          <div className="absolute left-2 top-10 z-50 w-[210px] overflow-hidden rounded-md border border-white/[0.10] bg-[#0C1013] p-1 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
             {(watchlists?.workspace?.lists || []).map(list => (
               <button key={list.id} type="button" onClick={() => { watchlists?.setActiveListId?.(list.id); setListMenuOpen(false); }} className={`flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] ${list.id === watchlists?.activeList?.id ? 'bg-[#0d1a22] text-[#63caff]' : 'text-[#aab7c3] hover:bg-white/[0.03]'}`}>
-                <span className="truncate font-bold">{list.name}</span><span className="font-mono text-[7px] text-[#5f7388]">{list.symbols.length}</span>
+                <span className="truncate font-bold">{list.name}</span><span className="font-mono text-[7px] text-[#6F8191]">{list.symbols.length}</span>
               </button>
             ))}
             <button type="button" onClick={createWatchlist} className="mt-1 flex w-full items-center gap-1.5 border-t border-white/[0.06] px-2 pt-2 text-[8px] font-bold text-[#7fcfff]"><Plus size={11}/>New watchlist</button>
@@ -330,11 +330,11 @@ export default function DesktopWatchlist({
         )}
 
         {columnsOpen && mode !== 'markets' && (
-          <div className="absolute right-2 top-10 z-50 w-[176px] rounded-md border border-white/[0.10] bg-[#0a0a0a] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
-            <div className="mb-1 flex items-center gap-1.5 px-1 text-[7px] font-black uppercase tracking-[0.08em] text-[#60758a]"><ListFilter size={10}/>Columns</div>
+          <div className="absolute right-2 top-10 z-50 w-[176px] rounded-md border border-white/[0.10] bg-[#0C1013] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+            <div className="mb-1 flex items-center gap-1.5 px-1 text-[7px] font-black uppercase tracking-[0.08em] text-[#6F8191]"><ListFilter size={10}/>Columns</div>
             {COLUMN_OPTIONS.map(([id, label]) => {
               const active = columns.includes(id);
-              return <button key={id} type="button" onClick={() => toggleColumn(id)} className={`flex w-full items-center justify-between rounded px-2 py-1.5 text-[8px] ${active ? 'text-[#dce7ef]' : 'text-[#60758a]'}`}><span>{label}</span><span className={`size-2 rounded-sm border ${active ? 'border-[#53c7ff] bg-[#53c7ff]' : 'border-white/[0.12]'}`}/></button>;
+              return <button key={id} type="button" onClick={() => toggleColumn(id)} className={`flex w-full items-center justify-between rounded px-2 py-1.5 text-[8px] ${active ? 'text-[#dce7ef]' : 'text-[#6F8191]'}`}><span>{label}</span><span className={`size-2 rounded-sm border ${active ? 'border-[#53c7ff] bg-[#53c7ff]' : 'border-white/[0.12]'}`}/></button>;
             })}
             <div className="mt-1 border-t border-white/[0.06] px-2 pt-1 text-[6.5px] text-[#53677a]">Choose 2–5 columns</div>
           </div>
@@ -343,24 +343,24 @@ export default function DesktopWatchlist({
 
       {mode === 'markets' && (
         <>
-          <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-white/[0.055] px-1.5 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {availableCategories.map(([id, label]) => <button key={id} type="button" onClick={() => setCategory(id)} className={`h-6 shrink-0 rounded px-2 text-[6.5px] font-bold ${category === id ? 'bg-[#0d1a22] text-[#63caff]' : 'text-[#64788d] hover:bg-white/[0.03] hover:text-white'}`}>{label}</button>)}
+          <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-white/[0.06] px-1.5 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {availableCategories.map(([id, label]) => <button key={id} type="button" onClick={() => setCategory(id)} className={`h-7 shrink-0 rounded px-2.5 text-[8px] font-semibold ${category === id ? 'bg-[#0d1a22] text-[#63caff]' : 'text-[#6F8191] hover:bg-white/[0.03] hover:text-white'}`}>{label}</button>)}
           </div>
           <div className="flex shrink-0 gap-1 overflow-x-auto px-1.5 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {MARKET_VIEWS.map(([id, label]) => <button key={id} type="button" onClick={() => setMarketView(id)} className={`h-6 shrink-0 rounded border px-2 text-[6.5px] font-bold ${marketView === id ? 'border-[#315b72] bg-[#0d1a22] text-[#63caff]' : 'border-white/[0.055] text-[#64788d]'}`}>{label}</button>)}
+            {MARKET_VIEWS.map(([id, label]) => <button key={id} type="button" onClick={() => setMarketView(id)} className={`h-7 shrink-0 rounded border px-2.5 text-[8px] font-semibold ${marketView === id ? 'border-[#315b72] bg-[#0d1a22] text-[#63caff]' : 'border-white/[0.06] text-[#6F8191]'}`}>{label}</button>)}
           </div>
         </>
       )}
 
       <div className="shrink-0 p-1.5">
-        <div className="flex h-7 items-center gap-2 rounded-md border border-white/[0.07] bg-black/20 px-2 text-[#687c91]">
+        <div className="flex h-8 items-center gap-2 rounded-md border border-white/[0.06] bg-black/20 px-2 text-[#687c91]">
           <Search size={11}/>
-          <input ref={searchRef} value={search} onChange={event => setSearch(event.target.value)} placeholder={mode === 'markets' ? 'Search symbol or market' : 'Search all markets'} className="min-w-0 flex-1 bg-transparent text-[8px] text-[#c7d4e0] outline-none placeholder:text-[#52667a]"/>
-          {search && <button type="button" onClick={() => setSearch('')} className="text-[7px] text-[#65798d]">Clear</button>}
+          <input ref={searchRef} value={search} onChange={event => setSearch(event.target.value)} placeholder={mode === 'markets' ? 'Search symbol or market' : 'Search all markets'} className="min-w-0 flex-1 bg-transparent text-[9px] text-[#E6EDF3] outline-none placeholder:text-[#6F8191]"/>
+          {search && <button type="button" onClick={() => setSearch('')} className="text-[7px] text-[#6F8191]">Clear</button>}
         </div>
       </div>
 
-      <div className="grid shrink-0 border-y border-white/[0.07] px-2 py-1.5 text-[6.5px] font-bold uppercase tracking-[0.07em] text-[#52667a]" style={{ gridTemplateColumns: gridTemplate }}>
+      <div className="grid shrink-0 border-y border-white/[0.06] px-2 py-1.5 text-[8px] font-semibold uppercase tracking-[0.07em] text-[#6F8191]" style={{ gridTemplateColumns: gridTemplate }}>
         <button type="button" onClick={() => changeSort('symbol')} className="text-left"><SortLabel id="symbol" label="Instrument" sort={sort}/></button>
         {columns.map(column => (
           <button key={column} type="button" onClick={() => changeSort(column)} className="text-right">
@@ -371,7 +371,7 @@ export default function DesktopWatchlist({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto outline-none" tabIndex={0}>
-        {!rows.length && <div className="grid h-28 place-items-center px-4 text-center text-[8px] text-[#5f7388]">{search ? 'No markets match this search.' : marketView === 'recent' ? 'Recently viewed markets will appear here.' : 'No instruments are available for this filter.'}</div>}
+        {!rows.length && <div className="grid h-28 place-items-center px-4 text-center text-[8px] text-[#6F8191]">{search ? 'No markets match this search.' : marketView === 'recent' ? 'Recently viewed markets will appear here.' : 'No instruments are available for this filter.'}</div>}
         {rows.map(item => {
           const selected = item.symbol === activeSymbol;
           const isWatched = watchlists?.isWatched?.(item.symbol) === true;
@@ -385,17 +385,17 @@ export default function DesktopWatchlist({
               onDragEnd={() => setDragSymbol(null)}
               onDragOver={event => { if (dragSymbol) event.preventDefault(); }}
               onDrop={() => { if (dragSymbol && dragSymbol !== item.symbol) watchlists?.moveSymbol?.(dragSymbol, item.symbol); setDragSymbol(null); }}
-              className={`grid items-center border-b border-white/[0.05] px-2 py-0.5 transition ${selected ? 'border-l-[3px] border-[#53c7ff] bg-[#08131a]' : 'border-l-[3px] border-transparent hover:bg-white/[0.018]'} ${dragSymbol === item.symbol ? 'opacity-45' : ''}`}
+              className={`grid items-center border-b border-white/[0.06] px-2 py-1 transition ${selected ? 'border-l-[3px] border-[#53c7ff] bg-[#08131a]' : 'border-l-[3px] border-transparent hover:bg-white/[0.018]'} ${dragSymbol === item.symbol ? 'opacity-45' : ''}`}
               style={{ gridTemplateColumns: gridTemplate }}
             >
-              <button type="button" onClick={() => selectInstrument(item.symbol)} className="flex min-w-0 items-center gap-1.5 py-1.5 text-left">
-                {mode !== 'markets' && !search && isWatched && <GripVertical size={9} className="shrink-0 text-[#405263]"/>}
+              <button type="button" onClick={() => selectInstrument(item.symbol)} className="flex min-w-0 items-center gap-1.5 py-2 text-left">
+                {mode !== 'markets' && !search && isWatched && <GripVertical size={9} className="shrink-0 text-[#44515D]"/>}
                 <InstrumentAvatar instrument={item} size={21}/>
                 <span className="min-w-0">
-                  <b className="block truncate text-[10px] text-[#dce7f1]">{item.displaySymbol || displaySymbol(item.symbol)}</b>
-                  <small className="mt-0.5 flex min-w-0 items-center gap-1 truncate text-[6.2px]">
-                    {mode === 'markets' && <span className="truncate text-[#5d7185]">{categoryLabel(item)}</span>}
-                    {mode === 'markets' && <span className="text-[#344657]">·</span>}
+                  <b className="block truncate text-[11px] font-semibold text-[#E6EDF3]">{item.displaySymbol || displaySymbol(item.symbol)}</b>
+                  <small className="mt-0.5 flex min-w-0 items-center gap-1 truncate text-[7.5px]">
+                    {mode === 'markets' && <span className="truncate text-[#6F8191]">{categoryLabel(item)}</span>}
+                    {mode === 'markets' && <span className="text-[#44515D]">·</span>}
                     <span className={statusTone}>{statusLabel}</span>
                   </small>
                 </span>
@@ -404,13 +404,13 @@ export default function DesktopWatchlist({
               {columns.map(column => {
                 const change = column === 'change' ? dayChange(item) : null;
                 return (
-                  <button key={column} type="button" onClick={() => selectInstrument(item.symbol)} className={`truncate py-1.5 text-right font-mono text-[8.5px] tabular-nums ${column === 'change' && change != null ? (change >= 0 ? 'text-[#38d6a2]' : 'text-[#ff7882]') : column === 'bid' ? 'font-bold text-[#a9bac9]' : 'text-[#8397aa]'}`}>
+                  <button key={column} type="button" onClick={() => selectInstrument(item.symbol)} className={`truncate py-1.5 text-right font-mono text-[9.5px] tabular-nums ${column === 'change' && change != null ? (change >= 0 ? 'text-[#42D7A1]' : 'text-[#FF6F7A]') : column === 'bid' ? 'font-bold text-[#A1AFBC]' : 'text-[#A1AFBC]'}`}>
                     {cellValue(column, item)}
                   </button>
                 );
               })}
 
-              <button type="button" onClick={() => toggleWatch(item)} className={`grid size-6 place-items-center rounded ${isWatched ? 'text-[#f6c95d]' : 'text-[#53687b] hover:bg-white/[0.04] hover:text-[#f6c95d]'}`} title={isWatched ? 'Remove from watchlist' : 'Add to watchlist'} aria-label={isWatched ? `Remove ${item.symbol} from watchlist` : `Add ${item.symbol} to watchlist`}><Star size={10} fill={isWatched ? 'currentColor' : 'none'}/></button>
+              <button type="button" onClick={() => toggleWatch(item)} className={`grid size-6 place-items-center rounded ${isWatched ? 'text-[#f6c95d]' : 'text-[#6F8191] hover:bg-white/[0.04] hover:text-[#f6c95d]'}`} title={isWatched ? 'Remove from watchlist' : 'Add to watchlist'} aria-label={isWatched ? `Remove ${item.symbol} from watchlist` : `Add ${item.symbol} to watchlist`}><Star size={10} fill={isWatched ? 'currentColor' : 'none'}/></button>
             </div>
           );
         })}
