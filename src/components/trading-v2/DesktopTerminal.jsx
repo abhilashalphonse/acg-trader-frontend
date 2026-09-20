@@ -138,6 +138,8 @@ export default function DesktopTerminal({
   onOpenSettings = () => {},
   exposureAllowed = true,
   exposureBlockReason = 'New exposure is temporarily unavailable',
+  riskGuardSettings = null,
+  onRiskGuardSettingsChange = () => {},
 }) {
   const shellRef = useRef(null);
   const searchRef = useRef(null);
@@ -353,7 +355,7 @@ export default function DesktopTerminal({
               })}
             </div>
 
-            <DesktopOrderTicket market={market} account={account} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange}/>
+            <DesktopOrderTicket market={market} markets={markets} account={account} positions={positions} positionHistory={positionHistory} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} riskGuardSettings={riskGuardSettings} onRiskGuardSettingsChange={onRiskGuardSettingsChange}/>
           </aside>
 
           <div className={`col-span-2 min-h-0 overflow-auto border-t border-white/[0.08] bg-[#080808] ${desktopLayout.dockCollapsed ? 'hidden' : ''}`}>
