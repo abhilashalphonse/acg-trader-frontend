@@ -187,6 +187,7 @@ export default function DesktopTerminal({
   const [activeNav, setActiveNav] = useState('trade');
   const [notice, setNotice] = useState('');
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [requestedDockTab, setRequestedDockTab] = useState(null);
   const [desktopLayout, setDesktopLayout] = useState(loadDesktopLayout);
   const [multiChart, setMultiChart] = useState(() => loadMultiChart(activeSymbol, timeframe));
   const favorite = watchlists?.isWatched?.(activeSymbol) === true;
@@ -304,9 +305,28 @@ export default function DesktopTerminal({
 
   const handleNav = id => {
     setActiveNav(id);
-    if (id === 'more') onOpenSettings();
-    else if (id === 'history') setNotice('Use the History tab below for recent server-synced fills.');
-    else if (id !== 'trade') searchRef.current?.focus();
+    if (id === 'more') {
+      onOpenSettings();
+      return;
+    }
+    if (id === 'history') {
+      setRequestedDockTab('history');
+      setDesktopLayout(current => ({ ...current, dockCollapsed: false }));
+      return;
+    }
+    if (id === 'markets') {
+      setDesktopLayout(current => ({
+        ...current,
+        sidebarCollapsed: false,
+        watchlistHeight: Math.max(current.watchlistHeight || 220, 330),
+      }));
+      window.setTimeout(() => searchRef.current?.focus(), 0);
+      return;
+    }
+    if (id === 'watchlist') {
+      setDesktopLayout(current => ({ ...current, sidebarCollapsed: false }));
+      window.setTimeout(() => searchRef.current?.focus(), 0);
+    }
   };
 
   return (
@@ -461,7 +481,7 @@ export default function DesktopTerminal({
           </aside>
 
           <div className={`col-span-2 min-h-0 overflow-auto border-t border-white/[0.08] bg-[#080808] ${desktopLayout.dockCollapsed ? 'hidden' : ''}`}>
-            <PositionsPanel desktopDense activeSymbol={activeSymbol} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending}/>
+            <PositionsPanel desktopDense requestedTab={requestedDockTab} activeSymbol={activeSymbol} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending}/>
           </div>
 
           {!desktopLayout.sidebarCollapsed && (
