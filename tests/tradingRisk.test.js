@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateRiskSizedLots, estimatePositionPnlAtPrice, estimateStopRisk, positionDistancePips, riskSizingSupported } from '../src/utils/tradingRisk.js';
+import { calculateRiskOrderSizing, calculateRiskSizedLots, defaultPlannerStopDistance, effectiveLeverage, estimatePositionPnlAtPrice, estimateRequiredMargin, estimateStopRisk, positionDistancePips, riskSizingSupported } from '../src/utils/tradingRisk.js';
 import { exposureAvailability } from '../src/utils/exposureAvailability.js';
 
 const xau = { pnlCurrency: 'USD', quoteCurrency: 'USD', contractSize: 100 };
@@ -23,6 +23,30 @@ test('risk percent sizing refuses to invent cross-currency conversion', () => {
   const plan = { entry: 150, sl: 149.9 };
   assert.equal(riskSizingSupported(usdjpy, 'USD'), false);
   assert.equal(calculateRiskSizedLots(plan, 1, 10000, usdjpy, 'USD'), null);
+});
+
+test('margin preview mirrors effective leverage and includes commission', () => {
+  const btc = { quoteCurrency: 'USD', marginCurrency: 'USD', contractSize: 1, defaultLeverage: 100, commissionPerLot: 2 };
+  const account = { currency: 'USD', leverage: 100, freeMargin: 10000 };
+  assert.equal(effectiveLeverage(account, btc), 100);
+  assert.equal(estimateRequiredMargin(80000, 0.25, btc, account), 200.5);
+});
+
+test('risk sizing blocks an order before submission when free margin is insufficient', () => {
+  const btc = { assetClass: 'CRYPTO', pnlCurrency: 'USD', quoteCurrency: 'USD', marginCurrency: 'USD', contractSize: 1, defaultLeverage: 100, minVolume: 0.01, maxVolume: 1000, volumeStep: 0.01 };
+  const account = { currency: 'USD', leverage: 100, equity: 10000, freeMargin: 50 };
+  const plan = { entry: 80000, sl: 79600 };
+  const result = calculateRiskOrderSizing(plan, 1, account, btc);
+  assert.equal(result.requestedLots, 0.25);
+  assert.equal(result.requiredMargin, 200);
+  assert.equal(result.marginLimited, true);
+  assert.equal(result.canExecute, false);
+  assert.equal(result.maxMarginLots, 0.06);
+});
+
+test('crypto planner starts from a percentage-scale stop instead of a few cents', () => {
+  const btc = { assetClass: 'CRYPTO', pipSize: 0.01, tickSize: 0.01 };
+  assert.equal(defaultPlannerStopDistance(btc, 80000), 400);
 });
 
 test('new exposure is blocked for uncertain execution state', () => {
