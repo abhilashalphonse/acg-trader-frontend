@@ -12,7 +12,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { calculateRiskOrderSizing, estimateStopRisk } from '../../utils/tradingRisk.js';
+import { evaluateRiskToolSetup } from '../../utils/tradingRisk.js';
 import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
 import {
   cloneDrawings,
@@ -116,10 +116,12 @@ function DrawingShape({
     const rewardHeight = Math.abs(entryY - targetY);
     const riskTop = Math.min(entryY, stopY);
     const riskHeight = Math.abs(entryY - stopY);
-    const lots = Number(riskMetrics?.requestedLots);
-    const riskMoney = Number(riskMetrics?.actualRisk);
-    const riskPct = Number(riskMetrics?.actualRiskPercent);
+    const lots = Number(riskMetrics?.sizing?.requestedLots);
+    const riskMoney = Number(riskMetrics?.sizing?.actualRisk);
+    const riskPct = Number(riskMetrics?.sizing?.actualRiskPercent);
     const rr = Number(riskMetrics?.riskReward);
+    const ready = riskMetrics?.canCreateOrder === true;
+    const statusText = riskMetrics?.message || 'Risk sizing unavailable';
     const currency = accountCurrency || 'USD';
     const money = value => Number.isFinite(value) ? new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 2 }).format(value) : '—';
     return (
@@ -129,9 +131,10 @@ function DrawingShape({
         <line x1={left} y1={entryY} x2={boxRight} y2={entryY} stroke="#59c7ff" strokeWidth={selected ? 2 : 1.2} vectorEffect="non-scaling-stroke" {...common}/>
         <line x1={left} y1={stopY} x2={boxRight} y2={stopY} stroke="#ff6673" strokeWidth="1.2" vectorEffect="non-scaling-stroke" {...common}/>
         <line x1={left} y1={targetY} x2={boxRight} y2={targetY} stroke="#35d79d" strokeWidth="1.2" vectorEffect="non-scaling-stroke" {...common}/>
-        <rect x={left + 4} y={Math.min(entryY + 5, size.height - 50)} rx="4" width="172" height="43" fill="rgba(6,9,11,0.92)" stroke="rgba(255,255,255,0.08)" strokeWidth="1" className="pointer-events-none"/>
-        <text x={left + 10} y={Math.min(entryY + 18, size.height - 37)} fill="#dce7ef" fontSize="8" fontWeight="700" className="pointer-events-none">{isLong ? 'LONG' : 'SHORT'} · {Number.isFinite(rr) ? `R:R ${rr.toFixed(2)}` : 'R:R —'}</text>
-        <text x={left + 10} y={Math.min(entryY + 31, size.height - 24)} fill="#8296a7" fontSize="7" className="pointer-events-none">Risk {Number.isFinite(riskPct) ? `${riskPct.toFixed(2)}%` : '—'} · {money(riskMoney)} · {Number.isFinite(lots) ? `${lots.toFixed(2)} lot` : '— lot'}</text>
+        <rect x={left + 4} y={Math.min(entryY + 5, size.height - 65)} rx="4" width="206" height="58" fill="rgba(6,9,11,0.94)" stroke={ready ? 'rgba(53,215,157,0.28)' : 'rgba(255,102,115,0.32)'} strokeWidth="1" className="pointer-events-none"/>
+        <text x={left + 10} y={Math.min(entryY + 18, size.height - 52)} fill="#dce7ef" fontSize="8" fontWeight="700" className="pointer-events-none">{isLong ? 'LONG' : 'SHORT'} · {Number.isFinite(rr) ? `R:R ${rr.toFixed(2)}` : 'R:R —'}</text>
+        <text x={left + 10} y={Math.min(entryY + 31, size.height - 39)} fill="#8296a7" fontSize="7" className="pointer-events-none">Risk {Number.isFinite(riskPct) ? `${riskPct.toFixed(2)}%` : '—'} · {money(riskMoney)} · {Number.isFinite(lots) ? `${lots.toFixed(2)} lot` : '— lot'}</text>
+        <text x={left + 10} y={Math.min(entryY + 45, size.height - 25)} fill={ready ? '#35d79d' : '#ff7b86'} fontSize="7" fontWeight="700" className="pointer-events-none">{statusText.length > 40 ? `${statusText.slice(0, 39)}…` : statusText}</text>
         <text x={boxRight - 4} y={entryY - 4} textAnchor="end" fill="#59c7ff" fontSize="7" fontWeight="700" className="pointer-events-none">ENTRY {formatInstrumentPrice(drawing.a?.price, instrument)}</text>
         <text x={boxRight - 4} y={stopY - 4} textAnchor="end" fill="#ff6673" fontSize="7" fontWeight="700" className="pointer-events-none">SL {formatInstrumentPrice(drawing.b?.price, instrument)}</text>
         <text x={boxRight - 4} y={targetY - 4} textAnchor="end" fill="#35d79d" fontSize="7" fontWeight="700" className="pointer-events-none">TP {formatInstrumentPrice(drawing.riskTarget?.price, instrument)}</text>
@@ -676,21 +679,26 @@ export default function DrawingLayer({
     const entry = Number(drawing.a?.price);
     const sl = Number(drawing.b?.price);
     const tp = Number(drawing.riskTarget?.price);
-    if (![entry, sl, tp].every(Number.isFinite)) return null;
-    const plan = { entry, sl, side: drawing.type === 'long-position' ? 'buy' : 'sell' };
-    const sizing = calculateRiskOrderSizing(plan, drawing.riskPercent ?? riskPercent, account || {}, instrument || {});
+    const side = drawing.type === 'long-position' ? 'buy' : 'sell';
     const riskDistance = Math.abs(entry - sl);
     const rewardDistance = Math.abs(tp - entry);
+    const evaluation = evaluateRiskToolSetup({
+      plan: { entry, sl, tp, side },
+      riskPercent: drawing.riskPercent ?? riskPercent,
+      account: account || {},
+      instrument: instrument || {},
+    });
     return {
-      ...(sizing || {}),
-      riskReward: riskDistance > 0 ? rewardDistance / riskDistance : null,
-      plan,
+      ...evaluation,
+      riskReward: riskDistance > 0 && Number.isFinite(rewardDistance) ? rewardDistance / riskDistance : null,
+      plan: { entry, sl, tp, side },
     };
   };
 
   const createOrderFromSelectedRisk = () => {
     if (!selected || !['long-position', 'short-position'].includes(selected.type)) return;
     const metrics = riskMetricsFor(selected);
+    if (!metrics?.canCreateOrder) return;
     onCreateRiskOrder({
       symbol,
       side: selected.type === 'long-position' ? 'buy' : 'sell',
@@ -698,8 +706,8 @@ export default function DrawingLayer({
       sl: Number(selected.b?.price),
       tp: Number(selected.riskTarget?.price),
       riskPercent: Number(selected.riskPercent ?? riskPercent),
-      lots: Number(metrics?.requestedLots),
-      sizing: metrics,
+      lots: Number(metrics?.sizing?.requestedLots),
+      sizing: metrics?.sizing,
       sourceDrawingId: selected.id,
     });
   };
@@ -766,7 +774,10 @@ export default function DrawingLayer({
       {selected && !disabled && (
         <div className="pointer-events-auto absolute right-2 top-11 z-20 flex items-center gap-0.5 rounded-md border border-white/[0.08] bg-[#080808]/96 p-1 shadow-xl backdrop-blur-sm">
           <span className="max-w-[88px] truncate px-1.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#74899d]">{selected.type}</span>
-          {['long-position', 'short-position'].includes(selected.type) && <button type="button" onClick={createOrderFromSelectedRisk} className="h-7 rounded-md border border-[#245070] bg-[#0d1a22] px-2.5 text-[8px] font-black text-[#59c8ff] hover:bg-[#102431]" title="Load this risk setup into the order planner">Create order</button>}
+          {['long-position', 'short-position'].includes(selected.type) && (() => {
+            const metrics = riskMetricsFor(selected);
+            return <button type="button" disabled={!metrics?.canCreateOrder} onClick={createOrderFromSelectedRisk} className="h-7 rounded-md border border-[#245070] bg-[#0d1a22] px-2.5 text-[8px] font-black text-[#59c8ff] hover:bg-[#102431] disabled:cursor-not-allowed disabled:border-white/[0.07] disabled:bg-[#0a0a0a] disabled:text-[#52616e]" title={metrics?.canCreateOrder ? 'Load this risk setup into the order planner' : (metrics?.message || 'Risk setup cannot create an order')}>Create order</button>;
+          })()}
                     <button type="button" onClick={() => patchSelected({ locked: !selected.locked })} className={`grid size-7 place-items-center rounded-md ${selected.locked ? 'bg-[#172229] text-[#59c8ff]' : 'text-[#8194a7] hover:bg-white/[0.04]'}`} title={selected.locked ? 'Unlock drawing' : 'Lock drawing'}>{selected.locked ? <Lock size={13}/> : <LockOpen size={13}/>}</button>
           <button type="button" onClick={duplicateSelected} className="grid size-7 place-items-center rounded-md text-[#8194a7] hover:bg-white/[0.04] hover:text-white" title="Duplicate drawing"><Copy size={13}/></button>
           <button type="button" onClick={() => setSettingsOpen(value => !value)} className={`grid size-7 place-items-center rounded-md ${settingsOpen ? 'bg-white/[0.06] text-[#59c8ff]' : 'text-[#8194a7] hover:bg-white/[0.04]'}`} title="Drawing settings"><Settings2 size={13}/></button>
@@ -782,12 +793,19 @@ export default function DrawingLayer({
             <button type="button" onClick={() => setSettingsOpen(false)} className="grid size-6 place-items-center rounded text-[#71869a] hover:bg-white/[0.04]"><X size={12}/></button>
           </div>
 
-          {['long-position', 'short-position'].includes(selected.type) && (
-            <label className="mt-3 block">
-              <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Risk %</span>
-              <input type="number" min="0.01" max="100" step="0.05" value={selected.riskPercent ?? riskPercent} onChange={event => patchSelected({ riskPercent: Math.min(100, Math.max(0.01, Number(event.target.value) || 0.01)) })} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] text-[#dbe5ed] outline-none focus:border-[#53c7ff]" />
-            </label>
-          )}
+          {['long-position', 'short-position'].includes(selected.type) && (() => {
+            const metrics = riskMetricsFor(selected);
+            return <>
+              <label className="mt-3 block">
+                <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Risk %</span>
+                <input type="number" min="0.01" max="100" step="0.05" value={selected.riskPercent ?? riskPercent} onChange={event => patchSelected({ riskPercent: Math.min(100, Math.max(0.01, Number(event.target.value) || 0.01)) })} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] text-[#dbe5ed] outline-none focus:border-[#53c7ff]" />
+              </label>
+              <div className={`mt-2 rounded-md border px-2.5 py-2 text-[8px] leading-[1.45] ${metrics?.canCreateOrder ? 'border-[#1f4b3d] bg-[#0d1915] text-[#74d9b5]' : 'border-[#4a2026] bg-[#180d10] text-[#e9858d]'}`}>
+                {metrics?.message || 'Risk sizing unavailable'}
+                {Number.isFinite(metrics?.sizing?.requiredMargin) && <span className="mt-1 block text-[#72879a]">Margin {new Intl.NumberFormat('en-US', { style: 'currency', currency: accountCurrency || 'USD', maximumFractionDigits: 2 }).format(metrics.sizing.requiredMargin)} · Free {Number.isFinite(metrics?.sizing?.freeMargin) ? new Intl.NumberFormat('en-US', { style: 'currency', currency: accountCurrency || 'USD', maximumFractionDigits: 2 }).format(metrics.sizing.freeMargin) : '—'}</span>}
+              </div>
+            </>;
+          })()}
                     {selected.type === 'text' && (
             <label className="mt-3 block">
               <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Text</span>
