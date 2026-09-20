@@ -125,7 +125,7 @@ export default function TradingChart({
     indicatorBindingsRef.current = [];
     for (let index = indicatorPanesRef.current; index >= 1; index -= 1) { try { if (chart.panes().length > index) chart.removePane(index); } catch { /* disposed */ } }
     indicatorPanesRef.current = 0;
-  }, [instrument]);
+  }, []);
 
   const renderIndicators = useCallback((chart, bars) => {
     if (!chart || !bars?.length) return;
@@ -188,7 +188,7 @@ export default function TradingChart({
       binding.lines.forEach(lineBinding => { const line = result.lines?.find(item => item.key === lineBinding.key); if (line) lineBinding.series.setData(line.data); });
       if (binding.histogram && result.histogram) binding.histogram.setData(result.histogram.map(point => ({ ...point, color: point.value >= 0 ? 'rgba(45,211,155,0.45)' : 'rgba(255,95,105,0.45)' })));
     });
-  }, []);
+  }, [instrument]);
   const scheduleIndicatorUpdate = useCallback(() => {
     if (indicatorFrameRef.current) return;
     indicatorFrameRef.current = window.requestAnimationFrame(() => { indicatorFrameRef.current = null; updateIndicatorData(barsRef.current); });
