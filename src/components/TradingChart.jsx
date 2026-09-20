@@ -144,18 +144,18 @@ export default function TradingChart({ symbol = 'EURUSD', instrument = null, tim
     if (!hostRef.current) return undefined;
     const chart = createChart(hostRef.current, {
       autoSize: true,
-      layout: { background: { type: ColorType.Solid, color: chartTokens.background }, textColor: chartTokens.text, attributionLogo: true, fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif', fontSize: 10, panes: { separatorColor: '#1b1b1b', separatorHoverColor: 'rgba(83,199,255,0.18)', enableResize: true } },
+      layout: { background: { type: ColorType.Solid, color: chartTokens.background }, textColor: chartTokens.text, attributionLogo: true, fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif', fontSize: 11, panes: { separatorColor: '#1b1b1b', separatorHoverColor: 'rgba(83,199,255,0.18)', enableResize: true } },
       grid: { vertLines: { visible: true, color: chartTokens.gridline, style: LineStyle.Dotted }, horzLines: { visible: true, color: chartTokens.gridline, style: LineStyle.Dotted } },
       crosshair: { mode: CrosshairMode.Normal, vertLine: { visible: true, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: true, labelBackgroundColor: chartTokens.crosshairLabel }, horzLine: { visible: true, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: true, labelBackgroundColor: chartTokens.crosshairLabel } },
-      rightPriceScale: { visible: true, borderVisible: true, borderColor: '#242424', ticksVisible: true, scaleMargins: { top: 0.08, bottom: 0.10 } },
-      timeScale: { visible: true, borderVisible: true, borderColor: '#242424', ticksVisible: true, timeVisible: true, secondsVisible: ['S1', 'S5', 'S15', 'S30'].includes(timeframe), rightOffset: 10, barSpacing: 7, minBarSpacing: 3, fixLeftEdge: false, lockVisibleTimeRangeOnResize: true },
+      rightPriceScale: { visible: true, borderVisible: true, borderColor: '#242424', ticksVisible: true, scaleMargins: { top: 0.045, bottom: 0.07 } },
+      timeScale: { visible: true, borderVisible: true, borderColor: '#242424', ticksVisible: true, timeVisible: true, secondsVisible: ['S1', 'S5', 'S15', 'S30'].includes(timeframe), rightOffset: 8, barSpacing: 8, minBarSpacing: 3, fixLeftEdge: false, lockVisibleTimeRangeOnResize: true },
       handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true }, handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
     });
     chartRef.current = chart;
     const priceFormat = { type: 'price', precision: decimals, minMove };
     const series = chartMode === 'line' ? chart.addSeries(LineSeries, { color: chartTokens.blue, lineWidth: 2, priceFormat, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: true }) : chart.addSeries(CandlestickSeries, { upColor: chartTokens.buy, downColor: chartTokens.sell, wickUpColor: chartTokens.buy, wickDownColor: chartTokens.sell, borderVisible: false, priceFormat, priceLineVisible: false, lastValueVisible: false });
     const volume = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: 'volume', lastValueVisible: false, priceLineVisible: false });
-    chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+    chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.80, bottom: 0 } });
     seriesRef.current = series; volumeRef.current = volume; marketLineRef.current = null; askLineRef.current = null; positionLinesRef.current = []; setError('');
     const timeScale = chart.timeScale();
     const visibleRangeHandler = () => {
@@ -188,7 +188,7 @@ export default function TradingChart({ symbol = 'EURUSD', instrument = null, tim
   useEffect(() => { indicatorsRef.current = indicators; if (chartRef.current && barsRef.current.length) renderIndicators(chartRef.current, barsRef.current); }, [indicators, renderIndicators]);
   useEffect(() => {
     volumeRef.current?.applyOptions({ visible: showVolume });
-    chartRef.current?.priceScale('right').applyOptions({ scaleMargins: { top: 0.08, bottom: showVolume ? 0.24 : 0.10 } });
+    chartRef.current?.priceScale('right').applyOptions({ scaleMargins: { top: 0.045, bottom: showVolume ? 0.205 : 0.07 } });
   }, [showVolume, symbol, timeframe, chartMode]);
   useEffect(() => {
     const series = seriesRef.current;
@@ -294,10 +294,10 @@ export default function TradingChart({ symbol = 'EURUSD', instrument = null, tim
 
   return <div className="relative size-full min-h-0 min-w-0 overflow-hidden bg-black">
     <div ref={hostRef} className="absolute inset-0" />
-    <div className="pointer-events-none absolute left-2 top-2 z-20 max-w-[68%] px-1 text-[8px] leading-[1.45] text-[#8295a9] [text-shadow:0_1px_2px_#000,0_0_5px_#000]">
-      <div className="font-bold tracking-[0.03em] text-[#dce8f2]">{symbol},{timeframe}</div>
-      <div className="mt-0.5 flex flex-wrap gap-x-1.5 whitespace-nowrap font-medium"><span>O <b className="text-[#aab9c8]">{format(ohlc?.open)}</b></span><span>H <b className="text-[#aab9c8]">{format(ohlc?.high)}</b></span><span>L <b className="text-[#aab9c8]">{format(ohlc?.low)}</b></span><span>C <b className="text-[#aab9c8]">{format(ohlc?.close)}</b></span></div>
-      {visibleIndicators.length > 0 && <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[7px] font-semibold text-[#8298ac]">{visibleIndicators.map(indicator => <span key={indicator.instanceId}>{indicatorLabel(indicator)}</span>)}</div>}
+    <div className="pointer-events-none absolute left-2.5 top-2.5 z-20 max-w-[72%] px-1 text-[11px] leading-[1.45] text-[#8E99A5] [text-shadow:0_1px_2px_#000,0_0_6px_#000]">
+      <div className="text-[12px] font-semibold tracking-[-0.01em] text-[#F0F3F6]">{symbol} <span className="text-[#7F8A95]">· {timeframe}</span></div>
+      <div className="mt-1 flex flex-wrap gap-x-2 whitespace-nowrap font-medium"><span>O <b className="text-[#aab9c8]">{format(ohlc?.open)}</b></span><span>H <b className="text-[#aab9c8]">{format(ohlc?.high)}</b></span><span>L <b className="text-[#aab9c8]">{format(ohlc?.low)}</b></span><span>C <b className="text-[#aab9c8]">{format(ohlc?.close)}</b></span></div>
+      {visibleIndicators.length > 0 && <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[9px] font-medium text-[#7F8A95]">{visibleIndicators.map(indicator => <span key={indicator.instanceId}>{indicatorLabel(indicator)}</span>)}</div>}
     </div>
     {error && <div className="absolute inset-0 z-40 grid place-items-center bg-black/95 px-5 text-center text-[10px] font-medium text-[#718399]">{error}</div>}
   </div>;
