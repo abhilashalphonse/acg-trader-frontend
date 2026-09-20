@@ -125,16 +125,24 @@ function loadDesktopLayout() {
   }
 }
 
-function loadMultiChart(activeSymbol, timeframe) {
+function cloneIndicators(items) {
+  return Array.isArray(items) ? items.map(item => ({ ...item, settings: { ...(item?.settings || {}) } })) : [];
+}
+
+function sameIndicators(a, b) {
+  try { return JSON.stringify(a || []) === JSON.stringify(b || []); } catch { return false; }
+}
+
+function loadMultiChart(activeSymbol, timeframe, indicators = []) {
   const fallback = {
     layout: 1,
     linked: false,
     activeCell: 0,
     cells: [
-      { symbol: activeSymbol || '', timeframe: timeframe || '1m' },
-      { symbol: '', timeframe: '5m' },
-      { symbol: '', timeframe: '15m' },
-      { symbol: '', timeframe: '1H' },
+      { symbol: activeSymbol || '', timeframe: timeframe || '1m', indicators: cloneIndicators(indicators) },
+      { symbol: '', timeframe: '5m', indicators: cloneIndicators(indicators) },
+      { symbol: '', timeframe: '15m', indicators: cloneIndicators(indicators) },
+      { symbol: '', timeframe: '1H', indicators: cloneIndicators(indicators) },
     ],
   };
   if (typeof window === 'undefined') return fallback;
@@ -146,10 +154,16 @@ function loadMultiChart(activeSymbol, timeframe) {
       ...stored,
       layout: [1,2,4].includes(Number(stored.layout)) ? Number(stored.layout) : 1,
       activeCell: Math.max(0, Math.min(3, Number(stored.activeCell) || 0)),
-      cells: Array.from({ length: 4 }, (_, index) => ({
-        ...fallback.cells[index],
-        ...(stored.cells?.[index] || {}),
-      })),
+      cells: Array.from({ length: 4 }, (_, index) => {
+        const storedCell = stored.cells?.[index] || {};
+        return {
+          ...fallback.cells[index],
+          ...storedCell,
+          indicators: Array.isArray(storedCell.indicators)
+            ? cloneIndicators(storedCell.indicators)
+            : cloneIndicators(fallback.cells[index].indicators),
+        };
+      }),
     };
   } catch {
     return fallback;
@@ -262,7 +276,7 @@ export default function DesktopTerminal({
   const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
   const [chartMenuOpen, setChartMenuOpen] = useState(false);
   const [riskPopoverOpen, setRiskPopoverOpen] = useState(false);
-  const [multiChart, setMultiChart] = useState(() => loadMultiChart(activeSymbol, timeframe));
+  const [multiChart, setMultiChart] = useState(() => loadMultiChart(activeSymbol, timeframe, indicators));
   const selectedPosition = positions.find(position => String(position?.id) === String(selectedPositionId)) || null;
 
   useEffect(() => {
@@ -343,12 +357,29 @@ export default function DesktopTerminal({
     });
   }, [activeSymbol]);
 
+  useEffect(() => {
+    setMultiChart(current => {
+      const layout = [1, 2, 4].includes(Number(current?.layout)) ? Number(current.layout) : 1;
+      const index = Math.min(Math.max(0, Number(current?.activeCell) || 0), layout - 1);
+      const cells = Array.from({ length: 4 }, (_, cellIndex) => current?.cells?.[cellIndex] || {});
+      const active = cells[index] || {};
+      if (sameIndicators(active.indicators, indicators)) return current;
+      cells[index] = { ...active, indicators: cloneIndicators(indicators) };
+      return { ...current, cells };
+    });
+  }, [indicators]);
+
   const activeChartIndex = Math.min(Math.max(0, Number(multiChart?.activeCell) || 0), Math.max(0, Number(multiChart?.layout || 1) - 1));
   const activeChartTimeframe = multiChart?.cells?.[activeChartIndex]?.timeframe || timeframe;
   const chartLayout = [1, 2, 4].includes(Number(multiChart?.layout)) ? Number(multiChart.layout) : 1;
   const chartLinked = multiChart?.linked === true;
 
   const setChartLayout = layout => {
+    const nextIndex = Math.min(Number(multiChart?.activeCell) || 0, layout - 1);
+    const nextIndicators = multiChart?.cells?.[nextIndex]?.indicators;
+    if (Array.isArray(nextIndicators) && !sameIndicators(nextIndicators, indicators)) {
+      onIndicatorsChange(cloneIndicators(nextIndicators));
+    }
     setMultiChart(current => ({
       ...current,
       layout,
@@ -358,6 +389,18 @@ export default function DesktopTerminal({
   };
 
   const toggleChartLink = () => setMultiChart(current => ({ ...current, linked: !current?.linked }));
+
+  const applyActiveIndicatorsToAllCharts = () => {
+    setMultiChart(current => ({
+      ...current,
+      cells: Array.from({ length: 4 }, (_, index) => ({
+        ...(current?.cells?.[index] || {}),
+        indicators: cloneIndicators(indicators),
+      })),
+    }));
+    setNotice('Active chart indicators copied to all chart cells');
+    setChartMenuOpen(false);
+  };
 
   const setDesktopTimeframe = value => {
     onTimeframeChange(value);
@@ -457,8 +500,30 @@ export default function DesktopTerminal({
     if (trading.orderType) onOrderTypeChange(trading.orderType);
     if (trading.symbol && markets.some(item => item.symbol === trading.symbol)) onSelectSymbol(trading.symbol);
     if (trading.activeListId) watchlists?.setActiveListId?.(trading.activeListId);
-    if (Array.isArray(trading.indicators)) onIndicatorsChange(trading.indicators);
-    if (trading.multiChart && typeof trading.multiChart === 'object') setMultiChart(trading.multiChart);
+    if (trading.multiChart && typeof trading.multiChart === 'object') {
+      const incoming = trading.multiChart;
+      const layoutCount = [1, 2, 4].includes(Number(incoming.layout)) ? Number(incoming.layout) : 1;
+      const incomingActive = Math.min(Math.max(0, Number(incoming.activeCell) || 0), layoutCount - 1);
+      const fallbackIndicators = Array.isArray(trading.indicators) ? trading.indicators : indicators;
+      const normalized = {
+        ...incoming,
+        layout: layoutCount,
+        activeCell: incomingActive,
+        cells: Array.from({ length: 4 }, (_, index) => ({
+          ...(multiChart?.cells?.[index] || {}),
+          ...(incoming.cells?.[index] || {}),
+          indicators: cloneIndicators(
+            Array.isArray(incoming.cells?.[index]?.indicators)
+              ? incoming.cells[index].indicators
+              : fallbackIndicators,
+          ),
+        })),
+      };
+      setMultiChart(normalized);
+      onIndicatorsChange(cloneIndicators(normalized.cells[incomingActive]?.indicators || fallbackIndicators));
+    } else if (Array.isArray(trading.indicators)) {
+      onIndicatorsChange(cloneIndicators(trading.indicators));
+    }
     setNotice(`${workspace.name || 'Workspace'} applied`);
   };
 
@@ -663,6 +728,7 @@ export default function DesktopTerminal({
                         <>
                           <div className="my-1 border-t border-white/[0.06]"/>
                           <button type="button" onClick={toggleChartLink} className={`flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold ${chartLinked ? 'text-[#59C7FF]' : 'text-[#A1AFBC]'} hover:bg-white/[0.03]`}><span className="flex items-center gap-2">{chartLinked ? <Link2 size={12}/> : <Link2Off size={12}/>}Link symbols</span><span className="text-[#6F8191]">{chartLinked ? 'On' : 'Off'}</span></button>
+                          <button type="button" onClick={applyActiveIndicatorsToAllCharts} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Copy indicators to all</span><span className="text-[#6F8191]">ƒx {indicators.length}</span></button>
                         </>
                       )}
                     </div>
@@ -693,6 +759,9 @@ export default function DesktopTerminal({
                 activeSymbol={activeSymbol}
                 onSelectSymbol={onSelectSymbol}
                 indicators={indicators}
+                onActiveIndicatorsChange={nextIndicators => {
+                  if (!sameIndicators(nextIndicators, indicators)) onIndicatorsChange(cloneIndicators(nextIndicators));
+                }}
                 positions={positions}
                 pendingOrders={pendingOrders}
                 onModifyPending={onModifyPending}

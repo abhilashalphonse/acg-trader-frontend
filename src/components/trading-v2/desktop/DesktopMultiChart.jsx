@@ -22,6 +22,7 @@ export default function DesktopMultiChart({
   activeSymbol,
   onSelectSymbol = () => {},
   indicators = [],
+  onActiveIndicatorsChange = () => {},
   positions = [],
   pendingOrders = [],
   onModifyPending = () => {},
@@ -45,6 +46,13 @@ export default function DesktopMultiChart({
   const activeCell = Math.min(Math.max(0, Number(config?.activeCell) || 0), layout - 1);
 
   const patch = next => onChange({ ...config, ...next });
+  const activateCell = (index, timeframe, symbol, cellIndicators) => {
+    patch({ activeCell: index });
+    onActiveTimeframeChange(timeframe);
+    onActiveIndicatorsChange(Array.isArray(cellIndicators) ? cellIndicators : []);
+    if (symbol && symbol !== activeSymbol) onSelectSymbol(symbol);
+  };
+
   const updateCell = (index, changes, extra = {}) => {
     const next = Array.from({ length: Math.max(4, cells.length) }, (_, i) => cells[i] || {});
     next[index] = { ...next[index], ...changes };
@@ -64,17 +72,14 @@ export default function DesktopMultiChart({
           const symbol = instrument?.symbol || activeSymbol || '';
           const timeframe = TIMEFRAMES.includes(cell.timeframe) ? cell.timeframe : '1m';
           const isActive = index === activeCell;
+          const cellIndicators = Array.isArray(cell.indicators) ? cell.indicators : indicators;
           const cellPositions = positions.filter(position => position.symbol === symbol);
           const cellPendingOrders = pendingOrders.filter(order => order.symbol === symbol);
           return (
             <section
               key={index}
               className={`relative grid min-h-0 min-w-0 ${singleChart ? 'grid-rows-[minmax(0,1fr)]' : 'grid-rows-[34px_minmax(0,1fr)]'} bg-black ${isActive && !singleChart ? 'ring-1 ring-inset ring-[#315b72]' : ''}`}
-              onMouseDown={() => {
-                patch({ activeCell: index });
-                onActiveTimeframeChange(timeframe);
-                if (symbol && symbol !== activeSymbol) onSelectSymbol(symbol);
-              }}
+              onMouseDown={() => activateCell(index, timeframe, symbol, cellIndicators)}
             >
               {!singleChart && (
                 <div className="flex items-center gap-1.5 border-b border-white/[0.06] bg-[#07090B] px-1.5">
@@ -84,6 +89,7 @@ export default function DesktopMultiChart({
                     onChange={event => {
                       const next = event.target.value;
                       updateCell(index, { symbol: next }, { activeCell: index });
+                      onActiveIndicatorsChange(cellIndicators);
                       onSelectSymbol(next);
                     }}
                     className="max-w-[120px] bg-transparent text-[10px] font-semibold text-[#E6EDF3] outline-none"
@@ -96,6 +102,7 @@ export default function DesktopMultiChart({
                     onChange={event => {
                       const next = event.target.value;
                       updateCell(index, { timeframe: next }, { activeCell: index });
+                      onActiveIndicatorsChange(cellIndicators);
                       onActiveTimeframeChange(next);
                     }}
                     className="ml-auto bg-transparent font-mono text-[9px] font-semibold text-[#6F8191] outline-none"
@@ -103,6 +110,7 @@ export default function DesktopMultiChart({
                   >
                     {TIMEFRAMES.map(tf => <option key={tf} value={tf} className="bg-[#0C1013]">{tf}</option>)}
                   </select>
+                  <span className="rounded bg-white/[0.04] px-1.5 py-0.5 text-[7px] font-bold text-[#6F8191]" title="Indicators on this chart">ƒx {cellIndicators.length}</span>
                   <span className={`size-1.5 rounded-full ${instrument?.live ? 'bg-[#42D7A1]' : instrument?.isStale ? 'bg-[#E7BD58]' : 'bg-[#4a5967]'}`}/>
                 </div>
               )}
@@ -120,7 +128,7 @@ export default function DesktopMultiChart({
                   selectedTool={isActive ? selectedTool : 'cursor'}
                   onSelectTool={isActive ? onSelectedToolChange : () => {}}
                   embedded
-                  hideToolbar={layout > 1}
+                  hideToolbar={!isActive}
                   tradePlan={isActive ? tradePlan : null}
                   tradePlanLots={tradePlanLots}
                   accountCurrency={accountCurrency}
@@ -128,7 +136,7 @@ export default function DesktopMultiChart({
                   onUpdatePosition={onUpdatePosition}
                   selectedPositionId={selectedPositionId}
                   onSelectPosition={onSelectPosition}
-                  indicators={indicators}
+                  indicators={cellIndicators}
                   positions={cellPositions}
                   pendingOrders={cellPendingOrders}
                   onModifyPending={onModifyPending}
