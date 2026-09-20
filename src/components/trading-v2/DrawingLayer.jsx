@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   Copy,
   Eye,
@@ -14,11 +14,19 @@ import {
 } from 'lucide-react';
 import { calculateRiskOrderSizing, estimateStopRisk } from '../../utils/tradingRisk.js';
 import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
-
-const STORAGE_PREFIX = 'acg-trader-drawings-v3';
-const LEGACY_STORAGE_PREFIX = 'acg-trader-drawings-v2';
-const storageKey = symbol => `${STORAGE_PREFIX}:${String(symbol || '').toUpperCase()}`;
-const legacyStorageKey = (symbol, timeframe) => `${LEGACY_STORAGE_PREFIX}:${symbol}:${timeframe}`;
+import {
+  cloneDrawings,
+  commitDrawings,
+  commitLiveDrawingTransaction,
+  getDrawingSnapshot,
+  patchDrawing,
+  redoDrawings,
+  removeDrawing,
+  replaceDrawingsLive,
+  subscribeDrawings,
+  undoDrawings,
+  visibleDrawingOnTimeframe,
+} from '../../utils/drawingStore.js';
 
 const DEFAULT_STYLE = {
   color: '#53c7ff',
@@ -35,50 +43,6 @@ const TOOL_DEFAULTS = {
   'long-position': { color: '#35d79d' },
   'short-position': { color: '#ff6673' },
 };
-
-function normalizeDrawing(raw) {
-  if (!raw || typeof raw !== 'object' || !raw.id || !raw.type || !raw.a) return null;
-  return {
-    ...raw,
-    b: raw.b || raw.a,
-    text: raw.text || '',
-    locked: raw.locked === true,
-    hidden: raw.hidden === true,
-    timeframeVisibility: raw.timeframeVisibility || 'all',
-    riskTarget: raw.riskTarget ? { ...raw.riskTarget } : null,
-    riskPercent: Number.isFinite(Number(raw.riskPercent)) ? Number(raw.riskPercent) : null,
-    style: {
-      ...DEFAULT_STYLE,
-      ...(TOOL_DEFAULTS[raw.type] || {}),
-      ...(raw.style || {}),
-    },
-  };
-}
-
-function loadDrawings(symbol, timeframe) {
-  if (typeof window === 'undefined') return [];
-  try {
-    const current = JSON.parse(window.localStorage.getItem(storageKey(symbol)) || 'null');
-    if (Array.isArray(current)) return current.map(normalizeDrawing).filter(Boolean);
-
-    const legacy = JSON.parse(window.localStorage.getItem(legacyStorageKey(symbol, timeframe)) || '[]');
-    if (Array.isArray(legacy) && legacy.length) {
-      const migrated = legacy.map(normalizeDrawing).filter(Boolean);
-      window.localStorage.setItem(storageKey(symbol), JSON.stringify(migrated));
-      return migrated;
-    }
-  } catch {
-    // Fall through to an empty workspace.
-  }
-  return [];
-}
-
-function visibleOnTimeframe(drawing, timeframe) {
-  if (drawing.hidden) return false;
-  if (drawing.timeframeVisibility === 'all' || !drawing.timeframeVisibility) return true;
-  if (Array.isArray(drawing.timeframeVisibility)) return drawing.timeframeVisibility.includes(timeframe);
-  return true;
-}
 
 function dashArray(style) {
   if (style?.dash === 'dashed') return '6 4';
@@ -286,17 +250,6 @@ function DrawingShape({
   );
 }
 
-function cloneDrawings(items) {
-  return items.map(item => ({
-    ...item,
-    a: { ...item.a },
-    b: item.b ? { ...item.b } : item.b,
-    style: { ...(item.style || {}) },
-    timeframeVisibility: Array.isArray(item.timeframeVisibility) ? [...item.timeframeVisibility] : item.timeframeVisibility,
-    riskTarget: item.riskTarget ? { ...item.riskTarget } : item.riskTarget,
-  }));
-}
-
 function drawingId(type) {
   return `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
@@ -318,9 +271,14 @@ export default function DrawingLayer({
   riskPercent = 0.5,
   accountCurrency = 'USD',
   onCreateRiskOrder = () => {},
+  chartInstanceId = 'chart',
 }) {
   const svgRef = useRef(null);
-  const [history, setHistory] = useState(() => ({ past: [], present: loadDrawings(symbol, timeframe), future: [] }));
+  const history = useSyncExternalStore(
+    listener => subscribeDrawings(symbol, listener),
+    () => getDrawingSnapshot(symbol),
+    () => getDrawingSnapshot(symbol),
+  );
   const [selectedId, setSelectedId] = useState(null);
   const [draft, setDraft] = useState(null);
   const [drag, setDrag] = useState(null);
@@ -332,26 +290,16 @@ export default function DrawingLayer({
   const drawings = history.present;
 
   useEffect(() => {
-    setHistory({ past: [], present: loadDrawings(symbol, timeframe), future: [] });
     setSelectedId(null);
     setDraft(null);
     setDrag(null);
     setSettingsOpen(false);
     setContextMenu(null);
-  }, [symbol]);
+  }, [symbol, chartInstanceId]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try { window.localStorage.setItem(storageKey(symbol), JSON.stringify(drawings)); } catch { /* Keep current session state. */ }
     onDrawingCountChange(drawings.length);
-    window.dispatchEvent(new CustomEvent('acg-trader-drawings-change', {
-      detail: {
-        symbol: String(symbol || '').toUpperCase(),
-        drawings: cloneDrawings(drawings),
-        selectedId,
-      },
-    }));
-  }, [drawings, onDrawingCountChange, selectedId, symbol]);
+  }, [drawings.length, onDrawingCountChange]);
 
   useEffect(() => {
     const node = svgRef.current;
@@ -375,27 +323,12 @@ export default function DrawingLayer({
     if (typeof window === 'undefined') return undefined;
     const normalizedSymbol = String(symbol || '').toUpperCase();
 
-    const publish = () => {
-      window.dispatchEvent(new CustomEvent('acg-trader-drawings-change', {
-        detail: {
-          symbol: normalizedSymbol,
-          drawings: cloneDrawings(history.present),
-          selectedId,
-        },
-      }));
-    };
-
-    const handleRequest = event => {
-      const requestedSymbol = String(event?.detail?.symbol || '').toUpperCase();
-      if (requestedSymbol && requestedSymbol !== normalizedSymbol) return;
-      publish();
-    };
-
     const handleCommand = event => {
       const detail = event?.detail || {};
-      const requestedSymbol = String(detail.symbol || '').toUpperCase();
-      if (requestedSymbol !== normalizedSymbol || !detail.id) return;
-      const drawing = history.present.find(item => item.id === detail.id);
+      if (String(detail.symbol || '').toUpperCase() !== normalizedSymbol) return;
+      if (detail.chartInstanceId && detail.chartInstanceId !== chartInstanceId) return;
+      if (!detail.id) return;
+      const drawing = getDrawingSnapshot(symbol).present.find(item => item.id === detail.id);
       if (!drawing) return;
 
       if (detail.action === 'select' || detail.action === 'focus' || detail.action === 'settings') {
@@ -403,69 +336,30 @@ export default function DrawingLayer({
         setContextMenu(null);
         if (detail.action === 'settings') setSettingsOpen(true);
         if (detail.action === 'focus') coordinateApi?.focusTime?.(drawing.a?.time);
-        return;
-      }
-
-      if (detail.action === 'toggle-lock') {
-        commit(current => current.map(item => item.id === detail.id ? { ...item, locked: !item.locked } : item));
-        return;
-      }
-
-      if (detail.action === 'toggle-visibility') {
-        commit(current => current.map(item => item.id === detail.id ? { ...item, hidden: !item.hidden } : item));
-        return;
-      }
-
-      if (detail.action === 'delete') {
-        commit(current => current.filter(item => item.id !== detail.id));
-        if (selectedId === detail.id) setSelectedId(null);
-        setSettingsOpen(false);
       }
     };
 
-    window.addEventListener('acg-trader-drawings-request', handleRequest);
     window.addEventListener('acg-trader-drawing-command', handleCommand);
-    return () => {
-      window.removeEventListener('acg-trader-drawings-request', handleRequest);
-      window.removeEventListener('acg-trader-drawing-command', handleCommand);
-    };
-  }, [coordinateApi, history.present, selectedId, symbol]);
+    return () => window.removeEventListener('acg-trader-drawing-command', handleCommand);
+  }, [chartInstanceId, coordinateApi, symbol]);
 
-  const commit = next => {
-    setHistory(current => ({
-      past: [...current.past.slice(-99), cloneDrawings(current.present)],
-      present: typeof next === 'function' ? next(current.present) : next,
-      future: [],
-    }));
-  };
+
+  const commit = next => commitDrawings(symbol, next);
 
   const undo = () => {
-    setHistory(current => {
-      if (!current.past.length) return current;
-      const previous = current.past[current.past.length - 1];
-      return {
-        past: current.past.slice(0, -1),
-        present: cloneDrawings(previous),
-        future: [cloneDrawings(current.present), ...current.future.slice(0, 99)],
-      };
-    });
-    setSelectedId(null);
-    setContextMenu(null);
+    if (undoDrawings(symbol)) {
+      setSelectedId(null);
+      setContextMenu(null);
+    }
   };
 
   const redo = () => {
-    setHistory(current => {
-      if (!current.future.length) return current;
-      const next = current.future[0];
-      return {
-        past: [...current.past.slice(-99), cloneDrawings(current.present)],
-        present: cloneDrawings(next),
-        future: current.future.slice(1),
-      };
-    });
-    setSelectedId(null);
-    setContextMenu(null);
+    if (redoDrawings(symbol)) {
+      setSelectedId(null);
+      setContextMenu(null);
+    }
   };
+
 
   useEffect(() => {
     const onKey = event => {
@@ -498,7 +392,7 @@ export default function DrawingLayer({
 
       if (!editingText && selectedId && ['Delete', 'Backspace'].includes(event.key)) {
         event.preventDefault();
-        commit(current => current.filter(item => item.id !== selectedId));
+        removeDrawing(symbol, selectedId);
         setSelectedId(null);
         setSettingsOpen(false);
       }
@@ -606,9 +500,7 @@ export default function DrawingLayer({
     if (!drag) return;
     event.preventDefault();
 
-    setHistory(current => ({
-      ...current,
-      present: current.present.map(item => {
+    replaceDrawingsLive(symbol, drawings.map(item => {
         if (item.id !== drag.id || item.locked || lockAll) return item;
         if (drag.mode === 'a' || drag.mode === 'b') {
           if (item.type === 'long-position' || item.type === 'short-position') {
@@ -649,8 +541,7 @@ export default function DrawingLayer({
           b: movePoint(drag.original.b || drag.original.a),
           riskTarget: drag.original.riskTarget ? movePoint(drag.original.riskTarget) : item.riskTarget,
         };
-      }),
-    }));
+      }));
   };
 
   const finishPointer = event => {
@@ -683,11 +574,7 @@ export default function DrawingLayer({
     }
 
     if (drag?.before) {
-      setHistory(current => ({
-        past: [...current.past.slice(-99), cloneDrawings(drag.before)],
-        present: current.present,
-        future: [],
-      }));
+      commitLiveDrawingTransaction(symbol, drag.before);
     }
     setDrag(null);
   };
@@ -725,11 +612,7 @@ export default function DrawingLayer({
 
   const patchSelected = patch => {
     if (!selectedId) return;
-    commit(current => current.map(item => item.id === selectedId ? {
-      ...item,
-      ...patch,
-      style: patch.style ? { ...item.style, ...patch.style } : item.style,
-    } : item));
+    patchDrawing(symbol, selectedId, patch);
   };
 
   const deleteSelected = () => {
@@ -810,7 +693,7 @@ export default function DrawingLayer({
 
   const canUndo = history.past.length > 0;
   const canRedo = history.future.length > 0;
-  const visibleDrawings = drawings.filter(item => visibleOnTimeframe(item, timeframe));
+  const visibleDrawings = drawings.filter(item => visibleDrawingOnTimeframe(item, timeframe));
 
   return (
     <div className="pointer-events-none absolute inset-0 z-[16]">
