@@ -678,6 +678,8 @@ export default function DesktopTerminal({
                 chartMode={chartMode}
                 onActiveTimeframeChange={onTimeframeChange}
                 tradePlan={tradePlan}
+                tradePlanLots={lots}
+                accountCurrency={account?.currency || 'USD'}
                 onTradePlanChange={onTradePlanChange}
                 onUpdatePosition={onUpdatePosition}
               />
