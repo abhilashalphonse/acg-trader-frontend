@@ -50,14 +50,14 @@ export default function DesktopMultiChart({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-black">
-      <div className="flex h-8 shrink-0 items-center gap-1 border-b border-white/[0.07] bg-[#070707] px-2">
-        <span className="mr-1 text-[6.5px] font-black uppercase tracking-[0.08em] text-[#53677a]">Charts</span>
-        <button type="button" onClick={() => setLayout(1)} className={`grid size-6 place-items-center rounded ${layout===1?'bg-white/[0.06] text-[#63caff]':'text-[#60758a] hover:text-white'}`} title="Single chart"><Square size={11}/></button>
-        <button type="button" onClick={() => setLayout(2)} className={`grid size-6 place-items-center rounded ${layout===2?'bg-white/[0.06] text-[#63caff]':'text-[#60758a] hover:text-white'}`} title="Two charts"><Columns2 size={12}/></button>
-        <button type="button" onClick={() => setLayout(4)} className={`grid size-6 place-items-center rounded ${layout===4?'bg-white/[0.06] text-[#63caff]':'text-[#60758a] hover:text-white'}`} title="Four charts"><Grid2X2 size={12}/></button>
+      <div className="flex h-9 shrink-0 items-center gap-1 border-b border-white/[0.06] bg-[#07090B] px-2">
+        <span className="mr-1 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#6F8191]">Charts</span>
+        <button type="button" onClick={() => setLayout(1)} className={`grid size-7 place-items-center rounded ${layout===1?'bg-white/[0.06] text-[#59C7FF]':'text-[#6F8191] hover:text-white'}`} title="Single chart"><Square size={11}/></button>
+        <button type="button" onClick={() => setLayout(2)} className={`grid size-6 place-items-center rounded ${layout===2?'bg-white/[0.06] text-[#59C7FF]':'text-[#6F8191] hover:text-white'}`} title="Two charts"><Columns2 size={12}/></button>
+        <button type="button" onClick={() => setLayout(4)} className={`grid size-6 place-items-center rounded ${layout===4?'bg-white/[0.06] text-[#59C7FF]':'text-[#6F8191] hover:text-white'}`} title="Four charts"><Grid2X2 size={12}/></button>
         <div className="mx-1 h-4 w-px bg-white/[0.07]"/>
-        <button type="button" onClick={() => patch({ linked: !linked })} className={`flex h-6 items-center gap-1 rounded px-1.5 text-[6.5px] font-bold ${linked?'bg-[#0d1a22] text-[#63caff]':'text-[#60758a] hover:text-white'}`} title="Link symbols across charts">{linked?<Link2 size={10}/>:<Link2Off size={10}/>}Link symbols</button>
-        <span className="ml-auto text-[6.5px] text-[#53677a]">Active chart drives symbol selection</span>
+        <button type="button" onClick={() => patch({ linked: !linked })} className={`flex h-7 items-center gap-1.5 rounded px-2 text-[8px] font-semibold ${linked?'bg-[#0d1a22] text-[#59C7FF]':'text-[#6F8191] hover:text-white'}`} title="Link symbols across charts">{linked?<Link2 size={10}/>:<Link2Off size={10}/>}Link symbols</button>
+        <span className="ml-auto text-[8px] text-[#6F8191]">Active chart drives symbol selection</span>
       </div>
 
       <div className={`grid min-h-0 flex-1 gap-px bg-white/[0.08] ${cellGrid(layout)}`}>
@@ -72,13 +72,13 @@ export default function DesktopMultiChart({
           return (
             <section
               key={index}
-              className={`relative grid min-h-0 min-w-0 grid-rows-[30px_minmax(0,1fr)] bg-black ${isActive ? 'ring-1 ring-inset ring-[#315b72]' : ''}`}
+              className={`relative grid min-h-0 min-w-0 grid-rows-[34px_minmax(0,1fr)] bg-black ${isActive ? 'ring-1 ring-inset ring-[#315b72]' : ''}`}
               onMouseDown={() => {
                 patch({ activeCell: index });
                 if (symbol && symbol !== activeSymbol) onSelectSymbol(symbol);
               }}
             >
-              <div className="flex items-center gap-1.5 border-b border-white/[0.06] bg-[#080808] px-1.5">
+              <div className="flex items-center gap-1.5 border-b border-white/[0.06] bg-[#07090B] px-1.5">
                 <InstrumentAvatar instrument={instrument} size={18}/>
                 <select
                   value={symbol || ''}
@@ -87,20 +87,20 @@ export default function DesktopMultiChart({
                     updateCell(index, { symbol: next }, { activeCell: index });
                     onSelectSymbol(next);
                   }}
-                  className="max-w-[120px] bg-transparent text-[8px] font-black text-[#dce7ef] outline-none"
+                  className="max-w-[120px] bg-transparent text-[10px] font-semibold text-[#E6EDF3] outline-none"
                   aria-label={`Chart ${index + 1} symbol`}
                 >
-                  {markets.map(item => <option key={item.symbol} value={item.symbol} className="bg-[#0a0a0a]">{item.displaySymbol || item.symbol}</option>)}
+                  {markets.map(item => <option key={item.symbol} value={item.symbol} className="bg-[#0C1013]">{item.displaySymbol || item.symbol}</option>)}
                 </select>
                 <select
                   value={timeframe}
                   onChange={event => updateCell(index, { timeframe: event.target.value })}
-                  className="ml-auto bg-transparent font-mono text-[7px] font-bold text-[#71869a] outline-none"
+                  className="ml-auto bg-transparent font-mono text-[9px] font-semibold text-[#6F8191] outline-none"
                   aria-label={`Chart ${index + 1} timeframe`}
                 >
-                  {TIMEFRAMES.map(tf => <option key={tf} value={tf} className="bg-[#0a0a0a]">{tf}</option>)}
+                  {TIMEFRAMES.map(tf => <option key={tf} value={tf} className="bg-[#0C1013]">{tf}</option>)}
                 </select>
-                <span className={`size-1.5 rounded-full ${instrument?.live ? 'bg-[#38d6a2]' : instrument?.isStale ? 'bg-[#e7bd58]' : 'bg-[#4a5967]'}`}/>
+                <span className={`size-1.5 rounded-full ${instrument?.live ? 'bg-[#42D7A1]' : instrument?.isStale ? 'bg-[#E7BD58]' : 'bg-[#4a5967]'}`}/>
               </div>
 
               <div className="min-h-0 min-w-0">
