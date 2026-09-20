@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import ChartArea from './ChartArea.jsx';
 import DesktopOrderTicket from './desktop/DesktopOrderTicket.jsx';
+import DesktopWatchlist from './desktop/DesktopWatchlist.jsx';
 import ResizeHandle from './desktop/ResizeHandle.jsx';
 import PositionsPanel from './PositionsPanel.jsx';
 import PropRiskStrip from './PropRiskStrip.jsx';
@@ -144,7 +145,6 @@ export default function DesktopTerminal({
   const shellRef = useRef(null);
   const searchRef = useRef(null);
   const [activeNav, setActiveNav] = useState('trade');
-  const [search, setSearch] = useState('');
   const [notice, setNotice] = useState('');
   const [desktopLayout, setDesktopLayout] = useState(loadDesktopLayout);
   const favorite = watchlists?.isWatched?.(activeSymbol) === true;
@@ -175,16 +175,6 @@ export default function DesktopTerminal({
   const valuationStatus = String(account?.valuationStatus || 'WAITING').toUpperCase();
   const accountStatus = String(account?.status || 'UNKNOWN').toUpperCase();
   const canOpen = exposureAllowed && executableMarket(market) && accountStatus === 'ACTIVE' && account?.tradingEnabled === true && valuationStatus === 'LIVE';
-
-  const filteredMarkets = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    const watched = new Set(watchlists?.activeSymbols || []);
-    const base = !query && (activeNav === 'trade' || activeNav === 'watchlist')
-      ? markets.filter(item => watched.has(item.symbol))
-      : markets;
-    if (!query) return base;
-    return base.filter(item => `${item.symbol} ${item.displaySymbol || ''} ${item.name || ''} ${item.assetClass || ''}`.toLowerCase().includes(query));
-  }, [activeNav, markets, search, watchlists?.activeSymbols]);
 
   const toggleFullscreen = async () => {
     try {
@@ -316,44 +306,14 @@ export default function DesktopTerminal({
           </section>
 
           <aside className={`min-h-0 flex-col border-l border-white/[0.08] bg-[#080808] ${desktopLayout.sidebarCollapsed ? 'hidden' : 'flex'}`}>
-            <div className="flex h-11 shrink-0 items-center justify-between border-b border-white/[0.08] px-2.5">
-              <div className="min-w-0">
-                <strong className="block text-[9px] font-extrabold tracking-[0.08em] text-[#dce7f1]">{activeNav === 'markets' ? 'MARKETS' : 'WATCHLIST'}</strong>
-                <span className="mt-0.5 block truncate text-[7px] text-[#5f7388]">{activeNav === 'markets' ? `${markets.length} instruments` : `${watchlists?.activeList?.name || 'Favorites'} · ${watchlists?.activeSymbols?.length || 0}`}</span>
-              </div>
-              <button type="button" onClick={() => searchRef.current?.focus()} className="grid size-6 place-items-center rounded text-[#65798d] hover:bg-white/[0.03]" title="Search all markets"><Search size={13}/></button>
-            </div>
-
-            <div className="shrink-0 p-1.5">
-              <div className="flex h-7 items-center gap-2 rounded-md border border-white/[0.07] bg-black/20 px-2 text-[#687c91]"><Search size={11}/><input ref={searchRef} value={search} onChange={event => setSearch(event.target.value)} placeholder="Search markets" className="min-w-0 flex-1 bg-transparent text-[8px] text-[#c7d4e0] outline-none placeholder:text-[#52667a]"/></div>
-            </div>
-
-            <div className="grid shrink-0 grid-cols-[1fr_.66fr_.66fr_24px] border-y border-white/[0.07] px-2.5 py-1.5 text-[6.5px] font-bold uppercase tracking-[0.08em] text-[#52667a]"><span>Instrument</span><span className="text-right">Bid</span><span className="text-right">Ask</span><span /></div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              {filteredMarkets.map(item => {
-                const selected = item.symbol === activeSymbol;
-                const watched = watchlists?.isWatched?.(item.symbol) === true;
-                const statusLabel = item.sessionOpen === false ? 'CLOSED' : item.live ? 'LIVE' : item.isStale ? 'STALE' : String(item.marketState || 'WAITING').toUpperCase();
-                const statusClass = item.sessionOpen === false
-                  ? 'text-[#788b9d]'
-                  : item.live
-                    ? 'text-[#38d6a2]'
-                    : item.isStale
-                      ? 'text-[#e7bd58]'
-                      : statusLabel === 'ERROR' || statusLabel === 'SUBSCRIPTION_ERROR' || statusLabel === 'DISCONNECTED'
-                        ? 'text-[#ff7882]'
-                        : 'text-[#687d92]';
-                return (
-                  <div key={item.symbol} className={`grid grid-cols-[1fr_.66fr_.66fr_24px] items-center border-b border-white/[0.06] px-2.5 py-1 transition ${selected ? 'border-l-2 border-[#53c7ff] bg-white/[0.025]' : 'hover:bg-white/[0.02]'}`}>
-                    <button type="button" onClick={() => onSelectSymbol(item.symbol)} className="flex min-w-0 items-center gap-1.5 py-1 text-left"><InstrumentAvatar instrument={item} size={22}/><span className="min-w-0"><b className="block truncate text-[9px] text-[#dce7f1]">{item.displaySymbol || displaySymbol(item.symbol)}</b><small className={`mt-0.5 block truncate text-[6px] ${statusClass}`}>{statusLabel}</small></span></button>
-                    <button type="button" onClick={() => onSelectSymbol(item.symbol)} className="py-1.5 text-right font-mono text-[8px] font-bold text-[#a9bac9]">{item.bid || '—'}</button>
-                    <button type="button" onClick={() => onSelectSymbol(item.symbol)} className="py-1.5 text-right font-mono text-[8px] text-[#8ea1b5]">{item.ask || '—'}</button>
-                    <button type="button" onClick={() => watchlists?.toggleSymbol?.(item.symbol)} className={`grid size-6 place-items-center rounded ${watched ? 'text-[#f6c95d]' : 'text-[#53687b] hover:bg-white/[0.04] hover:text-[#f6c95d]'}`} title={watched ? 'Remove from watchlist' : 'Add to watchlist'} aria-label={watched ? `Remove ${item.symbol} from watchlist` : `Add ${item.symbol} to watchlist`}><Star size={11} fill={watched ? 'currentColor' : 'none'}/></button>
-                  </div>
-                );
-              })}
-            </div>
+            <DesktopWatchlist
+              markets={markets}
+              activeSymbol={activeSymbol}
+              onSelectSymbol={onSelectSymbol}
+              watchlists={watchlists}
+              mode={activeNav === 'markets' ? 'markets' : 'watchlist'}
+              searchRef={searchRef}
+            />
 
             <DesktopOrderTicket market={market} markets={markets} account={account} positions={positions} positionHistory={positionHistory} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} riskGuardSettings={riskGuardSettings} onRiskGuardSettingsChange={onRiskGuardSettingsChange}/>
           </aside>
