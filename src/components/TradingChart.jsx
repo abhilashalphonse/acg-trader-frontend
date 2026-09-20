@@ -145,7 +145,7 @@ export default function TradingChart({ symbol = 'EURUSD', instrument = null, tim
       layout: { background: { type: ColorType.Solid, color: chartTokens.background }, textColor: chartTokens.text, attributionLogo: true, fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif', fontSize: 10, panes: { separatorColor: '#1b1b1b', separatorHoverColor: 'rgba(83,199,255,0.18)', enableResize: true } },
       grid: { vertLines: { visible: true, color: chartTokens.gridline, style: LineStyle.Dotted }, horzLines: { visible: true, color: chartTokens.gridline, style: LineStyle.Dotted } },
       crosshair: { mode: CrosshairMode.Normal, vertLine: { visible: true, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: true, labelBackgroundColor: chartTokens.crosshairLabel }, horzLine: { visible: true, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: true, labelBackgroundColor: chartTokens.crosshairLabel } },
-      rightPriceScale: { visible: true, borderVisible: true, borderColor: '#242424', ticksVisible: true, scaleMargins: { top: 0.09, bottom: 0.24 } },
+      rightPriceScale: { visible: true, borderVisible: true, borderColor: '#242424', ticksVisible: true, scaleMargins: { top: 0.08, bottom: 0.10 } },
       timeScale: { visible: true, borderVisible: true, borderColor: '#242424', ticksVisible: true, timeVisible: true, secondsVisible: ['S1', 'S5', 'S15', 'S30'].includes(timeframe), rightOffset: 10, barSpacing: 7, minBarSpacing: 3, fixLeftEdge: false, lockVisibleTimeRangeOnResize: true },
       handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true }, handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
     });
@@ -174,7 +174,10 @@ export default function TradingChart({ symbol = 'EURUSD', instrument = null, tim
   }, [symbol, timeframe, chartMode, renderIndicators, decimals, minMove]);
 
   useEffect(() => { indicatorsRef.current = indicators; if (chartRef.current && barsRef.current.length) renderIndicators(chartRef.current, barsRef.current); }, [indicators, renderIndicators]);
-  useEffect(() => { volumeRef.current?.applyOptions({ visible: showVolume }); }, [showVolume, symbol, timeframe, chartMode]);
+  useEffect(() => {
+    volumeRef.current?.applyOptions({ visible: showVolume });
+    chartRef.current?.priceScale('right').applyOptions({ scaleMargins: { top: 0.08, bottom: showVolume ? 0.24 : 0.10 } });
+  }, [showVolume, symbol, timeframe, chartMode]);
   useEffect(() => {
     const series = seriesRef.current;
     if (!series) return;
