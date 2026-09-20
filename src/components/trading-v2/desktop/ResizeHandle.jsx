@@ -43,13 +43,18 @@ export default function ResizeHandle({
       aria-label={ariaLabel}
       onPointerDown={onPointerDown}
       onDoubleClick={onDoubleClick}
-      className={`group relative z-40 shrink-0 touch-none bg-transparent outline-none ${axis === 'x' ? 'w-2 cursor-col-resize' : 'h-2 cursor-row-resize'} ${className}`}
+      title={axis === 'y' ? 'Drag to resize chart and positions. Double-click to reset.' : ariaLabel}
+      className={`group relative z-50 shrink-0 touch-none outline-none ${axis === 'x' ? 'w-2 cursor-col-resize bg-transparent' : 'h-3 cursor-row-resize bg-[#090b0d]/95 hover:bg-[#0d1419]'} ${className}`}
       style={style}
     >
-      <span className={`absolute bg-white/[0.08] transition group-hover:bg-[#53c7ff]/80 ${axis === 'x' ? 'inset-y-0 left-1/2 w-px -translate-x-1/2' : 'inset-x-0 top-1/2 h-px -translate-y-1/2'}`} />
+      <span className={`absolute transition ${axis === 'x' ? 'inset-y-0 left-1/2 w-px -translate-x-1/2 bg-white/[0.08] group-hover:bg-[#53c7ff]/80' : 'inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white/[0.12] group-hover:bg-[#53c7ff]/80'}`} />
       {axis === 'y' && (
-        <span className="pointer-events-none absolute left-1/2 top-1/2 flex h-3 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/[0.08] bg-[#0b0e11]/95 shadow-[0_2px_10px_rgba(0,0,0,.35)] transition group-hover:border-[#53c7ff]/50">
-          <span className="h-px w-4 bg-[#6f8191] transition group-hover:bg-[#53c7ff]" />
+        <span className="pointer-events-none absolute left-1/2 top-1/2 flex h-4 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/[0.12] bg-[#11161a] shadow-[0_3px_12px_rgba(0,0,0,.5)] transition group-hover:border-[#53c7ff]/60 group-hover:bg-[#10202a]">
+          <span className="flex items-center gap-1">
+            <span className="size-1 rounded-full bg-[#6f8191] group-hover:bg-[#53c7ff]" />
+            <span className="size-1 rounded-full bg-[#6f8191] group-hover:bg-[#53c7ff]" />
+            <span className="size-1 rounded-full bg-[#6f8191] group-hover:bg-[#53c7ff]" />
+          </span>
         </span>
       )}
     </button>
