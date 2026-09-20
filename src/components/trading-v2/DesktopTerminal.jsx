@@ -458,13 +458,8 @@ export default function DesktopTerminal({
     }
     if (id === 'markets') {
       setDesktopLayout(current => {
-        const bounds = desktopHeightBounds(viewportHeight, current.dockCollapsed, current.dockHeight);
         if (activeNav !== 'markets') preMarketWatchlistHeightRef.current = current.watchlistHeight;
-        return {
-          ...current,
-          sidebarCollapsed: false,
-          watchlistHeight: Math.max(current.watchlistHeight || bounds.defaultWatchlist, bounds.marketFocusWatchlist),
-        };
+        return { ...current, sidebarCollapsed: false };
       });
       window.setTimeout(() => searchRef.current?.focus(), 0);
       return;
@@ -671,7 +666,11 @@ export default function DesktopTerminal({
 
           <aside
             className={`min-h-0 border-l border-white/[0.06] bg-[#07090B] ${desktopLayout.sidebarCollapsed ? 'hidden' : 'grid'}`}
-            style={{ gridTemplateRows: `${desktopLayout.watchlistHeight || 220}px 4px minmax(0,1fr)` }}
+            style={{
+              gridTemplateRows: activeNav === 'markets'
+                ? 'minmax(0,1fr)'
+                : `${desktopLayout.watchlistHeight || 220}px 4px minmax(0,1fr)`,
+            }}
           >
             <div className="min-h-0 overflow-hidden">
               <DesktopWatchlist
@@ -685,20 +684,24 @@ export default function DesktopTerminal({
               />
             </div>
 
-            <ResizeHandle
-              axis="y"
-              value={desktopLayout.watchlistHeight || 220}
-              min={heightBounds.watchlistMin}
-              max={heightBounds.watchlistMax}
-              onChange={updateWatchlistHeight}
-              onDoubleClick={toggleWatchlistFocus}
-              ariaLabel="Resize watchlist and order ticket"
-              className="w-full"
-            />
+            {activeNav !== 'markets' && (
+              <>
+                <ResizeHandle
+                  axis="y"
+                  value={desktopLayout.watchlistHeight || 220}
+                  min={heightBounds.watchlistMin}
+                  max={heightBounds.watchlistMax}
+                  onChange={updateWatchlistHeight}
+                  onDoubleClick={toggleWatchlistFocus}
+                  ariaLabel="Resize watchlist and order ticket"
+                  className="w-full"
+                />
 
-            <div className="min-h-0 overflow-y-auto [scrollbar-width:thin]">
-              <DesktopOrderTicket market={market} markets={markets} account={account} positions={positions} positionHistory={positionHistory} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} riskGuardSettings={riskGuardSettings} onRiskGuardSettingsChange={onRiskGuardSettingsChange}/>
-            </div>
+                <div className="min-h-0 overflow-y-auto [scrollbar-width:thin]">
+                  <DesktopOrderTicket market={market} markets={markets} account={account} positions={positions} positionHistory={positionHistory} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} riskGuardSettings={riskGuardSettings} onRiskGuardSettingsChange={onRiskGuardSettingsChange}/>
+                </div>
+              </>
+            )}
           </aside>
 
           <div className={`col-span-2 min-h-0 overflow-auto border-t border-white/[0.06] bg-[#07090B] ${desktopLayout.dockCollapsed ? 'hidden' : ''}`}>
