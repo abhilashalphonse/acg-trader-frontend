@@ -85,7 +85,20 @@ function normalizeAccount(account, valuation) {
   };
 }
 function sourceForViewport() { return typeof window !== 'undefined' && window.matchMedia?.('(max-width: 1023px)').matches ? 'MOBILE' : 'WEB'; }
-function errorMessage(error) { if (!error) return 'Trading command failed'; if (Array.isArray(error.details) && error.details.length) return `${error.message}: ${error.details.map(item => item.message).join(', ')}`; return error.message || 'Trading command failed'; }
+function errorMessage(error) {
+  if (!error) return 'Trading command failed';
+  if (error.code === 'INSUFFICIENT_MARGIN' && error.details && !Array.isArray(error.details)) {
+    const required = Number(error.details.requiredMargin);
+    const free = Number(error.details.freeMargin);
+    const currency = String(error.details.accountCurrency || 'USD');
+    const money = value => Number.isFinite(value)
+      ? new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 2 }).format(value)
+      : '—';
+    return `Insufficient free margin — requires ${money(required)}, available ${money(free)}.`;
+  }
+  if (Array.isArray(error.details) && error.details.length) return `${error.message}: ${error.details.map(item => item.message).join(', ')}`;
+  return error.message || 'Trading command failed';
+}
 
 export function useTradingTerminal(markets = []) {
   const auth = useTraderAuth();
