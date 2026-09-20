@@ -68,6 +68,7 @@ function formatMoney(value, currency = 'USD', signed = false) {
 export default function ExecutionPanel({
   market,
   focusMode = false,
+  desktopSidebar = false,
   lots: controlledLots,
   onLotsChange,
   sizingMode = 'lots',
@@ -272,9 +273,9 @@ export default function ExecutionPanel({
         <button type="button" onClick={() => setOrderPickerOpen(v => !v)} className="flex h-7 items-center gap-1 rounded-lg border border-white/[0.08] bg-black px-2.5 text-[8px] font-extrabold text-[#9cb0c3]">{orderTypes.find(([id]) => id === orderType)?.[1]} <ChevronDown size={10}/></button>
         <span className="text-[8px] text-[#60758a]">{orderType === 'market' ? 'Server market execution' : 'Server pending order'}</span>
       </div>
-      <div className={`grid ${focusMode ? 'grid-cols-[minmax(0,1fr)_94px_minmax(0,1fr)] gap-1.5' : 'grid-cols-[minmax(0,1fr)_88px_minmax(0,1fr)] gap-1.5 sm:grid-cols-[minmax(0,1fr)_100px_minmax(0,1fr)] sm:gap-2'}`}>
-        <button type="button" disabled={!canSubmitExposure} onClick={() => clickSide('sell')} className={`flex ${focusMode ? 'h-[58px] px-3' : 'h-[66px] px-3 sm:px-4'} min-w-0 flex-col items-start justify-center acg-execution-sell rounded-md border bg-black text-left text-[#ff5f6d] transition-colors disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.99]`}><span className="text-[10px] font-extrabold tracking-[0.045em]">SELL</span><strong className={`${focusMode ? 'text-[21px]' : 'text-[clamp(21px,6.2vw,27px)]'} mt-1 max-w-full whitespace-nowrap font-black tabular-nums leading-none tracking-[-0.04em] text-[#f9f3f4]`}>{market?.bid || '—'}</strong></button>
-        <div className={`grid ${focusMode ? 'h-[58px]' : 'h-[66px]'} grid-cols-2 grid-rows-[auto_auto_1fr] items-center rounded-md border border-white/[0.08] bg-black px-2 py-1 text-center`}>
+      <div className={`grid ${focusMode ? 'grid-cols-[minmax(0,1fr)_94px_minmax(0,1fr)] gap-1.5' : desktopSidebar ? 'grid-cols-[minmax(0,1fr)_82px_minmax(0,1fr)] gap-1.5' : 'grid-cols-[minmax(0,1fr)_88px_minmax(0,1fr)] gap-1.5 sm:grid-cols-[minmax(0,1fr)_100px_minmax(0,1fr)] sm:gap-2'}`}>
+        <button type="button" disabled={!canSubmitExposure} onClick={() => clickSide('sell')} className={`flex ${focusMode ? 'h-[58px] px-3' : desktopSidebar ? 'h-[56px] px-2.5' : 'h-[66px] px-3 sm:px-4'} min-w-0 flex-col items-start justify-center acg-execution-sell rounded-md border bg-black text-left text-[#ff5f6d] transition-colors disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.99]`}><span className="text-[10px] font-extrabold tracking-[0.045em]">SELL</span><strong className={`${focusMode ? 'text-[21px]' : desktopSidebar ? 'text-[17px]' : 'text-[clamp(21px,6.2vw,27px)]'} mt-1 max-w-full whitespace-nowrap font-black tabular-nums leading-none tracking-[-0.04em] text-[#f9f3f4]`}>{market?.bid || '—'}</strong></button>
+        <div className={`grid ${focusMode ? 'h-[58px]' : desktopSidebar ? 'h-[56px]' : 'h-[66px]'} grid-cols-2 grid-rows-[auto_auto_1fr] items-center rounded-md border border-white/[0.08] bg-black px-2 py-1 text-center`}>
           {sizingMode === 'lots' ? (
             <div className="col-span-2 mx-auto flex min-w-0 items-center justify-center">
               <input
@@ -313,7 +314,7 @@ export default function ExecutionPanel({
             <button type="button" onClick={() => sizingMode === 'lots' ? increase() : onRiskPercentChange(Math.min(5, +(riskPercent + 0.1).toFixed(2)))} className="grid h-5 w-[29px] place-items-center rounded-md border border-white/[0.08] bg-[#080808] text-[#a0a0a5]"><Plus size={13}/></button>
           </div>
         </div>
-        <button type="button" disabled={!canSubmitExposure} onClick={() => clickSide('buy')} className={`flex ${focusMode ? 'h-[58px] px-3' : 'h-[66px] px-3 sm:px-4'} min-w-0 flex-col items-end justify-center acg-execution-buy rounded-md border bg-black text-right text-[#2ddb9f] transition-colors disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.99]`}><span className="text-[10px] font-extrabold tracking-[0.045em]">BUY</span><strong className={`${focusMode ? 'text-[21px]' : 'text-[clamp(21px,6.2vw,27px)]'} mt-1 max-w-full whitespace-nowrap font-black tabular-nums leading-none tracking-[-0.04em] text-[#f3fbf8]`}>{market?.ask || '—'}</strong></button>
+        <button type="button" disabled={!canSubmitExposure} onClick={() => clickSide('buy')} className={`flex ${focusMode ? 'h-[58px] px-3' : desktopSidebar ? 'h-[56px] px-2.5' : 'h-[66px] px-3 sm:px-4'} min-w-0 flex-col items-end justify-center acg-execution-buy rounded-md border bg-black text-right text-[#2ddb9f] transition-colors disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.99]`}><span className="text-[10px] font-extrabold tracking-[0.045em]">BUY</span><strong className={`${focusMode ? 'text-[21px]' : desktopSidebar ? 'text-[17px]' : 'text-[clamp(21px,6.2vw,27px)]'} mt-1 max-w-full whitespace-nowrap font-black tabular-nums leading-none tracking-[-0.04em] text-[#f3fbf8]`}>{market?.ask || '—'}</strong></button>
       </div>
     </>
   );
@@ -321,9 +322,9 @@ export default function ExecutionPanel({
   if (focusMode) return <section className="relative shrink-0 border-t border-white/[0.08] bg-[#080808]/98 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 ">{compactControls}</section>;
 
   return (
-    <section className="relative mt-2.5">
+    <section className={`relative ${desktopSidebar ? 'mt-1.5' : 'mt-2.5'}`}>
       {compactControls}
-      <div className="mt-2 flex min-h-7 items-center gap-2 overflow-x-auto whitespace-nowrap px-0.5 text-[9px] font-medium text-[#7a8ba0] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"><span>{orderType === 'market' ? (sizingMode === 'risk' ? 'Planning' : 'Spread') : 'Pending'} <b className="ml-1 font-semibold text-[#b6c2d0]">{marketHint}</b></span><span className="h-3 w-px shrink-0 bg-[#101010]"/><span>Commission <b className="ml-1 font-semibold text-[#b6c2d0]">{formatCommission(market?.commissionPerLot)}</b></span><span className="h-3 w-px shrink-0 bg-[#101010]"/><span>Leverage <b className="ml-1 font-semibold text-[#b6c2d0]">{effectiveLeverage(account, market) ? `1:${effectiveLeverage(account, market)}` : '—'}</b></span></div>
+      <div className={`${desktopSidebar ? 'mt-1.5 min-h-6 text-[8px]' : 'mt-2 min-h-7 text-[9px]'} flex items-center gap-2 overflow-x-auto whitespace-nowrap px-0.5 font-medium text-[#7a8ba0] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"><span>{orderType === 'market' ? (sizingMode === 'risk' ? 'Planning' : 'Spread') : 'Pending'} <b className="ml-1 font-semibold text-[#b6c2d0]">{marketHint}</b></span><span className="h-3 w-px shrink-0 bg-[#101010]"/><span>Commission <b className="ml-1 font-semibold text-[#b6c2d0]">{formatCommission(market?.commissionPerLot)}</b></span><span className="h-3 w-px shrink-0 bg-[#101010]"/><span>Leverage <b className="ml-1 font-semibold text-[#b6c2d0]">{effectiveLeverage(account, market) ? `1:${effectiveLeverage(account, market)}` : '—'}</b></span></div>
     </section>
   );
 }
