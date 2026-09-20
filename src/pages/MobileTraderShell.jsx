@@ -14,7 +14,7 @@ import HistorySection from '../components/trading-v2/HistorySection.jsx';
 import AccountSection from '../components/trading-v2/AccountSection.jsx';
 import { useTradingTerminal } from '../hooks/useTradingTerminal.js';
 import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
-import { calculateRiskSizedLots, estimateStopRisk } from '../utils/tradingRisk.js';
+import { calculateRiskOrderSizing, calculateRiskSizedLots, defaultPlannerStopDistance, estimateStopRisk } from '../utils/tradingRisk.js';
 import { exposureAvailability } from '../utils/exposureAvailability.js';
 import {
   normalizePriceToTick,
@@ -80,6 +80,16 @@ function estimatedRisk(plan, riskPercent, manualLots, equity, instrument, accoun
     : Number(plan.manualLots ?? manualLots);
   if (sizedLots == null) return null;
   return estimateStopRisk(plan, normalizeVolumeToStep(sizedLots, instrument), instrument, accountCurrency);
+}
+
+function formatMoneyForNotice(value, currency = 'USD') {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '—';
+  try {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD', maximumFractionDigits: 2 }).format(number);
+  } catch {
+    return `${number.toFixed(2)} ${currency || ''}`.trim();
+  }
 }
 
 function stamp() {
@@ -322,8 +332,9 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     if (requestedType === 'stop' || requestedType === 'stop-limit') entry = side === 'buy' ? marketPrice + 5 * pip : marketPrice - 5 * pip;
     const sideUpper = String(side).toUpperCase();
     entry = normalizePriceToTick(entry, market, pendingPriceDirection(requestedType, sideUpper, 'entry'));
-    const sl = normalizeProtectionPrice(side === 'buy' ? entry - 4.2 * pip : entry + 4.2 * pip, market, sideUpper, 'sl');
-    const tp = normalizeProtectionPrice(side === 'buy' ? entry + 8.4 * pip : entry - 8.4 * pip, market, sideUpper, 'tp');
+    const stopDistance = defaultPlannerStopDistance(market, entry) || 10 * pip;
+    const sl = normalizeProtectionPrice(side === 'buy' ? entry - stopDistance : entry + stopDistance, market, sideUpper, 'sl');
+    const tp = normalizeProtectionPrice(side === 'buy' ? entry + stopDistance * 2 : entry - stopDistance * 2, market, sideUpper, 'tp');
     const limitPrice = requestedType === 'stop-limit'
       ? normalizePriceToTick(side === 'buy' ? entry + 1.5 * pip : entry - 1.5 * pip, market, pendingPriceDirection(requestedType, sideUpper, 'limit'))
       : null;
@@ -341,8 +352,27 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const executePlan = async () => {
     if (!tradePlan || trading.commandState.pending) return;
     if (!exposure.allowed) { showNotice(exposure.reason); return; }
-    const calculated = calculatedLots(tradePlan, riskPercent, tradePlan.manualLots ?? lots, account.equity, market, account.currency);
-    if (calculated == null) { showNotice('Risk % sizing is unavailable because this instrument P&L requires currency conversion. Use Lots sizing.'); return; }
+    let calculated;
+    if (tradePlan.sizingMode === 'risk') {
+      const sizing = calculateRiskOrderSizing(tradePlan, riskPercent, account, market);
+      if (!sizing) {
+        showNotice('Risk % sizing is unavailable because this instrument P&L requires currency conversion. Use Lots sizing.');
+        return;
+      }
+      if (!sizing.canExecute) {
+        if (sizing.blockReason === 'INSUFFICIENT_MARGIN') {
+          showNotice(`Risk size requires ${formatMoneyForNotice(sizing.requiredMargin, account.currency)} margin; only ${formatMoneyForNotice(sizing.freeMargin, account.currency)} is free.`);
+        } else if (sizing.blockReason === 'MAX_VOLUME') {
+          showNotice(`Selected risk requires ${sizing.requestedRaw.toFixed(2)} lots, above the instrument maximum. Widen the stop or reduce risk.`);
+        } else {
+          showNotice('The minimum tradable volume exceeds the selected risk. Increase risk or use Lots sizing.');
+        }
+        return;
+      }
+      calculated = sizing.requestedLots;
+    } else {
+      calculated = Math.max(0.01, Number(tradePlan.manualLots ?? lots) || 0.01);
+    }
     const volume = normalizeVolumeToStep(calculated, market);
     if (tradePlan.pending) {
       const request = {
