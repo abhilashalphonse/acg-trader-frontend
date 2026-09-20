@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, Minus, Plus, X, Check, SlidersHorizontal, Clock3 } from 'lucide-react';
 import { decimalPlaces, normalizeVolumeToStep } from '../../utils/tradingCommandNormalization.js';
-import { calculateRiskSizedLots, estimateStopRisk, riskSizingSupported } from '../../utils/tradingRisk.js';
+import { calculateRiskOrderSizing, effectiveLeverage, estimateStopRisk, riskSizingSupported } from '../../utils/tradingRisk.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 
 const orderTypes = [
@@ -29,12 +29,14 @@ function getPlanMetrics(plan, riskPercent, manualLots = 0.1, market, account) {
   const slPips = Math.max(0.1, Math.abs(entry - sl) / pipSize);
   const tpPips = Math.max(0.1, Math.abs(tp - entry) / pipSize);
   const supported = riskSizingSupported(market, account?.currency);
-  const riskLots = calculateRiskSizedLots(plan, riskPercent, account?.equity, market, account?.currency);
-  const requestedLots = plan.sizingMode === 'risk' ? (riskLots ?? manualLots) : manualLots;
+  const riskSizing = plan.sizingMode === 'risk'
+    ? calculateRiskOrderSizing(plan, riskPercent, account, market)
+    : null;
+  const requestedLots = plan.sizingMode === 'risk' ? (riskSizing?.requestedLots ?? manualLots) : manualLots;
   const lots = normalizeVolumeToStep(requestedLots, market);
   const riskAmount = estimateStopRisk(plan, lots, market, account?.currency);
   const reward = riskAmount == null ? null : riskAmount * (tpPips / slPips);
-  return { slPips, tpPips, riskDollars: riskAmount, lots, rr: tpPips / slPips, reward, riskSupported: supported };
+  return { slPips, tpPips, riskDollars: riskAmount, lots, rr: tpPips / slPips, reward, riskSupported: supported, riskSizing };
 }
 
 function Metric({ label, value }) {
@@ -143,12 +145,21 @@ export default function ExecutionPanel({
   const metrics = useMemo(() => getPlanMetrics(tradePlan, riskPercent, tradePlan?.manualLots ?? lots, market, account), [account, market, tradePlan, riskPercent, lots]);
   const executableQuote = finiteQuote(market?.bid) && finiteQuote(market?.ask) && market?.isStale !== true && market?.sessionOpen !== false && !['WAITING', 'DISCONNECTED', 'ERROR', 'DISABLED', 'STALE'].includes(String(market?.marketState || '').toUpperCase());
   const riskModeSupported = sizingMode !== 'risk' || riskSizingSupported(market, account?.currency);
-  const canSubmitExposure = executableQuote && exposureAllowed && riskModeSupported;
+  const riskConstraint = tradePlan && sizingMode === 'risk' ? metrics?.riskSizing : null;
+  const riskOrderExecutable = !riskConstraint || riskConstraint.canExecute !== false;
+  const canSubmitExposure = executableQuote && exposureAllowed && riskModeSupported && riskOrderExecutable;
   const pipSize = Number(market?.pipSize);
   const bid = Number(market?.bid);
   const ask = Number(market?.ask);
   const spreadPips = Number.isFinite(pipSize) && pipSize > 0 && Number.isFinite(bid) && Number.isFinite(ask) ? Math.abs(ask - bid) / pipSize : null;
-  const marketHint = !exposureAllowed ? exposureBlockReason : !riskModeSupported ? 'Risk % sizing requires the instrument P&L currency to match the account currency' : market?.sessionOpen === false ? 'Session closed' : market?.isStale ? 'Quote stale' : !executableQuote ? 'Waiting for quote' : orderType === 'market' ? (sizingMode === 'risk' ? 'Tap Buy/Sell' : `${spreadPips?.toFixed(1) ?? '—'} pips`) : 'Tap side to place on chart';
+  const riskConstraintHint = riskConstraint?.blockReason === 'INSUFFICIENT_MARGIN'
+    ? `Needs ${formatMoney(riskConstraint.requiredMargin, account?.currency)} margin · ${formatMoney(riskConstraint.freeMargin, account?.currency)} free`
+    : riskConstraint?.blockReason === 'MAX_VOLUME'
+      ? `Selected risk needs ${riskConstraint.requestedRaw.toFixed(2)} lots · instrument max ${Number(market?.maxVolume || 0).toFixed(2)}`
+      : riskConstraint?.blockReason === 'MIN_VOLUME'
+        ? `Minimum ${Number(market?.minVolume || 0).toFixed(2)} lots exceeds the selected risk`
+        : null;
+  const marketHint = !exposureAllowed ? exposureBlockReason : !riskModeSupported ? 'Risk % sizing requires the instrument P&L currency to match the account currency' : riskConstraintHint || (market?.sessionOpen === false ? 'Session closed' : market?.isStale ? 'Quote stale' : !executableQuote ? 'Waiting for quote' : orderType === 'market' ? (sizingMode === 'risk' ? 'Tap Buy/Sell' : `${spreadPips?.toFixed(1) ?? '—'} pips`) : 'Tap side to place on chart');
 
   const clickSide = side => {
     if (!canSubmitExposure || !market?.symbol) return;
@@ -241,6 +252,13 @@ export default function ExecutionPanel({
         )}
 
         <div className="mt-1.5 flex items-center justify-between rounded-md border border-white/[0.08] bg-[#101010] px-3 py-2 text-[10px]"><span className="text-[#7f91a4]">Risk <b className="ml-1 text-[#f2f5f8]">{formatMoney(metrics?.riskDollars, account?.currency)}</b></span><span className="text-[#7f91a4]">Potential <b className="ml-1 text-[#55dba9]">{formatMoney(metrics?.reward, account?.currency, true)}</b></span><span className="text-[#7f91a4]">TP <b className="ml-1 text-[#f2f5f8]">{metrics?.tpPips.toFixed(1)}p</b></span></div>
+        {metrics?.riskSizing?.requiredMargin != null && (
+          <div className={`mt-1.5 flex items-center justify-between rounded-md border px-3 py-2 text-[9px] ${metrics.riskSizing.canExecute ? 'border-white/[0.08] bg-[#080808] text-[#718398]' : 'border-[#5b3b23] bg-[#171008] text-[#d8a56e]'}`}>
+            <span>Margin <b className="ml-1 text-[#dce5ed]">{formatMoney(metrics.riskSizing.requiredMargin, account?.currency)}</b></span>
+            <span>Free <b className="ml-1 text-[#dce5ed]">{formatMoney(metrics.riskSizing.freeMargin, account?.currency)}</b></span>
+            {tradePlan.pending && <span>Rechecked at trigger</span>}
+          </div>
+        )}
 
         <div className="mt-2 grid grid-cols-2 gap-2">{isOpen ? <><button type="button" onClick={() => onModifyPlan(isModifying ? 'open' : 'modifying')} className="h-11 rounded-md border border-white/[0.08] bg-[#101010] text-[12px] font-bold text-[#dbe5ed]"><SlidersHorizontal size={14} className="mr-1 inline"/>{isModifying ? 'Done' : 'Modify'}</button><button type="button" onClick={onCancelPlan} className="h-11 rounded-md border border-[#8a2b39] bg-[#3b1720] text-[12px] font-bold text-[#ff818b]">Close</button></> : <><button type="button" onClick={onCancelPlan} className="h-11 rounded-md border border-white/[0.08] bg-[#101010] text-[12px] font-bold text-[#b8c5d0]">Cancel</button><button type="button" disabled={!canSubmitExposure} onClick={onExecutePlan} className={`h-11 rounded-md text-[12px] font-black disabled:cursor-not-allowed disabled:opacity-40 ${tradePlan.side === 'buy' ? 'border border-[#16865f] bg-[#0c5b45] text-[#6df0bd]' : 'border border-[#8a2b39] bg-[#4a1b25] text-[#ff818b]'}`}><Check size={14} className="mr-1 inline"/>{tradePlan.pending ? (tradePlan.editingOrderId ? 'Update Order' : 'Place Order') : `Execute ${side}`}</button></>}</div>
       </section>
@@ -305,7 +323,7 @@ export default function ExecutionPanel({
   return (
     <section className="relative mt-2.5">
       {compactControls}
-      <div className="mt-2 flex min-h-7 items-center gap-2 overflow-x-auto whitespace-nowrap px-0.5 text-[9px] font-medium text-[#7a8ba0] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"><span>{orderType === 'market' ? (sizingMode === 'risk' ? 'Planning' : 'Spread') : 'Pending'} <b className="ml-1 font-semibold text-[#b6c2d0]">{marketHint}</b></span><span className="h-3 w-px shrink-0 bg-[#101010]"/><span>Commission <b className="ml-1 font-semibold text-[#b6c2d0]">{formatCommission(market?.commissionPerLot)}</b></span><span className="h-3 w-px shrink-0 bg-[#101010]"/><span>Leverage <b className="ml-1 font-semibold text-[#b6c2d0]">{market?.defaultLeverage ? `1:${market.defaultLeverage}` : '—'}</b></span></div>
+      <div className="mt-2 flex min-h-7 items-center gap-2 overflow-x-auto whitespace-nowrap px-0.5 text-[9px] font-medium text-[#7a8ba0] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"><span>{orderType === 'market' ? (sizingMode === 'risk' ? 'Planning' : 'Spread') : 'Pending'} <b className="ml-1 font-semibold text-[#b6c2d0]">{marketHint}</b></span><span className="h-3 w-px shrink-0 bg-[#101010]"/><span>Commission <b className="ml-1 font-semibold text-[#b6c2d0]">{formatCommission(market?.commissionPerLot)}</b></span><span className="h-3 w-px shrink-0 bg-[#101010]"/><span>Leverage <b className="ml-1 font-semibold text-[#b6c2d0]">{effectiveLeverage(account, market) ? `1:${effectiveLeverage(account, market)}` : '—'}</b></span></div>
     </section>
   );
 }
