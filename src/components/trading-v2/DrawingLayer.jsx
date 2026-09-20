@@ -585,7 +585,21 @@ export default function DrawingLayer({
     if (!screen || !data) return;
 
     if (draft) {
-      setDraft(current => current ? { ...current, b: data } : current);
+      setDraft(current => {
+        if (!current) return current;
+        if (current.type === 'long-position' || current.type === 'short-position') {
+          const entry = Number(current.a?.price);
+          const pointer = Number(data.price);
+          const distance = Math.abs(pointer - entry);
+          const fallback = Number(snapStep) > 0 ? Number(snapStep) * 10 : Math.max(Math.abs(entry) * 0.001, 0.0001);
+          const riskDistance = Number.isFinite(distance) && distance > 0 ? distance : fallback;
+          const isLong = current.type === 'long-position';
+          const sl = isLong ? entry - riskDistance : entry + riskDistance;
+          const tp = isLong ? entry + riskDistance * 2 : entry - riskDistance * 2;
+          return { ...current, b: { ...data, price: sl }, riskTarget: { ...data, price: tp } };
+        }
+        return { ...current, b: data };
+      });
       return;
     }
 
@@ -722,6 +736,7 @@ export default function DrawingLayer({
       a: { ...selected.a },
       b: selected.b ? { ...selected.b } : selected.b,
       style: { ...selected.style },
+      riskTarget: selected.riskTarget ? { ...selected.riskTarget } : null,
       locked: false,
     };
     commit(current => [...current, duplicate]);
