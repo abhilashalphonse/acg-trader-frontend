@@ -30,6 +30,7 @@ import DesktopWatchlist from './desktop/DesktopWatchlist.jsx';
 import ResizeHandle from './desktop/ResizeHandle.jsx';
 import PositionsPanel from './PositionsPanel.jsx';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
+import IndicatorManager from './IndicatorManager.jsx';
 import { calculateAccountRiskSummary } from '../../utils/accountRisk.js';
 
 const timeframes = [['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], ['1H', '1H'], ['4H', '4H'], ['1D', '1D'], ['1W', '1W']];
@@ -232,7 +233,12 @@ export default function DesktopTerminal({
   onModifyPending = () => {},
   onManualOrder = () => {},
   indicators = [],
-  onOpenIndicators = () => {},
+  indicatorFavorites = [],
+  onAddIndicator = () => {},
+  onRemoveIndicator = () => {},
+  onToggleIndicator = () => {},
+  onUpdateIndicator = () => {},
+  onToggleIndicatorFavorite = () => {},
   onIndicatorsChange = () => {},
   account = {},
   plannedRisk = 0,
@@ -276,6 +282,8 @@ export default function DesktopTerminal({
   const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
   const [chartMenuOpen, setChartMenuOpen] = useState(false);
   const [riskPopoverOpen, setRiskPopoverOpen] = useState(false);
+  const [indicatorPanelOpen, setIndicatorPanelOpen] = useState(false);
+  const [indicatorFocusId, setIndicatorFocusId] = useState(null);
   const [multiChart, setMultiChart] = useState(() => loadMultiChart(activeSymbol, timeframe, indicators));
   const selectedPosition = positions.find(position => String(position?.id) === String(selectedPositionId)) || null;
 
@@ -706,7 +714,28 @@ export default function DesktopTerminal({
               <div className="flex items-center gap-0.5">
                 <button type="button" onClick={() => onChartModeChange('candles')} disabled={Boolean(tradePlan && !tradePlan.open)} className={`grid size-6 place-items-center rounded ${chartMode === 'candles' ? 'bg-white/[0.05] text-[#59C7FF]' : 'text-[#6F8191]'} disabled:opacity-30`} title="Candlesticks"><CandlestickChart size={13}/></button>
                 <button type="button" onClick={() => onChartModeChange('line')} disabled={Boolean(tradePlan && !tradePlan.open)} className={`grid size-6 place-items-center rounded ${chartMode === 'line' ? 'bg-white/[0.05] text-[#59C7FF]' : 'text-[#6F8191]'} disabled:opacity-30`} title="Line chart"><ChartNoAxesCombined size={13}/></button>
-                <button type="button" onClick={onOpenIndicators} className={`relative grid size-6 place-items-center rounded text-[9px] font-black hover:text-white ${indicators.length ? 'bg-white/[0.05] text-[#59C7FF]' : 'text-[#6F8191]'}`} title="Indicators">ƒx{indicators.length > 0 && <span className="absolute -right-1 -top-1 grid size-3 place-items-center rounded-full bg-[#151515] text-[5px] text-white">{indicators.length}</span>}</button>
+                <div className="relative">
+                  <button type="button" onClick={() => { setIndicatorFocusId(null); setIndicatorPanelOpen(value => !value); }} className={`relative grid size-6 place-items-center rounded text-[9px] font-black hover:text-white ${indicatorPanelOpen || indicators.length ? 'bg-white/[0.05] text-[#59C7FF]' : 'text-[#6F8191]'}`} title="Indicators">ƒx{indicators.length > 0 && <span className="absolute -right-1 -top-1 grid size-3 place-items-center rounded-full bg-[#151515] text-[5px] text-white">{indicators.length}</span>}</button>
+                  {indicatorPanelOpen && (
+                    <div className="absolute left-0 top-8 z-[110] w-[390px] max-h-[min(680px,calc(100dvh-150px))] overflow-y-auto rounded-lg border border-white/[0.10] bg-[#0B0D0F]/98 p-3 shadow-[0_24px_70px_rgba(0,0,0,.68)] backdrop-blur-xl [scrollbar-width:thin]">
+                      <div className="mb-3 flex items-center justify-between border-b border-white/[0.07] pb-2.5">
+                        <div><strong className="block text-[11px] text-[#EDF3F7]">Indicators</strong><span className="mt-0.5 block text-[8px] text-[#687D91]">Active chart · {activeSymbol} · {activeChartTimeframe}</span></div>
+                        <button type="button" onClick={() => setIndicatorPanelOpen(false)} className="grid size-7 place-items-center rounded text-[#7D91A4] hover:bg-white/[0.04] hover:text-white"><X size={13}/></button>
+                      </div>
+                      <IndicatorManager
+                        desktop
+                        applied={indicators}
+                        favorites={indicatorFavorites}
+                        onAdd={onAddIndicator}
+                        onRemove={onRemoveIndicator}
+                        onToggleVisible={onToggleIndicator}
+                        onUpdate={onUpdateIndicator}
+                        onToggleFavorite={onToggleIndicatorFavorite}
+                        focusInstanceId={indicatorFocusId}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="ml-auto flex items-center gap-1">
                 <div className="relative">
@@ -762,6 +791,12 @@ export default function DesktopTerminal({
                 onActiveIndicatorsChange={nextIndicators => {
                   if (!sameIndicators(nextIndicators, indicators)) onIndicatorsChange(cloneIndicators(nextIndicators));
                 }}
+                onToggleIndicator={onToggleIndicator}
+                onOpenIndicatorSettings={instanceId => {
+                  setIndicatorFocusId(instanceId);
+                  setIndicatorPanelOpen(true);
+                }}
+                onRemoveIndicator={onRemoveIndicator}
                 positions={positions}
                 pendingOrders={pendingOrders}
                 onModifyPending={onModifyPending}
