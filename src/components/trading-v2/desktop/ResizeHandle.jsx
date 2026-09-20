@@ -10,6 +10,7 @@ export default function ResizeHandle({
   ariaLabel = 'Resize panel',
   deltaMultiplier = 1,
   style,
+  onDoubleClick,
 }) {
   const onPointerDown = event => {
     event.preventDefault();
@@ -41,6 +42,7 @@ export default function ResizeHandle({
       type="button"
       aria-label={ariaLabel}
       onPointerDown={onPointerDown}
+      onDoubleClick={onDoubleClick}
       className={`group relative z-40 shrink-0 touch-none bg-transparent outline-none ${axis === 'x' ? 'w-1 cursor-col-resize' : 'h-1 cursor-row-resize'} ${className}`}
       style={style}
     >
