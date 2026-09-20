@@ -446,7 +446,7 @@ export default function DesktopOrderTicket({
               key={id}
               type="button"
               onClick={() => setProtectionMode(current => ({ ...current, [field]: id }))}
-              className={`h-7 rounded text-[7px] font-bold ${mode === id ? 'bg-white/[0.07] text-[#E6EDF3]' : 'text-[#687c90] hover:bg-white/[0.03] hover:text-white'}`}
+              className={`h-7 rounded text-[8px] font-bold ${mode === id ? 'bg-white/[0.07] text-[#E6EDF3]' : 'text-[#687c90] hover:bg-white/[0.03] hover:text-white'}`}
             >
               {label}
             </button>
@@ -461,7 +461,7 @@ export default function DesktopOrderTicket({
             className={`h-9 min-w-0 bg-transparent font-mono text-[11px] font-bold outline-none ${isSl ? 'text-[#FF6F7A]' : 'text-[#42D7A1]'}`}
             aria-label={`${isSl ? 'Stop loss' : 'Take profit'} ${mode}`}
           />
-          <span className="whitespace-nowrap text-[7px] font-semibold text-[#6F8191]">
+          <span className="whitespace-nowrap text-[8px] font-semibold text-[#6F8191]">
             {mode === 'price' ? formatInstrumentPrice(tradePlan?.[field], market) : mode === 'distance' ? distanceUnit : currency}
           </span>
         </div>
@@ -475,7 +475,7 @@ export default function DesktopOrderTicket({
           />
         </div>
         <div className="mt-1.5 flex justify-end">
-          <button type="button" onClick={() => removeProtection(field)} className="h-6 rounded px-2 text-[7px] font-semibold text-[#6F8191] hover:bg-white/[0.03] hover:text-[#E6EDF3]">Remove</button>
+          <button type="button" onClick={() => removeProtection(field)} className="h-6 rounded px-2 text-[8px] font-semibold text-[#6F8191] hover:bg-white/[0.03] hover:text-[#E6EDF3]">Remove</button>
         </div>
       </div>
     );
@@ -487,9 +487,9 @@ export default function DesktopOrderTicket({
         <div className="flex min-w-0 items-center gap-2">
           <strong className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#E6EDF3]">Order</strong>
           <span className="truncate text-[9px] font-semibold text-[#A1AFBC]">{market?.displaySymbol || market?.symbol || '—'}</span>
-          <span className={`text-[7px] font-bold ${market?.live ? 'text-[#42D7A1]' : market?.isStale ? 'text-[#E7BD58]' : 'text-[#6F8191]'}`}>● {liveLabel}</span>
+          <span className={`text-[8px] font-bold ${market?.live ? 'text-[#42D7A1]' : market?.isStale ? 'text-[#E7BD58]' : 'text-[#6F8191]'}`}>● {liveLabel}</span>
         </div>
-        <span className="text-[7px] font-semibold text-[#6F8191]">{orderFamily === 'market' ? '1-click' : String(orderType).replace('-', ' ')}</span>
+        <span className="text-[8px] font-semibold text-[#6F8191]">{orderFamily === 'market' ? '1-click' : String(orderType).replace('-', ' ')}</span>
       </div>
 
       <div className="space-y-2 overflow-y-auto px-2.5 py-2.5 [scrollbar-width:thin]">
@@ -509,7 +509,7 @@ export default function DesktopOrderTicket({
         <div className="rounded-md border border-white/[0.06] bg-[#0C1013] p-2">
           <div className="mb-1.5 flex items-center justify-between">
             <strong className="text-[8px] font-bold uppercase tracking-[0.08em] text-[#A1AFBC]">Position size</strong>
-            <span className="text-[7px] text-[#6F8191]">{minVolume}–{maxVolume} lots</span>
+            <span className="text-[8px] text-[#6F8191]">{minVolume}–{maxVolume} lots</span>
           </div>
           <div className="grid grid-cols-[34px_minmax(0,1fr)_34px] items-center rounded-md border border-white/[0.06] bg-black">
             <button type="button" onClick={() => nudgeLots(-1)} className="grid h-10 place-items-center text-[#6F8191] hover:bg-white/[0.025] hover:text-white" aria-label="Decrease lot size"><Minus size={12}/></button>
@@ -529,21 +529,21 @@ export default function DesktopOrderTicket({
                 inputMode="decimal"
                 aria-label="Lot size"
               />
-              <span className="ml-1 text-[7px] font-semibold text-[#64788d]">lots</span>
+              <span className="ml-1 text-[8px] font-semibold text-[#64788d]">lots</span>
             </div>
             <button type="button" onClick={() => nudgeLots(1)} className="grid h-10 place-items-center text-[#6F8191] hover:bg-white/[0.025] hover:text-white" aria-label="Increase lot size"><Plus size={12}/></button>
           </div>
           {appliedRiskSizing && Math.abs(Number(appliedRiskSizing.lots) - Number(normalizedLots)) < volumeStep / 2 && (
             <div className="mt-1.5 flex items-center justify-between rounded border border-[#315b72]/60 bg-[#0d1a22]/55 px-2 py-1">
-              <span className="text-[7px] font-semibold text-[#59C7FF]">Risk-based size applied</span>
-              <strong className="font-mono text-[7px] text-[#9bdcff]">{Number(appliedRiskSizing.percent).toFixed(2)}%</strong>
+              <span className="text-[8px] font-semibold text-[#59C7FF]">Risk-based size applied</span>
+              <strong className="font-mono text-[8px] text-[#9bdcff]">{Number(appliedRiskSizing.percent).toFixed(2)}%</strong>
             </div>
           )}
           <div className="mt-1.5 grid grid-cols-5 gap-1">
             {LOT_PRESETS.filter(value => value >= minVolume && value <= maxVolume).map(value => (
-              <button key={value} type="button" onClick={() => setLots(value)} className={`h-7 rounded border font-mono text-[7px] font-bold ${Math.abs(normalizedLots-value)<volumeStep/2 ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#687c90] hover:text-white'}`}>{value.toFixed(Math.max(2,lotDecimals))}</button>
+              <button key={value} type="button" onClick={() => setLots(value)} className={`h-7 rounded border font-mono text-[8px] font-bold ${Math.abs(normalizedLots-value)<volumeStep/2 ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#687c90] hover:text-white'}`}>{value.toFixed(Math.max(2,lotDecimals))}</button>
             ))}
-            <button type="button" onClick={openRiskSizing} className={`h-7 rounded border text-[7px] font-black ${activeTool === 'risk' ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#8da0b2] hover:text-white'}`}>Risk</button>
+            <button type="button" onClick={openRiskSizing} className={`h-7 rounded border text-[8px] font-black ${activeTool === 'risk' ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#8da0b2] hover:text-white'}`}>Risk</button>
           </div>
 
           {activeTool === 'risk' && (
@@ -559,33 +559,33 @@ export default function DesktopOrderTicket({
               ) : (
                 <>
                   <div className="grid grid-cols-4 gap-1">
-                    {RISK_PRESETS.map(value => <button key={value} type="button" onClick={() => setRisk(value)} className={`h-7 rounded border text-[7px] font-bold ${Math.abs(riskPercent-value)<0.001 ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#7d90a2]'}`}>{value.toFixed(2)}%</button>)}
+                    {RISK_PRESETS.map(value => <button key={value} type="button" onClick={() => setRisk(value)} className={`h-7 rounded border text-[8px] font-bold ${Math.abs(riskPercent-value)<0.001 ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#7d90a2]'}`}>{value.toFixed(2)}%</button>)}
                     <label className="flex h-7 items-center rounded border border-white/[0.06] bg-black px-1"><input type="number" min="0.1" max="5" step="0.05" value={riskPercent} onChange={event => setRisk(Math.max(0.1,Math.min(5,Number(event.target.value)||0.1)))} className="w-full bg-transparent text-center font-mono text-[8px] font-bold text-[#E6EDF3] outline-none"/><span className="text-[6px] text-[#6F8191]">%</span></label>
                   </div>
                   <div className="mt-1.5 grid grid-cols-2 gap-1">
                     <div className="rounded border border-white/[0.05] bg-black px-2 py-1.5">
-                      <span className="block text-[7px] text-[#6F8191]">Current size</span>
+                      <span className="block text-[8px] text-[#6F8191]">Current size</span>
                       <strong className="mt-0.5 block font-mono text-[10px] text-[#E6EDF3]">{Number(normalizedLots).toFixed(Math.max(2,lotDecimals))} lots</strong>
                     </div>
                     <div className="rounded border border-[#315b72]/50 bg-[#0d1a22]/35 px-2 py-1.5">
-                      <span className="block text-[7px] text-[#6F8191]">{riskNeedsCap ? 'Requested size' : 'Suggested size'}</span>
+                      <span className="block text-[8px] text-[#6F8191]">{riskNeedsCap ? 'Requested size' : 'Suggested size'}</span>
                       <strong className="mt-0.5 block font-mono text-[10px] text-[#59C7FF]">{Number.isFinite(riskRequestedRaw) ? riskRequestedRaw.toFixed(Math.max(2,lotDecimals)) : Number.isFinite(riskCalculatedLots) ? riskCalculatedLots.toFixed(Math.max(2,lotDecimals)) : '—'} lots</strong>
                     </div>
                   </div>
 
                   <div className="mt-1 grid grid-cols-2 gap-1 rounded border border-white/[0.05] bg-black px-2 py-1.5">
                     <div>
-                      <span className="block text-[7px] text-[#6F8191]">Target SL loss</span>
+                      <span className="block text-[8px] text-[#6F8191]">Target SL loss</span>
                       <strong className="mt-0.5 block font-mono text-[9px] text-[#FF6F7A]">{Number.isFinite(riskTargetLoss) ? `-${money(Math.abs(riskTargetLoss), currency)}` : '—'}</strong>
                     </div>
                     <div>
-                      <span className="block text-[7px] text-[#6F8191]">{riskNeedsCap ? 'Max executable' : 'After apply'}</span>
+                      <span className="block text-[8px] text-[#6F8191]">{riskNeedsCap ? 'Max executable' : 'After apply'}</span>
                       <strong className="mt-0.5 block font-mono text-[9px] text-[#E6EDF3]">{Number.isFinite(riskExecutableLots) ? `${riskExecutableLots.toFixed(Math.max(2,lotDecimals))} lots` : '—'}</strong>
                     </div>
                   </div>
 
                   {riskNeedsCap && (
-                    <div className="mt-1 rounded border border-[#5a4523] bg-[#171208] px-2 py-1.5 text-[7px] leading-3.5 text-[#d8b867]">
+                    <div className="mt-1 rounded border border-[#5a4523] bg-[#171208] px-2 py-1.5 text-[8px] leading-3.5 text-[#d8b867]">
                       {riskSizing?.blockReason === 'MAX_VOLUME'
                         ? `Requested risk exceeds the instrument maximum. Maximum size is ${Number.isFinite(riskExecutableLots) ? riskExecutableLots.toFixed(Math.max(2,lotDecimals)) : '—'} lots.`
                         : riskSizing?.blockReason === 'INSUFFICIENT_MARGIN'
@@ -598,12 +598,12 @@ export default function DesktopOrderTicket({
                     type="button"
                     onClick={applyCalculatedRiskLots}
                     disabled={!Number.isFinite(riskExecutableLots)}
-                    className="mt-1.5 h-8 w-full rounded border border-[#315b72] bg-[#0d1a22] text-[7px] font-black text-[#59C7FF] disabled:opacity-30"
+                    className="mt-1.5 h-8 w-full rounded border border-[#315b72] bg-[#0d1a22] text-[8px] font-black text-[#59C7FF] disabled:opacity-30"
                   >
                     {Number.isFinite(riskExecutableLots) ? `APPLY ${riskExecutableLots.toFixed(Math.max(2,lotDecimals))} LOTS` : 'SIZE UNAVAILABLE'}
                   </button>
                   {Number.isFinite(riskExecutableLoss) && (
-                    <p className="mt-1 text-center text-[7px] text-[#6F8191]">Estimated SL loss after apply: <span className="font-mono text-[#FF6F7A]">-{money(Math.abs(riskExecutableLoss), currency)}</span></p>
+                    <p className="mt-1 text-center text-[8px] text-[#6F8191]">Estimated SL loss after apply: <span className="font-mono text-[#FF6F7A]">-{money(Math.abs(riskExecutableLoss), currency)}</span></p>
                   )}
                 </>
               )}
@@ -614,7 +614,7 @@ export default function DesktopOrderTicket({
         <div className="rounded-md border border-white/[0.06] bg-[#0C1013] p-2">
           <div className="mb-1.5 flex items-center justify-between">
             <strong className="text-[8px] font-bold uppercase tracking-[0.08em] text-[#A1AFBC]">Protection</strong>
-            {pendingPlan && <div className="flex items-center gap-1.5"><span className={`text-[7px] font-black ${selectedSide === 'buy' ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{selectedSide === 'buy' ? 'LONG' : 'SHORT'}</span><button type="button" onClick={onCancelPlan} className="grid size-5 place-items-center rounded text-[#6F8191] hover:bg-white/[0.04] hover:text-white" aria-label="Cancel trade plan"><X size={10}/></button></div>}
+            {pendingPlan && <div className="flex items-center gap-1.5"><span className={`text-[8px] font-black ${selectedSide === 'buy' ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{selectedSide === 'buy' ? 'LONG' : 'SHORT'}</span><button type="button" onClick={onCancelPlan} className="grid size-5 place-items-center rounded text-[#6F8191] hover:bg-white/[0.04] hover:text-white" aria-label="Cancel trade plan"><X size={10}/></button></div>}
           </div>
 
           <div className="space-y-1">
@@ -625,7 +625,7 @@ export default function DesktopOrderTicket({
                   <span className="text-[8px] font-bold text-[#DCE6EE]">Stop Loss</span>
                   {hasStopLoss && <span className="truncate font-mono text-[8px] text-[#FF6F7A]">{Number.isFinite(planMetrics?.riskAmount) ? `-${money(Math.abs(planMetrics.riskAmount),currency)}` : '—'}</span>}
                 </button>
-                <button type="button" onClick={() => enableProtection('sl')} className="text-[7px] font-bold text-[#8295A7] hover:text-white">{hasStopLoss ? 'Edit' : 'Add'}</button>
+                <button type="button" onClick={() => enableProtection('sl')} className="text-[8px] font-bold text-[#8295A7] hover:text-white">{hasStopLoss ? 'Edit' : 'Add'}</button>
               </div>
               {activeTool === 'sl' && !tradePlan && (
                 <div className="mt-1.5 grid grid-cols-2 gap-1 border-t border-white/[0.05] pt-1.5">
@@ -643,7 +643,7 @@ export default function DesktopOrderTicket({
                   <span className="text-[8px] font-bold text-[#DCE6EE]">Take Profit</span>
                   {hasTakeProfit && <span className="truncate font-mono text-[8px] text-[#42D7A1]">{Number.isFinite(planMetrics?.reward) ? `+${money(Math.abs(planMetrics.reward),currency)}` : '—'}</span>}
                 </button>
-                <button type="button" onClick={() => enableProtection('tp')} className="text-[7px] font-bold text-[#8295A7] hover:text-white">{hasTakeProfit ? 'Edit' : 'Add'}</button>
+                <button type="button" onClick={() => enableProtection('tp')} className="text-[8px] font-bold text-[#8295A7] hover:text-white">{hasTakeProfit ? 'Edit' : 'Add'}</button>
               </div>
               {activeTool === 'tp' && !tradePlan && (
                 <div className="mt-1.5 grid grid-cols-2 gap-1 border-t border-white/[0.05] pt-1.5">
@@ -657,8 +657,8 @@ export default function DesktopOrderTicket({
 
           {hasStopLoss && (
             <div className="mt-1.5 flex items-center gap-1">
-              <span className="mr-1 text-[7px] font-semibold text-[#6F8191]">R:R</span>
-              {[1,1.5,2,3].map(value => <button key={value} type="button" onClick={() => applyRewardRatio(value)} className={`h-6 flex-1 rounded border text-[7px] font-bold ${Number.isFinite(planMetrics?.rr) && Math.abs(planMetrics.rr-value)<0.03 ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#718497] hover:text-white'}`}>1:{value}</button>)}
+              <span className="mr-1 text-[8px] font-semibold text-[#6F8191]">R:R</span>
+              {[1,1.5,2,3].map(value => <button key={value} type="button" onClick={() => applyRewardRatio(value)} className={`h-6 flex-1 rounded border text-[8px] font-bold ${Number.isFinite(planMetrics?.rr) && Math.abs(planMetrics.rr-value)<0.03 ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#718497] hover:text-white'}`}>1:{value}</button>)}
             </div>
           )}
         </div>
@@ -674,8 +674,8 @@ export default function DesktopOrderTicket({
           <div className="flex h-8 items-center gap-2 px-2">
             <button type="button" onClick={() => setRiskGuardOpen(value => !value)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
               <ShieldCheck size={11} className={riskGuard.blocks.length ? 'text-[#FF6F7A]' : riskGuard.enabled ? 'text-[#59C7FF]' : 'text-[#6F8191]'}/>
-              <strong className="text-[7px] font-black uppercase tracking-[0.06em] text-[#A1AFBC]">Risk Guard</strong>
-              <span className="truncate text-[7px] text-[#6F8191]">{riskGuard.enabled ? (riskGuard.blocks[0]?.message || riskGuard.warnings[0]?.message || `${Number(riskGuardSettings?.maxRiskPerTrade || 1).toFixed(2)}% max trade`) : 'Off'}</span>
+              <strong className="text-[8px] font-black uppercase tracking-[0.06em] text-[#A1AFBC]">Risk Guard</strong>
+              <span className="truncate text-[8px] text-[#6F8191]">{riskGuard.enabled ? (riskGuard.blocks[0]?.message || riskGuard.warnings[0]?.message || `${Number(riskGuardSettings?.maxRiskPerTrade || 1).toFixed(2)}% max trade`) : 'Off'}</span>
             </button>
             <button type="button" onClick={() => onRiskGuardSettingsChange({ ...riskGuardSettings, enabled: !riskGuardSettings?.enabled })} className={`relative h-4 w-7 rounded-full border transition ${riskGuard.enabled ? 'border-[#2a6682] bg-[#0b2938]' : 'border-white/[0.06] bg-[#111]'}`} aria-label="Toggle Risk Guard">
               <span className={`absolute top-[1px] size-3 rounded-full bg-white transition ${riskGuard.enabled ? 'left-[13px]' : 'left-[1px]'}`} />
@@ -713,7 +713,7 @@ export default function DesktopOrderTicket({
         {pendingPlan && orderFamily === 'pending' && (
           <div className="rounded-md border border-white/[0.06] bg-[#0C1013] px-2 py-1.5">
             <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
-              <span className="text-[7px] font-semibold uppercase tracking-[0.06em] text-[#6F8191]">Entry price</span>
+              <span className="text-[8px] font-semibold uppercase tracking-[0.06em] text-[#6F8191]">Entry price</span>
               <input
                 value={formatInstrumentPrice(tradePlan?.entry, market, '')}
                 onFocus={event => event.currentTarget.select()}
@@ -730,7 +730,7 @@ export default function DesktopOrderTicket({
         )}
 
         {pendingPlan && (
-          <div className="flex items-center justify-between px-0.5 text-[7px] font-semibold text-[#6F8191]">
+          <div className="flex items-center justify-between px-0.5 text-[8px] font-semibold text-[#6F8191]">
             <span>{tradePlan?.pending ? 'Pending order ready' : 'Protected market plan'}</span>
             <span>{String(selectedSide || '').toUpperCase()} · final confirmation below</span>
           </div>

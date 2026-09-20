@@ -422,7 +422,7 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
     return (
       <div key={key} className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: y }}>
         <div className="relative h-px" style={{ backgroundColor: color }}>
-          <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded border px-1.5 py-0.5 text-[7px] font-black" style={{ borderColor: `${color}88`, backgroundColor: 'rgba(8,8,8,0.92)', color }}>{label}</span>
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded border px-1.5 py-0.5 text-[8px] font-black" style={{ borderColor: `${color}88`, backgroundColor: 'rgba(8,8,8,0.92)', color }}>{label}</span>
           <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded border px-1.5 py-0.5 text-[8px] font-bold tabular-nums" style={{ borderColor: `${color}66`, backgroundColor: 'rgba(8,8,8,0.94)', color }}>{previewText}</span>
           <button
             type="button"
@@ -539,7 +539,7 @@ export default function ChartArea({
           <button type="button" onClick={() => setDrawingSnap(value => !value)} disabled={Boolean(tradePlan)} className={`grid ${focusMode ? 'size-[30px]' : 'size-[28px]'} shrink-0 place-items-center rounded-md transition ${drawingSnap ? 'bg-[#10202a] text-[#59c8ff]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:opacity-30`} title="Snap drawing prices to instrument increments"><Magnet size={15}/></button>
           <button type="button" onClick={() => setLockAllDrawings(value => !value)} disabled={Boolean(tradePlan)} className={`grid ${focusMode ? 'size-[30px]' : 'size-[28px]'} shrink-0 place-items-center rounded-md transition ${lockAllDrawings ? 'bg-[#10202a] text-[#59c8ff]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:opacity-30`} title={lockAllDrawings ? 'Unlock drawing movement' : 'Lock all drawing movement'}>{lockAllDrawings ? <Lock size={14}/> : <Unlock size={14}/>}</button>
           <button type="button" onClick={() => setKeepDrawingTool(value => !value)} disabled={Boolean(tradePlan) || selectedTool === 'cursor'} className={`relative grid ${focusMode ? 'size-[30px]' : 'size-[28px]'} shrink-0 place-items-center rounded-md transition ${keepDrawingTool ? 'bg-[#10202a] text-[#59c8ff]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:opacity-25`} title="Keep selected drawing tool active"><Pin size={14}/>{keepDrawingTool && <span className="absolute bottom-1 right-1 size-1 rounded-full bg-[#59c8ff]"/>}</button>
-          <div className="mt-1 text-[7px] font-bold tabular-nums text-[#52616e]" title="Drawings on this symbol">{drawingCount}</div>
+          <div className="mt-1 text-[8px] font-bold tabular-nums text-[#52616e]" title="Drawings on this symbol">{drawingCount}</div>
         </aside>
       )}
 

@@ -295,7 +295,7 @@ export default function DesktopWatchlist({
 
   return (
     <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden" onKeyDown={onKeyDown}>
-      <div className="relative flex h-11 shrink-0 items-center justify-between border-b border-white/[0.06] px-2.5">
+      <div className="relative flex h-10 shrink-0 items-center justify-between border-b border-white/[0.06] px-2.5">
         <div className="min-w-0">
           {mode === 'markets' ? (
             <>
@@ -306,7 +306,7 @@ export default function DesktopWatchlist({
             <button type="button" onClick={() => setListMenuOpen(value => !value)} className="flex min-w-0 items-center gap-1.5 text-left">
               <span className="min-w-0">
                 <strong className="block truncate text-[11px] font-bold tracking-[0.04em] text-[#E6EDF3]">{watchlists?.activeList?.name || 'Favorites'}</strong>
-                <span className="mt-0.5 block text-[7px] text-[#6F8191]">{watchlists?.activeSymbols?.length || 0} instruments</span>
+                <span className="mt-0.5 block text-[8px] text-[#6F8191]">{watchlists?.activeSymbols?.length || 0} instruments</span>
               </span>
               <ChevronDown size={11} className="text-[#6F8191]"/>
             </button>
@@ -322,7 +322,7 @@ export default function DesktopWatchlist({
           <div className="absolute left-2 top-10 z-50 w-[210px] overflow-hidden rounded-md border border-white/[0.10] bg-[#0C1013] p-1 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
             {(watchlists?.workspace?.lists || []).map(list => (
               <button key={list.id} type="button" onClick={() => { watchlists?.setActiveListId?.(list.id); setListMenuOpen(false); }} className={`flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] ${list.id === watchlists?.activeList?.id ? 'bg-[#0d1a22] text-[#63caff]' : 'text-[#aab7c3] hover:bg-white/[0.03]'}`}>
-                <span className="truncate font-bold">{list.name}</span><span className="font-mono text-[7px] text-[#6F8191]">{list.symbols.length}</span>
+                <span className="truncate font-bold">{list.name}</span><span className="font-mono text-[8px] text-[#6F8191]">{list.symbols.length}</span>
               </button>
             ))}
             <button type="button" onClick={createWatchlist} className="mt-1 flex w-full items-center gap-1.5 border-t border-white/[0.06] px-2 pt-2 text-[8px] font-bold text-[#7fcfff]"><Plus size={11}/>New watchlist</button>
@@ -331,12 +331,12 @@ export default function DesktopWatchlist({
 
         {columnsOpen && mode !== 'markets' && (
           <div className="absolute right-2 top-10 z-50 w-[176px] rounded-md border border-white/[0.10] bg-[#0C1013] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
-            <div className="mb-1 flex items-center gap-1.5 px-1 text-[7px] font-black uppercase tracking-[0.08em] text-[#6F8191]"><ListFilter size={10}/>Columns</div>
+            <div className="mb-1 flex items-center gap-1.5 px-1 text-[8px] font-black uppercase tracking-[0.08em] text-[#6F8191]"><ListFilter size={10}/>Columns</div>
             {COLUMN_OPTIONS.map(([id, label]) => {
               const active = columns.includes(id);
               return <button key={id} type="button" onClick={() => toggleColumn(id)} className={`flex w-full items-center justify-between rounded px-2 py-1.5 text-[8px] ${active ? 'text-[#dce7ef]' : 'text-[#6F8191]'}`}><span>{label}</span><span className={`size-2 rounded-sm border ${active ? 'border-[#53c7ff] bg-[#53c7ff]' : 'border-white/[0.12]'}`}/></button>;
             })}
-            <div className="mt-1 border-t border-white/[0.06] px-2 pt-1 text-[6.5px] text-[#53677a]">Choose 2–5 columns</div>
+            <div className="mt-1 border-t border-white/[0.06] px-2 pt-1 text-[8px] text-[#53677a]">Choose 2–5 columns</div>
           </div>
         )}
       </div>
@@ -356,11 +356,11 @@ export default function DesktopWatchlist({
         <div className="flex h-8 items-center gap-2 rounded-md border border-white/[0.06] bg-black/20 px-2 text-[#687c91]">
           <Search size={11}/>
           <input ref={searchRef} value={search} onChange={event => setSearch(event.target.value)} placeholder={mode === 'markets' ? 'Search symbol or market' : 'Search all markets'} className="min-w-0 flex-1 bg-transparent text-[9px] text-[#E6EDF3] outline-none placeholder:text-[#6F8191]"/>
-          {search && <button type="button" onClick={() => setSearch('')} className="text-[7px] text-[#6F8191]">Clear</button>}
+          {search && <button type="button" onClick={() => setSearch('')} className="text-[8px] text-[#6F8191]">Clear</button>}
         </div>
       </div>
 
-      <div className="grid shrink-0 border-y border-white/[0.06] px-2 py-1.5 text-[8px] font-semibold uppercase tracking-[0.07em] text-[#6F8191]" style={{ gridTemplateColumns: gridTemplate }}>
+      <div className="grid shrink-0 border-y border-white/[0.06] px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.07em] text-[#6F8191]" style={{ gridTemplateColumns: gridTemplate }}>
         <button type="button" onClick={() => changeSort('symbol')} className="text-left"><SortLabel id="symbol" label="Instrument" sort={sort}/></button>
         {columns.map(column => (
           <button key={column} type="button" onClick={() => changeSort(column)} className="text-right">
@@ -385,7 +385,7 @@ export default function DesktopWatchlist({
               onDragEnd={() => setDragSymbol(null)}
               onDragOver={event => { if (dragSymbol) event.preventDefault(); }}
               onDrop={() => { if (dragSymbol && dragSymbol !== item.symbol) watchlists?.moveSymbol?.(dragSymbol, item.symbol); setDragSymbol(null); }}
-              className={`grid items-center border-b border-white/[0.06] px-2 py-1 transition ${selected ? 'border-l-[3px] border-[#53c7ff] bg-[#08131a]' : 'border-l-[3px] border-transparent hover:bg-white/[0.018]'} ${dragSymbol === item.symbol ? 'opacity-45' : ''}`}
+              className={`grid items-center border-b border-white/[0.06] px-2 py-0.5 transition ${selected ? 'border-l-[3px] border-[#53c7ff] bg-[#08131a]' : 'border-l-[3px] border-transparent hover:bg-white/[0.018]'} ${dragSymbol === item.symbol ? 'opacity-45' : ''}`}
               style={{ gridTemplateColumns: gridTemplate }}
             >
               <button type="button" onClick={() => selectInstrument(item.symbol)} className="flex min-w-0 items-center gap-1.5 py-2 text-left">
@@ -393,7 +393,7 @@ export default function DesktopWatchlist({
                 <InstrumentAvatar instrument={item} size={21}/>
                 <span className="min-w-0">
                   <b className="block truncate text-[11px] font-semibold text-[#E6EDF3]">{item.displaySymbol || displaySymbol(item.symbol)}</b>
-                  <small className="mt-0.5 flex min-w-0 items-center gap-1 truncate text-[7.5px]">
+                  <small className="mt-0.5 flex min-w-0 items-center gap-1 truncate text-[8px]">
                     {mode === 'markets' && <span className="truncate text-[#6F8191]">{categoryLabel(item)}</span>}
                     {mode === 'markets' && <span className="text-[#44515D]">·</span>}
                     <span className={statusTone}>{statusLabel}</span>
@@ -404,7 +404,7 @@ export default function DesktopWatchlist({
               {columns.map(column => {
                 const change = column === 'change' ? dayChange(item) : null;
                 return (
-                  <button key={column} type="button" onClick={() => selectInstrument(item.symbol)} className={`truncate py-1.5 text-right font-mono text-[9.5px] tabular-nums ${column === 'change' && change != null ? (change >= 0 ? 'text-[#42D7A1]' : 'text-[#FF6F7A]') : column === 'bid' ? 'font-bold text-[#A1AFBC]' : 'text-[#A1AFBC]'}`}>
+                  <button key={column} type="button" onClick={() => selectInstrument(item.symbol)} className={`truncate py-1.5 text-right font-mono text-[10px] tabular-nums ${column === 'change' && change != null ? (change >= 0 ? 'text-[#42D7A1]' : 'text-[#FF6F7A]') : column === 'bid' ? 'font-bold text-[#A1AFBC]' : 'text-[#A1AFBC]'}`}>
                     {cellValue(column, item)}
                   </button>
                 );
