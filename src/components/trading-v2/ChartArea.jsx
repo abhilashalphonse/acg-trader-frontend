@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Crosshair, TrendingUp, SlidersHorizontal, Square, Type, Shapes, Ruler } from 'lucide-react';
+import { Crosshair, TrendingUp, SlidersHorizontal, Square, Type, Shapes, Ruler, Eye, EyeOff, RotateCcw, ScanLine } from 'lucide-react';
 import TradingChart from '../TradingChart.jsx';
 import DrawingLayer from './DrawingLayer.jsx';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
@@ -39,6 +39,55 @@ function formatProjectedPnl(value, currency = 'USD') {
   } catch {
     return `${numeric >= 0 ? '+' : '-'}${Math.abs(numeric).toFixed(2)} ${currency || ''}`.trim();
   }
+}
+
+function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instrument }) {
+  const [, forceLayout] = useState(0);
+
+  const activePositions = useMemo(
+    () => (Array.isArray(positions) ? positions : []).filter(position =>
+      String(position?.symbol || '').toUpperCase() === String(symbol || '').toUpperCase()
+      && Number.isFinite(Number(position?.entry ?? position?.entryPrice))
+    ),
+    [positions, symbol],
+  );
+
+  useEffect(() => {
+    if (!coordinateApi?.subscribe) return undefined;
+    return coordinateApi.subscribe(() => forceLayout(value => value + 1));
+  }, [coordinateApi]);
+
+  if (!coordinateApi?.priceToY || !activePositions.length) return null;
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-[19] overflow-hidden">
+      {activePositions.map(position => {
+        const entry = Number(position.entry ?? position.entryPrice);
+        const y = coordinateApi.priceToY(entry);
+        if (!Number.isFinite(y)) return null;
+        const side = String(position.side || '').toUpperCase();
+        const pnl = Number(position.pnl);
+        const currency = position?.pnlCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || 'USD';
+        const lots = Number(position.volume ?? position.lots);
+        const positive = Number.isFinite(pnl) && pnl >= 0;
+
+        return (
+          <div key={position.id || `${side}-${entry}-${lots}`} className="absolute left-0 right-0" style={{ top: y }}>
+            <div className="relative border-t border-dashed border-[#53c7ff]/75">
+              <span className="absolute left-2 top-1/2 flex -translate-y-1/2 items-center gap-1.5 rounded border border-[#315b72] bg-[#07131a]/95 px-1.5 py-1 text-[7px] font-black text-[#bfe9ff] shadow-[0_4px_14px_rgba(0,0,0,.35)]">
+                <span className={side === 'BUY' ? 'text-[#3bd9a3]' : 'text-[#ff6c78]'}>{side}</span>
+                <span>{Number.isFinite(lots) ? lots.toFixed(2) : '—'} lot</span>
+                <span className="font-mono text-[#d7e8f3]">{formatInstrumentPrice(entry, instrument)}</span>
+              </span>
+              <span className={`absolute right-2 top-1/2 -translate-y-1/2 rounded border bg-[#070707]/95 px-1.5 py-1 font-mono text-[8px] font-black tabular-nums shadow-[0_4px_14px_rgba(0,0,0,.35)] ${positive ? 'border-[#245b48] text-[#42dda7]' : 'border-[#642c35] text-[#ff6f7b]'}`}>
+                {Number.isFinite(pnl) ? formatProjectedPnl(pnl, currency) : 'OPEN'}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function TradePlanOverlay({ plan, onChange, coordinateApi, instrument }) {
@@ -268,7 +317,7 @@ export default function ChartArea({
   chartTimeframe,
   tick,
   price,
-  ask: _ask,
+  ask,
   chartMode,
   selectedTool,
   onSelectTool,
@@ -280,10 +329,12 @@ export default function ChartArea({
   onUpdatePosition = () => {},
   indicators = [],
   positions = [],
+  desktopEnhanced = false,
 }) {
   const timeframeSeconds = secondsByTimeframe[chartTimeframe] || 60;
   const [remaining, setRemaining] = useState(() => timeframeSeconds - (Math.floor(Date.now() / 1000) % timeframeSeconds));
   const [coordinateApi, setCoordinateApi] = useState(null);
+  const [showDrawings, setShowDrawings] = useState(true);
   const oscillatorCount = indicators.filter(item => item.visible !== false && oscillatorIds.has(item.id)).length;
 
   useEffect(() => {
@@ -313,12 +364,28 @@ export default function ChartArea({
       {!hideToolbar && <aside className={toolbarClass} aria-label="Drawing tools">{tools.map(([id, Icon, label]) => <button key={id} type="button" title={label} onClick={() => !tradePlan && onSelectTool(id)} aria-label={label} disabled={Boolean(tradePlan)} className={`grid ${focusMode ? 'size-[29px]' : 'size-[27px]'} shrink-0 place-items-center rounded-lg transition ${selectedTool === id ? 'bg-[#101010] text-[#59c8ff]' : 'text-[#74879c] hover:bg-white/[0.035] hover:text-[#d7e4f1]'} disabled:cursor-not-allowed disabled:opacity-30`}><Icon size={focusMode ? 17 : 16} strokeWidth={1.75} /></button>)}</aside>}
 
       <div className={`relative min-h-0 min-w-0 overflow-hidden bg-black`}>
-        <TradingChart symbol={symbol} instrument={instrument} timeframe={chartTimeframe} tick={tick} chartMode={chartMode} bidPrice={price} positions={positions} indicators={indicators} onCoordinateApi={setCoordinateApi} />
-        <DrawingLayer symbol={symbol} timeframe={chartTimeframe} tool={selectedTool} onToolChange={onSelectTool} disabled={Boolean(tradePlan)} coordinateApi={coordinateApi} />
+        <TradingChart symbol={symbol} instrument={instrument} timeframe={chartTimeframe} tick={tick} chartMode={chartMode} bidPrice={price} askPrice={ask} positions={positions} indicators={indicators} onCoordinateApi={setCoordinateApi} showBidAskLines={desktopEnhanced} showPositionPriceLines={!desktopEnhanced} />
+        {showDrawings && <DrawingLayer symbol={symbol} timeframe={chartTimeframe} tool={selectedTool} onToolChange={onSelectTool} disabled={Boolean(tradePlan)} coordinateApi={coordinateApi} />}
         <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} coordinateApi={coordinateApi} instrument={instrument} />
+        {desktopEnhanced && !tradePlan && <OpenPositionEntryOverlay symbol={symbol} positions={positions} coordinateApi={coordinateApi} instrument={instrument} />}
         {!tradePlan && <OpenPositionProtectionOverlay symbol={symbol} positions={positions} coordinateApi={coordinateApi} instrument={instrument} onUpdatePosition={onUpdatePosition} />}
 
-        {!tradePlan && !embedded && <div className="pointer-events-none absolute bottom-1 right-[74px] z-10 rounded bg-[#080808]/80 px-1.5 py-0.5 text-[8px] font-semibold tabular-nums text-[#6f8295] backdrop-blur-sm">{formatCountdown(remaining)}</div>}
+        {desktopEnhanced && (
+          <div className="absolute right-[74px] top-2 z-30 flex items-center gap-1">
+            <div className="pointer-events-none mr-1 flex h-6 items-center gap-1.5 rounded border border-white/[0.07] bg-[#070707]/92 px-2 font-mono text-[7px] tabular-nums text-[#71869a]">
+              <span>B <b className="text-[#64bdff]">{formatInstrumentPrice(price, instrument)}</b></span>
+              <span className="text-[#3f4f5e]">/</span>
+              <span>A <b className="text-[#ff7882]">{formatInstrumentPrice(ask, instrument)}</b></span>
+              <span className="text-[#3f4f5e]">·</span>
+              <span>{(() => { const pip = instrumentPipSize(instrument); const bid = Number(price); const askValue = Number(ask); return Number.isFinite(pip) && pip > 0 && Number.isFinite(bid) && Number.isFinite(askValue) ? `${(Math.abs(askValue - bid) / pip).toFixed(1)}p` : '—'; })()}</span>
+            </div>
+            <button type="button" onClick={() => coordinateApi?.resetView?.()} className="grid size-6 place-items-center rounded border border-white/[0.07] bg-[#070707]/92 text-[#71869a] hover:text-white" title="Reset chart view"><RotateCcw size={11}/></button>
+            <button type="button" onClick={() => coordinateApi?.fitContent?.()} className="grid size-6 place-items-center rounded border border-white/[0.07] bg-[#070707]/92 text-[#71869a] hover:text-white" title="Fit chart"><ScanLine size={11}/></button>
+            <button type="button" onClick={() => setShowDrawings(value => !value)} className={`grid size-6 place-items-center rounded border bg-[#070707]/92 ${showDrawings ? 'border-white/[0.07] text-[#71869a] hover:text-white' : 'border-[#315b72] text-[#58c7ff]'}`} title={showDrawings ? 'Hide drawings' : 'Show drawings'}>{showDrawings ? <Eye size={11}/> : <EyeOff size={11}/>}</button>
+          </div>
+        )}
+
+        {!tradePlan && (!embedded || desktopEnhanced) && <div className="pointer-events-none absolute bottom-1 right-[74px] z-10 rounded border border-white/[0.05] bg-[#080808]/86 px-1.5 py-0.5 font-mono text-[8px] font-semibold tabular-nums text-[#8295a8] backdrop-blur-sm">{formatCountdown(remaining)}</div>}
       </div>
     </div>
   );
