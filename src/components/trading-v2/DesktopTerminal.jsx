@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import ChartArea from './ChartArea.jsx';
 import DesktopOrderTicket from './desktop/DesktopOrderTicket.jsx';
+import DesktopMultiChart from './desktop/DesktopMultiChart.jsx';
 import DesktopTradeReview from './desktop/DesktopTradeReview.jsx';
 import DesktopWorkspaceMenu from './desktop/DesktopWorkspaceMenu.jsx';
 import DesktopWatchlist from './desktop/DesktopWatchlist.jsx';
@@ -29,6 +30,7 @@ const timeframes = [['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], 
 const chartTimeframeMap = { '1m': 'M1', '5m': 'M5', '15m': 'M15', '30m': 'M30', '1H': 'H1', '4H': 'H4', '1D': 'D1', '1W': 'W1' };
 const navItems = [['trade', CandlestickChart, 'Trade'], ['watchlist', Star, 'Watchlist'], ['markets', List, 'Markets'], ['history', History, 'History'], ['more', MoreHorizontal, 'More']];
 const DESKTOP_LAYOUT_KEY = 'acg-trader-desktop-layout-v1';
+const MULTI_CHART_KEY = 'acg-trader-multi-chart-v1';
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, Number(value)));
@@ -50,6 +52,37 @@ function loadDesktopLayout() {
       dockHeight: clamp(stored.dockHeight || fallback.dockHeight, 150, 340),
       sidebarCollapsed: stored.sidebarCollapsed === true,
       dockCollapsed: stored.dockCollapsed === true,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+function loadMultiChart(activeSymbol, timeframe) {
+  const fallback = {
+    layout: 1,
+    linked: false,
+    activeCell: 0,
+    cells: [
+      { symbol: activeSymbol || '', timeframe: timeframe || '1m' },
+      { symbol: '', timeframe: '5m' },
+      { symbol: '', timeframe: '15m' },
+      { symbol: '', timeframe: '1H' },
+    ],
+  };
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(MULTI_CHART_KEY) || 'null');
+    if (!stored || typeof stored !== 'object') return fallback;
+    return {
+      ...fallback,
+      ...stored,
+      layout: [1,2,4].includes(Number(stored.layout)) ? Number(stored.layout) : 1,
+      activeCell: Math.max(0, Math.min(3, Number(stored.activeCell) || 0)),
+      cells: Array.from({ length: 4 }, (_, index) => ({
+        ...fallback.cells[index],
+        ...(stored.cells?.[index] || {}),
+      })),
     };
   } catch {
     return fallback;
@@ -106,6 +139,9 @@ export default function DesktopTerminal({
   journal = [],
   onClosePosition = () => {},
   onCloseAllPositions = () => {},
+  onCloseWinners = () => {},
+  onCloseLosers = () => {},
+  onCloseSymbolPositions = () => {},
   onBreakEven = () => {},
   onReversePosition = () => {},
   onUpdatePosition = () => {},
@@ -152,6 +188,7 @@ export default function DesktopTerminal({
   const [notice, setNotice] = useState('');
   const [reviewOpen, setReviewOpen] = useState(false);
   const [desktopLayout, setDesktopLayout] = useState(loadDesktopLayout);
+  const [multiChart, setMultiChart] = useState(() => loadMultiChart(activeSymbol, timeframe));
   const favorite = watchlists?.isWatched?.(activeSymbol) === true;
 
   useEffect(() => {
@@ -161,6 +198,21 @@ export default function DesktopTerminal({
       // Layout persistence is optional.
     }
   }, [desktopLayout]);
+
+  useEffect(() => {
+    try { window.localStorage.setItem(MULTI_CHART_KEY, JSON.stringify(multiChart)); } catch { /* optional preference */ }
+  }, [multiChart]);
+
+  useEffect(() => {
+    setMultiChart(current => {
+      const cells = [...current.cells];
+      const index = Math.min(current.activeCell || 0, Math.max(0, current.layout - 1));
+      const active = cells[index] || {};
+      if (active.symbol === activeSymbol) return current;
+      cells[index] = { ...active, symbol: activeSymbol };
+      return { ...current, cells };
+    });
+  }, [activeSymbol]);
 
   const sidebarWidth = desktopLayout.sidebarCollapsed ? 0 : desktopLayout.sidebarWidth;
   const dockHeight = desktopLayout.dockCollapsed ? 0 : desktopLayout.dockHeight;
@@ -186,6 +238,7 @@ export default function DesktopTerminal({
       symbol: activeSymbol,
       activeListId: watchlists?.activeList?.id || null,
       indicators,
+      multiChart,
     },
   };
 
@@ -207,6 +260,7 @@ export default function DesktopTerminal({
     if (trading.symbol && markets.some(item => item.symbol === trading.symbol)) onSelectSymbol(trading.symbol);
     if (trading.activeListId) watchlists?.setActiveListId?.(trading.activeListId);
     if (Array.isArray(trading.indicators)) onIndicatorsChange(trading.indicators);
+    if (trading.multiChart && typeof trading.multiChart === 'object') setMultiChart(trading.multiChart);
     setNotice(`${workspace.name || 'Workspace'} applied`);
   };
 
@@ -343,7 +397,21 @@ export default function DesktopTerminal({
             </div>
 
             <div className="min-h-0 min-w-0 bg-[#080808]">
-              <ChartArea desktopEnhanced symbol={market?.symbol} instrument={market} chartTimeframe={chartTimeframeMap[timeframe] || 'M1'} tick={tick} price={market?.bid} ask={market?.ask} chartMode={chartMode} selectedTool={selectedTool} onSelectTool={onSelectedToolChange} embedded tradePlan={tradePlan} onTradePlanChange={onTradePlanChange} onUpdatePosition={onUpdatePosition} indicators={indicators} positions={positions}/>
+              <DesktopMultiChart
+                config={multiChart}
+                onChange={setMultiChart}
+                markets={markets}
+                activeSymbol={activeSymbol}
+                onSelectSymbol={onSelectSymbol}
+                indicators={indicators}
+                positions={positions}
+                selectedTool={selectedTool}
+                onSelectedToolChange={onSelectedToolChange}
+                chartMode={chartMode}
+                tradePlan={tradePlan}
+                onTradePlanChange={onTradePlanChange}
+                onUpdatePosition={onUpdatePosition}
+              />
             </div>
           </section>
 
@@ -361,7 +429,7 @@ export default function DesktopTerminal({
           </aside>
 
           <div className={`col-span-2 min-h-0 overflow-auto border-t border-white/[0.08] bg-[#080808] ${desktopLayout.dockCollapsed ? 'hidden' : ''}`}>
-            <PositionsPanel desktopDense positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending}/>
+            <PositionsPanel desktopDense activeSymbol={activeSymbol} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending}/>
           </div>
 
           {!desktopLayout.sidebarCollapsed && (
