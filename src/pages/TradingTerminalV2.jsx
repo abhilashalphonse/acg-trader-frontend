@@ -777,7 +777,12 @@ export default function TradingTerminalV2({
           onModifyPending={modifyPendingOrder}
           onManualOrder={manualOrder}
           indicators={indicators}
-          onOpenIndicators={() => setOverlay('indicators')}
+          indicatorFavorites={indicatorFavorites}
+          onAddIndicator={addIndicator}
+          onRemoveIndicator={removeIndicator}
+          onToggleIndicator={toggleIndicator}
+          onUpdateIndicator={updateIndicator}
+          onToggleIndicatorFavorite={toggleIndicatorFavorite}
           onIndicatorsChange={setIndicators}
           account={account}
           plannedRisk={plannedRisk}

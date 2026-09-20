@@ -13,6 +13,7 @@ import { useTraderAuth } from '../hooks/useTraderAuth.js';
 import { useTradingStore } from '../hooks/useTradingStore.js';
 import { calculateIndicatorData } from '../utils/indicators.js';
 import { instrumentDigits, instrumentTickSize } from '../utils/instrumentFormatting.js';
+import { Eye, EyeOff, Settings2, X } from 'lucide-react';
 
 const chartTokens = {
   background: '#000000',
@@ -51,7 +52,24 @@ function indicatorLabel(indicator) {
   return indicator.name || indicator.id;
 }
 
-export default function TradingChart({ symbol = 'EURUSD', instrument = null, timeframe = 'M1', tick = null, chartMode = 'candles', bidPrice = null, askPrice = null, positions = [], indicators = [], onCoordinateApi = () => {}, showBidAskLines = false, showPositionPriceLines = true }) {
+export default function TradingChart({
+  symbol = 'EURUSD',
+  instrument = null,
+  timeframe = 'M1',
+  tick = null,
+  chartMode = 'candles',
+  bidPrice = null,
+  askPrice = null,
+  positions = [],
+  indicators = [],
+  onCoordinateApi = () => {},
+  showBidAskLines = false,
+  showPositionPriceLines = true,
+  showIndicatorControls = false,
+  onToggleIndicator = () => {},
+  onOpenIndicatorSettings = () => {},
+  onRemoveIndicator = () => {},
+}) {
   const { authenticated } = useTraderAuth();
   const { market, subscribeMarket } = useTradingStore();
   const hostRef = useRef(null);
@@ -73,6 +91,7 @@ export default function TradingChart({ symbol = 'EURUSD', instrument = null, tim
   const autoFollowRef = useRef(true);
   const [error, setError] = useState('');
   const [displayBar, setDisplayBar] = useState(null);
+  const [paneLayout, setPaneLayout] = useState([]);
 
   const backendTimeframe = useMemo(() => {
     try { return toBackendTimeframe(timeframe); } catch { return null; }
@@ -128,6 +147,20 @@ export default function TradingChart({ symbol = 'EURUSD', instrument = null, tim
       if (targetPane > 0) chart.panes()[targetPane]?.setHeight?.(Math.max(86, 110 - indicatorIndex * 4));
     });
     indicatorPanesRef.current = Math.max(0, paneIndex - 1);
+    window.requestAnimationFrame(() => {
+      try {
+        let top = 0;
+        const layout = chart.panes().map((pane, index) => {
+          const height = Number(pane.getHeight?.()) || 0;
+          const item = { index, top, height };
+          top += height;
+          return item;
+        });
+        setPaneLayout(layout);
+      } catch {
+        setPaneLayout([]);
+      }
+    });
   }, [clearIndicatorSeries]);
 
   const updateIndicatorData = useCallback(bars => {
@@ -191,6 +224,31 @@ export default function TradingChart({ symbol = 'EURUSD', instrument = null, tim
   }, [symbol, timeframe, chartMode, renderIndicators, decimals, minMove]);
 
   useEffect(() => { indicatorsRef.current = indicators; if (chartRef.current && barsRef.current.length) renderIndicators(chartRef.current, barsRef.current); }, [indicators, renderIndicators]);
+  useEffect(() => {
+    if (!showIndicatorControls) return undefined;
+    const syncPaneLayout = () => {
+      try {
+        const chart = chartRef.current;
+        if (!chart) return;
+        let top = 0;
+        const layout = chart.panes().map((pane, index) => {
+          const height = Number(pane.getHeight?.()) || 0;
+          const item = { index, top, height };
+          top += height;
+          return item;
+        });
+        setPaneLayout(layout);
+      } catch {
+        // Pane controls are optional UI.
+      }
+    };
+    window.addEventListener('pointerup', syncPaneLayout);
+    window.addEventListener('resize', syncPaneLayout);
+    return () => {
+      window.removeEventListener('pointerup', syncPaneLayout);
+      window.removeEventListener('resize', syncPaneLayout);
+    };
+  }, [showIndicatorControls]);
   useEffect(() => {
     volumeRef.current?.applyOptions({ visible: showVolume });
     chartRef.current?.priceScale('right').applyOptions({ scaleMargins: { top: 0.045, bottom: showVolume ? 0.205 : 0.07 } });
@@ -313,13 +371,43 @@ export default function TradingChart({ symbol = 'EURUSD', instrument = null, tim
     return `${numeric > 0 ? '+' : ''}${formatter(numeric)}`;
   };
 
+  const overlayIndicators = visibleIndicators.filter(indicator => ['ema', 'sma', 'vwap', 'bollinger', 'volume'].includes(indicator.id));
+  const paneIndicators = visibleIndicators.filter(indicator => !['ema', 'sma', 'vwap', 'bollinger', 'volume'].includes(indicator.id));
+
+  const IndicatorActions = ({ indicator, compact = false }) => (
+    <span className="pointer-events-auto ml-1 inline-flex items-center gap-0.5 rounded bg-black/70 opacity-0 transition group-hover:opacity-100">
+      <button type="button" onClick={event => { event.stopPropagation(); onToggleIndicator(indicator.instanceId); }} className={`grid ${compact ? 'size-5' : 'size-6'} place-items-center rounded text-[#71879a] hover:bg-white/[0.06] hover:text-[#dfe9f0]`} title={indicator.visible === false ? 'Show indicator' : 'Hide indicator'}>{indicator.visible === false ? <EyeOff size={10}/> : <Eye size={10}/>}</button>
+      <button type="button" onClick={event => { event.stopPropagation(); onOpenIndicatorSettings(indicator.instanceId); }} className={`grid ${compact ? 'size-5' : 'size-6'} place-items-center rounded text-[#71879a] hover:bg-white/[0.06] hover:text-[#59c8ff]`} title="Indicator settings"><Settings2 size={10}/></button>
+      <button type="button" onClick={event => { event.stopPropagation(); onRemoveIndicator(indicator.instanceId); }} className={`grid ${compact ? 'size-5' : 'size-6'} place-items-center rounded text-[#815f68] hover:bg-[#35151d] hover:text-[#ff7380]`} title="Remove indicator"><X size={10}/></button>
+    </span>
+  );
+
   return <div className="relative size-full min-h-0 min-w-0 overflow-hidden bg-black">
     <div ref={hostRef} className="absolute inset-0" />
     <div className="pointer-events-none absolute left-2.5 top-2.5 z-20 max-w-[72%] px-1 text-[11px] leading-[1.45] text-[#8E99A5] [text-shadow:0_1px_2px_#000,0_0_6px_#000]">
       <div className="text-[12px] font-semibold tracking-[-0.01em] text-[#F0F3F6]">{symbol} <span className="text-[#7F8A95]">· {timeframe}</span></div>
       <div className="mt-1 flex flex-wrap gap-x-2 whitespace-nowrap font-medium"><span>O <b className="text-[#aab9c8]">{format(ohlc?.open)}</b></span><span>H <b className="text-[#aab9c8]">{format(ohlc?.high)}</b></span><span>L <b className="text-[#aab9c8]">{format(ohlc?.low)}</b></span><span>C <b className="text-[#aab9c8]">{format(ohlc?.close)}</b></span>{candleChange != null && <span className={`font-semibold ${candleChangeTone}`}>{signed(candleChange, value => value.toFixed(decimals))}{candleChangePercent != null ? ` (${signed(candleChangePercent, value => value.toFixed(2))}%)` : ''}</span>}</div>
-      {visibleIndicators.length > 0 && <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[9px] font-medium text-[#7F8A95]">{visibleIndicators.map(indicator => <span key={indicator.instanceId}>{indicatorLabel(indicator)}</span>)}</div>}
+      {overlayIndicators.length > 0 && (
+        <div className="mt-1.5 flex flex-wrap gap-x-1.5 gap-y-1 text-[9px] font-medium text-[#7F8A95]">
+          {overlayIndicators.map(indicator => (
+            <span key={indicator.instanceId} className="group pointer-events-auto inline-flex h-6 items-center rounded px-1 hover:bg-black/72">
+              <span>{indicatorLabel(indicator)}</span>
+              {showIndicatorControls && <IndicatorActions indicator={indicator} compact />}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
-    {error && <div className="absolute inset-0 z-40 grid place-items-center bg-black/95 px-5 text-center text-[10px] font-medium text-[#718399]">{error}</div>}
+    {showIndicatorControls && paneIndicators.map((indicator, index) => {
+      const pane = paneLayout[index + 1];
+      if (!pane || pane.height <= 0) return null;
+      return (
+        <div key={indicator.instanceId} className="group pointer-events-auto absolute left-2.5 z-30 flex h-6 items-center rounded-md bg-black/72 px-1.5 text-[9px] font-semibold text-[#8fa1b1] shadow-[0_2px_10px_rgba(0,0,0,.28)] backdrop-blur-sm" style={{ top: Math.max(4, pane.top + 5) }}>
+          <span>{indicatorLabel(indicator)}</span>
+          <IndicatorActions indicator={indicator} compact />
+        </div>
+      );
+    })}
+        {error && <div className="absolute inset-0 z-40 grid place-items-center bg-black/95 px-5 text-center text-[10px] font-medium text-[#718399]">{error}</div>}
   </div>;
 }

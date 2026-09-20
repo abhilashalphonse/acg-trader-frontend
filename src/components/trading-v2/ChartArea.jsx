@@ -468,6 +468,9 @@ export default function ChartArea({
   onModifyPending = () => {},
   onCancelPending = () => {},
   desktopEnhanced = false,
+  onToggleIndicator = () => {},
+  onOpenIndicatorSettings = () => {},
+  onRemoveIndicator = () => {},
 }) {
   const timeframeSeconds = secondsByTimeframe[chartTimeframe] || 60;
   const [remaining, setRemaining] = useState(() => timeframeSeconds - (Math.floor(Date.now() / 1000) % timeframeSeconds));
@@ -532,7 +535,24 @@ export default function ChartArea({
       )}
 
       <div className={`relative min-h-0 min-w-0 overflow-hidden bg-black`}>
-        <TradingChart symbol={symbol} instrument={instrument} timeframe={chartTimeframe} tick={tick} chartMode={chartMode} bidPrice={price} askPrice={ask} positions={positions} indicators={indicators} onCoordinateApi={setCoordinateApi} showBidAskLines={desktopEnhanced} showPositionPriceLines={!desktopEnhanced} />
+        <TradingChart
+          symbol={symbol}
+          instrument={instrument}
+          timeframe={chartTimeframe}
+          tick={tick}
+          chartMode={chartMode}
+          bidPrice={price}
+          askPrice={ask}
+          positions={positions}
+          indicators={indicators}
+          onCoordinateApi={setCoordinateApi}
+          showBidAskLines={desktopEnhanced}
+          showPositionPriceLines={!desktopEnhanced}
+          showIndicatorControls={desktopEnhanced}
+          onToggleIndicator={onToggleIndicator}
+          onOpenIndicatorSettings={onOpenIndicatorSettings}
+          onRemoveIndicator={onRemoveIndicator}
+        />
         {showDrawings && <DrawingLayer
           symbol={symbol}
           timeframe={chartTimeframe}

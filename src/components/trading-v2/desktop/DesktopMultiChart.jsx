@@ -23,6 +23,9 @@ export default function DesktopMultiChart({
   onSelectSymbol = () => {},
   indicators = [],
   onActiveIndicatorsChange = () => {},
+  onToggleIndicator = () => {},
+  onOpenIndicatorSettings = () => {},
+  onRemoveIndicator = () => {},
   positions = [],
   pendingOrders = [],
   onModifyPending = () => {},
@@ -137,6 +140,9 @@ export default function DesktopMultiChart({
                   selectedPositionId={selectedPositionId}
                   onSelectPosition={onSelectPosition}
                   indicators={cellIndicators}
+                  onToggleIndicator={isActive ? onToggleIndicator : () => {}}
+                  onOpenIndicatorSettings={isActive ? onOpenIndicatorSettings : () => {}}
+                  onRemoveIndicator={isActive ? onRemoveIndicator : () => {}}
                   positions={cellPositions}
                   pendingOrders={cellPendingOrders}
                   onModifyPending={onModifyPending}

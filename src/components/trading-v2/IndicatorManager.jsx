@@ -22,10 +22,18 @@ export default function IndicatorManager({
   onToggleVisible = () => {},
   onUpdate = () => {},
   onToggleFavorite = () => {},
+  focusInstanceId = null,
+  desktop = false,
 }) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('Favorites');
   const [editingId, setEditingId] = useState(null);
+
+  React.useEffect(() => {
+    if (focusInstanceId && applied.some(item => item.instanceId === focusInstanceId)) {
+      setEditingId(focusInstanceId);
+    }
+  }, [applied, focusInstanceId]);
 
   const available = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -37,7 +45,7 @@ export default function IndicatorManager({
   }, [query, category, favorites]);
 
   return (
-    <div>
+    <div className={desktop ? 'min-w-0' : ''}>
       <div className="flex h-11 items-center gap-2 rounded-md border border-white/[0.08] bg-[#080808] px-3">
         <Search size={15} className="text-[#6f8295]" />
         <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search indicators" className="min-w-0 flex-1 bg-transparent text-[11px] text-[#eef4f8] outline-none placeholder:text-[#53677b]" />
@@ -66,7 +74,7 @@ export default function IndicatorManager({
         </section>
       )}
 
-      <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className={`${desktop ? 'mt-3' : 'mt-4'} flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
         {categories.map(item => <button key={item} type="button" onClick={() => setCategory(item)} className={`h-8 shrink-0 rounded-lg px-3 text-[9px] font-bold ${category === item ? 'border border-white/[0.13] bg-[#101010] text-[#61caff]' : 'border border-white/[0.08] bg-[#080808] text-[#71869a]'}`}>{item}</button>)}
       </div>
 
