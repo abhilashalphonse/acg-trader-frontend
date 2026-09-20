@@ -64,6 +64,7 @@ export default function DesktopPositionManager({
   const current = Number(position?.closePrice ?? position?.currentPrice ?? (String(position?.side).toUpperCase() === 'BUY' ? instrument?.bid : instrument?.ask));
   const volume = Number(position?.volume ?? position?.lots);
   const pnl = Number(position?.pnl);
+  const isBuy = String(position?.side || '').toUpperCase() === 'BUY';
   const sl = validPrice(position?.sl);
   const tp = validPrice(position?.tp);
   const pip = instrumentPipSize(instrument);
@@ -135,7 +136,6 @@ export default function DesktopPositionManager({
   };
 
   if (!position) return null;
-  const isBuy = String(position.side || '').toUpperCase() === 'BUY';
   const positive = Number.isFinite(pnl) && pnl >= 0;
 
   const protectionRow = (field, label, value, input, setInput, projectedPnl, distance) => {
