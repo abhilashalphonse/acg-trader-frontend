@@ -205,6 +205,18 @@ export default function DesktopTerminal({
     setMultiChart(current => {
       const cells = [...current.cells];
       const index = Math.min(current.activeCell || 0, Math.max(0, current.layout - 1));
+      if (current.linked) {
+        let changed = false;
+        for (let cellIndex = 0; cellIndex < current.layout; cellIndex += 1) {
+          const cell = cells[cellIndex] || {};
+          if (cell.symbol !== activeSymbol) {
+            cells[cellIndex] = { ...cell, symbol: activeSymbol };
+            changed = true;
+          }
+        }
+        return changed ? { ...current, cells } : current;
+      }
+
       const active = cells[index] || {};
       if (active.symbol === activeSymbol) return current;
       cells[index] = { ...active, symbol: activeSymbol };
