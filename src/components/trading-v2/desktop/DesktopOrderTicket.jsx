@@ -109,7 +109,6 @@ export default function DesktopOrderTicket({
 }) {
   const [lotInput, setLotInput] = useState(String(lots));
   const [lotFocused, setLotFocused] = useState(false);
-  const [expanded, setExpanded] = useState(false);
   const [activeTool, setActiveTool] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [riskGuardOpen, setRiskGuardOpen] = useState(false);
@@ -374,7 +373,7 @@ export default function DesktopOrderTicket({
           </div>
         )}
 
-        <div className="grid grid-cols-[1fr_.72fr_.72fr_30px] gap-1">
+        <div className="grid grid-cols-[1fr_.8fr_.8fr] gap-1">
           <button type="button" onClick={openRiskSizing} className={`h-8 rounded-md border text-[8px] font-bold uppercase tracking-[0.04em] ${sizingMode === 'risk' ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] bg-black text-[#7d90a2] hover:text-white'}`}>
             Risk{activeTool === 'risk' && sizingMode === 'risk' ? ` ${Number(riskPercent).toFixed(2)}%` : ''}
           </button>
@@ -383,9 +382,6 @@ export default function DesktopOrderTicket({
           </button>
           <button type="button" onClick={() => openProtection('tp')} className={`h-8 rounded-md border text-[8px] font-bold ${hasTakeProfit ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] bg-black text-[#7d90a2] hover:text-white'}`}>
             TP{hasTakeProfit ? ' ✓' : ''}
-          </button>
-          <button type="button" onClick={() => setExpanded(value => !value)} className={`grid h-8 place-items-center rounded-md border ${expanded ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] bg-black text-[#7d90a2] hover:text-white'}`} aria-label={expanded ? 'Hide advanced order details' : 'Show advanced order details'}>
-            <ChevronDown size={13} className={`transition ${expanded ? 'rotate-180' : ''}`}/>
           </button>
         </div>
 
@@ -501,16 +497,14 @@ export default function DesktopOrderTicket({
           )}
         </div>
 
-        {expanded && (
-          <div className="grid grid-cols-3 gap-x-3 gap-y-2 rounded-md border border-white/[0.06] bg-black/35 px-2 py-2">
-            <FieldMetric label="Spread" value={Number.isFinite(spreadPips) ? `${spreadPips.toFixed(1)}p` : '—'} />
-            <FieldMetric label="Leverage" value={effectiveLeverage(account, market) ? `1:${effectiveLeverage(account, market)}` : '—'} />
-            <FieldMetric label="Margin" value={money(previewMargin, currency)} />
-            <FieldMetric label="Free after" value={money(freeAfter, currency)} tone={Number.isFinite(freeAfter) && freeAfter < 0 ? 'danger' : 'default'} />
-            <FieldMetric label="Risk at SL" value={Number.isFinite(planMetrics?.riskAmount) ? money(planMetrics.riskAmount, currency) : '—'} tone={Number.isFinite(riskBufferUsage) && riskBufferUsage >= 50 ? 'danger' : 'default'} />
-            <FieldMetric label="R:R" value={Number.isFinite(planMetrics?.rr) ? `1:${planMetrics.rr.toFixed(2)}` : '—'} tone="accent" />
-          </div>
-        )}
+        <div className="grid grid-cols-3 gap-x-3 gap-y-2 rounded-md border border-white/[0.06] bg-black/35 px-2 py-2">
+          <FieldMetric label="Spread" value={Number.isFinite(spreadPips) ? `${spreadPips.toFixed(1)}p` : '—'} />
+          <FieldMetric label="Leverage" value={effectiveLeverage(account, market) ? `1:${effectiveLeverage(account, market)}` : '—'} />
+          <FieldMetric label="Margin" value={money(previewMargin, currency)} />
+          <FieldMetric label="Free after" value={money(freeAfter, currency)} tone={Number.isFinite(freeAfter) && freeAfter < 0 ? 'danger' : 'default'} />
+          <FieldMetric label="Risk at SL" value={Number.isFinite(planMetrics?.riskAmount) ? money(planMetrics.riskAmount, currency) : '—'} tone={Number.isFinite(riskBufferUsage) && riskBufferUsage >= 50 ? 'danger' : 'default'} />
+          <FieldMetric label="R:R" value={Number.isFinite(planMetrics?.rr) ? `1:${planMetrics.rr.toFixed(2)}` : '—'} tone="accent" />
+        </div>
 
         {pendingPlan && (
           <div className="flex items-center justify-between rounded-md border border-white/[0.07] bg-[#0C1013] px-2 py-1.5">
@@ -521,17 +515,6 @@ export default function DesktopOrderTicket({
             <button type="button" onClick={onCancelPlan} className="ml-2 h-7 rounded border border-white/[0.06] px-2 text-[7px] font-bold text-[#8b9baa] hover:text-white"><X size={9} className="mr-1 inline"/>Cancel</button>
           </div>
         )}
-
-        <div className="grid grid-cols-2 gap-1 rounded-md border border-white/[0.06] bg-black/35 px-2 py-1.5">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[7px] font-semibold uppercase tracking-[0.05em] text-[#6F8191]">Margin</span>
-            <strong className="font-mono text-[9px] font-bold tabular-nums text-[#E6EDF3]">{money(previewMargin, currency)}</strong>
-          </div>
-          <div className="flex items-center justify-between gap-2 border-l border-white/[0.06] pl-2">
-            <span className="text-[7px] font-semibold uppercase tracking-[0.05em] text-[#6F8191]">Free after</span>
-            <strong className={`font-mono text-[9px] font-bold tabular-nums ${Number.isFinite(freeAfter) && freeAfter < 0 ? 'text-[#FF6F7A]' : 'text-[#E6EDF3]'}`}>{money(freeAfter, currency)}</strong>
-          </div>
-        </div>
 
         <div className="mb-0.5 flex items-center justify-between px-0.5 text-[7px] font-semibold text-[#6F8191]">
           <span>Spread {Number.isFinite(spreadPips) ? `${spreadPips.toFixed(1)}p` : '—'}</span>
