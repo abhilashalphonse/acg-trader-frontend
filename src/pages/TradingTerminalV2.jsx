@@ -216,6 +216,16 @@ export default function TradingTerminalV2({
     noticeTimerRef.current = window.setTimeout(() => setNotice(''), 2600);
   };
 
+  const selectSymbol = symbol => {
+    const normalized = String(symbol || '').toUpperCase();
+    if (!normalized) return;
+    if (tradePlan && tradePlan.symbol && tradePlan.symbol !== normalized) {
+      setTradePlan(null);
+      showNotice('Trade plan cancelled because the active symbol changed');
+    }
+    onSelectSymbol(normalized);
+  };
+
   const logEvent = (type, message, details = {}) => {
     const now = new Date();
     const time = now.toLocaleTimeString([], { hour12: false });
@@ -325,7 +335,7 @@ export default function TradingTerminalV2({
     if (Number.isFinite(Number(settings.lots))) setLots(Math.max(0.01, Number(settings.lots)));
     if (settings.orderType) setOrderType(settings.orderType);
     if (Array.isArray(profile.indicators)) setIndicators(profile.indicators.map(item => createIndicator(item.id, item.settings || {})).filter(Boolean));
-    if (profile.symbol && markets.some(item => item.symbol === profile.symbol)) onSelectSymbol(profile.symbol);
+    if (profile.symbol && markets.some(item => item.symbol === profile.symbol)) selectSymbol(profile.symbol);
     setSelectedTool('cursor');
     setTradePlan(null);
     setActiveNav('trade');
@@ -434,7 +444,7 @@ export default function TradingTerminalV2({
       setTradePlan(null);
       logEvent('position', `${position.symbol} reverse completed as close + opposite market order`);
       showNotice('Position reversed');
-      if (result?.position?.symbol && result.position.symbol !== activeSymbol) onSelectSymbol(result.position.symbol);
+      if (result?.position?.symbol && result.position.symbol !== activeSymbol) selectSymbol(result.position.symbol);
     } catch (error) {
       handleTradingError(error, `Reverse ${position.symbol}`);
     }
@@ -453,18 +463,24 @@ export default function TradingTerminalV2({
   };
 
   const duplicatePosition = async id => {
-    if (!exposure.allowed) { showNotice(exposure.reason); return null; }
     const position = positions.find(item => String(item.id) === String(id));
-    if (!position) return;
-    try {
-      const result = await trading.duplicatePosition(id);
-      logEvent('execution', `${position.symbol} ${position.side} duplicated`);
+    if (!position) return null;
+    const instrument = markets.find(item => item.symbol === position.symbol) || market;
+    const side = String(position.side || '').toLowerCase();
+    const requestedPrice = Number(side === 'buy' ? instrument?.ask : instrument?.bid);
+    const result = await runMarketExecution({
+      side,
+      executionLots: position.volume,
+      symbol: position.symbol,
+      requestedPrice,
+      stopLoss: position.sl,
+      takeProfit: position.tp,
+    });
+    if (result) {
+      logEvent('execution', `${position.symbol} ${position.side} duplicated with protection`);
       showNotice('Position duplicated');
-      return result;
-    } catch (error) {
-      handleTradingError(error, `Duplicate ${position.symbol}`);
-      return null;
     }
+    return result;
   };
 
   const enterChartFocus = async () => {
@@ -517,7 +533,7 @@ export default function TradingTerminalV2({
     const limitPrice = requestedType === 'stop-limit'
       ? normalizePriceToTick(side === 'buy' ? entry + 1.5 * pip : entry - 1.5 * pip, market, pendingPriceDirection(requestedType, sideUpper, 'limit'))
       : null;
-    setTradePlan({ side, entry, sl, tp, limitPrice, marketPrice, orderType: requestedType, pending, sizingMode, manualLots: lots, expiration: 'GTC', stage: 'planning', open: false });
+    setTradePlan({ symbol: market?.symbol, side, entry, sl, tp, limitPrice, marketPrice, orderType: requestedType, pending, sizingMode, manualLots: lots, expiration: 'GTC', stage: 'planning', open: false });
   };
 
   const cancelPlan = () => {
@@ -530,11 +546,14 @@ export default function TradingTerminalV2({
 
   const executePlan = async () => {
     if (!tradePlan || trading.commandState.pending) return;
-    if (!exposure.allowed) { showNotice(exposure.reason); return; }
-    const calculated = calculatedLots(tradePlan, riskPercent, tradePlan.manualLots ?? lots, account.equity, market, account.currency);
+    const planSymbol = tradePlan.symbol || market?.symbol;
+    const planMarket = markets.find(item => item.symbol === planSymbol) || market;
+    const planExposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market: planMarket, commandState: trading.commandState });
+    if (!planExposure.allowed) { showNotice(planExposure.reason); return; }
+    const calculated = calculatedLots(tradePlan, riskPercent, tradePlan.manualLots ?? lots, account.equity, planMarket, account.currency);
     if (calculated == null) { showNotice('Risk % sizing is unavailable because this instrument P&L requires currency conversion. Use Lots sizing.'); return; }
-    const volume = normalizeVolumeToStep(calculated, market);
-    const proposedRisk = estimateStopRisk(tradePlan, volume, market, account.currency);
+    const volume = normalizeVolumeToStep(calculated, planMarket);
+    const proposedRisk = estimateStopRisk(tradePlan, volume, planMarket, account.currency);
     const guard = evaluateRiskGuard({
       account,
       positions,
@@ -551,7 +570,7 @@ export default function TradingTerminalV2({
     }
     if (tradePlan.pending) {
       const request = {
-        symbol: market?.symbol,
+        symbol: planSymbol,
         side: tradePlan.side,
         type: tradePlan.orderType,
         volume,
@@ -562,13 +581,13 @@ export default function TradingTerminalV2({
         timeInForce: tradePlan.expiration || 'GTC',
         expiresAt: tradePlan.expirationAt || tradePlan.expiresAt || null,
       };
-      setExecutionEvent({ side: tradePlan.side, lots: volume, symbol: market?.symbol, requestedPrice: tradePlan.entry, status: 'submitting' });
+      setExecutionEvent({ side: tradePlan.side, lots: volume, symbol: planSymbol, requestedPrice: tradePlan.entry, status: 'submitting' });
       try {
         const result = tradePlan.editingOrderId
           ? await trading.replacePendingOrder(tradePlan.editingOrderId, request)
           : await trading.placePendingOrder(request);
-        setExecutionEvent({ side: tradePlan.side, lots: volume, symbol: market?.symbol, requestedPrice: tradePlan.entry, status: 'pending', message: `${String(tradePlan.orderType).toUpperCase()} order waiting for trigger` });
-        logEvent('order', `${String(tradePlan.side).toUpperCase()} ${String(tradePlan.orderType).toUpperCase()} ${volume.toFixed(2)} ${market?.symbol} placed`, { orderId: result?.order?.id });
+        setExecutionEvent({ side: tradePlan.side, lots: volume, symbol: planSymbol, requestedPrice: tradePlan.entry, status: 'pending', message: `${String(tradePlan.orderType).toUpperCase()} order waiting for trigger` });
+        logEvent('order', `${String(tradePlan.side).toUpperCase()} ${String(tradePlan.orderType).toUpperCase()} ${volume.toFixed(2)} ${planSymbol} placed`, { orderId: result?.order?.id });
         setTradePlan(null);
         dismissExecutionLater();
       } catch (error) {
@@ -580,7 +599,7 @@ export default function TradingTerminalV2({
     const result = await runMarketExecution({
       side: tradePlan.side,
       executionLots: volume,
-      symbol: market?.symbol,
+      symbol: planSymbol,
       requestedPrice: tradePlan.entry,
       stopLoss: tradePlan.sl,
       takeProfit: tradePlan.tp,
@@ -598,7 +617,11 @@ export default function TradingTerminalV2({
     setTradePlan(plan => plan ? { ...plan, stage } : plan);
   };
   const updatePlan = patch => {
-    setTradePlan(plan => plan ? { ...plan, ...normalizeTradePlanPatch(plan, patch, market) } : plan);
+    setTradePlan(plan => {
+      if (!plan) return plan;
+      const instrument = markets.find(item => item.symbol === plan.symbol) || market;
+      return { ...plan, ...normalizeTradePlanPatch(plan, patch, instrument) };
+    });
   };
 
   const manualOrder = order => {
@@ -626,7 +649,7 @@ export default function TradingTerminalV2({
   const modifyPendingOrder = id => {
     const order = pendingOrders.find(item => String(item.id) === String(id));
     if (!order) return;
-    if (order.symbol && order.symbol !== market?.symbol) onSelectSymbol(order.symbol);
+    if (order.symbol && order.symbol !== market?.symbol) selectSymbol(order.symbol);
     setTradePlan({ ...order, editingOrderId: id, stage: 'ready', open: false, pending: true });
     setOrderType(order.orderType);
     setSizingMode('lots');
@@ -638,7 +661,7 @@ export default function TradingTerminalV2({
   };
 
   const openTradeFromWatchlist = symbol => {
-    onSelectSymbol(symbol);
+    selectSymbol(symbol);
     setActiveNav('trade');
     setOverlay(null);
   };
@@ -671,7 +694,8 @@ export default function TradingTerminalV2({
     onTimeframe: setTimeframe,
   });
 
-  const plannedRisk = estimatedRisk(tradePlan, riskPercent, lots, account.equity, market, account.currency);
+  const plannedRiskInstrument = markets.find(item => item.symbol === tradePlan?.symbol) || market;
+  const plannedRisk = estimatedRisk(tradePlan, riskPercent, lots, account.equity, plannedRiskInstrument, account.currency);
 
   if (isDesktop) {
     return (
@@ -681,7 +705,7 @@ export default function TradingTerminalV2({
           tick={tick}
           markets={markets}
           activeSymbol={activeSymbol}
-          onSelectSymbol={onSelectSymbol}
+          onSelectSymbol={selectSymbol}
           watchlists={watchlists}
           positions={positions}
           positionHistory={positionHistory}
@@ -733,7 +757,7 @@ export default function TradingTerminalV2({
           onRiskGuardSettingsChange={setRiskGuardSettings}
         />
         <ExecutionStatus event={executionEvent} instrument={market} onDismiss={() => setExecutionEvent(null)} />
-        {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} watchlists={watchlists} onSelectSymbol={symbol => { onSelectSymbol(symbol); setOverlay(null); }} {...indicatorSheetProps} />}
+        {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} watchlists={watchlists} onSelectSymbol={symbol => { selectSymbol(symbol); setOverlay(null); }} {...indicatorSheetProps} />}
       </>
     );
   }
@@ -796,7 +820,7 @@ export default function TradingTerminalV2({
         )}
         <ExecutionStatus event={executionEvent} instrument={market} onDismiss={() => setExecutionEvent(null)} />
         {notice && <div className="fixed left-1/2 top-[74px] z-[120] w-[calc(100%-24px)] max-w-[420px] -translate-x-1/2 rounded-xl border border-white/[0.08] bg-[#101010]/95 px-3 py-2.5 text-center text-[10px] font-semibold text-[#dce9f2] shadow-[0_16px_48px_rgba(0,0,0,.45)] backdrop-blur-xl">{notice}</div>}
-        {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} onSelectSymbol={symbol => { onSelectSymbol(symbol); if (activeNav === 'watchlist') setActiveNav('trade'); }} {...indicatorSheetProps} />}
+        {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} onSelectSymbol={symbol => { selectSymbol(symbol); if (activeNav === 'watchlist') setActiveNav('trade'); }} {...indicatorSheetProps} />}
       </main>
     </div>
   );
