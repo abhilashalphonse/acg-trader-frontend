@@ -112,6 +112,94 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
   );
 }
 
+function PendingOrderOverlay({
+  symbol,
+  orders = [],
+  coordinateApi,
+  instrument,
+  hiddenOrderId = null,
+  onModify = () => {},
+  onCancel = () => {},
+}) {
+  const [, forceLayout] = useState(0);
+
+  const activeOrders = useMemo(
+    () => (Array.isArray(orders) ? orders : []).filter(order =>
+      String(order?.symbol || '').toUpperCase() === String(symbol || '').toUpperCase()
+      && String(order?.id || '') !== String(hiddenOrderId || '')
+      && Number.isFinite(Number(order?.entry))
+    ),
+    [hiddenOrderId, orders, symbol],
+  );
+
+  useEffect(() => {
+    if (!coordinateApi?.subscribe) return undefined;
+    return coordinateApi.subscribe(() => forceLayout(value => value + 1));
+  }, [coordinateApi]);
+
+  if (!coordinateApi?.priceToY || !activeOrders.length) return null;
+
+  const renderProtectionLine = (order, kind, color, label) => {
+    const price = Number(order?.[kind]);
+    if (!Number.isFinite(price)) return null;
+    const y = coordinateApi.priceToY(price);
+    if (!Number.isFinite(y)) return null;
+    return (
+      <div key={`${order.id}:${kind}`} className="pointer-events-none absolute left-0 right-0 z-[18]" style={{ top: y }}>
+        <div className="relative border-t border-dashed" style={{ borderColor: `${color}88` }}>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 rounded border bg-black/90 px-1.5 py-0.5 text-[8px] font-bold" style={{ borderColor: `${color}66`, color }}>
+            {label} {formatInstrumentPrice(price, instrument)}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-[18] overflow-hidden">
+      {activeOrders.flatMap(order => {
+        const entry = Number(order.entry);
+        const y = coordinateApi.priceToY(entry);
+        if (!Number.isFinite(y)) return [];
+        const side = String(order.side || '').toUpperCase();
+        const type = String(order.orderType || '').replace('-', ' ').toUpperCase();
+        const lots = Number(order.volume ?? order.lots);
+        const sideColor = side === 'BUY' ? '#3bd9a3' : '#ff6c78';
+        const secondary = order.orderType === 'stop-limit' && Number.isFinite(Number(order.limitPrice))
+          ? Number(order.limitPrice)
+          : null;
+        const secondaryY = secondary == null ? null : coordinateApi.priceToY(secondary);
+
+        return [
+          <div key={`${order.id}:entry`} className="pointer-events-none absolute left-0 right-0 z-[21]" style={{ top: y }}>
+            <div className="relative border-t border-dashed border-[#d7a95f]/80">
+              <div className="pointer-events-auto absolute left-3 top-1/2 flex -translate-y-1/2 items-center gap-2 rounded-md border border-[#7d6238]/80 bg-black/94 px-2 py-1 text-[9px] font-semibold shadow-[0_6px_18px_rgba(0,0,0,.34)] backdrop-blur-sm">
+                <span style={{ color: sideColor }}>{side} {type}</span>
+                <span className="text-[#9aa4ad]">·</span>
+                <span className="text-[#DCE3E9]">{Number.isFinite(lots) ? lots.toFixed(Math.max(2, Number(instrument?.volumeStep) < 0.01 ? 3 : 2)) : '—'} lot</span>
+                <span className="font-mono tabular-nums text-[#F2F5F7]">{formatInstrumentPrice(entry, instrument)}</span>
+                <button type="button" onClick={event => { event.stopPropagation(); onModify(order.id); }} className="ml-1 rounded px-1.5 py-0.5 text-[#c7a56a] transition hover:bg-white/[0.06] hover:text-[#f0ca86]" aria-label={`Modify ${side} ${type} order`}>Modify</button>
+                <button type="button" onClick={event => { event.stopPropagation(); onCancel(order.id); }} className="rounded px-1.5 py-0.5 text-[#ff7b86] transition hover:bg-white/[0.06] hover:text-[#ff9ba4]" aria-label={`Cancel ${side} ${type} order`}>Cancel</button>
+              </div>
+            </div>
+          </div>,
+          secondaryY != null && Number.isFinite(secondaryY) ? (
+            <div key={`${order.id}:limit`} className="pointer-events-none absolute left-0 right-0 z-[19]" style={{ top: secondaryY }}>
+              <div className="relative border-t border-dashed border-[#b58cff]/70">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 rounded border border-[#6f5b93]/70 bg-black/90 px-1.5 py-0.5 text-[8px] font-bold text-[#c8aaff]">
+                  LIMIT {formatInstrumentPrice(secondary, instrument)}
+                </span>
+              </div>
+            </div>
+          ) : null,
+          renderProtectionLine(order, 'sl', '#ff5968', 'SL'),
+          renderProtectionLine(order, 'tp', '#35d79d', 'TP'),
+        ].filter(Boolean);
+      })}
+    </div>
+  );
+}
+
 function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.1, accountCurrency = 'USD' }) {
   const layerRef = useRef(null);
   const [dragging, setDragging] = useState(null);
@@ -372,6 +460,9 @@ export default function ChartArea({
   onSelectPosition = () => {},
   indicators = [],
   positions = [],
+  pendingOrders = [],
+  onModifyPending = () => {},
+  onCancelPending = () => {},
   desktopEnhanced = false,
 }) {
   const timeframeSeconds = secondsByTimeframe[chartTimeframe] || 60;
@@ -410,6 +501,7 @@ export default function ChartArea({
         <TradingChart symbol={symbol} instrument={instrument} timeframe={chartTimeframe} tick={tick} chartMode={chartMode} bidPrice={price} askPrice={ask} positions={positions} indicators={indicators} onCoordinateApi={setCoordinateApi} showBidAskLines={desktopEnhanced} showPositionPriceLines={!desktopEnhanced} />
         {showDrawings && <DrawingLayer symbol={symbol} timeframe={chartTimeframe} tool={selectedTool} onToolChange={onSelectTool} disabled={Boolean(tradePlan)} coordinateApi={coordinateApi} />}
         <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} coordinateApi={coordinateApi} instrument={instrument} lots={tradePlanLots} accountCurrency={accountCurrency} />
+        {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} />}
         {desktopEnhanced && !tradePlan && <OpenPositionEntryOverlay symbol={symbol} positions={positions} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} />}
         {!tradePlan && <OpenPositionProtectionOverlay symbol={symbol} positions={positions} coordinateApi={coordinateApi} instrument={instrument} onUpdatePosition={onUpdatePosition} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} />}
 

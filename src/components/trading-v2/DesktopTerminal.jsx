@@ -694,6 +694,9 @@ export default function DesktopTerminal({
                 onSelectSymbol={onSelectSymbol}
                 indicators={indicators}
                 positions={positions}
+                pendingOrders={pendingOrders}
+                onModifyPending={onModifyPending}
+                onCancelPending={onCancelPending}
                 selectedTool={selectedTool}
                 onSelectedToolChange={onSelectedToolChange}
                 chartMode={chartMode}

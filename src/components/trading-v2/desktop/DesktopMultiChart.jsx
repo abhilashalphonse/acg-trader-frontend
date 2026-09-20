@@ -23,6 +23,9 @@ export default function DesktopMultiChart({
   onSelectSymbol = () => {},
   indicators = [],
   positions = [],
+  pendingOrders = [],
+  onModifyPending = () => {},
+  onCancelPending = () => {},
   selectedTool = 'cursor',
   onSelectedToolChange = () => {},
   chartMode = 'candles',
@@ -62,6 +65,7 @@ export default function DesktopMultiChart({
           const timeframe = TIMEFRAMES.includes(cell.timeframe) ? cell.timeframe : '1m';
           const isActive = index === activeCell;
           const cellPositions = positions.filter(position => position.symbol === symbol);
+          const cellPendingOrders = pendingOrders.filter(order => order.symbol === symbol);
           return (
             <section
               key={index}
@@ -126,6 +130,9 @@ export default function DesktopMultiChart({
                   onSelectPosition={onSelectPosition}
                   indicators={indicators}
                   positions={cellPositions}
+                  pendingOrders={cellPendingOrders}
+                  onModifyPending={onModifyPending}
+                  onCancelPending={onCancelPending}
                 />
               </div>
             </section>

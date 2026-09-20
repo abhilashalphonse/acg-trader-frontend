@@ -22,6 +22,9 @@ export default function MarketPanel({
   onSelectInstrument = () => {},
   onIndicators = () => {},
   positions = [],
+  pendingOrders = [],
+  onModifyPending = () => {},
+  onCancelPending = () => {},
   onUpdatePosition = () => {},
 }) {
   return (
@@ -52,6 +55,9 @@ export default function MarketPanel({
         onUpdatePosition={onUpdatePosition}
         indicators={indicators}
         positions={positions}
+        pendingOrders={pendingOrders}
+        onModifyPending={onModifyPending}
+        onCancelPending={onCancelPending}
       />
     </section>
   );
