@@ -5,12 +5,18 @@ import {
   CandlestickChart,
   ChartNoAxesCombined,
   ChevronDown,
+  Columns2,
+  Grid2X2,
   History,
+  Link2,
+  Link2Off,
   List,
   Maximize2,
   MoreHorizontal,
   Search,
   Settings,
+  ShieldAlert,
+  Square,
   Star,
   UserRound,
   X,
@@ -22,8 +28,8 @@ import DesktopWorkspaceMenu from './desktop/DesktopWorkspaceMenu.jsx';
 import DesktopWatchlist from './desktop/DesktopWatchlist.jsx';
 import ResizeHandle from './desktop/ResizeHandle.jsx';
 import PositionsPanel from './PositionsPanel.jsx';
-import PropRiskStrip from './PropRiskStrip.jsx';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
+import { calculateAccountRiskSummary } from '../../utils/accountRisk.js';
 
 const timeframes = [['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], ['1H', '1H'], ['4H', '4H'], ['1D', '1D'], ['1W', '1W']];
 const navItems = [['trade', CandlestickChart, 'Trade'], ['watchlist', Star, 'Watchlist'], ['markets', List, 'Markets'], ['history', History, 'History'], ['more', MoreHorizontal, 'More']];
@@ -210,6 +216,8 @@ export default function DesktopTerminal({
   const [desktopLayout, setDesktopLayout] = useState(loadDesktopLayout);
   const [viewportHeight, setViewportHeight] = useState(() => typeof window !== 'undefined' ? window.innerHeight : 900);
   const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
+  const [chartMenuOpen, setChartMenuOpen] = useState(false);
+  const [riskPopoverOpen, setRiskPopoverOpen] = useState(false);
   const [multiChart, setMultiChart] = useState(() => loadMultiChart(activeSymbol, timeframe));
   const favorite = watchlists?.isWatched?.(activeSymbol) === true;
 
@@ -267,6 +275,19 @@ export default function DesktopTerminal({
 
   const activeChartIndex = Math.min(Math.max(0, Number(multiChart?.activeCell) || 0), Math.max(0, Number(multiChart?.layout || 1) - 1));
   const activeChartTimeframe = multiChart?.cells?.[activeChartIndex]?.timeframe || timeframe;
+  const chartLayout = [1, 2, 4].includes(Number(multiChart?.layout)) ? Number(multiChart.layout) : 1;
+  const chartLinked = multiChart?.linked === true;
+
+  const setChartLayout = layout => {
+    setMultiChart(current => ({
+      ...current,
+      layout,
+      activeCell: Math.min(Number(current?.activeCell) || 0, layout - 1),
+    }));
+    setChartMenuOpen(false);
+  };
+
+  const toggleChartLink = () => setMultiChart(current => ({ ...current, linked: !current?.linked }));
 
   const setDesktopTimeframe = value => {
     onTimeframeChange(value);
@@ -360,6 +381,10 @@ export default function DesktopTerminal({
 
   const currency = account?.currency || 'USD';
   const accountPnl = Number(account?.floatingPnl ?? (Number(account?.equity) - Number(account?.balance)));
+  const challengeRisk = calculateAccountRiskSummary(account, plannedRisk);
+  const hasChallengeRules = challengeRisk.dailyLossLimit > 0 || challengeRisk.maxLossLimit > 0 || challengeRisk.profitTarget > 0;
+  const challengeWarning = challengeRisk.dailyLossLimit > 0 && plannedRisk > 0
+    && (!challengeRisk.riskAvailabilityLive || plannedRisk >= challengeRisk.remainingDaily * 0.75);
   const valuationStatus = String(account?.valuationStatus || 'WAITING').toUpperCase();
   const accountStatus = String(account?.status || 'UNKNOWN').toUpperCase();
   const canOpen = exposureAllowed && executableMarket(market) && accountStatus === 'ACTIVE' && account?.tradingEnabled === true && valuationStatus === 'LIVE';
@@ -467,7 +492,7 @@ export default function DesktopTerminal({
             gridTemplateRows: `minmax(0, 1fr) ${dockHeight}px`,
           }}
         >
-          <section className="grid min-h-0 min-w-0 grid-rows-[50px_40px_40px_minmax(0,1fr)]">
+          <section className="grid min-h-0 min-w-0 grid-rows-[52px_40px_minmax(0,1fr)]">
             <div className="flex items-center border-b border-white/[0.06] bg-[#07090B] px-3">
               <div className="flex min-w-[210px] items-center gap-2">
                 <InstrumentAvatar instrument={market} size={28}/>
@@ -476,18 +501,47 @@ export default function DesktopTerminal({
                   <span className="mt-0.5 block truncate text-[8px] text-[#6F8191]">{marketLabel(market)}</span>
                 </div>
               </div>
+
               <div className="ml-3">
                 <strong className="block font-mono text-[16px] tracking-[-0.02em] text-[#edf5fb]">{market?.bid || '—'}</strong>
                 <span className={`mt-0.5 block text-[9px] font-semibold ${market?.live ? 'text-[#42D7A1]' : market?.isStale ? 'text-[#E7BD58]' : 'text-[#6F8191]'}`}>{market?.sessionOpen === false ? 'SESSION CLOSED' : market?.live ? 'LIVE' : market?.isStale ? 'STALE' : market?.marketState || 'WAITING'}</span>
               </div>
+
+              <div className="relative ml-5 hidden lg:block">
+                <button type="button" onClick={() => setRiskPopoverOpen(value => !value)} className={`flex h-8 items-center gap-3 rounded-md border px-2.5 text-[8px] transition ${riskPopoverOpen ? 'border-[#315b72] bg-[#0d1a22]' : 'border-white/[0.06] bg-black/20 hover:bg-white/[0.025]'}`} title="Challenge risk">
+                  <ShieldAlert size={12} className={challengeWarning ? 'text-[#FF6F7A]' : 'text-[#59C7FF]'}/>
+                  {hasChallengeRules ? (
+                    <>
+                      <span className="whitespace-nowrap text-[#6F8191]">Daily <b className={challengeWarning ? 'text-[#FF6F7A]' : 'text-[#E6EDF3]'}>{money(challengeRisk.remainingDaily, currency)}</b></span>
+                      <span className="hidden whitespace-nowrap text-[#6F8191] xl:inline">Max <b className="text-[#E6EDF3]">{money(challengeRisk.remainingMax, currency)}</b></span>
+                      <span className="hidden whitespace-nowrap text-[#6F8191] 2xl:inline">Target <b className="text-[#42D7A1]">{money(challengeRisk.profit, currency)} / {money(challengeRisk.profitTarget, currency)}</b></span>
+                    </>
+                  ) : (
+                    <span className="whitespace-nowrap text-[#6F8191]">Challenge <b className="text-[#A1AFBC]">No limits</b></span>
+                  )}
+                </button>
+
+                {riskPopoverOpen && (
+                  <div className="absolute left-0 top-10 z-[100] w-[300px] rounded-md border border-white/[0.10] bg-[#0C1013] p-3 shadow-[0_18px_50px_rgba(0,0,0,.60)]">
+                    <div className="flex items-center justify-between"><strong className="text-[10px] text-[#E6EDF3]">Challenge health</strong><span className={`text-[8px] font-bold ${valuationStatus === 'LIVE' ? 'text-[#42D7A1]' : valuationStatus === 'STALE' ? 'text-[#E7BD58]' : 'text-[#A1AFBC]'}`}>{valuationStatus}</span></div>
+                    {hasChallengeRules ? (
+                      <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
+                        <div><span className="block text-[7px] uppercase text-[#6F8191]">Daily room</span><b className="mt-0.5 block text-[10px] text-[#E6EDF3]">{money(challengeRisk.remainingDaily, currency)}</b></div>
+                        <div><span className="block text-[7px] uppercase text-[#6F8191]">Max room</span><b className="mt-0.5 block text-[10px] text-[#E6EDF3]">{money(challengeRisk.remainingMax, currency)}</b></div>
+                        <div><span className="block text-[7px] uppercase text-[#6F8191]">Profit</span><b className="mt-0.5 block text-[10px] text-[#42D7A1]">{money(challengeRisk.profit, currency)} / {money(challengeRisk.profitTarget, currency)}</b></div>
+                        <div><span className="block text-[7px] uppercase text-[#6F8191]">After current SL</span><b className={`mt-0.5 block text-[10px] ${challengeWarning ? 'text-[#FF6F7A]' : 'text-[#59C7FF]'}`}>{plannedRisk > 0 ? money(challengeRisk.postTradeDaily, currency) : '—'}</b></div>
+                      </div>
+                    ) : (
+                      <div className="mt-3 text-[8px] leading-4 text-[#6F8191]">Challenge limits are not configured for this account. Current free margin is <b className="text-[#E6EDF3]">{money(account?.freeMargin, currency)}</b>.</div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <div className="ml-auto flex items-center gap-3">
                 <div className="hidden text-right xl:block"><span className="block text-[8px] uppercase tracking-[0.07em] text-[#6F8191]">Valuation</span><b className={`mt-0.5 block text-[8px] ${valuationStatus === 'LIVE' ? 'text-[#42D7A1]' : valuationStatus === 'STALE' ? 'text-[#E7BD58]' : 'text-[#A1AFBC]'}`}>{valuationStatus}</b></div>
                 <button type="button" onClick={() => watchlists?.toggleSymbol?.(activeSymbol)} className={`grid size-7 place-items-center rounded-md hover:bg-white/[0.035] ${favorite ? 'text-[#f6c95d]' : 'text-[#687d92]'}`}><Star size={14} fill={favorite ? 'currentColor' : 'none'}/></button>
               </div>
-            </div>
-
-            <div className="min-h-0 overflow-hidden border-b border-white/[0.06]">
-              <PropRiskStrip account={account} plannedRisk={plannedRisk} compact />
             </div>
 
             <div className="flex items-center gap-1.5 border-b border-white/[0.06] bg-[#07090B] px-2.5">
@@ -503,6 +557,30 @@ export default function DesktopTerminal({
                 <button type="button" onClick={onOpenIndicators} className={`relative grid size-6 place-items-center rounded text-[9px] font-black hover:text-white ${indicators.length ? 'bg-white/[0.05] text-[#59C7FF]' : 'text-[#6F8191]'}`} title="Indicators">ƒx{indicators.length > 0 && <span className="absolute -right-1 -top-1 grid size-3 place-items-center rounded-full bg-[#151515] text-[5px] text-white">{indicators.length}</span>}</button>
               </div>
               <div className="ml-auto flex items-center gap-1">
+                <div className="relative">
+                  <button type="button" onClick={() => setChartMenuOpen(value => !value)} className={`flex h-7 items-center gap-1.5 rounded-md border px-2 text-[8px] font-semibold ${chartMenuOpen || chartLayout > 1 ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] bg-black/20 text-[#6F8191] hover:text-white'}`} title="Chart layout">
+                    {chartLayout === 1 ? <Square size={12}/> : chartLayout === 2 ? <Columns2 size={12}/> : <Grid2X2 size={12}/>}
+                    <span className="hidden xl:inline">Charts</span>
+                    <ChevronDown size={10}/>
+                  </button>
+                  {chartMenuOpen && (
+                    <div className="absolute right-0 top-8 z-[95] w-[190px] rounded-md border border-white/[0.10] bg-[#0C1013] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+                      {[
+                        [1, Square, 'Single chart'],
+                        [2, Columns2, 'Two charts'],
+                        [4, Grid2X2, 'Four charts'],
+                      ].map(([value, Icon, label]) => (
+                        <button key={value} type="button" onClick={() => setChartLayout(value)} className={`flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold ${chartLayout === value ? 'bg-[#0d1a22] text-[#59C7FF]' : 'text-[#A1AFBC] hover:bg-white/[0.03]'}`}><Icon size={12}/>{label}</button>
+                      ))}
+                      {chartLayout > 1 && (
+                        <>
+                          <div className="my-1 border-t border-white/[0.06]"/>
+                          <button type="button" onClick={toggleChartLink} className={`flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold ${chartLinked ? 'text-[#59C7FF]' : 'text-[#A1AFBC]'} hover:bg-white/[0.03]'}><span className="flex items-center gap-2">{chartLinked ? <Link2 size={12}/> : <Link2Off size={12}/>}Link symbols</span><span className="text-[#6F8191]">{chartLinked ? 'On' : 'Off'}</span></button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <DesktopWorkspaceMenu snapshot={workspaceSnapshot} onApply={applyWorkspace}/>
                 <button type="button" onClick={() => setReviewOpen(true)} className="flex h-7 items-center gap-1 rounded-md border border-white/[0.06] bg-black/20 px-2 text-[8px] font-semibold text-[#6F8191] hover:text-white" title="Trade review"><BookOpen size={12}/>Review</button>
                 <div className="relative">
