@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bell,
   CandlestickChart,
@@ -15,7 +15,8 @@ import {
   X,
 } from 'lucide-react';
 import ChartArea from './ChartArea.jsx';
-import ExecutionPanel from './ExecutionPanel.jsx';
+import DesktopOrderTicket from './desktop/DesktopOrderTicket.jsx';
+import ResizeHandle from './desktop/ResizeHandle.jsx';
 import PositionsPanel from './PositionsPanel.jsx';
 import PropRiskStrip from './PropRiskStrip.jsx';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
@@ -23,6 +24,33 @@ import InstrumentAvatar from './InstrumentAvatar.jsx';
 const timeframes = [['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], ['1H', '1H'], ['4H', '4H'], ['1D', '1D'], ['1W', '1W']];
 const chartTimeframeMap = { '1m': 'M1', '5m': 'M5', '15m': 'M15', '30m': 'M30', '1H': 'H1', '4H': 'H4', '1D': 'D1', '1W': 'W1' };
 const navItems = [['trade', CandlestickChart, 'Trade'], ['watchlist', Star, 'Watchlist'], ['markets', List, 'Markets'], ['history', History, 'History'], ['more', MoreHorizontal, 'More']];
+const DESKTOP_LAYOUT_KEY = 'acg-trader-desktop-layout-v1';
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, Number(value)));
+}
+
+function loadDesktopLayout() {
+  const fallback = {
+    sidebarWidth: typeof window !== 'undefined' && window.innerWidth >= 1536 ? 390 : 360,
+    dockHeight: 200,
+    sidebarCollapsed: false,
+    dockCollapsed: false,
+  };
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(DESKTOP_LAYOUT_KEY) || 'null');
+    if (!stored || typeof stored !== 'object') return fallback;
+    return {
+      sidebarWidth: clamp(stored.sidebarWidth || fallback.sidebarWidth, 310, 480),
+      dockHeight: clamp(stored.dockHeight || fallback.dockHeight, 150, 340),
+      sidebarCollapsed: stored.sidebarCollapsed === true,
+      dockCollapsed: stored.dockCollapsed === true,
+    };
+  } catch {
+    return fallback;
+  }
+}
 
 function displaySymbol(symbol = '') {
   if (symbol.includes('/')) return symbol;
@@ -116,7 +144,29 @@ export default function DesktopTerminal({
   const [activeNav, setActiveNav] = useState('trade');
   const [search, setSearch] = useState('');
   const [notice, setNotice] = useState('');
+  const [desktopLayout, setDesktopLayout] = useState(loadDesktopLayout);
   const favorite = watchlists?.isWatched?.(activeSymbol) === true;
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(DESKTOP_LAYOUT_KEY, JSON.stringify(desktopLayout));
+    } catch {
+      // Layout persistence is optional.
+    }
+  }, [desktopLayout]);
+
+  const sidebarWidth = desktopLayout.sidebarCollapsed ? 0 : desktopLayout.sidebarWidth;
+  const dockHeight = desktopLayout.dockCollapsed ? 0 : desktopLayout.dockHeight;
+  const updateSidebarWidth = value => setDesktopLayout(current => ({ ...current, sidebarWidth: clamp(value, 310, 480), sidebarCollapsed: false }));
+  const updateDockHeight = value => setDesktopLayout(current => ({ ...current, dockHeight: clamp(value, 150, 340), dockCollapsed: false }));
+  const toggleSidebar = () => setDesktopLayout(current => ({ ...current, sidebarCollapsed: !current.sidebarCollapsed }));
+  const toggleDock = () => setDesktopLayout(current => ({ ...current, dockCollapsed: !current.dockCollapsed }));
+  const resetDesktopLayout = () => setDesktopLayout({
+    sidebarWidth: window.innerWidth >= 1536 ? 390 : 360,
+    dockHeight: 200,
+    sidebarCollapsed: false,
+    dockCollapsed: false,
+  });
 
   const currency = account?.currency || 'USD';
   const accountPnl = Number(account?.floatingPnl ?? (Number(account?.equity) - Number(account?.balance)));
@@ -208,7 +258,13 @@ export default function DesktopTerminal({
           <button type="button" onClick={onOpenSettings} title="Settings" className="grid size-10 place-items-center rounded-md text-[#65798e] hover:bg-white/[0.03] hover:text-white"><Settings size={16}/></button>
         </aside>
 
-        <div className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)_360px] grid-rows-[minmax(0,1fr)_190px] bg-[#080808] 2xl:grid-cols-[minmax(0,1fr)_390px] 2xl:grid-rows-[minmax(0,1fr)_220px]">
+        <div
+          className="relative grid min-h-0 min-w-0 bg-[#080808]"
+          style={{
+            gridTemplateColumns: `minmax(0, 1fr) ${sidebarWidth}px`,
+            gridTemplateRows: `minmax(0, 1fr) ${dockHeight}px`,
+          }}
+        >
           <section className="grid min-h-0 min-w-0 grid-rows-[48px_28px_38px_minmax(0,1fr)]">
             <div className="flex items-center border-b border-white/[0.08] bg-[#080808] px-3">
               <div className="flex min-w-[210px] items-center gap-2">
@@ -244,7 +300,12 @@ export default function DesktopTerminal({
                 <button type="button" onClick={() => onChartModeChange('line')} disabled={Boolean(tradePlan && !tradePlan.open)} className={`grid size-6 place-items-center rounded ${chartMode === 'line' ? 'bg-white/[0.05] text-[#58c7ff]' : 'text-[#6d8298]'} disabled:opacity-30`} title="Line chart"><ChartNoAxesCombined size={13}/></button>
                 <button type="button" onClick={onOpenIndicators} className={`relative grid size-6 place-items-center rounded text-[9px] font-black hover:text-white ${indicators.length ? 'bg-white/[0.05] text-[#5bc9ff]' : 'text-[#6d8298]'}`} title="Indicators">ƒx{indicators.length > 0 && <span className="absolute -right-1 -top-1 grid size-3 place-items-center rounded-full bg-[#151515] text-[5px] text-white">{indicators.length}</span>}</button>
               </div>
-              <button type="button" onClick={toggleFullscreen} className="ml-auto grid size-7 place-items-center rounded-md border border-white/[0.07] bg-black/20 text-[#73889d] hover:text-white" title="Fullscreen"><Maximize2 size={13}/></button>
+              <div className="ml-auto flex items-center gap-1">
+                <button type="button" onClick={toggleSidebar} className={`h-6 rounded border px-2 text-[7px] font-bold uppercase tracking-[0.05em] transition ${desktopLayout.sidebarCollapsed ? 'border-[#315b72] bg-[#0d1a22] text-[#58c7ff]' : 'border-white/[0.07] bg-black/20 text-[#73889d] hover:text-white'}`} title={desktopLayout.sidebarCollapsed ? 'Show right panel' : 'Hide right panel'}>Right</button>
+                <button type="button" onClick={toggleDock} className={`h-6 rounded border px-2 text-[7px] font-bold uppercase tracking-[0.05em] transition ${desktopLayout.dockCollapsed ? 'border-[#315b72] bg-[#0d1a22] text-[#58c7ff]' : 'border-white/[0.07] bg-black/20 text-[#73889d] hover:text-white'}`} title={desktopLayout.dockCollapsed ? 'Show positions dock' : 'Hide positions dock'}>Dock</button>
+                <button type="button" onClick={resetDesktopLayout} className="h-6 rounded border border-white/[0.07] bg-black/20 px-2 text-[7px] font-bold uppercase tracking-[0.05em] text-[#73889d] hover:text-white" title="Reset desktop layout">Reset</button>
+                <button type="button" onClick={toggleFullscreen} className="grid size-7 place-items-center rounded-md border border-white/[0.07] bg-black/20 text-[#73889d] hover:text-white" title="Fullscreen"><Maximize2 size={13}/></button>
+              </div>
             </div>
 
             <div className="min-h-0 min-w-0 bg-[#080808]">
@@ -252,7 +313,7 @@ export default function DesktopTerminal({
             </div>
           </section>
 
-          <aside className="flex min-h-0 flex-col border-l border-white/[0.08] bg-[#080808]">
+          <aside className={`min-h-0 flex-col border-l border-white/[0.08] bg-[#080808] ${desktopLayout.sidebarCollapsed ? 'hidden' : 'flex'}`}>
             <div className="flex h-11 shrink-0 items-center justify-between border-b border-white/[0.08] px-2.5">
               <div className="min-w-0">
                 <strong className="block text-[9px] font-extrabold tracking-[0.08em] text-[#dce7f1]">{activeNav === 'markets' ? 'MARKETS' : 'WATCHLIST'}</strong>
@@ -292,20 +353,40 @@ export default function DesktopTerminal({
               })}
             </div>
 
-            <div className="shrink-0 border-t border-white/[0.08] bg-black/30">
-              <div className="flex h-8 items-center justify-between border-b border-white/[0.06] px-2.5">
-                <strong className="text-[8px] font-extrabold uppercase tracking-[0.08em] text-[#c5d0da]">Order</strong>
-                <span className="text-[7px] text-[#5f7388]">1-click execution</span>
-              </div>
-              <div className="px-2 pb-2">
-                <ExecutionPanel desktopSidebar market={market} account={account} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange}/>
-              </div>
-            </div>
+            <DesktopOrderTicket market={market} account={account} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange}/>
           </aside>
 
-          <div className="col-span-2 min-h-0 overflow-auto border-t border-white/[0.08] bg-[#080808]">
+          <div className={`col-span-2 min-h-0 overflow-auto border-t border-white/[0.08] bg-[#080808] ${desktopLayout.dockCollapsed ? 'hidden' : ''}`}>
             <PositionsPanel desktopDense positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending}/>
           </div>
+
+          {!desktopLayout.sidebarCollapsed && (
+            <ResizeHandle
+              axis="x"
+              value={desktopLayout.sidebarWidth}
+              min={310}
+              max={480}
+              deltaMultiplier={-1}
+              onChange={updateSidebarWidth}
+              ariaLabel="Resize right trading panel"
+              className="absolute bottom-0 top-0"
+              style={{ right: sidebarWidth - 2 }}
+            />
+          )}
+
+          {!desktopLayout.dockCollapsed && (
+            <ResizeHandle
+              axis="y"
+              value={desktopLayout.dockHeight}
+              min={150}
+              max={340}
+              deltaMultiplier={-1}
+              onChange={updateDockHeight}
+              ariaLabel="Resize positions dock"
+              className="absolute left-0 right-0"
+              style={{ bottom: dockHeight - 2 }}
+            />
+          )}
         </div>
       </div>
     </div>
