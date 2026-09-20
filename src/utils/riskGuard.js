@@ -36,11 +36,28 @@ function positionRisk(position, instrument, accountCurrency) {
 }
 
 function consecutiveLosses(history = []) {
-  let count = 0;
-  for (const item of Array.isArray(history) ? history : []) {
+  const rows = Array.isArray(history) ? history : [];
+  const grouped = [];
+  const byPosition = new Map();
+
+  for (let index = 0; index < rows.length; index += 1) {
+    const item = rows[index];
     const pnl = finite(item?.pnl);
     if (pnl == null) continue;
-    if (pnl < 0) count += 1;
+    const positionId = String(item?.positionId || '').trim();
+    const key = positionId || `deal:${item?.id || index}`;
+    if (!byPosition.has(key)) {
+      const group = { key, pnl: 0, order: index };
+      byPosition.set(key, group);
+      grouped.push(group);
+    }
+    byPosition.get(key).pnl += pnl;
+  }
+
+  grouped.sort((a, b) => a.order - b.order);
+  let count = 0;
+  for (const trade of grouped) {
+    if (trade.pnl < 0) count += 1;
     else break;
   }
   return count;
