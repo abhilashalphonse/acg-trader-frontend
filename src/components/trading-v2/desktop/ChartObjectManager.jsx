@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useSyncExternalStore } from 'react';
+import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -73,6 +73,18 @@ export default function ChartObjectManager({
   const drawings = drawingState.present;
   const [selectedDrawingId, setSelectedDrawingId] = useState(null);
   const [sections, setSections] = useState({ indicators: true, drawings: true });
+
+  useEffect(() => {
+    const normalizedSymbol = String(symbol || '').toUpperCase();
+    const onSelection = event => {
+      const detail = event?.detail || {};
+      if (String(detail.symbol || '').toUpperCase() !== normalizedSymbol) return;
+      if (detail.chartInstanceId !== chartInstanceId) return;
+      setSelectedDrawingId(detail.selectedId || null);
+    };
+    window.addEventListener('acg-trader-drawing-selection-change', onSelection);
+    return () => window.removeEventListener('acg-trader-drawing-selection-change', onSelection);
+  }, [chartInstanceId, symbol]);
 
   const counts = useMemo(() => ({
     indicators: indicators.length,
