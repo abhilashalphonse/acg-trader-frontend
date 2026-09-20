@@ -64,6 +64,7 @@ export default function TradingChart({ symbol = 'EURUSD', instrument = null, tim
   const indicatorsRef = useRef(indicators);
   const indicatorFrameRef = useRef(null);
   const coordinateCallbackRef = useRef(onCoordinateApi);
+  const autoFollowRef = useRef(true);
   const [error, setError] = useState('');
   const [displayBar, setDisplayBar] = useState(null);
 
@@ -156,6 +157,13 @@ export default function TradingChart({ symbol = 'EURUSD', instrument = null, tim
     chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
     seriesRef.current = series; volumeRef.current = volume; marketLineRef.current = null; positionLinesRef.current = []; setError('');
     const timeScale = chart.timeScale();
+    const visibleRangeHandler = () => {
+      const range = timeScale.getVisibleLogicalRange();
+      const lastIndex = barsRef.current.length - 1;
+      if (!range || lastIndex < 0) return;
+      autoFollowRef.current = range.to >= lastIndex - 0.5;
+    };
+    timeScale.subscribeVisibleLogicalRangeChange(visibleRangeHandler);
     const coordinateApi = { toData(point) { if (!point) return null; const time = timeScale.coordinateToTime(Number(point.x)); const price = series.coordinateToPrice(Number(point.y)); return time == null || price == null || !Number.isFinite(Number(price)) ? null : { time, price: Number(price) }; }, toScreen(point) { if (!point || point.time == null || point.price == null) return null; const x = timeScale.timeToCoordinate(point.time); const y = series.priceToCoordinate(Number(point.price)); return x == null || y == null ? null : { x: Number(x), y: Number(y) }; }, priceToY(price) { const y = series.priceToCoordinate(Number(price)); return y == null ? null : Number(y); }, yToPrice(y) { const price = series.coordinateToPrice(Number(y)); return price == null || !Number.isFinite(Number(price)) ? null : Number(price); }, subscribe(handler) { const rangeHandler = () => handler?.(); const sizeHandler = () => handler?.(); timeScale.subscribeVisibleLogicalRangeChange(rangeHandler); timeScale.subscribeSizeChange(sizeHandler); return () => { timeScale.unsubscribeVisibleLogicalRangeChange(rangeHandler); timeScale.unsubscribeSizeChange(sizeHandler); }; } };
     coordinateCallbackRef.current?.(coordinateApi);
     const controller = new AbortController();
@@ -173,7 +181,7 @@ export default function TradingChart({ symbol = 'EURUSD', instrument = null, tim
         }).filter(Boolean)); lastBarRef.current = bars[bars.length - 1]; setDisplayBar(bars[bars.length - 1]); renderIndicators(chart, bars); chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, bars.length - 48), to: bars.length + 9 });
       } catch (e) { if (e?.name === 'AbortError' || disposed) return; console.error('Trading chart data failed', e); setError(e?.message || 'Unable to load market data'); }
     })();
-    return () => { disposed = true; controller.abort(); coordinateCallbackRef.current?.(null); if (indicatorFrameRef.current) window.cancelAnimationFrame(indicatorFrameRef.current); indicatorFrameRef.current = null; chart.unsubscribeCrosshairMove(crosshairHandler); indicatorSeriesRef.current = []; indicatorBindingsRef.current = []; indicatorPanesRef.current = 0; chartRef.current = null; seriesRef.current = null; volumeRef.current = null; marketLineRef.current = null; positionLinesRef.current = []; lastBarRef.current = null; barsRef.current = []; barsByTimeRef.current = new Map(); chart.remove(); };
+    return () => { disposed = true; controller.abort(); timeScale.unsubscribeVisibleLogicalRangeChange(visibleRangeHandler); coordinateCallbackRef.current?.(null); if (indicatorFrameRef.current) window.cancelAnimationFrame(indicatorFrameRef.current); indicatorFrameRef.current = null; chart.unsubscribeCrosshairMove(crosshairHandler); indicatorSeriesRef.current = []; indicatorBindingsRef.current = []; indicatorPanesRef.current = 0; chartRef.current = null; seriesRef.current = null; volumeRef.current = null; marketLineRef.current = null; positionLinesRef.current = []; lastBarRef.current = null; barsRef.current = []; barsByTimeRef.current = new Map(); chart.remove(); };
   }, [symbol, timeframe, chartMode, renderIndicators, decimals, minMove]);
 
   useEffect(() => { indicatorsRef.current = indicators; if (chartRef.current && barsRef.current.length) renderIndicators(chartRef.current, barsRef.current); }, [indicators, renderIndicators]);
@@ -237,6 +245,7 @@ export default function TradingChart({ symbol = 'EURUSD', instrument = null, tim
 
   useEffect(() => {
     if (!liveCandle || !seriesRef.current) return;
+    const shouldAutoFollow = autoFollowRef.current;
     const next = liveCandle;
     const lastIndex = barsRef.current.length - 1;
     if (lastIndex >= 0 && barsRef.current[lastIndex]?.time === next.time) barsRef.current[lastIndex] = next;
@@ -249,7 +258,7 @@ export default function TradingChart({ symbol = 'EURUSD', instrument = null, tim
     if (liveVolume != null) {
       volumeRef.current?.update({ time: next.time, value: liveVolume, color: next.close >= next.open ? 'rgba(45,211,155,0.34)' : 'rgba(255,95,105,0.32)' });
     }
-    setDisplayBar(next); scheduleIndicatorUpdate(); chartRef.current?.timeScale().scrollToRealTime(); mergeLiveBarIntoCache(symbol, timeframe, next, 160);
+    setDisplayBar(next); scheduleIndicatorUpdate(); if (shouldAutoFollow) chartRef.current?.timeScale().scrollToRealTime(); mergeLiveBarIntoCache(symbol, timeframe, next, 160);
   }, [chartMode, liveCandle, scheduleIndicatorUpdate, symbol, timeframe]);
 
   const ohlc = displayBar;
