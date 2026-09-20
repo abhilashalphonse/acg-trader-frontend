@@ -107,6 +107,27 @@ export default function TradingChart({
   const liveCandle = useMemo(() => rawLiveCandle ? normalizeCandle(rawLiveCandle) : null, [rawLiveCandle]);
   const decimals = instrumentDigits(instrument);
   const minMove = instrumentTickSize(instrument);
+  const indicatorInstrument = useMemo(() => ({
+    session: instrument?.session || null,
+    tradingSession: instrument?.tradingSession || null,
+    regularSession: instrument?.regularSession || null,
+    sessionTimezone: instrument?.sessionTimezone || null,
+    exchangeTimezone: instrument?.exchangeTimezone || null,
+    timeZone: instrument?.timeZone || null,
+    timezone: instrument?.timezone || null,
+    sessionStart: instrument?.sessionStart || null,
+    marketOpen: instrument?.marketOpen || null,
+  }), [
+    instrument?.session,
+    instrument?.tradingSession,
+    instrument?.regularSession,
+    instrument?.sessionTimezone,
+    instrument?.exchangeTimezone,
+    instrument?.timeZone,
+    instrument?.timezone,
+    instrument?.sessionStart,
+    instrument?.marketOpen,
+  ]);
   const visibleIndicators = useMemo(() => indicators.filter(item => indicatorVisibleOnTimeframe(item, timeframe)), [indicators, timeframe]);
   const showVolume = useMemo(() => indicators.some(item => item.id === 'volume' && indicatorVisibleOnTimeframe(item, timeframe)), [indicators, timeframe]);
   const historyLimit = useMemo(() => requiredIndicatorHistory(indicators, timeframe), [indicators, timeframe]);
@@ -132,7 +153,7 @@ export default function TradingChart({
     clearIndicatorSeries(chart);
     let paneIndex = 1;
     indicatorsRef.current.filter(item => item.id !== 'volume' && indicatorVisibleOnTimeframe(item, timeframe)).forEach((indicator, indicatorIndex) => {
-      const result = calculateIndicatorData(indicator, bars, { instrument });
+      const result = calculateIndicatorData(indicator, bars, { instrument: indicatorInstrument });
       if (!result) return;
       const colors = fallbackIndicatorColors[indicator.id] || ['#53c7ff', '#f0ad5c', '#b38cff'];
       const targetPane = result.kind === 'overlay' ? 0 : paneIndex++;
@@ -177,18 +198,18 @@ export default function TradingChart({
         setPaneLayout([]);
       }
     });
-  }, [clearIndicatorSeries, instrument, timeframe]);
+  }, [clearIndicatorSeries, indicatorInstrument, timeframe]);
 
   const updateIndicatorData = useCallback(bars => {
     if (!bars?.length) return;
     indicatorBindingsRef.current.forEach(binding => {
       const indicator = indicatorsRef.current.find(item => item.instanceId === binding.instanceId) || binding.indicator;
-      const result = calculateIndicatorData(indicator, bars, { instrument });
+      const result = calculateIndicatorData(indicator, bars, { instrument: indicatorInstrument });
       if (!result) return;
       binding.lines.forEach(lineBinding => { const line = result.lines?.find(item => item.key === lineBinding.key); if (line) lineBinding.series.setData(line.data); });
       if (binding.histogram && result.histogram) binding.histogram.setData(result.histogram.map(point => ({ ...point, color: point.value >= 0 ? 'rgba(45,211,155,0.45)' : 'rgba(255,95,105,0.45)' })));
     });
-  }, [instrument]);
+  }, [indicatorInstrument]);
   const scheduleIndicatorUpdate = useCallback(() => {
     if (indicatorFrameRef.current) return;
     indicatorFrameRef.current = window.requestAnimationFrame(() => { indicatorFrameRef.current = null; updateIndicatorData(barsRef.current); });
