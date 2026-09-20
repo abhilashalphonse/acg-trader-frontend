@@ -110,7 +110,7 @@ export default function DesktopOrderTicket({
   const [lotInput, setLotInput] = useState(String(lots));
   const [lotFocused, setLotFocused] = useState(false);
   const [activeTool, setActiveTool] = useState(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [protectionMode, setProtectionMode] = useState({ sl: 'price', tp: 'price' });
   const [riskGuardOpen, setRiskGuardOpen] = useState(false);
 
   const volumeStep = Math.max(Number(market?.volumeStep) || 0.01, 0.00000001);
