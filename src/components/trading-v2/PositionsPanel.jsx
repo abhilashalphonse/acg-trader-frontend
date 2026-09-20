@@ -50,6 +50,9 @@ export default function PositionsPanel({
   journal = [],
   onClosePosition = () => {},
   onCloseAll = () => {},
+  onCloseWinners = () => {},
+  onCloseLosers = () => {},
+  onCloseSymbol = () => {},
   onBreakEven = () => {},
   onReverse = () => {},
   onUpdatePosition = () => {},
@@ -58,6 +61,7 @@ export default function PositionsPanel({
   onCancelPending = () => {},
   onModifyPending = () => {},
   desktopDense = false,
+  activeSymbol = null,
 }) {
   const [tab, setTab] = useState('positions');
   const [expandedId, setExpandedId] = useState(null);
@@ -66,6 +70,8 @@ export default function PositionsPanel({
   const [protectionDrafts, setProtectionDrafts] = useState({});
   const [customClose, setCustomClose] = useState({});
   const [sharePosition, setSharePosition] = useState(null);
+  const [desktopActionsOpen, setDesktopActionsOpen] = useState(false);
+  const [rowActionsId, setRowActionsId] = useState(null);
 
   const counts = useMemo(() => ({
     positions: positions.length,
@@ -73,6 +79,30 @@ export default function PositionsPanel({
     history: positionHistory.length,
     journal: journal.length,
   }), [positions, pendingOrders, positionHistory, journal]);
+
+  const positionGroups = useMemo(() => {
+    const map = new Map();
+    positions.forEach(position => {
+      const key = position.symbol || 'UNKNOWN';
+      const group = map.get(key) || { symbol: key, count: 0, volume: 0, pnl: 0 };
+      group.count += 1;
+      group.volume += Number(position.volume) || 0;
+      group.pnl += Number(position.pnl) || 0;
+      map.set(key, group);
+    });
+    return [...map.values()].sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl));
+  }, [positions]);
+
+  const moveBreakEvenOffset = async (position, pips = 1) => {
+    const instrument = instrumentForSymbol(markets, position.symbol);
+    const pip = instrumentPipSize(instrument);
+    const entry = Number(position.entry);
+    if (!Number.isFinite(entry) || !Number.isFinite(pip) || pip <= 0) return;
+    const isBuy = String(position.side).toUpperCase() === 'BUY';
+    const sl = entry + (isBuy ? 1 : -1) * pip * pips;
+    await onUpdatePosition(position.id, { sl });
+    setRowActionsId(null);
+  };
 
   const buildProtectionDraft = position => {
     const instrument = instrumentForSymbol(markets, position.symbol);
@@ -185,11 +215,29 @@ export default function PositionsPanel({
             </button>
           ))}
         </div>
-        {tab === 'positions' && <button type="button" onClick={onCloseAll} disabled={!positions.length} className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-white/[0.09] bg-black px-2 text-[8px] font-bold text-[#d4d4d4] disabled:cursor-not-allowed disabled:opacity-35"><Trash2 size={12} className="text-[#737373]" />Close All</button>}
+        {tab === 'positions' && (
+          <div className="relative flex shrink-0 items-center gap-1">
+            {desktopDense && <button type="button" onClick={() => setDesktopActionsOpen(value => !value)} disabled={!positions.length} className="flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.09] bg-black px-2 text-[8px] font-bold text-[#aab6c1] disabled:opacity-35"><MoreHorizontal size={12}/>Manage</button>}
+            <button type="button" onClick={onCloseAll} disabled={!positions.length} className="flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.09] bg-black px-2 text-[8px] font-bold text-[#d4d4d4] disabled:cursor-not-allowed disabled:opacity-35"><Trash2 size={12} className="text-[#737373]" />Close All</button>
+            {desktopDense && desktopActionsOpen && (
+              <div className="absolute right-0 top-9 z-50 w-[190px] rounded-md border border-white/[0.10] bg-[#0a0a0a] p-1 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+                <button type="button" onClick={() => { onCloseWinners(); setDesktopActionsOpen(false); }} className="w-full rounded px-2 py-2 text-left text-[8px] font-bold text-[#46d9a6] hover:bg-white/[0.03]">Close winners</button>
+                <button type="button" onClick={() => { onCloseLosers(); setDesktopActionsOpen(false); }} className="w-full rounded px-2 py-2 text-left text-[8px] font-bold text-[#ff747f] hover:bg-white/[0.03]">Close losers</button>
+                {activeSymbol && <button type="button" onClick={() => { onCloseSymbol(activeSymbol); setDesktopActionsOpen(false); }} className="w-full rounded px-2 py-2 text-left text-[8px] font-bold text-[#9fb1c1] hover:bg-white/[0.03]">Close all {formatSymbol(activeSymbol)}</button>}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {tab === 'positions' && desktopDense && (
         <div className="min-w-[860px]">
+          {positionGroups.length > 1 && (
+            <div className="flex h-8 items-center gap-1.5 overflow-x-auto border-b border-white/[0.06] px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <span className="mr-1 shrink-0 text-[6.5px] font-black uppercase tracking-[0.08em] text-[#53677a]">Exposure</span>
+              {positionGroups.map(group => <button key={group.symbol} type="button" onClick={() => onCloseSymbol(group.symbol)} title={`Close all ${group.symbol} positions`} className="flex shrink-0 items-center gap-1 rounded border border-white/[0.06] bg-black px-2 py-1 text-[7px] text-[#8597a7] hover:border-white/[0.12]"><b className="text-[#c8d4de]">{formatSymbol(group.symbol)}</b><span>{group.count}</span><span>{group.volume.toFixed(2)}L</span><span className={group.pnl >= 0 ? 'text-[#42dba6]' : 'text-[#ff727d]'}>{formatPnl(group.pnl)}</span></button>)}
+            </div>
+          )}
           <div className="grid grid-cols-[1.4fr_.7fr_.75fr_1fr_1fr_1fr_1fr_1fr_136px] items-center border-b border-white/[0.07] px-3 py-2 text-[7px] font-bold uppercase tracking-[0.08em] text-[#5c6f82]">
             <span>Instrument</span><span>Side</span><span className="text-right">Size</span><span className="text-right">Entry</span><span className="text-right">Current</span><span className="text-right">SL</span><span className="text-right">TP</span><span className="text-right">P&amp;L</span><span />
           </div>
@@ -211,10 +259,21 @@ export default function PositionsPanel({
                 <button type="button" onClick={() => startProtectionEdit(position, 'sl')} className="text-right font-mono text-[#8e9aa5] hover:text-white">{position.sl == null ? '+ SL' : formatInstrumentPrice(position.sl, instrument)}</button>
                 <button type="button" onClick={() => startProtectionEdit(position, 'tp')} className="text-right font-mono text-[#8e9aa5] hover:text-white">{position.tp == null ? '+ TP' : formatInstrumentPrice(position.tp, instrument)}</button>
                 <strong className={`text-right font-mono text-[10px] ${positive ? 'text-[#3dd9a4]' : 'text-[#ff6975]'}`}>{formatPnl(position.pnl, position.pnlCurrency)}</strong>
-                <div className="flex items-center justify-end gap-1">
+                <div className="relative flex items-center justify-end gap-1">
                   <button type="button" onClick={() => onBreakEven(position.id)} className="h-7 rounded border border-white/[0.07] px-2 text-[7px] font-bold text-[#48d8a4] hover:bg-white/[0.025]">BE</button>
                   <button type="button" onClick={() => onClosePosition(position.id, 50)} className="h-7 rounded border border-white/[0.07] px-2 text-[7px] font-bold text-[#aeb8c1] hover:bg-white/[0.025]">50%</button>
                   <button type="button" onClick={() => onClosePosition(position.id, 100)} className="h-7 rounded border border-[#51242c] px-2 text-[7px] font-bold text-[#ff727d] hover:bg-[#241015]">Close</button>
+                  <button type="button" onClick={() => setRowActionsId(rowActionsId === position.id ? null : position.id)} className="grid size-7 place-items-center rounded border border-white/[0.07] text-[#8092a2] hover:text-white"><MoreHorizontal size={11}/></button>
+                  {rowActionsId === position.id && (
+                    <div className="absolute right-0 top-8 z-50 w-[154px] rounded-md border border-white/[0.10] bg-[#0a0a0a] p-1 shadow-xl">
+                      <button type="button" onClick={() => { onDuplicate(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[7px] text-[#b6c3ce] hover:bg-white/[0.03]">Duplicate position</button>
+                      <button type="button" onClick={() => { onReverse(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[7px] text-[#b6c3ce] hover:bg-white/[0.03]">Reverse position</button>
+                      <button type="button" onClick={() => moveBreakEvenOffset(position, 1)} className="w-full rounded px-2 py-1.5 text-left text-[7px] text-[#48d8a4] hover:bg-white/[0.03]">BE + 1 pip</button>
+                      {[5,10,20].map(pips => <button key={pips} type="button" onClick={() => { onSetTrailing(position.id, true, pips); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[7px] text-[#7fcfff] hover:bg-white/[0.03]">Trailing {pips} pips</button>)}
+                      <div className="my-1 border-t border-white/[0.06]"/>
+                      {[25,75].map(percent => <button key={percent} type="button" onClick={() => { onClosePosition(position.id, percent); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[7px] text-[#b6c3ce] hover:bg-white/[0.03]">Close {percent}%</button>)}
+                    </div>
+                  )}
                 </div>
               </div>
             );
