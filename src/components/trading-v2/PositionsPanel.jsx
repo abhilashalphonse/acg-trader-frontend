@@ -215,10 +215,10 @@ export default function PositionsPanel({
 
   return (
     <section className={`${desktopDense ? 'h-full overflow-auto' : 'mt-3 overflow-visible'} border-y border-white/[0.06] bg-black`}>
-      <div className="flex h-[50px] items-center justify-between gap-2 border-b border-white/[0.06] px-3">
+      <div className={`flex items-center justify-between gap-2 border-b border-white/[0.06] px-3 ${desktopDense ? 'h-[42px]' : 'h-[50px]'}`}>
         <div className="flex h-full min-w-0 items-stretch gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {tabs.map(item => (
-            <button key={item.id} type="button" onClick={() => setTab(item.id)} className={`relative flex h-full shrink-0 items-center gap-1 px-1.5 text-[10px] font-bold ${tab === item.id ? 'text-[#f5f5f5]' : 'text-[#6F8191]'}`}>
+            <button key={item.id} type="button" onClick={() => setTab(item.id)} className={`relative flex h-full shrink-0 items-center gap-1 px-1.5 text-[9px] font-semibold ${tab === item.id ? 'text-[#f5f5f5]' : 'text-[#6F8191]'}`}>
               <span>{item.label}</span>
               <span className="rounded-full bg-[#0C1013] px-1.5 py-0.5 text-[7px] font-extrabold text-[#A1AFBC]">{counts[item.id]}</span>
               {tab === item.id && <span className="absolute bottom-0 left-1.5 right-1.5 h-0.5 rounded-full bg-[#101010]" />}
@@ -229,7 +229,7 @@ export default function PositionsPanel({
           <div className="relative flex shrink-0 items-center gap-1">
             {desktopDense ? (
               <>
-                <button type="button" onClick={() => setDesktopActionsOpen(value => !value)} disabled={!positions.length} className="flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.10] bg-black px-2 text-[10px] font-semibold text-[#aab6c1] disabled:opacity-35"><MoreHorizontal size={12}/>Manage</button>
+                <button type="button" onClick={() => setDesktopActionsOpen(value => !value)} disabled={!positions.length} className="flex h-7 items-center gap-1.5 rounded-md border border-white/[0.10] bg-black px-2 text-[9px] font-semibold text-[#aab6c1] disabled:opacity-35"><MoreHorizontal size={12}/>Manage</button>
                 {desktopActionsOpen && (
                   <div className="absolute right-0 top-9 z-50 w-[190px] rounded-md border border-white/[0.10] bg-[#0a0a0a] p-1 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
                     <button type="button" onClick={() => confirmDesktopBulk('Close all winning positions?', onCloseWinners)} className="w-full rounded px-2 py-2 text-left text-[8px] font-bold text-[#46d9a6] hover:bg-white/[0.03]">Close winners</button>
