@@ -34,24 +34,43 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, Number(value)));
 }
 
+function desktopHeightBounds(viewportHeight, dockCollapsed = false, dockHeight = 0) {
+  const height = Number(viewportHeight) || 900;
+  const compact = height <= 900;
+  const dockMin = 140;
+  const dockMax = compact ? 180 : height <= 1050 ? 240 : 340;
+  const defaultDock = compact ? 165 : height <= 1050 ? 200 : 230;
+  const effectiveDock = dockCollapsed ? 0 : clamp(dockHeight || defaultDock, dockMin, dockMax);
+  const upperWorkspaceHeight = Math.max(0, height - 52 - effectiveDock);
+  const minOrderTicketHeight = compact ? 330 : 350;
+  const watchlistMax = clamp(upperWorkspaceHeight - minOrderTicketHeight - 4, 170, 420);
+  const defaultWatchlist = compact ? Math.min(205, watchlistMax) : Math.min(220, watchlistMax);
+  return { compact, dockMin, dockMax, defaultDock, watchlistMin: 140, watchlistMax, defaultWatchlist };
+}
+
 function loadDesktopLayout() {
+  const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 900;
+  const initialBounds = desktopHeightBounds(viewportHeight);
   const fallback = {
     sidebarWidth: typeof window !== 'undefined' && window.innerWidth >= 1600 ? 420 : 380,
-    dockHeight: typeof window !== 'undefined' && window.innerWidth >= 1600 ? 230 : 210,
+    dockHeight: initialBounds.defaultDock,
     sidebarCollapsed: false,
     dockCollapsed: false,
-    watchlistHeight: 220,
+    watchlistHeight: initialBounds.defaultWatchlist,
   };
   if (typeof window === 'undefined') return fallback;
   try {
     const stored = JSON.parse(window.localStorage.getItem(DESKTOP_LAYOUT_KEY) || 'null');
     if (!stored || typeof stored !== 'object') return fallback;
+    const dockCollapsed = stored.dockCollapsed === true;
+    const dockHeight = clamp(stored.dockHeight || fallback.dockHeight, initialBounds.dockMin, initialBounds.dockMax);
+    const bounds = desktopHeightBounds(viewportHeight, dockCollapsed, dockHeight);
     return {
       sidebarWidth: clamp(stored.sidebarWidth || fallback.sidebarWidth, 310, 480),
-      dockHeight: clamp(stored.dockHeight || fallback.dockHeight, 150, 340),
+      dockHeight,
       sidebarCollapsed: stored.sidebarCollapsed === true,
-      dockCollapsed: stored.dockCollapsed === true,
-      watchlistHeight: clamp(stored.watchlistHeight || fallback.watchlistHeight, 140, 420),
+      dockCollapsed,
+      watchlistHeight: clamp(stored.watchlistHeight || fallback.watchlistHeight, bounds.watchlistMin, bounds.watchlistMax),
     };
   } catch {
     return fallback;
@@ -189,6 +208,8 @@ export default function DesktopTerminal({
   const [reviewOpen, setReviewOpen] = useState(false);
   const [requestedDockTab, setRequestedDockTab] = useState(null);
   const [desktopLayout, setDesktopLayout] = useState(loadDesktopLayout);
+  const [viewportHeight, setViewportHeight] = useState(() => typeof window !== 'undefined' ? window.innerHeight : 900);
+  const [layoutMenuOpen, setLayoutMenuOpen] = useState(false);
   const [multiChart, setMultiChart] = useState(() => loadMultiChart(activeSymbol, timeframe));
   const favorite = watchlists?.isWatched?.(activeSymbol) === true;
 
@@ -199,6 +220,23 @@ export default function DesktopTerminal({
       // Layout persistence is optional.
     }
   }, [desktopLayout]);
+
+  useEffect(() => {
+    const onResize = () => setViewportHeight(window.innerHeight);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
+    setDesktopLayout(current => {
+      const bounds = desktopHeightBounds(viewportHeight, current.dockCollapsed, current.dockHeight);
+      const dockHeight = clamp(current.dockHeight, bounds.dockMin, bounds.dockMax);
+      const adjustedBounds = desktopHeightBounds(viewportHeight, current.dockCollapsed, dockHeight);
+      const watchlistHeight = clamp(current.watchlistHeight, adjustedBounds.watchlistMin, adjustedBounds.watchlistMax);
+      if (dockHeight === current.dockHeight && watchlistHeight === current.watchlistHeight) return current;
+      return { ...current, dockHeight, watchlistHeight };
+    });
+  }, [viewportHeight]);
 
   useEffect(() => {
     try { window.localStorage.setItem(MULTI_CHART_KEY, JSON.stringify(multiChart)); } catch { /* optional preference */ }
@@ -242,20 +280,38 @@ export default function DesktopTerminal({
     });
   };
 
+  const heightBounds = desktopHeightBounds(viewportHeight, desktopLayout.dockCollapsed, desktopLayout.dockHeight);
   const sidebarWidth = desktopLayout.sidebarCollapsed ? 0 : desktopLayout.sidebarWidth;
   const dockHeight = desktopLayout.dockCollapsed ? 0 : desktopLayout.dockHeight;
   const updateSidebarWidth = value => setDesktopLayout(current => ({ ...current, sidebarWidth: clamp(value, 310, 480), sidebarCollapsed: false }));
-  const updateDockHeight = value => setDesktopLayout(current => ({ ...current, dockHeight: clamp(value, 150, 340), dockCollapsed: false }));
-  const updateWatchlistHeight = value => setDesktopLayout(current => ({ ...current, watchlistHeight: clamp(value, 140, 420) }));
+  const updateDockHeight = value => setDesktopLayout(current => {
+    const bounds = desktopHeightBounds(viewportHeight, false, value);
+    const nextDock = clamp(value, bounds.dockMin, bounds.dockMax);
+    const nextBounds = desktopHeightBounds(viewportHeight, false, nextDock);
+    return {
+      ...current,
+      dockHeight: nextDock,
+      dockCollapsed: false,
+      watchlistHeight: clamp(current.watchlistHeight, nextBounds.watchlistMin, nextBounds.watchlistMax),
+    };
+  });
+  const updateWatchlistHeight = value => setDesktopLayout(current => {
+    const bounds = desktopHeightBounds(viewportHeight, current.dockCollapsed, current.dockHeight);
+    return { ...current, watchlistHeight: clamp(value, bounds.watchlistMin, bounds.watchlistMax) };
+  });
   const toggleSidebar = () => setDesktopLayout(current => ({ ...current, sidebarCollapsed: !current.sidebarCollapsed }));
   const toggleDock = () => setDesktopLayout(current => ({ ...current, dockCollapsed: !current.dockCollapsed }));
-  const resetDesktopLayout = () => setDesktopLayout({
-    sidebarWidth: window.innerWidth >= 1600 ? 420 : 380,
-    dockHeight: typeof window !== 'undefined' && window.innerWidth >= 1600 ? 230 : 210,
-    sidebarCollapsed: false,
-    dockCollapsed: false,
-    watchlistHeight: 220,
-  });
+  const resetDesktopLayout = () => {
+    const bounds = desktopHeightBounds(window.innerHeight);
+    setDesktopLayout({
+      sidebarWidth: window.innerWidth >= 1600 ? 420 : 380,
+      dockHeight: bounds.defaultDock,
+      sidebarCollapsed: false,
+      dockCollapsed: false,
+      watchlistHeight: bounds.defaultWatchlist,
+    });
+    setLayoutMenuOpen(false);
+  };
 
   const workspaceSnapshot = {
     layout: desktopLayout,
@@ -275,13 +331,20 @@ export default function DesktopTerminal({
   const applyWorkspace = workspace => {
     if (!workspace) return;
     const layout = workspace.layout || {};
-    setDesktopLayout(current => ({
-      ...current,
-      ...layout,
-      sidebarWidth: clamp(layout.sidebarWidth ?? current.sidebarWidth, 310, 480),
-      dockHeight: clamp(layout.dockHeight ?? current.dockHeight, 150, 340),
-      watchlistHeight: clamp(layout.watchlistHeight ?? current.watchlistHeight ?? 220, 140, 420),
-    }));
+    setDesktopLayout(current => {
+      const requestedDock = layout.dockHeight ?? current.dockHeight;
+      const requestedCollapsed = layout.dockCollapsed ?? current.dockCollapsed;
+      const bounds = desktopHeightBounds(viewportHeight, requestedCollapsed, requestedDock);
+      const dockHeight = clamp(requestedDock, bounds.dockMin, bounds.dockMax);
+      const adjustedBounds = desktopHeightBounds(viewportHeight, requestedCollapsed, dockHeight);
+      return {
+        ...current,
+        ...layout,
+        sidebarWidth: clamp(layout.sidebarWidth ?? current.sidebarWidth, 310, 480),
+        dockHeight,
+        watchlistHeight: clamp(layout.watchlistHeight ?? current.watchlistHeight ?? adjustedBounds.defaultWatchlist, adjustedBounds.watchlistMin, adjustedBounds.watchlistMax),
+      };
+    });
     const trading = workspace.trading || {};
     if (trading.timeframe) onTimeframeChange(trading.timeframe);
     if (trading.chartMode) onChartModeChange(trading.chartMode);
@@ -330,11 +393,14 @@ export default function DesktopTerminal({
       return;
     }
     if (id === 'markets') {
-      setDesktopLayout(current => ({
-        ...current,
-        sidebarCollapsed: false,
-        watchlistHeight: Math.max(current.watchlistHeight || 220, 330),
-      }));
+      setDesktopLayout(current => {
+        const bounds = desktopHeightBounds(viewportHeight, current.dockCollapsed, current.dockHeight);
+        return {
+          ...current,
+          sidebarCollapsed: false,
+          watchlistHeight: clamp(Math.max(current.watchlistHeight || bounds.defaultWatchlist, bounds.compact ? 240 : 300), bounds.watchlistMin, bounds.watchlistMax),
+        };
+      });
       window.setTimeout(() => searchRef.current?.focus(), 0);
       return;
     }
@@ -438,11 +504,19 @@ export default function DesktopTerminal({
               </div>
               <div className="ml-auto flex items-center gap-1">
                 <DesktopWorkspaceMenu snapshot={workspaceSnapshot} onApply={applyWorkspace}/>
-                <button type="button" onClick={() => setReviewOpen(true)} className="flex h-7 items-center gap-1 rounded-md border border-white/[0.06] bg-black/20 px-2 text-[7px] font-bold text-[#73889d] hover:text-white" title="Trade review"><BookOpen size={12}/>Review</button>
-                <button type="button" onClick={toggleSidebar} className={`h-6 rounded border px-2 text-[7px] font-bold uppercase tracking-[0.05em] transition ${desktopLayout.sidebarCollapsed ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] bg-black/20 text-[#73889d] hover:text-white'}`} title={desktopLayout.sidebarCollapsed ? 'Show right panel' : 'Hide right panel'}>Right</button>
-                <button type="button" onClick={toggleDock} className={`h-6 rounded border px-2 text-[7px] font-bold uppercase tracking-[0.05em] transition ${desktopLayout.dockCollapsed ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] bg-black/20 text-[#73889d] hover:text-white'}`} title={desktopLayout.dockCollapsed ? 'Show positions dock' : 'Hide positions dock'}>Dock</button>
-                <button type="button" onClick={resetDesktopLayout} className="h-6 rounded border border-white/[0.06] bg-black/20 px-2 text-[7px] font-bold uppercase tracking-[0.05em] text-[#73889d] hover:text-white" title="Reset desktop layout">Reset</button>
-                <button type="button" onClick={toggleFullscreen} className="grid size-7 place-items-center rounded-md border border-white/[0.06] bg-black/20 text-[#73889d] hover:text-white" title="Fullscreen"><Maximize2 size={13}/></button>
+                <button type="button" onClick={() => setReviewOpen(true)} className="flex h-7 items-center gap-1 rounded-md border border-white/[0.06] bg-black/20 px-2 text-[8px] font-semibold text-[#6F8191] hover:text-white" title="Trade review"><BookOpen size={12}/>Review</button>
+                <div className="relative">
+                  <button type="button" onClick={() => setLayoutMenuOpen(value => !value)} className={`flex h-7 items-center gap-1 rounded-md border px-2 text-[8px] font-semibold ${layoutMenuOpen ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] bg-black/20 text-[#6F8191] hover:text-white'}`} title="Layout options"><MoreHorizontal size={12}/>Layout</button>
+                  {layoutMenuOpen && (
+                    <div className="absolute right-0 top-8 z-[95] w-[190px] rounded-md border border-white/[0.10] bg-[#0C1013] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+                      <button type="button" onClick={() => { toggleSidebar(); setLayoutMenuOpen(false); }} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Right trading panel</span><span className="text-[#6F8191]">{desktopLayout.sidebarCollapsed ? 'Hidden' : 'Shown'}</span></button>
+                      <button type="button" onClick={() => { toggleDock(); setLayoutMenuOpen(false); }} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Positions dock</span><span className="text-[#6F8191]">{desktopLayout.dockCollapsed ? 'Hidden' : 'Shown'}</span></button>
+                      <div className="my-1 border-t border-white/[0.06]"/>
+                      <button type="button" onClick={resetDesktopLayout} className="w-full rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]">Reset layout</button>
+                    </div>
+                  )}
+                </div>
+                <button type="button" onClick={toggleFullscreen} className="grid size-7 place-items-center rounded-md border border-white/[0.06] bg-black/20 text-[#6F8191] hover:text-white" title="Fullscreen"><Maximize2 size={13}/></button>
               </div>
             </div>
 
@@ -485,8 +559,8 @@ export default function DesktopTerminal({
             <ResizeHandle
               axis="y"
               value={desktopLayout.watchlistHeight || 220}
-              min={140}
-              max={420}
+              min={heightBounds.watchlistMin}
+              max={heightBounds.watchlistMax}
               onChange={updateWatchlistHeight}
               ariaLabel="Resize watchlist and order ticket"
               className="w-full"
@@ -519,8 +593,8 @@ export default function DesktopTerminal({
             <ResizeHandle
               axis="y"
               value={desktopLayout.dockHeight}
-              min={150}
-              max={340}
+              min={heightBounds.dockMin}
+              max={heightBounds.dockMax}
               deltaMultiplier={-1}
               onChange={updateDockHeight}
               ariaLabel="Resize positions dock"
