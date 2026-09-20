@@ -47,7 +47,7 @@ function formatProjectedPnl(value, currency = 'USD') {
   }
 }
 
-function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instrument }) {
+function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instrument, selectedPositionId = null, onSelectPosition = () => {} }) {
   const [, forceLayout] = useState(0);
 
   const activePositions = useMemo(
@@ -80,11 +80,16 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
         return (
           <div key={position.id || `${side}-${entry}-${lots}`} className="absolute left-0 right-0" style={{ top: y }}>
             <div className="relative border-t border-dashed border-[#53c7ff]/75">
-              <span className="absolute left-2 top-1/2 flex -translate-y-1/2 items-center gap-1.5 rounded border border-[#315b72] bg-[#07131a]/95 px-1.5 py-1 text-[7px] font-black text-[#bfe9ff] shadow-[0_4px_14px_rgba(0,0,0,.35)]">
+              <button
+                type="button"
+                onClick={event => { event.stopPropagation(); onSelectPosition(position.id); }}
+                className={`pointer-events-auto absolute left-2 top-1/2 flex -translate-y-1/2 items-center gap-1.5 rounded border bg-[#07131a]/95 px-1.5 py-1 text-[7px] font-black text-[#bfe9ff] shadow-[0_4px_14px_rgba(0,0,0,.35)] ${String(selectedPositionId) === String(position.id) ? 'border-[#59C7FF] ring-1 ring-[#59C7FF]/30' : 'border-[#315b72]'}`}
+                aria-label={`Select ${side} ${position.symbol || symbol} position`}
+              >
                 <span className={side === 'BUY' ? 'text-[#3bd9a3]' : 'text-[#ff6c78]'}>{side}</span>
                 <span>{Number.isFinite(lots) ? lots.toFixed(2) : '—'} lot</span>
                 <span className="font-mono text-[#d7e8f3]">{formatInstrumentPrice(entry, instrument)}</span>
-              </span>
+              </button>
               <span className={`absolute right-2 top-1/2 -translate-y-1/2 rounded border bg-[#070707]/95 px-1.5 py-1 font-mono text-[8px] font-black tabular-nums shadow-[0_4px_14px_rgba(0,0,0,.35)] ${positive ? 'border-[#245b48] text-[#42dda7]' : 'border-[#642c35] text-[#ff6f7b]'}`}>
                 {Number.isFinite(pnl) ? formatProjectedPnl(pnl, currency) : 'OPEN'}
               </span>
@@ -227,7 +232,7 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
   );
 }
 
-function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, instrument, onUpdatePosition = () => {} }) {
+function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, instrument, onUpdatePosition = () => {}, selectedPositionId = null, onSelectPosition = () => {} }) {
   const layerRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [preview, setPreview] = useState({});
@@ -315,9 +320,9 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
           <button
             type="button"
             aria-label={`Drag ${label}`}
-            onPointerDown={event => { event.preventDefault(); event.stopPropagation(); setDragging({ positionId: position.id, kind }); }}
-            onTouchStart={event => { event.preventDefault(); event.stopPropagation(); setDragging({ positionId: position.id, kind }); }}
-            className="pointer-events-auto absolute inset-x-0 top-1/2 h-5 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent"
+            onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onSelectPosition(position.id); setDragging({ positionId: position.id, kind }); }}
+            onTouchStart={event => { event.preventDefault(); event.stopPropagation(); onSelectPosition(position.id); setDragging({ positionId: position.id, kind }); }}
+            className={`pointer-events-auto absolute inset-x-0 top-1/2 h-5 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent ${String(selectedPositionId) === String(position.id) ? 'ring-1 ring-inset ring-white/10' : ''}`}
           />
         </div>
       </div>
@@ -352,6 +357,8 @@ export default function ChartArea({
   accountCurrency = 'USD',
   onTradePlanChange = () => {},
   onUpdatePosition = () => {},
+  selectedPositionId = null,
+  onSelectPosition = () => {},
   indicators = [],
   positions = [],
   desktopEnhanced = false,
@@ -392,8 +399,8 @@ export default function ChartArea({
         <TradingChart symbol={symbol} instrument={instrument} timeframe={chartTimeframe} tick={tick} chartMode={chartMode} bidPrice={price} askPrice={ask} positions={positions} indicators={indicators} onCoordinateApi={setCoordinateApi} showBidAskLines={desktopEnhanced} showPositionPriceLines={!desktopEnhanced} />
         {showDrawings && <DrawingLayer symbol={symbol} timeframe={chartTimeframe} tool={selectedTool} onToolChange={onSelectTool} disabled={Boolean(tradePlan)} coordinateApi={coordinateApi} />}
         <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} coordinateApi={coordinateApi} instrument={instrument} lots={tradePlanLots} accountCurrency={accountCurrency} />
-        {desktopEnhanced && !tradePlan && <OpenPositionEntryOverlay symbol={symbol} positions={positions} coordinateApi={coordinateApi} instrument={instrument} />}
-        {!tradePlan && <OpenPositionProtectionOverlay symbol={symbol} positions={positions} coordinateApi={coordinateApi} instrument={instrument} onUpdatePosition={onUpdatePosition} />}
+        {desktopEnhanced && !tradePlan && <OpenPositionEntryOverlay symbol={symbol} positions={positions} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} />}
+        {!tradePlan && <OpenPositionProtectionOverlay symbol={symbol} positions={positions} coordinateApi={coordinateApi} instrument={instrument} onUpdatePosition={onUpdatePosition} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} />}
 
         {desktopEnhanced && (
           <div className="absolute right-[74px] top-2 z-30 flex items-center gap-1">
