@@ -24,6 +24,7 @@ const INDICATOR_STORAGE_KEY = 'acg-trader-indicators-v1';
 const INDICATOR_FAVORITES_KEY = 'acg-trader-indicator-favorites-v1';
 const TERMINAL_PREFS_KEY = 'acg-trader-terminal-prefs-v1';
 const RISK_GUARD_STORAGE_KEY = 'acg-trader-risk-guard-v1';
+const JOURNAL_STORAGE_PREFIX = 'acg-trader-journal-v1';
 
 function useDesktopLayout() {
   const [isDesktop, setIsDesktop] = useState(() => (
@@ -89,6 +90,16 @@ function loadRiskGuardSettings() {
   }
 }
 
+function loadJournal(accountId) {
+  if (typeof window === 'undefined' || !accountId) return [];
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(`${JOURNAL_STORAGE_PREFIX}:${accountId}`) || '[]');
+    return Array.isArray(stored) ? stored.slice(0, 300) : [];
+  } catch {
+    return [];
+  }
+}
+
 function calculatedLots(plan, riskPercent, manualLots, equity, instrument, accountCurrency) {
   if (!plan || plan.sizingMode !== 'risk') return Math.max(0.01, Number(manualLots) || 0.01);
   return calculateRiskSizedLots(plan, riskPercent, equity, instrument, accountCurrency);
@@ -127,6 +138,7 @@ export default function TradingTerminalV2({
   const noticeTimerRef = useRef(null);
   const executionDismissRef = useRef(null);
   const prefsRef = useRef(loadTerminalPrefs());
+  const journalAccountRef = useRef(null);
   const isDesktop = useDesktopLayout();
   const trading = useTradingTerminal(markets);
   const { account, positions, pendingOrders, positionHistory } = trading;
@@ -187,6 +199,17 @@ export default function TradingTerminalV2({
     try { window.localStorage.setItem(RISK_GUARD_STORAGE_KEY, JSON.stringify(riskGuardSettings)); } catch { /* preferences are non-critical */ }
   }, [riskGuardSettings]);
 
+  useEffect(() => {
+    if (!trading.accountId) return;
+    journalAccountRef.current = trading.accountId;
+    setJournal(loadJournal(trading.accountId));
+  }, [trading.accountId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !trading.accountId || journalAccountRef.current !== trading.accountId) return;
+    try { window.localStorage.setItem(`${JOURNAL_STORAGE_PREFIX}:${trading.accountId}`, JSON.stringify(journal.slice(0, 300))); } catch { /* journal persistence is best-effort */ }
+  }, [journal, trading.accountId]);
+
   const showNotice = message => {
     setNotice(message);
     if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
@@ -194,8 +217,16 @@ export default function TradingTerminalV2({
   };
 
   const logEvent = (type, message, details = {}) => {
-    const time = new Date().toLocaleTimeString([], { hour12: false });
-    setJournal(current => [{ id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, time, type, message, ...details }, ...current].slice(0, 150));
+    const now = new Date();
+    const time = now.toLocaleTimeString([], { hour12: false });
+    setJournal(current => [{
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      time,
+      timestamp: now.toISOString(),
+      type,
+      message,
+      ...details,
+    }, ...current].slice(0, 300));
   };
 
   const dismissExecutionLater = () => {
@@ -233,7 +264,20 @@ export default function TradingTerminalV2({
       showNotice(message);
       return null;
     }
-    const base = { side: String(side).toUpperCase(), lots: Number(executionLots), symbol, requestedPrice: Number(requestedPrice) };
+    const base = {
+      side: String(side).toUpperCase(),
+      lots: Number(executionLots),
+      symbol,
+      requestedPrice: Number(requestedPrice),
+      timeframe,
+      sizingMode,
+      riskPercent,
+      orderType,
+      stopLoss,
+      takeProfit,
+      plannedRisk: proposedRisk,
+      challengePhase: account?.challenge?.phase || account?.challenge?.step || null,
+    };
     setExecutionEvent({ ...base, status: 'submitting' });
     logEvent('execution', `${base.side} ${base.lots.toFixed(2)} ${symbol} submitted`, base);
     try {
@@ -310,7 +354,7 @@ export default function TradingTerminalV2({
     try {
       await trading.closePosition(id, percentage);
       if (tradePlan?.positionId === id && Number(percentage) >= 100) setTradePlan(null);
-      logEvent('position', `${percentage >= 100 ? 'Closed' : `Closed ${percentage}% of`} ${position.symbol} ${position.side}`);
+      logEvent('position', `${percentage >= 100 ? 'Closed' : `Closed ${percentage}% of`} ${position.symbol} ${position.side}`, { positionId: position.id, symbol: position.symbol, side: position.side, lots: position.volume, entry: position.entry, pnl: position.pnl, percentage, timeframe });
       showNotice(percentage >= 100 ? 'Position closed' : `${percentage}% of position closed`);
     } catch (error) {
       handleTradingError(error, `Close ${position.symbol}`);
@@ -637,6 +681,7 @@ export default function TradingTerminalV2({
           onManualOrder={manualOrder}
           indicators={indicators}
           onOpenIndicators={() => setOverlay('indicators')}
+          onIndicatorsChange={setIndicators}
           account={account}
           plannedRisk={plannedRisk}
           hotkeysEnabled={hotkeysEnabled}
