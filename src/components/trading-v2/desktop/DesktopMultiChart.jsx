@@ -32,6 +32,8 @@ export default function DesktopMultiChart({
   accountCurrency = 'USD',
   onTradePlanChange = () => {},
   onUpdatePosition = () => {},
+  selectedPositionId = null,
+  onSelectPosition = () => {},
 }) {
   const layout = [1,2,4].includes(Number(config?.layout)) ? Number(config.layout) : 1;
   const cells = Array.isArray(config?.cells) ? config.cells : [];
@@ -120,6 +122,8 @@ export default function DesktopMultiChart({
                   accountCurrency={accountCurrency}
                   onTradePlanChange={isActive ? onTradePlanChange : () => {}}
                   onUpdatePosition={onUpdatePosition}
+                  selectedPositionId={selectedPositionId}
+                  onSelectPosition={onSelectPosition}
                   indicators={indicators}
                   positions={cellPositions}
                 />
