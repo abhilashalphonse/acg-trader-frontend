@@ -53,6 +53,267 @@ function FieldMetric({ label, value, tone = 'default' }) {
         ? 'text-[#59C7FF]'
         : 'text-[#E6EDF3]';
   return (
+    <div className="min-w-0">
+      <span className="block text-[8px] font-semibold uppercase tracking-[0.075em] text-[#6F8191]">{label}</span>
+      <strong className={`mt-0.5 block truncate font-mono text-[10px] font-semibold tabular-nums ${toneClass}`}>{value}</strong>
+    </div>
+  );
+}
+
+function ProtectionRow({ label, value, meta, tone = 'default', disabled = false, onChange }) {
+  const toneClass = tone === 'danger' ? 'text-[#FF6F7A]' : tone === 'success' ? 'text-[#42D7A1]' : 'text-[#E6EDF3]';
+  return (
+    <label className={`grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 rounded-md border px-2 py-1.5 ${disabled ? 'border-white/[0.05] bg-black/40 opacity-65' : 'border-white/[0.06] bg-black'}`}>
+      <span className="text-[9px] font-bold text-[#A1AFBC]">{label}</span>
+      {disabled ? (
+        <span className="text-[7px] font-semibold text-[#6F8191]">Choose a side to create a protected plan</span>
+      ) : (
+        <input
+          inputMode="decimal"
+          value={value ?? ''}
+          onFocus={event => event.currentTarget.select()}
+          onChange={event => onChange?.(event.target.value.replace(/[^0-9.]/g, ''))}
+          className={`min-w-0 bg-transparent font-mono text-[10px] font-bold tabular-nums outline-none ${toneClass}`}
+          aria-label={`${label} price`}
+        />
+      )}
+      <span className="whitespace-nowrap text-[8px] font-medium text-[#6F8191]">{meta}</span>
+    </label>
+  );
+}
+
+export default function DesktopOrderTicket({
+  market,
+  account = {},
+  lots = 0.1,
+  onLotsChange = () => {},
+  sizingMode = 'lots',
+  onSizingModeChange = () => {},
+  riskPercent = 0.5,
+  onRiskPercentChange = () => {},
+  orderType = 'market',
+  onOrderTypeChange = () => {},
+  tradePlan,
+  onStartPlan = () => {},
+  onCancelPlan = () => {},
+  onExecutePlan = () => {},
+  onManualOrder = () => {},
+  onTradePlanChange = () => {},
+  exposureAllowed = true,
+  exposureBlockReason = 'New exposure is temporarily unavailable',
+  markets = [],
+  positions = [],
+  positionHistory = [],
+  riskGuardSettings = DEFAULT_RISK_GUARD_SETTINGS,
+  onRiskGuardSettingsChange = () => {},
+}) {
+  const [lotInput, setLotInput] = useState(String(lots));
+  const [lotFocused, setLotFocused] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [riskGuardOpen, setRiskGuardOpen] = useState(false);
+
+  const volumeStep = Math.max(Number(market?.volumeStep) || 0.01, 0.00000001);
+  const minVolume = Math.max(Number(market?.minVolume) || volumeStep, volumeStep);
+  const maxVolume = Math.max(Number(market?.maxVolume) || 100, minVolume);
+  const lotDecimals = Math.min(8, Math.max(0, decimalPlaces(market?.volumeStep ?? volumeStep)));
+  const normalizedLots = normalizeVolumeToStep(lots, market, { rounding: 'nearest' });
+  const currency = account?.currency || 'USD';
+
+  useEffect(() => {
+    if (!lotFocused) setLotInput(Number(normalizedLots).toFixed(lotDecimals));
+  }, [lotDecimals, lotFocused, normalizedLots]);
+
+  const executableQuote = finiteQuote(market?.bid)
+    && finiteQuote(market?.ask)
+    && Number(market?.ask) >= Number(market?.bid)
+    && market?.isStale !== true
+    && market?.sessionOpen !== false
+    && !['WAITING', 'DISCONNECTED', 'ERROR', 'DISABLED', 'STALE'].includes(String(market?.marketState || '').toUpperCase());
+
+  const planMetrics = useMemo(() => {
+    if (!tradePlan) return null;
+    const pip = instrumentPipSize(market);
+    const entry = Number(tradePlan.entry);
+    const sl = Number(tradePlan.sl);
+    const tp = Number(tradePlan.tp);
+    const slPips = [entry, sl, pip].every(Number.isFinite) && pip > 0 ? Math.abs(entry - sl) / pip : null;
+    const tpPips = [entry, tp, pip].every(Number.isFinite) && pip > 0 ? Math.abs(tp - entry) / pip : null;
+
+    let calculatedLots = normalizedLots;
+    let riskSizing = null;
+    if (sizingMode === 'risk') {
+      riskSizing = calculateRiskOrderSizing(
+        { ...tradePlan, sizingMode: 'risk' },
+        riskPercent,
+        account,
+        market,
+      );
+      if (Number.isFinite(riskSizing?.requestedLots)) calculatedLots = riskSizing.requestedLots;
+    }
+
+    const riskAmount = estimateStopRisk(tradePlan, calculatedLots, market, currency);
+    const requiredMargin = estimateRequiredMargin(entry, calculatedLots, market, account);
+    const reward = Number.isFinite(riskAmount) && Number.isFinite(slPips) && slPips > 0 && Number.isFinite(tpPips)
+      ? riskAmount * (tpPips / slPips)
+      : null;
+    const rr = Number.isFinite(slPips) && slPips > 0 && Number.isFinite(tpPips) ? tpPips / slPips : null;
+
+    return { lots: calculatedLots, slPips, tpPips, riskAmount, reward, rr, requiredMargin, riskSizing };
+  }, [account, currency, market, normalizedLots, riskPercent, sizingMode, tradePlan]);
+
+  const previewMargin = useMemo(() => {
+    const price = Number(tradePlan?.entry ?? market?.ask);
+    const previewLots = Number(planMetrics?.lots ?? normalizedLots);
+    return estimateRequiredMargin(price, previewLots, market, account);
+  }, [account, market, normalizedLots, planMetrics?.lots, tradePlan?.entry]);
+
+  const freeMargin = Number(account?.freeMargin);
+  const freeAfter = Number.isFinite(freeMargin) && Number.isFinite(previewMargin) ? freeMargin - previewMargin : null;
+  const challenge = useMemo(
+    () => calculateAccountRiskSummary(account, planMetrics?.riskAmount || 0),
+    [account, planMetrics?.riskAmount],
+  );
+
+  const riskSupported = riskSizingSupported(market, currency);
+  const riskSizingBlocked = sizingMode === 'risk' && Boolean(planMetrics?.riskSizing && planMetrics.riskSizing.canExecute === false);
+  const riskGuard = useMemo(() => evaluateRiskGuard({
+    account,
+    positions,
+    positionHistory,
+    markets,
+    proposedRisk: planMetrics?.riskAmount ?? null,
+    settings: riskGuardSettings,
+  }), [account, markets, planMetrics?.riskAmount, positionHistory, positions, riskGuardSettings]);
+
+  const canSubmit = executableQuote
+    && exposureAllowed
+    && (sizingMode !== 'risk' || riskSupported)
+    && !riskSizingBlocked
+    && riskGuard.allowed;
+
+  const spreadPips = useMemo(() => {
+    const pip = Number(market?.pipSize);
+    const bid = Number(market?.bid);
+    const ask = Number(market?.ask);
+    return Number.isFinite(pip) && pip > 0 && Number.isFinite(bid) && Number.isFinite(ask)
+      ? Math.abs(ask - bid) / pip
+      : null;
+  }, [market]);
+
+  const riskBufferUsage = challenge.remainingDaily > 0 && Number.isFinite(planMetrics?.riskAmount)
+    ? (planMetrics.riskAmount / challenge.remainingDaily) * 100
+    : null;
+
+  let warning = null;
+  if (riskGuard.blocks[0]?.message) warning = riskGuard.blocks[0].message;
+  else if (!exposureAllowed) warning = exposureBlockReason;
+  else if (!executableQuote) {
+    if (market?.sessionOpen === false) warning = 'Market session is closed.';
+    else if (market?.isStale) warning = 'Quote is stale. New exposure is disabled.';
+    else if (Number(market?.ask) < Number(market?.bid)) warning = 'Executable quote book is invalid.';
+    else warning = 'Waiting for an executable quote.';
+  } else if (sizingMode === 'risk' && !riskSupported) {
+    warning = 'Risk % sizing is unavailable because this instrument P&L cannot be converted safely to the account currency.';
+  } else if (planMetrics?.riskSizing?.blockReason === 'INSUFFICIENT_MARGIN') {
+    warning = `Required margin ${money(planMetrics.riskSizing.requiredMargin, currency)} exceeds free margin ${money(planMetrics.riskSizing.freeMargin, currency)}.`;
+  } else if (planMetrics?.riskSizing?.blockReason === 'MAX_VOLUME') {
+    warning = 'Selected risk requires more than the instrument maximum lot size.';
+  } else if (planMetrics?.riskSizing?.blockReason === 'MIN_VOLUME') {
+    warning = 'Selected risk is smaller than the instrument minimum lot size.';
+  } else if (Number.isFinite(riskBufferUsage) && riskBufferUsage >= 50) {
+    warning = `Planned stop uses ${riskBufferUsage.toFixed(0)}% of the remaining daily-loss buffer.`;
+  }
+
+  const setLots = value => {
+    const next = normalizeVolumeToStep(value, market, { rounding: 'nearest' });
+    onLotsChange(next);
+    setLotInput(Number(next).toFixed(lotDecimals));
+    if (tradePlan) onTradePlanChange({ manualLots: next, sizingMode: 'lots' });
+  };
+
+  const commitLotInput = () => {
+    const numeric = Number(String(lotInput).trim());
+    setLots(Number.isFinite(numeric) && numeric > 0 ? numeric : normalizedLots);
+    setLotFocused(false);
+  };
+
+  const setMode = mode => {
+    onSizingModeChange(mode);
+    if (tradePlan) onTradePlanChange({ sizingMode: mode, manualLots: normalizedLots });
+  };
+
+  const setRisk = value => {
+    onRiskPercentChange(value);
+    setMode('risk');
+  };
+
+  const clickSide = side => {
+    if (!canSubmit || !market?.symbol) return;
+    if (orderType !== 'market' || sizingMode === 'risk') {
+      onStartPlan(side, orderType);
+      return;
+    }
+    onManualOrder({
+      side,
+      lots: normalizedLots,
+      price: side === 'buy' ? market.ask : market.bid,
+      symbol: market.symbol,
+    });
+  };
+
+  const startProtectedPlan = side => {
+    if (!executableQuote || !exposureAllowed) return;
+    onStartPlan(side, orderType === 'market' ? 'market' : orderType);
+  };
+
+  const updateProtection = (field, raw) => {
+    if (!tradePlan) return;
+    if (raw === '' || raw === '.') {
+      onTradePlanChange({ [field]: null });
+      return;
+    }
+    const numeric = Number(raw);
+    if (Number.isFinite(numeric) && numeric > 0) onTradePlanChange({ [field]: numeric, stage: 'ready' });
+  };
+
+  const nudgeLots = direction => {
+    const next = direction > 0
+      ? Math.min(maxVolume, normalizedLots + volumeStep)
+      : Math.max(minVolume, normalizedLots - volumeStep);
+    setLots(next);
+  };
+
+  const pendingPlan = Boolean(tradePlan && !tradePlan.open);
+  const selectedSide = String(tradePlan?.side || '').toLowerCase();
+  const currentLots = Number(planMetrics?.lots ?? normalizedLots);
+  const liveLabel = market?.sessionOpen === false ? 'CLOSED' : market?.live ? 'LIVE' : market?.isStale ? 'STALE' : String(market?.marketState || 'WAITING').toUpperCase();
+  const accountEquity = Number(account?.equity);
+  const marginPercent = Number.isFinite(previewMargin) && Number.isFinite(accountEquity) && accountEquity > 0
+    ? (previewMargin / accountEquity) * 100
+    : null;
+  const hasStopLoss = Number.isFinite(Number(tradePlan?.sl));
+  const hasTakeProfit = Number.isFinite(Number(tradePlan?.tp));
+  const orderFamily = orderType === 'market' ? 'market' : 'pending';
+
+  const chooseOrderFamily = family => {
+    if (family === 'market') onOrderTypeChange('market');
+    else if (orderType === 'market') onOrderTypeChange('limit');
+    if (tradePlan) onCancelPlan();
+  };
+
+  const openRiskSizing = () => {
+    if (sizingMode === 'risk') {
+      setMode('lots');
+      return;
+    }
+    setMode('risk');
+    setExpanded(true);
+  };
+
+  const openProtection = () => setExpanded(true);
+
+  return (
     <section className="min-h-0 bg-[#07090B]">
       <div className="flex h-10 items-center justify-between border-b border-white/[0.06] px-3">
         <div className="flex min-w-0 items-center gap-2">
