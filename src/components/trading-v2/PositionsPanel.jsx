@@ -209,7 +209,7 @@ export default function PositionsPanel({
   };
 
   return (
-    <section className="mt-3 overflow-visible border-y border-white/[0.08] bg-black">
+    <section className={`${desktopDense ? 'h-full overflow-auto' : 'mt-3 overflow-visible'} border-y border-white/[0.08] bg-black`}>
       <div className="flex h-[50px] items-center justify-between gap-2 border-b border-white/[0.07] px-3">
         <div className="flex h-full min-w-0 items-stretch gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {tabs.map(item => (
@@ -222,14 +222,21 @@ export default function PositionsPanel({
         </div>
         {tab === 'positions' && (
           <div className="relative flex shrink-0 items-center gap-1">
-            {desktopDense && <button type="button" onClick={() => setDesktopActionsOpen(value => !value)} disabled={!positions.length} className="flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.09] bg-black px-2 text-[8px] font-bold text-[#aab6c1] disabled:opacity-35"><MoreHorizontal size={12}/>Manage</button>}
-            <button type="button" onClick={() => confirmDesktopBulk('Close every open position?', onCloseAll)} disabled={!positions.length} className="flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.09] bg-black px-2 text-[8px] font-bold text-[#d4d4d4] disabled:cursor-not-allowed disabled:opacity-35"><Trash2 size={12} className="text-[#737373]" />Close All</button>
-            {desktopDense && desktopActionsOpen && (
-              <div className="absolute right-0 top-9 z-50 w-[190px] rounded-md border border-white/[0.10] bg-[#0a0a0a] p-1 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
-                <button type="button" onClick={() => confirmDesktopBulk('Close all winning positions?', onCloseWinners)} className="w-full rounded px-2 py-2 text-left text-[8px] font-bold text-[#46d9a6] hover:bg-white/[0.03]">Close winners</button>
-                <button type="button" onClick={() => confirmDesktopBulk('Close all losing positions?', onCloseLosers)} className="w-full rounded px-2 py-2 text-left text-[8px] font-bold text-[#ff747f] hover:bg-white/[0.03]">Close losers</button>
-                {activeSymbol && <button type="button" onClick={() => confirmDesktopBulk(`Close every open ${formatSymbol(activeSymbol)} position?`, () => onCloseSymbol(activeSymbol))} className="w-full rounded px-2 py-2 text-left text-[8px] font-bold text-[#9fb1c1] hover:bg-white/[0.03]">Close all {formatSymbol(activeSymbol)}</button>}
-              </div>
+            {desktopDense ? (
+              <>
+                <button type="button" onClick={() => setDesktopActionsOpen(value => !value)} disabled={!positions.length} className="flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.09] bg-black px-2 text-[8px] font-bold text-[#aab6c1] disabled:opacity-35"><MoreHorizontal size={12}/>Manage</button>
+                {desktopActionsOpen && (
+                  <div className="absolute right-0 top-9 z-50 w-[190px] rounded-md border border-white/[0.10] bg-[#0a0a0a] p-1 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+                    <button type="button" onClick={() => confirmDesktopBulk('Close all winning positions?', onCloseWinners)} className="w-full rounded px-2 py-2 text-left text-[8px] font-bold text-[#46d9a6] hover:bg-white/[0.03]">Close winners</button>
+                    <button type="button" onClick={() => confirmDesktopBulk('Close all losing positions?', onCloseLosers)} className="w-full rounded px-2 py-2 text-left text-[8px] font-bold text-[#ff747f] hover:bg-white/[0.03]">Close losers</button>
+                    {activeSymbol && <button type="button" onClick={() => confirmDesktopBulk(`Close every open ${formatSymbol(activeSymbol)} position?`, () => onCloseSymbol(activeSymbol))} className="w-full rounded px-2 py-2 text-left text-[8px] font-bold text-[#9fb1c1] hover:bg-white/[0.03]">Close all {formatSymbol(activeSymbol)}</button>}
+                    <div className="my-1 border-t border-white/[0.06]"/>
+                    <button type="button" onClick={() => confirmDesktopBulk('Close every open position?', onCloseAll)} className="flex w-full items-center gap-1.5 rounded px-2 py-2 text-left text-[8px] font-black text-[#ff747f] hover:bg-[#18090d]"><Trash2 size={11}/>Close all positions</button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <button type="button" onClick={() => confirmDesktopBulk('Close every open position?', onCloseAll)} disabled={!positions.length} className="flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.09] bg-black px-2 text-[8px] font-bold text-[#d4d4d4] disabled:cursor-not-allowed disabled:opacity-35"><Trash2 size={12} className="text-[#737373]" />Close All</button>
             )}
           </div>
         )}
