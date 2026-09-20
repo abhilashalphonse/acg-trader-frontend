@@ -226,6 +226,11 @@ export default function TradingTerminalV2({
     onSelectSymbol(normalized);
   };
 
+  useEffect(() => {
+    if (!tradePlan?.symbol || !activeSymbol || tradePlan.symbol === activeSymbol) return;
+    setTradePlan(null);
+  }, [activeSymbol, tradePlan?.symbol]);
+
   const logEvent = (type, message, details = {}) => {
     const now = new Date();
     const time = now.toLocaleTimeString([], { hour12: false });
@@ -255,8 +260,9 @@ export default function TradingTerminalV2({
 
   const runMarketExecution = async ({ side, executionLots, symbol, requestedPrice, stopLoss = null, takeProfit = null }) => {
     if (!symbol || !trading.accountId) return null;
-    if (!exposure.allowed) { showNotice(exposure.reason); return null; }
     const instrument = markets.find(item => item.symbol === symbol) || market;
+    const executionExposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market: instrument, commandState: trading.commandState });
+    if (!executionExposure.allowed) { showNotice(executionExposure.reason); return null; }
     const proposedRisk = stopLoss == null
       ? null
       : estimateStopRisk({ entry: requestedPrice, sl: stopLoss, side }, executionLots, instrument, account.currency);
