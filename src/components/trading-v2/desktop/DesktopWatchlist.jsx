@@ -164,6 +164,7 @@ export default function DesktopWatchlist({
   watchlists = null,
   mode = 'watchlist',
   searchRef,
+  onNotice = () => {},
 }) {
   const [search, setSearch] = useState('');
   const [listMenuOpen, setListMenuOpen] = useState(false);
@@ -271,6 +272,12 @@ export default function DesktopWatchlist({
       try { window.localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch { /* optional */ }
       return next;
     });
+  };
+
+  const toggleWatch = item => {
+    const watchedNow = watchlists?.isWatched?.(item.symbol) === true;
+    watchlists?.toggleSymbol?.(item.symbol);
+    onNotice(`${item.displaySymbol || displaySymbol(item.symbol)} ${watchedNow ? 'removed from' : 'added to'} watchlist`);
   };
 
   const onKeyDown = event => {
@@ -403,7 +410,7 @@ export default function DesktopWatchlist({
                 );
               })}
 
-              <button type="button" onClick={() => watchlists?.toggleSymbol?.(item.symbol)} className={`grid size-6 place-items-center rounded ${isWatched ? 'text-[#f6c95d]' : 'text-[#53687b] hover:bg-white/[0.04] hover:text-[#f6c95d]'}`} title={isWatched ? 'Remove from watchlist' : 'Add to watchlist'} aria-label={isWatched ? `Remove ${item.symbol} from watchlist` : `Add ${item.symbol} to watchlist`}><Star size={10} fill={isWatched ? 'currentColor' : 'none'}/></button>
+              <button type="button" onClick={() => toggleWatch(item)} className={`grid size-6 place-items-center rounded ${isWatched ? 'text-[#f6c95d]' : 'text-[#53687b] hover:bg-white/[0.04] hover:text-[#f6c95d]'}`} title={isWatched ? 'Remove from watchlist' : 'Add to watchlist'} aria-label={isWatched ? `Remove ${item.symbol} from watchlist` : `Add ${item.symbol} to watchlist`}><Star size={10} fill={isWatched ? 'currentColor' : 'none'}/></button>
             </div>
           );
         })}
