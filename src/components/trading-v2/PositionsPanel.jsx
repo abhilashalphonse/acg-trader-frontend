@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Check,
   Copy,
@@ -62,8 +62,13 @@ export default function PositionsPanel({
   onModifyPending = () => {},
   desktopDense = false,
   activeSymbol = null,
+  requestedTab = null,
 }) {
   const [tab, setTab] = useState('positions');
+
+  useEffect(() => {
+    if (requestedTab && tabs.some(item => item.id === requestedTab)) setTab(requestedTab);
+  }, [requestedTab]);
   const [expandedId, setExpandedId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editingField, setEditingField] = useState(null);
