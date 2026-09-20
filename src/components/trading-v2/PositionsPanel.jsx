@@ -217,12 +217,12 @@ export default function PositionsPanel({
 
   return (
     <section className={`${desktopDense ? 'h-full overflow-auto' : 'mt-3 overflow-visible'} border-y border-white/[0.06] bg-black`}>
-      <div className={`flex items-center justify-between gap-2 border-b border-white/[0.06] px-3 ${desktopDense ? 'h-[42px]' : 'h-[50px]'}`}>
+      <div className={`flex items-center justify-between gap-2 border-b border-white/[0.06] px-3 ${desktopDense ? 'h-[38px]' : 'h-[50px]'}`}>
         <div className="flex h-full min-w-0 items-stretch gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {tabs.map(item => (
             <button key={item.id} type="button" onClick={() => setTab(item.id)} className={`relative flex h-full shrink-0 items-center gap-1 px-1.5 text-[9px] font-semibold ${tab === item.id ? 'text-[#f5f5f5]' : 'text-[#6F8191]'}`}>
               <span>{item.label}</span>
-              <span className="rounded-full bg-[#0C1013] px-1.5 py-0.5 text-[7px] font-extrabold text-[#A1AFBC]">{counts[item.id]}</span>
+              <span className="rounded-full bg-[#0C1013] px-1.5 py-0.5 text-[8px] font-extrabold text-[#A1AFBC]">{counts[item.id]}</span>
               {tab === item.id && <span className="absolute bottom-0 left-1.5 right-1.5 h-0.5 rounded-full bg-[#101010]" />}
             </button>
           ))}
@@ -253,11 +253,11 @@ export default function PositionsPanel({
         <div className="min-w-[860px]">
           {positionGroups.length > 1 && (
             <div className="flex h-8 items-center gap-1.5 overflow-x-auto border-b border-white/[0.06] px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <span className="mr-1 shrink-0 text-[6.5px] font-black uppercase tracking-[0.08em] text-[#53677a]">Exposure</span>
-              {positionGroups.map(group => <div key={group.symbol} title={`${group.count} open ${group.symbol} position${group.count === 1 ? '' : 's'}`} className="flex shrink-0 items-center gap-1 rounded border border-white/[0.06] bg-black px-2 py-1 text-[7px] text-[#8597a7]"><b className="text-[#c8d4de]">{formatSymbol(group.symbol)}</b><span>{group.count}</span><span>{group.volume.toFixed(2)}L</span><span className={group.pnl >= 0 ? 'text-[#42dba6]' : 'text-[#ff727d]'}>{formatPnl(group.pnl)}</span></div>)}
+              <span className="mr-1 shrink-0 text-[8px] font-black uppercase tracking-[0.08em] text-[#53677a]">Exposure</span>
+              {positionGroups.map(group => <div key={group.symbol} title={`${group.count} open ${group.symbol} position${group.count === 1 ? '' : 's'}`} className="flex shrink-0 items-center gap-1 rounded border border-white/[0.06] bg-black px-2 py-1 text-[8px] text-[#8597a7]"><b className="text-[#c8d4de]">{formatSymbol(group.symbol)}</b><span>{group.count}</span><span>{group.volume.toFixed(2)}L</span><span className={group.pnl >= 0 ? 'text-[#42dba6]' : 'text-[#ff727d]'}>{formatPnl(group.pnl)}</span></div>)}
             </div>
           )}
-          <div className="grid grid-cols-[1.45fr_1.55fr_1.15fr_1fr_170px] items-center border-b border-white/[0.06] px-3 py-2 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#5c6f82]">
+          <div className="grid grid-cols-[1.45fr_1.55fr_1.15fr_1fr_170px] items-center border-b border-white/[0.06] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-[#5c6f82]">
             <span>Position</span>
             <span>Market</span>
             <span>Protection</span>
@@ -273,7 +273,7 @@ export default function PositionsPanel({
               <div
                 key={position.id}
                 onClick={() => onSelectPosition(position.id)}
-                className={`relative grid cursor-pointer grid-cols-[1.45fr_1.55fr_1.15fr_1fr_170px] items-center border-b px-3 py-2.5 text-[9px] transition ${String(selectedPositionId) === String(position.id) ? 'border-[#315b72] bg-[#0b141a]' : 'border-white/[0.06] hover:bg-white/[0.015]'}`}
+                className={`relative grid cursor-pointer grid-cols-[1.45fr_1.55fr_1.15fr_1fr_170px] items-center border-b px-3 py-2 text-[9px] transition ${String(selectedPositionId) === String(position.id) ? 'border-[#315b72] bg-[#0b141a]' : 'border-white/[0.06] hover:bg-white/[0.015]'}`}
               >
                 {String(selectedPositionId) === String(position.id) && <span className="absolute inset-y-1 left-0 w-0.5 rounded-r bg-[#59C7FF]" />}
 
@@ -282,7 +282,7 @@ export default function PositionsPanel({
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
                       <strong className="truncate text-[10px] text-[#f2f5f7]">{formatSymbol(position.symbol)}</strong>
-                      <span className={`w-fit rounded px-1.5 py-0.5 text-[7px] font-black ${sideBuy ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{position.side}</span>
+                      <span className={`w-fit rounded px-1.5 py-0.5 text-[8px] font-black ${sideBuy ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{position.side}</span>
                     </div>
                     <span className="mt-0.5 block font-mono text-[8px] text-[#7f8f9e]">{Number(position.volume).toFixed(2)} lots</span>
                   </div>
@@ -294,20 +294,20 @@ export default function PositionsPanel({
                     <span className="text-[#44515D]">→</span>
                     <span className="text-[#d3dbe2]">{formatInstrumentPrice(position.closePrice, instrument)}</span>
                   </div>
-                  <div className="mt-0.5 flex items-center gap-3 text-[7px] uppercase tracking-[0.06em] text-[#53677a]">
+                  <div className="mt-0.5 flex items-center gap-3 text-[8px] uppercase tracking-[0.06em] text-[#53677a]">
                     <span>Entry</span>
                     <span>Current</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <button type="button" onClick={event => { event.stopPropagation(); startProtectionEdit(position, 'sl'); }} className={`h-7 rounded border px-2 font-mono text-[7px] font-bold ${position.sl == null ? 'border-white/[0.06] text-[#8295A7] hover:text-white' : 'border-[#5e2932] text-[#FF6F7A]'}`}>{position.sl == null ? '+ SL' : `SL ${formatInstrumentPrice(position.sl, instrument)}`}</button>
-                  <button type="button" onClick={event => { event.stopPropagation(); startProtectionEdit(position, 'tp'); }} className={`h-7 rounded border px-2 font-mono text-[7px] font-bold ${position.tp == null ? 'border-white/[0.06] text-[#8295A7] hover:text-white' : 'border-[#245b48] text-[#42D7A1]'}`}>{position.tp == null ? '+ TP' : `TP ${formatInstrumentPrice(position.tp, instrument)}`}</button>
+                  <button type="button" onClick={event => { event.stopPropagation(); startProtectionEdit(position, 'sl'); }} className={`h-7 rounded border px-2 font-mono text-[8px] font-bold ${position.sl == null ? 'border-white/[0.06] text-[#8295A7] hover:text-white' : 'border-[#5e2932] text-[#FF6F7A]'}`}>{position.sl == null ? '+ SL' : `SL ${formatInstrumentPrice(position.sl, instrument)}`}</button>
+                  <button type="button" onClick={event => { event.stopPropagation(); startProtectionEdit(position, 'tp'); }} className={`h-7 rounded border px-2 font-mono text-[8px] font-bold ${position.tp == null ? 'border-white/[0.06] text-[#8295A7] hover:text-white' : 'border-[#245b48] text-[#42D7A1]'}`}>{position.tp == null ? '+ TP' : `TP ${formatInstrumentPrice(position.tp, instrument)}`}</button>
                 </div>
 
                 <div className="text-right">
                   <strong className={`block font-mono text-[11px] ${positive ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{formatPnl(position.pnl, position.pnlCurrency)}</strong>
-                  <span className={`mt-0.5 block font-mono text-[7px] ${positive ? 'text-[#2f9e79]' : 'text-[#a24b55]'}`}>
+                  <span className={`mt-0.5 block font-mono text-[8px] ${positive ? 'text-[#2f9e79]' : 'text-[#a24b55]'}`}>
                     {Number.isFinite(Number(position.entry)) && Number(position.entry) > 0 && Number.isFinite(Number(position.closePrice))
                       ? `${((sideBuy ? Number(position.closePrice) - Number(position.entry) : Number(position.entry) - Number(position.closePrice)) / Number(position.entry) * 100).toFixed(2)}%`
                       : '—'}
@@ -315,18 +315,18 @@ export default function PositionsPanel({
                 </div>
 
                 <div className="relative flex items-center justify-end gap-1">
-                  <button type="button" onClick={event => { event.stopPropagation(); onBreakEven(position.id); }} className="h-7 rounded border border-white/[0.06] px-2 text-[7px] font-bold text-[#48d8a4] hover:bg-white/[0.025]">BE</button>
-                  <button type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, 50); }} className="h-7 rounded border border-white/[0.06] px-2 text-[7px] font-bold text-[#aeb8c1] hover:bg-white/[0.025]">Reduce</button>
-                  <button type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, 100); }} className="h-7 rounded border border-[#51242c] px-2 text-[7px] font-bold text-[#ff727d] hover:bg-[#241015]">Close</button>
+                  <button type="button" onClick={event => { event.stopPropagation(); onBreakEven(position.id); }} className="h-7 rounded border border-white/[0.06] px-2 text-[8px] font-bold text-[#48d8a4] hover:bg-white/[0.025]">BE</button>
+                  <button type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, 50); }} className="h-7 rounded border border-white/[0.06] px-2 text-[8px] font-bold text-[#aeb8c1] hover:bg-white/[0.025]">Reduce</button>
+                  <button type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, 100); }} className="h-7 rounded border border-[#51242c] px-2 text-[8px] font-bold text-[#ff727d] hover:bg-[#241015]">Close</button>
                   <button type="button" onClick={event => { event.stopPropagation(); setRowActionsId(rowActionsId === position.id ? null : position.id); }} className="grid size-7 place-items-center rounded border border-white/[0.06] text-[#8092a2] hover:text-white"><MoreHorizontal size={11}/></button>
                   {rowActionsId === position.id && (
                     <div className="absolute right-0 top-8 z-50 w-[154px] rounded-md border border-white/[0.10] bg-[#0a0a0a] p-1 shadow-xl">
-                      <button type="button" onClick={event => { event.stopPropagation(); onDuplicate(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[7px] text-[#b6c3ce] hover:bg-white/[0.03]">Duplicate position</button>
-                      <button type="button" onClick={event => { event.stopPropagation(); onReverse(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[7px] text-[#b6c3ce] hover:bg-white/[0.03]">Reverse position</button>
-                      <button type="button" onClick={event => { event.stopPropagation(); moveBreakEvenOffset(position, 1); }} className="w-full rounded px-2 py-1.5 text-left text-[7px] text-[#48d8a4] hover:bg-white/[0.03]">BE + 1 pip</button>
-                      {[5,10,20].map(pips => <button key={pips} type="button" onClick={event => { event.stopPropagation(); onSetTrailing(position.id, true, pips); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[7px] text-[#7fcfff] hover:bg-white/[0.03]">Trailing {pips} pips</button>)}
+                      <button type="button" onClick={event => { event.stopPropagation(); onDuplicate(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#b6c3ce] hover:bg-white/[0.03]">Duplicate position</button>
+                      <button type="button" onClick={event => { event.stopPropagation(); onReverse(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#b6c3ce] hover:bg-white/[0.03]">Reverse position</button>
+                      <button type="button" onClick={event => { event.stopPropagation(); moveBreakEvenOffset(position, 1); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#48d8a4] hover:bg-white/[0.03]">BE + 1 pip</button>
+                      {[5,10,20].map(pips => <button key={pips} type="button" onClick={event => { event.stopPropagation(); onSetTrailing(position.id, true, pips); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#7fcfff] hover:bg-white/[0.03]">Trailing {pips} pips</button>)}
                       <div className="my-1 border-t border-white/[0.06]"/>
-                      {[25,75].map(percent => <button key={percent} type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, percent); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[7px] text-[#b6c3ce] hover:bg-white/[0.03]">Close {percent}%</button>)}
+                      {[25,75].map(percent => <button key={percent} type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, percent); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#b6c3ce] hover:bg-white/[0.03]">Close {percent}%</button>)}
                     </div>
                   )}
                 </div>
@@ -354,8 +354,8 @@ export default function PositionsPanel({
                       <div className="flex min-w-0 items-center gap-2">
                         <InstrumentAvatar instrument={instrumentForSymbol(markets, position.symbol)} size={24}/>
                         <strong className="truncate text-[13px] font-black tracking-[-0.025em] text-[#f5f5f5]">{formatSymbol(position.symbol)}</strong>
-                        <span className={`rounded-md px-1.5 py-1 text-[7px] font-black leading-none ${sideBuy ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{position.side}</span>
-                        {position.trailingEnabled && <span className="rounded-md border border-white/[0.10] bg-black px-1.5 py-1 text-[7px] font-bold text-[#59C7FF]">TRAIL {position.trailingPips}p</span>}
+                        <span className={`rounded-md px-1.5 py-1 text-[8px] font-black leading-none ${sideBuy ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{position.side}</span>
+                        {position.trailingEnabled && <span className="rounded-md border border-white/[0.10] bg-black px-1.5 py-1 text-[8px] font-bold text-[#59C7FF]">TRAIL {position.trailingPips}p</span>}
                       </div>
                       <p className="mt-1.5 text-[9px] text-[#6F8191]"><b className="text-[#A1AFBC]">{Number(position.volume).toFixed(2)} lots</b><span className="mx-1.5 text-[#44515D]">•</span>Entry {formatInstrumentPrice(position.entry, instrumentForSymbol(markets, position.symbol))}</p>
                     </div>
@@ -446,7 +446,7 @@ export default function PositionsPanel({
           {pendingOrders.map(order => (
             <div key={order.id} className="border-b border-white/[0.06] bg-black px-3 py-3 last:border-b-0">
               <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0"><div className="flex items-center gap-1.5"><InstrumentAvatar instrument={instrumentForSymbol(markets, order.symbol)} size={22}/><strong className="truncate text-[11px] font-semibold text-[#E6EDF3]">{formatSymbol(order.symbol || 'Current symbol')}</strong><span className={`rounded-md px-1.5 py-1 text-[7px] font-black ${order.side === 'buy' ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{String(order.side).toUpperCase()} {String(order.orderType).toUpperCase()}</span></div><p className="mt-1 text-[8px] text-[#6F8191]">{Number(order.lots || 0).toFixed(2)} lots · Entry {formatInstrumentPrice(order.entry, instrumentForSymbol(markets, order.symbol))} · {order.expiration}</p></div>
+                <div className="min-w-0"><div className="flex items-center gap-1.5"><InstrumentAvatar instrument={instrumentForSymbol(markets, order.symbol)} size={22}/><strong className="truncate text-[11px] font-semibold text-[#E6EDF3]">{formatSymbol(order.symbol || 'Current symbol')}</strong><span className={`rounded-md px-1.5 py-1 text-[8px] font-black ${order.side === 'buy' ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{String(order.side).toUpperCase()} {String(order.orderType).toUpperCase()}</span></div><p className="mt-1 text-[8px] text-[#6F8191]">{Number(order.lots || 0).toFixed(2)} lots · Entry {formatInstrumentPrice(order.entry, instrumentForSymbol(markets, order.symbol))} · {order.expiration}</p></div>
                 <div className="flex shrink-0 items-center gap-1"><button type="button" onClick={() => onModifyPending(order.id)} className="grid size-8 place-items-center rounded-lg border border-white/[0.06] bg-black text-[#A1AFBC]" aria-label="Modify pending order"><SlidersHorizontal size={13}/></button><button type="button" onClick={() => onCancelPending(order.id)} className="grid size-8 place-items-center rounded-lg border border-[#642832] bg-black text-[#ff7480]" aria-label="Cancel pending order"><X size={13}/></button></div>
               </div>
               <div className="mt-2 grid grid-cols-3 gap-1.5 text-[8px]"><div className="rounded-lg bg-black px-2 py-1.5 text-[#6F8191]">SL <b className="ml-1 text-[#A1AFBC]">{formatInstrumentPrice(order.sl, instrumentForSymbol(markets, order.symbol))}</b></div><div className="rounded-lg bg-black px-2 py-1.5 text-[#6F8191]">TP <b className="ml-1 text-[#A1AFBC]">{formatInstrumentPrice(order.tp, instrumentForSymbol(markets, order.symbol))}</b></div><div className="rounded-lg bg-black px-2 py-1.5 text-[#6F8191]">Status <b className="ml-1 text-[#5bc8ff]">Pending</b></div></div>
@@ -458,13 +458,13 @@ export default function PositionsPanel({
 
       {tab === 'history' && (
         <div className="space-y-1.5 p-2">
-          {!positionHistory.length ? <div className="grid h-[122px] place-items-center text-[10px] font-medium text-[#6F8191]">Closed positions will appear here</div> : positionHistory.map((item, index) => <div key={`${item.id}-${index}`} className="flex items-center justify-between border-b border-white/[0.06] bg-black px-3 py-2.5 last:border-b-0"><div><div className="flex items-center gap-1.5"><InstrumentAvatar instrument={instrumentForSymbol(markets, item.symbol)} size={22}/><strong className="text-[11px] text-[#f5f5f5]">{formatSymbol(item.symbol)}</strong><span className="rounded-md bg-[#0C1013] px-1.5 py-1 text-[7px] font-bold text-[#A1AFBC]">{item.closeType || 'Closed'}</span></div><p className="mt-1 text-[8px] text-[#6F8191]">{item.side} · {Number(item.volume).toFixed(2)} lots · {item.closedAt}</p></div><b className={`text-[11px] font-semibold ${Number(item.pnl) >= 0 ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{formatPnl(item.pnl)}</b></div>)}
+          {!positionHistory.length ? <div className="grid h-[122px] place-items-center text-[10px] font-medium text-[#6F8191]">Closed positions will appear here</div> : positionHistory.map((item, index) => <div key={`${item.id}-${index}`} className="flex items-center justify-between border-b border-white/[0.06] bg-black px-3 py-2.5 last:border-b-0"><div><div className="flex items-center gap-1.5"><InstrumentAvatar instrument={instrumentForSymbol(markets, item.symbol)} size={22}/><strong className="text-[11px] text-[#f5f5f5]">{formatSymbol(item.symbol)}</strong><span className="rounded-md bg-[#0C1013] px-1.5 py-1 text-[8px] font-bold text-[#A1AFBC]">{item.closeType || 'Closed'}</span></div><p className="mt-1 text-[8px] text-[#6F8191]">{item.side} · {Number(item.volume).toFixed(2)} lots · {item.closedAt}</p></div><b className={`text-[11px] font-semibold ${Number(item.pnl) >= 0 ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{formatPnl(item.pnl)}</b></div>)}
         </div>
       )}
 
       {tab === 'journal' && (
         <div className="max-h-[340px] overflow-y-auto p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {!journal.length ? <div className="grid h-[122px] place-items-center text-center text-[10px] text-[#6F8191]"><div><b className="block text-[#A1AFBC]">Journal is ready</b><span className="mt-1 block">Orders, fills and management actions will be recorded here.</span></div></div> : journal.map(item => <div key={item.id} className="grid grid-cols-[58px_1fr] gap-2 border-b border-white/[0.06] px-2 py-2.5 last:border-b-0"><span className="font-mono text-[8px] text-[#6F8191]">{item.time}</span><div><div className="flex items-center gap-1.5"><span className={`size-1.5 rounded-full ${item.type === 'fill' ? 'bg-[#3ad7a1]' : item.type === 'order' ? 'bg-[#101010]' : item.type === 'modify' ? 'bg-[#f0c35c]' : 'bg-[#101010]'}`} /><b className="text-[9px] font-semibold text-[#A1AFBC]">{item.message}</b></div>{item.latencyMs != null && <span className="mt-1 block text-[7px] text-[#6F8191]">Execution {item.latencyMs}ms</span>}</div></div>)}
+          {!journal.length ? <div className="grid h-[122px] place-items-center text-center text-[10px] text-[#6F8191]"><div><b className="block text-[#A1AFBC]">Journal is ready</b><span className="mt-1 block">Orders, fills and management actions will be recorded here.</span></div></div> : journal.map(item => <div key={item.id} className="grid grid-cols-[58px_1fr] gap-2 border-b border-white/[0.06] px-2 py-2.5 last:border-b-0"><span className="font-mono text-[8px] text-[#6F8191]">{item.time}</span><div><div className="flex items-center gap-1.5"><span className={`size-1.5 rounded-full ${item.type === 'fill' ? 'bg-[#3ad7a1]' : item.type === 'order' ? 'bg-[#101010]' : item.type === 'modify' ? 'bg-[#f0c35c]' : 'bg-[#101010]'}`} /><b className="text-[9px] font-semibold text-[#A1AFBC]">{item.message}</b></div>{item.latencyMs != null && <span className="mt-1 block text-[8px] text-[#6F8191]">Execution {item.latencyMs}ms</span>}</div></div>)}
         </div>
       )}
       {sharePosition && (
@@ -498,8 +498,8 @@ function ProtectionEditor({ label, position, instrument, value, inputValue, auto
     <button type="button" onClick={onMinus} className="grid size-[30px] place-items-center rounded-md border border-white/[0.06] bg-[#0C1013] text-[#A1AFBC]" aria-label={`Decrease ${label}`}><Minus size={11}/></button>
     <label className="min-w-0 rounded-md border border-white/[0.06] bg-[#0C1013] px-2 py-1.5">
       <span className="flex items-center justify-between gap-2">
-        <span className="text-[7px] font-black text-[#6F8191]">{label}</span>
-        <span className={`text-[7px] font-bold ${pnlTone}`}>{pnl == null ? 'Preview unavailable' : `${formatPnl(pnl, currency)} · ${pips?.toFixed(1) ?? '—'} pips`}</span>
+        <span className="text-[8px] font-black text-[#6F8191]">{label}</span>
+        <span className={`text-[8px] font-bold ${pnlTone}`}>{pnl == null ? 'Preview unavailable' : `${formatPnl(pnl, currency)} · ${pips?.toFixed(1) ?? '—'} pips`}</span>
       </span>
       <input
         inputMode="decimal"
