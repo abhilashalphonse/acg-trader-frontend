@@ -123,6 +123,50 @@ export function calculateRiskOrderSizing(plan, riskPercent, account, instrument)
   };
 }
 
+export function evaluateRiskToolSetup({ plan, riskPercent, account, instrument }) {
+  const side = String(plan?.side || '').toLowerCase();
+  const entry = Number(plan?.entry);
+  const sl = Number(plan?.sl);
+  const tp = Number(plan?.tp);
+
+  if (!['buy', 'sell'].includes(side) || ![entry, sl, tp].every(Number.isFinite)) {
+    return { canCreateOrder: false, code: 'INVALID_SETUP', message: 'Entry, stop and target are required.', sizing: null };
+  }
+
+  const geometryValid = side === 'buy'
+    ? sl < entry && tp > entry
+    : sl > entry && tp < entry;
+  if (!geometryValid) {
+    return { canCreateOrder: false, code: 'INVALID_GEOMETRY', message: side === 'buy' ? 'Long setup requires SL below entry and TP above entry.' : 'Short setup requires SL above entry and TP below entry.', sizing: null };
+  }
+
+  if (!riskSizingSupported(instrument, account?.currency)) {
+    return { canCreateOrder: false, code: 'UNSUPPORTED_RISK_CURRENCY', message: 'Risk sizing unavailable: instrument P&L currency does not match the account currency.', sizing: null };
+  }
+
+  const sizing = calculateRiskOrderSizing(plan, riskPercent, account, instrument);
+  if (!sizing) {
+    return { canCreateOrder: false, code: 'SIZING_UNAVAILABLE', message: 'Risk sizing is unavailable for this setup.', sizing: null };
+  }
+
+  if (!Number.isFinite(sizing.requiredMargin) || !Number.isFinite(sizing.freeMargin)) {
+    return { canCreateOrder: false, code: 'MARGIN_UNAVAILABLE', message: 'Margin requirement cannot be verified for this instrument/account currency.', sizing };
+  }
+
+  if (sizing.blockReason === 'MIN_VOLUME') {
+    return { canCreateOrder: false, code: 'MIN_VOLUME', message: `Requested risk is below the minimum tradable volume of ${Number(instrument?.minVolume || instrument?.volumeStep || 0.01)} lots.`, sizing };
+  }
+  if (sizing.blockReason === 'MAX_VOLUME') {
+    return { canCreateOrder: false, code: 'MAX_VOLUME', message: `Requested risk requires more than the maximum volume of ${Number(instrument?.maxVolume || 0)} lots.`, sizing };
+  }
+  if (sizing.blockReason === 'INSUFFICIENT_MARGIN') {
+    const maxLots = Number.isFinite(sizing.maxMarginLots) ? sizing.maxMarginLots : null;
+    return { canCreateOrder: false, code: 'INSUFFICIENT_MARGIN', message: maxLots != null ? `Insufficient free margin. Maximum affordable size is about ${maxLots.toFixed(2)} lots.` : 'Insufficient free margin for this risk setup.', sizing };
+  }
+
+  return { canCreateOrder: true, code: 'READY', message: 'Risk sizing ready.', sizing };
+}
+
 export function defaultPlannerStopDistance(instrument, entryPrice) {
   const entry = finitePositive(entryPrice);
   if (!entry) return null;
