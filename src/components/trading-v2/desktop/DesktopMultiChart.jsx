@@ -28,6 +28,8 @@ export default function DesktopMultiChart({
   chartMode = 'candles',
   onActiveTimeframeChange = () => {},
   tradePlan = null,
+  tradePlanLots = 0.1,
+  accountCurrency = 'USD',
   onTradePlanChange = () => {},
   onUpdatePosition = () => {},
 }) {
@@ -114,6 +116,8 @@ export default function DesktopMultiChart({
                   embedded
                   hideToolbar={layout > 1}
                   tradePlan={isActive ? tradePlan : null}
+                  tradePlanLots={tradePlanLots}
+                  accountCurrency={accountCurrency}
                   onTradePlanChange={isActive ? onTradePlanChange : () => {}}
                   onUpdatePosition={onUpdatePosition}
                   indicators={indicators}
