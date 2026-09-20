@@ -386,7 +386,7 @@ export default function DesktopTerminal({
             gridTemplateRows: `minmax(0, 1fr) ${dockHeight}px`,
           }}
         >
-          <section className="grid min-h-0 min-w-0 grid-rows-[50px_38px_40px_minmax(0,1fr)]">
+          <section className="grid min-h-0 min-w-0 grid-rows-[50px_40px_40px_minmax(0,1fr)]">
             <div className="flex items-center border-b border-white/[0.06] bg-[#07090B] px-3">
               <div className="flex min-w-[210px] items-center gap-2">
                 <InstrumentAvatar instrument={market} size={28}/>
