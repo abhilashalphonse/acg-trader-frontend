@@ -551,7 +551,7 @@ export default function DesktopOrderTicket({
                     onLotsChange(next);
                     if (tradePlan) onTradePlanChange({ manualLots: next, sizingMode: 'lots' });
                   }
-                }
+                }}
                 onBlur={commitLotInput}
                 onKeyDown={event => {
                   if (event.key === 'ArrowUp') { event.preventDefault(); nudgeLots(1); }
