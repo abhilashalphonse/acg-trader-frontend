@@ -390,6 +390,18 @@ export default function DesktopTerminal({
 
   const toggleChartLink = () => setMultiChart(current => ({ ...current, linked: !current?.linked }));
 
+  const applyActiveIndicatorsToAllCharts = () => {
+    setMultiChart(current => ({
+      ...current,
+      cells: Array.from({ length: 4 }, (_, index) => ({
+        ...(current?.cells?.[index] || {}),
+        indicators: cloneIndicators(indicators),
+      })),
+    }));
+    setNotice('Active chart indicators copied to all chart cells');
+    setChartMenuOpen(false);
+  };
+
   const setDesktopTimeframe = value => {
     onTimeframeChange(value);
     setMultiChart(current => {
@@ -716,6 +728,7 @@ export default function DesktopTerminal({
                         <>
                           <div className="my-1 border-t border-white/[0.06]"/>
                           <button type="button" onClick={toggleChartLink} className={`flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold ${chartLinked ? 'text-[#59C7FF]' : 'text-[#A1AFBC]'} hover:bg-white/[0.03]`}><span className="flex items-center gap-2">{chartLinked ? <Link2 size={12}/> : <Link2Off size={12}/>}Link symbols</span><span className="text-[#6F8191]">{chartLinked ? 'On' : 'Off'}</span></button>
+                          <button type="button" onClick={applyActiveIndicatorsToAllCharts} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Copy indicators to all</span><span className="text-[#6F8191]">ƒx {indicators.length}</span></button>
                         </>
                       )}
                     </div>
