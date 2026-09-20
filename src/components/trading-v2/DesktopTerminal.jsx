@@ -36,8 +36,8 @@ function clamp(value, min, max) {
 
 function loadDesktopLayout() {
   const fallback = {
-    sidebarWidth: typeof window !== 'undefined' && window.innerWidth >= 1536 ? 390 : 360,
-    dockHeight: 200,
+    sidebarWidth: typeof window !== 'undefined' && window.innerWidth >= 1600 ? 420 : 380,
+    dockHeight: typeof window !== 'undefined' && window.innerWidth >= 1600 ? 230 : 210,
     sidebarCollapsed: false,
     dockCollapsed: false,
     watchlistHeight: 220,
@@ -235,8 +235,8 @@ export default function DesktopTerminal({
   const toggleSidebar = () => setDesktopLayout(current => ({ ...current, sidebarCollapsed: !current.sidebarCollapsed }));
   const toggleDock = () => setDesktopLayout(current => ({ ...current, dockCollapsed: !current.dockCollapsed }));
   const resetDesktopLayout = () => setDesktopLayout({
-    sidebarWidth: window.innerWidth >= 1536 ? 390 : 360,
-    dockHeight: 200,
+    sidebarWidth: window.innerWidth >= 1600 ? 420 : 380,
+    dockHeight: typeof window !== 'undefined' && window.innerWidth >= 1600 ? 230 : 210,
     sidebarCollapsed: false,
     dockCollapsed: false,
     watchlistHeight: 220,
@@ -330,16 +330,16 @@ export default function DesktopTerminal({
   };
 
   return (
-    <div ref={shellRef} className="relative h-dvh min-h-0 overflow-hidden bg-black text-[#f4f8fb]">
-      {notice && <div className="absolute right-3 top-[60px] z-[120] flex max-w-[390px] items-center gap-3 rounded-md border border-white/[0.08] bg-[#101010]/95 px-3 py-2.5 text-[10px] font-semibold text-[#dce9f2] shadow-[0_16px_48px_rgba(0,0,0,.45)]"><span>{notice}</span><button type="button" onClick={() => setNotice('')} className="grid size-6 place-items-center rounded-md text-[#8094a7]"><X size={13}/></button></div>}
+    <div ref={shellRef} className="relative h-dvh min-h-0 overflow-hidden bg-black text-[#E6EDF3]">
+      {notice && <div className="absolute right-3 top-[60px] z-[120] flex max-w-[390px] items-center gap-3 rounded-md border border-white/[0.06] bg-[#101010]/95 px-3 py-2.5 text-[10px] font-semibold text-[#E6EDF3] shadow-[0_16px_48px_rgba(0,0,0,.45)]"><span>{notice}</span><button type="button" onClick={() => setNotice('')} className="grid size-6 place-items-center rounded-md text-[#8094a7]"><X size={13}/></button></div>}
 
-      <header className="flex h-[52px] items-center border-b border-white/[0.08] bg-[#080808] px-3 shadow-[0_1px_0_rgba(255,255,255,0.015)]">
+      <header className="flex h-[52px] items-center border-b border-white/[0.06] bg-[#07090B] px-3 shadow-[0_1px_0_rgba(255,255,255,0.015)]">
         <div className="flex min-w-[178px] items-center gap-2">
           <span className="text-[16px] font-extrabold tracking-[-0.03em]">ACG Trader</span>
-          <span className="rounded bg-white/[0.04] px-1.5 py-0.5 text-[8px] font-extrabold tracking-[0.06em] text-[#56c6ff]">V2</span>
+          <span className="rounded bg-white/[0.04] px-1.5 py-0.5 text-[8px] font-extrabold tracking-[0.06em] text-[#59C7FF]">V2</span>
         </div>
 
-        <div className="ml-2 hidden items-stretch divide-x divide-white/[0.07] rounded-md border border-white/[0.07] bg-black/25 xl:flex">
+        <div className="ml-2 hidden items-stretch divide-x divide-white/[0.07] rounded-md border border-white/[0.06] bg-black/25 xl:flex">
           {[
             ['Balance', money(account?.balance, currency)],
             ['Equity', money(account?.equity, currency)],
@@ -347,91 +347,91 @@ export default function DesktopTerminal({
             ['Free margin', money(account?.freeMargin, currency)],
           ].map(([label, value]) => (
             <div key={label} className="min-w-[102px] px-3 py-1.5">
-              <span className="block text-[7px] font-semibold uppercase tracking-[0.08em] text-[#52667a]">{label}</span>
-              <strong className={`mt-0.5 block text-[10px] font-bold ${label === 'Floating P/L' ? (accountPnl >= 0 ? 'text-[#3dd9a4]' : 'text-[#ff6570]') : 'text-[#dce6ef]'}`}>{value}</strong>
+              <span className="block text-[8px] font-semibold uppercase tracking-[0.07em] text-[#6F8191]">{label}</span>
+              <strong className={`mt-0.5 block text-[11px] font-bold ${label === 'Floating P/L' ? (accountPnl >= 0 ? 'text-[#42D7A1]' : 'text-[#FF6F7A]') : 'text-[#E6EDF3]'}`}>{value}</strong>
             </div>
           ))}
         </div>
 
         <div className="ml-auto flex items-center gap-1.5">
-          {hotkeysEnabled && <span className="hidden rounded border border-white/[0.07] bg-black/30 px-2 py-1 text-[7px] font-bold text-[#5bc9ff] 2xl:inline">HOTKEYS ON</span>}
-          <button type="button" onClick={() => searchRef.current?.focus()} className="grid size-8 place-items-center rounded-md text-[#8fa2b7] hover:bg-white/[0.035] hover:text-white" aria-label="Search"><Search size={16}/></button>
-          <button type="button" onClick={() => setNotice('Notification delivery is not connected to a backend event inbox yet.')} className="grid size-8 place-items-center rounded-md border border-white/[0.07] bg-black/20 text-[#8fa2b7]" aria-label="Notifications"><Bell size={15}/></button>
-          <button type="button" onClick={() => setNotice(`${account?.accountCode || 'Trading account'} • ${accountStatus} • ${valuationStatus}`)} className="flex h-8 items-center gap-2 rounded-md border border-white/[0.07] bg-black/20 px-2.5 text-left">
+          
+          <button type="button" onClick={() => searchRef.current?.focus()} className="grid size-8 place-items-center rounded-md text-[#A1AFBC] hover:bg-white/[0.035] hover:text-white" aria-label="Search"><Search size={16}/></button>
+          <button type="button" onClick={() => setNotice('Notification delivery is not connected to a backend event inbox yet.')} className="grid size-8 place-items-center rounded-md border border-white/[0.06] bg-black/20 text-[#A1AFBC]" aria-label="Notifications"><Bell size={15}/></button>
+          <button type="button" onClick={() => setNotice(`${account?.accountCode || 'Trading account'} • ${accountStatus} • ${valuationStatus}`)} className="flex h-8 items-center gap-2 rounded-md border border-white/[0.06] bg-black/20 px-2.5 text-left">
             <span className={`size-1.5 rounded-full ${canOpen ? 'bg-[#2fd9a0]' : valuationStatus === 'STALE' ? 'bg-[#e8bd55]' : 'bg-[#343434]'}`}/>
-            <div className="leading-none"><strong className="block text-[9px]">{money(account?.equity, currency)}</strong><span className="mt-1 block text-[7px] text-[#64788d]">{account?.accountCode || accountStatus}</span></div>
+            <div className="leading-none"><strong className="block text-[9px]">{money(account?.equity, currency)}</strong><span className="mt-1 block text-[7px] text-[#6F8191]">{account?.accountCode || accountStatus}</span></div>
           </button>
-          <button type="button" onClick={() => setNotice(`Account ${accountStatus.toLowerCase()} • valuation ${valuationStatus.toLowerCase()}`)} className="grid size-8 place-items-center rounded-full border border-white/[0.07] bg-black/20 text-[#8ea3ba]" aria-label="Profile"><UserRound size={15}/></button>
+          <button type="button" onClick={() => setNotice(`Account ${accountStatus.toLowerCase()} • valuation ${valuationStatus.toLowerCase()}`)} className="grid size-8 place-items-center rounded-full border border-white/[0.06] bg-black/20 text-[#A1AFBC]" aria-label="Profile"><UserRound size={15}/></button>
         </div>
       </header>
 
-      <div className="grid h-[calc(100dvh-52px)] min-h-0 grid-cols-[48px_minmax(0,1fr)] 2xl:grid-cols-[52px_minmax(0,1fr)]">
-        <aside className="flex min-h-0 flex-col items-center border-r border-white/[0.08] bg-[#080808] py-1.5">
+      <div className="grid h-[calc(100dvh-52px)] min-h-0 grid-cols-[50px_minmax(0,1fr)] 2xl:grid-cols-[54px_minmax(0,1fr)]">
+        <aside className="flex min-h-0 flex-col items-center border-r border-white/[0.06] bg-[#07090B] py-1.5">
           {navItems.map(([id, Icon, label]) => {
             const active = activeNav === id;
             return (
-              <button key={id} type="button" title={label} onClick={() => handleNav(id)} className={`mb-0.5 flex h-11 w-10 flex-col items-center justify-center gap-0.5 rounded text-[6.5px] font-semibold transition ${active ? 'border-l-2 border-[#53c7ff] bg-white/[0.02] text-[#53c7ff]' : 'text-[#65798e] hover:bg-white/[0.03] hover:text-[#c8d6e3]'}`}>
+              <button key={id} type="button" title={label} onClick={() => handleNav(id)} className={`mb-0.5 flex h-11 w-10 flex-col items-center justify-center gap-0.5 rounded text-[8px] font-semibold transition ${active ? 'border-l-2 border-[#53c7ff] bg-white/[0.02] text-[#59C7FF]' : 'text-[#6F8191] hover:bg-white/[0.03] hover:text-[#E6EDF3]'}`}>
                 <Icon size={16} strokeWidth={1.8}/><span>{label}</span>
               </button>
             );
           })}
           <div className="flex-1" />
-          <button type="button" onClick={onOpenSettings} title="Settings" className="grid size-10 place-items-center rounded-md text-[#65798e] hover:bg-white/[0.03] hover:text-white"><Settings size={16}/></button>
+          <button type="button" onClick={onOpenSettings} title="Settings" className="grid size-10 place-items-center rounded-md text-[#6F8191] hover:bg-white/[0.03] hover:text-white"><Settings size={16}/></button>
         </aside>
 
         <div
-          className="relative grid min-h-0 min-w-0 bg-[#080808]"
+          className="relative grid min-h-0 min-w-0 bg-[#07090B] 2xl:bg-[#07090B]"
           style={{
             gridTemplateColumns: `minmax(0, 1fr) ${sidebarWidth}px`,
             gridTemplateRows: `minmax(0, 1fr) ${dockHeight}px`,
           }}
         >
-          <section className="grid min-h-0 min-w-0 grid-rows-[48px_28px_38px_minmax(0,1fr)]">
-            <div className="flex items-center border-b border-white/[0.08] bg-[#080808] px-3">
+          <section className="grid min-h-0 min-w-0 grid-rows-[50px_38px_40px_minmax(0,1fr)]">
+            <div className="flex items-center border-b border-white/[0.06] bg-[#07090B] px-3">
               <div className="flex min-w-[210px] items-center gap-2">
                 <InstrumentAvatar instrument={market} size={28}/>
                 <div className="min-w-0">
-                  <button type="button" onClick={() => searchRef.current?.focus()} className="flex items-center gap-1 text-[13px] font-extrabold tracking-[-0.025em] text-[#f3f7fb]">{market?.displaySymbol || displaySymbol(market?.symbol)}<ChevronDown size={12}/></button>
-                  <span className="mt-0.5 block truncate text-[7px] text-[#5f7388]">{marketLabel(market)}</span>
+                  <button type="button" onClick={() => searchRef.current?.focus()} className="flex items-center gap-1 text-[14px] font-bold tracking-[-0.025em] text-[#f3f7fb]">{market?.displaySymbol || displaySymbol(market?.symbol)}<ChevronDown size={12}/></button>
+                  <span className="mt-0.5 block truncate text-[8px] text-[#6F8191]">{marketLabel(market)}</span>
                 </div>
               </div>
               <div className="ml-3">
-                <strong className="block font-mono text-[15px] tracking-[-0.02em] text-[#edf5fb]">{market?.bid || '—'}</strong>
-                <span className={`mt-0.5 block text-[7px] font-semibold ${market?.live ? 'text-[#35d49f]' : market?.isStale ? 'text-[#e7bd58]' : 'text-[#718398]'}`}>{market?.sessionOpen === false ? 'SESSION CLOSED' : market?.live ? 'LIVE' : market?.isStale ? 'STALE' : market?.marketState || 'WAITING'}</span>
+                <strong className="block font-mono text-[16px] tracking-[-0.02em] text-[#edf5fb]">{market?.bid || '—'}</strong>
+                <span className={`mt-0.5 block text-[9px] font-semibold ${market?.live ? 'text-[#42D7A1]' : market?.isStale ? 'text-[#E7BD58]' : 'text-[#6F8191]'}`}>{market?.sessionOpen === false ? 'SESSION CLOSED' : market?.live ? 'LIVE' : market?.isStale ? 'STALE' : market?.marketState || 'WAITING'}</span>
               </div>
               <div className="ml-auto flex items-center gap-3">
-                <div className="hidden text-right xl:block"><span className="block text-[6.5px] uppercase tracking-[0.08em] text-[#506477]">Valuation</span><b className={`mt-0.5 block text-[8px] ${valuationStatus === 'LIVE' ? 'text-[#3dd9a4]' : valuationStatus === 'STALE' ? 'text-[#e7bd58]' : 'text-[#a0b0bf]'}`}>{valuationStatus}</b></div>
+                <div className="hidden text-right xl:block"><span className="block text-[8px] uppercase tracking-[0.07em] text-[#6F8191]">Valuation</span><b className={`mt-0.5 block text-[8px] ${valuationStatus === 'LIVE' ? 'text-[#42D7A1]' : valuationStatus === 'STALE' ? 'text-[#E7BD58]' : 'text-[#A1AFBC]'}`}>{valuationStatus}</b></div>
                 <button type="button" onClick={() => watchlists?.toggleSymbol?.(activeSymbol)} className={`grid size-7 place-items-center rounded-md hover:bg-white/[0.035] ${favorite ? 'text-[#f6c95d]' : 'text-[#687d92]'}`}><Star size={14} fill={favorite ? 'currentColor' : 'none'}/></button>
               </div>
             </div>
 
-            <div className="min-h-0 overflow-hidden border-b border-white/[0.07]">
+            <div className="min-h-0 overflow-hidden border-b border-white/[0.06]">
               <PropRiskStrip account={account} plannedRisk={plannedRisk} compact />
             </div>
 
-            <div className="flex items-center gap-1.5 border-b border-white/[0.08] bg-[#080808] px-2.5">
+            <div className="flex items-center gap-1.5 border-b border-white/[0.06] bg-[#07090B] px-2.5">
               <div className="flex items-center gap-0.5">
                 {timeframes.map(([label, value]) => (
-                  <button key={value} type="button" onClick={() => onTimeframeChange(value)} disabled={Boolean(tradePlan && !tradePlan.open)} className={`h-6 min-w-7 rounded px-1.5 text-[7px] font-bold ${timeframe === value ? 'bg-white/[0.05] text-[#58c7ff]' : 'text-[#6d8298] hover:bg-white/[0.035] hover:text-[#d7e2ec]'} disabled:opacity-30`}>{label}</button>
+                  <button key={value} type="button" onClick={() => onTimeframeChange(value)} disabled={Boolean(tradePlan && !tradePlan.open)} className={`h-7 min-w-8 rounded px-2 text-[8px] font-bold ${timeframe === value ? 'bg-white/[0.05] text-[#59C7FF]' : 'text-[#6F8191] hover:bg-white/[0.035] hover:text-[#E6EDF3]'} disabled:opacity-30`}>{label}</button>
                 ))}
               </div>
               <div className="mx-1 h-4 w-px bg-white/[0.07]"/>
               <div className="flex items-center gap-0.5">
-                <button type="button" onClick={() => onChartModeChange('candles')} disabled={Boolean(tradePlan && !tradePlan.open)} className={`grid size-6 place-items-center rounded ${chartMode === 'candles' ? 'bg-white/[0.05] text-[#58c7ff]' : 'text-[#6d8298]'} disabled:opacity-30`} title="Candlesticks"><CandlestickChart size={13}/></button>
-                <button type="button" onClick={() => onChartModeChange('line')} disabled={Boolean(tradePlan && !tradePlan.open)} className={`grid size-6 place-items-center rounded ${chartMode === 'line' ? 'bg-white/[0.05] text-[#58c7ff]' : 'text-[#6d8298]'} disabled:opacity-30`} title="Line chart"><ChartNoAxesCombined size={13}/></button>
-                <button type="button" onClick={onOpenIndicators} className={`relative grid size-6 place-items-center rounded text-[9px] font-black hover:text-white ${indicators.length ? 'bg-white/[0.05] text-[#5bc9ff]' : 'text-[#6d8298]'}`} title="Indicators">ƒx{indicators.length > 0 && <span className="absolute -right-1 -top-1 grid size-3 place-items-center rounded-full bg-[#151515] text-[5px] text-white">{indicators.length}</span>}</button>
+                <button type="button" onClick={() => onChartModeChange('candles')} disabled={Boolean(tradePlan && !tradePlan.open)} className={`grid size-6 place-items-center rounded ${chartMode === 'candles' ? 'bg-white/[0.05] text-[#59C7FF]' : 'text-[#6F8191]'} disabled:opacity-30`} title="Candlesticks"><CandlestickChart size={13}/></button>
+                <button type="button" onClick={() => onChartModeChange('line')} disabled={Boolean(tradePlan && !tradePlan.open)} className={`grid size-6 place-items-center rounded ${chartMode === 'line' ? 'bg-white/[0.05] text-[#59C7FF]' : 'text-[#6F8191]'} disabled:opacity-30`} title="Line chart"><ChartNoAxesCombined size={13}/></button>
+                <button type="button" onClick={onOpenIndicators} className={`relative grid size-6 place-items-center rounded text-[9px] font-black hover:text-white ${indicators.length ? 'bg-white/[0.05] text-[#59C7FF]' : 'text-[#6F8191]'}`} title="Indicators">ƒx{indicators.length > 0 && <span className="absolute -right-1 -top-1 grid size-3 place-items-center rounded-full bg-[#151515] text-[5px] text-white">{indicators.length}</span>}</button>
               </div>
               <div className="ml-auto flex items-center gap-1">
                 <DesktopWorkspaceMenu snapshot={workspaceSnapshot} onApply={applyWorkspace}/>
-                <button type="button" onClick={() => setReviewOpen(true)} className="flex h-7 items-center gap-1 rounded-md border border-white/[0.07] bg-black/20 px-2 text-[7px] font-bold text-[#73889d] hover:text-white" title="Trade review"><BookOpen size={12}/>Review</button>
-                <button type="button" onClick={toggleSidebar} className={`h-6 rounded border px-2 text-[7px] font-bold uppercase tracking-[0.05em] transition ${desktopLayout.sidebarCollapsed ? 'border-[#315b72] bg-[#0d1a22] text-[#58c7ff]' : 'border-white/[0.07] bg-black/20 text-[#73889d] hover:text-white'}`} title={desktopLayout.sidebarCollapsed ? 'Show right panel' : 'Hide right panel'}>Right</button>
-                <button type="button" onClick={toggleDock} className={`h-6 rounded border px-2 text-[7px] font-bold uppercase tracking-[0.05em] transition ${desktopLayout.dockCollapsed ? 'border-[#315b72] bg-[#0d1a22] text-[#58c7ff]' : 'border-white/[0.07] bg-black/20 text-[#73889d] hover:text-white'}`} title={desktopLayout.dockCollapsed ? 'Show positions dock' : 'Hide positions dock'}>Dock</button>
-                <button type="button" onClick={resetDesktopLayout} className="h-6 rounded border border-white/[0.07] bg-black/20 px-2 text-[7px] font-bold uppercase tracking-[0.05em] text-[#73889d] hover:text-white" title="Reset desktop layout">Reset</button>
-                <button type="button" onClick={toggleFullscreen} className="grid size-7 place-items-center rounded-md border border-white/[0.07] bg-black/20 text-[#73889d] hover:text-white" title="Fullscreen"><Maximize2 size={13}/></button>
+                <button type="button" onClick={() => setReviewOpen(true)} className="flex h-7 items-center gap-1 rounded-md border border-white/[0.06] bg-black/20 px-2 text-[7px] font-bold text-[#73889d] hover:text-white" title="Trade review"><BookOpen size={12}/>Review</button>
+                <button type="button" onClick={toggleSidebar} className={`h-6 rounded border px-2 text-[7px] font-bold uppercase tracking-[0.05em] transition ${desktopLayout.sidebarCollapsed ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] bg-black/20 text-[#73889d] hover:text-white'}`} title={desktopLayout.sidebarCollapsed ? 'Show right panel' : 'Hide right panel'}>Right</button>
+                <button type="button" onClick={toggleDock} className={`h-6 rounded border px-2 text-[7px] font-bold uppercase tracking-[0.05em] transition ${desktopLayout.dockCollapsed ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] bg-black/20 text-[#73889d] hover:text-white'}`} title={desktopLayout.dockCollapsed ? 'Show positions dock' : 'Hide positions dock'}>Dock</button>
+                <button type="button" onClick={resetDesktopLayout} className="h-6 rounded border border-white/[0.06] bg-black/20 px-2 text-[7px] font-bold uppercase tracking-[0.05em] text-[#73889d] hover:text-white" title="Reset desktop layout">Reset</button>
+                <button type="button" onClick={toggleFullscreen} className="grid size-7 place-items-center rounded-md border border-white/[0.06] bg-black/20 text-[#73889d] hover:text-white" title="Fullscreen"><Maximize2 size={13}/></button>
               </div>
             </div>
 
-            <div className="min-h-0 min-w-0 bg-[#080808]">
+            <div className="min-h-0 min-w-0 bg-[#07090B]">
               <DesktopMultiChart
                 config={multiChart}
                 onChange={setMultiChart}
@@ -451,7 +451,7 @@ export default function DesktopTerminal({
           </section>
 
           <aside
-            className={`min-h-0 border-l border-white/[0.08] bg-[#080808] ${desktopLayout.sidebarCollapsed ? 'hidden' : 'grid'}`}
+            className={`min-h-0 border-l border-white/[0.06] bg-[#07090B] ${desktopLayout.sidebarCollapsed ? 'hidden' : 'grid'}`}
             style={{ gridTemplateRows: `${desktopLayout.watchlistHeight || 220}px 4px minmax(0,1fr)` }}
           >
             <div className="min-h-0 overflow-hidden">
@@ -481,7 +481,7 @@ export default function DesktopTerminal({
             </div>
           </aside>
 
-          <div className={`col-span-2 min-h-0 overflow-auto border-t border-white/[0.08] bg-[#080808] ${desktopLayout.dockCollapsed ? 'hidden' : ''}`}>
+          <div className={`col-span-2 min-h-0 overflow-auto border-t border-white/[0.06] bg-[#07090B] ${desktopLayout.dockCollapsed ? 'hidden' : ''}`}>
             <PositionsPanel desktopDense requestedTab={requestedDockTab} activeSymbol={activeSymbol} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending}/>
           </div>
 
