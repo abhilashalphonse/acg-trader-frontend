@@ -25,6 +25,15 @@ function formatCountdown(totalSeconds) {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
+function localUtcLabel() {
+  const offsetMinutes = -new Date().getTimezoneOffset();
+  const sign = offsetMinutes >= 0 ? '+' : '-';
+  const absolute = Math.abs(offsetMinutes);
+  const hours = Math.floor(absolute / 60);
+  const minutes = absolute % 60;
+  return `UTC${sign}${hours}${minutes ? `:${String(minutes).padStart(2, '0')}` : ''}`;
+}
+
 function validPlanPrice(value) {
   if (value === null || value === undefined || value === '') return null;
   const numeric = Number(value);
@@ -415,7 +424,13 @@ export default function ChartArea({
           </div>
         )}
 
-        {!tradePlan && (!embedded || desktopEnhanced) && <div className="pointer-events-none absolute bottom-1 right-[74px] z-10 rounded border border-white/[0.06] bg-[#07090B]/90 px-2 py-1 font-mono text-[9px] font-semibold tabular-nums text-[#A1AFBC] backdrop-blur-sm">{formatCountdown(remaining)}</div>}
+        {!tradePlan && (!embedded || desktopEnhanced) && (
+          <div className="absolute bottom-1 right-[74px] z-30 flex h-7 items-center overflow-hidden rounded-md border border-white/[0.06] bg-black/86 text-[9px] font-medium text-[#7E8994] shadow-[0_4px_16px_rgba(0,0,0,.24)] backdrop-blur-sm">
+            <span className="border-r border-white/[0.06] px-2.5">{localUtcLabel()}</span>
+            <span className="border-r border-white/[0.06] px-2.5 font-mono font-semibold tabular-nums text-[#B9C2CA]" title="Time remaining in candle">{formatCountdown(remaining)}</span>
+            <button type="button" onClick={() => coordinateApi?.resetView?.()} className="h-full px-2.5 font-semibold text-[#929DA7] transition hover:bg-white/[0.05] hover:text-[#F1F4F6]" title="Return to live chart and restore the default view">Auto</button>
+          </div>
+        )}
       </div>
     </div>
   );
