@@ -750,7 +750,7 @@ export default function DesktopOrderTicket({
             type="button"
             disabled={!canSubmit || (pendingPlan && selectedSide !== 'buy')}
             onClick={() => clickSide('buy')}
-            className="flex h-[58px] min-w-0 flex-col items-end justify-center rounded-md border border-[#246a51] bg-[#071710] px-3 text-right transition hover:bg-[#092016] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35"
+            className="flex h-[58px] min-w-0 flex-col items-end justify-center rounded-md border border-[#35D79D]/55 bg-[#071710] px-3 text-right shadow-[inset_0_0_0_1px_rgba(53,215,157,0.10),0_0_14px_rgba(53,215,157,0.06)] transition hover:border-[#42E3AA]/70 hover:bg-[#092016] active:scale-[0.99] disabled:cursor-not-allowed disabled:border-[#35D79D]/35 disabled:shadow-[inset_0_0_0_1px_rgba(53,215,157,0.06)] disabled:opacity-55"
           >
             <strong className="truncate font-mono text-[15px] font-black tracking-[-0.03em] text-[#edf8f4]">{formatInstrumentPrice(market?.ask, market)}</strong>
             <span className="mt-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-[#42D7A1]">{pendingPlan && selectedSide === 'buy' ? (tradePlan?.pending ? 'Place buy' : 'Execute buy') : 'Buy'}</span>
