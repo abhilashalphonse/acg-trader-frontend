@@ -132,8 +132,8 @@ export default function DesktopOrderTicket({
     const calculatedLots = normalizedLots;
     const riskAmount = estimateStopRisk(tradePlan, calculatedLots, market, currency);
     const requiredMargin = estimateRequiredMargin(entry, calculatedLots, market, account);
-    const reward = Number.isFinite(riskAmount) && Number.isFinite(slPips) && slPips > 0 && Number.isFinite(tpPips)
-      ? riskAmount * (tpPips / slPips)
+    const reward = Number.isFinite(tp)
+      ? estimateStopRisk({ ...tradePlan, entry, sl: tp }, calculatedLots, market, currency)
       : null;
     const rr = Number.isFinite(slPips) && slPips > 0 && Number.isFinite(tpPips) ? tpPips / slPips : null;
 
@@ -632,9 +632,19 @@ export default function DesktopOrderTicket({
 
         {pendingPlan && orderFamily === 'pending' && (
           <div className="rounded-md border border-white/[0.06] bg-[#0C1013] px-2 py-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[7px] font-semibold uppercase tracking-[0.06em] text-[#6F8191]">Entry</span>
-              <strong className="font-mono text-[9px] text-[#E6EDF3]">{formatInstrumentPrice(tradePlan?.entry, market)}</strong>
+            <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
+              <span className="text-[7px] font-semibold uppercase tracking-[0.06em] text-[#6F8191]">Entry price</span>
+              <input
+                value={formatInstrumentPrice(tradePlan?.entry, market, '')}
+                onFocus={event => event.currentTarget.select()}
+                onChange={event => {
+                  const numeric = Number(event.target.value.replace(/[^0-9.]/g, ''));
+                  if (Number.isFinite(numeric) && numeric > 0) onTradePlanChange({ entry: numeric, stage: 'ready' });
+                }}
+                inputMode="decimal"
+                className="h-7 min-w-0 rounded border border-white/[0.06] bg-black px-2 text-right font-mono text-[9px] font-bold text-[#E6EDF3] outline-none focus:border-[#315b72]"
+                aria-label="Pending entry price"
+              />
             </div>
           </div>
         )}
