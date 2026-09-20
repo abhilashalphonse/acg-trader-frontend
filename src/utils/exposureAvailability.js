@@ -13,5 +13,6 @@ export function exposureAvailability({ account, connectionStatus, market, comman
   const bid = Number(market.bid);
   const ask = Number(market.ask);
   if (!Number.isFinite(bid) || bid <= 0 || !Number.isFinite(ask) || ask <= 0) return { allowed: false, reason: 'Waiting for executable bid/ask' };
+  if (ask < bid) return { allowed: false, reason: 'Executable quote book is invalid' };
   return { allowed: true, reason: '' };
 }
