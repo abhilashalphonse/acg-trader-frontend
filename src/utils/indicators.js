@@ -3,7 +3,7 @@ const BASE_STYLE = { color: '#53c7ff', width: 2, lineStyle: 'solid' };
 export const INDICATOR_LIBRARY = [
   { id: 'ema', name: 'EMA', category: 'Trend', defaults: { period: 20, source: 'close', style: { ...BASE_STYLE, color: '#54c8ff' }, timeframeVisibility: 'all' }, favorite: true },
   { id: 'sma', name: 'Moving Average', shortName: 'SMA', category: 'Trend', defaults: { period: 20, source: 'close', style: { ...BASE_STYLE, color: '#f0c35c' }, timeframeVisibility: 'all' }, favorite: true },
-  { id: 'vwap', name: 'VWAP', category: 'Trend', defaults: { source: 'hlc3', sessionReset: 'utc-day', style: { ...BASE_STYLE, color: '#b38cff' }, timeframeVisibility: 'all' }, favorite: true },
+  { id: 'vwap', name: 'VWAP', category: 'Trend', defaults: { source: 'hlc3', sessionReset: 'session', style: { ...BASE_STYLE, color: '#b38cff' }, timeframeVisibility: 'all' }, favorite: true },
   { id: 'bollinger', name: 'Bollinger Bands', category: 'Volatility', defaults: { period: 20, deviation: 2, source: 'close', style: { ...BASE_STYLE, color: '#65b6df' }, midStyle: { ...BASE_STYLE, color: '#7f91a4', width: 1, lineStyle: 'dotted' }, timeframeVisibility: 'all' }, favorite: false },
   { id: 'rsi', name: 'RSI', category: 'Momentum', defaults: { period: 14, source: 'close', upperGuide: 70, lowerGuide: 30, style: { ...BASE_STYLE, color: '#b68cff' }, timeframeVisibility: 'all' }, favorite: true },
   { id: 'macd', name: 'MACD', category: 'Momentum', defaults: { fast: 12, slow: 26, signal: 9, source: 'close', style: { ...BASE_STYLE, color: '#55c8ff' }, signalStyle: { ...BASE_STYLE, color: '#ffb55f' }, timeframeVisibility: 'all' }, favorite: false },
@@ -53,6 +53,26 @@ export function indicatorVisibleOnTimeframe(indicator, timeframe) {
   if (visibility === 'all' || visibility == null) return true;
   if (Array.isArray(visibility)) return visibility.includes(timeframe);
   return visibility === timeframe;
+}
+
+function indicatorWarmupBars(rawIndicator) {
+  const indicator = normalizeIndicator(rawIndicator);
+  if (!indicator || indicator.visible === false) return 0;
+  const s = indicator.settings || {};
+  if (indicator.id === 'ema') return Math.max(20, Math.ceil((Number(s.period) || 20) * 3));
+  if (indicator.id === 'sma') return Math.max(20, (Number(s.period) || 20) + 20);
+  if (indicator.id === 'bollinger') return Math.max(30, (Number(s.period) || 20) + 30);
+  if (indicator.id === 'rsi' || indicator.id === 'atr') return Math.max(50, (Number(s.period) || 14) * 4);
+  if (indicator.id === 'macd') return Math.max(100, Math.ceil((Number(s.slow) || 26) * 3 + (Number(s.signal) || 9)));
+  if (indicator.id === 'stochastic') return Math.max(50, (Number(s.kPeriod) || 14) + (Number(s.dPeriod) || 3) + 40);
+  if (indicator.id === 'vwap') return 500;
+  return 0;
+}
+
+export function requiredIndicatorHistory(indicators = [], timeframe = null, { baseline = 160, max = 1000 } = {}) {
+  const visible = (Array.isArray(indicators) ? indicators : []).filter(item => !timeframe || indicatorVisibleOnTimeframe(item, timeframe));
+  const required = visible.reduce((largest, indicator) => Math.max(largest, indicatorWarmupBars(indicator)), 0);
+  return Math.max(1, Math.min(max, Math.max(baseline, required)));
 }
 
 const valid = value => Number.isFinite(value);
@@ -195,10 +215,69 @@ function atrValues(bars, period) {
   return output;
 }
 
-function sessionKey(time, reset = 'utc-day') {
+function sessionMetadata(instrument) {
+  const timezone = instrument?.session?.timezone
+    || instrument?.tradingSession?.timezone
+    || instrument?.regularSession?.timezone
+    || instrument?.sessionTimezone
+    || instrument?.exchangeTimezone
+    || instrument?.timeZone
+    || instrument?.timezone
+    || 'UTC';
+  const start = instrument?.session?.start
+    || instrument?.tradingSession?.start
+    || instrument?.regularSession?.start
+    || instrument?.sessionStart
+    || instrument?.marketOpen
+    || '00:00';
+  return { timezone: String(timezone || 'UTC'), start: String(start || '00:00') };
+}
+
+function zonedDateParts(time, timezone) {
+  const date = new Date(Number(time) * 1000);
+  if (Number.isNaN(date.getTime())) return null;
+  try {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    });
+    const parts = Object.fromEntries(formatter.formatToParts(date).filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+    return {
+      year: Number(parts.year),
+      month: Number(parts.month),
+      day: Number(parts.day),
+      hour: Number(parts.hour),
+      minute: Number(parts.minute),
+    };
+  } catch {
+    return zonedDateParts(time, 'UTC');
+  }
+}
+
+function sessionDateKey(time, instrument) {
+  const { timezone, start } = sessionMetadata(instrument);
+  const parts = zonedDateParts(time, timezone);
+  if (!parts) return String(time);
+  const [startHourRaw, startMinuteRaw] = start.split(':').map(Number);
+  const startHour = Number.isFinite(startHourRaw) ? startHourRaw : 0;
+  const startMinute = Number.isFinite(startMinuteRaw) ? startMinuteRaw : 0;
+  const localMinutes = parts.hour * 60 + parts.minute;
+  const startMinutes = startHour * 60 + startMinute;
+  const anchor = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
+  if (localMinutes < startMinutes) anchor.setUTCDate(anchor.getUTCDate() - 1);
+  return anchor.toISOString().slice(0, 10);
+}
+
+function sessionKey(time, reset = 'session', instrument = null) {
   if (reset === 'none') return 'continuous';
   const numeric = Number(time);
   if (!Number.isFinite(numeric)) return String(time);
+  if (reset === 'session') return sessionDateKey(numeric, instrument);
   const date = new Date(numeric * 1000);
   if (reset === 'utc-week') {
     const day = date.getUTCDay() || 7;
@@ -208,13 +287,13 @@ function sessionKey(time, reset = 'utc-day') {
   return date.toISOString().slice(0, 10);
 }
 
-function vwapValues(bars, source = 'hlc3', reset = 'utc-day') {
+function vwapValues(bars, source = 'hlc3', reset = 'session', instrument = null) {
   const prices = sourceValues(bars, source);
   let cumulativePV = 0;
   let cumulativeVolume = 0;
   let activeSession = null;
   return bars.map((bar, index) => {
-    const nextSession = sessionKey(bar.time, reset);
+    const nextSession = sessionKey(bar.time, reset, instrument);
     if (nextSession !== activeSession) {
       activeSession = nextSession;
       cumulativePV = 0;
@@ -250,7 +329,7 @@ function stochasticValues(bars, kPeriod, dPeriod) {
   return { k, d };
 }
 
-export function calculateIndicatorData(rawIndicator, bars) {
+export function calculateIndicatorData(rawIndicator, bars, context = {}) {
   if (!rawIndicator || !bars?.length) return null;
   const indicator = normalizeIndicator(rawIndicator);
   if (!indicator) return null;
@@ -267,7 +346,7 @@ export function calculateIndicatorData(rawIndicator, bars) {
       return { kind: 'overlay', lines: [{ key: 'sma', label: `SMA ${settings.period}`, data: linePoints(bars, values), style: settings.style }] };
     }
     case 'vwap': {
-      const values = vwapValues(bars, settings.source || 'hlc3', settings.sessionReset || 'utc-day');
+      const values = vwapValues(bars, settings.source || 'hlc3', settings.sessionReset || 'session', context.instrument || null);
       return { kind: 'overlay', lines: [{ key: 'vwap', label: 'VWAP', data: linePoints(bars, values), style: settings.style }] };
     }
     case 'bollinger': {
