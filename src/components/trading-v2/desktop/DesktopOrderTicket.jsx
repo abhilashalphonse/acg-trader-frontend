@@ -110,6 +110,7 @@ export default function DesktopOrderTicket({
   const [lotInput, setLotInput] = useState(String(lots));
   const [lotFocused, setLotFocused] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [activeTool, setActiveTool] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [riskGuardOpen, setRiskGuardOpen] = useState(false);
 
@@ -288,10 +289,6 @@ export default function DesktopOrderTicket({
   const selectedSide = String(tradePlan?.side || '').toLowerCase();
   const currentLots = Number(planMetrics?.lots ?? normalizedLots);
   const liveLabel = market?.sessionOpen === false ? 'CLOSED' : market?.live ? 'LIVE' : market?.isStale ? 'STALE' : String(market?.marketState || 'WAITING').toUpperCase();
-  const accountEquity = Number(account?.equity);
-  const marginPercent = Number.isFinite(previewMargin) && Number.isFinite(accountEquity) && accountEquity > 0
-    ? (previewMargin / accountEquity) * 100
-    : null;
   const hasStopLoss = Number.isFinite(Number(tradePlan?.sl));
   const hasTakeProfit = Number.isFinite(Number(tradePlan?.tp));
   const orderFamily = orderType === 'market' ? 'market' : 'pending';
@@ -302,16 +299,21 @@ export default function DesktopOrderTicket({
     if (tradePlan) onCancelPlan();
   };
 
+  const toggleTool = tool => setActiveTool(current => current === tool ? null : tool);
+
   const openRiskSizing = () => {
-    if (sizingMode === 'risk') {
-      setMode('lots');
-      return;
-    }
-    setMode('risk');
-    setExpanded(true);
+    toggleTool('risk');
+    if (tradePlan && sizingMode !== 'risk') setMode('risk');
   };
 
-  const openProtection = () => setExpanded(true);
+  const openProtection = tool => toggleTool(tool);
+
+  const applyCalculatedRiskLots = () => {
+    if (!Number.isFinite(currentLots)) return;
+    setLots(currentLots);
+    setMode('lots');
+    setActiveTool(null);
+  };
 
   return (
     <section className="min-h-0 bg-[#07090B]">
@@ -328,10 +330,7 @@ export default function DesktopOrderTicket({
         <div className="grid grid-cols-[1.25fr_1fr_.72fr_.72fr_30px] gap-1">
           <button
             type="button"
-            onClick={() => {
-              if (orderFamily === 'pending') setExpanded(true);
-              else onOrderTypeChange('market');
-            }}
+            onClick={() => toggleTool('market')}
             className={`h-8 rounded-md border px-2 text-[8px] font-bold uppercase tracking-[0.05em] ${orderFamily === 'market' ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-[#4f3d22] bg-[#151108] text-[#E7BD58]'}`}
           >
             {orderFamily === 'market' ? 'Market' : 'Pending'}
@@ -339,10 +338,10 @@ export default function DesktopOrderTicket({
           <button type="button" onClick={openRiskSizing} className={`h-8 rounded-md border text-[8px] font-bold uppercase tracking-[0.05em] ${sizingMode === 'risk' ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] bg-black text-[#7d90a2] hover:text-white'}`}>
             Risk{sizingMode === 'risk' ? ` ${Number(riskPercent).toFixed(2)}%` : ''}
           </button>
-          <button type="button" onClick={openProtection} className={`h-8 rounded-md border text-[8px] font-bold ${hasStopLoss ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] bg-black text-[#7d90a2] hover:text-white'}`}>
+          <button type="button" onClick={() => openProtection('sl')} className={`h-8 rounded-md border text-[8px] font-bold ${hasStopLoss ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] bg-black text-[#7d90a2] hover:text-white'}`}>
             SL{hasStopLoss ? ' ✓' : ''}
           </button>
-          <button type="button" onClick={openProtection} className={`h-8 rounded-md border text-[8px] font-bold ${hasTakeProfit ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] bg-black text-[#7d90a2] hover:text-white'}`}>
+          <button type="button" onClick={() => openProtection('tp')} className={`h-8 rounded-md border text-[8px] font-bold ${hasTakeProfit ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] bg-black text-[#7d90a2] hover:text-white'}`}>
             TP{hasTakeProfit ? ' ✓' : ''}
           </button>
           <button type="button" onClick={() => setExpanded(value => !value)} className="grid h-8 place-items-center rounded-md border border-white/[0.06] bg-black text-[#7d90a2] hover:text-white" aria-label={expanded ? 'Collapse order ticket' : 'Expand order ticket'}>
@@ -350,13 +349,62 @@ export default function DesktopOrderTicket({
           </button>
         </div>
 
-        <div className="flex items-center justify-between rounded-md border border-white/[0.05] bg-black/60 px-2.5 py-2">
-          <span className="text-[7px] font-semibold text-[#6F8191]">Est. Margin</span>
-          <strong className="font-mono text-[10px] font-bold tabular-nums text-[#C9D5DF]">
-            {money(previewMargin, currency, true)}
-            {Number.isFinite(marginPercent) ? <span className="ml-1.5 text-[8px] font-semibold text-[#6F8191]">· {marginPercent.toFixed(2)}%</span> : null}
-          </strong>
-        </div>
+        {activeTool === 'market' && (
+          <div className="rounded-md border border-white/[0.08] bg-[#0C1013] p-1 shadow-xl">
+            <button type="button" onClick={() => { chooseOrderFamily('market'); setActiveTool(null); }} className={`flex h-8 w-full items-center justify-between rounded px-2 text-[8px] font-bold ${orderFamily === 'market' ? 'bg-white/[0.05] text-[#E6EDF3]' : 'text-[#8ea0b1] hover:bg-white/[0.03]'}`}><span>Market</span><span className="text-[6px] text-[#6F8191]">Immediate</span></button>
+            <button type="button" onClick={() => { chooseOrderFamily('pending'); setActiveTool(null); setExpanded(true); }} className={`flex h-8 w-full items-center justify-between rounded px-2 text-[8px] font-bold ${orderFamily === 'pending' ? 'bg-white/[0.05] text-[#E7BD58]' : 'text-[#8ea0b1] hover:bg-white/[0.03]'}`}><span>Pending</span><span className="text-[6px] text-[#6F8191]">Limit / Stop</span></button>
+          </div>
+        )}
+
+        {activeTool === 'risk' && (
+          <div className="rounded-md border border-[#24485b] bg-[#071117] p-2 shadow-xl">
+            <div className="mb-1.5 flex items-center justify-between"><strong className="text-[8px] uppercase tracking-[0.08em] text-[#A1AFBC]">Risk sizing</strong>{tradePlan && Number.isFinite(Number(tradePlan?.sl)) ? <span className="text-[6.5px] text-[#6F8191]">SL {formatInstrumentPrice(tradePlan.sl, market)}</span> : null}</div>
+            {!tradePlan || !Number.isFinite(Number(tradePlan?.sl)) ? (
+              <div>
+                <p className="text-[7px] leading-3 text-[#7f93a6]">Set a stop loss first so ACG can calculate the lot size from your risk.</p>
+                <div className="mt-2 grid grid-cols-2 gap-1">
+                  <button type="button" onClick={() => { startProtectedPlan('sell'); setActiveTool('sl'); }} className="h-8 rounded border border-[#5b252e] text-[7px] font-bold text-[#FF6F7A]">SELL + SL</button>
+                  <button type="button" onClick={() => { startProtectedPlan('buy'); setActiveTool('sl'); }} className="h-8 rounded border border-[#1c5c47] text-[7px] font-bold text-[#42D7A1]">BUY + SL</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-4 gap-1">
+                  {RISK_PRESETS.map(value => <button key={value} type="button" onClick={() => setRisk(value)} className={`h-8 rounded border text-[7px] font-bold ${Math.abs(riskPercent-value)<0.001 ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#7d90a2]'}`}>{value.toFixed(2)}%</button>)}
+                  <label className="flex h-8 items-center rounded border border-white/[0.06] bg-black px-1"><input type="number" min="0.1" max="5" step="0.05" value={riskPercent} onChange={event => setRisk(Math.max(0.1,Math.min(5,Number(event.target.value)||0.1)))} className="w-full bg-transparent text-center font-mono text-[8px] font-bold text-[#E6EDF3] outline-none"/><span className="text-[6px] text-[#6F8191]">%</span></label>
+                </div>
+                <div className="mt-2 flex items-center justify-between rounded border border-white/[0.05] bg-black px-2 py-1.5"><span className="text-[6.5px] text-[#6F8191]">Calculated size</span><strong className="font-mono text-[10px] text-[#E6EDF3]">{Number.isFinite(currentLots) ? currentLots.toFixed(Math.max(2,lotDecimals)) : '—'} lot</strong></div>
+                <button type="button" onClick={applyCalculatedRiskLots} disabled={!Number.isFinite(currentLots)} className="mt-1.5 h-8 w-full rounded border border-[#315b72] bg-[#0d1a22] text-[7px] font-black text-[#59C7FF] disabled:opacity-30">USE {Number.isFinite(currentLots) ? currentLots.toFixed(Math.max(2,lotDecimals)) : '—'} LOT</button>
+              </>
+            )}
+          </div>
+        )}
+
+        {(activeTool === 'sl' || activeTool === 'tp') && (
+          <div className="rounded-md border border-white/[0.08] bg-[#0C1013] p-2 shadow-xl">
+            <div className="mb-1.5 flex items-center justify-between"><strong className="text-[8px] uppercase tracking-[0.08em] text-[#A1AFBC]">{activeTool === 'sl' ? 'Stop loss' : 'Take profit'}</strong>{tradePlan ? <span className={`text-[6.5px] font-bold ${selectedSide === 'buy' ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{selectedSide.toUpperCase()}</span> : null}</div>
+            {!tradePlan ? (
+              <div className="grid grid-cols-2 gap-1">
+                <button type="button" onClick={() => startProtectedPlan('sell')} className="h-8 rounded border border-[#5b252e] text-[7px] font-bold text-[#FF6F7A]">SELL setup</button>
+                <button type="button" onClick={() => startProtectedPlan('buy')} className="h-8 rounded border border-[#1c5c47] text-[7px] font-bold text-[#42D7A1]">BUY setup</button>
+              </div>
+            ) : (
+              <>
+                <ProtectionRow
+                  label={activeTool === 'sl' ? 'SL' : 'TP'}
+                  disabled={!pendingPlan}
+                  value={pendingPlan && Number.isFinite(Number(tradePlan?.[activeTool])) ? formatInstrumentPrice(tradePlan[activeTool], market, '') : ''}
+                  meta={activeTool === 'sl'
+                    ? (Number.isFinite(planMetrics?.slPips) ? `${planMetrics.slPips.toFixed(1)}p · ${Number.isFinite(planMetrics?.riskAmount) ? money(planMetrics.riskAmount,currency) : 'risk —'}` : 'Enter price or drag chart line')
+                    : (Number.isFinite(planMetrics?.tpPips) ? `${planMetrics.tpPips.toFixed(1)}p · ${Number.isFinite(planMetrics?.reward) ? money(planMetrics.reward,currency) : 'profit —'}` : 'Enter price or drag chart line')}
+                  tone={activeTool === 'sl' ? 'danger' : 'success'}
+                  onChange={value => updateProtection(activeTool, value)}
+                />
+                <div className="mt-1.5 flex gap-1"><button type="button" onClick={() => { updateProtection(activeTool,''); setActiveTool(null); }} className="h-7 flex-1 rounded border border-white/[0.06] text-[6.5px] font-bold text-[#6F8191]">Remove</button><button type="button" onClick={() => setActiveTool(null)} className="h-7 flex-1 rounded border border-white/[0.08] bg-white/[0.04] text-[6.5px] font-bold text-[#E6EDF3]">Done</button></div>
+              </>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-[minmax(0,1fr)_96px_minmax(0,1fr)] gap-1.5">
           <button type="button" disabled={!canSubmit} onClick={() => clickSide('sell')} className="flex h-[58px] min-w-0 flex-col justify-center rounded-md border border-[#6d2d37] bg-[#18080c] px-2.5 text-left transition hover:bg-[#210b10] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35">
@@ -364,32 +412,38 @@ export default function DesktopOrderTicket({
             <span className="mt-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-[#FF6F7A]">Sell</span>
           </button>
 
-          <div className="flex h-[58px] flex-col items-center justify-center rounded-md border border-white/[0.06] bg-black">
-            <input
-              value={sizingMode === 'risk' && Number.isFinite(currentLots) ? currentLots.toFixed(Math.max(2, lotDecimals)) : lotInput}
-              readOnly={sizingMode === 'risk'}
-              onFocus={event => {
-                if (sizingMode === 'risk') return;
-                setLotFocused(true);
-                requestAnimationFrame(() => event.currentTarget.select());
-              }}
-              onChange={event => {
-                if (sizingMode !== 'risk') setLotInput(event.target.value.replace(/[^0-9.]/g, ''));
-              }}
-              onBlur={() => { if (sizingMode !== 'risk') commitLotInput(); }}
-              onKeyDown={event => {
-                if (sizingMode === 'risk') return;
-                if (event.key === 'Enter') event.currentTarget.blur();
-                if (event.key === 'Escape') {
-                  setLotInput(Number(normalizedLots).toFixed(lotDecimals));
-                  event.currentTarget.blur();
-                }
-              }}
-              className="w-[78px] bg-transparent text-center font-mono text-[15px] font-black tabular-nums text-[#E6EDF3] outline-none"
-              inputMode="decimal"
-              aria-label="Lot size"
-            />
-            <span className="mt-0.5 text-[6.5px] font-semibold text-[#64788d]">{sizingMode === 'risk' ? 'calc. lots' : 'lots'}</span>
+          <div className="grid h-[58px] grid-cols-[24px_minmax(0,1fr)_24px] items-center rounded-md border border-white/[0.06] bg-black">
+            <button type="button" onClick={() => nudgeLots(-1)} disabled={sizingMode === 'risk'} className="grid h-full place-items-center text-[#6F8191] hover:text-white disabled:opacity-25" aria-label="Decrease lot size"><Minus size={11}/></button>
+            <div className="flex min-w-0 flex-col items-center justify-center">
+              <input
+                value={sizingMode === 'risk' && Number.isFinite(currentLots) ? currentLots.toFixed(Math.max(2, lotDecimals)) : lotInput}
+                readOnly={sizingMode === 'risk'}
+                onFocus={event => {
+                  if (sizingMode === 'risk') return;
+                  setLotFocused(true);
+                  requestAnimationFrame(() => event.currentTarget.select());
+                }}
+                onChange={event => {
+                  if (sizingMode !== 'risk') setLotInput(event.target.value.replace(/[^0-9.]/g, ''));
+                }}
+                onBlur={() => { if (sizingMode !== 'risk') commitLotInput(); }}
+                onKeyDown={event => {
+                  if (sizingMode === 'risk') return;
+                  if (event.key === 'ArrowUp') { event.preventDefault(); nudgeLots(1); }
+                  if (event.key === 'ArrowDown') { event.preventDefault(); nudgeLots(-1); }
+                  if (event.key === 'Enter') event.currentTarget.blur();
+                  if (event.key === 'Escape') {
+                    setLotInput(Number(normalizedLots).toFixed(lotDecimals));
+                    event.currentTarget.blur();
+                  }
+                }}
+                className="w-[54px] bg-transparent text-center font-mono text-[13px] font-black tabular-nums text-[#E6EDF3] outline-none"
+                inputMode="decimal"
+                aria-label="Lot size"
+              />
+              <span className="mt-0.5 text-[6px] font-semibold text-[#64788d]">{sizingMode === 'risk' ? 'calc. lots' : 'lot'}</span>
+            </div>
+            <button type="button" onClick={() => nudgeLots(1)} disabled={sizingMode === 'risk'} className="grid h-full place-items-center text-[#6F8191] hover:text-white disabled:opacity-25" aria-label="Increase lot size"><Plus size={11}/></button>
           </div>
 
           <button type="button" disabled={!canSubmit} onClick={() => clickSide('buy')} className="flex h-[58px] min-w-0 flex-col items-end justify-center rounded-md border border-[#246a51] bg-[#071710] px-2.5 text-right transition hover:bg-[#092016] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35">
