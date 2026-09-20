@@ -76,24 +76,24 @@ export default function DesktopWorkspaceMenu({ snapshot, onApply = () => {} }) {
 
   return (
     <div className="relative">
-      <button type="button" onClick={() => setOpen(value => !value)} className="flex h-7 items-center gap-1 rounded-md border border-white/[0.07] bg-black/20 px-2 text-[7px] font-bold text-[#73889d] hover:text-white" title="Workspaces">
+      <button type="button" onClick={() => setOpen(value => !value)} className="flex h-8 items-center gap-1 rounded-md border border-white/[0.06] bg-black/20 px-2 text-[9px] font-semibold text-[#6F8191] hover:text-white" title="Workspaces">
         <LayoutDashboard size={12}/>Workspace<ChevronDown size={10}/>
       </button>
 
       {open && (
-        <div className="absolute right-0 top-9 z-[90] w-[230px] overflow-hidden rounded-md border border-white/[0.10] bg-[#0a0a0a] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
-          <div className="px-1 pb-1 text-[6.5px] font-black uppercase tracking-[0.08em] text-[#5d7185]">Workspace presets</div>
+        <div className="absolute right-0 top-9 z-[90] w-[230px] overflow-hidden rounded-md border border-white/[0.10] bg-[#0C1013] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+          <div className="px-1 pb-1 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#6F8191]">Workspace presets</div>
           {workspaces.map(item => (
             <div key={item.id} className="group flex items-center gap-1 rounded hover:bg-white/[0.025]">
               <button type="button" onClick={() => { onApply(item); setOpen(false); }} className="flex min-w-0 flex-1 items-center gap-2 px-2 py-2 text-left">
-                <span className="grid size-5 place-items-center rounded border border-white/[0.07] bg-black text-[#63caff]"><Check size={10}/></span>
-                <span className="min-w-0"><b className="block truncate text-[8px] text-[#cdd7df]">{item.name}</b><small className="mt-0.5 block text-[6px] text-[#5f7388]">{item.builtIn ? 'Built-in preset' : 'Saved workspace'}</small></span>
+                <span className="grid size-5 place-items-center rounded border border-white/[0.06] bg-black text-[#59C7FF]"><Check size={10}/></span>
+                <span className="min-w-0"><b className="block truncate text-[10px] font-semibold text-[#E6EDF3]">{item.name}</b><small className="mt-0.5 block text-[8px] text-[#6F8191]">{item.builtIn ? 'Built-in preset' : 'Saved workspace'}</small></span>
               </button>
-              {!item.builtIn && <button type="button" onClick={() => remove(item.id)} className="grid size-7 place-items-center text-[#6e7f90] opacity-0 transition hover:text-[#ff727d] group-hover:opacity-100" aria-label={`Delete ${item.name}`}><Trash2 size={11}/></button>}
+              {!item.builtIn && <button type="button" onClick={() => remove(item.id)} className="grid size-7 place-items-center text-[#6F8191] opacity-0 transition hover:text-[#FF6F7A] group-hover:opacity-100" aria-label={`Delete ${item.name}`}><Trash2 size={11}/></button>}
             </div>
           ))}
-          <button type="button" onClick={saveCurrent} className="mt-1 flex h-8 w-full items-center justify-center gap-1.5 rounded border border-[#315b72] bg-[#0d1a22] text-[7.5px] font-bold text-[#63caff]"><Save size={11}/>Save current workspace</button>
-          <div className="mt-1 flex items-center gap-1 px-1 text-[6px] text-[#526679]"><Plus size={9}/>Up to 12 custom workspaces are stored locally.</div>
+          <button type="button" onClick={saveCurrent} className="mt-1 flex h-9 w-full items-center justify-center gap-1.5 rounded border border-[#315b72] bg-[#0d1a22] text-[9px] font-semibold text-[#59C7FF]"><Save size={11}/>Save current workspace</button>
+          <div className="mt-1 flex items-center gap-1 px-1 text-[8px] text-[#44515D]"><Plus size={9}/>Up to 12 custom workspaces are stored locally.</div>
         </div>
       )}
     </div>
