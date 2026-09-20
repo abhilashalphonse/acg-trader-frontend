@@ -27,6 +27,7 @@ export default function DesktopMultiChart({
   selectedTool = 'cursor',
   onSelectedToolChange = () => {},
   chartMode = 'candles',
+  onActiveTimeframeChange = () => {},
   tradePlan = null,
   onTradePlanChange = () => {},
   onUpdatePosition = () => {},
@@ -75,6 +76,7 @@ export default function DesktopMultiChart({
               className={`relative grid min-h-0 min-w-0 grid-rows-[34px_minmax(0,1fr)] bg-black ${isActive ? 'ring-1 ring-inset ring-[#315b72]' : ''}`}
               onMouseDown={() => {
                 patch({ activeCell: index });
+                onActiveTimeframeChange(timeframe);
                 if (symbol && symbol !== activeSymbol) onSelectSymbol(symbol);
               }}
             >
@@ -94,7 +96,11 @@ export default function DesktopMultiChart({
                 </select>
                 <select
                   value={timeframe}
-                  onChange={event => updateCell(index, { timeframe: event.target.value })}
+                  onChange={event => {
+                    const next = event.target.value;
+                    updateCell(index, { timeframe: next }, { activeCell: index });
+                    onActiveTimeframeChange(next);
+                  }}
                   className="ml-auto bg-transparent font-mono text-[9px] font-semibold text-[#6F8191] outline-none"
                   aria-label={`Chart ${index + 1} timeframe`}
                 >
