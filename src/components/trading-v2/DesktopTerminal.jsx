@@ -11,6 +11,7 @@ import {
   Link2,
   Link2Off,
   List,
+  Layers3,
   Maximize2,
   MoreHorizontal,
   Search,
@@ -27,6 +28,7 @@ import DesktopMultiChart from './desktop/DesktopMultiChart.jsx';
 import DesktopTradeReview from './desktop/DesktopTradeReview.jsx';
 import DesktopWorkspaceMenu from './desktop/DesktopWorkspaceMenu.jsx';
 import DesktopWatchlist from './desktop/DesktopWatchlist.jsx';
+import ChartObjectManager from './desktop/ChartObjectManager.jsx';
 import ResizeHandle from './desktop/ResizeHandle.jsx';
 import PositionsPanel from './PositionsPanel.jsx';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
@@ -284,6 +286,7 @@ export default function DesktopTerminal({
   const [riskPopoverOpen, setRiskPopoverOpen] = useState(false);
   const [indicatorPanelOpen, setIndicatorPanelOpen] = useState(false);
   const [indicatorFocusId, setIndicatorFocusId] = useState(null);
+  const [objectManagerOpen, setObjectManagerOpen] = useState(false);
   const [multiChart, setMultiChart] = useState(() => loadMultiChart(activeSymbol, timeframe, indicators));
   const selectedPosition = positions.find(position => String(position?.id) === String(selectedPositionId)) || null;
 
@@ -715,7 +718,7 @@ export default function DesktopTerminal({
                 <button type="button" onClick={() => onChartModeChange('candles')} disabled={Boolean(tradePlan && !tradePlan.open)} className={`grid size-6 place-items-center rounded ${chartMode === 'candles' ? 'bg-white/[0.05] text-[#59C7FF]' : 'text-[#6F8191]'} disabled:opacity-30`} title="Candlesticks"><CandlestickChart size={13}/></button>
                 <button type="button" onClick={() => onChartModeChange('line')} disabled={Boolean(tradePlan && !tradePlan.open)} className={`grid size-6 place-items-center rounded ${chartMode === 'line' ? 'bg-white/[0.05] text-[#59C7FF]' : 'text-[#6F8191]'} disabled:opacity-30`} title="Line chart"><ChartNoAxesCombined size={13}/></button>
                 <div className="relative">
-                  <button type="button" onClick={() => { setIndicatorFocusId(null); setIndicatorPanelOpen(value => !value); }} className={`relative grid size-6 place-items-center rounded text-[9px] font-black hover:text-white ${indicatorPanelOpen || indicators.length ? 'bg-white/[0.05] text-[#59C7FF]' : 'text-[#6F8191]'}`} title="Indicators">ƒx{indicators.length > 0 && <span className="absolute -right-1 -top-1 grid size-3 place-items-center rounded-full bg-[#151515] text-[5px] text-white">{indicators.length}</span>}</button>
+                  <button type="button" onClick={() => { setIndicatorFocusId(null); setObjectManagerOpen(false); setIndicatorPanelOpen(value => !value); }} className={`relative grid size-6 place-items-center rounded text-[9px] font-black hover:text-white ${indicatorPanelOpen || indicators.length ? 'bg-white/[0.05] text-[#59C7FF]' : 'text-[#6F8191]'}`} title="Indicators">ƒx{indicators.length > 0 && <span className="absolute -right-1 -top-1 grid size-3 place-items-center rounded-full bg-[#151515] text-[5px] text-white">{indicators.length}</span>}</button>
                   {indicatorPanelOpen && (
                     <div className="absolute left-0 top-8 z-[110] w-[390px] max-h-[min(680px,calc(100dvh-150px))] overflow-y-auto rounded-lg border border-white/[0.10] bg-[#0B0D0F]/98 p-3 shadow-[0_24px_70px_rgba(0,0,0,.68)] backdrop-blur-xl [scrollbar-width:thin]">
                       <div className="mb-3 flex items-center justify-between border-b border-white/[0.07] pb-2.5">
@@ -732,6 +735,34 @@ export default function DesktopTerminal({
                         onUpdate={onUpdateIndicator}
                         onToggleFavorite={onToggleIndicatorFavorite}
                         focusInstanceId={indicatorFocusId}
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => { setIndicatorPanelOpen(false); setObjectManagerOpen(value => !value); }}
+                    className={`relative grid size-6 place-items-center rounded hover:text-white ${objectManagerOpen ? 'bg-white/[0.06] text-[#59C7FF]' : 'text-[#6F8191]'}`}
+                    title="Chart manager"
+                    aria-label="Chart manager"
+                  >
+                    <Layers3 size={13}/>
+                  </button>
+                  {objectManagerOpen && (
+                    <div className="absolute left-0 top-8 z-[115]">
+                      <ChartObjectManager
+                        symbol={activeSymbol}
+                        timeframe={activeChartTimeframe === '1m' ? 'M1' : activeChartTimeframe === '5m' ? 'M5' : activeChartTimeframe === '15m' ? 'M15' : activeChartTimeframe === '30m' ? 'M30' : activeChartTimeframe === '1H' ? 'H1' : activeChartTimeframe === '4H' ? 'H4' : activeChartTimeframe === '1D' ? 'D1' : activeChartTimeframe === '1W' ? 'W1' : activeChartTimeframe}
+                        indicators={indicators}
+                        onToggleIndicator={onToggleIndicator}
+                        onRemoveIndicator={onRemoveIndicator}
+                        onOpenIndicatorSettings={instanceId => {
+                          setObjectManagerOpen(false);
+                          setIndicatorFocusId(instanceId);
+                          setIndicatorPanelOpen(true);
+                        }}
+                        onClose={() => setObjectManagerOpen(false)}
                       />
                     </div>
                   )}
@@ -793,6 +824,7 @@ export default function DesktopTerminal({
                 }}
                 onToggleIndicator={onToggleIndicator}
                 onOpenIndicatorSettings={instanceId => {
+                  setObjectManagerOpen(false);
                   setIndicatorFocusId(instanceId);
                   setIndicatorPanelOpen(true);
                 }}
