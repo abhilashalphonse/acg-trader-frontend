@@ -15,13 +15,14 @@ const COLUMN_OPTIONS = [
 ];
 
 function loadPrefs() {
-  const fallback = { columns: ['bid', 'ask', 'spread', 'change'] };
+  const fallback = { columns: ['bid', 'ask', 'change'] };
   if (typeof window === 'undefined') return fallback;
   try {
     const stored = JSON.parse(window.localStorage.getItem(PREFS_KEY) || 'null');
-    const columns = Array.isArray(stored?.columns)
+    let columns = Array.isArray(stored?.columns)
       ? stored.columns.filter(item => COLUMN_OPTIONS.some(([id]) => id === item)).slice(0, 5)
       : fallback.columns;
+    if (columns.length === 4 && columns.join(',') === 'bid,ask,spread,change') columns = fallback.columns;
     return { columns: columns.length ? columns : fallback.columns };
   } catch {
     return fallback;
@@ -126,7 +127,7 @@ export default function DesktopWatchlist({
   }, [markets, mode, search, watched]);
 
   const columns = prefs.columns;
-  const gridTemplate = `minmax(112px,1.25fr) repeat(${columns.length},minmax(50px,.72fr)) 24px`;
+  const gridTemplate = `minmax(118px,1.32fr) repeat(${columns.length},minmax(54px,.72fr)) 24px`;
 
   const toggleColumn = id => {
     setPrefs(current => {
@@ -213,7 +214,7 @@ export default function DesktopWatchlist({
         </div>
       </div>
 
-      <div className="grid shrink-0 border-y border-white/[0.07] px-2 py-1.5 text-[6px] font-bold uppercase tracking-[0.07em] text-[#52667a]" style={{ gridTemplateColumns: gridTemplate }}>
+      <div className="grid shrink-0 border-y border-white/[0.07] px-2 py-1.5 text-[6.5px] font-bold uppercase tracking-[0.07em] text-[#52667a]" style={{ gridTemplateColumns: gridTemplate }}>
         <span>Instrument</span>
         {columns.map(column => <span key={column} className="text-right">{COLUMN_OPTIONS.find(([id]) => id === column)?.[1] || column}</span>)}
         <span />
@@ -241,15 +242,15 @@ export default function DesktopWatchlist({
                 {mode !== 'markets' && !search && isWatched && <GripVertical size={9} className="shrink-0 text-[#405263]"/>}
                 <InstrumentAvatar instrument={item} size={21}/>
                 <span className="min-w-0">
-                  <b className="block truncate text-[9px] text-[#dce7f1]">{item.displaySymbol || displaySymbol(item.symbol)}</b>
-                  <small className={`mt-0.5 block truncate text-[6px] ${statusTone}`}>{statusLabel}</small>
+                  <b className="block truncate text-[10px] text-[#dce7f1]">{item.displaySymbol || displaySymbol(item.symbol)}</b>
+                  <small className={`mt-0.5 block truncate text-[6.5px] ${statusTone}`}>{statusLabel}</small>
                 </span>
               </button>
 
               {columns.map(column => {
                 const change = column === 'change' ? dayChange(item) : null;
                 return (
-                  <button key={column} type="button" onClick={() => onSelectSymbol(item.symbol)} className={`truncate py-1.5 text-right font-mono text-[7.5px] tabular-nums ${column === 'change' && change != null ? (change >= 0 ? 'text-[#38d6a2]' : 'text-[#ff7882]') : column === 'bid' ? 'font-bold text-[#a9bac9]' : 'text-[#8397aa]'}`}>
+                  <button key={column} type="button" onClick={() => onSelectSymbol(item.symbol)} className={`truncate py-1.5 text-right font-mono text-[8.5px] tabular-nums ${column === 'change' && change != null ? (change >= 0 ? 'text-[#38d6a2]' : 'text-[#ff7882]') : column === 'bid' ? 'font-bold text-[#a9bac9]' : 'text-[#8397aa]'}`}>
                     {cellValue(column, item)}
                   </button>
                 );
