@@ -71,6 +71,44 @@ function normalizePendingOrder(order) {
 }
 function normalizeHistoryFill(fill) { return { id: String(fill.id), accountId: String(fill.accountId), positionId: fill.positionId ? String(fill.positionId) : null, symbol: fill.symbol, side: String(fill.side || '').toUpperCase(), volume: numberOr(fill.volume), entry: numberOr(fill.price), closePrice: numberOr(fill.price), pnl: numberOr(fill.realizedPnl), commission: numberOr(fill.commission), swap: numberOr(fill.swap), slippage: numberOr(fill.slippage), closeType: fill.type || 'DEAL', closedAt: displayTime(fill.executedAt), executedAt: fill.executedAt, raw: fill };
 }
+
+function normalizeClosedPosition(position, deals = [], accountCurrency = 'USD') {
+  const id = String(position?.id || position?._id || '');
+  const relatedDeals = deals
+    .filter(deal => String(deal?.positionId || '') === id)
+    .sort((a, b) => new Date(a?.executedAt || 0) - new Date(b?.executedAt || 0));
+  const closingDeals = relatedDeals.filter(deal => String(deal?.type || '').toUpperCase() !== 'OPEN');
+  const finalDeal = closingDeals[closingDeals.length - 1] || null;
+  const openingDeal = relatedDeals.find(deal => String(deal?.type || '').toUpperCase() === 'OPEN') || null;
+  const commission = relatedDeals.reduce((sum, deal) => sum + numberOr(deal?.commission), 0);
+  const swap = relatedDeals.reduce((sum, deal) => sum + numberOr(deal?.swap), 0);
+  const slippage = relatedDeals.reduce((sum, deal) => sum + Math.abs(numberOr(deal?.slippage)), 0);
+
+  return {
+    id,
+    accountId: String(position?.accountId || ''),
+    positionId: position?.positionId ? String(position.positionId) : id,
+    symbol: position?.symbol,
+    side: String(position?.side || '').toUpperCase(),
+    volume: numberOr(position?.initialVolume ?? position?.openVolume),
+    entry: numberOr(position?.entryPrice ?? openingDeal?.price),
+    closePrice: nullableNumber(finalDeal?.price),
+    pnl: numberOr(position?.realizedPnl),
+    pnlCurrency: String(accountCurrency || position?.quoteCurrency || 'USD').toUpperCase(),
+    commission: numberOr(position?.commissionPaid, commission),
+    swap: numberOr(position?.swapPaid, swap),
+    slippage,
+    sl: nullableNumber(position?.stopLoss),
+    tp: nullableNumber(position?.takeProfit),
+    closeType: position?.closeReason || finalDeal?.type || 'CLOSED',
+    openedAt: displayTime(position?.openedAt, '—'),
+    closedAt: displayTime(position?.closedAt ?? finalDeal?.executedAt, '—'),
+    openedAtIso: position?.openedAt || openingDeal?.executedAt || null,
+    closedAtIso: position?.closedAt || finalDeal?.executedAt || null,
+    executionEvents: relatedDeals.map(normalizeHistoryFill),
+    raw: position,
+  };
+}
 function normalizeAccount(account, valuation) {
   const durable = account?.state || {};
   const policy = account?.riskPolicy || {};
@@ -116,18 +154,31 @@ export function useTradingTerminal(markets = []) {
   const positions = useMemo(() => rawPositions.map(position => normalizePosition(position, positionValuations[position.id], markets.find(item => item.symbol === position.symbol), account.currency)), [account.currency, markets, positionValuations, rawPositions]);
   const pendingOrders = useMemo(() => Object.values(trading.ordersById).filter(order => (!accountId || String(order.accountId) === String(accountId)) && ACTIVE_ORDER_STATUSES.has(String(order.status || '').toUpperCase()) && String(order.type || '').toUpperCase() !== 'MARKET').sort((a, b) => new Date(b.createdAt || b.receivedAt || 0) - new Date(a.createdAt || a.receivedAt || 0)).map(normalizePendingOrder), [accountId, trading.ordersById]);
   const positionHistory = useMemo(() => {
-    const source = history.loaded ? [...trading.fills, ...history.deals] : trading.fills;
+    const closedFromStore = Object.values(trading.positionsById)
+      .filter(position => (!accountId || String(position?.accountId) === String(accountId)) && String(position?.status || '').toUpperCase() === 'CLOSED');
+    const source = history.loaded ? [...closedFromStore, ...history.positions] : closedFromStore;
     const seen = new Set();
+    const deals = history.loaded ? [...trading.fills, ...history.deals] : trading.fills;
+    const uniqueDeals = [];
+    const seenDeals = new Set();
+    deals.forEach(deal => {
+      const id = String(deal?.id || '');
+      if (!id || seenDeals.has(id)) return;
+      seenDeals.add(id);
+      uniqueDeals.push(deal);
+    });
+
     return source
-      .filter(fill => String(fill.type || '').toUpperCase() !== 'OPEN')
-      .filter(fill => {
-        const id = String(fill?.id || '');
+      .filter(position => String(position?.status || '').toUpperCase() === 'CLOSED')
+      .filter(position => {
+        const id = String(position?.id || position?._id || '');
         if (!id || seen.has(id)) return false;
         seen.add(id);
         return true;
       })
-      .map(normalizeHistoryFill);
-  }, [history.deals, history.loaded, trading.fills]);
+      .map(position => normalizeClosedPosition(position, uniqueDeals, account.currency))
+      .sort((a, b) => new Date(b.closedAtIso || 0) - new Date(a.closedAtIso || 0));
+  }, [account.currency, accountId, history.deals, history.loaded, history.positions, trading.fills, trading.positionsById]);
 
   useEffect(() => { if (!accountId || connection.status !== 'ready') return; requestSnapshot([accountId]); }, [accountId, connection.status, requestSnapshot]);
   useEffect(() => {
