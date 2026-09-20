@@ -322,7 +322,13 @@ export function useTradingTerminal(markets = []) {
   const duplicatePosition = useCallback(positionId => {
     const position = rawPositions.find(item => String(item.id) === String(positionId));
     if (!position) return Promise.reject(new Error('Open position was not found'));
-    return openMarketOrder({ symbol: position.symbol, side: position.side, volume: position.openVolume });
+    return openMarketOrder({
+      symbol: position.symbol,
+      side: position.side,
+      volume: position.openVolume,
+      stopLoss: position.stopLoss,
+      takeProfit: position.takeProfit,
+    });
   }, [openMarketOrder, rawPositions]);
 
   const reversePosition = useCallback(positionId => {
