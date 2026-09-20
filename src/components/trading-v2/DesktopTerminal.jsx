@@ -545,7 +545,7 @@ export default function DesktopTerminal({
           }}
         >
           {marketPanelOpen && (
-            <aside className="min-h-0 overflow-hidden border-r border-white/[0.06] bg-[#07090B]">
+            <aside className="min-h-0 overflow-hidden border-r border-white/[0.06] bg-[#07090B]" style={{ gridColumn: '1', gridRow: '1' }}>
               <DesktopWatchlist
                 markets={markets}
                 activeSymbol={activeSymbol}
@@ -558,7 +558,7 @@ export default function DesktopTerminal({
             </aside>
           )}
 
-          <section className="grid min-h-0 min-w-0 grid-rows-[52px_40px_minmax(0,1fr)]">
+          <section className="grid min-h-0 min-w-0 grid-rows-[52px_40px_minmax(0,1fr)]" style={{ gridColumn: '2', gridRow: '1' }}>
             <div className="flex items-center border-b border-white/[0.06] bg-[#07090B] px-3">
               <div className="flex min-w-[210px] items-center gap-2">
                 <InstrumentAvatar instrument={market} size={28}/>
@@ -684,11 +684,11 @@ export default function DesktopTerminal({
             </div>
           </section>
 
-          <aside className={`min-h-0 overflow-y-auto border-l border-white/[0.06] bg-[#07090B] [scrollbar-width:thin] ${desktopLayout.sidebarCollapsed ? 'hidden' : 'block'}`}>
+          <aside className={`min-h-0 overflow-y-auto border-l border-white/[0.06] bg-[#07090B] [scrollbar-width:thin] ${desktopLayout.sidebarCollapsed ? 'hidden' : 'block'}`} style={{ gridColumn: '3', gridRow: '1' }}>
             <DesktopOrderTicket market={market} markets={markets} account={account} positions={positions} positionHistory={positionHistory} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} riskGuardSettings={riskGuardSettings} onRiskGuardSettingsChange={onRiskGuardSettingsChange}/>
           </aside>
 
-          <div className={`col-span-3 min-h-0 overflow-auto border-t border-white/[0.06] bg-[#07090B] ${desktopLayout.dockCollapsed ? 'hidden' : ''}`}>
+          <div className={`min-h-0 overflow-auto border-t border-white/[0.06] bg-[#07090B] ${desktopLayout.dockCollapsed ? 'hidden' : ''}`} style={{ gridColumn: '1 / 4', gridRow: '2' }}>
             <PositionsPanel desktopDense requestedTab={requestedDockTab} activeSymbol={activeSymbol} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending}/>
           </div>
 
