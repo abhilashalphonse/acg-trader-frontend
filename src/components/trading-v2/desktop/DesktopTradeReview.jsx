@@ -51,11 +51,19 @@ export default function DesktopTradeReview({
   const trades = useMemo(() => {
     const rows = (Array.isArray(positionHistory) ? positionHistory : []).map(item => {
       const key = tradeKey(item);
-      const related = (Array.isArray(journal) ? journal : []).filter(event =>
-        String(event?.positionId || '') === String(item?.positionId || item?.id || '')
-        || (event?.symbol === item?.symbol && event?.type === 'fill')
-      );
-      return { ...item, reviewKey: key, related };
+      const itemPositionId = String(item?.positionId || item?.id || '');
+      const related = (Array.isArray(journal) ? journal : []).filter(event => {
+        const eventPositionId = String(event?.positionId || '');
+        if (itemPositionId && eventPositionId) return eventPositionId === itemPositionId;
+        return !itemPositionId && event?.symbol === item?.symbol && event?.type === 'fill';
+      });
+      const openEvent = related.find(event => event?.type === 'fill' && Number.isFinite(Number(event?.fillPrice)));
+      return {
+        ...item,
+        reviewKey: key,
+        related,
+        reviewEntry: Number.isFinite(Number(openEvent?.fillPrice)) ? Number(openEvent.fillPrice) : item.entry,
+      };
     });
     const needle = query.trim().toLowerCase();
     if (!needle) return rows;
@@ -93,7 +101,7 @@ export default function DesktopTradeReview({
   if (!open) return null;
 
   const instrument = selected ? instrumentForSymbol(markets, selected.symbol) : null;
-  const entry = numeric(selected?.entry);
+  const entry = numeric(selected?.reviewEntry ?? selected?.entry);
   const exit = numeric(selected?.closePrice);
   const side = String(selected?.side || '').toUpperCase();
   const interpolated = entry != null && exit != null ? entry + (exit - entry) * (progress / 100) : null;
@@ -140,7 +148,7 @@ export default function DesktopTradeReview({
               </div>
 
               <div className="mt-3 grid grid-cols-5 gap-2">
-                {[['Entry', formatInstrumentPrice(selected.entry, instrument)], ['Exit', formatInstrumentPrice(selected.closePrice, instrument)], ['Size', `${Number(selected.volume || 0).toFixed(2)} lot`], ['Commission', money(selected.commission, selected.pnlCurrency)], ['Slippage', Number(selected.slippage || 0).toFixed(2)]].map(([label, value]) => <div key={label} className="rounded border border-white/[0.06] bg-black px-2 py-2"><span className="block text-[6px] uppercase tracking-[0.07em] text-[#566a7d]">{label}</span><b className="mt-1 block truncate font-mono text-[8.5px] text-[#d8e2ea]">{value}</b></div>)}
+                {[['Entry', formatInstrumentPrice(selected.reviewEntry ?? selected.entry, instrument)], ['Exit', formatInstrumentPrice(selected.closePrice, instrument)], ['Size', `${Number(selected.volume || 0).toFixed(2)} lot`], ['Commission', money(selected.commission, selected.pnlCurrency)], ['Slippage', Number(selected.slippage || 0).toFixed(2)]].map(([label, value]) => <div key={label} className="rounded border border-white/[0.06] bg-black px-2 py-2"><span className="block text-[6px] uppercase tracking-[0.07em] text-[#566a7d]">{label}</span><b className="mt-1 block truncate font-mono text-[8.5px] text-[#d8e2ea]">{value}</b></div>)}
               </div>
 
               <div className="mt-4 rounded-lg border border-white/[0.08] bg-black p-3">
