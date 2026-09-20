@@ -141,6 +141,8 @@ export default function DesktopMultiChart({
                   account={account}
                   riskPercent={riskPercent}
                   onCreateRiskOrder={isActive ? onCreateRiskOrder : () => {}}
+                  chartInstanceId={`desktop-chart-${index}`}
+                  drawingInteractionEnabled={isActive}
                   onTradePlanChange={isActive ? onTradePlanChange : () => {}}
                   onUpdatePosition={onUpdatePosition}
                   selectedPositionId={selectedPositionId}
