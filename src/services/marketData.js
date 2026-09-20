@@ -1,7 +1,7 @@
 import { marketApi } from '../api/market.js';
-import { normalizeCandle } from '../utils/candleNormalization.js';
+import { normalizeCandle, normalizeCandleSeries } from '../utils/candleNormalization.js';
 
-export { normalizeCandle };
+export { normalizeCandle, normalizeCandleSeries };
 
 const BACKEND_TIMEFRAMES = Object.freeze({
   M1: '1m',
@@ -47,7 +47,7 @@ export async function fetchCandles(symbol, timeframe, outputsize = 500, signal) 
     limit: Math.max(1, Math.min(1000, Number(outputsize) || 160)),
   }, signal);
 
-  const bars = (response?.candles || []).map(normalizeCandle).filter(Boolean);
+  const bars = normalizeCandleSeries(response?.candles || []);
   candleCache.set(key, { savedAt: Date.now(), bars });
   return bars.map(bar => ({ ...bar }));
 }
@@ -55,9 +55,10 @@ export async function fetchCandles(symbol, timeframe, outputsize = 500, signal) 
 export function mergeLiveBarIntoCache(symbol, timeframe, bar, outputsize = 500) {
   const key = cacheKey(symbol, timeframe, outputsize);
   const cached = candleCache.get(key);
-  if (!cached || !bar || !Number.isFinite(Number(bar.time))) return;
+  if (!cached || !bar) return;
+  const normalized = normalizeCandle(bar);
+  if (!normalized) return;
   const bars = cached.bars.slice();
-  const normalized = { ...bar, time: Number(bar.time) };
   const last = bars[bars.length - 1];
   if (last?.time === normalized.time) bars[bars.length - 1] = normalized;
   else if (!last || normalized.time > last.time) bars.push(normalized);
