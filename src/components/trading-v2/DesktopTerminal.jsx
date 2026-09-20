@@ -15,7 +15,6 @@ import {
   UserRound,
   X,
 } from 'lucide-react';
-import ChartArea from './ChartArea.jsx';
 import DesktopOrderTicket from './desktop/DesktopOrderTicket.jsx';
 import DesktopMultiChart from './desktop/DesktopMultiChart.jsx';
 import DesktopTradeReview from './desktop/DesktopTradeReview.jsx';
@@ -27,7 +26,6 @@ import PropRiskStrip from './PropRiskStrip.jsx';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 
 const timeframes = [['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], ['1H', '1H'], ['4H', '4H'], ['1D', '1D'], ['1W', '1W']];
-const chartTimeframeMap = { '1m': 'M1', '5m': 'M5', '15m': 'M15', '30m': 'M30', '1H': 'H1', '4H': 'H4', '1D': 'D1', '1W': 'W1' };
 const navItems = [['trade', CandlestickChart, 'Trade'], ['watchlist', Star, 'Watchlist'], ['markets', List, 'Markets'], ['history', History, 'History'], ['more', MoreHorizontal, 'More']];
 const DESKTOP_LAYOUT_KEY = 'acg-trader-desktop-layout-v1';
 const MULTI_CHART_KEY = 'acg-trader-multi-chart-v1';
