@@ -61,9 +61,15 @@ function desktopHeightBounds(viewportHeight, dockCollapsed = false, dockHeight =
   const defaultDock = compact ? 165 : height <= 1050 ? 200 : 230;
   const effectiveDock = dockCollapsed ? 0 : clamp(dockHeight || defaultDock, dockMin, dockMax);
   const upperWorkspaceHeight = Math.max(0, height - 52 - effectiveDock);
-  const minOrderTicketHeight = compact ? 330 : 350;
-  const watchlistMax = clamp(upperWorkspaceHeight - minOrderTicketHeight - 4, 170, 420);
-  const defaultWatchlist = compact ? Math.min(205, watchlistMax) : Math.min(220, watchlistMax);
+
+  // On laptop-height screens the order ticket is independently scrollable, so
+  // reserve only the execution-critical portion instead of forcing the entire
+  // ticket to remain visible. This lets Favorites/Markets use more of the rail.
+  const minOrderTicketHeight = compact ? 250 : 300;
+  const watchlistShareCap = upperWorkspaceHeight * (compact ? 0.60 : 0.55);
+  const watchlistRoomCap = upperWorkspaceHeight - minOrderTicketHeight - 4;
+  const watchlistMax = clamp(Math.min(watchlistShareCap, watchlistRoomCap), 170, compact ? 440 : 480);
+  const defaultWatchlist = compact ? Math.min(220, watchlistMax) : Math.min(240, watchlistMax);
   return { compact, dockMin, dockMax, defaultDock, watchlistMin: 140, watchlistMax, defaultWatchlist };
 }
 
