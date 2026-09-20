@@ -160,77 +160,147 @@ export default function DesktopTerminal({
 
   return (
     <div ref={shellRef} className="relative h-dvh min-h-0 overflow-hidden bg-black text-[#f4f8fb]">
-      {notice && <div className="absolute right-4 top-[72px] z-[120] flex max-w-[390px] items-center gap-3 rounded-md border border-white/[0.08] bg-[#101010]/95 px-3 py-2.5 text-[10px] font-semibold text-[#dce9f2] shadow-[0_16px_48px_rgba(0,0,0,.45)]"><span>{notice}</span><button type="button" onClick={() => setNotice('')} className="grid size-6 place-items-center rounded-md text-[#8094a7]"><X size={13}/></button></div>}
+      {notice && <div className="absolute right-3 top-[60px] z-[120] flex max-w-[390px] items-center gap-3 rounded-md border border-white/[0.08] bg-[#101010]/95 px-3 py-2.5 text-[10px] font-semibold text-[#dce9f2] shadow-[0_16px_48px_rgba(0,0,0,.45)]"><span>{notice}</span><button type="button" onClick={() => setNotice('')} className="grid size-6 place-items-center rounded-md text-[#8094a7]"><X size={13}/></button></div>}
 
-      <header className="flex h-16 items-center border-b border-white/[0.08] bg-[#080808] px-4 shadow-[0_1px_0_rgba(255,255,255,0.015)]">
-        <div className="flex min-w-[205px] items-center gap-2"><span className="text-[17px] font-extrabold tracking-[-0.03em]">ACG Trader</span><span className="rounded-md bg-[#101010] px-1.5 py-1 text-[9px] font-extrabold tracking-[0.05em] text-[#56c6ff]">V2</span></div>
-        <div className="ml-3 hidden items-stretch divide-x divide-white/[0.08] rounded-md border border-white/[0.08] bg-[#080808] xl:flex">{[
-          ['Balance', money(account?.balance, currency)],
-          ['Equity', money(account?.equity, currency)],
-          ['Floating P/L', formatPnl(accountPnl, currency)],
-          ['Free margin', money(account?.freeMargin, currency)],
-        ].map(([label, value]) => <div key={label} className="min-w-[112px] px-3 py-2"><span className="block text-[8px] font-semibold uppercase tracking-[0.08em] text-[#52667a]">{label}</span><strong className={`mt-0.5 block text-[11px] font-bold ${label === 'Floating P/L' ? (accountPnl >= 0 ? 'text-[#3dd9a4]' : 'text-[#ff6570]') : 'text-[#dce6ef]'}`}>{value}</strong></div>)}</div>
-        <div className="ml-auto flex items-center gap-2">
-          {hotkeysEnabled && <span className="hidden rounded-md border border-white/[0.08] bg-[#101010] px-2 py-1 text-[7px] font-bold text-[#5bc9ff] 2xl:inline">HOTKEYS ON</span>}
-          <button type="button" onClick={() => searchRef.current?.focus()} className="grid size-9 place-items-center rounded-lg text-[#8fa2b7] hover:bg-white/[0.035] hover:text-white" aria-label="Search"><Search size={18}/></button>
-          <button type="button" onClick={() => setNotice('Notification delivery is not connected to a backend event inbox yet.')} className="grid size-9 place-items-center rounded-lg border border-white/[0.08] bg-[#080808] text-[#8fa2b7]" aria-label="Notifications"><Bell size={17}/></button>
-          <button type="button" onClick={() => setNotice(`${account?.accountCode || 'Trading account'} • ${accountStatus} • ${valuationStatus}`)} className="flex h-9 items-center gap-2 rounded-lg border border-white/[0.08] bg-[#080808] px-3 text-left"><span className={`size-1.5 rounded-full ${canOpen ? 'bg-[#2fd9a0]' : valuationStatus === 'STALE' ? 'bg-[#e8bd55]' : 'bg-[#101010]'}`}/><div className="leading-none"><strong className="block text-[10px]">{money(account?.equity, currency)}</strong><span className="mt-1 block text-[8px] text-[#64788d]">{account?.accountCode || accountStatus}</span></div></button>
-          <button type="button" onClick={() => setNotice(`Account ${accountStatus.toLowerCase()} • valuation ${valuationStatus.toLowerCase()}`)} className="grid size-9 place-items-center rounded-full border border-white/[0.08] bg-[#080808] text-[#8ea3ba]" aria-label="Profile"><UserRound size={17}/></button>
+      <header className="flex h-[52px] items-center border-b border-white/[0.08] bg-[#080808] px-3 shadow-[0_1px_0_rgba(255,255,255,0.015)]">
+        <div className="flex min-w-[178px] items-center gap-2">
+          <span className="text-[16px] font-extrabold tracking-[-0.03em]">ACG Trader</span>
+          <span className="rounded bg-white/[0.04] px-1.5 py-0.5 text-[8px] font-extrabold tracking-[0.06em] text-[#56c6ff]">V2</span>
+        </div>
+
+        <div className="ml-2 hidden items-stretch divide-x divide-white/[0.07] rounded-md border border-white/[0.07] bg-black/25 xl:flex">
+          {[
+            ['Balance', money(account?.balance, currency)],
+            ['Equity', money(account?.equity, currency)],
+            ['Floating P/L', formatPnl(accountPnl, currency)],
+            ['Free margin', money(account?.freeMargin, currency)],
+          ].map(([label, value]) => (
+            <div key={label} className="min-w-[102px] px-3 py-1.5">
+              <span className="block text-[7px] font-semibold uppercase tracking-[0.08em] text-[#52667a]">{label}</span>
+              <strong className={`mt-0.5 block text-[10px] font-bold ${label === 'Floating P/L' ? (accountPnl >= 0 ? 'text-[#3dd9a4]' : 'text-[#ff6570]') : 'text-[#dce6ef]'}`}>{value}</strong>
+            </div>
+          ))}
+        </div>
+
+        <div className="ml-auto flex items-center gap-1.5">
+          {hotkeysEnabled && <span className="hidden rounded border border-white/[0.07] bg-black/30 px-2 py-1 text-[7px] font-bold text-[#5bc9ff] 2xl:inline">HOTKEYS ON</span>}
+          <button type="button" onClick={() => searchRef.current?.focus()} className="grid size-8 place-items-center rounded-md text-[#8fa2b7] hover:bg-white/[0.035] hover:text-white" aria-label="Search"><Search size={16}/></button>
+          <button type="button" onClick={() => setNotice('Notification delivery is not connected to a backend event inbox yet.')} className="grid size-8 place-items-center rounded-md border border-white/[0.07] bg-black/20 text-[#8fa2b7]" aria-label="Notifications"><Bell size={15}/></button>
+          <button type="button" onClick={() => setNotice(`${account?.accountCode || 'Trading account'} • ${accountStatus} • ${valuationStatus}`)} className="flex h-8 items-center gap-2 rounded-md border border-white/[0.07] bg-black/20 px-2.5 text-left">
+            <span className={`size-1.5 rounded-full ${canOpen ? 'bg-[#2fd9a0]' : valuationStatus === 'STALE' ? 'bg-[#e8bd55]' : 'bg-[#343434]'}`}/>
+            <div className="leading-none"><strong className="block text-[9px]">{money(account?.equity, currency)}</strong><span className="mt-1 block text-[7px] text-[#64788d]">{account?.accountCode || accountStatus}</span></div>
+          </button>
+          <button type="button" onClick={() => setNotice(`Account ${accountStatus.toLowerCase()} • valuation ${valuationStatus.toLowerCase()}`)} className="grid size-8 place-items-center rounded-full border border-white/[0.07] bg-black/20 text-[#8ea3ba]" aria-label="Profile"><UserRound size={15}/></button>
         </div>
       </header>
 
-      <div className="grid h-[calc(100dvh-64px)] min-h-[656px] grid-cols-[58px_230px_minmax(0,1fr)] 2xl:grid-cols-[62px_270px_minmax(0,1fr)]">
-        <aside className="flex min-h-0 flex-col items-center border-r border-white/[0.08] bg-[#080808] py-2">
-          {navItems.map(([id, Icon, label]) => { const active = activeNav === id; return <button key={id} type="button" title={label} onClick={() => handleNav(id)} className={`mb-1 flex h-12 w-11 flex-col items-center justify-center gap-1 rounded-md text-[7px] font-semibold transition ${active ? 'border-l-2 border-[#53c7ff] bg-transparent text-[#53c7ff]' : 'text-[#65798e] hover:bg-white/[0.03] hover:text-[#c8d6e3]'}`}><Icon size={18} strokeWidth={1.8}/><span>{label}</span></button>; })}
+      <div className="grid h-[calc(100dvh-52px)] min-h-0 grid-cols-[48px_minmax(0,1fr)] 2xl:grid-cols-[52px_minmax(0,1fr)]">
+        <aside className="flex min-h-0 flex-col items-center border-r border-white/[0.08] bg-[#080808] py-1.5">
+          {navItems.map(([id, Icon, label]) => {
+            const active = activeNav === id;
+            return (
+              <button key={id} type="button" title={label} onClick={() => handleNav(id)} className={`mb-0.5 flex h-11 w-10 flex-col items-center justify-center gap-0.5 rounded text-[6.5px] font-semibold transition ${active ? 'border-l-2 border-[#53c7ff] bg-white/[0.02] text-[#53c7ff]' : 'text-[#65798e] hover:bg-white/[0.03] hover:text-[#c8d6e3]'}`}>
+                <Icon size={16} strokeWidth={1.8}/><span>{label}</span>
+              </button>
+            );
+          })}
           <div className="flex-1" />
-          <button type="button" onClick={onOpenSettings} title="Settings" className="grid size-11 place-items-center rounded-xl text-[#65798e] hover:bg-white/[0.03] hover:text-white"><Settings size={18}/></button>
+          <button type="button" onClick={onOpenSettings} title="Settings" className="grid size-10 place-items-center rounded-md text-[#65798e] hover:bg-white/[0.03] hover:text-white"><Settings size={16}/></button>
         </aside>
 
-        <aside className="min-h-0 overflow-hidden border-r border-white/[0.08] bg-[#080808]">
-          <div className="flex h-14 items-center justify-between border-b border-white/[0.08] px-3">
-            <div className="min-w-0">
-              <strong className="block text-[10px] font-extrabold tracking-[0.08em] text-[#dce7f1]">{activeNav === 'markets' ? 'MARKETS' : 'WATCHLIST'}</strong>
-              <span className="mt-1 block truncate text-[8px] text-[#5f7388]">{activeNav === 'markets' ? `${markets.length} instruments` : `${watchlists?.activeList?.name || 'Favorites'} · ${watchlists?.activeSymbols?.length || 0}`}</span>
+        <div className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)_300px] grid-rows-[minmax(0,1fr)_220px] bg-[#080808] 2xl:grid-cols-[minmax(0,1fr)_340px] 2xl:grid-rows-[minmax(0,1fr)_240px]">
+          <section className="grid min-h-0 min-w-0 grid-rows-[48px_28px_38px_minmax(0,1fr)]">
+            <div className="flex items-center border-b border-white/[0.08] bg-[#080808] px-3">
+              <div className="flex min-w-[210px] items-center gap-2">
+                <InstrumentAvatar instrument={market} size={28}/>
+                <div className="min-w-0">
+                  <button type="button" onClick={() => searchRef.current?.focus()} className="flex items-center gap-1 text-[13px] font-extrabold tracking-[-0.025em] text-[#f3f7fb]">{market?.displaySymbol || displaySymbol(market?.symbol)}<ChevronDown size={12}/></button>
+                  <span className="mt-0.5 block truncate text-[7px] text-[#5f7388]">{marketLabel(market)}</span>
+                </div>
+              </div>
+              <div className="ml-3">
+                <strong className="block font-mono text-[15px] tracking-[-0.02em] text-[#edf5fb]">{market?.bid || '—'}</strong>
+                <span className={`mt-0.5 block text-[7px] font-semibold ${market?.live ? 'text-[#35d49f]' : market?.isStale ? 'text-[#e7bd58]' : 'text-[#718398]'}`}>{market?.sessionOpen === false ? 'SESSION CLOSED' : market?.live ? 'LIVE' : market?.isStale ? 'STALE' : market?.marketState || 'WAITING'}</span>
+              </div>
+              <div className="ml-auto flex items-center gap-3">
+                <div className="hidden text-right xl:block"><span className="block text-[6.5px] uppercase tracking-[0.08em] text-[#506477]">Valuation</span><b className={`mt-0.5 block text-[8px] ${valuationStatus === 'LIVE' ? 'text-[#3dd9a4]' : valuationStatus === 'STALE' ? 'text-[#e7bd58]' : 'text-[#a0b0bf]'}`}>{valuationStatus}</b></div>
+                <button type="button" onClick={() => watchlists?.toggleSymbol?.(activeSymbol)} className={`grid size-7 place-items-center rounded-md hover:bg-white/[0.035] ${favorite ? 'text-[#f6c95d]' : 'text-[#687d92]'}`}><Star size={14} fill={favorite ? 'currentColor' : 'none'}/></button>
+              </div>
             </div>
-            <button type="button" onClick={() => searchRef.current?.focus()} className="grid size-7 place-items-center rounded-md text-[#65798d] hover:bg-white/[0.03]" title="Search all markets"><Search size={14}/></button>
+
+            <div className="min-h-0 overflow-hidden border-b border-white/[0.07]">
+              <PropRiskStrip account={account} plannedRisk={plannedRisk} compact />
+            </div>
+
+            <div className="flex items-center gap-1.5 border-b border-white/[0.08] bg-[#080808] px-2.5">
+              <div className="flex items-center gap-0.5">
+                {timeframes.map(([label, value]) => (
+                  <button key={value} type="button" onClick={() => onTimeframeChange(value)} disabled={Boolean(tradePlan && !tradePlan.open)} className={`h-6 min-w-7 rounded px-1.5 text-[7px] font-bold ${timeframe === value ? 'bg-white/[0.05] text-[#58c7ff]' : 'text-[#6d8298] hover:bg-white/[0.035] hover:text-[#d7e2ec]'} disabled:opacity-30`}>{label}</button>
+                ))}
+              </div>
+              <div className="mx-1 h-4 w-px bg-white/[0.07]"/>
+              <div className="flex items-center gap-0.5">
+                <button type="button" onClick={() => onChartModeChange('candles')} disabled={Boolean(tradePlan && !tradePlan.open)} className={`grid size-6 place-items-center rounded ${chartMode === 'candles' ? 'bg-white/[0.05] text-[#58c7ff]' : 'text-[#6d8298]'} disabled:opacity-30`} title="Candlesticks"><CandlestickChart size={13}/></button>
+                <button type="button" onClick={() => onChartModeChange('line')} disabled={Boolean(tradePlan && !tradePlan.open)} className={`grid size-6 place-items-center rounded ${chartMode === 'line' ? 'bg-white/[0.05] text-[#58c7ff]' : 'text-[#6d8298]'} disabled:opacity-30`} title="Line chart"><ChartNoAxesCombined size={13}/></button>
+                <button type="button" onClick={onOpenIndicators} className={`relative grid size-6 place-items-center rounded text-[9px] font-black hover:text-white ${indicators.length ? 'bg-white/[0.05] text-[#5bc9ff]' : 'text-[#6d8298]'}`} title="Indicators">ƒx{indicators.length > 0 && <span className="absolute -right-1 -top-1 grid size-3 place-items-center rounded-full bg-[#151515] text-[5px] text-white">{indicators.length}</span>}</button>
+              </div>
+              <button type="button" onClick={toggleFullscreen} className="ml-auto grid size-7 place-items-center rounded-md border border-white/[0.07] bg-black/20 text-[#73889d] hover:text-white" title="Fullscreen"><Maximize2 size={13}/></button>
+            </div>
+
+            <div className="min-h-0 min-w-0 bg-[#080808]">
+              <ChartArea symbol={market?.symbol} instrument={market} chartTimeframe={chartTimeframeMap[timeframe] || 'M1'} tick={tick} price={market?.bid} ask={market?.ask} chartMode={chartMode} selectedTool={selectedTool} onSelectTool={onSelectedToolChange} embedded tradePlan={tradePlan} onTradePlanChange={onTradePlanChange} onUpdatePosition={onUpdatePosition} indicators={indicators} positions={positions}/>
+            </div>
+          </section>
+
+          <aside className="flex min-h-0 flex-col border-l border-white/[0.08] bg-[#080808]">
+            <div className="flex h-11 shrink-0 items-center justify-between border-b border-white/[0.08] px-2.5">
+              <div className="min-w-0">
+                <strong className="block text-[9px] font-extrabold tracking-[0.08em] text-[#dce7f1]">{activeNav === 'markets' ? 'MARKETS' : 'WATCHLIST'}</strong>
+                <span className="mt-0.5 block truncate text-[7px] text-[#5f7388]">{activeNav === 'markets' ? `${markets.length} instruments` : `${watchlists?.activeList?.name || 'Favorites'} · ${watchlists?.activeSymbols?.length || 0}`}</span>
+              </div>
+              <button type="button" onClick={() => searchRef.current?.focus()} className="grid size-6 place-items-center rounded text-[#65798d] hover:bg-white/[0.03]" title="Search all markets"><Search size={13}/></button>
+            </div>
+
+            <div className="shrink-0 p-1.5">
+              <div className="flex h-7 items-center gap-2 rounded-md border border-white/[0.07] bg-black/20 px-2 text-[#687c91]"><Search size={11}/><input ref={searchRef} value={search} onChange={event => setSearch(event.target.value)} placeholder="Search markets" className="min-w-0 flex-1 bg-transparent text-[8px] text-[#c7d4e0] outline-none placeholder:text-[#52667a]"/></div>
+            </div>
+
+            <div className="grid shrink-0 grid-cols-[1fr_.66fr_.66fr_24px] border-y border-white/[0.07] px-2.5 py-1.5 text-[6.5px] font-bold uppercase tracking-[0.08em] text-[#52667a]"><span>Instrument</span><span className="text-right">Bid</span><span className="text-right">Ask</span><span /></div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {filteredMarkets.map(item => {
+                const selected = item.symbol === activeSymbol;
+                const watched = watchlists?.isWatched?.(item.symbol) === true;
+                const statusLabel = item.sessionOpen === false ? 'CLOSED' : item.live ? 'LIVE' : item.isStale ? 'STALE' : String(item.marketState || 'WAITING').toUpperCase();
+                const statusClass = item.sessionOpen === false
+                  ? 'text-[#788b9d]'
+                  : item.live
+                    ? 'text-[#38d6a2]'
+                    : item.isStale
+                      ? 'text-[#e7bd58]'
+                      : statusLabel === 'ERROR' || statusLabel === 'SUBSCRIPTION_ERROR' || statusLabel === 'DISCONNECTED'
+                        ? 'text-[#ff7882]'
+                        : 'text-[#687d92]';
+                return (
+                  <div key={item.symbol} className={`grid grid-cols-[1fr_.66fr_.66fr_24px] items-center border-b border-white/[0.06] px-2.5 py-1 transition ${selected ? 'border-l-2 border-[#53c7ff] bg-white/[0.025]' : 'hover:bg-white/[0.02]'}`}>
+                    <button type="button" onClick={() => onSelectSymbol(item.symbol)} className="flex min-w-0 items-center gap-1.5 py-1 text-left"><InstrumentAvatar instrument={item} size={22}/><span className="min-w-0"><b className="block truncate text-[9px] text-[#dce7f1]">{item.displaySymbol || displaySymbol(item.symbol)}</b><small className={`mt-0.5 block truncate text-[6px] ${statusClass}`}>{statusLabel}</small></span></button>
+                    <button type="button" onClick={() => onSelectSymbol(item.symbol)} className="py-1.5 text-right font-mono text-[8px] font-bold text-[#a9bac9]">{item.bid || '—'}</button>
+                    <button type="button" onClick={() => onSelectSymbol(item.symbol)} className="py-1.5 text-right font-mono text-[8px] text-[#8ea1b5]">{item.ask || '—'}</button>
+                    <button type="button" onClick={() => watchlists?.toggleSymbol?.(item.symbol)} className={`grid size-6 place-items-center rounded ${watched ? 'text-[#f6c95d]' : 'text-[#53687b] hover:bg-white/[0.04] hover:text-[#f6c95d]'}`} title={watched ? 'Remove from watchlist' : 'Add to watchlist'} aria-label={watched ? `Remove ${item.symbol} from watchlist` : `Add ${item.symbol} to watchlist`}><Star size={11} fill={watched ? 'currentColor' : 'none'}/></button>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="shrink-0 border-t border-white/[0.08] bg-black/20 px-2 pb-2">
+              <ExecutionPanel market={market} account={account} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange}/>
+            </div>
+          </aside>
+
+          <div className="col-span-2 min-h-0 overflow-y-auto border-t border-white/[0.08] bg-[#080808] px-2 pb-2">
+            <PositionsPanel positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending}/>
           </div>
-          <div className="p-2"><div className="flex h-8 items-center gap-2 rounded-lg border border-white/[0.08] bg-[#080808] px-2 text-[#687c91]"><Search size={13}/><input ref={searchRef} value={search} onChange={event => setSearch(event.target.value)} placeholder="Search all 300 markets" className="min-w-0 flex-1 bg-transparent text-[9px] text-[#c7d4e0] outline-none placeholder:text-[#52667a]"/></div></div>
-          <div className="grid grid-cols-[1fr_.68fr_.68fr_28px] border-y border-white/[0.08] px-3 py-2 text-[7px] font-bold uppercase tracking-[0.08em] text-[#52667a]"><span>Instrument</span><span className="text-right">Bid</span><span className="text-right">Ask</span><span /></div>
-          <div className="max-h-[calc(100dvh-160px)] overflow-y-auto">{filteredMarkets.map(item => {
-            const selected = item.symbol === activeSymbol;
-            const watched = watchlists?.isWatched?.(item.symbol) === true;
-            const statusLabel = item.sessionOpen === false ? 'CLOSED' : item.live ? 'LIVE' : item.isStale ? 'STALE' : String(item.marketState || 'WAITING').toUpperCase();
-            const statusClass = item.sessionOpen === false
-              ? 'text-[#788b9d]'
-              : item.live
-                ? 'text-[#38d6a2]'
-                : item.isStale
-                  ? 'text-[#e7bd58]'
-                  : statusLabel === 'ERROR' || statusLabel === 'SUBSCRIPTION_ERROR' || statusLabel === 'DISCONNECTED'
-                    ? 'text-[#ff7882]'
-                    : 'text-[#687d92]';
-            return <div key={item.symbol} className={`grid grid-cols-[1fr_.68fr_.68fr_28px] items-center border-b border-white/[0.08] px-3 py-1.5 transition ${selected ? 'border-l-2 border-[#53c7ff] bg-[#080808]' : 'hover:bg-[#080808]'}`}>
-              <button type="button" onClick={() => onSelectSymbol(item.symbol)} className="flex min-w-0 items-center gap-2 py-1 text-left"><InstrumentAvatar instrument={item} size={26}/><span className="min-w-0"><b className="block truncate text-[10px] text-[#dce7f1]">{item.displaySymbol || displaySymbol(item.symbol)}</b><small className={`mt-1 block truncate text-[7px] ${statusClass}`}>{statusLabel}</small></span></button>
-              <button type="button" onClick={() => onSelectSymbol(item.symbol)} className="py-2 text-right font-mono text-[9px] font-bold text-[#a9bac9]">{item.bid || '—'}</button>
-              <button type="button" onClick={() => onSelectSymbol(item.symbol)} className="py-2 text-right font-mono text-[9px] text-[#8ea1b5]">{item.ask || '—'}</button>
-              <button type="button" onClick={() => watchlists?.toggleSymbol?.(item.symbol)} className={`grid size-7 place-items-center rounded-md ${watched ? 'text-[#f6c95d]' : 'text-[#53687b] hover:bg-white/[0.04] hover:text-[#f6c95d]'}`} title={watched ? 'Remove from watchlist' : 'Add to watchlist'} aria-label={watched ? `Remove ${item.symbol} from watchlist` : `Add ${item.symbol} to watchlist`}><Star size={13} fill={watched ? 'currentColor' : 'none'}/></button>
-            </div>;
-          })}</div>
-        </aside>
-
-        <section className="grid min-h-0 grid-rows-[60px_36px_44px_minmax(0,1fr)_104px_250px] bg-[#080808] 2xl:grid-rows-[62px_36px_46px_minmax(0,1fr)_108px_260px]">
-          <div className="flex items-center border-b border-white/[0.08] bg-[#080808] px-4"><div className="flex min-w-[240px] items-center gap-2.5"><InstrumentAvatar instrument={market} size={32}/><div className="min-w-0"><button type="button" onClick={() => searchRef.current?.focus()} className="flex items-center gap-1 text-[15px] font-extrabold tracking-[-0.025em] text-[#f3f7fb]">{market?.displaySymbol || displaySymbol(market?.symbol)}<ChevronDown size={14}/></button><span className="mt-1 block truncate text-[8px] text-[#5f7388]">{marketLabel(market)}</span></div></div><div className="ml-4"><strong className="block font-mono text-[17px] tracking-[-0.02em] text-[#edf5fb]">{market?.bid || '—'}</strong><span className={`mt-1 block text-[8px] font-semibold ${market?.live ? 'text-[#35d49f]' : market?.isStale ? 'text-[#e7bd58]' : 'text-[#718398]'}`}>{market?.sessionOpen === false ? 'SESSION CLOSED' : market?.live ? 'LIVE' : market?.isStale ? 'STALE' : market?.marketState || 'WAITING'}</span></div><div className="ml-auto flex items-center gap-4"><div className="hidden text-right xl:block"><span className="block text-[7px] uppercase tracking-[0.08em] text-[#506477]">Valuation</span><b className={`mt-1 block text-[9px] ${valuationStatus === 'LIVE' ? 'text-[#3dd9a4]' : valuationStatus === 'STALE' ? 'text-[#e7bd58]' : 'text-[#a0b0bf]'}`}>{valuationStatus}</b></div><button type="button" onClick={() => watchlists?.toggleSymbol?.(activeSymbol)} className={`grid size-8 place-items-center rounded-lg hover:bg-white/[0.035] ${favorite ? 'text-[#f6c95d]' : 'text-[#687d92]'}`}><Star size={16} fill={favorite ? 'currentColor' : 'none'}/></button></div></div>
-
-          <PropRiskStrip account={account} plannedRisk={plannedRisk} compact />
-
-          <div className="flex items-center gap-2 border-b border-white/[0.08] bg-[#080808] px-3"><div className="flex items-center gap-0.5 rounded-lg border border-white/[0.08] bg-[#080808] p-1">{timeframes.map(([label, value]) => <button key={value} type="button" onClick={() => onTimeframeChange(value)} disabled={Boolean(tradePlan && !tradePlan.open)} className={`h-7 min-w-8 rounded-md px-2 text-[8px] font-bold ${timeframe === value ? 'bg-[#101010] text-[#58c7ff]' : 'text-[#6d8298] hover:bg-white/[0.035] hover:text-[#d7e2ec]'} disabled:opacity-30`}>{label}</button>)}</div><div className="h-5 w-px bg-[#101010]"/><div className="flex items-center gap-0.5 rounded-lg border border-white/[0.08] bg-[#080808] p-1"><button type="button" onClick={() => onChartModeChange('candles')} disabled={Boolean(tradePlan && !tradePlan.open)} className={`grid size-7 place-items-center rounded-md ${chartMode === 'candles' ? 'bg-[#101010] text-[#58c7ff]' : 'text-[#6d8298]'} disabled:opacity-30`} title="Candlesticks"><CandlestickChart size={15}/></button><button type="button" onClick={() => onChartModeChange('line')} disabled={Boolean(tradePlan && !tradePlan.open)} className={`grid size-7 place-items-center rounded-md ${chartMode === 'line' ? 'bg-[#101010] text-[#58c7ff]' : 'text-[#6d8298]'} disabled:opacity-30`} title="Line chart"><ChartNoAxesCombined size={15}/></button><button type="button" onClick={onOpenIndicators} className={`relative grid size-7 place-items-center rounded-md text-[10px] font-black hover:text-white ${indicators.length ? 'bg-[#101010] text-[#5bc9ff]' : 'text-[#6d8298]'}`} title="Indicators">ƒx{indicators.length > 0 && <span className="absolute -right-1 -top-1 grid size-3.5 place-items-center rounded-full bg-[#101010] text-[6px] text-white">{indicators.length}</span>}</button></div><button type="button" onClick={toggleFullscreen} className="ml-auto grid size-8 place-items-center rounded-lg border border-white/[0.08] bg-[#080808] text-[#73889d] hover:text-white" title="Fullscreen"><Maximize2 size={15}/></button></div>
-
-          <div className="min-h-0 min-w-0 bg-[#080808]"><ChartArea symbol={market?.symbol} instrument={market} chartTimeframe={chartTimeframeMap[timeframe] || 'M1'} tick={tick} price={market?.bid} ask={market?.ask} chartMode={chartMode} selectedTool={selectedTool} onSelectTool={onSelectedToolChange} embedded tradePlan={tradePlan} onTradePlanChange={onTradePlanChange} onUpdatePosition={onUpdatePosition} indicators={indicators} positions={positions}/></div>
-
-          <div className="border-t border-white/[0.08] bg-[#080808] px-2 pb-2"><ExecutionPanel market={market} account={account} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} focusMode lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange}/></div>
-
-          <div className="min-h-0 overflow-y-auto border-t border-white/[0.08] bg-[#080808] px-2 pb-2"><PositionsPanel positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending}/></div>
-        </section>
+        </div>
       </div>
     </div>
   );
