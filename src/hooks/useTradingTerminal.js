@@ -331,10 +331,17 @@ export function useTradingTerminal(markets = []) {
     });
   }, [openMarketOrder, rawPositions]);
 
-  const reversePosition = useCallback(positionId => {
+  const reversePosition = useCallback((positionId, { stopLoss = null, takeProfit = null, requestedPrice = null } = {}) => {
     const position = rawPositions.find(item => String(item.id) === String(positionId));
     if (!position) return Promise.reject(new Error('Open position was not found'));
-    return run(() => commands.reversePosition(String(positionId), { accountId: requireAccount(), clientRequestId: commandId('reverse'), source: sourceForViewport() }));
+    return run(() => commands.reversePosition(String(positionId), {
+      accountId: requireAccount(),
+      clientRequestId: commandId('reverse'),
+      stopLoss,
+      takeProfit,
+      requestedPrice,
+      source: sourceForViewport(),
+    }));
   }, [commands, rawPositions, requireAccount, run]);
 
   const refreshState = useCallback(() => accountId ? requestSnapshot([accountId]) : false, [accountId, requestSnapshot]);
