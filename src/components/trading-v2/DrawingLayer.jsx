@@ -613,16 +613,28 @@ export default function DrawingLayer({
         if (drag.mode === 'a' || drag.mode === 'b') {
           if (item.type === 'long-position' || item.type === 'short-position') {
             const next = { ...item, [drag.mode]: data };
+            const isLong = item.type === 'long-position';
             if (drag.mode === 'a') {
               const delta = Number(data.price) - Number(item.a.price);
               next.b = { ...item.b, price: Number(item.b.price) + delta };
               if (item.riskTarget) next.riskTarget = { ...item.riskTarget, price: Number(item.riskTarget.price) + delta };
+            } else {
+              const entry = Number(item.a.price);
+              const distance = Math.max(Number(snapStep) || 0.00000001, Math.abs(Number(data.price) - entry));
+              next.b = { ...data, price: isLong ? entry - distance : entry + distance };
             }
             return next;
           }
           return { ...item, [drag.mode]: data };
         }
-        if (drag.mode === 'riskTarget') return { ...item, riskTarget: data };
+        if (drag.mode === 'riskTarget') {
+          if (item.type === 'long-position' || item.type === 'short-position') {
+            const entry = Number(item.a.price);
+            const distance = Math.max(Number(snapStep) || 0.00000001, Math.abs(Number(data.price) - entry));
+            return { ...item, riskTarget: { ...data, price: item.type === 'long-position' ? entry + distance : entry - distance } };
+          }
+          return { ...item, riskTarget: data };
+        }
 
         const dx = screen.x - drag.startScreen.x;
         const dy = screen.y - drag.startScreen.y;
@@ -877,7 +889,7 @@ export default function DrawingLayer({
           {['long-position', 'short-position'].includes(selected.type) && (
             <label className="mt-3 block">
               <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Risk %</span>
-              <input type="number" min="0.01" max="100" step="0.05" value={selected.riskPercent ?? riskPercent} onChange={event => patchSelected({ riskPercent: Number(event.target.value) })} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] text-[#dbe5ed] outline-none focus:border-[#53c7ff]" />
+              <input type="number" min="0.01" max="100" step="0.05" value={selected.riskPercent ?? riskPercent} onChange={event => patchSelected({ riskPercent: Math.min(100, Math.max(0.01, Number(event.target.value) || 0.01)) })} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] text-[#dbe5ed] outline-none focus:border-[#53c7ff]" />
             </label>
           )}
                     {selected.type === 'text' && (
