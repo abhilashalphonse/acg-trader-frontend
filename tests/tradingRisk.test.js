@@ -82,3 +82,15 @@ test('position protection preview prefers instrument tick value when provided', 
   const instrument = { tickSize: 0.25, tickValue: 12.5, contractSize: 999 };
   assert.equal(estimatePositionPnlAtPrice({ side: 'BUY', entry: 100, volume: 2 }, 100.5, instrument), 50);
 });
+
+
+test('new exposure rejects a crossed quote before submission', () => {
+  const result = exposureAvailability({
+    account: { id: 'a1', status: 'ACTIVE', tradingEnabled: true, valuationStatus: 'LIVE' },
+    connectionStatus: 'ready',
+    market: { symbol: 'EURUSD', bid: '1.1002', ask: '1.1001', sessionOpen: true, isStale: false, marketState: 'LIVE' },
+    commandState: { uncertain: false },
+  });
+  assert.equal(result.allowed, false);
+  assert.match(result.reason, /invalid/i);
+});
