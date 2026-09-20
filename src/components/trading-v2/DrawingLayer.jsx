@@ -272,6 +272,7 @@ export default function DrawingLayer({
   accountCurrency = 'USD',
   onCreateRiskOrder = () => {},
   chartInstanceId = 'chart',
+  interactionEnabled = true,
 }) {
   const svgRef = useRef(null);
   const history = useSyncExternalStore(
@@ -362,6 +363,7 @@ export default function DrawingLayer({
 
 
   useEffect(() => {
+    if (!interactionEnabled) return undefined;
     const onKey = event => {
       const tag = document.activeElement?.tagName;
       const editingText = ['INPUT', 'TEXTAREA'].includes(tag);
@@ -399,10 +401,10 @@ export default function DrawingLayer({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  });
+  }, [interactionEnabled, onToolChange, selectedId, symbol, tool]);
 
   const selected = useMemo(() => drawings.find(item => item.id === selectedId), [drawings, selectedId]);
-  const drawingTool = !disabled && ['trendline', 'hline', 'vline', 'rectangle', 'fibonacci', 'text', 'long-position', 'short-position'].includes(tool);
+  const drawingTool = interactionEnabled && !disabled && ['trendline', 'hline', 'vline', 'rectangle', 'fibonacci', 'text', 'long-position', 'short-position'].includes(tool);
   const resolvePoint = point => coordinateApi?.toScreen?.(point) || null;
 
   const eventScreenPoint = event => {
@@ -580,7 +582,7 @@ export default function DrawingLayer({
   };
 
   const selectDrawing = (event, id) => {
-    if (disabled || tool !== 'cursor' || !coordinateApi) return;
+    if (!interactionEnabled || disabled || tool !== 'cursor' || !coordinateApi) return;
     const screen = eventScreenPoint(event);
     const drawing = drawings.find(item => item.id === id);
     if (!screen || !drawing) return;
@@ -602,7 +604,7 @@ export default function DrawingLayer({
 
   const startHandle = (event, id, mode) => {
     const drawing = drawings.find(item => item.id === id);
-    if (disabled || !coordinateApi || drawing?.locked || lockAll) return;
+    if (!interactionEnabled || disabled || !coordinateApi || drawing?.locked || lockAll) return;
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
