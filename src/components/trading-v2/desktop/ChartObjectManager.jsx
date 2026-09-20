@@ -102,7 +102,7 @@ export default function ChartObjectManager({
           <Layers3 size={14} className="shrink-0 text-[#59C7FF]"/>
           <div className="min-w-0">
             <strong className="block truncate text-[10px] text-[#EDF3F7]">Chart manager</strong>
-            <span className="block truncate text-[7px] text-[#64798D]">{symbol || '—'} · {timeframe || '—'} · {counts.indicators + counts.drawings} objects</span>
+            <span className="block truncate text-[8px] text-[#64798D]">{symbol || '—'} · {timeframe || '—'} · {counts.indicators + counts.drawings} objects</span>
           </div>
         </div>
         <button type="button" onClick={onClose} className="grid size-7 place-items-center rounded text-[#75899C] hover:bg-white/[0.04] hover:text-white" aria-label="Close chart manager"><X size={13}/></button>
@@ -113,7 +113,7 @@ export default function ChartObjectManager({
           <button type="button" onClick={() => toggleSection('indicators')} className="flex h-8 w-full items-center gap-2 rounded px-2 text-left hover:bg-white/[0.03]">
             {sections.indicators ? <ChevronDown size={11} className="text-[#60788C]"/> : <ChevronRight size={11} className="text-[#60788C]"/>}
             <span className="text-[8px] font-black uppercase tracking-[0.09em] text-[#768B9E]">Indicators</span>
-            <span className="ml-auto rounded bg-white/[0.04] px-1.5 py-0.5 text-[7px] font-bold text-[#61778A]">{counts.indicators}</span>
+            <span className="ml-auto rounded bg-white/[0.04] px-1.5 py-0.5 text-[8px] font-bold text-[#61778A]">{counts.indicators}</span>
           </button>
 
           {sections.indicators && (
@@ -125,7 +125,7 @@ export default function ChartObjectManager({
                   <div key={indicator.instanceId} className="group flex min-h-10 items-center gap-1 rounded-md border border-transparent px-1.5 hover:border-white/[0.06] hover:bg-white/[0.025]">
                     <button type="button" onClick={() => onOpenIndicatorSettings(indicator.instanceId)} className="min-w-0 flex-1 px-1 text-left">
                       <span className="block truncate text-[9px] font-semibold text-[#DDE7EE]">{indicatorLabel(indicator)}</span>
-                      <span className="mt-0.5 block truncate text-[7px] text-[#5F7488]">{visibleHere ? 'Visible on this timeframe' : globallyVisible ? 'Hidden by timeframe rule' : 'Hidden'}</span>
+                      <span className="mt-0.5 block truncate text-[8px] text-[#5F7488]">{visibleHere ? 'Visible on this timeframe' : globallyVisible ? 'Hidden by timeframe rule' : 'Hidden'}</span>
                     </button>
                     <button type="button" onClick={() => onToggleIndicator(indicator.instanceId)} className={`grid size-7 place-items-center rounded ${visibleHere ? 'text-[#8298AA]' : 'text-[#4F6273]'} hover:bg-white/[0.04] hover:text-white`} title={globallyVisible ? 'Hide indicator' : 'Show indicator'}>{globallyVisible ? <Eye size={12}/> : <EyeOff size={12}/>}</button>
                     <button type="button" onClick={() => onOpenIndicatorSettings(indicator.instanceId)} className="grid size-7 place-items-center rounded text-[#71869A] hover:bg-white/[0.04] hover:text-[#59C7FF]" title="Indicator settings"><Settings2 size={12}/></button>
@@ -144,7 +144,7 @@ export default function ChartObjectManager({
           <button type="button" onClick={() => toggleSection('drawings')} className="flex h-8 w-full items-center gap-2 rounded px-2 text-left hover:bg-white/[0.03]">
             {sections.drawings ? <ChevronDown size={11} className="text-[#60788C]"/> : <ChevronRight size={11} className="text-[#60788C]"/>}
             <span className="text-[8px] font-black uppercase tracking-[0.09em] text-[#768B9E]">Drawings</span>
-            <span className="ml-auto rounded bg-white/[0.04] px-1.5 py-0.5 text-[7px] font-bold text-[#61778A]">{counts.drawings}</span>
+            <span className="ml-auto rounded bg-white/[0.04] px-1.5 py-0.5 text-[8px] font-bold text-[#61778A]">{counts.drawings}</span>
           </button>
 
           {sections.drawings && (
@@ -155,7 +155,7 @@ export default function ChartObjectManager({
                   <div key={drawing.id} className={`group flex min-h-10 items-center gap-1 rounded-md border px-1.5 ${selected ? 'border-[#315B72] bg-[#0D1A22]' : 'border-transparent hover:border-white/[0.06] hover:bg-white/[0.025]'}`}>
                     <button type="button" onClick={() => { setSelectedDrawingId(drawing.id); drawingUiCommand(symbol, chartInstanceId, drawing.id, 'select'); }} className="min-w-0 flex-1 px-1 text-left">
                       <span className="block truncate text-[9px] font-semibold text-[#DDE7EE]">{drawingLabel(drawing)}</span>
-                      <span className="mt-0.5 flex items-center gap-1.5 text-[7px] text-[#5F7488]">
+                      <span className="mt-0.5 flex items-center gap-1.5 text-[8px] text-[#5F7488]">
                         <span>{drawing.type}</span>
                         {drawing.hidden && <span>· hidden</span>}
                         {drawing.locked && <span>· locked</span>}
@@ -176,7 +176,7 @@ export default function ChartObjectManager({
       </div>
 
       {(counts.hiddenDrawings > 0 || counts.lockedDrawings > 0) && (
-        <footer className="flex h-8 items-center gap-3 border-t border-white/[0.06] px-3 text-[7px] text-[#5C7184]">
+        <footer className="flex h-8 items-center gap-3 border-t border-white/[0.06] px-3 text-[8px] text-[#5C7184]">
           {counts.hiddenDrawings > 0 && <span>{counts.hiddenDrawings} hidden</span>}
           {counts.lockedDrawings > 0 && <span>{counts.lockedDrawings} locked</span>}
         </footer>
