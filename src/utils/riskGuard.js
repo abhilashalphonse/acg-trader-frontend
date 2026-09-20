@@ -112,11 +112,11 @@ export function evaluateRiskGuard({
     }
 
     if (openRisk.unprotectedPositions > 0) {
-      add('UNMEASURED_OPEN_RISK', `${openRisk.unprotectedPositions} open position${openRisk.unprotectedPositions === 1 ? '' : 's'} do not have measurable stop-loss risk, so total open risk is incomplete.`);
+      add('UNMEASURED_OPEN_RISK', `${openRisk.unprotectedPositions} open position${openRisk.unprotectedPositions === 1 ? '' : 's'} do not have measurable stop-loss risk, so total open risk is incomplete.`, mode === 'block' ? 'limit' : 'warning');
     }
 
     if (risk == null) {
-      add('UNMEASURED_TRADE_RISK', 'This order has no measurable stop-loss risk yet. Risk Guard cannot calculate per-trade or projected open risk.');
+      add('UNMEASURED_TRADE_RISK', 'This order has no measurable stop-loss risk yet. Risk Guard cannot calculate per-trade or projected open risk.', mode === 'block' ? 'limit' : 'warning');
     }
 
     if (challenge.riskAvailabilityLive && risk != null && risk >= challenge.remainingDaily) {
