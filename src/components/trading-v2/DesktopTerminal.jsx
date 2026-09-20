@@ -65,12 +65,14 @@ function desktopHeightBounds(viewportHeight, dockCollapsed = false, dockHeight =
   // On laptop-height screens the order ticket is independently scrollable, so
   // reserve only the execution-critical portion instead of forcing the entire
   // ticket to remain visible. This lets Favorites/Markets use more of the rail.
-  const minOrderTicketHeight = compact ? 250 : 300;
-  const watchlistShareCap = upperWorkspaceHeight * (compact ? 0.60 : 0.55);
+  const minOrderTicketHeight = compact ? 190 : 260;
+  const watchlistShareCap = upperWorkspaceHeight * (compact ? 0.70 : 0.62);
   const watchlistRoomCap = upperWorkspaceHeight - minOrderTicketHeight - 4;
-  const watchlistMax = clamp(Math.min(watchlistShareCap, watchlistRoomCap), 170, compact ? 440 : 480);
-  const defaultWatchlist = compact ? Math.min(220, watchlistMax) : Math.min(240, watchlistMax);
-  return { compact, dockMin, dockMax, defaultDock, watchlistMin: 140, watchlistMax, defaultWatchlist };
+  const watchlistMax = clamp(Math.min(watchlistShareCap, watchlistRoomCap), 180, compact ? 480 : 520);
+  const defaultWatchlist = compact ? Math.min(230, watchlistMax) : Math.min(250, watchlistMax);
+  const balancedWatchlist = clamp(upperWorkspaceHeight * 0.36, 180, watchlistMax);
+  const marketFocusWatchlist = clamp(upperWorkspaceHeight * (compact ? 0.68 : 0.60), 180, watchlistMax);
+  return { compact, dockMin, dockMax, defaultDock, watchlistMin: 140, watchlistMax, defaultWatchlist, balancedWatchlist, marketFocusWatchlist };
 }
 
 function loadDesktopLayout() {
@@ -230,6 +232,7 @@ export default function DesktopTerminal({
 }) {
   const shellRef = useRef(null);
   const searchRef = useRef(null);
+  const preMarketWatchlistHeightRef = useRef(null);
   const [activeNav, setActiveNav] = useState('trade');
   const [notice, setNotice] = useState('');
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -348,6 +351,14 @@ export default function DesktopTerminal({
     const bounds = desktopHeightBounds(viewportHeight, current.dockCollapsed, current.dockHeight);
     return { ...current, watchlistHeight: clamp(value, bounds.watchlistMin, bounds.watchlistMax) };
   });
+  const toggleWatchlistFocus = () => setDesktopLayout(current => {
+    const bounds = desktopHeightBounds(viewportHeight, current.dockCollapsed, current.dockHeight);
+    const midpoint = (bounds.balancedWatchlist + bounds.marketFocusWatchlist) / 2;
+    return {
+      ...current,
+      watchlistHeight: current.watchlistHeight >= midpoint ? bounds.balancedWatchlist : bounds.marketFocusWatchlist,
+    };
+  });
   const toggleSidebar = () => setDesktopLayout(current => ({ ...current, sidebarCollapsed: !current.sidebarCollapsed }));
   const toggleDock = () => setDesktopLayout(current => ({ ...current, dockCollapsed: !current.dockCollapsed }));
   const resetDesktopLayout = () => {
@@ -448,17 +459,29 @@ export default function DesktopTerminal({
     if (id === 'markets') {
       setDesktopLayout(current => {
         const bounds = desktopHeightBounds(viewportHeight, current.dockCollapsed, current.dockHeight);
+        if (activeNav !== 'markets') preMarketWatchlistHeightRef.current = current.watchlistHeight;
         return {
           ...current,
           sidebarCollapsed: false,
-          watchlistHeight: clamp(Math.max(current.watchlistHeight || bounds.defaultWatchlist, bounds.compact ? 240 : 300), bounds.watchlistMin, bounds.watchlistMax),
+          watchlistHeight: Math.max(current.watchlistHeight || bounds.defaultWatchlist, bounds.marketFocusWatchlist),
         };
       });
       window.setTimeout(() => searchRef.current?.focus(), 0);
       return;
     }
     if (id === 'watchlist') {
-      setDesktopLayout(current => ({ ...current, sidebarCollapsed: false }));
+      setDesktopLayout(current => {
+        const bounds = desktopHeightBounds(viewportHeight, current.dockCollapsed, current.dockHeight);
+        const restored = preMarketWatchlistHeightRef.current;
+        preMarketWatchlistHeightRef.current = null;
+        return {
+          ...current,
+          sidebarCollapsed: false,
+          watchlistHeight: restored == null
+            ? current.watchlistHeight
+            : clamp(restored, bounds.watchlistMin, bounds.watchlistMax),
+        };
+      });
       window.setTimeout(() => searchRef.current?.focus(), 0);
     }
   };
@@ -668,6 +691,7 @@ export default function DesktopTerminal({
               min={heightBounds.watchlistMin}
               max={heightBounds.watchlistMax}
               onChange={updateWatchlistHeight}
+              onDoubleClick={toggleWatchlistFocus}
               ariaLabel="Resize watchlist and order ticket"
               className="w-full"
             />
