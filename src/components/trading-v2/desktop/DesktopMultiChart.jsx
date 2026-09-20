@@ -35,6 +35,7 @@ export default function DesktopMultiChart({
   const layout = [1,2,4].includes(Number(config?.layout)) ? Number(config.layout) : 1;
   const cells = Array.isArray(config?.cells) ? config.cells : [];
   const linked = config?.linked === true;
+  const singleChart = layout === 1;
   const activeCell = Math.min(Math.max(0, Number(config?.activeCell) || 0), layout - 1);
 
   const patch = next => onChange({ ...config, ...next });
@@ -51,14 +52,18 @@ export default function DesktopMultiChart({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-black">
-      <div className="flex h-9 shrink-0 items-center gap-1 border-b border-white/[0.06] bg-[#07090B] px-2">
-        <span className="mr-1 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#6F8191]">Charts</span>
-        <button type="button" onClick={() => setLayout(1)} className={`grid size-7 place-items-center rounded ${layout===1?'bg-white/[0.06] text-[#59C7FF]':'text-[#6F8191] hover:text-white'}`} title="Single chart"><Square size={11}/></button>
+      <div className={`flex shrink-0 items-center gap-1 border-b border-white/[0.06] bg-[#07090B] px-2 ${singleChart ? 'h-7 justify-end' : 'h-9'}`}>
+        {!singleChart && <span className="mr-1 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#6F8191]">Charts</span>}
+        <button type="button" onClick={() => setLayout(1)} className={`grid size-6 place-items-center rounded ${layout===1?'bg-white/[0.06] text-[#59C7FF]':'text-[#6F8191] hover:text-white'}`} title="Single chart"><Square size={11}/></button>
         <button type="button" onClick={() => setLayout(2)} className={`grid size-6 place-items-center rounded ${layout===2?'bg-white/[0.06] text-[#59C7FF]':'text-[#6F8191] hover:text-white'}`} title="Two charts"><Columns2 size={12}/></button>
         <button type="button" onClick={() => setLayout(4)} className={`grid size-6 place-items-center rounded ${layout===4?'bg-white/[0.06] text-[#59C7FF]':'text-[#6F8191] hover:text-white'}`} title="Four charts"><Grid2X2 size={12}/></button>
-        <div className="mx-1 h-4 w-px bg-white/[0.07]"/>
-        <button type="button" onClick={() => patch({ linked: !linked })} className={`flex h-7 items-center gap-1.5 rounded px-2 text-[8px] font-semibold ${linked?'bg-[#0d1a22] text-[#59C7FF]':'text-[#6F8191] hover:text-white'}`} title="Link symbols across charts">{linked?<Link2 size={10}/>:<Link2Off size={10}/>}Link symbols</button>
-        <span className="ml-auto text-[8px] text-[#6F8191]">Active chart drives symbol selection</span>
+        {!singleChart && (
+          <>
+            <div className="mx-1 h-4 w-px bg-white/[0.07]"/>
+            <button type="button" onClick={() => patch({ linked: !linked })} className={`flex h-7 items-center gap-1.5 rounded px-2 text-[8px] font-semibold ${linked?'bg-[#0d1a22] text-[#59C7FF]':'text-[#6F8191] hover:text-white'}`} title="Link symbols across charts">{linked?<Link2 size={10}/>:<Link2Off size={10}/>}Link symbols</button>
+            <span className="ml-auto text-[8px] text-[#6F8191]">Active chart drives symbol selection</span>
+          </>
+        )}
       </div>
 
       <div className={`grid min-h-0 flex-1 gap-px bg-white/[0.08] ${cellGrid(layout)}`}>
@@ -73,41 +78,43 @@ export default function DesktopMultiChart({
           return (
             <section
               key={index}
-              className={`relative grid min-h-0 min-w-0 grid-rows-[34px_minmax(0,1fr)] bg-black ${isActive ? 'ring-1 ring-inset ring-[#315b72]' : ''}`}
+              className={`relative grid min-h-0 min-w-0 ${singleChart ? 'grid-rows-[minmax(0,1fr)]' : 'grid-rows-[34px_minmax(0,1fr)]'} bg-black ${isActive && !singleChart ? 'ring-1 ring-inset ring-[#315b72]' : ''}`}
               onMouseDown={() => {
                 patch({ activeCell: index });
                 onActiveTimeframeChange(timeframe);
                 if (symbol && symbol !== activeSymbol) onSelectSymbol(symbol);
               }}
             >
-              <div className="flex items-center gap-1.5 border-b border-white/[0.06] bg-[#07090B] px-1.5">
-                <InstrumentAvatar instrument={instrument} size={18}/>
-                <select
-                  value={symbol || ''}
-                  onChange={event => {
-                    const next = event.target.value;
-                    updateCell(index, { symbol: next }, { activeCell: index });
-                    onSelectSymbol(next);
-                  }}
-                  className="max-w-[120px] bg-transparent text-[10px] font-semibold text-[#E6EDF3] outline-none"
-                  aria-label={`Chart ${index + 1} symbol`}
-                >
-                  {markets.map(item => <option key={item.symbol} value={item.symbol} className="bg-[#0C1013]">{item.displaySymbol || item.symbol}</option>)}
-                </select>
-                <select
-                  value={timeframe}
-                  onChange={event => {
-                    const next = event.target.value;
-                    updateCell(index, { timeframe: next }, { activeCell: index });
-                    onActiveTimeframeChange(next);
-                  }}
-                  className="ml-auto bg-transparent font-mono text-[9px] font-semibold text-[#6F8191] outline-none"
-                  aria-label={`Chart ${index + 1} timeframe`}
-                >
-                  {TIMEFRAMES.map(tf => <option key={tf} value={tf} className="bg-[#0C1013]">{tf}</option>)}
-                </select>
-                <span className={`size-1.5 rounded-full ${instrument?.live ? 'bg-[#42D7A1]' : instrument?.isStale ? 'bg-[#E7BD58]' : 'bg-[#4a5967]'}`}/>
-              </div>
+              {!singleChart && (
+                <div className="flex items-center gap-1.5 border-b border-white/[0.06] bg-[#07090B] px-1.5">
+                  <InstrumentAvatar instrument={instrument} size={18}/>
+                  <select
+                    value={symbol || ''}
+                    onChange={event => {
+                      const next = event.target.value;
+                      updateCell(index, { symbol: next }, { activeCell: index });
+                      onSelectSymbol(next);
+                    }}
+                    className="max-w-[120px] bg-transparent text-[10px] font-semibold text-[#E6EDF3] outline-none"
+                    aria-label={`Chart ${index + 1} symbol`}
+                  >
+                    {markets.map(item => <option key={item.symbol} value={item.symbol} className="bg-[#0C1013]">{item.displaySymbol || item.symbol}</option>)}
+                  </select>
+                  <select
+                    value={timeframe}
+                    onChange={event => {
+                      const next = event.target.value;
+                      updateCell(index, { timeframe: next }, { activeCell: index });
+                      onActiveTimeframeChange(next);
+                    }}
+                    className="ml-auto bg-transparent font-mono text-[9px] font-semibold text-[#6F8191] outline-none"
+                    aria-label={`Chart ${index + 1} timeframe`}
+                  >
+                    {TIMEFRAMES.map(tf => <option key={tf} value={tf} className="bg-[#0C1013]">{tf}</option>)}
+                  </select>
+                  <span className={`size-1.5 rounded-full ${instrument?.live ? 'bg-[#42D7A1]' : instrument?.isStale ? 'bg-[#E7BD58]' : 'bg-[#4a5967]'}`}/>
+                </div>
+              )}
 
               <div className="min-h-0 min-w-0">
                 <ChartArea
