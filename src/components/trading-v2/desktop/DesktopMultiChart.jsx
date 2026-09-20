@@ -37,6 +37,9 @@ export default function DesktopMultiChart({
   tradePlan = null,
   tradePlanLots = 0.1,
   accountCurrency = 'USD',
+  account = null,
+  riskPercent = 0.5,
+  onCreateRiskOrder = () => {},
   onTradePlanChange = () => {},
   onUpdatePosition = () => {},
   selectedPositionId = null,
@@ -135,6 +138,9 @@ export default function DesktopMultiChart({
                   tradePlan={isActive ? tradePlan : null}
                   tradePlanLots={tradePlanLots}
                   accountCurrency={accountCurrency}
+                  account={account}
+                  riskPercent={riskPercent}
+                  onCreateRiskOrder={isActive ? onCreateRiskOrder : () => {}}
                   onTradePlanChange={isActive ? onTradePlanChange : () => {}}
                   onUpdatePosition={onUpdatePosition}
                   selectedPositionId={selectedPositionId}

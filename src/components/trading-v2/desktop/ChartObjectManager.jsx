@@ -37,6 +37,8 @@ function drawingLabel(drawing) {
     vline: 'Vertical line',
     rectangle: 'Rectangle',
     fibonacci: 'Fibonacci retracement',
+    'long-position': 'Long position',
+    'short-position': 'Short position',
   };
   return labels[drawing.type] || drawing.type || 'Drawing';
 }

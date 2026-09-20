@@ -265,6 +265,7 @@ export default function DesktopTerminal({
   onExecutePlan = () => {},
   onModifyPlan = () => {},
   onTradePlanChange = () => {},
+  onCreateRiskOrder = () => {},
   onOpenSettings = () => {},
   exposureAllowed = true,
   exposureBlockReason = 'New exposure is temporarily unavailable',
@@ -840,6 +841,9 @@ export default function DesktopTerminal({
                 tradePlan={tradePlan}
                 tradePlanLots={lots}
                 accountCurrency={account?.currency || 'USD'}
+                account={account}
+                riskPercent={riskPercent}
+                onCreateRiskOrder={onCreateRiskOrder}
                 onTradePlanChange={onTradePlanChange}
                 onUpdatePosition={onUpdatePosition}
                 selectedPositionId={selectedPositionId}

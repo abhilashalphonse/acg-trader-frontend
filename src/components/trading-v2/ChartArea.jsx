@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Crosshair, TrendingUp, SlidersHorizontal, Square, Type, Shapes, Ruler, Eye, EyeOff, RotateCcw, ScanLine, Magnet, Lock, Unlock, Pin } from 'lucide-react';
+import { Crosshair, TrendingUp, TrendingDown, SlidersHorizontal, Square, Type, Shapes, Ruler, Eye, EyeOff, RotateCcw, ScanLine, Magnet, Lock, Unlock, Pin } from 'lucide-react';
 import TradingChart from '../TradingChart.jsx';
 import DrawingLayer from './DrawingLayer.jsx';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
@@ -16,6 +16,10 @@ const toolGroups = [
     ['rectangle', Square, 'Rectangle'],
     ['fibonacci', Shapes, 'Fibonacci retracement'],
     ['text', Type, 'Text'],
+  ],
+  [
+    ['long-position', TrendingUp, 'Long position risk tool'],
+    ['short-position', TrendingDown, 'Short position risk tool'],
   ],
 ];
 
@@ -471,6 +475,9 @@ export default function ChartArea({
   onToggleIndicator = () => {},
   onOpenIndicatorSettings = () => {},
   onRemoveIndicator = () => {},
+  account = null,
+  riskPercent = 0.5,
+  onCreateRiskOrder = () => {},
 }) {
   const timeframeSeconds = secondsByTimeframe[chartTimeframe] || 60;
   const [remaining, setRemaining] = useState(() => timeframeSeconds - (Math.floor(Date.now() / 1000) % timeframeSeconds));
@@ -565,6 +572,11 @@ export default function ChartArea({
           snapStep={instrumentPipSize(instrument)}
           lockAll={lockAllDrawings}
           onDrawingCountChange={setDrawingCount}
+          instrument={instrument}
+          account={account}
+          riskPercent={riskPercent}
+          accountCurrency={accountCurrency}
+          onCreateRiskOrder={onCreateRiskOrder}
         />}
         <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} coordinateApi={coordinateApi} instrument={instrument} lots={tradePlanLots} accountCurrency={accountCurrency} />
         {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} />}

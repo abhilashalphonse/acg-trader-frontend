@@ -592,6 +592,85 @@ export default function TradingTerminalV2({
     setTradePlan({ symbol: market?.symbol, side, entry, sl, tp, limitPrice, marketPrice, orderType: requestedType, pending, sizingMode: 'lots', manualLots: lots, expiration: 'GTC', stage: 'planning', open: false });
   };
 
+  const createPlanFromRiskTool = setup => {
+    if (!setup?.symbol || !setup?.side) return;
+    const instrument = markets.find(item => item.symbol === setup.symbol) || (market?.symbol === setup.symbol ? market : null);
+    if (!instrument) {
+      showNotice('Instrument is unavailable for this risk setup');
+      return;
+    }
+
+    const side = String(setup.side).toLowerCase();
+    if (!['buy', 'sell'].includes(side)) return;
+    const livePrice = Number(side === 'buy' ? instrument.ask : instrument.bid);
+    if (!Number.isFinite(livePrice) || livePrice <= 0) {
+      showNotice('Live market price is unavailable — risk setup was not loaded');
+      return;
+    }
+    const rawEntry = Number(setup.entry);
+    const rawSl = Number(setup.sl);
+    const rawTp = Number(setup.tp);
+    if (![rawEntry, rawSl, rawTp].every(Number.isFinite)) {
+      showNotice('Risk tool prices are incomplete');
+      return;
+    }
+
+    const tick = Number(instrument.tickSize) > 0 ? Number(instrument.tickSize) : Number(instrumentPipSize(instrument));
+    const nearMarket = Number.isFinite(livePrice) && Number.isFinite(tick) && tick > 0 && Math.abs(rawEntry - livePrice) <= tick * 1.5;
+    let nextOrderType = 'market';
+    if (!nearMarket && Number.isFinite(livePrice)) {
+      if (side === 'buy') nextOrderType = rawEntry < livePrice ? 'limit' : 'stop';
+      else nextOrderType = rawEntry > livePrice ? 'limit' : 'stop';
+    }
+
+    const sideUpper = side.toUpperCase();
+    const entry = nextOrderType === 'market'
+      ? livePrice
+      : normalizePriceToTick(rawEntry, instrument, pendingPriceDirection(nextOrderType, sideUpper, 'entry'));
+    const sl = normalizeProtectionPrice(rawSl, instrument, sideUpper, 'sl');
+    const tp = normalizeProtectionPrice(rawTp, instrument, sideUpper, 'tp');
+    const numericRisk = Math.max(0.01, Number(setup.riskPercent) || riskPercent);
+    const normalizedLots = Number.isFinite(Number(setup.lots)) && Number(setup.lots) > 0
+      ? normalizeVolumeToStep(Number(setup.lots), instrument, { rounding: 'down' })
+      : lots;
+
+    if (setup.symbol !== activeSymbol) selectSymbol(setup.symbol);
+    setRiskPercent(numericRisk);
+    setSizingMode('risk');
+    setOrderType(nextOrderType);
+    setLots(normalizedLots);
+    setTradePlan({
+      symbol: setup.symbol,
+      side,
+      entry,
+      sl,
+      tp,
+      limitPrice: null,
+      marketPrice: livePrice,
+      orderType: nextOrderType,
+      pending: nextOrderType !== 'market',
+      sizingMode: 'risk',
+      manualLots: normalizedLots,
+      expiration: 'GTC',
+      stage: 'ready',
+      open: false,
+      sourceDrawingId: setup.sourceDrawingId || null,
+    });
+    setSelectedTool('cursor');
+    setActiveNav('trade');
+    setOverlay(null);
+    logEvent('planner', `${sideUpper} risk setup loaded from chart · ${numericRisk.toFixed(2)}% risk`, {
+      symbol: setup.symbol,
+      entry,
+      stopLoss: sl,
+      takeProfit: tp,
+      lots: normalizedLots,
+      riskPercent: numericRisk,
+      orderType: nextOrderType,
+    });
+    showNotice('Risk setup loaded into order planner — review and confirm');
+  };
+
   const cancelPlan = () => {
     setTradePlan(null);
   };
@@ -807,6 +886,7 @@ export default function TradingTerminalV2({
           onExecutePlan={executePlan}
           onModifyPlan={modifyPlan}
           onTradePlanChange={updatePlan}
+          onCreateRiskOrder={createPlanFromRiskTool}
           onOpenSettings={() => setOverlay('more')}
           exposureAllowed={exposure.allowed}
           exposureBlockReason={exposure.reason}
