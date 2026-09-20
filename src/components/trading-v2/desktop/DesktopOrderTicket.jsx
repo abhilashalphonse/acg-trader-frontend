@@ -27,6 +27,13 @@ function finiteQuote(value) {
   return Number.isFinite(numeric) && numeric > 0;
 }
 
+function validProtectionPrice(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+}
+
+
 function money(value, currency = 'USD', compact = false) {
   if (value === null || value === undefined || value === '') return '—';
   const numeric = Number(value);
@@ -113,9 +120,9 @@ export default function DesktopOrderTicket({
   const planMetrics = useMemo(() => {
     if (!tradePlan) return null;
     const pip = instrumentPipSize(market);
-    const entry = Number(tradePlan.entry);
-    const sl = Number(tradePlan.sl);
-    const tp = Number(tradePlan.tp);
+    const entry = validProtectionPrice(tradePlan.entry);
+    const sl = validProtectionPrice(tradePlan.sl);
+    const tp = validProtectionPrice(tradePlan.tp);
     const slPips = [entry, sl, pip].every(Number.isFinite) && pip > 0 ? Math.abs(entry - sl) / pip : null;
     const tpPips = [entry, tp, pip].every(Number.isFinite) && pip > 0 ? Math.abs(tp - entry) / pip : null;
 
@@ -132,7 +139,7 @@ export default function DesktopOrderTicket({
     const calculatedLots = normalizedLots;
     const riskAmount = estimateStopRisk(tradePlan, calculatedLots, market, currency);
     const requiredMargin = estimateRequiredMargin(entry, calculatedLots, market, account);
-    const reward = Number.isFinite(tp)
+    const reward = Number.isFinite(tp) && Number.isFinite(entry)
       ? estimateStopRisk({ ...tradePlan, entry, sl: tp }, calculatedLots, market, currency)
       : null;
     const rr = Number.isFinite(slPips) && slPips > 0 && Number.isFinite(tpPips) ? tpPips / slPips : null;
@@ -274,8 +281,8 @@ export default function DesktopOrderTicket({
   const selectedSide = String(tradePlan?.side || '').toLowerCase();
   const riskCalculatedLots = Number(planMetrics?.riskSizing?.requestedLots);
   const liveLabel = market?.sessionOpen === false ? 'CLOSED' : market?.live ? 'LIVE' : market?.isStale ? 'STALE' : String(market?.marketState || 'WAITING').toUpperCase();
-  const hasStopLoss = Number.isFinite(Number(tradePlan?.sl));
-  const hasTakeProfit = Number.isFinite(Number(tradePlan?.tp));
+  const hasStopLoss = Number.isFinite(validProtectionPrice(tradePlan?.sl));
+  const hasTakeProfit = Number.isFinite(validProtectionPrice(tradePlan?.tp));
   const orderFamily = orderType === 'market' ? 'market' : 'pending';
 
   const chooseOrderFamily = family => {
@@ -320,7 +327,7 @@ export default function DesktopOrderTicket({
       setActiveTool(field);
       return;
     }
-    if (!Number.isFinite(Number(tradePlan?.[field]))) {
+    if (!Number.isFinite(validProtectionPrice(tradePlan?.[field]))) {
       const price = defaultProtectionPrice(field);
       if (Number.isFinite(price)) onTradePlanChange({ [field]: price, stage: 'ready' });
     }
@@ -330,7 +337,7 @@ export default function DesktopOrderTicket({
   const removeProtection = field => {
     if (!tradePlan) return;
     const other = field === 'sl' ? 'tp' : 'sl';
-    if (!Number.isFinite(Number(tradePlan?.[other]))) onCancelPlan();
+    if (!Number.isFinite(validProtectionPrice(tradePlan?.[other]))) onCancelPlan();
     else onTradePlanChange({ [field]: null, stage: 'ready' });
     setActiveTool(null);
   };
@@ -339,7 +346,7 @@ export default function DesktopOrderTicket({
   const protectionMoney = field => field === 'sl' ? planMetrics?.riskAmount : planMetrics?.reward;
 
   const protectionValue = (field, mode) => {
-    if (!tradePlan || !Number.isFinite(Number(tradePlan?.[field]))) return '';
+    if (!tradePlan || !Number.isFinite(validProtectionPrice(tradePlan?.[field]))) return '';
     if (mode === 'price') return formatInstrumentPrice(tradePlan[field], market, '');
     if (mode === 'distance') {
       const distance = Number(protectionDistance(field));
@@ -401,7 +408,7 @@ export default function DesktopOrderTicket({
   };
 
   const renderProtectionEditor = field => {
-    const enabled = Number.isFinite(Number(tradePlan?.[field]));
+    const enabled = Number.isFinite(validProtectionPrice(tradePlan?.[field]));
     const mode = protectionMode[field];
     const isSl = field === 'sl';
     const amount = Number(protectionMoney(field));
