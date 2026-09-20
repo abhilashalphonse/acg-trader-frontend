@@ -156,23 +156,23 @@ export default function DesktopTradeReview({
 
   return (
     <div className="absolute inset-0 z-[150] bg-black/70 backdrop-blur-[2px]">
-      <div className="absolute bottom-3 left-[60px] right-3 top-[60px] grid min-h-0 grid-cols-[310px_minmax(0,1fr)] overflow-hidden rounded-lg border border-white/[0.09] bg-[#080808] shadow-[0_24px_80px_rgba(0,0,0,.65)]">
-        <aside className="flex min-h-0 flex-col border-r border-white/[0.08]">
-          <div className="flex h-11 items-center justify-between border-b border-white/[0.08] px-3">
-            <div><strong className="block text-[9px] font-black tracking-[0.08em] text-[#dce7ef]">TRADE REVIEW</strong><span className="mt-0.5 block text-[7px] text-[#5d7185]">{positionHistory.length} closed positions</span></div>
+      <div className="absolute bottom-3 left-[60px] right-3 top-[60px] grid min-h-0 grid-cols-[330px_minmax(0,1fr)] 2xl:grid-cols-[360px_minmax(0,1fr)] overflow-hidden rounded-lg border border-white/[0.10] bg-[#07090B] shadow-[0_24px_80px_rgba(0,0,0,.65)]">
+        <aside className="flex min-h-0 flex-col border-r border-white/[0.06]">
+          <div className="flex h-11 items-center justify-between border-b border-white/[0.06] px-3">
+            <div><strong className="block text-[11px] font-bold tracking-[0.05em] text-[#E6EDF3]">TRADE REVIEW</strong><span className="mt-0.5 block text-[8px] text-[#6F8191]">{positionHistory.length} closed positions</span></div>
             <button type="button" onClick={onClose} className="grid size-7 place-items-center rounded text-[#71869a] hover:bg-white/[0.04] hover:text-white"><X size={13}/></button>
           </div>
 
           <div className="p-2 pb-1">
-            <div className="flex h-7 items-center gap-2 rounded border border-white/[0.07] bg-black px-2 text-[#60758a]"><Search size={11}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search closed positions" className="min-w-0 flex-1 bg-transparent text-[8px] text-[#cbd5dd] outline-none"/></div>
+            <div className="flex h-7 items-center gap-2 rounded border border-white/[0.06] bg-black px-2 text-[#6F8191]"><Search size={11}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search closed positions" className="min-w-0 flex-1 bg-transparent text-[11px] font-semibold text-[#E6EDF3] outline-none"/></div>
           </div>
 
           <div className="flex shrink-0 gap-1 overflow-x-auto px-2 pb-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {FILTERS.map(([id, label]) => <button key={id} type="button" onClick={() => setFilter(id)} className={`h-6 shrink-0 rounded border px-2 text-[6.5px] font-bold ${filter === id ? 'border-[#315b72] bg-[#0d1a22] text-[#63caff]' : 'border-white/[0.055] text-[#60758a]'}`}>{label}</button>)}
+            {FILTERS.map(([id, label]) => <button key={id} type="button" onClick={() => setFilter(id)} className={`h-6 shrink-0 rounded border px-2 text-[8px] font-semibold ${filter === id ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#6F8191]'}`}>{label}</button>)}
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            {!trades.length && <div className="grid h-28 place-items-center px-4 text-center text-[8px] text-[#5f7388]">No closed positions match this filter.</div>}
+            {!trades.length && <div className="grid h-28 place-items-center px-4 text-center text-[8px] text-[#6F8191]">No closed positions match this filter.</div>}
             {trades.map(trade => {
               const positive = Number(trade.pnl) >= 0;
               const active = String(selected?.id) === String(trade.id);
@@ -181,9 +181,9 @@ export default function DesktopTradeReview({
               const risk = numeric(riskEvent?.plannedRisk);
               const rValue = risk && risk > 0 ? Number(trade.pnl) / risk : null;
               return (
-                <button key={trade.id} type="button" onClick={() => setSelectedId(String(trade.id))} className={`grid w-full grid-cols-[1fr_auto] items-center border-b border-white/[0.05] px-2.5 py-2 text-left ${active ? 'border-l-[3px] border-[#53c7ff] bg-[#081118]' : 'border-l-[3px] border-transparent hover:bg-white/[0.018]'}`}>
-                  <span className="flex min-w-0 items-center gap-2"><InstrumentAvatar instrument={inst} size={22}/><span className="min-w-0"><span className="flex items-center gap-1.5"><b className="truncate text-[9px] text-[#dce7ef]">{trade.symbol}</b><small className={`text-[6px] font-black ${trade.side === 'BUY' ? 'text-[#42dba6]' : 'text-[#ff727d]'}`}>{directionLabel(trade.side)}</small></span><small className="mt-0.5 block truncate text-[6.5px] text-[#60758a]">{Number(trade.volume || 0).toFixed(2)} lots · {rValue == null ? durationText(trade.openedAtIso, trade.closedAtIso) : `${rValue >= 0 ? '+' : ''}${rValue.toFixed(2)}R · ${durationText(trade.openedAtIso, trade.closedAtIso)}`}</small></span></span>
-                  <span className="flex items-center gap-1"><b className={`font-mono text-[8px] ${positive ? 'text-[#42dba6]' : 'text-[#ff727d]'}`}>{money(trade.pnl, trade.pnlCurrency)}</b><ChevronRight size={10} className="text-[#4d6072]"/></span>
+                <button key={trade.id} type="button" onClick={() => setSelectedId(String(trade.id))} className={`grid w-full grid-cols-[1fr_auto] items-center border-b border-white/[0.06] px-2.5 py-2 text-left ${active ? 'border-l-[3px] border-[#53c7ff] bg-[#081118]' : 'border-l-[3px] border-transparent hover:bg-white/[0.018]'}`}>
+                  <span className="flex min-w-0 items-center gap-2"><InstrumentAvatar instrument={inst} size={22}/><span className="min-w-0"><span className="flex items-center gap-1.5"><b className="truncate text-[11px] font-semibold text-[#E6EDF3]">{trade.symbol}</b><small className={`text-[8px] font-semibold ${trade.side === 'BUY' ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{directionLabel(trade.side)}</small></span><small className="mt-0.5 block truncate text-[8px] text-[#6F8191]">{Number(trade.volume || 0).toFixed(2)} lots · {rValue == null ? durationText(trade.openedAtIso, trade.closedAtIso) : `${rValue >= 0 ? '+' : ''}${rValue.toFixed(2)}R · ${durationText(trade.openedAtIso, trade.closedAtIso)}`}</small></span></span>
+                  <span className="flex items-center gap-1"><b className={`font-mono text-[10px] ${positive ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{money(trade.pnl, trade.pnlCurrency)}</b><ChevronRight size={10} className="text-[#44515D]"/></span>
                 </button>
               );
             })}
@@ -191,20 +191,20 @@ export default function DesktopTradeReview({
         </aside>
 
         <section className="min-h-0 overflow-y-auto">
-          {!selected ? <div className="grid h-full place-items-center text-[9px] text-[#60758a]">No closed positions available.</div> : (
+          {!selected ? <div className="grid h-full place-items-center text-[9px] text-[#6F8191]">No closed positions available.</div> : (
             <div className="p-4">
-              <div className="flex items-start justify-between gap-4 border-b border-white/[0.08] pb-3">
+              <div className="flex items-start justify-between gap-4 border-b border-white/[0.06] pb-3">
                 <div className="flex items-center gap-3">
                   <InstrumentAvatar instrument={instrument} size={32}/>
                   <div>
                     <div className="flex items-center gap-2">
-                      <strong className="text-[14px] font-black text-[#f0f4f7]">{selected.symbol}</strong>
-                      <span className={`rounded px-1.5 py-1 text-[7px] font-black ${side === 'BUY' ? 'bg-[#0b3327] text-[#42dba6]' : 'bg-[#35151b] text-[#ff727d]'}`}>{directionLabel(side)}</span>
+                      <strong className="text-[15px] font-bold text-[#f0f4f7]">{selected.symbol}</strong>
+                      <span className={`rounded px-1.5 py-1 text-[8px] font-bold ${side === 'BUY' ? 'bg-[#0b3327] text-[#42D7A1]' : 'bg-[#35151b] text-[#FF6F7A]'}`}>{directionLabel(side)}</span>
                     </div>
-                    <span className="mt-1 block text-[7px] text-[#60758a]">{selected.closeType || 'CLOSED'} · {selected.closedAt || '—'} · {duration}</span>
+                    <span className="mt-1 block text-[7px] text-[#6F8191]">{selected.closeType || 'CLOSED'} · {selected.closedAt || '—'} · {duration}</span>
                   </div>
                 </div>
-                <div className="text-right"><span className="block text-[7px] uppercase tracking-[0.08em] text-[#60758a]">Realized P&amp;L</span><strong className={`mt-1 block font-mono text-[17px] ${Number(selected.pnl) >= 0 ? 'text-[#42dba6]' : 'text-[#ff727d]'}`}>{money(selected.pnl, selected.pnlCurrency)}</strong></div>
+                <div className="text-right"><span className="block text-[8px] uppercase tracking-[0.08em] text-[#6F8191]">Realized P&amp;L</span><strong className={`mt-1 block font-mono text-[18px] ${Number(selected.pnl) >= 0 ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{money(selected.pnl, selected.pnlCurrency)}</strong></div>
               </div>
 
               <div className="mt-3 grid grid-cols-4 gap-2">
@@ -217,40 +217,40 @@ export default function DesktopTradeReview({
                   ['Result', realizedR == null ? '—' : `${realizedR >= 0 ? '+' : ''}${realizedR.toFixed(2)}R`],
                   ['Costs', money(totalCosts, selected.pnlCurrency)],
                   ['Exit reason', selected.closeType || 'CLOSED'],
-                ].map(([label, value]) => <div key={label} className="rounded border border-white/[0.06] bg-black px-2 py-2"><span className="block text-[6px] uppercase tracking-[0.07em] text-[#566a7d]">{label}</span><b className="mt-1 block truncate font-mono text-[8.5px] text-[#d8e2ea]">{value}</b></div>)}
+                ].map(([label, value]) => <div key={label} className="rounded border border-white/[0.06] bg-black px-2 py-2"><span className="block text-[8px] uppercase tracking-[0.07em] text-[#566a7d]">{label}</span><b className="mt-1 block truncate font-mono text-[10px] text-[#E6EDF3]">{value}</b></div>)}
               </div>
 
-              <div className="mt-4 rounded-lg border border-white/[0.08] bg-black p-3">
+              <div className="mt-4 rounded-lg border border-white/[0.06] bg-black p-3">
                 <div className="flex items-center justify-between">
-                  <div><strong className="text-[9px] text-[#dce6ee]">Execution path</strong><span className="ml-2 text-[7px] text-[#60758a]">Server-recorded entry and final exit</span></div>
-                  <span className="rounded border border-white/[0.06] px-2 py-1 text-[6px] font-bold uppercase text-[#687c90]">Not market replay</span>
+                  <div><strong className="text-[9px] text-[#E6EDF3]">Execution path</strong><span className="ml-2 text-[7px] text-[#6F8191]">Server-recorded entry and final exit</span></div>
+                  <span className="rounded border border-white/[0.06] px-2 py-1 text-[8px] font-semibold uppercase text-[#6F8191]">Not market replay</span>
                 </div>
                 <div className="mt-4 grid grid-cols-[auto_1fr_auto] items-center gap-3">
-                  <div><span className="block text-[6px] uppercase text-[#53677a]">Entry</span><b className="mt-1 block font-mono text-[9px] text-[#d6e0e8]">{formatInstrumentPrice(selected.entry, instrument)}</b></div>
+                  <div><span className="block text-[6px] uppercase text-[#6F8191]">Entry</span><b className="mt-1 block font-mono text-[9px] text-[#E6EDF3]">{formatInstrumentPrice(selected.entry, instrument)}</b></div>
                   <div className="relative h-px bg-white/[0.12]"><span className="absolute left-0 top-1/2 size-2 -translate-y-1/2 rounded-full bg-[#63caff]"/><span className="absolute right-0 top-1/2 size-2 -translate-y-1/2 rounded-full bg-[#dfe8ef]"/></div>
-                  <div className="text-right"><span className="block text-[6px] uppercase text-[#53677a]">Exit</span><b className="mt-1 block font-mono text-[9px] text-[#d6e0e8]">{formatInstrumentPrice(selected.closePrice, instrument)}</b></div>
+                  <div className="text-right"><span className="block text-[6px] uppercase text-[#6F8191]">Exit</span><b className="mt-1 block font-mono text-[9px] text-[#E6EDF3]">{formatInstrumentPrice(selected.closePrice, instrument)}</b></div>
                 </div>
-                <div className="mt-3 rounded border border-white/[0.05] bg-[#080808] px-3 py-2 text-[6.5px] leading-3 text-[#5f7388]">Historical candle playback is not fabricated here. This view only shows executions recorded by the server; full candle replay can be added once historical candles are wired to the review window.</div>
+                <div className="mt-3 rounded border border-white/[0.06] bg-[#07090B] px-3 py-2 text-[6.5px] leading-3 text-[#6F8191]">Historical candle playback is not fabricated here. This view only shows executions recorded by the server; full candle replay can be added once historical candles are wired to the review window.</div>
               </div>
 
               <div className="mt-4 grid grid-cols-[1fr_260px] gap-3">
-                <div className="rounded-lg border border-white/[0.08] bg-black p-3">
-                  <div className="flex items-center justify-between"><strong className="text-[9px] text-[#dce6ee]">Review notes</strong><button type="button" onClick={() => onSelectSymbol(selected.symbol)} className="text-[7px] font-bold text-[#63caff]">Open symbol</button></div>
-                  <textarea value={selectedMeta.note || ''} onChange={event => updateMeta({ note: event.target.value })} placeholder="What went well? What would you change?" className="mt-2 min-h-[100px] w-full resize-none rounded border border-white/[0.07] bg-[#080808] p-2 text-[8px] leading-4 text-[#cbd6df] outline-none placeholder:text-[#4e6173]"/>
+                <div className="rounded-lg border border-white/[0.06] bg-black p-3">
+                  <div className="flex items-center justify-between"><strong className="text-[9px] text-[#E6EDF3]">Review notes</strong><button type="button" onClick={() => onSelectSymbol(selected.symbol)} className="text-[9px] font-semibold text-[#59C7FF]">Open symbol</button></div>
+                  <textarea value={selectedMeta.note || ''} onChange={event => updateMeta({ note: event.target.value })} placeholder="What went well? What would you change?" className="mt-2 min-h-[84px] w-full resize-none rounded border border-white/[0.06] bg-[#07090B] p-3 text-[10px] leading-5 text-[#cbd6df] outline-none placeholder:text-[#44515D]"/>
                 </div>
-                <div className="rounded-lg border border-white/[0.08] bg-black p-3">
-                  <div className="flex items-center gap-1.5"><Tag size={11} className="text-[#63caff]"/><strong className="text-[9px] text-[#dce6ee]">Review tags</strong></div>
-                  <div className="mt-2 text-[6px] font-black uppercase tracking-[0.07em] text-[#53677a]">Setup</div>
-                  <div className="mt-1 flex flex-wrap gap-1">{['A+', 'Scalp', 'Trend', 'News'].map(tag => { const active = tags.includes(tag); return <button key={tag} type="button" onClick={() => updateMeta({ tags: active ? tags.filter(item => item !== tag) : [...tags, tag] })} className={`rounded border px-2 py-1 text-[7px] font-bold ${active ? 'border-[#315b72] bg-[#0d1a22] text-[#63caff]' : 'border-white/[0.06] text-[#64788c]'}`}>{tag}</button>; })}</div>
-                  <div className="mt-2 text-[6px] font-black uppercase tracking-[0.07em] text-[#53677a]">Behavior</div>
-                  <div className="mt-1 flex flex-wrap gap-1">{['FOMO', 'Revenge', 'Overtrade'].map(tag => { const active = tags.includes(tag); return <button key={tag} type="button" onClick={() => updateMeta({ tags: active ? tags.filter(item => item !== tag) : [...tags, tag] })} className={`rounded border px-2 py-1 text-[7px] font-bold ${active ? 'border-[#6d2d37] bg-[#210b10] text-[#ff8b94]' : 'border-white/[0.06] text-[#64788c]'}`}>{tag}</button>; })}</div>
+                <div className="rounded-lg border border-white/[0.06] bg-black p-3">
+                  <div className="flex items-center gap-1.5"><Tag size={11} className="text-[#59C7FF]"/><strong className="text-[9px] text-[#E6EDF3]">Review tags</strong></div>
+                  <div className="mt-2 text-[6px] font-black uppercase tracking-[0.07em] text-[#6F8191]">Setup</div>
+                  <div className="mt-1 flex flex-wrap gap-1">{['A+', 'Scalp', 'Trend', 'News'].map(tag => { const active = tags.includes(tag); return <button key={tag} type="button" onClick={() => updateMeta({ tags: active ? tags.filter(item => item !== tag) : [...tags, tag] })} className={`rounded border px-2 py-1 text-[8px] font-semibold ${active ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#6F8191]'}`}>{tag}</button>; })}</div>
+                  <div className="mt-2 text-[6px] font-black uppercase tracking-[0.07em] text-[#6F8191]">Behavior</div>
+                  <div className="mt-1 flex flex-wrap gap-1">{['FOMO', 'Revenge', 'Overtrade'].map(tag => { const active = tags.includes(tag); return <button key={tag} type="button" onClick={() => updateMeta({ tags: active ? tags.filter(item => item !== tag) : [...tags, tag] })} className={`rounded border px-2 py-1 text-[7px] font-bold ${active ? 'border-[#6d2d37] bg-[#210b10] text-[#FF6F7A]' : 'border-white/[0.06] text-[#6F8191]'}`}>{tag}</button>; })}</div>
                 </div>
               </div>
 
-              <div className="mt-4 rounded-lg border border-white/[0.08] bg-black p-3">
-                <div className="flex items-center justify-between"><strong className="text-[9px] text-[#dce6ee]">Position timeline</strong><span className="text-[6.5px] text-[#5f7388]">{timeline.length} events</span></div>
+              <div className="mt-4 rounded-lg border border-white/[0.06] bg-black p-3">
+                <div className="flex items-center justify-between"><strong className="text-[9px] text-[#E6EDF3]">Position timeline</strong><span className="text-[8px] text-[#6F8191]">{timeline.length} events</span></div>
                 <div className="mt-2">
-                  {!timeline.length ? <div className="py-5 text-center text-[7px] text-[#5f7388]">No execution events were recorded for this position.</div> : timeline.map(event => <div key={event.key} className="grid grid-cols-[72px_60px_1fr] border-t border-white/[0.05] py-1.5 text-[7px]"><span className="font-mono text-[#60758a]">{event.time}</span><span className={event.source === 'server' ? 'font-bold text-[#63caff]' : 'font-bold text-[#7e91a3]'}>{event.source === 'server' ? 'SERVER' : 'JOURNAL'}</span><span className="text-[#9eafbd]">{event.message}</span></div>)}
+                  {!timeline.length ? <div className="py-5 text-center text-[7px] text-[#6F8191]">No execution events were recorded for this position.</div> : timeline.map(event => <div key={event.key} className="grid grid-cols-[72px_60px_1fr] border-t border-white/[0.06] py-2 text-[8px]"><span className="font-mono text-[#6F8191]">{event.time}</span><span className={event.source === 'server' ? 'font-bold text-[#59C7FF]' : 'font-bold text-[#A1AFBC]'}>{event.source === 'server' ? 'SERVER' : 'JOURNAL'}</span><span className="text-[#A1AFBC]">{event.message}</span></div>)}
                 </div>
               </div>
             </div>
