@@ -579,8 +579,8 @@ export default function DesktopTerminal({
             </aside>
           )}
 
-          <section className="grid min-h-0 min-w-0 grid-rows-[52px_40px_minmax(0,1fr)]" style={{ gridColumn: '2', gridRow: '1' }}>
-            <div className="flex items-center border-b border-white/[0.06] bg-[#07090B] px-3">
+          <section className="grid min-h-0 min-w-0 grid-rows-[48px_38px_minmax(0,1fr)]" style={{ gridColumn: '2', gridRow: '1' }}>
+            <div className="flex items-center border-b border-white/[0.045] bg-black px-3">
               <div className="flex min-w-[210px] items-center gap-2">
                 <InstrumentAvatar instrument={market} size={28}/>
                 <div className="min-w-0">
@@ -631,10 +631,10 @@ export default function DesktopTerminal({
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 border-b border-white/[0.06] bg-[#07090B] px-2.5">
+            <div className="flex items-center gap-1 border-b border-white/[0.045] bg-black px-2.5">
               <div className="flex items-center gap-0.5">
                 {timeframes.map(([label, value]) => (
-                  <button key={value} type="button" onClick={() => setDesktopTimeframe(value)} disabled={Boolean(tradePlan && !tradePlan.open)} className={`h-7 min-w-8 rounded px-2 text-[8px] font-bold ${activeChartTimeframe === value ? 'bg-white/[0.05] text-[#59C7FF]' : 'text-[#6F8191] hover:bg-white/[0.035] hover:text-[#E6EDF3]'} disabled:opacity-30`}>{label}</button>
+                  <button key={value} type="button" onClick={() => setDesktopTimeframe(value)} disabled={Boolean(tradePlan && !tradePlan.open)} className={`h-7 min-w-8 rounded-md px-2 text-[10px] font-semibold transition ${activeChartTimeframe === value ? 'bg-white/[0.07] text-[#F4F7FA]' : 'text-[#7C8792] hover:bg-white/[0.035] hover:text-[#E6EDF3]'} disabled:opacity-30`}>{label}</button>
                 ))}
               </div>
               <div className="mx-1 h-4 w-px bg-white/[0.07]"/>
