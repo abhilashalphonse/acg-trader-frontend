@@ -22,6 +22,7 @@ import {
   X,
 } from 'lucide-react';
 import DesktopOrderTicket from './desktop/DesktopOrderTicket.jsx';
+import DesktopPositionManager from './desktop/DesktopPositionManager.jsx';
 import DesktopMultiChart from './desktop/DesktopMultiChart.jsx';
 import DesktopTradeReview from './desktop/DesktopTradeReview.jsx';
 import DesktopWorkspaceMenu from './desktop/DesktopWorkspaceMenu.jsx';
@@ -253,6 +254,7 @@ export default function DesktopTerminal({
   const [activeNav, setActiveNav] = useState('trade');
   const [notice, setNotice] = useState('');
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [selectedPositionId, setSelectedPositionId] = useState(null);
   const [requestedDockTab, setRequestedDockTab] = useState(null);
   const [desktopLayout, setDesktopLayout] = useState(loadDesktopLayout);
   const [viewportHeight, setViewportHeight] = useState(() => typeof window !== 'undefined' ? window.innerHeight : 900);
@@ -261,6 +263,25 @@ export default function DesktopTerminal({
   const [chartMenuOpen, setChartMenuOpen] = useState(false);
   const [riskPopoverOpen, setRiskPopoverOpen] = useState(false);
   const [multiChart, setMultiChart] = useState(() => loadMultiChart(activeSymbol, timeframe));
+  const selectedPosition = positions.find(position => String(position?.id) === String(selectedPositionId)) || null;
+
+  useEffect(() => {
+    if (selectedPositionId == null) return;
+    if (!positions.some(position => String(position?.id) === String(selectedPositionId))) setSelectedPositionId(null);
+  }, [positions, selectedPositionId]);
+
+  const selectPosition = positionOrId => {
+    const id = typeof positionOrId === 'object' ? positionOrId?.id : positionOrId;
+    if (id === null || id === undefined) {
+      setSelectedPositionId(null);
+      return;
+    }
+    const position = positions.find(item => String(item?.id) === String(id));
+    if (!position) return;
+    setSelectedPositionId(position.id);
+    if (position.symbol && position.symbol !== activeSymbol) onSelectSymbol(position.symbol);
+  };
+
   const favorite = watchlists?.isWatched?.(activeSymbol) === true;
 
   useEffect(() => {
@@ -682,16 +703,30 @@ export default function DesktopTerminal({
                 accountCurrency={account?.currency || 'USD'}
                 onTradePlanChange={onTradePlanChange}
                 onUpdatePosition={onUpdatePosition}
+                selectedPositionId={selectedPositionId}
+                onSelectPosition={selectPosition}
               />
             </div>
           </section>
 
           <aside className={`min-h-0 overflow-y-auto border-l border-white/[0.06] bg-[#07090B] [scrollbar-width:thin] ${desktopLayout.sidebarCollapsed ? 'hidden' : 'block'}`} style={{ gridColumn: '3', gridRow: '1' }}>
             <DesktopOrderTicket market={market} markets={markets} account={account} positions={positions} positionHistory={positionHistory} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} riskGuardSettings={riskGuardSettings} onRiskGuardSettingsChange={onRiskGuardSettingsChange}/>
+            {selectedPosition && (
+              <DesktopPositionManager
+                position={selectedPosition}
+                instrument={markets.find(item => item.symbol === selectedPosition.symbol) || market}
+                account={account}
+                onClose={onClosePosition}
+                onBreakEven={onBreakEven}
+                onUpdate={onUpdatePosition}
+                onSetTrailing={onSetTrailing}
+                onDismiss={() => setSelectedPositionId(null)}
+              />
+            )}
           </aside>
 
           <div className={`min-h-0 overflow-auto border-t border-white/[0.06] bg-[#07090B] ${desktopLayout.dockCollapsed ? 'hidden' : ''}`} style={{ gridColumn: '1 / 4', gridRow: '2' }}>
-            <PositionsPanel desktopDense requestedTab={requestedDockTab} activeSymbol={activeSymbol} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending}/>
+            <PositionsPanel desktopDense requestedTab={requestedDockTab} activeSymbol={activeSymbol} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition}/>
           </div>
 
           {marketPanelOpen && (
