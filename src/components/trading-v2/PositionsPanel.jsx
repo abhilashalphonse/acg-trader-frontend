@@ -203,6 +203,11 @@ export default function PositionsPanel({
     setCustomClose(current => ({ ...current, [position.id]: '' }));
   };
 
+  const confirmDesktopBulk = (message, action) => {
+    if (!desktopDense || window.confirm(message)) action();
+    setDesktopActionsOpen(false);
+  };
+
   return (
     <section className="mt-3 overflow-visible border-y border-white/[0.08] bg-black">
       <div className="flex h-[50px] items-center justify-between gap-2 border-b border-white/[0.07] px-3">
@@ -218,12 +223,12 @@ export default function PositionsPanel({
         {tab === 'positions' && (
           <div className="relative flex shrink-0 items-center gap-1">
             {desktopDense && <button type="button" onClick={() => setDesktopActionsOpen(value => !value)} disabled={!positions.length} className="flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.09] bg-black px-2 text-[8px] font-bold text-[#aab6c1] disabled:opacity-35"><MoreHorizontal size={12}/>Manage</button>}
-            <button type="button" onClick={onCloseAll} disabled={!positions.length} className="flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.09] bg-black px-2 text-[8px] font-bold text-[#d4d4d4] disabled:cursor-not-allowed disabled:opacity-35"><Trash2 size={12} className="text-[#737373]" />Close All</button>
+            <button type="button" onClick={() => confirmDesktopBulk('Close every open position?', onCloseAll)} disabled={!positions.length} className="flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.09] bg-black px-2 text-[8px] font-bold text-[#d4d4d4] disabled:cursor-not-allowed disabled:opacity-35"><Trash2 size={12} className="text-[#737373]" />Close All</button>
             {desktopDense && desktopActionsOpen && (
               <div className="absolute right-0 top-9 z-50 w-[190px] rounded-md border border-white/[0.10] bg-[#0a0a0a] p-1 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
-                <button type="button" onClick={() => { onCloseWinners(); setDesktopActionsOpen(false); }} className="w-full rounded px-2 py-2 text-left text-[8px] font-bold text-[#46d9a6] hover:bg-white/[0.03]">Close winners</button>
-                <button type="button" onClick={() => { onCloseLosers(); setDesktopActionsOpen(false); }} className="w-full rounded px-2 py-2 text-left text-[8px] font-bold text-[#ff747f] hover:bg-white/[0.03]">Close losers</button>
-                {activeSymbol && <button type="button" onClick={() => { onCloseSymbol(activeSymbol); setDesktopActionsOpen(false); }} className="w-full rounded px-2 py-2 text-left text-[8px] font-bold text-[#9fb1c1] hover:bg-white/[0.03]">Close all {formatSymbol(activeSymbol)}</button>}
+                <button type="button" onClick={() => confirmDesktopBulk('Close all winning positions?', onCloseWinners)} className="w-full rounded px-2 py-2 text-left text-[8px] font-bold text-[#46d9a6] hover:bg-white/[0.03]">Close winners</button>
+                <button type="button" onClick={() => confirmDesktopBulk('Close all losing positions?', onCloseLosers)} className="w-full rounded px-2 py-2 text-left text-[8px] font-bold text-[#ff747f] hover:bg-white/[0.03]">Close losers</button>
+                {activeSymbol && <button type="button" onClick={() => confirmDesktopBulk(`Close every open ${formatSymbol(activeSymbol)} position?`, () => onCloseSymbol(activeSymbol))} className="w-full rounded px-2 py-2 text-left text-[8px] font-bold text-[#9fb1c1] hover:bg-white/[0.03]">Close all {formatSymbol(activeSymbol)}</button>}
               </div>
             )}
           </div>
@@ -235,7 +240,7 @@ export default function PositionsPanel({
           {positionGroups.length > 1 && (
             <div className="flex h-8 items-center gap-1.5 overflow-x-auto border-b border-white/[0.06] px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <span className="mr-1 shrink-0 text-[6.5px] font-black uppercase tracking-[0.08em] text-[#53677a]">Exposure</span>
-              {positionGroups.map(group => <button key={group.symbol} type="button" onClick={() => onCloseSymbol(group.symbol)} title={`Close all ${group.symbol} positions`} className="flex shrink-0 items-center gap-1 rounded border border-white/[0.06] bg-black px-2 py-1 text-[7px] text-[#8597a7] hover:border-white/[0.12]"><b className="text-[#c8d4de]">{formatSymbol(group.symbol)}</b><span>{group.count}</span><span>{group.volume.toFixed(2)}L</span><span className={group.pnl >= 0 ? 'text-[#42dba6]' : 'text-[#ff727d]'}>{formatPnl(group.pnl)}</span></button>)}
+              {positionGroups.map(group => <div key={group.symbol} title={`${group.count} open ${group.symbol} position${group.count === 1 ? '' : 's'}`} className="flex shrink-0 items-center gap-1 rounded border border-white/[0.06] bg-black px-2 py-1 text-[7px] text-[#8597a7]"><b className="text-[#c8d4de]">{formatSymbol(group.symbol)}</b><span>{group.count}</span><span>{group.volume.toFixed(2)}L</span><span className={group.pnl >= 0 ? 'text-[#42dba6]' : 'text-[#ff727d]'}>{formatPnl(group.pnl)}</span></div>)}
             </div>
           )}
           <div className="grid grid-cols-[1.4fr_.7fr_.75fr_1fr_1fr_1fr_1fr_1fr_136px] items-center border-b border-white/[0.07] px-3 py-2 text-[7px] font-bold uppercase tracking-[0.08em] text-[#5c6f82]">
