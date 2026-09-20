@@ -372,20 +372,20 @@ export default function ChartArea({
 
         {desktopEnhanced && (
           <div className="absolute right-[74px] top-2 z-30 flex items-center gap-1">
-            <div className="pointer-events-none mr-1 flex h-6 items-center gap-1.5 rounded border border-white/[0.07] bg-[#070707]/92 px-2 font-mono text-[7px] tabular-nums text-[#71869a]">
+            <div className="pointer-events-none mr-1 flex h-7 items-center gap-2 rounded border border-white/[0.06] bg-[#07090B]/92 px-2.5 font-mono text-[8px] tabular-nums text-[#6F8191]">
               <span>B <b className="text-[#64bdff]">{formatInstrumentPrice(price, instrument)}</b></span>
               <span className="text-[#3f4f5e]">/</span>
               <span>A <b className="text-[#ff7882]">{formatInstrumentPrice(ask, instrument)}</b></span>
               <span className="text-[#3f4f5e]">·</span>
               <span>{(() => { const pip = instrumentPipSize(instrument); const bid = Number(price); const askValue = Number(ask); return Number.isFinite(pip) && pip > 0 && Number.isFinite(bid) && Number.isFinite(askValue) ? `${(Math.abs(askValue - bid) / pip).toFixed(1)}p` : '—'; })()}</span>
             </div>
-            <button type="button" onClick={() => coordinateApi?.resetView?.()} className="grid size-6 place-items-center rounded border border-white/[0.07] bg-[#070707]/92 text-[#71869a] hover:text-white" title="Reset chart view"><RotateCcw size={11}/></button>
-            <button type="button" onClick={() => coordinateApi?.fitContent?.()} className="grid size-6 place-items-center rounded border border-white/[0.07] bg-[#070707]/92 text-[#71869a] hover:text-white" title="Fit chart"><ScanLine size={11}/></button>
-            <button type="button" onClick={() => setShowDrawings(value => !value)} className={`grid size-6 place-items-center rounded border bg-[#070707]/92 ${showDrawings ? 'border-white/[0.07] text-[#71869a] hover:text-white' : 'border-[#315b72] text-[#58c7ff]'}`} title={showDrawings ? 'Hide drawings' : 'Show drawings'}>{showDrawings ? <Eye size={11}/> : <EyeOff size={11}/>}</button>
+            <button type="button" onClick={() => coordinateApi?.resetView?.()} className="grid size-7 place-items-center rounded border border-white/[0.06] bg-[#07090B]/92 text-[#6F8191] hover:text-[#E6EDF3]" title="Reset chart view"><RotateCcw size={11}/></button>
+            <button type="button" onClick={() => coordinateApi?.fitContent?.()} className="grid size-7 place-items-center rounded border border-white/[0.06] bg-[#07090B]/92 text-[#6F8191] hover:text-[#E6EDF3]" title="Fit chart"><ScanLine size={11}/></button>
+            <button type="button" onClick={() => setShowDrawings(value => !value)} className={`grid size-7 place-items-center rounded border bg-[#07090B]/92 ${showDrawings ? 'border-white/[0.06] text-[#6F8191] hover:text-[#E6EDF3]' : 'border-[#315b72] text-[#59C7FF]'}`} title={showDrawings ? 'Hide drawings' : 'Show drawings'}>{showDrawings ? <Eye size={11}/> : <EyeOff size={11}/>}</button>
           </div>
         )}
 
-        {!tradePlan && (!embedded || desktopEnhanced) && <div className="pointer-events-none absolute bottom-1 right-[74px] z-10 rounded border border-white/[0.05] bg-[#080808]/86 px-1.5 py-0.5 font-mono text-[8px] font-semibold tabular-nums text-[#8295a8] backdrop-blur-sm">{formatCountdown(remaining)}</div>}
+        {!tradePlan && (!embedded || desktopEnhanced) && <div className="pointer-events-none absolute bottom-1 right-[74px] z-10 rounded border border-white/[0.06] bg-[#07090B]/90 px-2 py-1 font-mono text-[9px] font-semibold tabular-nums text-[#A1AFBC] backdrop-blur-sm">{formatCountdown(remaining)}</div>}
       </div>
     </div>
   );
