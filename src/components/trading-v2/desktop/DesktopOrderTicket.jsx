@@ -141,7 +141,6 @@ export default function DesktopOrderTicket({
     const slPips = [entry, sl, pip].every(Number.isFinite) && pip > 0 ? Math.abs(entry - sl) / pip : null;
     const tpPips = [entry, tp, pip].every(Number.isFinite) && pip > 0 ? Math.abs(tp - entry) / pip : null;
 
-    let calculatedLots = normalizedLots;
     let riskSizing = null;
     if (sizingMode === 'risk') {
       riskSizing = calculateRiskOrderSizing(
@@ -150,9 +149,9 @@ export default function DesktopOrderTicket({
         account,
         market,
       );
-      if (Number.isFinite(riskSizing?.requestedLots)) calculatedLots = riskSizing.requestedLots;
     }
 
+    const calculatedLots = normalizedLots;
     const riskAmount = estimateStopRisk(tradePlan, calculatedLots, market, currency);
     const requiredMargin = estimateRequiredMargin(entry, calculatedLots, market, account);
     const reward = Number.isFinite(riskAmount) && Number.isFinite(slPips) && slPips > 0 && Number.isFinite(tpPips)
@@ -177,7 +176,7 @@ export default function DesktopOrderTicket({
   );
 
   const riskSupported = riskSizingSupported(market, currency);
-  const riskSizingBlocked = sizingMode === 'risk' && Boolean(planMetrics?.riskSizing && planMetrics.riskSizing.canExecute === false);
+  const riskSizingBlocked = activeTool === 'risk' && sizingMode === 'risk' && Boolean(planMetrics?.riskSizing && planMetrics.riskSizing.canExecute === false);
   const riskGuard = useMemo(() => evaluateRiskGuard({
     account,
     positions,
@@ -189,7 +188,7 @@ export default function DesktopOrderTicket({
 
   const canSubmit = executableQuote
     && exposureAllowed
-    && (sizingMode !== 'risk' || riskSupported)
+    && (!(activeTool === 'risk' && sizingMode === 'risk') || riskSupported)
     && !riskSizingBlocked
     && riskGuard.allowed;
 
@@ -214,7 +213,7 @@ export default function DesktopOrderTicket({
     else if (market?.isStale) warning = 'Quote is stale. New exposure is disabled.';
     else if (Number(market?.ask) < Number(market?.bid)) warning = 'Executable quote book is invalid.';
     else warning = 'Waiting for an executable quote.';
-  } else if (sizingMode === 'risk' && !riskSupported) {
+  } else if (activeTool === 'risk' && sizingMode === 'risk' && !riskSupported) {
     warning = 'Risk % sizing is unavailable because this instrument P&L cannot be converted safely to the account currency.';
   } else if (planMetrics?.riskSizing?.blockReason === 'INSUFFICIENT_MARGIN') {
     warning = `Required margin ${money(planMetrics.riskSizing.requiredMargin, currency)} exceeds free margin ${money(planMetrics.riskSizing.freeMargin, currency)}.`;
@@ -291,7 +290,10 @@ export default function DesktopOrderTicket({
 
   const pendingPlan = Boolean(tradePlan && !tradePlan.open);
   const selectedSide = String(tradePlan?.side || '').toLowerCase();
-  const currentLots = Number(planMetrics?.lots ?? normalizedLots);
+  const riskCalculatedLots = Number(planMetrics?.riskSizing?.requestedLots);
+  const currentLots = activeTool === 'risk' && sizingMode === 'risk' && Number.isFinite(riskCalculatedLots)
+    ? riskCalculatedLots
+    : normalizedLots;
   const liveLabel = market?.sessionOpen === false ? 'CLOSED' : market?.live ? 'LIVE' : market?.isStale ? 'STALE' : String(market?.marketState || 'WAITING').toUpperCase();
   const hasStopLoss = Number.isFinite(Number(tradePlan?.sl));
   const hasTakeProfit = Number.isFinite(Number(tradePlan?.tp));
@@ -306,15 +308,21 @@ export default function DesktopOrderTicket({
   const toggleTool = tool => setActiveTool(current => current === tool ? null : tool);
 
   const openRiskSizing = () => {
-    toggleTool('risk');
-    if (tradePlan && sizingMode !== 'risk') setMode('risk');
+    setActiveTool(current => {
+      const next = current === 'risk' ? null : 'risk';
+      if (next === null && sizingMode === 'risk') setMode('lots');
+      return next;
+    });
   };
 
-  const openProtection = tool => toggleTool(tool);
+  const openProtection = tool => {
+    if (sizingMode === 'risk') setMode('lots');
+    setActiveTool(current => current === tool ? null : tool);
+  };
 
   const applyCalculatedRiskLots = () => {
-    if (!Number.isFinite(currentLots)) return;
-    setLots(currentLots);
+    if (!Number.isFinite(riskCalculatedLots)) return;
+    setLots(riskCalculatedLots);
     setMode('lots');
     setActiveTool(null);
   };
@@ -368,7 +376,7 @@ export default function DesktopOrderTicket({
 
         <div className="grid grid-cols-[1fr_.72fr_.72fr_30px] gap-1">
           <button type="button" onClick={openRiskSizing} className={`h-8 rounded-md border text-[8px] font-bold uppercase tracking-[0.04em] ${sizingMode === 'risk' ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] bg-black text-[#7d90a2] hover:text-white'}`}>
-            Risk{sizingMode === 'risk' ? ` ${Number(riskPercent).toFixed(2)}%` : ''}
+            Risk{activeTool === 'risk' && sizingMode === 'risk' ? ` ${Number(riskPercent).toFixed(2)}%` : ''}
           </button>
           <button type="button" onClick={() => openProtection('sl')} className={`h-8 rounded-md border text-[8px] font-bold ${hasStopLoss ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] bg-black text-[#7d90a2] hover:text-white'}`}>
             SL{hasStopLoss ? ' ✓' : ''}
@@ -408,9 +416,9 @@ export default function DesktopOrderTicket({
                 </div>
                 <div className="mt-2 flex items-center justify-between rounded border border-white/[0.05] bg-black px-2 py-1.5">
                   <span className="text-[7px] text-[#6F8191]">Calculated size</span>
-                  <strong className="font-mono text-[10px] text-[#E6EDF3]">{Number.isFinite(currentLots) ? currentLots.toFixed(Math.max(2, lotDecimals)) : '—'} lot</strong>
+                  <strong className="font-mono text-[10px] text-[#E6EDF3]">{Number.isFinite(riskCalculatedLots) ? riskCalculatedLots.toFixed(Math.max(2, lotDecimals)) : '—'} lot</strong>
                 </div>
-                <button type="button" onClick={applyCalculatedRiskLots} disabled={!Number.isFinite(currentLots)} className="mt-1.5 h-8 w-full rounded border border-[#315b72] bg-[#0d1a22] text-[8px] font-black text-[#59C7FF] disabled:opacity-30">Use {Number.isFinite(currentLots) ? currentLots.toFixed(Math.max(2, lotDecimals)) : '—'} lot</button>
+                <button type="button" onClick={applyCalculatedRiskLots} disabled={!Number.isFinite(riskCalculatedLots)} className="mt-1.5 h-8 w-full rounded border border-[#315b72] bg-[#0d1a22] text-[8px] font-black text-[#59C7FF] disabled:opacity-30">Use {Number.isFinite(riskCalculatedLots) ? riskCalculatedLots.toFixed(Math.max(2, lotDecimals)) : '—'} lot</button>
               </>
             )}
           </div>
@@ -439,6 +447,20 @@ export default function DesktopOrderTicket({
                   tone={activeTool === 'sl' ? 'danger' : 'success'}
                   onChange={value => updateProtection(activeTool, value)}
                 />
+                <div className="mt-1.5 grid grid-cols-3 gap-1 rounded-md border border-white/[0.05] bg-black px-2 py-2">
+                  <FieldMetric label="Lot" value={`${Number(normalizedLots).toFixed(Math.max(2, lotDecimals))}`} />
+                  <FieldMetric
+                    label={activeTool === 'sl' ? 'Loss' : 'Profit'}
+                    value={activeTool === 'sl'
+                      ? (Number.isFinite(planMetrics?.riskAmount) ? `-${money(Math.abs(planMetrics.riskAmount), currency)}` : '—')
+                      : (Number.isFinite(planMetrics?.reward) ? `+${money(Math.abs(planMetrics.reward), currency)}` : '—')}
+                    tone={activeTool === 'sl' ? 'danger' : 'success'}
+                  />
+                  <FieldMetric
+                    label="Price"
+                    value={Number.isFinite(Number(tradePlan?.[activeTool])) ? formatInstrumentPrice(tradePlan[activeTool], market) : '—'}
+                  />
+                </div>
                 <div className="mt-1.5 flex gap-1">
                   <button type="button" onClick={() => { updateProtection(activeTool, ''); setActiveTool(null); }} className="h-7 flex-1 rounded border border-white/[0.06] text-[7px] font-bold text-[#6F8191]">Remove</button>
                   <button type="button" onClick={() => setActiveTool(null)} className="h-7 flex-1 rounded border border-white/[0.08] bg-white/[0.04] text-[7px] font-bold text-[#E6EDF3]">Done</button>
@@ -517,22 +539,20 @@ export default function DesktopOrderTicket({
           </button>
 
           <div className="grid h-[58px] grid-cols-[26px_minmax(0,1fr)_26px] items-center rounded-md border border-white/[0.06] bg-black">
-            <button type="button" onClick={() => nudgeLots(-1)} disabled={sizingMode === 'risk'} className="grid h-full place-items-center text-[#6F8191] hover:bg-white/[0.025] hover:text-white disabled:opacity-25" aria-label="Decrease lot size"><Minus size={11}/></button>
+            <button type="button" onClick={() => nudgeLots(-1)} className="grid h-full place-items-center text-[#6F8191] hover:bg-white/[0.025] hover:text-white disabled:opacity-25" aria-label="Decrease lot size"><Minus size={11}/></button>
             <div className="flex min-w-0 flex-col items-center justify-center border-x border-white/[0.05]">
               <input
-                value={sizingMode === 'risk' && Number.isFinite(currentLots) ? currentLots.toFixed(Math.max(2, lotDecimals)) : lotInput}
-                readOnly={sizingMode === 'risk'}
+                value={lotInput}
+                readOnly={false}
                 onFocus={event => {
-                  if (sizingMode === 'risk') return;
                   setLotFocused(true);
                   requestAnimationFrame(() => event.currentTarget.select());
                 }}
                 onChange={event => {
-                  if (sizingMode !== 'risk') setLotInput(event.target.value.replace(/[^0-9.]/g, ''));
+                  setLotInput(event.target.value.replace(/[^0-9.]/g, ''));
                 }}
-                onBlur={() => { if (sizingMode !== 'risk') commitLotInput(); }}
+                onBlur={commitLotInput}
                 onKeyDown={event => {
-                  if (sizingMode === 'risk') return;
                   if (event.key === 'ArrowUp') { event.preventDefault(); nudgeLots(1); }
                   if (event.key === 'ArrowDown') { event.preventDefault(); nudgeLots(-1); }
                   if (event.key === 'Enter') event.currentTarget.blur();
@@ -545,9 +565,9 @@ export default function DesktopOrderTicket({
                 inputMode="decimal"
                 aria-label="Lot size"
               />
-              <span className="mt-0.5 text-[7px] font-semibold text-[#64788d]">{sizingMode === 'risk' ? 'calc. lot' : 'lot'}</span>
+              <span className="mt-0.5 text-[7px] font-semibold text-[#64788d]">lot</span>
             </div>
-            <button type="button" onClick={() => nudgeLots(1)} disabled={sizingMode === 'risk'} className="grid h-full place-items-center text-[#6F8191] hover:bg-white/[0.025] hover:text-white disabled:opacity-25" aria-label="Increase lot size"><Plus size={11}/></button>
+            <button type="button" onClick={() => nudgeLots(1)} className="grid h-full place-items-center text-[#6F8191] hover:bg-white/[0.025] hover:text-white disabled:opacity-25" aria-label="Increase lot size"><Plus size={11}/></button>
           </div>
 
           <button
