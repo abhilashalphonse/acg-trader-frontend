@@ -24,11 +24,18 @@ function uniqueSymbols(values, available = null) {
 export function buildDefaultWatchlists(instruments = []) {
   const available = new Set(instruments.map(item => String(item?.symbol || '').toUpperCase()).filter(Boolean));
   const filter = symbols => uniqueSymbols(symbols, available);
+  const byAsset = assetClass => instruments
+    .filter(item => String(item?.assetClass || '').toUpperCase() === assetClass)
+    .map(item => item.symbol);
+
   return [
     { id: 'favorites', name: 'Favorites', symbols: filter(DEFAULT_WATCHLIST_SYMBOLS) },
     { id: 'fx-majors', name: 'FX Majors', symbols: filter(['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD']) },
     { id: 'metals', name: 'Metals', symbols: filter(['XAUUSD', 'XAGUSD', 'XPTUSD', 'XPDUSD']) },
-  ];
+    { id: 'indices', name: 'Indices', symbols: filter(byAsset('INDEX')) },
+    { id: 'crypto', name: 'Crypto', symbols: filter(byAsset('CRYPTO')) },
+    { id: 'stocks', name: 'Stocks', symbols: filter(byAsset('EQUITY')) },
+  ].filter(list => list.id === 'favorites' || list.symbols.length);
 }
 
 export function normalizeWatchlistWorkspace(workspace, instruments = []) {
