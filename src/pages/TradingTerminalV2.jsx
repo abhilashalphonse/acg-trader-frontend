@@ -568,7 +568,7 @@ export default function TradingTerminalV2({
     }
   };
 
-  const startPlan = (side, requestedType = orderType) => {
+  const startPlan = (side, requestedType = orderType, options = {}) => {
     const marketPrice = Number(side === 'buy' ? market?.ask : market?.bid);
     if (!Number.isFinite(marketPrice) || marketPrice <= 0) {
       showNotice('Executable market price is unavailable');
@@ -581,12 +581,15 @@ export default function TradingTerminalV2({
     if (requestedType === 'limit') entry = side === 'buy' ? marketPrice - 5 * pip : marketPrice + 5 * pip;
     if (requestedType === 'stop' || requestedType === 'stop-limit') entry = side === 'buy' ? marketPrice + 5 * pip : marketPrice - 5 * pip;
     entry = normalizePriceToTick(entry, market, pendingPriceDirection(requestedType, sideUpper, 'entry'));
-    const sl = normalizeProtectionPrice(side === 'buy' ? entry - 4.2 * pip : entry + 4.2 * pip, market, sideUpper, 'sl');
-    const tp = normalizeProtectionPrice(side === 'buy' ? entry + 8.4 * pip : entry - 8.4 * pip, market, sideUpper, 'tp');
+    const defaultSl = normalizeProtectionPrice(side === 'buy' ? entry - 4.2 * pip : entry + 4.2 * pip, market, sideUpper, 'sl');
+    const defaultTp = normalizeProtectionPrice(side === 'buy' ? entry + 8.4 * pip : entry - 8.4 * pip, market, sideUpper, 'tp');
+    const protection = options?.protection || 'both';
+    const sl = protection === 'tp' ? null : defaultSl;
+    const tp = protection === 'sl' ? null : defaultTp;
     const limitPrice = requestedType === 'stop-limit'
       ? normalizePriceToTick(side === 'buy' ? entry + 1.5 * pip : entry - 1.5 * pip, market, pendingPriceDirection(requestedType, sideUpper, 'limit'))
       : null;
-    setTradePlan({ symbol: market?.symbol, side, entry, sl, tp, limitPrice, marketPrice, orderType: requestedType, pending, sizingMode, manualLots: lots, expiration: 'GTC', stage: 'planning', open: false });
+    setTradePlan({ symbol: market?.symbol, side, entry, sl, tp, limitPrice, marketPrice, orderType: requestedType, pending, sizingMode: 'lots', manualLots: lots, expiration: 'GTC', stage: 'planning', open: false });
   };
 
   const cancelPlan = () => {
