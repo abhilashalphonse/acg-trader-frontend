@@ -442,9 +442,11 @@ export default function TradingTerminalV2({
   };
 
   const reversePosition = async id => {
-    if (!exposure.allowed) { showNotice(exposure.reason); return; }
     const position = positions.find(item => String(item.id) === String(id));
     if (!position) return;
+    const instrument = markets.find(item => item.symbol === position.symbol) || market;
+    const reverseExposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market: instrument, commandState: trading.commandState });
+    if (!reverseExposure.allowed) { showNotice(reverseExposure.reason); return; }
     try {
       const result = await trading.reversePosition(id);
       setTradePlan(null);
