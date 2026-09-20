@@ -294,7 +294,7 @@ export default function DesktopWatchlist({
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col" onKeyDown={onKeyDown}>
+    <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden" onKeyDown={onKeyDown}>
       <div className="relative flex h-11 shrink-0 items-center justify-between border-b border-white/[0.06] px-2.5">
         <div className="min-w-0">
           {mode === 'markets' ? (
@@ -370,7 +370,7 @@ export default function DesktopWatchlist({
         <span />
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto outline-none" tabIndex={0}>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain outline-none [scrollbar-gutter:stable] [scrollbar-width:thin]" tabIndex={0}>
         {!rows.length && <div className="grid h-28 place-items-center px-4 text-center text-[8px] text-[#6F8191]">{search ? 'No markets match this search.' : marketView === 'recent' ? 'Recently viewed markets will appear here.' : 'No instruments are available for this filter.'}</div>}
         {rows.map(item => {
           const selected = item.symbol === activeSymbol;
