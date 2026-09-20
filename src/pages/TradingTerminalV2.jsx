@@ -379,6 +379,24 @@ export default function TradingTerminalV2({
     }
   };
 
+  const closePositionSet = async (predicate, label) => {
+    const targets = positions.filter(predicate);
+    if (!targets.length) {
+      showNotice(`No ${label.toLowerCase()} positions to close`);
+      return;
+    }
+    const results = await Promise.allSettled(targets.map(position => trading.closePosition(position.id, 100)));
+    const closed = results.filter(item => item.status === 'fulfilled').length;
+    const failed = results.length - closed;
+    trading.refreshState();
+    logEvent(failed ? 'warning' : 'position', `${label}: ${closed} closed${failed ? `, ${failed} failed` : ''}`);
+    showNotice(failed ? `${closed} closed; ${failed} require attention` : `${closed} positions closed`);
+  };
+
+  const closeWinners = () => closePositionSet(position => Number(position.pnl) > 0, 'Close winners');
+  const closeLosers = () => closePositionSet(position => Number(position.pnl) < 0, 'Close losers');
+  const closeSymbolPositions = symbol => closePositionSet(position => position.symbol === symbol, `Close ${symbol}`);
+
   const updatePosition = async (id, patch) => {
     const position = positions.find(item => String(item.id) === String(id));
     if (!position || (!Object.prototype.hasOwnProperty.call(patch, 'sl') && !Object.prototype.hasOwnProperty.call(patch, 'tp'))) return;
@@ -671,6 +689,9 @@ export default function TradingTerminalV2({
           journal={journal}
           onClosePosition={closePosition}
           onCloseAllPositions={closeAllPositions}
+          onCloseWinners={closeWinners}
+          onCloseLosers={closeLosers}
+          onCloseSymbolPositions={closeSymbolPositions}
           onBreakEven={movePositionToBreakEven}
           onReversePosition={reversePosition}
           onUpdatePosition={updatePosition}
