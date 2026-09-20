@@ -63,9 +63,10 @@ export default function DesktopMultiChart({
       <div className={`grid min-h-0 flex-1 gap-px bg-white/[0.08] ${cellGrid(layout)}`}>
         {Array.from({ length: layout }, (_, index) => {
           const cell = cells[index] || {};
-          const symbol = cell.symbol || (index === 0 ? activeSymbol : markets[index]?.symbol) || activeSymbol;
-          const timeframe = cell.timeframe || '1m';
-          const instrument = marketFor(markets, symbol) || marketFor(markets, activeSymbol);
+          const requestedSymbol = cell.symbol || (index === 0 ? activeSymbol : markets[index]?.symbol) || activeSymbol;
+          const instrument = marketFor(markets, requestedSymbol) || marketFor(markets, activeSymbol) || markets[0] || null;
+          const symbol = instrument?.symbol || activeSymbol || '';
+          const timeframe = TIMEFRAMES.includes(cell.timeframe) ? cell.timeframe : '1m';
           const isActive = index === activeCell;
           const cellPositions = positions.filter(position => position.symbol === symbol);
           return (
