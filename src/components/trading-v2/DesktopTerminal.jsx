@@ -545,7 +545,7 @@ export default function DesktopTerminal({
           }}
         >
           {marketPanelOpen && (
-            <aside className="min-h-0 overflow-hidden border-r border-white/[0.06] bg-[#07090B]" style={{ gridColumn: '1', gridRow: '1' }}>
+            <aside className="flex h-full min-h-0 overflow-hidden border-r border-white/[0.06] bg-[#07090B]" style={{ gridColumn: '1', gridRow: '1' }}>
               <DesktopWatchlist
                 markets={markets}
                 activeSymbol={activeSymbol}
