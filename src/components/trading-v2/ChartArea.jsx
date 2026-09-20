@@ -83,14 +83,16 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
               <button
                 type="button"
                 onClick={event => { event.stopPropagation(); onSelectPosition(position.id); }}
-                className={`pointer-events-auto absolute left-2 top-1/2 flex -translate-y-1/2 items-center gap-1.5 rounded border bg-[#07131a]/95 px-1.5 py-1 text-[7px] font-black text-[#bfe9ff] shadow-[0_4px_14px_rgba(0,0,0,.35)] ${String(selectedPositionId) === String(position.id) ? 'border-[#59C7FF] ring-1 ring-[#59C7FF]/30' : 'border-[#315b72]'}`}
+                className={`pointer-events-auto absolute left-3 top-1/2 flex -translate-y-1/2 items-center gap-2 rounded-md border bg-black/92 px-2 py-1 text-[10px] font-semibold shadow-[0_6px_18px_rgba(0,0,0,.34)] backdrop-blur-sm ${String(selectedPositionId) === String(position.id) ? 'border-[#59C7FF]/70 ring-1 ring-[#59C7FF]/20' : 'border-white/[0.10]'}`}
                 aria-label={`Select ${side} ${position.symbol || symbol} position`}
               >
-                <span className={side === 'BUY' ? 'text-[#3bd9a3]' : 'text-[#ff6c78]'}>{side}</span>
-                <span>{Number.isFinite(lots) ? lots.toFixed(2) : '—'} lot</span>
-                <span className="font-mono text-[#d7e8f3]">{formatInstrumentPrice(entry, instrument)}</span>
+                <span className={`font-bold ${side === 'BUY' ? 'text-[#3bd9a3]' : 'text-[#ff6c78]'}`}>{side}</span>
+                <span className="text-[#A3ADB7]">·</span>
+                <span className="text-[#DCE3E9]">{Number.isFinite(lots) ? lots.toFixed(2) : '—'} lot</span>
+                <span className="hidden text-[#747F89] xl:inline">Entry</span>
+                <span className="font-mono tabular-nums text-[#F2F5F7]">{formatInstrumentPrice(entry, instrument)}</span>
               </button>
-              <span className={`absolute right-2 top-1/2 -translate-y-1/2 rounded border bg-[#070707]/95 px-1.5 py-1 font-mono text-[8px] font-black tabular-nums shadow-[0_4px_14px_rgba(0,0,0,.35)] ${positive ? 'border-[#245b48] text-[#42dda7]' : 'border-[#642c35] text-[#ff6f7b]'}`}>
+              <span className={`absolute right-2 top-1/2 -translate-y-1/2 rounded-md border bg-black/94 px-2 py-1 font-mono text-[10px] font-bold tabular-nums shadow-[0_4px_14px_rgba(0,0,0,.30)] ${positive ? 'border-[#245b48] text-[#42dda7]' : 'border-[#642c35] text-[#ff6f7b]'}`}>
                 {Number.isFinite(pnl) ? formatProjectedPnl(pnl, currency) : 'OPEN'}
               </span>
             </div>
@@ -404,12 +406,8 @@ export default function ChartArea({
 
         {desktopEnhanced && (
           <div className="absolute right-[74px] top-2 z-30 flex items-center gap-1">
-            <div className="pointer-events-none mr-1 flex h-7 items-center gap-2 rounded border border-white/[0.06] bg-[#07090B]/92 px-2.5 font-mono text-[8px] tabular-nums text-[#6F8191]">
-              <span>B <b className="text-[#64bdff]">{formatInstrumentPrice(price, instrument)}</b></span>
-              <span className="text-[#3f4f5e]">/</span>
-              <span>A <b className="text-[#ff7882]">{formatInstrumentPrice(ask, instrument)}</b></span>
-              <span className="text-[#3f4f5e]">·</span>
-              <span>{(() => { const pip = instrumentPipSize(instrument); const bid = Number(price); const askValue = Number(ask); return Number.isFinite(pip) && pip > 0 && Number.isFinite(bid) && Number.isFinite(askValue) ? `${(Math.abs(askValue - bid) / pip).toFixed(1)}p` : '—'; })()}</span>
+            <div className="pointer-events-none mr-1 flex h-7 items-center rounded-md border border-white/[0.06] bg-black/86 px-2.5 text-[9px] font-medium tabular-nums text-[#7E8994] backdrop-blur-sm">
+              <span>Spread&nbsp;<b className="font-mono font-semibold text-[#B9C2CA]">{(() => { const pip = instrumentPipSize(instrument); const bid = Number(price); const askValue = Number(ask); return Number.isFinite(pip) && pip > 0 && Number.isFinite(bid) && Number.isFinite(askValue) ? `${(Math.abs(askValue - bid) / pip).toFixed(1)}p` : '—'; })()}</b></span>
             </div>
             <button type="button" onClick={() => coordinateApi?.resetView?.()} className="grid size-7 place-items-center rounded border border-white/[0.06] bg-[#07090B]/92 text-[#6F8191] hover:text-[#E6EDF3]" title="Reset chart view"><RotateCcw size={11}/></button>
             <button type="button" onClick={() => coordinateApi?.fitContent?.()} className="grid size-7 place-items-center rounded border border-white/[0.06] bg-[#07090B]/92 text-[#6F8191] hover:text-[#E6EDF3]" title="Fit chart"><ScanLine size={11}/></button>
