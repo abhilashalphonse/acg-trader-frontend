@@ -603,6 +603,10 @@ export default function TradingTerminalV2({
     const side = String(setup.side).toLowerCase();
     if (!['buy', 'sell'].includes(side)) return;
     const livePrice = Number(side === 'buy' ? instrument.ask : instrument.bid);
+    if (!Number.isFinite(livePrice) || livePrice <= 0) {
+      showNotice('Live market price is unavailable — risk setup was not loaded');
+      return;
+    }
     const rawEntry = Number(setup.entry);
     const rawSl = Number(setup.sl);
     const rawTp = Number(setup.tp);
