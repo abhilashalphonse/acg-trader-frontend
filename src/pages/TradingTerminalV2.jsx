@@ -584,8 +584,8 @@ export default function TradingTerminalV2({
     const defaultSl = normalizeProtectionPrice(side === 'buy' ? entry - 4.2 * pip : entry + 4.2 * pip, market, sideUpper, 'sl');
     const defaultTp = normalizeProtectionPrice(side === 'buy' ? entry + 8.4 * pip : entry - 8.4 * pip, market, sideUpper, 'tp');
     const protection = options?.protection || 'both';
-    const sl = protection === 'tp' ? null : defaultSl;
-    const tp = protection === 'sl' ? null : defaultTp;
+    const sl = protection === 'tp' || protection === 'none' ? null : defaultSl;
+    const tp = protection === 'sl' || protection === 'none' ? null : defaultTp;
     const limitPrice = requestedType === 'stop-limit'
       ? normalizePriceToTick(side === 'buy' ? entry + 1.5 * pip : entry - 1.5 * pip, market, pendingPriceDirection(requestedType, sideUpper, 'limit'))
       : null;
