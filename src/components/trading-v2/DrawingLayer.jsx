@@ -284,7 +284,14 @@ export default function DrawingLayer({
     if (typeof window === 'undefined') return;
     try { window.localStorage.setItem(storageKey(symbol), JSON.stringify(drawings)); } catch { /* Keep current session state. */ }
     onDrawingCountChange(drawings.length);
-  }, [drawings, onDrawingCountChange, symbol]);
+    window.dispatchEvent(new CustomEvent('acg-trader-drawings-change', {
+      detail: {
+        symbol: String(symbol || '').toUpperCase(),
+        drawings: cloneDrawings(drawings),
+        selectedId,
+      },
+    }));
+  }, [drawings, onDrawingCountChange, selectedId, symbol]);
 
   useEffect(() => {
     const node = svgRef.current;
@@ -303,6 +310,66 @@ export default function DrawingLayer({
     if (!coordinateApi?.subscribe) return undefined;
     return coordinateApi.subscribe(() => setCoordinateRevision(value => value + 1));
   }, [coordinateApi]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const normalizedSymbol = String(symbol || '').toUpperCase();
+
+    const publish = () => {
+      window.dispatchEvent(new CustomEvent('acg-trader-drawings-change', {
+        detail: {
+          symbol: normalizedSymbol,
+          drawings: cloneDrawings(history.present),
+          selectedId,
+        },
+      }));
+    };
+
+    const handleRequest = event => {
+      const requestedSymbol = String(event?.detail?.symbol || '').toUpperCase();
+      if (requestedSymbol && requestedSymbol !== normalizedSymbol) return;
+      publish();
+    };
+
+    const handleCommand = event => {
+      const detail = event?.detail || {};
+      const requestedSymbol = String(detail.symbol || '').toUpperCase();
+      if (requestedSymbol !== normalizedSymbol || !detail.id) return;
+      const drawing = history.present.find(item => item.id === detail.id);
+      if (!drawing) return;
+
+      if (detail.action === 'select' || detail.action === 'focus' || detail.action === 'settings') {
+        setSelectedId(detail.id);
+        setContextMenu(null);
+        if (detail.action === 'settings') setSettingsOpen(true);
+        if (detail.action === 'focus') coordinateApi?.focusTime?.(drawing.a?.time);
+        return;
+      }
+
+      if (detail.action === 'toggle-lock') {
+        commit(current => current.map(item => item.id === detail.id ? { ...item, locked: !item.locked } : item));
+        return;
+      }
+
+      if (detail.action === 'toggle-visibility') {
+        commit(current => current.map(item => item.id === detail.id ? { ...item, hidden: !item.hidden } : item));
+        return;
+      }
+
+      if (detail.action === 'delete') {
+        commit(current => current.filter(item => item.id !== detail.id));
+        if (selectedId === detail.id) setSelectedId(null);
+        setSettingsOpen(false);
+      }
+    };
+
+    window.addEventListener('acg-trader-drawings-request', handleRequest);
+    window.addEventListener('acg-trader-drawing-command', handleCommand);
+    return () => {
+      window.removeEventListener('acg-trader-drawings-request', handleRequest);
+      window.removeEventListener('acg-trader-drawing-command', handleCommand);
+    };
+  }, [coordinateApi, history.present, selectedId, symbol]);
 
   const commit = next => {
     setHistory(current => ({
