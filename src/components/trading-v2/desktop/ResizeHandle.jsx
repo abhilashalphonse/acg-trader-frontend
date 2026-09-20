@@ -8,6 +8,8 @@ export default function ResizeHandle({
   onChange,
   className = '',
   ariaLabel = 'Resize panel',
+  deltaMultiplier = 1,
+  style,
 }) {
   const onPointerDown = event => {
     event.preventDefault();
@@ -16,7 +18,7 @@ export default function ResizeHandle({
 
     const move = moveEvent => {
       const point = axis === 'x' ? moveEvent.clientX : moveEvent.clientY;
-      const delta = point - startPoint;
+      const delta = (point - startPoint) * deltaMultiplier;
       const next = Math.max(min, Math.min(max, startValue + delta));
       onChange(next);
     };
@@ -40,6 +42,7 @@ export default function ResizeHandle({
       aria-label={ariaLabel}
       onPointerDown={onPointerDown}
       className={`group relative z-40 shrink-0 touch-none bg-transparent outline-none ${axis === 'x' ? 'w-1 cursor-col-resize' : 'h-1 cursor-row-resize'} ${className}`}
+      style={style}
     >
       <span className={`absolute bg-white/[0.06] transition group-hover:bg-[#53c7ff]/70 ${axis === 'x' ? 'inset-y-0 left-1/2 w-px -translate-x-1/2' : 'inset-x-0 top-1/2 h-px -translate-y-1/2'}`} />
     </button>
