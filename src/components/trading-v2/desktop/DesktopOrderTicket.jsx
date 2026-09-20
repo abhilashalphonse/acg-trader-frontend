@@ -149,9 +149,8 @@ export default function DesktopOrderTicket({
 
   const previewMargin = useMemo(() => {
     const price = Number(tradePlan?.entry ?? market?.ask);
-    const previewLots = Number(planMetrics?.lots ?? normalizedLots);
-    return estimateRequiredMargin(price, previewLots, market, account);
-  }, [account, market, normalizedLots, planMetrics?.lots, tradePlan?.entry]);
+    return estimateRequiredMargin(price, normalizedLots, market, account);
+  }, [account, market, normalizedLots, tradePlan?.entry]);
 
   const freeMargin = Number(account?.freeMargin);
   const freeAfter = Number.isFinite(freeMargin) && Number.isFinite(previewMargin) ? freeMargin - previewMargin : null;
@@ -633,8 +632,16 @@ export default function DesktopOrderTicket({
           <FieldMetric label="Leverage" value={effectiveLeverage(account, market) ? `1:${effectiveLeverage(account, market)}` : '—'} />
           <FieldMetric label="Margin" value={money(previewMargin, currency)} />
           <FieldMetric label="Free after" value={money(freeAfter, currency)} tone={Number.isFinite(freeAfter) && freeAfter < 0 ? 'danger' : 'default'} />
-          <FieldMetric label="Risk at SL" value={Number.isFinite(planMetrics?.riskAmount) ? money(planMetrics.riskAmount, currency) : '—'} tone={Number.isFinite(riskBufferUsage) && riskBufferUsage >= 50 ? 'danger' : 'default'} />
-          <FieldMetric label="R:R" value={Number.isFinite(planMetrics?.rr) ? `1:${planMetrics.rr.toFixed(2)}` : '—'} tone="accent" />
+          <FieldMetric
+            label="Risk at SL"
+            value={Number.isFinite(planMetrics?.riskAmount) ? money(planMetrics.riskAmount, currency) : '—'}
+            tone={activeTool === 'sl' ? 'danger' : Number.isFinite(riskBufferUsage) && riskBufferUsage >= 50 ? 'danger' : 'default'}
+          />
+          <FieldMetric
+            label="R:R"
+            value={Number.isFinite(planMetrics?.rr) ? `1:${planMetrics.rr.toFixed(2)}` : '—'}
+            tone={activeTool === 'sl' || activeTool === 'tp' ? 'accent' : 'default'}
+          />
         </div>
 
         {pendingPlan && orderFamily === 'pending' && (
