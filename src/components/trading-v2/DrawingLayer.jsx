@@ -303,6 +303,17 @@ export default function DrawingLayer({
   }, [drawings.length, onDrawingCountChange]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('acg-trader-drawing-selection-change', {
+      detail: {
+        symbol: String(symbol || '').toUpperCase(),
+        chartInstanceId,
+        selectedId,
+      },
+    }));
+  }, [chartInstanceId, selectedId, symbol]);
+
+  useEffect(() => {
     const node = svgRef.current;
     if (!node || typeof ResizeObserver === 'undefined') return undefined;
     const update = () => {
