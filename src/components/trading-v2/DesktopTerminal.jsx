@@ -208,7 +208,7 @@ export default function DesktopTerminal({
           <button type="button" onClick={onOpenSettings} title="Settings" className="grid size-10 place-items-center rounded-md text-[#65798e] hover:bg-white/[0.03] hover:text-white"><Settings size={16}/></button>
         </aside>
 
-        <div className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)_300px] grid-rows-[minmax(0,1fr)_220px] bg-[#080808] 2xl:grid-cols-[minmax(0,1fr)_340px] 2xl:grid-rows-[minmax(0,1fr)_240px]">
+        <div className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)_360px] grid-rows-[minmax(0,1fr)_190px] bg-[#080808] 2xl:grid-cols-[minmax(0,1fr)_390px] 2xl:grid-rows-[minmax(0,1fr)_220px]">
           <section className="grid min-h-0 min-w-0 grid-rows-[48px_28px_38px_minmax(0,1fr)]">
             <div className="flex items-center border-b border-white/[0.08] bg-[#080808] px-3">
               <div className="flex min-w-[210px] items-center gap-2">
@@ -292,13 +292,19 @@ export default function DesktopTerminal({
               })}
             </div>
 
-            <div className="shrink-0 border-t border-white/[0.08] bg-black/20 px-2 pb-2">
-              <ExecutionPanel market={market} account={account} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange}/>
+            <div className="shrink-0 border-t border-white/[0.08] bg-black/30">
+              <div className="flex h-8 items-center justify-between border-b border-white/[0.06] px-2.5">
+                <strong className="text-[8px] font-extrabold uppercase tracking-[0.08em] text-[#c5d0da]">Order</strong>
+                <span className="text-[7px] text-[#5f7388]">1-click execution</span>
+              </div>
+              <div className="px-2 pb-2">
+                <ExecutionPanel desktopSidebar market={market} account={account} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange}/>
+              </div>
             </div>
           </aside>
 
-          <div className="col-span-2 min-h-0 overflow-y-auto border-t border-white/[0.08] bg-[#080808] px-2 pb-2">
-            <PositionsPanel positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending}/>
+          <div className="col-span-2 min-h-0 overflow-auto border-t border-white/[0.08] bg-[#080808]">
+            <PositionsPanel desktopDense positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending}/>
           </div>
         </div>
       </div>
