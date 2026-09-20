@@ -1,5 +1,4 @@
 import React from 'react';
-import { Columns2, Grid2X2, Link2, Link2Off, Square } from 'lucide-react';
 import ChartArea from '../ChartArea.jsx';
 import InstrumentAvatar from '../InstrumentAvatar.jsx';
 
@@ -48,24 +47,8 @@ export default function DesktopMultiChart({
     patch({ cells: next, ...extra });
   };
 
-  const setLayout = nextLayout => patch({ layout: nextLayout, activeCell: Math.min(activeCell, nextLayout - 1) });
-
   return (
     <div className="flex h-full min-h-0 flex-col bg-black">
-      <div className={`flex shrink-0 items-center gap-1 border-b border-white/[0.06] bg-[#07090B] px-2 ${singleChart ? 'h-7 justify-end' : 'h-9'}`}>
-        {!singleChart && <span className="mr-1 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#6F8191]">Charts</span>}
-        <button type="button" onClick={() => setLayout(1)} className={`grid size-6 place-items-center rounded ${layout===1?'bg-white/[0.06] text-[#59C7FF]':'text-[#6F8191] hover:text-white'}`} title="Single chart"><Square size={11}/></button>
-        <button type="button" onClick={() => setLayout(2)} className={`grid size-6 place-items-center rounded ${layout===2?'bg-white/[0.06] text-[#59C7FF]':'text-[#6F8191] hover:text-white'}`} title="Two charts"><Columns2 size={12}/></button>
-        <button type="button" onClick={() => setLayout(4)} className={`grid size-6 place-items-center rounded ${layout===4?'bg-white/[0.06] text-[#59C7FF]':'text-[#6F8191] hover:text-white'}`} title="Four charts"><Grid2X2 size={12}/></button>
-        {!singleChart && (
-          <>
-            <div className="mx-1 h-4 w-px bg-white/[0.07]"/>
-            <button type="button" onClick={() => patch({ linked: !linked })} className={`flex h-7 items-center gap-1.5 rounded px-2 text-[8px] font-semibold ${linked?'bg-[#0d1a22] text-[#59C7FF]':'text-[#6F8191] hover:text-white'}`} title="Link symbols across charts">{linked?<Link2 size={10}/>:<Link2Off size={10}/>}Link symbols</button>
-            <span className="ml-auto text-[8px] text-[#6F8191]">Active chart drives symbol selection</span>
-          </>
-        )}
-      </div>
-
       <div className={`grid min-h-0 flex-1 gap-px bg-white/[0.08] ${cellGrid(layout)}`}>
         {Array.from({ length: layout }, (_, index) => {
           const cell = cells[index] || {};
