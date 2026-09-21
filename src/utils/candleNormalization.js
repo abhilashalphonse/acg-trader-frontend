@@ -12,6 +12,10 @@ function normalizeEpochSeconds(value) {
   return Math.floor(numeric);
 }
 
+function normalizedVolumeMode(value) {
+  return ['provider', 'tick', 'unavailable'].includes(value) ? value : null;
+}
+
 export function normalizeCandle(candle) {
   const time = normalizeEpochSeconds(
     candle?.time ?? (candle?.openTimeMs == null ? null : Number(candle.openTimeMs) / 1000),
@@ -32,14 +36,21 @@ export function normalizeCandle(candle) {
   const providerVolumeBaseline = nullableNonNegativeNumber(candle?.providerVolumeBaseline);
   const providerVolumeLiveAnchor = nullableNonNegativeNumber(candle?.providerVolumeLiveAnchor);
   const tickCount = nullableNonNegativeNumber(candle?.tickCount);
+  const volumeMode = normalizedVolumeMode(candle?.volumeMode);
+  const displayVolume = nullableNonNegativeNumber(candle?.displayVolume);
+  const backendVolumeSource = ['provider', 'tick', 'unavailable'].includes(candle?.volumeSource)
+    ? candle.volumeSource
+    : null;
+  const hasAuthoritativeVolume = volumeMode != null || Object.prototype.hasOwnProperty.call(candle || {}, 'displayVolume');
+
   const hasProviderActivity = providerVolume != null && providerVolume > 0;
   const hasTickActivity = tickCount != null && tickCount > 0;
-  const volume = hasProviderActivity
+  const legacyVolume = hasProviderActivity
     ? providerVolume
     : hasTickActivity
       ? tickCount
       : providerVolume ?? tickCount;
-  const volumeSource = hasProviderActivity
+  const legacyVolumeSource = hasProviderActivity
     ? 'provider'
     : hasTickActivity
       ? 'tick'
@@ -48,6 +59,11 @@ export function normalizeCandle(candle) {
         : tickCount != null
           ? 'tick'
           : null;
+
+  const volume = hasAuthoritativeVolume ? displayVolume : legacyVolume;
+  const volumeSource = hasAuthoritativeVolume
+    ? (backendVolumeSource || (volumeMode === 'unavailable' ? 'unavailable' : volumeMode))
+    : legacyVolumeSource;
 
   return {
     time,
@@ -59,6 +75,8 @@ export function normalizeCandle(candle) {
     providerVolumeBaseline,
     providerVolumeLiveAnchor,
     tickCount,
+    displayVolume,
+    volumeMode,
     volume,
     volumeSource,
     complete: Boolean(candle?.complete),

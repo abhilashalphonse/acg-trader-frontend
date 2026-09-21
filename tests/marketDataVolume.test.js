@@ -127,3 +127,63 @@ test('live candle updates fall back to growing tick volume when provider volume 
   assert.equal(merged[0].volume, 14);
   assert.equal(merged[0].volumeSource, 'tick');
 });
+
+
+test('prefers backend-authoritative display volume without changing OHLC', () => {
+  const normalized = normalizeCandle(candle({
+    displayVolume: 88,
+    volumeMode: 'tick',
+    volumeSource: 'tick',
+    providerVolume: 9000,
+    tickCount: 88,
+  }));
+
+  assert.equal(normalized.open, 100);
+  assert.equal(normalized.high, 105);
+  assert.equal(normalized.low, 99);
+  assert.equal(normalized.close, 103);
+  assert.equal(normalized.volume, 88);
+  assert.equal(normalized.volumeSource, 'tick');
+  assert.equal(normalized.volumeMode, 'tick');
+});
+
+test('authoritative tick mode never switches to a large provider value on a live update', () => {
+  const history = [normalizeCandle(candle({
+    providerVolume: 0,
+    tickCount: 40,
+    displayVolume: 40,
+    volumeMode: 'tick',
+    volumeSource: 'tick',
+  }))];
+  const live = candle({
+    providerVolume: 5000,
+    tickCount: 47,
+    displayVolume: 47,
+    volumeMode: 'tick',
+    volumeSource: 'tick',
+    close: 104,
+  });
+
+  const merged = mergeLiveCandleIntoSeries(history, live, 10);
+  assert.equal(merged[0].volume, 47);
+  assert.equal(merged[0].displayVolume, 47);
+  assert.equal(merged[0].volumeSource, 'tick');
+  assert.equal(merged[0].close, 104);
+});
+
+test('unavailable volume mode does not fall back to live tick count', () => {
+  const history = [normalizeCandle(candle({
+    providerVolume: null,
+    tickCount: 0,
+    displayVolume: null,
+    volumeMode: 'unavailable',
+    volumeSource: 'unavailable',
+  }))];
+  const live = candle({ providerVolume: 5000, tickCount: 80, close: 104 });
+
+  const merged = mergeLiveCandleIntoSeries(history, live, 10);
+  assert.equal(merged[0].volume, null);
+  assert.equal(merged[0].displayVolume, null);
+  assert.equal(merged[0].volumeSource, 'unavailable');
+  assert.equal(merged[0].close, 104);
+});

@@ -68,6 +68,36 @@ function mergeProviderVolume(previous, live) {
   };
 }
 
+function authoritativeVolume(previous, live, tickCount) {
+  const mode = live?.volumeMode || previous?.volumeMode || null;
+  if (!mode) return null;
+
+  if (mode === 'unavailable') {
+    return { mode, volume: null, displayVolume: null, volumeSource: 'unavailable' };
+  }
+
+  // Trust displayVolume only when the live candle explicitly carries the same
+  // backend-selected mode. A pre-history websocket fragment has no mode yet.
+  if (live?.volumeMode === mode) {
+    return {
+      mode,
+      volume: nonNegative(live.displayVolume),
+      displayVolume: nonNegative(live.displayVolume),
+      volumeSource: live.volumeSource || mode,
+    };
+  }
+
+  if (mode === 'tick') {
+    const volume = nonNegative(live?.tickCount) ?? tickCount ?? nonNegative(previous?.tickCount);
+    return { mode, volume, displayVolume: volume, volumeSource: volume == null ? 'unavailable' : 'tick' };
+  }
+
+  // For provider mode, retain the REST/history baseline until the backend
+  // starts emitting reconciled displayVolume for this candle.
+  const volume = nonNegative(previous?.displayVolume) ?? nonNegative(previous?.volume);
+  return { mode, volume, displayVolume: volume, volumeSource: volume == null ? 'unavailable' : 'provider' };
+}
+
 export function mergeLiveCandleIntoSeries(series = [], bar, outputsize = 500) {
   const normalized = normalizeCandle(bar);
   const bars = normalizeCandleSeries(series);
@@ -75,39 +105,79 @@ export function mergeLiveCandleIntoSeries(series = [], bar, outputsize = 500) {
 
   const last = bars[bars.length - 1];
   if (last?.time === normalized.time) {
-    const provider = mergeProviderVolume(last, normalized);
     const tickCount = Math.max(
       nonNegative(last.tickCount) ?? 0,
       nonNegative(normalized.tickCount) ?? 0,
     );
-    const providerVolume = positive(provider.providerVolume);
-    const hasTicks = tickCount > 0;
-    const volume = providerVolume ?? (hasTicks ? tickCount : 0);
-    const volumeSource = providerVolume != null ? 'provider' : hasTicks ? 'tick' : null;
+    const authoritative = authoritativeVolume(last, normalized, tickCount);
 
-    bars[bars.length - 1] = {
-      ...last,
-      ...normalized,
-      open: last.open,
-      high: Math.max(last.high, normalized.high, normalized.open, normalized.close),
-      low: Math.min(last.low, normalized.low, normalized.open, normalized.close),
-      close: normalized.close,
-      providerVolume: provider.providerVolume,
-      providerVolumeBaseline: provider.providerVolumeBaseline,
-      providerVolumeLiveAnchor: provider.providerVolumeLiveAnchor,
-      tickCount,
-      volume,
-      volumeSource,
-      complete: false,
-      synthetic: Boolean(last.synthetic && normalized.synthetic),
-    };
+    if (authoritative) {
+      bars[bars.length - 1] = {
+        ...last,
+        ...normalized,
+        open: last.open,
+        high: Math.max(last.high, normalized.high, normalized.open, normalized.close),
+        low: Math.min(last.low, normalized.low, normalized.open, normalized.close),
+        close: normalized.close,
+        providerVolume: normalized.providerVolume ?? last.providerVolume,
+        tickCount,
+        displayVolume: authoritative.displayVolume,
+        volumeMode: authoritative.mode,
+        volume: authoritative.volume,
+        volumeSource: authoritative.volumeSource,
+        complete: false,
+        synthetic: Boolean(last.synthetic && normalized.synthetic),
+      };
+    } else {
+      // Compatibility path for an older backend during rollout/rollback.
+      const provider = mergeProviderVolume(last, normalized);
+      const providerVolume = positive(provider.providerVolume);
+      const hasTicks = tickCount > 0;
+      const volume = providerVolume ?? (hasTicks ? tickCount : 0);
+      const volumeSource = providerVolume != null ? 'provider' : hasTicks ? 'tick' : null;
+
+      bars[bars.length - 1] = {
+        ...last,
+        ...normalized,
+        open: last.open,
+        high: Math.max(last.high, normalized.high, normalized.open, normalized.close),
+        low: Math.min(last.low, normalized.low, normalized.open, normalized.close),
+        close: normalized.close,
+        providerVolume: provider.providerVolume,
+        providerVolumeBaseline: provider.providerVolumeBaseline,
+        providerVolumeLiveAnchor: provider.providerVolumeLiveAnchor,
+        tickCount,
+        volume,
+        volumeSource,
+        complete: false,
+        synthetic: Boolean(last.synthetic && normalized.synthetic),
+      };
+    }
   } else if (!last || normalized.time > last.time) {
-    const providerVolume = positive(normalized.providerVolume);
-    bars.push({
-      ...normalized,
-      providerVolumeBaseline: providerVolume != null ? 0 : null,
-      providerVolumeLiveAnchor: providerVolume != null ? 0 : null,
-    });
+    const inheritedMode = normalized.volumeMode || last?.volumeMode || null;
+    if (inheritedMode && !normalized.volumeMode) {
+      const volume = inheritedMode === 'tick'
+        ? nonNegative(normalized.tickCount)
+        : inheritedMode === 'provider'
+          ? nonNegative(normalized.providerVolume)
+          : null;
+      bars.push({
+        ...normalized,
+        displayVolume: volume,
+        volumeMode: inheritedMode,
+        volume,
+        volumeSource: volume == null ? 'unavailable' : inheritedMode,
+      });
+    } else if (inheritedMode) {
+      bars.push(normalized);
+    } else {
+      const providerVolume = positive(normalized.providerVolume);
+      bars.push({
+        ...normalized,
+        providerVolumeBaseline: providerVolume != null ? 0 : null,
+        providerVolumeLiveAnchor: providerVolume != null ? 0 : null,
+      });
+    }
   }
 
   return bars.slice(-outputsize);
