@@ -29,6 +29,8 @@ export function normalizeCandle(candle) {
   const low = Math.min(rawLow, open, close);
 
   const providerVolume = nullableNonNegativeNumber(candle?.providerVolume);
+  const providerVolumeBaseline = nullableNonNegativeNumber(candle?.providerVolumeBaseline);
+  const providerVolumeLiveAnchor = nullableNonNegativeNumber(candle?.providerVolumeLiveAnchor);
   const tickCount = nullableNonNegativeNumber(candle?.tickCount);
   const hasProviderActivity = providerVolume != null && providerVolume > 0;
   const hasTickActivity = tickCount != null && tickCount > 0;
@@ -54,6 +56,8 @@ export function normalizeCandle(candle) {
     low,
     close,
     providerVolume,
+    providerVolumeBaseline,
+    providerVolumeLiveAnchor,
     tickCount,
     volume,
     volumeSource,
