@@ -203,7 +203,23 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
   }), [directions, gatewayStatus, instruments, market.quotesBySymbol, subscribedSet]);
 
   const activeQuote = activeSymbol ? market.quotesBySymbol[activeSymbol] : null;
-  const activeRaw = activeSymbol ? (market.ticksBySymbol[activeSymbol] || activeQuote || null) : null;
+  const activeStreamTick = activeSymbol ? market.ticksBySymbol[activeSymbol] : null;
+  const freshnessMs = value => {
+    const candidates = [value?.receivedAtMs, value?.timeMs, value?.providerTimestampMs];
+    for (const candidate of candidates) {
+      const number = Number(candidate);
+      if (Number.isFinite(number) && number > 0) return number;
+    }
+    const seconds = Number(value?.time ?? value?.timestamp);
+    return Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 0;
+  };
+  const activeRaw = !activeStreamTick
+    ? activeQuote
+    : !activeQuote
+      ? activeStreamTick
+      : freshnessMs(activeQuote) > freshnessMs(activeStreamTick)
+        ? activeQuote
+        : activeStreamTick;
   const activeTick = normalizeActiveTick(activeRaw);
   const activeMarket = markets.find(item => item.symbol === activeSymbol) || null;
   const status = gatewayStatus?.state || market.status?.state || (authenticated ? connection.status : (error ? 'ERROR' : 'PUBLIC'));
