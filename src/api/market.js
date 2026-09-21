@@ -33,9 +33,14 @@ export const marketApi = Object.freeze({
     });
   },
 
-  candles({ symbol, timeframe, limit = 160 }, signal) {
+  candles({ symbol, timeframe, limit = 160, before = null }, signal) {
     return apiRequest('/v1/market/candles', {
-      query: { symbol, timeframe, limit },
+      query: {
+        symbol,
+        timeframe,
+        limit,
+        ...(before == null ? {} : { before }),
+      },
       signal,
     });
   },

@@ -8,7 +8,16 @@ import {
   LineStyle,
   createChart,
 } from 'lightweight-charts';
-import { fetchCandles, mergeLiveBarIntoCache, mergeLiveCandleIntoSeries, normalizeCandle, toBackendTimeframe } from '../services/marketData.js';
+import {
+  fetchCandlePage,
+  invalidateCandleCache,
+  mergeLiveBarIntoCache,
+  mergeLiveCandleIntoSeries,
+  normalizeCandle,
+  prependHistoricalCandles,
+  reconcileLatestCandles,
+  toBackendTimeframe,
+} from '../services/marketData.js';
 import { useTraderAuth } from '../hooks/useTraderAuth.js';
 import { useTradingStore } from '../hooks/useTradingStore.js';
 import { calculateIndicatorData, indicatorVisibleOnTimeframe, requiredIndicatorHistory } from '../utils/indicators.js';
@@ -29,6 +38,13 @@ const chartTokens = {
 };
 const DEFAULT_BARS_BACK = 44;
 const DEFAULT_RIGHT_BARS = 7;
+const HISTORY_PREFETCH_BARS = 120;
+const DESKTOP_INITIAL_HISTORY = 750;
+const MOBILE_INITIAL_HISTORY = 320;
+const DESKTOP_HISTORY_PAGE = 750;
+const MOBILE_HISTORY_PAGE = 320;
+const DESKTOP_MAX_LOADED_BARS = 10_000;
+const MOBILE_MAX_LOADED_BARS = 3_000;
 
 const fallbackIndicatorColors = {
   ema: ['#54c8ff'], sma: ['#f0c35c'], vwap: ['#b38cff'], bollinger: ['#65b6df', '#7f91a4', '#65b6df'], rsi: ['#b68cff'], atr: ['#f0ad5c'], macd: ['#55c8ff', '#ffb55f'], stochastic: ['#58d5ff', '#ff7fbd'],
@@ -97,6 +113,8 @@ export default function TradingChart({
   const autoFollowRef = useRef(true);
   const latestLiveCandleRef = useRef(null);
   const initialLoadCompleteRef = useRef(false);
+  const historyPagingRef = useRef({ hasMore: false, nextBefore: null, loading: false });
+  const loadOlderHistoryRef = useRef(null);
   const previousConnectionStatusRef = useRef(null);
   const historyRecoveryRevision = Number(market?.historyRecoveryRevision || 0);
   const previousHistoryRecoveryRevisionRef = useRef(historyRecoveryRevision);
@@ -136,7 +154,16 @@ export default function TradingChart({
   ]);
   const visibleIndicators = useMemo(() => indicators.filter(item => indicatorVisibleOnTimeframe(item, timeframe)), [indicators, timeframe]);
   const showVolume = useMemo(() => indicators.some(item => item.id === 'volume' && indicatorVisibleOnTimeframe(item, timeframe)), [indicators, timeframe]);
-  const historyLimit = useMemo(() => requiredIndicatorHistory(indicators, timeframe), [indicators, timeframe]);
+  const historyProfile = useMemo(() => {
+    const desktop = typeof window === 'undefined' || window.matchMedia?.('(min-width: 1024px)')?.matches;
+    return desktop
+      ? { initial: DESKTOP_INITIAL_HISTORY, page: DESKTOP_HISTORY_PAGE, max: DESKTOP_MAX_LOADED_BARS }
+      : { initial: MOBILE_INITIAL_HISTORY, page: MOBILE_HISTORY_PAGE, max: MOBILE_MAX_LOADED_BARS };
+  }, []);
+  const historyLimit = useMemo(
+    () => requiredIndicatorHistory(indicators, timeframe, { baseline: historyProfile.initial, max: 1000 }),
+    [historyProfile.initial, indicators, timeframe],
+  );
 
   useEffect(() => { coordinateCallbackRef.current = onCoordinateApi; }, [onCoordinateApi]);
   useEffect(() => { indicatorsRef.current = indicators; }, [indicators]);
@@ -244,28 +271,160 @@ export default function TradingChart({
       const lastIndex = barsRef.current.length - 1;
       if (!range || lastIndex < 0) return;
       autoFollowRef.current = range.to >= lastIndex - 0.5;
+      if (range.from <= HISTORY_PREFETCH_BARS) {
+        void loadOlderHistoryRef.current?.();
+      }
     };
     timeScale.subscribeVisibleLogicalRangeChange(visibleRangeHandler);
     const coordinateApi = { toData(point) { if (!point) return null; const time = timeScale.coordinateToTime(Number(point.x)); const price = series.coordinateToPrice(Number(point.y)); return time == null || price == null || !Number.isFinite(Number(price)) ? null : { time, price: Number(price) }; }, toScreen(point) { if (!point || point.time == null || point.price == null) return null; const x = timeScale.timeToCoordinate(point.time); const y = series.priceToCoordinate(Number(point.price)); return x == null || y == null ? null : { x: Number(x), y: Number(y) }; }, priceToY(price) { const y = series.priceToCoordinate(Number(price)); return y == null ? null : Number(y); }, yToPrice(y) { const price = series.coordinateToPrice(Number(y)); return price == null || !Number.isFinite(Number(price)) ? null : Number(price); }, fitContent() { timeScale.fitContent(); autoFollowRef.current = true; }, focusTime(time) { const numeric = Number(time); const index = barsRef.current.findIndex(bar => Number(bar.time) === numeric); if (index < 0) return; const halfWindow = 22; timeScale.setVisibleLogicalRange({ from: Math.max(0, index - halfWindow), to: Math.min(barsRef.current.length - 1 + DEFAULT_RIGHT_BARS, index + halfWindow) }); autoFollowRef.current = index >= barsRef.current.length - 4; }, resetView() { const lastIndex = barsRef.current.length - 1; if (lastIndex >= 0) timeScale.setVisibleLogicalRange({ from: Math.max(0, lastIndex - DEFAULT_BARS_BACK), to: lastIndex + DEFAULT_RIGHT_BARS }); autoFollowRef.current = true; }, subscribe(handler) { const rangeHandler = () => handler?.(); const sizeHandler = () => handler?.(); timeScale.subscribeVisibleLogicalRangeChange(rangeHandler); timeScale.subscribeSizeChange(sizeHandler); return () => { timeScale.unsubscribeVisibleLogicalRangeChange(rangeHandler); timeScale.unsubscribeSizeChange(sizeHandler); }; } };
     coordinateCallbackRef.current?.(coordinateApi);
     const controller = new AbortController();
     let disposed = false;
+    historyPagingRef.current = { hasMore: false, nextBefore: null, loading: false };
+
+    const setSeriesData = bars => {
+      barsRef.current = bars;
+      barsByTimeRef.current = new Map(bars.map(bar => [Number(bar.time), bar]));
+      series.setData(bars.map(bar => toSeriesPoint(bar, chartMode)));
+      volume.setData(bars.map(bar => {
+        const value = volumeForBar(bar);
+        return value == null ? null : {
+          time: bar.time,
+          value,
+          color: bar.close >= bar.open ? 'rgba(45,211,155,0.34)' : 'rgba(255,95,105,0.32)',
+        };
+      }).filter(Boolean));
+      lastBarRef.current = bars[bars.length - 1] || null;
+      if (lastBarRef.current) setDisplayBar(lastBarRef.current);
+    };
+
+    const loadOlderHistory = async () => {
+      const paging = historyPagingRef.current;
+      if (
+        disposed
+        || paging.loading
+        || !paging.hasMore
+        || !Number.isFinite(Number(paging.nextBefore))
+      ) return;
+
+      const remainingCapacity = Math.max(0, historyProfile.max - barsRef.current.length);
+      if (!remainingCapacity) {
+        paging.hasMore = false;
+        return;
+      }
+
+      const requestLimit = Math.min(1000, historyProfile.page, remainingCapacity);
+      const cursor = Number(paging.nextBefore);
+      paging.loading = true;
+
+      try {
+        const page = await fetchCandlePage(
+          symbol,
+          timeframe,
+          requestLimit,
+          controller.signal,
+          { before: cursor },
+        );
+        if (disposed || controller.signal.aborted) return;
+
+        const visibleBefore = timeScale.getVisibleLogicalRange();
+        const merged = prependHistoricalCandles(
+          barsRef.current,
+          page.bars,
+          historyProfile.max,
+        );
+
+        if (merged.added > 0) {
+          setSeriesData(merged.bars);
+          renderIndicators(chart, merged.bars);
+          // Prepending shifts logical indexes. Shift the viewport by the exact
+          // number of inserted bars so the candle under the cursor does not
+          // move while history loads, matching professional chart behavior.
+          if (visibleBefore) {
+            timeScale.setVisibleLogicalRange({
+              from: visibleBefore.from + merged.added,
+              to: visibleBefore.to + merged.added,
+            });
+          }
+        }
+
+        const nextBefore = Number(page.pagination?.nextBefore);
+        const cursorProgressed = Number.isFinite(nextBefore) && nextBefore < cursor;
+        paging.nextBefore = cursorProgressed
+          ? nextBefore
+          : (merged.bars[0]?.time ? Number(merged.bars[0].time) * 1000 : null);
+        paging.hasMore = Boolean(
+          page.pagination?.hasMore
+          && cursorProgressed
+          && barsRef.current.length < historyProfile.max
+        );
+      } catch (error) {
+        if (error?.name !== 'AbortError' && !disposed) {
+          console.warn('Older candle history load failed', error);
+        }
+      } finally {
+        paging.loading = false;
+      }
+    };
+    loadOlderHistoryRef.current = loadOlderHistory;
+
     const crosshairHandler = param => { if (!param?.time) { setDisplayBar(lastBarRef.current); return; } const bar = barsByTimeRef.current.get(Number(param.time)); if (bar) setDisplayBar(bar); };
     chart.subscribeCrosshairMove(crosshairHandler);
     void (async () => {
       try {
-        const historyBars = await fetchCandles(symbol, timeframe, historyLimit, controller.signal);
+        const page = await fetchCandlePage(symbol, timeframe, historyLimit, controller.signal);
         if (disposed) return;
-        const bars = mergeLiveCandleIntoSeries(historyBars, latestLiveCandleRef.current, historyLimit);
+        const bars = mergeLiveCandleIntoSeries(page.bars, latestLiveCandleRef.current, historyProfile.max);
         if (!bars.length) throw new Error('No market candles returned');
-        barsRef.current = bars; barsByTimeRef.current = new Map(bars.map(bar => [Number(bar.time), bar])); series.setData(bars.map(bar => toSeriesPoint(bar, chartMode))); volume.setData(bars.map(bar => {
-          const value = volumeForBar(bar);
-          return value == null ? null : { time: bar.time, value, color: bar.close >= bar.open ? 'rgba(45,211,155,0.34)' : 'rgba(255,95,105,0.32)' };
-        }).filter(Boolean)); lastBarRef.current = bars[bars.length - 1]; setDisplayBar(bars[bars.length - 1]); renderIndicators(chart, bars); chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, bars.length - DEFAULT_BARS_BACK - 1), to: bars.length - 1 + DEFAULT_RIGHT_BARS }); initialLoadCompleteRef.current = true;
-      } catch (e) { if (e?.name === 'AbortError' || disposed) return; console.error('Trading chart data failed', e); setError(e?.message || 'Unable to load market data'); }
+        setSeriesData(bars);
+        const providerFirstTime = page.bars[0]?.time ?? null;
+        const displayedFirstTime = bars[0]?.time ?? null;
+        const liveMergeTrimmedHistory = providerFirstTime != null
+          && displayedFirstTime != null
+          && displayedFirstTime > providerFirstTime;
+        historyPagingRef.current = {
+          hasMore: Boolean((page.pagination?.hasMore || liveMergeTrimmedHistory) && bars.length < historyProfile.max),
+          nextBefore: displayedFirstTime == null ? null : Number(displayedFirstTime) * 1000,
+          loading: false,
+        };
+        renderIndicators(chart, bars);
+        chart.timeScale().setVisibleLogicalRange({
+          from: Math.max(0, bars.length - DEFAULT_BARS_BACK - 1),
+          to: bars.length - 1 + DEFAULT_RIGHT_BARS,
+        });
+        initialLoadCompleteRef.current = true;
+      } catch (e) {
+        if (e?.name === 'AbortError' || disposed) return;
+        console.error('Trading chart data failed', e);
+        setError(e?.message || 'Unable to load market data');
+      }
     })();
-    return () => { disposed = true; controller.abort(); initialLoadCompleteRef.current = false; timeScale.unsubscribeVisibleLogicalRangeChange(visibleRangeHandler); coordinateCallbackRef.current?.(null); if (indicatorFrameRef.current) window.cancelAnimationFrame(indicatorFrameRef.current); indicatorFrameRef.current = null; chart.unsubscribeCrosshairMove(crosshairHandler); indicatorSeriesRef.current = []; indicatorBindingsRef.current = []; indicatorPanesRef.current = 0; chartRef.current = null; seriesRef.current = null; volumeRef.current = null; marketLineRef.current = null; askLineRef.current = null; positionLinesRef.current = []; lastBarRef.current = null; barsRef.current = []; barsByTimeRef.current = new Map(); chart.remove(); };
-  }, [symbol, timeframe, chartMode, renderIndicators, decimals, minMove, historyLimit]);
+    return () => {
+      disposed = true;
+      controller.abort();
+      initialLoadCompleteRef.current = false;
+      historyPagingRef.current = { hasMore: false, nextBefore: null, loading: false };
+      loadOlderHistoryRef.current = null;
+      timeScale.unsubscribeVisibleLogicalRangeChange(visibleRangeHandler);
+      coordinateCallbackRef.current?.(null);
+      if (indicatorFrameRef.current) window.cancelAnimationFrame(indicatorFrameRef.current);
+      indicatorFrameRef.current = null;
+      chart.unsubscribeCrosshairMove(crosshairHandler);
+      indicatorSeriesRef.current = [];
+      indicatorBindingsRef.current = [];
+      indicatorPanesRef.current = 0;
+      chartRef.current = null;
+      seriesRef.current = null;
+      volumeRef.current = null;
+      marketLineRef.current = null;
+      askLineRef.current = null;
+      positionLinesRef.current = [];
+      lastBarRef.current = null;
+      barsRef.current = [];
+      barsByTimeRef.current = new Map();
+      chart.remove();
+    };
+  }, [symbol, timeframe, chartMode, renderIndicators, decimals, minMove, historyLimit, historyProfile.max, historyProfile.page]);
 
   useEffect(() => { indicatorsRef.current = indicators; if (chartRef.current && barsRef.current.length) renderIndicators(chartRef.current, barsRef.current); }, [indicators, renderIndicators]);
 
@@ -278,8 +437,9 @@ export default function TradingChart({
     const controller = new AbortController();
     void (async () => {
       try {
-        const historyBars = await fetchCandles(symbol, timeframe, historyLimit, controller.signal, { force: true });
-        const bars = mergeLiveCandleIntoSeries(historyBars, latestLiveCandleRef.current, historyLimit);
+        const page = await fetchCandlePage(symbol, timeframe, historyLimit, controller.signal, { force: true });
+        const latest = mergeLiveCandleIntoSeries(page.bars, latestLiveCandleRef.current, historyProfile.max);
+        const bars = reconcileLatestCandles(barsRef.current, latest, historyProfile.max);
         if (!bars.length || controller.signal.aborted || !seriesRef.current) return;
         barsRef.current = bars;
         barsByTimeRef.current = new Map(bars.map(bar => [Number(bar.time), bar]));
@@ -298,7 +458,7 @@ export default function TradingChart({
     })();
 
     return () => controller.abort();
-  }, [chartMode, connection?.status, historyLimit, renderIndicators, symbol, timeframe]);
+  }, [chartMode, connection?.status, historyLimit, historyProfile.max, renderIndicators, symbol, timeframe]);
 
   useEffect(() => {
     const previousRevision = previousHistoryRecoveryRevisionRef.current;
@@ -313,10 +473,13 @@ export default function TradingChart({
     void (async () => {
       try {
         // Provider websocket recovery can happen while the browser websocket
-        // stays connected. Force authoritative REST history so any candles
-        // missed during the provider outage replace temporary/gapped live data.
-        const historyBars = await fetchCandles(symbol, timeframe, historyLimit, controller.signal, { force: true });
-        const bars = mergeLiveCandleIntoSeries(historyBars, latestLiveCandleRef.current, historyLimit);
+        // stays connected. Invalidate every local page for this series, then
+        // force authoritative REST history. Preserve already-loaded older bars
+        // while replacing the recovered overlap.
+        invalidateCandleCache(symbol, timeframe);
+        const page = await fetchCandlePage(symbol, timeframe, historyLimit, controller.signal, { force: true });
+        const latest = mergeLiveCandleIntoSeries(page.bars, latestLiveCandleRef.current, historyProfile.max);
+        const bars = reconcileLatestCandles(barsRef.current, latest, historyProfile.max);
         if (!bars.length || controller.signal.aborted || !seriesRef.current) return;
         barsRef.current = bars;
         barsByTimeRef.current = new Map(bars.map(bar => [Number(bar.time), bar]));
@@ -339,7 +502,7 @@ export default function TradingChart({
     })();
 
     return () => controller.abort();
-  }, [chartMode, historyLimit, historyRecoveryRevision, renderIndicators, symbol, timeframe]);
+  }, [chartMode, historyLimit, historyProfile.max, historyRecoveryRevision, renderIndicators, symbol, timeframe]);
 
   useEffect(() => {
     if (!showIndicatorControls) return undefined;
@@ -458,7 +621,7 @@ export default function TradingChart({
     const previousLast = lastIndex >= 0 ? barsRef.current[lastIndex] : null;
     if (previousLast && liveCandle.time < previousLast.time) return;
 
-    const mergedBars = mergeLiveCandleIntoSeries(barsRef.current, liveCandle, Math.max(historyLimit, 240));
+    const mergedBars = mergeLiveCandleIntoSeries(barsRef.current, liveCandle, historyProfile.max);
     const next = mergedBars[mergedBars.length - 1];
     if (!next) return;
 
@@ -471,7 +634,7 @@ export default function TradingChart({
       volumeRef.current?.update({ time: next.time, value: liveVolume, color: next.close >= next.open ? 'rgba(45,211,155,0.34)' : 'rgba(255,95,105,0.32)' });
     }
     setDisplayBar(next); scheduleIndicatorUpdate(); if (shouldAutoFollow) chartRef.current?.timeScale().scrollToRealTime(); mergeLiveBarIntoCache(symbol, timeframe, next, historyLimit);
-  }, [chartMode, liveCandle, scheduleIndicatorUpdate, symbol, timeframe]);
+  }, [chartMode, historyProfile.max, liveCandle, scheduleIndicatorUpdate, symbol, timeframe]);
 
   const ohlc = displayBar;
   const format = value => Number.isFinite(Number(value)) ? Number(value).toFixed(decimals) : '—';
