@@ -14,6 +14,26 @@ function normalizeInstrument(item) {
     minVolume: item.minVolume == null ? null : Number(item.minVolume),
     maxVolume: item.maxVolume == null ? null : Number(item.maxVolume),
     volumeStep: item.volumeStep == null ? null : Number(item.volumeStep),
+    commissionPerLot: item.commissionPerLot == null ? null : Number(item.commissionPerLot),
+    commissionPerLotPerSide: item.commissionPerLotPerSide == null
+      ? (item.commissionPerLot == null ? null : Number(item.commissionPerLot))
+      : Number(item.commissionPerLotPerSide),
+    commissionRate: item.commissionRate == null ? 0 : Number(item.commissionRate),
+    spread: item.spread ? {
+      ...item.spread,
+      fixedPoints: item.spread.fixedPoints == null ? null : Number(item.spread.fixedPoints),
+      markupPoints: item.spread.markupPoints == null ? 0 : Number(item.spread.markupPoints),
+      normalPoints: item.spread.normalPoints == null ? null : Number(item.spread.normalPoints),
+      minimumPoints: item.spread.minimumPoints == null ? null : Number(item.spread.minimumPoints),
+      maximumPoints: item.spread.maximumPoints == null ? null : Number(item.spread.maximumPoints),
+      rolloverMultiplier: item.spread.rolloverMultiplier == null ? 1 : Number(item.spread.rolloverMultiplier),
+      volumeBands: Array.isArray(item.spread.volumeBands)
+        ? item.spread.volumeBands.map(band => ({
+            upTo: band?.upTo == null ? null : Number(band.upTo),
+            extraPoints: band?.extraPoints == null ? 0 : Number(band.extraPoints),
+          }))
+        : [],
+    } : null,
     sessionOpen: item.sessionOpen === true,
   };
 }

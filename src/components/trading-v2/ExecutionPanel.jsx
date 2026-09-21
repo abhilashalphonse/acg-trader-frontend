@@ -48,9 +48,11 @@ function finiteQuote(value) {
   return Number.isFinite(number) && number > 0;
 }
 
-function formatCommission(value) {
-  const number = Number(value);
-  return Number.isFinite(number) ? `${number.toFixed(2)}/lot` : '—';
+function formatCommission(perLot, rate) {
+  const percentage = Number(rate);
+  if (Number.isFinite(percentage) && percentage > 0) return `${(percentage * 100).toFixed(3)}%/side`;
+  const number = Number(perLot);
+  return Number.isFinite(number) ? `${number.toFixed(2)}/lot/side` : '—';
 }
 
 function formatMoney(value, currency = 'USD', signed = false) {
@@ -324,7 +326,7 @@ export default function ExecutionPanel({
   return (
     <section className={`relative ${desktopSidebar ? 'mt-1.5' : 'mt-2.5'}`}>
       {compactControls}
-      <div className={`${desktopSidebar ? 'mt-1.5 min-h-6 text-[8px]' : 'mt-2 min-h-7 text-[9px]'} flex items-center gap-2 overflow-x-auto whitespace-nowrap px-0.5 font-medium text-[#7a8ba0] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}><span>{orderType === 'market' ? (sizingMode === 'risk' ? 'Planning' : 'Spread') : 'Pending'} <b className="ml-1 font-semibold text-[#b6c2d0]">{marketHint}</b></span><span className="h-3 w-px shrink-0 bg-[#101010]"/><span>Commission <b className="ml-1 font-semibold text-[#b6c2d0]">{formatCommission(market?.commissionPerLot)}</b></span><span className="h-3 w-px shrink-0 bg-[#101010]"/><span>Leverage <b className="ml-1 font-semibold text-[#b6c2d0]">{effectiveLeverage(account, market) ? `1:${effectiveLeverage(account, market)}` : '—'}</b></span></div>
+      <div className={`${desktopSidebar ? 'mt-1.5 min-h-6 text-[8px]' : 'mt-2 min-h-7 text-[9px]'} flex items-center gap-2 overflow-x-auto whitespace-nowrap px-0.5 font-medium text-[#7a8ba0] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}><span>{orderType === 'market' ? (sizingMode === 'risk' ? 'Planning' : 'Spread') : 'Pending'} <b className="ml-1 font-semibold text-[#b6c2d0]">{marketHint}</b></span><span className="h-3 w-px shrink-0 bg-[#101010]"/><span>Commission <b className="ml-1 font-semibold text-[#b6c2d0]">{formatCommission(market?.commissionPerLotPerSide ?? market?.commissionPerLot, market?.commissionRate)}</b></span><span className="h-3 w-px shrink-0 bg-[#101010]"/><span>Leverage <b className="ml-1 font-semibold text-[#b6c2d0]">{effectiveLeverage(account, market) ? `1:${effectiveLeverage(account, market)}` : '—'}</b></span></div>
     </section>
   );
 }

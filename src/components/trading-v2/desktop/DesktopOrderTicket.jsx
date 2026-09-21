@@ -33,6 +33,12 @@ function validProtectionPrice(value) {
   return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
 }
 
+function formatCommission(perLot, rate) {
+  const percentage = Number(rate);
+  if (Number.isFinite(percentage) && percentage > 0) return `${(percentage * 100).toFixed(3)}%/side`;
+  const number = Number(perLot);
+  return Number.isFinite(number) ? `${number.toFixed(2)}/lot/side` : '—';
+}
 
 function money(value, currency = 'USD', compact = false) {
   if (value === null || value === undefined || value === '') return '—';
@@ -695,6 +701,8 @@ export default function DesktopOrderTicket({
 
         <div className="grid grid-cols-3 gap-x-3 gap-y-2 rounded-md border border-white/[0.06] bg-black/35 px-2 py-2">
           <FieldMetric label="Spread" value={Number.isFinite(spreadPips) ? `${spreadPips.toFixed(1)}p` : '—'} />
+          <FieldMetric label="Commission" value={formatCommission(market?.commissionPerLotPerSide ?? market?.commissionPerLot, market?.commissionRate)} />
+          <FieldMetric label="Pricing" value={market?.pricingModel === 'ACG_DYNAMIC' ? 'Dynamic' : market?.pricingModel || '—'} tone={market?.pricingModel === 'ACG_DYNAMIC' ? 'accent' : 'default'} />
           <FieldMetric label="Leverage" value={effectiveLeverage(account, market) ? `1:${effectiveLeverage(account, market)}` : '—'} />
           <FieldMetric label="Margin" value={money(previewMargin, currency)} />
           <FieldMetric label="Free after" value={money(freeAfter, currency)} tone={Number.isFinite(freeAfter) && freeAfter < 0 ? 'danger' : 'default'} />
