@@ -338,7 +338,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     const limitPrice = requestedType === 'stop-limit'
       ? normalizePriceToTick(side === 'buy' ? entry + 1.5 * pip : entry - 1.5 * pip, market, pendingPriceDirection(requestedType, sideUpper, 'limit'))
       : null;
-    setTradePlan({ side, entry, sl, tp, limitPrice, marketPrice, orderType: requestedType, pending, sizingMode, manualLots: lots, expiration: 'GTC', stage: 'planning', open: false });
+    setTradePlan({ symbol: market?.symbol, side, entry, sl, tp, limitPrice, marketPrice, orderType: requestedType, pending, sizingMode, manualLots: lots, expiration: 'GTC', stage: 'planning', open: false });
   };
 
   const cancelPlan = () => {
@@ -352,9 +352,25 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const executePlan = async () => {
     if (!tradePlan || trading.commandState.pending) return;
     if (!exposure.allowed) { showNotice(exposure.reason); return; }
+
+    const planSymbol = String(tradePlan.symbol || '').toUpperCase();
+    if (!planSymbol) {
+      showNotice('This order plan has no instrument. Cancel it and create a new order.');
+      return;
+    }
+    if (String(market?.symbol || '').toUpperCase() !== planSymbol) {
+      showNotice(`This order plan belongs to ${planSymbol}. Return to ${planSymbol} to execute it.`);
+      return;
+    }
+    const planMarket = markets.find(item => String(item?.symbol || '').toUpperCase() === planSymbol) || market;
+    if (!planMarket) {
+      showNotice(`${planSymbol} is unavailable. Cancel this plan and try again.`);
+      return;
+    }
+
     let calculated;
     if (tradePlan.sizingMode === 'risk') {
-      const sizing = calculateRiskOrderSizing(tradePlan, riskPercent, account, market);
+      const sizing = calculateRiskOrderSizing(tradePlan, riskPercent, account, planMarket);
       if (!sizing) {
         showNotice('Risk % sizing is unavailable because this instrument P&L requires currency conversion. Use Lots sizing.');
         return;
@@ -373,10 +389,10 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     } else {
       calculated = Math.max(0.01, Number(tradePlan.manualLots ?? lots) || 0.01);
     }
-    const volume = normalizeVolumeToStep(calculated, market);
+    const volume = normalizeVolumeToStep(calculated, planMarket);
     if (tradePlan.pending) {
       const request = {
-        symbol: market?.symbol,
+        symbol: planSymbol,
         side: tradePlan.side,
         type: tradePlan.orderType,
         volume,
@@ -387,13 +403,13 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
         timeInForce: tradePlan.expiration || 'GTC',
         expiresAt: tradePlan.expirationAt || tradePlan.expiresAt || null,
       };
-      setExecutionEvent({ side: tradePlan.side, lots: volume, symbol: market?.symbol, requestedPrice: tradePlan.entry, status: 'submitting' });
+      setExecutionEvent({ side: tradePlan.side, lots: volume, symbol: planSymbol, requestedPrice: tradePlan.entry, status: 'submitting' });
       try {
         const result = tradePlan.editingOrderId
           ? await trading.replacePendingOrder(tradePlan.editingOrderId, request)
           : await trading.placePendingOrder(request);
-        setExecutionEvent({ side: tradePlan.side, lots: volume, symbol: market?.symbol, requestedPrice: tradePlan.entry, status: 'pending', message: `${String(tradePlan.orderType).toUpperCase()} order waiting for trigger` });
-        logEvent('order', `${String(tradePlan.side).toUpperCase()} ${String(tradePlan.orderType).toUpperCase()} ${volume.toFixed(2)} ${market?.symbol} placed`, { orderId: result?.order?.id });
+        setExecutionEvent({ side: tradePlan.side, lots: volume, symbol: planSymbol, requestedPrice: tradePlan.entry, status: 'pending', message: `${String(tradePlan.orderType).toUpperCase()} order waiting for trigger` });
+        logEvent('order', `${String(tradePlan.side).toUpperCase()} ${String(tradePlan.orderType).toUpperCase()} ${volume.toFixed(2)} ${planSymbol} placed`, { orderId: result?.order?.id });
         setTradePlan(null);
         dismissExecutionLater();
       } catch (error) {
@@ -405,7 +421,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     const result = await runMarketExecution({
       side: tradePlan.side,
       executionLots: volume,
-      symbol: market?.symbol,
+      symbol: planSymbol,
       requestedPrice: tradePlan.entry,
       stopLoss: tradePlan.sl,
       takeProfit: tradePlan.tp,
@@ -429,7 +445,11 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   };
 
   const updatePlan = patch => {
-    setTradePlan(plan => plan ? { ...plan, ...normalizeTradePlanPatch(plan, patch, market) } : plan);
+    setTradePlan(plan => {
+      if (!plan) return plan;
+      const planMarket = markets.find(item => String(item?.symbol || '').toUpperCase() === String(plan.symbol || '').toUpperCase()) || market;
+      return { ...plan, ...normalizeTradePlanPatch(plan, patch, planMarket) };
+    });
   };
 
   const cancelPendingOrder = async id => {
@@ -503,7 +523,8 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     try { if (document.fullscreenElement) await document.exitFullscreen?.(); } catch { /* ignore */ }
   };
 
-  const plannedRisk = estimatedRisk(tradePlan, riskPercent, lots, account.equity, market, account.currency);
+  const plannedRiskInstrument = markets.find(item => String(item?.symbol || '').toUpperCase() === String(tradePlan?.symbol || '').toUpperCase()) || market;
+  const plannedRisk = estimatedRisk(tradePlan, riskPercent, lots, account.equity, plannedRiskInstrument, account.currency);
   const indicatorSheetProps = {
     indicators,
     indicatorFavorites,
