@@ -97,7 +97,7 @@ export default function TradingChart({
   const autoFollowRef = useRef(true);
   const latestLiveCandleRef = useRef(null);
   const initialLoadCompleteRef = useRef(false);
-  const lastReconciledReadyAtRef = useRef(0);
+  const previousConnectionStatusRef = useRef(null);
   const [error, setError] = useState('');
   const [displayBar, setDisplayBar] = useState(null);
   const [paneLayout, setPaneLayout] = useState([]);
@@ -268,10 +268,10 @@ export default function TradingChart({
   useEffect(() => { indicatorsRef.current = indicators; if (chartRef.current && barsRef.current.length) renderIndicators(chartRef.current, barsRef.current); }, [indicators, renderIndicators]);
 
   useEffect(() => {
-    if (connection?.status !== 'ready' || !initialLoadCompleteRef.current || !seriesRef.current) return undefined;
-    const readyAt = Number(connection?.lastMessageAt ? Date.parse(connection.lastMessageAt) : Date.now());
-    if (Number.isFinite(readyAt) && readyAt <= lastReconciledReadyAtRef.current) return undefined;
-    lastReconciledReadyAtRef.current = Number.isFinite(readyAt) ? readyAt : Date.now();
+    const status = connection?.status || null;
+    const previousStatus = previousConnectionStatusRef.current;
+    previousConnectionStatusRef.current = status;
+    if (status !== 'ready' || previousStatus === 'ready' || !initialLoadCompleteRef.current || !seriesRef.current) return undefined;
 
     const controller = new AbortController();
     void (async () => {
@@ -296,7 +296,7 @@ export default function TradingChart({
     })();
 
     return () => controller.abort();
-  }, [chartMode, connection?.status, connection?.lastMessageAt, historyLimit, renderIndicators, symbol, timeframe]);
+  }, [chartMode, connection?.status, historyLimit, renderIndicators, symbol, timeframe]);
   useEffect(() => {
     if (!showIndicatorControls) return undefined;
     const syncPaneLayout = () => {
