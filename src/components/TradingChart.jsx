@@ -410,11 +410,15 @@ export default function TradingChart({
   useEffect(() => {
     if (!liveCandle || !seriesRef.current) return;
     const shouldAutoFollow = autoFollowRef.current;
-    const next = liveCandle;
     const lastIndex = barsRef.current.length - 1;
-    if (lastIndex >= 0 && barsRef.current[lastIndex]?.time === next.time) barsRef.current[lastIndex] = next;
-    else if (!barsRef.current.length || next.time > barsRef.current[lastIndex].time) { barsRef.current.push(next); if (barsRef.current.length > 240) barsRef.current.shift(); }
-    else return;
+    const previousLast = lastIndex >= 0 ? barsRef.current[lastIndex] : null;
+    if (previousLast && liveCandle.time < previousLast.time) return;
+
+    const mergedBars = mergeLiveCandleIntoSeries(barsRef.current, liveCandle, Math.max(historyLimit, 240));
+    const next = mergedBars[mergedBars.length - 1];
+    if (!next) return;
+
+    barsRef.current = mergedBars;
     barsByTimeRef.current.set(Number(next.time), next);
     lastBarRef.current = next;
     seriesRef.current.update(toSeriesPoint(next, chartMode));
