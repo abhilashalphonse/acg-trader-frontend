@@ -144,7 +144,17 @@ function handleEnvelope(state, envelope) {
   if (type === 'market.tick') {
     const symbol = String(data?.symbol || '').toUpperCase();
     if (!symbol) return next;
-    return { ...next, market: { ...next.market, ticksBySymbol: { ...next.market.ticksBySymbol, [symbol]: data } } };
+    // A tick carries the canonical live bid/ask/last fields. Mirror it into
+    // quote state so active symbols do not need a duplicate market.quote
+    // stream in addition to the full-frequency tick stream.
+    return {
+      ...next,
+      market: {
+        ...next.market,
+        quotesBySymbol: { ...next.market.quotesBySymbol, [symbol]: data },
+        ticksBySymbol: { ...next.market.ticksBySymbol, [symbol]: data },
+      },
+    };
   }
   if (type === 'market.candle.update' || type === 'market.candle.closed') {
     const key = candleKey(data);
