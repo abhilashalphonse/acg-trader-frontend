@@ -54,3 +54,21 @@ test('deduplicates fills by server entity id', () => {
   assert.equal(state.trading.fills.length, 1);
   assert.equal(state.trading.fills[0].price, '1.2');
 });
+
+
+test('market tick updates both tick and quote state for active symbols', () => {
+  const tick = {
+    symbol: 'EURUSD',
+    price: '1.10501',
+    bid: '1.10500',
+    ask: '1.10502',
+    sequence: 42,
+  };
+  const state = tradingReducer(initialTradingState, {
+    type: 'socket/envelope',
+    payload: envelope('market.tick', tick),
+  });
+
+  assert.deepEqual(state.market.ticksBySymbol.EURUSD, tick);
+  assert.deepEqual(state.market.quotesBySymbol.EURUSD, tick);
+});
