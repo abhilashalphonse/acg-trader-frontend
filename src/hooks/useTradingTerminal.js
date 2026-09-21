@@ -330,11 +330,13 @@ export function useTradingTerminal(markets = []) {
     const position = rawPositions.find(item => String(item.id) === String(positionId));
     if (!position) return Promise.reject(new Error('Open position was not found'));
     const instrument = instrumentForSymbol(position.symbol);
+    const closeSide = String(position.side || '').toUpperCase() === 'BUY' ? 'SELL' : 'BUY';
+    const requestedPrice = Number(closeSide === 'BUY' ? instrument?.ask : instrument?.bid);
     return run(() => commands.closePosition(String(positionId), {
       accountId: requireAccount(),
       clientOrderId: commandId('close'),
       volume: partialVolume(position, percentage, instrument),
-      requestedPrice: null,
+      requestedPrice: Number.isFinite(requestedPrice) ? requestedPrice : null,
       source: sourceForViewport(),
     }));
   }, [commands, instrumentForSymbol, rawPositions, requireAccount, run]);
