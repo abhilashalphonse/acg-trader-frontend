@@ -10,6 +10,8 @@ export const initialTradingState = Object.freeze({
     ticksBySymbol: {},
     candlesByKey: {},
     status: null,
+    gatewayStatus: null,
+    historyRecoveryRevision: 0,
   },
   trading: {
     accountsById: {},
@@ -134,7 +136,19 @@ function handleEnvelope(state, envelope) {
     return { ...next, connection: { ...next.connection, details: data } };
   }
   if (type === 'market.status') {
-    return { ...next, market: { ...next.market, status: data } };
+    const gatewayStatus = data?.scope === 'gateway' ? data : next.market.gatewayStatus;
+    const recovered = data?.scope === 'gateway'
+      && data?.state === 'LIVE'
+      && data?.recovered === true;
+    return {
+      ...next,
+      market: {
+        ...next.market,
+        status: data,
+        gatewayStatus,
+        historyRecoveryRevision: next.market.historyRecoveryRevision + (recovered ? 1 : 0),
+      },
+    };
   }
   if (type === 'market.quote') {
     const symbol = String(data?.symbol || '').toUpperCase();

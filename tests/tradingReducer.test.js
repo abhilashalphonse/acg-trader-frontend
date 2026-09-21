@@ -72,3 +72,31 @@ test('market tick updates both tick and quote state for active symbols', () => {
   assert.deepEqual(state.market.ticksBySymbol.EURUSD, tick);
   assert.deepEqual(state.market.quotesBySymbol.EURUSD, tick);
 });
+
+
+test('provider stream recovery increments candle-history reconciliation revision', () => {
+  let state = tradingReducer(initialTradingState, {
+    type: 'socket/envelope',
+    payload: envelope('market.status', { scope: 'gateway', state: 'DISCONNECTED', recovered: false }),
+  });
+  assert.equal(state.market.historyRecoveryRevision, 0);
+
+  state = tradingReducer(state, {
+    type: 'socket/envelope',
+    payload: envelope('market.status', { scope: 'gateway', state: 'CONNECTING', recovered: false }),
+  });
+  assert.equal(state.market.historyRecoveryRevision, 0);
+
+  state = tradingReducer(state, {
+    type: 'socket/envelope',
+    payload: envelope('market.status', { scope: 'gateway', state: 'LIVE', recovered: true }),
+  });
+  assert.equal(state.market.historyRecoveryRevision, 1);
+  assert.equal(state.market.gatewayStatus.state, 'LIVE');
+
+  state = tradingReducer(state, {
+    type: 'socket/envelope',
+    payload: envelope('market.status', { scope: 'gateway', state: 'LIVE', recovered: false }),
+  });
+  assert.equal(state.market.historyRecoveryRevision, 1);
+});

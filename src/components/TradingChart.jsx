@@ -98,6 +98,8 @@ export default function TradingChart({
   const latestLiveCandleRef = useRef(null);
   const initialLoadCompleteRef = useRef(false);
   const previousConnectionStatusRef = useRef(null);
+  const historyRecoveryRevision = Number(market?.historyRecoveryRevision || 0);
+  const previousHistoryRecoveryRevisionRef = useRef(historyRecoveryRevision);
   const [error, setError] = useState('');
   const [displayBar, setDisplayBar] = useState(null);
   const [paneLayout, setPaneLayout] = useState([]);
@@ -297,6 +299,48 @@ export default function TradingChart({
 
     return () => controller.abort();
   }, [chartMode, connection?.status, historyLimit, renderIndicators, symbol, timeframe]);
+
+  useEffect(() => {
+    const previousRevision = previousHistoryRecoveryRevisionRef.current;
+    previousHistoryRecoveryRevisionRef.current = historyRecoveryRevision;
+    if (
+      historyRecoveryRevision <= previousRevision
+      || !initialLoadCompleteRef.current
+      || !seriesRef.current
+    ) return undefined;
+
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        // Provider websocket recovery can happen while the browser websocket
+        // stays connected. Force authoritative REST history so any candles
+        // missed during the provider outage replace temporary/gapped live data.
+        const historyBars = await fetchCandles(symbol, timeframe, historyLimit, controller.signal, { force: true });
+        const bars = mergeLiveCandleIntoSeries(historyBars, latestLiveCandleRef.current, historyLimit);
+        if (!bars.length || controller.signal.aborted || !seriesRef.current) return;
+        barsRef.current = bars;
+        barsByTimeRef.current = new Map(bars.map(bar => [Number(bar.time), bar]));
+        seriesRef.current.setData(bars.map(bar => toSeriesPoint(bar, chartMode)));
+        volumeRef.current?.setData(bars.map(bar => {
+          const value = volumeForBar(bar);
+          return value == null ? null : {
+            time: bar.time,
+            value,
+            color: bar.close >= bar.open ? 'rgba(45,211,155,0.34)' : 'rgba(255,95,105,0.32)',
+          };
+        }).filter(Boolean));
+        lastBarRef.current = bars[bars.length - 1];
+        setDisplayBar(lastBarRef.current);
+        renderIndicators(chartRef.current, bars);
+        if (autoFollowRef.current) chartRef.current?.timeScale().scrollToRealTime();
+      } catch (error) {
+        if (error?.name !== 'AbortError') console.warn('Provider-gap candle reconciliation failed', error);
+      }
+    })();
+
+    return () => controller.abort();
+  }, [chartMode, historyLimit, historyRecoveryRevision, renderIndicators, symbol, timeframe]);
+
   useEffect(() => {
     if (!showIndicatorControls) return undefined;
     const syncPaneLayout = () => {
