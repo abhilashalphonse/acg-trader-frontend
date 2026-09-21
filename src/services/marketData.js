@@ -36,10 +36,10 @@ export function toUiTimeframe(timeframe) {
   return UI_TIMEFRAMES[String(timeframe || '').toLowerCase()] || null;
 }
 
-export async function fetchCandles(symbol, timeframe, outputsize = 500, signal) {
+export async function fetchCandles(symbol, timeframe, outputsize = 500, signal, { force = false } = {}) {
   const key = cacheKey(symbol, timeframe, outputsize);
   const cached = candleCache.get(key);
-  if (cached && Date.now() - cached.savedAt < CACHE_TTL_MS) return cached.bars.map(bar => ({ ...bar }));
+  if (!force && cached && Date.now() - cached.savedAt < CACHE_TTL_MS) return cached.bars.map(bar => ({ ...bar }));
 
   const response = await marketApi.candles({
     symbol: String(symbol || '').toUpperCase(),
@@ -52,16 +52,37 @@ export async function fetchCandles(symbol, timeframe, outputsize = 500, signal) 
   return bars.map(bar => ({ ...bar }));
 }
 
+export function mergeLiveCandleIntoSeries(series = [], bar, outputsize = 500) {
+  const normalized = normalizeCandle(bar);
+  const bars = normalizeCandleSeries(series);
+  if (!normalized) return bars.slice(-outputsize);
+
+  const last = bars[bars.length - 1];
+  if (last?.time === normalized.time) {
+    bars[bars.length - 1] = {
+      ...last,
+      ...normalized,
+      open: last.open,
+      high: Math.max(last.high, normalized.high, normalized.open, normalized.close),
+      low: Math.min(last.low, normalized.low, normalized.open, normalized.close),
+      close: normalized.close,
+      providerVolume: last.providerVolume ?? normalized.providerVolume ?? null,
+      volume: last.providerVolume ?? normalized.providerVolume ?? normalized.tickCount ?? last.tickCount ?? null,
+      volumeSource: (last.providerVolume ?? normalized.providerVolume) != null ? 'provider' : (normalized.tickCount ?? last.tickCount) != null ? 'tick' : null,
+      complete: false,
+      synthetic: Boolean(last.synthetic && normalized.synthetic),
+    };
+  } else if (!last || normalized.time > last.time) {
+    bars.push(normalized);
+  }
+
+  return bars.slice(-outputsize);
+}
+
 export function mergeLiveBarIntoCache(symbol, timeframe, bar, outputsize = 500) {
   const key = cacheKey(symbol, timeframe, outputsize);
   const cached = candleCache.get(key);
   if (!cached || !bar) return;
-  const normalized = normalizeCandle(bar);
-  if (!normalized) return;
-  const bars = cached.bars.slice();
-  const last = bars[bars.length - 1];
-  if (last?.time === normalized.time) bars[bars.length - 1] = normalized;
-  else if (!last || normalized.time > last.time) bars.push(normalized);
-  while (bars.length > outputsize) bars.shift();
+  const bars = mergeLiveCandleIntoSeries(cached.bars, bar, outputsize);
   candleCache.set(key, { savedAt: Date.now(), bars });
 }
