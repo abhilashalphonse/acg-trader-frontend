@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { normalizeCandle, normalizeCandleSeries } from '../src/utils/candleNormalization.js';
-import { mergeLiveCandleIntoSeries } from '../src/services/marketData.js';
+import { mergeLiveCandleIntoSeries } from '../src/utils/candleMerge.js';
 
 function candle(overrides = {}) {
   return {
@@ -75,16 +75,46 @@ test('sorts candles and keeps the latest duplicate timestamp', () => {
 });
 
 
-test('live candle updates preserve the strongest available volume baseline', () => {
+test('current provider volume uses REST history as baseline and first live sample as anchor', () => {
   const history = [normalizeCandle(candle({ time: 1_700_000_000, providerVolume: 120, tickCount: 0 }))];
   const live = candle({ time: 1_700_000_000, providerVolume: 8, tickCount: 14, close: 104 });
   const merged = mergeLiveCandleIntoSeries(history, live, 10);
 
   assert.equal(merged.length, 1);
   assert.equal(merged[0].providerVolume, 120);
+  assert.equal(merged[0].providerVolumeBaseline, 120);
+  assert.equal(merged[0].providerVolumeLiveAnchor, 8);
   assert.equal(merged[0].volume, 120);
   assert.equal(merged[0].volumeSource, 'provider');
   assert.equal(merged[0].close, 104);
+});
+
+test('provider volume grows immediately from baseline using only post-anchor live delta', () => {
+  const history = [normalizeCandle(candle({ time: 1_700_000_000, providerVolume: 120, tickCount: 0 }))];
+  const firstLive = candle({ time: 1_700_000_000, providerVolume: 8, tickCount: 14 });
+  const secondLive = candle({ time: 1_700_000_000, providerVolume: 20, tickCount: 22 });
+
+  const anchored = mergeLiveCandleIntoSeries(history, firstLive, 10);
+  const grown = mergeLiveCandleIntoSeries(anchored, secondLive, 10);
+
+  assert.equal(grown[0].providerVolume, 132);
+  assert.equal(grown[0].providerVolumeBaseline, 120);
+  assert.equal(grown[0].providerVolumeLiveAnchor, 8);
+  assert.equal(grown[0].volume, 132);
+  assert.equal(grown[0].volumeSource, 'provider');
+});
+
+test('provider counter reset rolls current displayed volume into a new baseline without shrinking', () => {
+  const history = [normalizeCandle(candle({ time: 1_700_000_000, providerVolume: 120, tickCount: 0 }))];
+  const anchored = mergeLiveCandleIntoSeries(history, candle({ providerVolume: 8, tickCount: 14 }), 10);
+  const grown = mergeLiveCandleIntoSeries(anchored, candle({ providerVolume: 20, tickCount: 22 }), 10);
+  const reset = mergeLiveCandleIntoSeries(grown, candle({ providerVolume: 3, tickCount: 4 }), 10);
+  const afterReset = mergeLiveCandleIntoSeries(reset, candle({ providerVolume: 9, tickCount: 10 }), 10);
+
+  assert.equal(reset[0].providerVolume, 132);
+  assert.equal(reset[0].providerVolumeBaseline, 132);
+  assert.equal(reset[0].providerVolumeLiveAnchor, 3);
+  assert.equal(afterReset[0].providerVolume, 138);
 });
 
 test('live candle updates fall back to growing tick volume when provider volume is unavailable', () => {
