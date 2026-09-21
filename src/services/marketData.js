@@ -1,7 +1,8 @@
 import { marketApi } from '../api/market.js';
 import { normalizeCandle, normalizeCandleSeries } from '../utils/candleNormalization.js';
+import { mergeLiveCandleIntoSeries } from '../utils/candleMerge.js';
 
-export { normalizeCandle, normalizeCandleSeries };
+export { normalizeCandle, normalizeCandleSeries, mergeLiveCandleIntoSeries };
 
 const BACKEND_TIMEFRAMES = Object.freeze({
   M1: '1m',
@@ -50,45 +51,6 @@ export async function fetchCandles(symbol, timeframe, outputsize = 500, signal, 
   const bars = normalizeCandleSeries(response?.candles || []);
   candleCache.set(key, { savedAt: Date.now(), bars });
   return bars.map(bar => ({ ...bar }));
-}
-
-export function mergeLiveCandleIntoSeries(series = [], bar, outputsize = 500) {
-  const normalized = normalizeCandle(bar);
-  const bars = normalizeCandleSeries(series);
-  if (!normalized) return bars.slice(-outputsize);
-
-  const last = bars[bars.length - 1];
-  if (last?.time === normalized.time) {
-    const providerCandidates = [last.providerVolume, normalized.providerVolume]
-      .map(Number)
-      .filter(value => Number.isFinite(value) && value > 0);
-    const tickCandidates = [last.tickCount, normalized.tickCount]
-      .map(Number)
-      .filter(value => Number.isFinite(value) && value > 0);
-    const providerVolume = providerCandidates.length ? Math.max(...providerCandidates) : null;
-    const tickCount = tickCandidates.length ? Math.max(...tickCandidates) : 0;
-    const volume = providerVolume ?? (tickCount > 0 ? tickCount : 0);
-    const volumeSource = providerVolume != null ? 'provider' : tickCount > 0 ? 'tick' : null;
-
-    bars[bars.length - 1] = {
-      ...last,
-      ...normalized,
-      open: last.open,
-      high: Math.max(last.high, normalized.high, normalized.open, normalized.close),
-      low: Math.min(last.low, normalized.low, normalized.open, normalized.close),
-      close: normalized.close,
-      providerVolume,
-      tickCount,
-      volume,
-      volumeSource,
-      complete: false,
-      synthetic: Boolean(last.synthetic && normalized.synthetic),
-    };
-  } else if (!last || normalized.time > last.time) {
-    bars.push(normalized);
-  }
-
-  return bars.slice(-outputsize);
 }
 
 export function mergeLiveBarIntoCache(symbol, timeframe, bar, outputsize = 500) {
