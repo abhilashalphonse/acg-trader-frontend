@@ -30,8 +30,22 @@ export function normalizeCandle(candle) {
 
   const providerVolume = nullableNonNegativeNumber(candle?.providerVolume);
   const tickCount = nullableNonNegativeNumber(candle?.tickCount);
-  const volume = providerVolume ?? tickCount;
-  const volumeSource = providerVolume != null ? 'provider' : tickCount != null ? 'tick' : null;
+  const hasProviderActivity = providerVolume != null && providerVolume > 0;
+  const hasTickActivity = tickCount != null && tickCount > 0;
+  const volume = hasProviderActivity
+    ? providerVolume
+    : hasTickActivity
+      ? tickCount
+      : providerVolume ?? tickCount;
+  const volumeSource = hasProviderActivity
+    ? 'provider'
+    : hasTickActivity
+      ? 'tick'
+      : providerVolume != null
+        ? 'provider'
+        : tickCount != null
+          ? 'tick'
+          : null;
 
   return {
     time,
