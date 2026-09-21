@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  isRealtimeLogicalRange,
   prependHistoricalCandles,
   reconcileLatestCandles,
 } from '../src/utils/candleHistory.js';
@@ -47,4 +48,15 @@ test('history merge enforces the chart memory ceiling from the oldest side', () 
   assert.equal(merged.bars.length, 4);
   assert.deepEqual(merged.bars.map(item => item.time), [200, 300, 400, 500]);
   assert.equal(merged.added, 1);
+});
+
+
+test('realtime range stays active while the newest candle is visible', () => {
+  assert.equal(isRealtimeLogicalRange({ from: 90, to: 106 }, 100), true);
+  assert.equal(isRealtimeLogicalRange({ from: 70, to: 99.6 }, 100), true);
+});
+
+test('realtime range disables once the newest candle leaves the viewport', () => {
+  assert.equal(isRealtimeLogicalRange({ from: 50, to: 99.4 }, 100), false);
+  assert.equal(isRealtimeLogicalRange({ from: 10, to: 80 }, 100), false);
 });

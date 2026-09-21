@@ -16,13 +16,14 @@ import {
   normalizeCandle,
   prependHistoricalCandles,
   reconcileLatestCandles,
+  isRealtimeLogicalRange,
   toBackendTimeframe,
 } from '../services/marketData.js';
 import { useTraderAuth } from '../hooks/useTraderAuth.js';
 import { useTradingStore } from '../hooks/useTradingStore.js';
 import { calculateIndicatorData, indicatorVisibleOnTimeframe, requiredIndicatorHistory } from '../utils/indicators.js';
 import { instrumentDigits, instrumentTickSize } from '../utils/instrumentFormatting.js';
-import { Eye, EyeOff, Settings2, X } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Settings2, X } from 'lucide-react';
 
 const chartTokens = {
   background: '#000000',
@@ -111,6 +112,7 @@ export default function TradingChart({
   const indicatorFrameRef = useRef(null);
   const coordinateCallbackRef = useRef(onCoordinateApi);
   const autoFollowRef = useRef(true);
+  const realtimeStateRef = useRef(true);
   const latestLiveCandleRef = useRef(null);
   const initialLoadCompleteRef = useRef(false);
   const historyPagingRef = useRef({ hasMore: false, nextBefore: null, loading: false });
@@ -121,6 +123,7 @@ export default function TradingChart({
   const [error, setError] = useState('');
   const [displayBar, setDisplayBar] = useState(null);
   const [paneLayout, setPaneLayout] = useState([]);
+  const [isAtRealtime, setIsAtRealtime] = useState(true);
 
   const backendTimeframe = useMemo(() => {
     try { return toBackendTimeframe(timeframe); } catch { return null; }
@@ -164,6 +167,44 @@ export default function TradingChart({
     () => requiredIndicatorHistory(indicators, timeframe, { baseline: historyProfile.initial, max: 1000 }),
     [historyProfile.initial, indicators, timeframe],
   );
+
+  const setRealtimeTracking = useCallback(next => {
+    const resolved = Boolean(next);
+    autoFollowRef.current = resolved;
+    if (realtimeStateRef.current === resolved) return;
+    realtimeStateRef.current = resolved;
+    setIsAtRealtime(resolved);
+  }, []);
+
+  const returnToLive = useCallback(() => {
+    const timeScale = chartRef.current?.timeScale?.();
+    if (!timeScale || !barsRef.current.length) return;
+    setRealtimeTracking(true);
+    try {
+      timeScale.applyOptions?.({ rightOffset: DEFAULT_RIGHT_BARS });
+      timeScale.scrollToRealTime();
+    } catch {
+      const lastIndex = barsRef.current.length - 1;
+      timeScale.setVisibleLogicalRange?.({
+        from: Math.max(0, lastIndex - DEFAULT_BARS_BACK),
+        to: lastIndex + DEFAULT_RIGHT_BARS,
+      });
+    }
+    if (lastBarRef.current) setDisplayBar(lastBarRef.current);
+  }, [setRealtimeTracking]);
+
+  useEffect(() => {
+    const onKeyDown = event => {
+      if (event.key !== 'End' || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      const target = event.target;
+      const tag = String(target?.tagName || '').toLowerCase();
+      if (target?.isContentEditable || ['input', 'textarea', 'select'].includes(tag)) return;
+      event.preventDefault();
+      returnToLive();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [returnToLive]);
 
   useEffect(() => { coordinateCallbackRef.current = onCoordinateApi; }, [onCoordinateApi]);
   useEffect(() => { indicatorsRef.current = indicators; }, [indicators]);
@@ -270,13 +311,13 @@ export default function TradingChart({
       const range = timeScale.getVisibleLogicalRange();
       const lastIndex = barsRef.current.length - 1;
       if (!range || lastIndex < 0) return;
-      autoFollowRef.current = range.to >= lastIndex - 0.5;
+      setRealtimeTracking(isRealtimeLogicalRange(range, lastIndex));
       if (range.from <= HISTORY_PREFETCH_BARS) {
         void loadOlderHistoryRef.current?.();
       }
     };
     timeScale.subscribeVisibleLogicalRangeChange(visibleRangeHandler);
-    const coordinateApi = { toData(point) { if (!point) return null; const time = timeScale.coordinateToTime(Number(point.x)); const price = series.coordinateToPrice(Number(point.y)); return time == null || price == null || !Number.isFinite(Number(price)) ? null : { time, price: Number(price) }; }, toScreen(point) { if (!point || point.time == null || point.price == null) return null; const x = timeScale.timeToCoordinate(point.time); const y = series.priceToCoordinate(Number(point.price)); return x == null || y == null ? null : { x: Number(x), y: Number(y) }; }, priceToY(price) { const y = series.priceToCoordinate(Number(price)); return y == null ? null : Number(y); }, yToPrice(y) { const price = series.coordinateToPrice(Number(y)); return price == null || !Number.isFinite(Number(price)) ? null : Number(price); }, fitContent() { timeScale.fitContent(); autoFollowRef.current = true; }, focusTime(time) { const numeric = Number(time); const index = barsRef.current.findIndex(bar => Number(bar.time) === numeric); if (index < 0) return; const halfWindow = 22; timeScale.setVisibleLogicalRange({ from: Math.max(0, index - halfWindow), to: Math.min(barsRef.current.length - 1 + DEFAULT_RIGHT_BARS, index + halfWindow) }); autoFollowRef.current = index >= barsRef.current.length - 4; }, resetView() { const lastIndex = barsRef.current.length - 1; if (lastIndex >= 0) timeScale.setVisibleLogicalRange({ from: Math.max(0, lastIndex - DEFAULT_BARS_BACK), to: lastIndex + DEFAULT_RIGHT_BARS }); autoFollowRef.current = true; }, subscribe(handler) { const rangeHandler = () => handler?.(); const sizeHandler = () => handler?.(); timeScale.subscribeVisibleLogicalRangeChange(rangeHandler); timeScale.subscribeSizeChange(sizeHandler); return () => { timeScale.unsubscribeVisibleLogicalRangeChange(rangeHandler); timeScale.unsubscribeSizeChange(sizeHandler); }; } };
+    const coordinateApi = { toData(point) { if (!point) return null; const time = timeScale.coordinateToTime(Number(point.x)); const price = series.coordinateToPrice(Number(point.y)); return time == null || price == null || !Number.isFinite(Number(price)) ? null : { time, price: Number(price) }; }, toScreen(point) { if (!point || point.time == null || point.price == null) return null; const x = timeScale.timeToCoordinate(point.time); const y = series.priceToCoordinate(Number(point.price)); return x == null || y == null ? null : { x: Number(x), y: Number(y) }; }, priceToY(price) { const y = series.priceToCoordinate(Number(price)); return y == null || !Number.isFinite(Number(price)) ? null : Number(price); }, yToPrice(y) { const price = series.coordinateToPrice(Number(y)); return price == null || !Number.isFinite(Number(price)) ? null : Number(price); }, fitContent() { timeScale.fitContent(); }, focusTime(time) { const numeric = Number(time); const index = barsRef.current.findIndex(bar => Number(bar.time) === numeric); if (index < 0) return; const halfWindow = 22; timeScale.setVisibleLogicalRange({ from: Math.max(0, index - halfWindow), to: Math.min(barsRef.current.length - 1 + DEFAULT_RIGHT_BARS, index + halfWindow) }); }, resetView() { const lastIndex = barsRef.current.length - 1; if (lastIndex >= 0) timeScale.setVisibleLogicalRange({ from: Math.max(0, lastIndex - DEFAULT_BARS_BACK), to: lastIndex + DEFAULT_RIGHT_BARS }); }, subscribe(handler) { const rangeHandler = () => handler?.(); const sizeHandler = () => handler?.(); timeScale.subscribeVisibleLogicalRangeChange(rangeHandler); timeScale.subscribeSizeChange(sizeHandler); return () => { timeScale.unsubscribeVisibleLogicalRangeChange(rangeHandler); timeScale.unsubscribeSizeChange(sizeHandler); }; } };
     coordinateCallbackRef.current?.(coordinateApi);
     const controller = new AbortController();
     let disposed = false;
@@ -392,6 +433,7 @@ export default function TradingChart({
           from: Math.max(0, bars.length - DEFAULT_BARS_BACK - 1),
           to: bars.length - 1 + DEFAULT_RIGHT_BARS,
         });
+        setRealtimeTracking(true);
         initialLoadCompleteRef.current = true;
       } catch (e) {
         if (e?.name === 'AbortError' || disposed) return;
@@ -424,7 +466,7 @@ export default function TradingChart({
       barsByTimeRef.current = new Map();
       chart.remove();
     };
-  }, [symbol, timeframe, chartMode, renderIndicators, decimals, minMove, historyLimit, historyProfile.max, historyProfile.page]);
+  }, [symbol, timeframe, chartMode, renderIndicators, decimals, minMove, historyLimit, historyProfile.max, historyProfile.page, setRealtimeTracking]);
 
   useEffect(() => { indicatorsRef.current = indicators; if (chartRef.current && barsRef.current.length) renderIndicators(chartRef.current, barsRef.current); }, [indicators, renderIndicators]);
 
@@ -682,6 +724,18 @@ export default function TradingChart({
         </div>
       )}
     </div>
+    {!isAtRealtime && !error && (
+      <button
+        type="button"
+        onClick={returnToLive}
+        className="absolute bottom-8 right-14 z-30 inline-flex h-8 items-center gap-1.5 rounded-md border border-white/[0.10] bg-[#151719]/95 px-2.5 text-[10px] font-semibold text-[#DCE4EA] shadow-[0_4px_18px_rgba(0,0,0,.45)] backdrop-blur-sm transition hover:border-[#2dd39b]/45 hover:bg-[#1a1d1f] hover:text-white active:scale-[0.98]"
+        title="Go to realtime (End)"
+        aria-label="Go to realtime"
+      >
+        <span>Live</span>
+        <ArrowRight size={12} strokeWidth={2.2} />
+      </button>
+    )}
     {showIndicatorControls && paneIndicators.map((indicator, index) => {
       const pane = paneLayout[index + 1];
       if (!pane || pane.height <= 0) return null;

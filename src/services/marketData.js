@@ -1,7 +1,7 @@
 import { marketApi } from '../api/market.js';
 import { normalizeCandle, normalizeCandleSeries } from '../utils/candleNormalization.js';
 import { mergeLiveCandleIntoSeries } from '../utils/candleMerge.js';
-import { prependHistoricalCandles, reconcileLatestCandles } from '../utils/candleHistory.js';
+import { isRealtimeLogicalRange, prependHistoricalCandles, reconcileLatestCandles } from '../utils/candleHistory.js';
 
 export {
   normalizeCandle,
@@ -9,6 +9,7 @@ export {
   mergeLiveCandleIntoSeries,
   prependHistoricalCandles,
   reconcileLatestCandles,
+  isRealtimeLogicalRange,
 };
 
 const BACKEND_TIMEFRAMES = Object.freeze({
