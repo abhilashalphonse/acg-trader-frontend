@@ -1,3 +1,5 @@
+import { resolveExecutionSizing } from './tradingRisk.js';
+
 function numberValue(value, fallback = null) {
   if (value === null || value === undefined || value === '') return fallback;
   const numeric = Number(value);
@@ -44,4 +46,39 @@ export function estimateExecutionPrice(market, side, volume) {
     effectiveExecutionSpreadPoints: quotedSpreadPoints == null ? null : quotedSpreadPoints + extraPoints,
     volumeBand: band?.upTo == null ? (band ? 'ABOVE_MAX_BAND' : null) : `UP_TO_${numberValue(band.upTo, 0)}`,
   };
+}
+
+
+export function resolveExecutionPreview({ plan, riskPercent, manualLots, account, instrument }) {
+  if (!plan) {
+    const sizing = resolveExecutionSizing({ sizingMode: 'lots', manualLots }, riskPercent, manualLots, account, instrument);
+    return { plan: null, sizing };
+  }
+
+  let effectivePlan = { ...plan };
+  let sizing = resolveExecutionSizing(effectivePlan, riskPercent, effectivePlan.manualLots ?? manualLots, account, instrument);
+
+  if (plan.pending || !['BUY', 'SELL'].includes(String(plan.side || '').toUpperCase())) {
+    return { plan: effectivePlan, sizing };
+  }
+
+  for (let iteration = 0; iteration < 3; iteration += 1) {
+    const lots = Number(sizing?.lots);
+    if (!Number.isFinite(lots) || lots <= 0) break;
+
+    const execution = estimateExecutionPrice(instrument, plan.side, lots);
+    const entry = Number(execution?.price);
+    if (!Number.isFinite(entry) || entry <= 0) break;
+
+    const nextPlan = { ...plan, entry, marketPrice: entry };
+    const nextSizing = resolveExecutionSizing(nextPlan, riskPercent, nextPlan.manualLots ?? manualLots, account, instrument);
+    const sameEntry = Number(effectivePlan.entry) === entry;
+    const sameLots = Number(sizing?.lots) === Number(nextSizing?.lots);
+
+    effectivePlan = nextPlan;
+    sizing = nextSizing;
+    if (sameEntry && sameLots) break;
+  }
+
+  return { plan: effectivePlan, sizing };
 }
