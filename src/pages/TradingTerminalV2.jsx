@@ -689,7 +689,7 @@ export default function TradingTerminalV2({
     });
     const executionPlan = executionPreview.plan || baseExecutionPlan;
     const executionSizing = executionPreview.sizing;
-    const planValidation = validateTradePlanForExecution(executionPlan, planMarket);
+    const planValidation = validateTradePlanForExecution(executionPlan, planMarket, { preserveEntry: true });
     if (!planValidation.valid) { showNotice(planValidation.message || 'Review the order before submitting'); return; }
     if (!executionSizing.canExecute || !Number.isFinite(Number(executionSizing.lots))) {
       const reason = executionSizing.blockReason === 'UNSUPPORTED_RISK_CURRENCY'
