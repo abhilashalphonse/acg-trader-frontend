@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, Minus, Plus, X, Check, SlidersHorizontal, Clock3 } from 'lucide-react';
 import { decimalPlaces, normalizeVolumeToStep } from '../../utils/tradingCommandNormalization.js';
-import { calculateRiskOrderSizing, effectiveLeverage, estimateStopRisk, riskSizingSupported } from '../../utils/tradingRisk.js';
+import { calculateRiskOrderSizing, effectiveLeverage, estimateRequiredMargin, estimateStopRisk, riskSizingSupported } from '../../utils/tradingRisk.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 
 const orderTypes = [
@@ -99,6 +99,9 @@ export default function ExecutionPanel({
   const [lotInputFocused, setLotInputFocused] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [orderPickerOpen, setOrderPickerOpen] = useState(false);
+  const [riskDisplayMode, setRiskDisplayMode] = useState('percent');
+  const [slDisplayMode, setSlDisplayMode] = useState('pips');
+  const [tpDisplayMode, setTpDisplayMode] = useState('pips');
   const lots = controlledLots ?? internalLots;
   const setLots = onLotsChange ?? setInternalLots;
   const volumeStep = Math.max(Number(market?.volumeStep) || 0.01, 0.00000001);
@@ -178,6 +181,76 @@ export default function ExecutionPanel({
     else onManualOrder({ side, lots, price: side === 'buy' ? market.ask : market.bid, symbol: market.symbol });
   };
 
+  const plannerLots = Number(metrics?.lots ?? normalizedLots);
+  const plannerPip = Number(instrumentPipSize(market));
+  const plannerContractSize = Number(market?.contractSize);
+  const plannerDollarSupported = riskSizingSupported(market, account?.currency)
+    && Number.isFinite(plannerContractSize)
+    && plannerContractSize > 0;
+  const plannerMargin = tradePlan
+    ? estimateRequiredMargin(tradePlan.entry, plannerLots, market, account)
+    : null;
+
+  const commitPlannerRisk = raw => {
+    const numeric = Math.abs(Number(raw));
+    if (!Number.isFinite(numeric) || numeric <= 0) return;
+    const equity = Number(account?.equity);
+    const nextPercent = riskDisplayMode === 'amount'
+      ? (Number.isFinite(equity) && equity > 0 ? numeric / equity * 100 : null)
+      : numeric;
+    if (!Number.isFinite(nextPercent) || nextPercent <= 0) return;
+    const clamped = Math.max(0.1, Math.min(5, nextPercent));
+    onRiskPercentChange(clamped);
+    onSizingModeChange('risk');
+    onTradePlanChange({ sizingMode: 'risk' });
+  };
+
+  const commitPlannerLots = raw => {
+    const numeric = Number(raw);
+    if (!Number.isFinite(numeric) || numeric <= 0) return;
+    const next = normalizeVolumeToStep(numeric, market, { rounding: 'nearest' });
+    setLots(next);
+    setLotInput(formatLots(next));
+    onSizingModeChange('lots');
+    onTradePlanChange({ sizingMode: 'lots', manualLots: next });
+  };
+
+  const commitPlannerEntry = raw => {
+    const numeric = Number(raw);
+    if (!Number.isFinite(numeric) || numeric <= 0) return;
+    onTradePlanChange({ entry: numeric, stage: 'ready' });
+  };
+
+  const protectionPriceFromInput = (kind, raw, mode) => {
+    const numeric = Math.abs(Number(raw));
+    const entry = Number(tradePlan?.entry);
+    if (!Number.isFinite(numeric) || numeric <= 0 || !Number.isFinite(entry)) return null;
+    let distance = null;
+    if (mode === 'amount') {
+      if (!plannerDollarSupported || !Number.isFinite(plannerLots) || plannerLots <= 0) return null;
+      distance = numeric / (plannerLots * plannerContractSize);
+    } else {
+      if (!Number.isFinite(plannerPip) || plannerPip <= 0) return null;
+      distance = numeric * plannerPip;
+    }
+    const buy = String(tradePlan?.side || '').toLowerCase() === 'buy';
+    if (kind === 'sl') return buy ? entry - distance : entry + distance;
+    return buy ? entry + distance : entry - distance;
+  };
+
+  const commitPlannerProtection = (kind, raw, mode) => {
+    const price = protectionPriceFromInput(kind, raw, mode);
+    if (!Number.isFinite(price) || price <= 0) return;
+    onTradePlanChange({ [kind]: price, stage: 'ready' });
+  };
+
+  const plannerInputKeyDown = event => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      event.currentTarget.blur();
+    }
+  };
+
   const sizingPicker = pickerOpen && (
     <div className={`absolute z-50 w-[196px] overflow-hidden border border-white/[0.12] bg-[#0d0d10] shadow-[0_10px_28px_rgba(0,0,0,0.38)] ${mobileDocked ? 'bottom-[70px] left-1/2 -translate-x-1/2' : focusMode ? 'bottom-[72px] left-1/2 -translate-x-1/2' : 'bottom-[112px] left-1/2 -translate-x-1/2'}`}>
       <div className="border-b border-white/[0.08] px-2.5 py-2">
@@ -231,6 +304,123 @@ export default function ExecutionPanel({
       {orderTypes.map(([id, label]) => <button key={id} type="button" onClick={() => { onOrderTypeChange(id); setOrderPickerOpen(false); }} className={`flex w-full items-center justify-between rounded-md px-3 py-2.5 text-left text-[11px] ${orderType === id ? 'bg-[#101010] text-[#60caff]' : 'text-[#c0ccd7]'}`}><span><b className="block">{label}</b><small className="text-[#718398]">{id === 'market' ? 'Immediate execution' : id === 'limit' ? 'Better price retracement' : id === 'stop' ? 'Breakout trigger' : 'Stop trigger → limit order'}</small></span>{orderType === id && <Check size={14}/>}</button>)}
     </div>
   );
+
+  if (mobileDocked && tradePlan && !tradePlan.open) {
+    const side = String(tradePlan.side || '').toLowerCase() === 'buy' ? 'BUY' : 'SELL';
+    const type = String(tradePlan.orderType || 'market').toUpperCase();
+    const actionLabel = tradePlan.pending ? `${side} ${type}` : side;
+    const symbolLabel = String(tradePlan.symbol || market?.symbol || '').toUpperCase();
+    const riskAmount = Number(metrics?.riskDollars);
+    const potential = Number(metrics?.reward);
+    const riskValue = riskDisplayMode === 'amount'
+      ? (Number.isFinite(riskAmount) ? Math.abs(riskAmount).toFixed(2) : '')
+      : Number(riskPercent).toFixed(2);
+    const slValue = slDisplayMode === 'amount'
+      ? (Number.isFinite(riskAmount) ? Math.abs(riskAmount).toFixed(2) : '')
+      : (Number.isFinite(metrics?.slPips) ? metrics.slPips.toFixed(1) : '');
+    const tpAmount = Number.isFinite(potential) ? Math.abs(potential) : null;
+    const tpValue = tpDisplayMode === 'amount'
+      ? (tpAmount != null ? tpAmount.toFixed(2) : '')
+      : (Number.isFinite(metrics?.tpPips) ? metrics.tpPips.toFixed(1) : '');
+    const actionPrice = formatInstrumentPrice(tradePlan.entry, market);
+    const riskSummaryLabel = riskDisplayMode === 'amount' ? 'Account risk' : 'Risk';
+    const riskSummaryValue = riskDisplayMode === 'amount'
+      ? `${Number(riskPercent).toFixed(2)}%`
+      : formatMoney(metrics?.riskDollars, account?.currency);
+    const inputClass = 'w-full bg-transparent p-0 text-center font-mono text-[9px] font-semibold tabular-nums text-[#f0f0f2] outline-none';
+    const labelClass = 'block text-[6px] font-semibold uppercase tracking-[0.08em] text-[#77777d]';
+    const modeButton = active => `h-4 min-w-[18px] border px-1 text-[6px] font-semibold ${active ? 'border-[#315b72] bg-[#15151a] text-[#53c7ff]' : 'border-white/[0.07] bg-transparent text-[#68686e]'}`;
+
+    const riskField = (
+      <div className="min-w-0 px-1 py-1.5 text-center">
+        <span className={labelClass}>Risk</span>
+        <input key={`risk:${riskDisplayMode}:${riskValue}`} defaultValue={riskValue} inputMode="decimal" onBlur={event => commitPlannerRisk(event.currentTarget.value)} onKeyDown={plannerInputKeyDown} className={inputClass} aria-label={`Risk ${riskDisplayMode === 'amount' ? 'amount' : 'percent'}`} />
+        <div className="mt-1 flex justify-center gap-px">
+          <button type="button" onClick={() => setRiskDisplayMode('percent')} className={modeButton(riskDisplayMode === 'percent')}>%</button>
+          <button type="button" onClick={() => plannerDollarSupported && setRiskDisplayMode('amount')} disabled={!plannerDollarSupported} className={modeButton(riskDisplayMode === 'amount')}>$</button>
+        </div>
+      </div>
+    );
+
+    const entryField = (
+      <div className="min-w-0 px-1 py-1.5 text-center">
+        <span className={labelClass}>Entry</span>
+        <input key={`entry:${tradePlan.entry}`} defaultValue={formatInstrumentPrice(tradePlan.entry, market)} inputMode="decimal" onBlur={event => commitPlannerEntry(event.currentTarget.value)} onKeyDown={plannerInputKeyDown} className={inputClass} aria-label="Entry price" />
+        <span className="mt-1 block h-4 text-[6px] text-[#68686e]">price</span>
+      </div>
+    );
+
+    const lotsField = (
+      <div className="min-w-0 px-1 py-1.5 text-center">
+        <span className={labelClass}>Lots</span>
+        <input key={`lots:${plannerLots}`} defaultValue={Number.isFinite(plannerLots) ? formatLots(plannerLots) : ''} inputMode="decimal" onBlur={event => commitPlannerLots(event.currentTarget.value)} onKeyDown={plannerInputKeyDown} className={inputClass} aria-label="Lot size" />
+        <span className="mt-1 block h-4 text-[6px] text-[#68686e]">volume</span>
+      </div>
+    );
+
+    const protectionField = (kind, label, mode, setMode, value) => (
+      <div className="min-w-0 px-1 py-1.5 text-center">
+        <span className={labelClass}>{label}</span>
+        <input key={`${kind}:${mode}:${value}`} defaultValue={value} inputMode="decimal" onBlur={event => commitPlannerProtection(kind, event.currentTarget.value, mode)} onKeyDown={plannerInputKeyDown} className={inputClass} aria-label={`${label} ${mode === 'amount' ? 'amount' : 'pips'}`} />
+        <div className="mt-1 flex justify-center gap-px">
+          <button type="button" onClick={() => setMode('pips')} className={modeButton(mode === 'pips')}>p</button>
+          <button type="button" onClick={() => plannerDollarSupported && setMode('amount')} disabled={!plannerDollarSupported} className={modeButton(mode === 'amount')}>$</button>
+        </div>
+      </div>
+    );
+
+    return (
+      <section className="relative overflow-hidden border border-white/[0.12] bg-[#0d0d10]">
+        <div className="flex min-h-10 items-center justify-between gap-2 border-b border-white/[0.10] px-2.5 py-1.5">
+          <div className="min-w-0">
+            <div className="flex items-baseline gap-1.5">
+              <strong className={`text-[9px] font-extrabold tracking-[0.04em] ${side === 'BUY' ? 'text-[#2ddb9f]' : 'text-[#ff5f6d]'}`}>{actionLabel}</strong>
+              <span className="truncate text-[8px] font-semibold text-[#f0f0f2]">· {symbolLabel}</span>
+            </div>
+            <p className="mt-0.5 text-[7px] text-[#68686e]">Drag entry / SL / TP on chart</p>
+          </div>
+          <button type="button" onClick={onCancelPlan} className="grid size-7 shrink-0 place-items-center border border-white/[0.08] bg-[#15151a] text-[#8a8a91]" aria-label="Cancel trade plan"><X size={13}/></button>
+        </div>
+
+        <div className="grid grid-cols-5 divide-x divide-white/[0.08] border-b border-white/[0.10] bg-[#0d0d10]">
+          {riskField}
+          {entryField}
+          {lotsField}
+          {protectionField('sl', 'SL', slDisplayMode, setSlDisplayMode, slValue)}
+          {protectionField('tp', 'TP', tpDisplayMode, setTpDisplayMode, tpValue)}
+        </div>
+
+        <div className="flex h-8 items-center justify-between gap-2 border-b border-white/[0.08] px-2.5 text-[7px] text-[#77777d]">
+          <span>{riskSummaryLabel} <b className="ml-1 font-mono font-semibold tabular-nums text-[#f0f0f2]">{riskSummaryValue}</b></span>
+          <span>Potential <b className="ml-1 font-mono font-semibold tabular-nums text-[#42d7a2]">{formatMoney(metrics?.reward, account?.currency, true)}</b></span>
+          <span>R:R <b className="ml-1 font-mono font-semibold tabular-nums text-[#f0f0f2]">1:{Number.isFinite(metrics?.rr) ? metrics.rr.toFixed(1) : '—'}</b></span>
+        </div>
+
+        <div className="flex h-7 items-center justify-between gap-3 border-b border-white/[0.08] px-2.5 text-[7px] text-[#68686e]">
+          <span>Margin <b className="ml-1 font-mono font-semibold tabular-nums text-[#a0a0a6]">{formatMoney(plannerMargin, account?.currency)}</b></span>
+          <span>Free <b className="ml-1 font-mono font-semibold tabular-nums text-[#a0a0a6]">{formatMoney(account?.freeMargin, account?.currency)}</b></span>
+        </div>
+
+        <div className={`grid gap-px bg-white/[0.07] ${side === 'SELL' ? 'grid-cols-[2fr_1fr]' : 'grid-cols-[1fr_2fr]'}`}>
+          {side === 'BUY' && (
+            <button type="button" onClick={onCancelPlan} className="flex h-[58px] items-center justify-center bg-[#0d0d10] text-[8px] font-bold uppercase tracking-[0.08em] text-[#9a9aa0]">Cancel</button>
+          )}
+          <button
+            type="button"
+            disabled={!canSubmitExposure}
+            onClick={onExecutePlan}
+            className={`flex h-[58px] min-w-0 flex-col justify-center bg-black px-3 disabled:cursor-not-allowed disabled:opacity-40 ${side === 'BUY' ? 'acg-execution-buy items-end text-right' : 'acg-execution-sell items-start text-left'}`}
+          >
+            <span className="text-[9px] font-extrabold tracking-[0.045em]">{tradePlan.editingOrderId ? `UPDATE ${actionLabel}` : actionLabel}</span>
+            <strong className="mt-1 max-w-full whitespace-nowrap text-[20px] font-black tabular-nums leading-none tracking-[-0.035em] text-[#f5f5f6]">{actionPrice}</strong>
+          </button>
+          {side === 'SELL' && (
+            <button type="button" onClick={onCancelPlan} className="flex h-[58px] items-center justify-center bg-[#0d0d10] text-[8px] font-bold uppercase tracking-[0.08em] text-[#9a9aa0]">Cancel</button>
+          )}
+        </div>
+      </section>
+    );
+  }
 
   if (tradePlan && !tradePlan.open) {
     const side = tradePlan.side === 'buy' ? 'BUY' : 'SELL';
