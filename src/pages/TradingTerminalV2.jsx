@@ -14,7 +14,7 @@ import useTradingHotkeys from '../hooks/useTradingHotkeys.js';
 import { useTradingTerminal } from '../hooks/useTradingTerminal.js';
 import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
 import { normalizePriceToTick, normalizeProtectionPrice, normalizeVolumeToStep, pendingPriceDirection } from '../utils/tradingCommandNormalization.js';
-import { calculateRiskSizedLots, estimateStopRisk, evaluateRiskToolSetup } from '../utils/tradingRisk.js';
+import { estimateStopRisk, evaluateRiskToolSetup, resolveExecutionSizing } from '../utils/tradingRisk.js';
 import { exposureAvailability } from '../utils/exposureAvailability.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../utils/instrumentFormatting.js';
 import { normalizeTradePlanPatch } from '../utils/tradePlanNormalization.js';
@@ -101,18 +101,17 @@ function loadJournal(accountId) {
   }
 }
 
-function calculatedLots(plan, riskPercent, manualLots, equity, instrument, accountCurrency) {
-  if (!plan || plan.sizingMode !== 'risk') return Math.max(0.01, Number(manualLots) || 0.01);
-  return calculateRiskSizedLots(plan, riskPercent, equity, instrument, accountCurrency);
+function calculatedLots(plan, riskPercent, manualLots, account, instrument) {
+  if (!plan) return Math.max(0.01, Number(manualLots) || 0.01);
+  const sizing = resolveExecutionSizing(plan, riskPercent, manualLots, account, instrument);
+  return sizing.canExecute ? sizing.lots : null;
 }
 
-function estimatedRisk(plan, riskPercent, manualLots, equity, instrument, accountCurrency) {
+function estimatedRisk(plan, riskPercent, manualLots, account, instrument) {
   if (!plan) return 0;
-  const lots = plan.sizingMode === 'risk'
-    ? calculateRiskSizedLots(plan, riskPercent, equity, instrument, accountCurrency)
-    : Number(plan.manualLots ?? manualLots);
-  if (lots == null) return null;
-  return estimateStopRisk(plan, normalizeVolumeToStep(lots, instrument), instrument, accountCurrency);
+  const sizing = resolveExecutionSizing(plan, riskPercent, manualLots, account, instrument);
+  if (!Number.isFinite(Number(sizing.lots))) return null;
+  return estimateStopRisk(plan, sizing.lots, instrument, account?.currency);
 }
 
 function fillEvent(result, fallback) {
@@ -684,9 +683,21 @@ export default function TradingTerminalV2({
     const executionPlan = effectiveTradePlan(tradePlan, planMarket);
     const planValidation = validateTradePlanForExecution(executionPlan, planMarket);
     if (!planValidation.valid) { showNotice(planValidation.message || 'Review the order before submitting'); return; }
-    const calculated = calculatedLots(executionPlan, riskPercent, executionPlan.manualLots ?? lots, account.equity, planMarket, account.currency);
-    if (calculated == null) { showNotice('Risk % sizing is unavailable because this instrument P&L requires currency conversion. Use Lots sizing.'); return; }
-    const volume = normalizeVolumeToStep(calculated, planMarket);
+    const executionSizing = resolveExecutionSizing(executionPlan, riskPercent, executionPlan.manualLots ?? lots, account, planMarket);
+    if (!executionSizing.canExecute || !Number.isFinite(Number(executionSizing.lots))) {
+      const reason = executionSizing.blockReason === 'UNSUPPORTED_RISK_CURRENCY'
+        ? 'Risk % sizing is unavailable because this instrument P&L requires currency conversion. Use Lots sizing.'
+        : executionSizing.blockReason === 'INSUFFICIENT_MARGIN'
+          ? 'The selected risk requires more free margin than is currently available.'
+          : executionSizing.blockReason === 'MAX_VOLUME'
+            ? 'The selected risk requires more than the instrument maximum lot size.'
+            : executionSizing.blockReason === 'MIN_VOLUME'
+              ? 'The selected risk is below the instrument minimum lot size.'
+              : 'Unable to calculate an executable position size for this order.';
+      showNotice(reason);
+      return;
+    }
+    const volume = executionSizing.lots;
     const proposedRisk = estimateStopRisk(executionPlan, volume, planMarket, account.currency);
     const guard = evaluateRiskGuard({
       account,
@@ -830,7 +841,7 @@ export default function TradingTerminalV2({
 
   const plannedRiskInstrument = markets.find(item => item.symbol === tradePlan?.symbol) || market;
   const plannedRiskPlan = effectiveTradePlan(tradePlan, plannedRiskInstrument);
-  const plannedRisk = estimatedRisk(plannedRiskPlan, riskPercent, lots, account.equity, plannedRiskInstrument, account.currency);
+  const plannedRisk = estimatedRisk(plannedRiskPlan, riskPercent, lots, account, plannedRiskInstrument);
 
   if (isDesktop) {
     return (
