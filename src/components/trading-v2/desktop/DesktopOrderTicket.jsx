@@ -350,9 +350,12 @@ export default function DesktopOrderTicket({
   };
 
   const nudgeLots = direction => {
+    const baseLots = activeSizingMode === 'risk' && Number.isFinite(displayedLots)
+      ? displayedLots
+      : normalizedLots;
     const next = direction > 0
-      ? Math.min(maxVolume, normalizedLots + volumeStep)
-      : Math.max(minVolume, normalizedLots - volumeStep);
+      ? Math.min(maxVolume, baseLots + volumeStep)
+      : Math.max(minVolume, baseLots - volumeStep);
     setLots(next);
   };
 
