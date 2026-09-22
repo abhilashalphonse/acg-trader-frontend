@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateRiskOrderSizing, calculateRiskSizedLots, defaultPlannerStopDistance, effectiveLeverage, estimatePositionPnlAtPrice, estimateRequiredMargin, estimateStopRisk, evaluateRiskToolSetup, positionDistancePips, resolveExecutionSizing, riskSizingSupported } from '../src/utils/tradingRisk.js';
+import { calculateRiskOrderSizing, calculateRiskSizedLots, defaultPlannerStopDistance, effectiveLeverage, estimateCommission, estimateOpeningRequirement, estimatePositionPnlAtPrice, estimateRequiredMargin, estimateStopRisk, evaluateRiskToolSetup, positionDistancePips, resolveExecutionSizing, riskSizingSupported } from '../src/utils/tradingRisk.js';
 import { exposureAvailability } from '../src/utils/exposureAvailability.js';
 
 const xau = { pnlCurrency: 'USD', quoteCurrency: 'USD', contractSize: 100 };
@@ -25,11 +25,20 @@ test('risk percent sizing refuses to invent cross-currency conversion', () => {
   assert.equal(calculateRiskSizedLots(plan, 1, 10000, usdjpy, 'USD'), null);
 });
 
-test('margin preview mirrors effective leverage and includes commission', () => {
+test('margin and opening requirement mirror backend margin plus commission semantics', () => {
   const btc = { quoteCurrency: 'USD', marginCurrency: 'USD', contractSize: 1, defaultLeverage: 100, commissionPerLot: 2 };
   const account = { currency: 'USD', leverage: 100, freeMargin: 10000 };
   assert.equal(effectiveLeverage(account, btc), 100);
-  assert.equal(estimateRequiredMargin(80000, 0.25, btc, account), 200.5);
+  assert.equal(estimateRequiredMargin(80000, 0.25, btc, account), 200);
+  assert.equal(estimateCommission(80000, 0.25, btc, account), 0.5);
+  assert.equal(estimateOpeningRequirement(80000, 0.25, btc, account), 200.5);
+});
+
+test('rate-based commission is included in opening requirement', () => {
+  const btc = { quoteCurrency: 'USD', marginCurrency: 'USD', contractSize: 1, defaultLeverage: 100, commissionRate: 0.0002 };
+  const account = { currency: 'USD', leverage: 100, freeMargin: 10000 };
+  assert.equal(estimateCommission(80000, 0.25, btc, account), 4);
+  assert.equal(estimateOpeningRequirement(80000, 0.25, btc, account), 204);
 });
 
 test('risk sizing blocks an order before submission when free margin is insufficient', () => {
