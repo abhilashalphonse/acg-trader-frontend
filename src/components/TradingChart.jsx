@@ -591,7 +591,7 @@ export default function TradingChart({
           price: liveBid,
           color: showBidAskLines ? '#42a5ff' : chartTokens.livePriceLine,
           lineWidth: 1,
-          lineStyle: showBidAskLines ? LineStyle.Dashed : LineStyle.Solid,
+          lineStyle: showBidAskLines ? LineStyle.Dashed : LineStyle.Dotted,
           axisLabelVisible: true,
           axisLabelColor: showBidAskLines ? '#42a5ff' : chartTokens.livePriceLabel,
           axisLabelTextColor: showBidAskLines ? '#ffffff' : chartTokens.livePriceLabelText,
@@ -601,7 +601,7 @@ export default function TradingChart({
         marketLineRef.current.applyOptions({
           price: liveBid,
           color: showBidAskLines ? '#42a5ff' : chartTokens.livePriceLine,
-          lineStyle: showBidAskLines ? LineStyle.Dashed : LineStyle.Solid,
+          lineStyle: showBidAskLines ? LineStyle.Dashed : LineStyle.Dotted,
           axisLabelColor: showBidAskLines ? '#42a5ff' : chartTokens.livePriceLabel,
           axisLabelTextColor: showBidAskLines ? '#ffffff' : chartTokens.livePriceLabelText,
           title: showBidAskLines ? 'BID' : '',
