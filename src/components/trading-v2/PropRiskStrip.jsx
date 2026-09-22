@@ -20,14 +20,14 @@ function Meter({ label, value, limit, headline, tone = 'neutral', currency = 'US
   const barClass = tone === 'danger' ? 'bg-[#ff6370]' : tone === 'success' ? 'bg-[#39d7a1]' : 'bg-[#0C1013]';
   return (
     <div className="min-w-0 flex-1">
-      <div className={`flex items-center justify-between gap-2 uppercase ${embedded ? 'text-[7px] font-semibold tracking-[0.08em] text-[#717176]' : 'text-[8px] font-semibold tracking-[0.07em] text-[#6F8191]'}`}>
+      <div className={`flex items-center justify-between gap-2 uppercase ${embedded ? 'text-[7px] font-semibold tracking-[0.08em] text-[#77777D]' : 'text-[8px] font-semibold tracking-[0.07em] text-[#68686E]'}`}>
         <span>{label}</span>
-        <span className={embedded ? 'font-mono tabular-nums text-[#9a9aa0]' : 'text-[#A1AFBC]'}>{headline}</span>
+        <span className={embedded ? 'font-mono tabular-nums text-[#9a9aa0]' : 'text-[#A0A0A6]'}>{headline}</span>
       </div>
       <div className={`${embedded ? 'mt-1 h-px bg-white/[0.07]' : 'mt-1 h-1.5 rounded-full bg-[#0C1013]'} overflow-hidden`}>
         <div className={`${embedded ? 'h-px' : 'h-full rounded-full'} ${barClass}`} style={{ width: `${percent}%` }} />
       </div>
-      <div className={`${embedded ? 'mt-1 text-[7px]' : 'mt-1 text-[8px]'} flex items-center justify-between gap-1 font-medium text-[#6F8191]`}>
+      <div className={`${embedded ? 'mt-1 text-[7px]' : 'mt-1 text-[8px]'} flex items-center justify-between gap-1 font-medium text-[#68686E]`}>
         <span className="truncate font-mono tabular-nums">{money(value, currency)} / {money(limit, currency)}</span>
         <span className="shrink-0 font-mono tabular-nums">{percent.toFixed(0)}% used</span>
       </div>
@@ -48,9 +48,9 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
     if (compact) {
       return (
         <div className="flex h-10 items-center gap-4 border-y border-white/[0.06] bg-[#07090B] px-3 text-[9px]">
-          <span className="flex items-center gap-1 font-bold text-[#6F8191]"><Activity size={11}/>Valuation <b className={valuation === 'LIVE' ? 'text-[#42D7A1]' : valuation === 'STALE' ? 'text-[#E7BD58]' : 'text-[#A1AFBC]'}>{valuation}</b></span>
-          <span className="text-[#6F8191]">Free <b className="text-[#E6EDF3]">{money(account?.freeMargin, currency)}</b></span>
-          <span className="text-[#6F8191]">Used <b className="text-[#E6EDF3]">{money(account?.usedMargin, currency)}</b></span>
+          <span className="flex items-center gap-1 font-bold text-[#68686E]"><Activity size={11}/>Valuation <b className={valuation === 'LIVE' ? 'text-[#42D7A1]' : valuation === 'STALE' ? 'text-[#E7BD58]' : 'text-[#A0A0A6]'}>{valuation}</b></span>
+          <span className="text-[#68686E]">Free <b className="text-[#E6EDF3]">{money(account?.freeMargin, currency)}</b></span>
+          <span className="text-[#68686E]">Used <b className="text-[#E6EDF3]">{money(account?.usedMargin, currency)}</b></span>
         </div>
       );
     }
@@ -58,11 +58,11 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
     return (
       <section className={`${embedded ? 'bg-[#0d0d10] px-3 py-2.5' : 'mt-2.5 border-y border-white/[0.06] bg-black px-1 py-3'}`}>
         <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0"><div className="flex items-center gap-1.5"><Activity size={13} className="text-[#59C7FF]"/><b className="text-[12px] font-semibold text-[#E6EDF3]">Account Health</b></div><p className="mt-1 text-[9px] text-[#6F8191]">Live account valuation</p></div>
-          <div className="text-right"><span className="block text-[8px] uppercase tracking-[0.08em] text-[#6F8191]">Valuation</span><b className={`mt-0.5 block text-[11px] ${valuation === 'LIVE' ? 'text-[#42D7A1]' : valuation === 'STALE' ? 'text-[#E7BD58]' : 'text-[#A1AFBC]'}`}>{valuation}</b></div>
+          <div className="min-w-0"><div className="flex items-center gap-1.5"><Activity size={13} className="text-[#59C7FF]"/><b className="text-[12px] font-semibold text-[#E6EDF3]">Account Health</b></div><p className="mt-1 text-[9px] text-[#68686E]">Live account valuation</p></div>
+          <div className="text-right"><span className="block text-[8px] uppercase tracking-[0.08em] text-[#68686E]">Valuation</span><b className={`mt-0.5 block text-[11px] ${valuation === 'LIVE' ? 'text-[#42D7A1]' : valuation === 'STALE' ? 'text-[#E7BD58]' : 'text-[#A0A0A6]'}`}>{valuation}</b></div>
         </div>
         <div className="mt-2.5 grid grid-cols-3 gap-2"><HealthStat label="Equity" value={money(account?.equity, currency)}/><HealthStat label="Free margin" value={money(account?.freeMargin, currency)}/><HealthStat label="Floating P&L" value={money(account?.floatingPnl, currency)}/></div>
-        {plannedRisk > 0 && <div className="mt-2.5 border-t border-white/[0.06] px-0 py-2 text-[8px] font-semibold text-[#A1AFBC]">Estimated ticket risk <b className="text-[#e6edf3]">{money(plannedRisk, currency)}</b>. Challenge limits are not available for this account.</div>}
+        {plannedRisk > 0 && <div className="mt-2.5 border-t border-white/[0.06] px-0 py-2 text-[8px] font-semibold text-[#A0A0A6]">Estimated ticket risk <b className="text-[#e6edf3]">{money(plannedRisk, currency)}</b>. Challenge limits are not available for this account.</div>}
       </section>
     );
   }
@@ -70,9 +70,9 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
   if (compact) {
     return (
       <div className="flex h-9 items-center gap-3 border-y border-white/[0.06] bg-[#07090B] px-3 text-[8px]">
-        <span className="flex items-center gap-1 font-bold text-[#6F8191]"><ShieldAlert size={11}/>Daily <b className={riskWarning ? 'text-[#FF6F7A]' : 'text-[#E6EDF3]'}>{money(risk.remainingDaily, currency)}</b></span>
-        <span className="text-[#6F8191]">Max <b className="text-[#E6EDF3]">{money(risk.remainingMax, currency)}</b></span>
-        <span className="text-[#6F8191]">Target <b className="text-[#42D7A1]">{money(risk.profit, currency)} / {money(risk.profitTarget, currency)}</b></span>
+        <span className="flex items-center gap-1 font-bold text-[#68686E]"><ShieldAlert size={11}/>Daily <b className={riskWarning ? 'text-[#FF6F7A]' : 'text-[#E6EDF3]'}>{money(risk.remainingDaily, currency)}</b></span>
+        <span className="text-[#68686E]">Max <b className="text-[#E6EDF3]">{money(risk.remainingMax, currency)}</b></span>
+        <span className="text-[#68686E]">Target <b className="text-[#42D7A1]">{money(risk.profit, currency)} / {money(risk.profitTarget, currency)}</b></span>
         {plannedRisk > 0 && <span className={`ml-auto font-bold ${riskWarning ? 'text-[#FF6F7A]' : 'text-[#59C7FF]'}`}>After SL {money(risk.postTradeDaily, currency)}</span>}
       </div>
     );
@@ -86,12 +86,12 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
             <ShieldAlert size={embedded ? 11 : 13} className={embedded ? 'text-[#77777d]' : 'text-[#59C7FF]'}/>
             <b className={embedded ? 'text-[9px] font-semibold text-[#f1f1f2]' : 'text-[10px] text-[#E6EDF3]'}>Challenge Risk</b>
           </div>
-          <p className={`${embedded ? 'mt-0.5 text-[7px]' : 'mt-1 text-[8px]'} text-[#6F8191]`}>
+          <p className={`${embedded ? 'mt-0.5 text-[7px]' : 'mt-1 text-[8px]'} text-[#68686E]`}>
             {risk.riskAvailabilityLive ? 'Current loss room and target progress' : 'Risk availability is paused until account valuation is live'}
           </p>
         </div>
         <div className="shrink-0 text-right">
-          <span className={`${embedded ? 'text-[6px]' : 'text-[7px]'} block uppercase tracking-[0.09em] text-[#6F8191]`}>Available today</span>
+          <span className={`${embedded ? 'text-[6px]' : 'text-[7px]'} block uppercase tracking-[0.09em] text-[#68686E]`}>Available today</span>
           <b className={`${embedded ? 'mt-0.5 text-[12px]' : 'mt-0.5 text-[14px]'} block font-mono font-semibold tabular-nums ${riskWarning ? 'text-[#FF6F7A]' : 'text-[#e7eef4]'}`}>{money(risk.remainingDaily, currency)}</b>
         </div>
       </div>
@@ -128,8 +128,8 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
 
       {plannedRisk > 0 && (
         <div className={`${embedded ? 'mt-2 py-1.5 text-[7px]' : 'mt-2.5 py-2 text-[8px]'} flex items-center justify-between border-t px-0 ${riskWarning ? 'border-[#5d2b34] bg-transparent' : 'border-white/[0.06] bg-transparent'}`}>
-          <span className={`flex items-center gap-1.5 font-semibold ${riskWarning ? 'text-[#FF6F7A]' : 'text-[#A1AFBC]'}`}><TrendingDown size={embedded ? 10 : 12}/>Risk at SL <b className="font-mono tabular-nums text-[#e6edf3]">{money(plannedRisk, currency)}</b></span>
-          <span className="flex items-center gap-1 text-[#6F8191]"><Target size={embedded ? 9 : 11}/>Remaining <b className={`font-mono tabular-nums ${riskWarning ? 'text-[#FF6F7A]' : 'text-[#42D7A1]'}`}>{money(risk.postTradeDaily, currency)}</b></span>
+          <span className={`flex items-center gap-1.5 font-semibold ${riskWarning ? 'text-[#FF6F7A]' : 'text-[#A0A0A6]'}`}><TrendingDown size={embedded ? 10 : 12}/>Risk at SL <b className="font-mono tabular-nums text-[#e6edf3]">{money(plannedRisk, currency)}</b></span>
+          <span className="flex items-center gap-1 text-[#68686E]"><Target size={embedded ? 9 : 11}/>Remaining <b className={`font-mono tabular-nums ${riskWarning ? 'text-[#FF6F7A]' : 'text-[#42D7A1]'}`}>{money(risk.postTradeDaily, currency)}</b></span>
         </div>
       )}
     </section>
@@ -137,5 +137,5 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
 }
 
 function HealthStat({ label, value }) {
-  return <div className="border-t border-white/[0.06] px-0 py-2"><span className="block text-[7px] font-bold uppercase tracking-[0.08em] text-[#6F8191]">{label}</span><b className="mt-1 block truncate text-[9px] text-[#E6EDF3]">{value}</b></div>;
+  return <div className="border-t border-white/[0.06] px-0 py-2"><span className="block text-[7px] font-bold uppercase tracking-[0.08em] text-[#68686E]">{label}</span><b className="mt-1 block truncate text-[9px] text-[#E6EDF3]">{value}</b></div>;
 }
