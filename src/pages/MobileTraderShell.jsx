@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import MobileTradingHeader from '../components/trading-v2/MobileTradingHeader.jsx';
 import MarketPanel from '../components/trading-v2/MarketPanel.jsx';
 import ExecutionPanel from '../components/trading-v2/ExecutionPanel.jsx';
-import PositionsPanel from '../components/trading-v2/PositionsPanel.jsx';
 import BottomNavbar from '../components/trading-v2/BottomNavbar.jsx';
 import MobileScalperMode from '../components/trading-v2/MobileScalperMode.jsx';
 import FrontendSheet from '../components/trading-v2/FrontendSheet.jsx';
@@ -133,6 +132,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const [indicatorFavorites, setIndicatorFavorites] = useState(loadIndicatorFavorites);
   const [overlay, setOverlay] = useState(null);
   const [notice, setNotice] = useState('');
+  const [riskExpanded, setRiskExpanded] = useState(false);
   const exposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market, commandState: trading.commandState });
 
   useEffect(() => {
@@ -540,7 +540,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   };
 
   const chartContent = (
-    <>
+    <div className="flex h-[calc(100dvh-46px-env(safe-area-inset-bottom))] min-h-0 flex-col overflow-hidden bg-black">
       <MobileTradingHeader
         market={market}
         account={account}
@@ -548,18 +548,45 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
         onFavorite={setFavorite}
         onSelectInstrument={() => setOverlay('instruments')}
       />
-      <div className="px-2 pt-[10px]">
-        <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={tradePlan} onTradePlanChange={updatePlan} positions={positions} onUpdatePosition={updatePosition} onSelectInstrument={() => setOverlay('instruments')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} compactMobileToolbar />
-        <PropRiskStrip account={account} plannedRisk={plannedRisk} />
-        <ExecutionPanel market={market} account={account} exposureAllowed={exposure.allowed} exposureBlockReason={exposure.reason} lots={lots} onLotsChange={setLots} sizingMode={sizingMode} onSizingModeChange={setSizingMode} riskPercent={riskPercent} onRiskPercentChange={setRiskPercent} orderType={orderType} onOrderTypeChange={setOrderType} tradePlan={tradePlan} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} />
-        <PositionsPanel positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={closePosition} onCloseAll={closeAllPositions} onBreakEven={movePositionToBreakEven} onReverse={reversePosition} onUpdatePosition={updatePosition} onSetTrailing={setPositionTrailing} onDuplicate={duplicatePosition} onCancelPending={cancelPendingOrder} onModifyPending={modifyPendingOrder} />
+      <div className="flex min-h-0 flex-1 flex-col px-2 pt-[10px]">
+        <div className="min-h-0 flex-1">
+          <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={tradePlan} onTradePlanChange={updatePlan} positions={positions} onUpdatePosition={updatePosition} onSelectInstrument={() => setOverlay('instruments')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} compactMobileToolbar fillAvailableHeight />
+        </div>
+        <div className="mt-2.5 shrink-0">
+          <ExecutionPanel
+            market={market}
+            account={account}
+            exposureAllowed={exposure.allowed}
+            exposureBlockReason={exposure.reason}
+            lots={lots}
+            onLotsChange={setLots}
+            sizingMode={sizingMode}
+            onSizingModeChange={setSizingMode}
+            riskPercent={riskPercent}
+            onRiskPercentChange={setRiskPercent}
+            orderType={orderType}
+            onOrderTypeChange={setOrderType}
+            tradePlan={tradePlan}
+            onStartPlan={startPlan}
+            onCancelPlan={cancelPlan}
+            onExecutePlan={executePlan}
+            onModifyPlan={modifyPlan}
+            onManualOrder={manualOrder}
+            onTradePlanChange={updatePlan}
+            mobileDocked
+            riskExpanded={riskExpanded}
+            onToggleRisk={() => setRiskExpanded(value => !value)}
+            riskContent={<PropRiskStrip account={account} plannedRisk={plannedRisk} embedded />}
+          />
+        </div>
+        <div className="h-2.5 shrink-0 bg-black" aria-hidden="true" />
       </div>
-    </>
+    </div>
   );
 
   return (
     <div className="min-h-dvh bg-black font-sans text-[#f5f8fb] antialiased">
-      <main ref={shellRef} className={chartFocus ? 'relative mx-auto h-dvh w-full max-w-[460px] overflow-hidden bg-black' : 'relative mx-auto min-h-dvh w-full max-w-[460px] overflow-x-hidden bg-black pb-[calc(88px+env(safe-area-inset-bottom))]'}>
+      <main ref={shellRef} className={chartFocus ? 'relative mx-auto h-dvh w-full max-w-[460px] overflow-hidden bg-black' : 'relative mx-auto min-h-dvh w-full max-w-[460px] overflow-x-hidden bg-black pb-[calc(46px+env(safe-area-inset-bottom))]'}>
         {chartFocus ? (
           <MobileScalperMode market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} lots={lots} setLots={setLots} sizingMode={sizingMode} setSizingMode={setSizingMode} riskPercent={riskPercent} setRiskPercent={setRiskPercent} orderType={orderType} setOrderType={setOrderType} tradePlan={tradePlan} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} positions={positions} onUpdatePosition={updatePosition} onIndicators={() => setOverlay('indicators')} indicators={indicators} account={account} plannedRisk={plannedRisk} exposureAllowed={exposure.allowed} exposureBlockReason={exposure.reason} onExit={exitChartFocus} />
         ) : (

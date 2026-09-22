@@ -482,6 +482,7 @@ export default function ChartArea({
   drawingInteractionEnabled = true,
   drawingToolbarOpen = true,
   drawingToolbarOverlay = false,
+  fillAvailableHeight = false,
 }) {
   const timeframeSeconds = secondsByTimeframe[chartTimeframe] || 60;
   const [remaining, setRemaining] = useState(() => timeframeSeconds - (Math.floor(Date.now() / 1000) % timeframeSeconds));
@@ -506,8 +507,9 @@ export default function ChartArea({
 
   const heightClass = oscillatorCount ? (oscillatorCount > 1 ? 'h-[500px] md:h-[580px]' : 'h-[430px] md:h-[520px]') : 'h-[360px] md:h-[460px]';
   const toolbarVisible = !hideToolbar && drawingToolbarOpen;
+  const mobileHeightClass = fillAvailableHeight ? 'h-full min-h-0 flex-1' : heightClass;
   const areaClass = drawingToolbarOverlay
-    ? `grid ${heightClass} ${toolbarVisible ? 'grid-cols-[40px_minmax(0,1fr)] gap-1' : 'grid-cols-[minmax(0,1fr)]'} bg-black pb-2`
+    ? `grid ${mobileHeightClass} ${toolbarVisible ? 'grid-cols-[40px_minmax(0,1fr)] gap-1' : 'grid-cols-[minmax(0,1fr)]'} bg-black pb-2`
     : embedded
       ? `grid h-full min-h-0 ${!toolbarVisible ? 'grid-cols-[minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} gap-1.5`
       : focusMode

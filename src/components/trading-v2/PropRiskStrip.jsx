@@ -37,7 +37,7 @@ function Meter({ label, value, limit, headline, tone = 'neutral', currency = 'US
 
 export const calculateRiskSummary = calculateAccountRiskSummary;
 
-export default function PropRiskStrip({ account, plannedRisk = 0, compact = false }) {
+export default function PropRiskStrip({ account, plannedRisk = 0, compact = false, embedded = false }) {
   const risk = useMemo(() => calculateAccountRiskSummary(account, plannedRisk), [account, plannedRisk]);
   const hasChallengeRules = risk.dailyLossLimit > 0 || risk.maxLossLimit > 0 || risk.profitTarget > 0;
   const riskWarning = risk.dailyLossLimit > 0 && plannedRisk > 0 && (!risk.riskAvailabilityLive || plannedRisk >= risk.remainingDaily * 0.75);
@@ -56,7 +56,7 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
     }
 
     return (
-      <section className="mt-2.5 border-y border-white/[0.06] bg-black px-1 py-3">
+      <section className={`${embedded ? 'bg-[#0d0d10] px-3 py-2.5' : 'mt-2.5 border-y border-white/[0.06] bg-black px-1 py-3'}`}>
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0"><div className="flex items-center gap-1.5"><Activity size={13} className="text-[#59C7FF]"/><b className="text-[12px] font-semibold text-[#E6EDF3]">Account Health</b></div><p className="mt-1 text-[9px] text-[#6F8191]">Live account valuation</p></div>
           <div className="text-right"><span className="block text-[8px] uppercase tracking-[0.08em] text-[#6F8191]">Valuation</span><b className={`mt-0.5 block text-[11px] ${valuation === 'LIVE' ? 'text-[#42D7A1]' : valuation === 'STALE' ? 'text-[#E7BD58]' : 'text-[#A1AFBC]'}`}>{valuation}</b></div>
@@ -79,7 +79,7 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
   }
 
   return (
-    <section className="mt-2.5 border-y border-white/[0.06] bg-black px-1 py-3">
+    <section className={`${embedded ? 'bg-[#0d0d10] px-3 py-2.5' : 'mt-2.5 border-y border-white/[0.06] bg-black px-1 py-3'}`}>
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0"><div className="flex items-center gap-1.5"><ShieldAlert size={13} className="text-[#59C7FF]"/><b className="text-[10px] text-[#E6EDF3]">Challenge Risk</b></div><p className="mt-1 text-[8px] text-[#6F8191]">{risk.riskAvailabilityLive ? 'Current loss room and target progress' : 'Risk availability is paused until account valuation is live'}</p></div>
         <div className="text-right"><span className="block text-[7px] uppercase tracking-[0.08em] text-[#6F8191]">Available today</span><b className={`mt-0.5 block text-[14px] ${riskWarning ? 'text-[#FF6F7A]' : 'text-[#e7eef4]'}`}>{money(risk.remainingDaily, currency)}</b></div>

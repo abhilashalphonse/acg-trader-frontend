@@ -28,11 +28,12 @@ export default function MarketPanel({
   onUpdatePosition = () => {},
   showInstrumentHeader = true,
   compactMobileToolbar = false,
+  fillAvailableHeight = false,
 }) {
   const [drawingToolbarOpen, setDrawingToolbarOpen] = useState(false);
 
   return (
-    <section className={`overflow-hidden border ${compactMobileToolbar ? 'border-white/[0.12] bg-[#0d0d10]' : 'border-white/[0.08] bg-black'}`}>
+    <section className={`overflow-hidden border ${fillAvailableHeight ? 'flex h-full min-h-0 flex-col' : ''} ${compactMobileToolbar ? 'border-white/[0.12] bg-[#0d0d10]' : 'border-white/[0.08] bg-black'}`}>
       {showInstrumentHeader && <InstrumentHeader market={market} favorite={favorite} onFavorite={() => setFavorite(v => !v)} onSelectInstrument={onSelectInstrument} />}
       <ChartControls
         timeframe={timeframe}
@@ -67,6 +68,7 @@ export default function MarketPanel({
         onCancelPending={onCancelPending}
         drawingToolbarOpen={compactMobileToolbar ? drawingToolbarOpen : true}
         drawingToolbarOverlay={compactMobileToolbar}
+        fillAvailableHeight={fillAvailableHeight}
       />
     </section>
   );

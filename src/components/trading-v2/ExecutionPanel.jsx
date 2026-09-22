@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, Minus, Plus, X, Check, SlidersHorizontal, Clock3 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Minus, Plus, X, Check, SlidersHorizontal, Clock3 } from 'lucide-react';
 import { decimalPlaces, normalizeVolumeToStep } from '../../utils/tradingCommandNormalization.js';
 import { calculateRiskOrderSizing, effectiveLeverage, estimateStopRisk, riskSizingSupported } from '../../utils/tradingRisk.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
@@ -89,6 +89,10 @@ export default function ExecutionPanel({
   exposureAllowed = true,
   exposureBlockReason = 'New exposure is temporarily unavailable',
   account = {},
+  mobileDocked = false,
+  riskExpanded = false,
+  onToggleRisk = () => {},
+  riskContent = null,
 }) {
   const [internalLots, setInternalLots] = useState(0.10);
   const [lotInput, setLotInput] = useState('0.10');
@@ -320,6 +324,73 @@ export default function ExecutionPanel({
       </div>
     </>
   );
+
+  if (mobileDocked && !tradePlan) {
+    return (
+      <section className="relative overflow-visible border border-white/[0.12] bg-[#0d0d10]">
+        <div className="flex h-8 items-center gap-2 border-b border-white/[0.10] px-2">
+          <button type="button" onClick={() => setOrderPickerOpen(value => !value)} className="flex h-6 items-center gap-1 bg-transparent px-1 text-[8px] font-extrabold text-[#b0b0b7]">
+            {orderTypes.find(([id]) => id === orderType)?.[1]} <ChevronDown size={10}/>
+          </button>
+          <span className="min-w-0 flex-1 truncate text-[7px] text-[#6f6f76]">{orderType === 'market' ? 'Server market execution' : 'Server pending order'}</span>
+          <button type="button" onClick={onToggleRisk} className={`grid size-7 shrink-0 place-items-center text-[#8a8a91] transition ${riskExpanded ? 'text-[#53c7ff]' : ''}`} aria-label={riskExpanded ? 'Hide challenge risk' : 'Show challenge risk'} aria-expanded={riskExpanded}>
+            {riskExpanded ? <ChevronUp size={15}/> : <ChevronDown size={15}/>}
+          </button>
+        </div>
+
+        {riskExpanded && riskContent && (
+          <div className="border-b border-white/[0.10] bg-[#0d0d10]">
+            {riskContent}
+          </div>
+        )}
+
+        <div className="relative p-1.5">
+          {sizingPicker}{orderPicker}
+          <div className="grid grid-cols-[minmax(0,1fr)_88px_minmax(0,1fr)] gap-px overflow-hidden border border-white/[0.08] bg-white/[0.07]">
+            <button type="button" disabled={!canSubmitExposure} onClick={() => clickSide('sell')} className="acg-execution-sell flex h-[62px] min-w-0 flex-col items-start justify-center bg-black px-3 text-left text-[#ff5f6d] disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.99]">
+              <span className="text-[9px] font-extrabold tracking-[0.045em]">SELL</span>
+              <strong className="mt-1 max-w-full whitespace-nowrap text-[clamp(19px,5.6vw,24px)] font-black tabular-nums leading-none tracking-[-0.04em] text-[#f9f3f4]">{market?.bid || '—'}</strong>
+            </button>
+
+            <div className="grid h-[62px] grid-cols-2 grid-rows-[auto_auto_1fr] items-center bg-black px-2 py-1 text-center">
+              {sizingMode === 'lots' ? (
+                <div className="col-span-2 mx-auto flex min-w-0 items-center justify-center">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    enterKeyHint="done"
+                    aria-label="Lot size"
+                    value={lotInput}
+                    onFocus={event => { setLotInputFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }}
+                    onChange={event => updateLotInput(event.target.value)}
+                    onBlur={commitLotInput}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); }
+                      if (event.key === 'Escape') { event.preventDefault(); setLotInput(formatLots(normalizedLots)); event.currentTarget.blur(); }
+                    }}
+                    className="w-[50px] min-w-0 bg-transparent p-0 text-right text-[14px] font-black leading-none tabular-nums text-[#f4f7fb] outline-none"
+                  />
+                  <button type="button" onClick={() => setPickerOpen(value => !value)} className="ml-0.5 grid size-5 shrink-0 place-items-center text-[#77777f]" aria-label="Lot size presets"><ChevronDown size={12}/></button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setPickerOpen(value => !value)} className="col-span-2 mx-auto flex items-center gap-1 text-[14px] font-black leading-none text-[#f4f7fb]">{riskPercent.toFixed(2)}% <ChevronDown size={12} className="text-[#77777f]"/></button>
+              )}
+              <span className="col-span-2 text-[7px] font-medium text-[#717176]">{sizingMode === 'lots' ? 'Lots' : 'Risk'}</span>
+              <div className="col-span-2 flex items-end justify-between pt-0.5">
+                <button type="button" onClick={() => sizingMode === 'lots' ? decrease() : onRiskPercentChange(Math.max(0.1, +(riskPercent - 0.1).toFixed(2)))} className="grid h-5 w-[28px] place-items-center border border-white/[0.08] bg-[#15151a] text-[#a0a0a5]"><Minus size={12}/></button>
+                <button type="button" onClick={() => sizingMode === 'lots' ? increase() : onRiskPercentChange(Math.min(5, +(riskPercent + 0.1).toFixed(2)))} className="grid h-5 w-[28px] place-items-center border border-white/[0.08] bg-[#15151a] text-[#a0a0a5]"><Plus size={12}/></button>
+              </div>
+            </div>
+
+            <button type="button" disabled={!canSubmitExposure} onClick={() => clickSide('buy')} className="acg-execution-buy flex h-[62px] min-w-0 flex-col items-end justify-center bg-black px-3 text-right text-[#2ddb9f] disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.99]">
+              <span className="text-[9px] font-extrabold tracking-[0.045em]">BUY</span>
+              <strong className="mt-1 max-w-full whitespace-nowrap text-[clamp(19px,5.6vw,24px)] font-black tabular-nums leading-none tracking-[-0.04em] text-[#f3fbf8]">{market?.ask || '—'}</strong>
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   if (focusMode) return <section className="relative shrink-0 border-t border-white/[0.08] bg-[#080808]/98 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 ">{compactControls}</section>;
 
