@@ -15,21 +15,21 @@ function money(value, currency = 'USD') {
   }
 }
 
-function Meter({ label, value, limit, headline, tone = 'neutral', currency = 'USD' }) {
+function Meter({ label, value, limit, headline, tone = 'neutral', currency = 'USD', embedded = false }) {
   const percent = limit > 0 ? clamp((value / limit) * 100, 0, 100) : 0;
   const barClass = tone === 'danger' ? 'bg-[#ff6370]' : tone === 'success' ? 'bg-[#39d7a1]' : 'bg-[#0C1013]';
   return (
     <div className="min-w-0 flex-1">
-      <div className="flex items-center justify-between gap-2 text-[8px] font-semibold uppercase tracking-[0.07em] text-[#6F8191]">
+      <div className={`flex items-center justify-between gap-2 uppercase ${embedded ? 'text-[7px] font-semibold tracking-[0.08em] text-[#717176]' : 'text-[8px] font-semibold tracking-[0.07em] text-[#6F8191]'}`}>
         <span>{label}</span>
-        <span className="text-[#A1AFBC]">{headline}</span>
+        <span className={embedded ? 'font-mono tabular-nums text-[#9a9aa0]' : 'text-[#A1AFBC]'}>{headline}</span>
       </div>
-      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[#0C1013]">
-        <div className={`h-full rounded-full ${barClass}`} style={{ width: `${percent}%` }} />
+      <div className={`${embedded ? 'mt-1 h-px bg-white/[0.07]' : 'mt-1 h-1.5 rounded-full bg-[#0C1013]'} overflow-hidden`}>
+        <div className={`${embedded ? 'h-px' : 'h-full rounded-full'} ${barClass}`} style={{ width: `${percent}%` }} />
       </div>
-      <div className="mt-1 flex items-center justify-between gap-1 text-[8px] font-medium text-[#6F8191]">
-        <span className="truncate">{money(value, currency)} / {money(limit, currency)}</span>
-        <span className="shrink-0">{percent.toFixed(0)}% used</span>
+      <div className={`${embedded ? 'mt-1 text-[7px]' : 'mt-1 text-[8px]'} flex items-center justify-between gap-1 font-medium text-[#6F8191]`}>
+        <span className="truncate font-mono tabular-nums">{money(value, currency)} / {money(limit, currency)}</span>
+        <span className="shrink-0 font-mono tabular-nums">{percent.toFixed(0)}% used</span>
       </div>
     </div>
   );
@@ -79,13 +79,24 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
   }
 
   return (
-    <section className={`${embedded ? 'bg-[#0d0d10] px-3 py-2.5' : 'mt-2.5 border-y border-white/[0.06] bg-black px-1 py-3'}`}>
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0"><div className="flex items-center gap-1.5"><ShieldAlert size={13} className="text-[#59C7FF]"/><b className="text-[10px] text-[#E6EDF3]">Challenge Risk</b></div><p className="mt-1 text-[8px] text-[#6F8191]">{risk.riskAvailabilityLive ? 'Current loss room and target progress' : 'Risk availability is paused until account valuation is live'}</p></div>
-        <div className="text-right"><span className="block text-[7px] uppercase tracking-[0.08em] text-[#6F8191]">Available today</span><b className={`mt-0.5 block text-[14px] ${riskWarning ? 'text-[#FF6F7A]' : 'text-[#e7eef4]'}`}>{money(risk.remainingDaily, currency)}</b></div>
+    <section className={`${embedded ? 'bg-[#0d0d10] px-2.5 py-2' : 'mt-2.5 border-y border-white/[0.06] bg-black px-1 py-3'}`}>
+      <div className={`flex items-center justify-between gap-3 ${embedded ? 'pb-1.5' : ''}`}>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <ShieldAlert size={embedded ? 11 : 13} className={embedded ? 'text-[#77777d]' : 'text-[#59C7FF]'}/>
+            <b className={embedded ? 'text-[9px] font-semibold text-[#f1f1f2]' : 'text-[10px] text-[#E6EDF3]'}>Challenge Risk</b>
+          </div>
+          <p className={`${embedded ? 'mt-0.5 text-[7px]' : 'mt-1 text-[8px]'} text-[#6F8191]`}>
+            {risk.riskAvailabilityLive ? 'Current loss room and target progress' : 'Risk availability is paused until account valuation is live'}
+          </p>
+        </div>
+        <div className="shrink-0 text-right">
+          <span className={`${embedded ? 'text-[6px]' : 'text-[7px]'} block uppercase tracking-[0.09em] text-[#6F8191]`}>Available today</span>
+          <b className={`${embedded ? 'mt-0.5 text-[12px]' : 'mt-0.5 text-[14px]'} block font-mono font-semibold tabular-nums ${riskWarning ? 'text-[#FF6F7A]' : 'text-[#e7eef4]'}`}>{money(risk.remainingDaily, currency)}</b>
+        </div>
       </div>
 
-      <div className="mt-2.5 grid grid-cols-3 gap-3">
+      <div className={`${embedded ? 'mt-1.5 gap-2' : 'mt-2.5 gap-3'} grid grid-cols-3`}>
         <Meter
           label="Daily loss"
           value={risk.dailyLossUsed}
@@ -93,6 +104,7 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
           headline={`${risk.dailyLossPercent.toFixed(2)}%`}
           tone={risk.dailyLimitUsedPercent > 70 ? 'danger' : 'neutral'}
           currency={currency}
+          embedded={embedded}
         />
         <Meter
           label="Max loss"
@@ -101,6 +113,7 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
           headline={`${risk.maxLossPercent.toFixed(2)}%`}
           tone={risk.maxLimitUsedPercent > 70 ? 'danger' : 'neutral'}
           currency={currency}
+          embedded={embedded}
         />
         <Meter
           label="Profit target"
@@ -109,13 +122,14 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
           headline={`${risk.profitProgressPercent.toFixed(0)}%`}
           tone="success"
           currency={currency}
+          embedded={embedded}
         />
       </div>
 
       {plannedRisk > 0 && (
-        <div className={`mt-2.5 flex items-center justify-between border-t px-0 py-2 ${riskWarning ? 'border-[#5d2b34] bg-[#0C1013]' : 'border-white/[0.06] bg-[#0C1013]'}`}>
-          <span className={`flex items-center gap-1.5 text-[8px] font-semibold ${riskWarning ? 'text-[#FF6F7A]' : 'text-[#A1AFBC]'}`}><TrendingDown size={12}/>Risk at SL <b className="text-[#e6edf3]">{money(plannedRisk, currency)}</b></span>
-          <span className="flex items-center gap-1 text-[8px] text-[#6F8191]"><Target size={11}/>Remaining <b className={riskWarning ? 'text-[#FF6F7A]' : 'text-[#42D7A1]'}>{money(risk.postTradeDaily, currency)}</b></span>
+        <div className={`${embedded ? 'mt-2 py-1.5 text-[7px]' : 'mt-2.5 py-2 text-[8px]'} flex items-center justify-between border-t px-0 ${riskWarning ? 'border-[#5d2b34] bg-transparent' : 'border-white/[0.06] bg-transparent'}`}>
+          <span className={`flex items-center gap-1.5 font-semibold ${riskWarning ? 'text-[#FF6F7A]' : 'text-[#A1AFBC]'}`}><TrendingDown size={embedded ? 10 : 12}/>Risk at SL <b className="font-mono tabular-nums text-[#e6edf3]">{money(plannedRisk, currency)}</b></span>
+          <span className="flex items-center gap-1 text-[#6F8191]"><Target size={embedded ? 9 : 11}/>Remaining <b className={`font-mono tabular-nums ${riskWarning ? 'text-[#FF6F7A]' : 'text-[#42D7A1]'}`}>{money(risk.postTradeDaily, currency)}</b></span>
         </div>
       )}
     </section>
