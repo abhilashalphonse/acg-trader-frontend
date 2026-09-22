@@ -34,7 +34,7 @@ export default function ChartControls({
 }) {
   if (compactMobile) {
     return (
-      <div className={`flex h-10 w-full items-center gap-1.5 border-b border-white/[0.10] bg-[#0d0d10] px-1.5 ${disabled ? 'opacity-55' : ''}`}>
+      <div className={`acg-mobile-metal-surface flex h-10 w-full items-center gap-1.5 bg-[#0b0b0d] px-1.5 ${disabled ? 'opacity-55' : ''}`}>
         <div className="flex min-w-0 flex-1 items-center justify-between">
           {mobileTimeframes.map(tf => (
             <button
@@ -49,14 +49,14 @@ export default function ChartControls({
           ))}
         </div>
 
-        <div className="flex h-8 shrink-0 items-center overflow-hidden border border-white/[0.08] bg-[#0d0d10]">
-          <button type="button" disabled={disabled} aria-label="Candlestick chart" onClick={() => onChartMode('candles')} className={`grid h-full w-8 place-items-center border-r border-white/[0.08] ${chartMode === 'candles' ? 'bg-[#15151a] text-[#53c7ff] shadow-[inset_0_-2px_0_rgba(83,199,255,0.75)]' : 'bg-transparent text-[#7a7a82]'}`}>
+        <div className="flex h-8 shrink-0 items-center overflow-hidden bg-[#111114]">
+          <button type="button" disabled={disabled} aria-label="Candlestick chart" onClick={() => onChartMode('candles')} className={`grid h-full w-8 place-items-center ${chartMode === 'candles' ? 'bg-[#15151a] text-[#53c7ff] shadow-[inset_0_-2px_0_rgba(83,199,255,0.75)]' : 'bg-transparent text-[#7a7a82]'}`}>
             <CandlestickChart size={15} />
           </button>
-          <button type="button" disabled={disabled} aria-label="Line chart" onClick={() => onChartMode('line')} className={`grid h-full w-8 place-items-center border-r border-white/[0.08] ${chartMode === 'line' ? 'bg-[#15151a] text-[#53c7ff] shadow-[inset_0_-2px_0_rgba(83,199,255,0.75)]' : 'bg-transparent text-[#7a7a82]'}`}>
+          <button type="button" disabled={disabled} aria-label="Line chart" onClick={() => onChartMode('line')} className={`grid h-full w-8 place-items-center ${chartMode === 'line' ? 'bg-[#15151a] text-[#53c7ff] shadow-[inset_0_-2px_0_rgba(83,199,255,0.75)]' : 'bg-transparent text-[#7a7a82]'}`}>
             <ChartNoAxesCombined size={15} />
           </button>
-          <button type="button" disabled={disabled} onClick={onIndicators} aria-label="Indicators" className="grid h-full w-8 place-items-center border-r border-white/[0.08] bg-transparent text-[15px] font-medium italic text-[#7a7a82] active:bg-[#15151a] active:text-[#53c7ff]">
+          <button type="button" disabled={disabled} onClick={onIndicators} aria-label="Indicators" className="grid h-full w-8 place-items-center bg-transparent text-[15px] font-medium italic text-[#7a7a82] active:bg-[#15151a] active:text-[#53c7ff]">
             ƒx
           </button>
           <button
@@ -109,10 +109,10 @@ export default function ChartControls({
       </div>
 
       <div className={actionsClass}>
-        <button type="button" disabled={disabled} aria-label="Candlestick chart" onClick={() => onChartMode('candles')} className={`grid h-full ${focusMode ? 'w-8' : 'w-9'} place-items-center border-r border-white/[0.08] ${chartMode === 'candles' ? 'bg-[#101010] text-[#5bc8ff]' : 'text-[#75879b]'}`}>
+        <button type="button" disabled={disabled} aria-label="Candlestick chart" onClick={() => onChartMode('candles')} className={`grid h-full ${focusMode ? 'w-8' : 'w-9'} place-items-center ${chartMode === 'candles' ? 'bg-[#101010] text-[#5bc8ff]' : 'text-[#75879b]'}`}>
           <CandlestickChart size={focusMode ? 16 : 18} />
         </button>
-        <button type="button" disabled={disabled} aria-label="Line chart" onClick={() => onChartMode('line')} className={`grid h-full ${focusMode ? 'w-8' : 'w-9'} place-items-center border-r border-white/[0.08] ${chartMode === 'line' ? 'bg-[#101010] text-[#5bc8ff]' : 'text-[#75879b]'}`}>
+        <button type="button" disabled={disabled} aria-label="Line chart" onClick={() => onChartMode('line')} className={`grid h-full ${focusMode ? 'w-8' : 'w-9'} place-items-center ${chartMode === 'line' ? 'bg-[#101010] text-[#5bc8ff]' : 'text-[#75879b]'}`}>
           <ChartNoAxesCombined size={focusMode ? 16 : 18} />
         </button>
         <button type="button" disabled={disabled} onClick={onIndicators} aria-label="Indicators" className={`grid h-full ${focusMode ? 'w-8 text-[15px]' : 'w-9 text-[17px]'} place-items-center font-medium italic text-[#8799ad] active:bg-[#101010] active:text-[#5bc8ff]`}>
