@@ -55,3 +55,13 @@ test('valid stop-limit geometry is accepted', () => {
   const result = validateTradePlanForExecution(plan, eurusd);
   assert.equal(result.valid, true);
 });
+
+
+test('validation can preserve a modeled volume-adjusted market entry', () => {
+  const plan = { symbol: 'EURUSD', side: 'buy', orderType: 'market', pending: false, entry: 1.1003, sl: 1.1002, tp: 1.1010 };
+  const refreshed = validateTradePlanForExecution(plan, eurusd);
+  const modeled = validateTradePlanForExecution(plan, eurusd, { preserveEntry: true });
+  assert.equal(refreshed.valid, false);
+  assert.equal(refreshed.code, 'INVALID_SL_GEOMETRY');
+  assert.equal(modeled.valid, true);
+});
