@@ -128,7 +128,7 @@ export default function TradeSection({
       </div>
 
       <div className="mt-5 flex items-center justify-between px-1">
-        <div><h2 className="text-[12px] font-black text-[#eaf1f6]">Open positions <span className="ml-1 text-[#5e7890]">{positions.length}</span></h2><p className="mt-0.5 text-[8px] text-[#60758a]">Tap a position for full details.</p></div>
+        <div><h2 className="text-[12px] font-black text-[#eaf1f6]">Open positions <span className="ml-1 text-[#5e7890]">{positions.length}</span></h2><p className="mt-0.5 text-[8px] text-[#60758a]">Tap a position to set SL / TP or manage it.</p></div>
         {positions.length > 1 && <button type="button" onClick={onCloseAll} className="rounded-lg border border-[#4b2830] bg-[#080808] px-2.5 py-1.5 text-[8px] font-bold text-[#ff7b85]">Close all</button>}
       </div>
 
@@ -217,12 +217,13 @@ function MiniMetric({ label, value }) {
 
 function ProtectionField({ label, value, onChange, onClear }) {
   return (
-    <label className="block rounded-md border border-white/[0.08] bg-black px-2.5 py-2">
-      <span className="flex items-center justify-between text-[7px] font-black uppercase tracking-[0.1em] text-[#61768a]">
-        {label}
+    <div className="block rounded-md border border-white/[0.08] bg-black px-2.5 py-2">
+      <div className="flex items-center justify-between text-[7px] font-black uppercase tracking-[0.1em] text-[#61768a]">
+        <label>{label}</label>
         <button type="button" onClick={onClear} className="text-[7px] font-bold normal-case tracking-normal text-[#70869a]">Clear</button>
-      </span>
+      </div>
       <input
+        aria-label={label}
         type="text"
         inputMode="decimal"
         autoComplete="off"
@@ -231,7 +232,7 @@ function ProtectionField({ label, value, onChange, onClear }) {
         placeholder="No protection"
         className="mt-1.5 w-full bg-transparent font-mono text-[11px] font-bold tabular-nums text-[#eef4f8] outline-none placeholder:text-[#405364]"
       />
-    </label>
+    </div>
   );
 }
 
