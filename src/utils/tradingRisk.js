@@ -59,10 +59,34 @@ export function estimateRequiredMargin(price, lots, instrument, account) {
   const marginRate = finitePositive(instrument?.marginRate);
   const leverage = effectiveLeverage(account, instrument);
   const margin = marginRate ? notional * marginRate : leverage ? notional / leverage : null;
-  if (!Number.isFinite(margin)) return null;
+  return Number.isFinite(margin) ? margin : null;
+}
 
-  const commissionPerLot = Math.max(0, Number(instrument?.commissionPerLot) || 0);
-  return margin + commissionPerLot * numericLots;
+export function estimateCommission(price, lots, instrument, account) {
+  const numericPrice = finitePositive(price);
+  const numericLots = finitePositive(lots);
+  const contractSize = finitePositive(instrument?.contractSize);
+  const accountCurrency = accountCurrencyOf(account?.currency);
+  const quoteCurrency = String(instrument?.quoteCurrency || '').trim().toUpperCase();
+  if (!numericLots || !accountCurrency) return null;
+
+  const perLot = Math.max(0, Number(instrument?.commissionPerLotPerSide ?? instrument?.commissionPerLot) || 0);
+  let commission = perLot * numericLots;
+
+  const rate = Math.max(0, Number(instrument?.commissionRate) || 0);
+  if (rate > 0) {
+    if (!numericPrice || !contractSize || !quoteCurrency || quoteCurrency !== accountCurrency) return null;
+    commission += numericPrice * contractSize * numericLots * rate;
+  }
+
+  return Number.isFinite(commission) ? commission : null;
+}
+
+export function estimateOpeningRequirement(price, lots, instrument, account) {
+  const margin = estimateRequiredMargin(price, lots, instrument, account);
+  const commission = estimateCommission(price, lots, instrument, account);
+  if (!Number.isFinite(margin) || !Number.isFinite(commission)) return null;
+  return margin + commission;
 }
 
 export function calculateRiskOrderSizing(plan, riskPercent, account, instrument) {
@@ -87,14 +111,16 @@ export function calculateRiskOrderSizing(plan, riskPercent, account, instrument)
     : Math.max(minVolume, Math.min(maxVolume, floorToStep(requestedRaw)));
 
   const requiredMargin = estimateRequiredMargin(plan?.entry, requestedLots, instrument, account);
+  const commission = estimateCommission(plan?.entry, requestedLots, instrument, account);
+  const totalRequirement = estimateOpeningRequirement(plan?.entry, requestedLots, instrument, account);
   const freeMargin = Number(account?.freeMargin);
-  const marginKnown = Number.isFinite(requiredMargin) && Number.isFinite(freeMargin);
-  const marginLimited = marginKnown && requiredMargin > freeMargin + 1e-8;
+  const marginKnown = Number.isFinite(totalRequirement) && Number.isFinite(freeMargin);
+  const marginLimited = marginKnown && totalRequirement > freeMargin + 1e-8;
 
-  const perLotMargin = estimateRequiredMargin(plan?.entry, 1, instrument, account);
+  const perLotRequirement = estimateOpeningRequirement(plan?.entry, 1, instrument, account);
   let maxMarginLots = null;
-  if (Number.isFinite(perLotMargin) && perLotMargin > 0 && Number.isFinite(freeMargin)) {
-    maxMarginLots = Math.max(0, Math.min(maxVolume, floorToStep(Math.max(0, freeMargin) / perLotMargin)));
+  if (Number.isFinite(perLotRequirement) && perLotRequirement > 0 && Number.isFinite(freeMargin)) {
+    maxMarginLots = Math.max(0, Math.min(maxVolume, floorToStep(Math.max(0, freeMargin) / perLotRequirement)));
   }
 
   const actualRisk = estimateStopRisk(plan, requestedLots, instrument, account?.currency);
@@ -112,6 +138,8 @@ export function calculateRiskOrderSizing(plan, riskPercent, account, instrument)
     requestedRaw,
     requestedLots,
     requiredMargin,
+    commission,
+    totalRequirement,
     freeMargin: Number.isFinite(freeMargin) ? freeMargin : null,
     maxMarginLots,
     effectiveLeverage: effectiveLeverage(account, instrument),
