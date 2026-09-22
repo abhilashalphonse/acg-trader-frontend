@@ -64,7 +64,20 @@ function formatProjectedPnl(value, currency = 'USD') {
   }
 }
 
-function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instrument, selectedPositionId = null, onSelectPosition = () => {} }) {
+function formatPositionPnl(value, currency = 'USD') {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return `— ${currency || ''}`.trim();
+  return `${numeric >= 0 ? '+' : '-'}${Math.abs(numeric).toFixed(2)} ${String(currency || 'USD').toUpperCase()}`;
+}
+
+function formatPositionLots(value) {
+  const numeric = Math.abs(Number(value));
+  if (!Number.isFinite(numeric)) return '—';
+  if (Number.isInteger(numeric)) return String(numeric);
+  return numeric.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+}
+
+function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instrument, selectedPositionId = null, onSelectPosition = () => {}, onClosePosition = () => {} }) {
   const [, forceLayout] = useState(0);
 
   const activePositions = useMemo(
@@ -89,29 +102,48 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
         const y = coordinateApi.priceToY(entry);
         if (!Number.isFinite(y)) return null;
         const side = String(position.side || '').toUpperCase();
+        const isBuy = side === 'BUY';
         const pnl = Number(position.pnl);
         const currency = position?.pnlCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || 'USD';
         const lots = Number(position.volume ?? position.lots);
-        const positive = Number.isFinite(pnl) && pnl >= 0;
+        const signedLots = `${isBuy ? '' : '-'}${formatPositionLots(lots)}`;
+        const lineColor = isBuy ? '#21d79a' : '#ff5a66';
+        const pillClass = isBuy
+          ? 'border-[#1e8f6b] bg-[#063c2f] text-[#eafff7]'
+          : 'border-[#a82f3d] bg-[#55151d] text-[#fff2f4]';
 
         return (
           <div key={position.id || `${side}-${entry}-${lots}`} className="absolute left-0 right-0" style={{ top: y }}>
-            <div className="relative border-t border-dashed border-[#53c7ff]/75">
-              <button
-                type="button"
+            <div className="relative border-t" style={{ borderColor: lineColor }}>
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={event => { event.stopPropagation(); onSelectPosition(position.id); }}
-                className={`pointer-events-auto absolute left-3 top-1/2 flex -translate-y-1/2 items-center gap-2 rounded-md border bg-black/92 px-2 py-1 text-[10px] font-semibold shadow-[0_6px_18px_rgba(0,0,0,.34)] backdrop-blur-sm ${String(selectedPositionId) === String(position.id) ? 'border-[#59C7FF]/70 ring-1 ring-[#59C7FF]/20' : 'border-white/[0.10]'}`}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onSelectPosition(position.id);
+                  }
+                }}
+                className={`pointer-events-auto absolute left-3 top-1/2 flex h-6 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border font-mono text-[10px] font-bold tabular-nums shadow-[0_5px_16px_rgba(0,0,0,.38)] backdrop-blur-sm ${pillClass} ${String(selectedPositionId) === String(position.id) ? 'ring-1 ring-white/25' : ''}`}
                 aria-label={`Select ${side} ${position.symbol || symbol} position`}
               >
-                <span className={`font-bold ${side === 'BUY' ? 'text-[#3bd9a3]' : 'text-[#ff6c78]'}`}>{side}</span>
-                <span className="text-[#A3ADB7]">·</span>
-                <span className="text-[#DCE3E9]">{Number.isFinite(lots) ? lots.toFixed(2) : '—'} lot</span>
-                <span className="hidden text-[#747F89] xl:inline">Entry</span>
-                <span className="font-mono tabular-nums text-[#F2F5F7]">{formatInstrumentPrice(entry, instrument)}</span>
-              </button>
-              <span className={`absolute right-2 top-1/2 -translate-y-1/2 rounded-md border bg-black/94 px-2 py-1 font-mono text-[10px] font-bold tabular-nums shadow-[0_4px_14px_rgba(0,0,0,.30)] ${positive ? 'border-[#245b48] text-[#42dda7]' : 'border-[#642c35] text-[#ff6f7b]'}`}>
-                {Number.isFinite(pnl) ? formatProjectedPnl(pnl, currency) : 'OPEN'}
-              </span>
+                <span className="flex min-w-[34px] items-center justify-center border-r border-white/20 px-2">{signedLots}</span>
+                <span className="flex items-center border-r border-white/20 px-2.5">{formatPositionPnl(pnl, currency)}</span>
+                <button
+                  type="button"
+                  onClick={event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    void onClosePosition(position.id, 100);
+                  }}
+                  className="grid w-7 place-items-center text-[14px] leading-none text-white/85 transition hover:bg-black/20 hover:text-white active:bg-black/30"
+                  aria-label={`Close ${side} ${position.symbol || symbol} position`}
+                  title="Close position"
+                >
+                  ×
+                </button>
+              </div>
             </div>
           </div>
         );
@@ -466,6 +498,7 @@ export default function ChartArea({
   onUpdatePosition = () => {},
   selectedPositionId = null,
   onSelectPosition = () => {},
+  onClosePosition = () => {},
   indicators = [],
   positions = [],
   pendingOrders = [],
@@ -566,7 +599,7 @@ export default function ChartArea({
           indicators={indicators}
           onCoordinateApi={setCoordinateApi}
           showBidAskLines={desktopEnhanced}
-          showPositionPriceLines={!desktopEnhanced}
+          showPositionPriceLines={false}
           showIndicatorControls={desktopEnhanced}
           onToggleIndicator={onToggleIndicator}
           onOpenIndicatorSettings={onOpenIndicatorSettings}
@@ -595,7 +628,7 @@ export default function ChartArea({
         />}
         <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} coordinateApi={coordinateApi} instrument={instrument} lots={tradePlanLots} accountCurrency={accountCurrency} />
         {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} />}
-        {desktopEnhanced && !tradePlan && <OpenPositionEntryOverlay symbol={symbol} positions={positions} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} />}
+        {!tradePlan && <OpenPositionEntryOverlay symbol={symbol} positions={positions} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} />}
         {!tradePlan && <OpenPositionProtectionOverlay symbol={symbol} positions={positions} coordinateApi={coordinateApi} instrument={instrument} onUpdatePosition={onUpdatePosition} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} />}
 
         {desktopEnhanced && (
