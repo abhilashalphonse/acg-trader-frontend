@@ -154,16 +154,22 @@ export default function DesktopOrderTicket({
   const planMetrics = useMemo(() => {
     if (!executionPlan) return null;
     const pip = instrumentPipSize(market);
-    const entry = validProtectionPrice(executionPlan.entry);
+    const orderTypeName = String(executionPlan.orderType || '').toLowerCase();
+    const entry = validProtectionPrice(
+      executionPlan.pending && orderTypeName === 'stop-limit'
+        ? executionPlan.limitPrice
+        : executionPlan.entry,
+    );
     const sl = validProtectionPrice(executionPlan.sl);
     const tp = validProtectionPrice(executionPlan.tp);
     const slPips = [entry, sl, pip].every(Number.isFinite) && pip > 0 ? Math.abs(entry - sl) / pip : null;
     const tpPips = [entry, tp, pip].every(Number.isFinite) && pip > 0 ? Math.abs(tp - entry) / pip : null;
     const calculatedLots = effectiveExecutionLots;
-    const riskAmount = estimateStopRisk(executionPlan, calculatedLots, market, currency);
+    const riskPlan = { ...executionPlan, entry };
+    const riskAmount = estimateStopRisk(riskPlan, calculatedLots, market, currency);
     const requiredMargin = estimateRequiredMargin(entry, calculatedLots, market, account);
     const reward = Number.isFinite(tp) && Number.isFinite(entry)
-      ? estimateStopRisk({ ...executionPlan, entry, sl: tp }, calculatedLots, market, currency)
+      ? estimateStopRisk({ ...riskPlan, sl: tp }, calculatedLots, market, currency)
       : null;
     const rr = Number.isFinite(slPips) && slPips > 0 && Number.isFinite(tpPips) ? tpPips / slPips : null;
 
@@ -182,14 +188,22 @@ export default function DesktopOrderTicket({
   const previewMargin = useMemo(() => {
     const side = String(executionPlan?.side || '').toLowerCase();
     const fallbackPrice = side === 'sell' ? Number(market?.bid) : Number(market?.ask);
-    const price = Number(executionPlan?.entry ?? fallbackPrice);
+    const orderTypeName = String(executionPlan?.orderType || '').toLowerCase();
+    const reference = executionPlan?.pending && orderTypeName === 'stop-limit'
+      ? executionPlan?.limitPrice
+      : executionPlan?.entry;
+    const price = Number(reference ?? fallbackPrice);
     return estimateRequiredMargin(price, effectiveExecutionLots, market, account);
   }, [account, effectiveExecutionLots, executionPlan, market]);
 
   const previewRequirement = useMemo(() => {
     const side = String(executionPlan?.side || '').toLowerCase();
     const fallbackPrice = side === 'sell' ? Number(market?.bid) : Number(market?.ask);
-    const price = Number(executionPlan?.entry ?? fallbackPrice);
+    const orderTypeName = String(executionPlan?.orderType || '').toLowerCase();
+    const reference = executionPlan?.pending && orderTypeName === 'stop-limit'
+      ? executionPlan?.limitPrice
+      : executionPlan?.entry;
+    const price = Number(reference ?? fallbackPrice);
     return estimateOpeningRequirement(price, effectiveExecutionLots, market, account);
   }, [account, effectiveExecutionLots, executionPlan, market]);
 
