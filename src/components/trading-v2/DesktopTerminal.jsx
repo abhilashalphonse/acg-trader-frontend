@@ -849,6 +849,7 @@ export default function DesktopTerminal({
                 onUpdatePosition={onUpdatePosition}
                 selectedPositionId={selectedPositionId}
                 onSelectPosition={selectPosition}
+                onClosePosition={onClosePosition}
               />
             </div>
           </section>
