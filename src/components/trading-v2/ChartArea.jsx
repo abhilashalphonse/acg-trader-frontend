@@ -550,7 +550,8 @@ export default function ChartArea({
         </aside>
       )}
 
-      <div className={`relative min-h-0 min-w-0 overflow-hidden bg-black ${drawingToolbarOverlay ? (toolbarVisible ? 'pl-1' : 'pl-3') : ''}`}>
+      <div className={`min-h-0 min-w-0 ${drawingToolbarOverlay ? 'grid grid-rows-[minmax(0,1fr)_28px]' : 'relative overflow-hidden'} bg-black`}>
+        <div className={`relative min-h-0 min-w-0 overflow-hidden bg-black ${drawingToolbarOverlay ? (toolbarVisible ? 'pl-1' : 'pl-3') : ''}`}>
         <TradingChart
           symbol={symbol}
           instrument={instrument}
@@ -588,6 +589,7 @@ export default function ChartArea({
           onCreateRiskOrder={onCreateRiskOrder}
           chartInstanceId={chartInstanceId}
           interactionEnabled={drawingInteractionEnabled}
+          showHistoryControls={!drawingToolbarOverlay || toolbarVisible}
         />}
         <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} coordinateApi={coordinateApi} instrument={instrument} lots={tradePlanLots} accountCurrency={accountCurrency} />
         {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} />}
@@ -605,13 +607,20 @@ export default function ChartArea({
           </div>
         )}
 
-        {drawingToolbarOverlay && !tradePlan && <div className="pointer-events-none absolute bottom-9 left-0 right-0 z-20 h-px bg-white/[0.10]" />}
-
-        {!tradePlan && (!embedded || desktopEnhanced) && (
+        {!drawingToolbarOverlay && !tradePlan && (!embedded || desktopEnhanced) && (
           <div className="absolute bottom-1 right-[74px] z-30 flex h-7 items-center overflow-hidden rounded-md border border-white/[0.06] bg-black/86 text-[9px] font-medium text-[#7E8994] shadow-[0_4px_16px_rgba(0,0,0,.24)] backdrop-blur-sm">
             <span className="border-r border-white/[0.06] px-2.5">{localUtcLabel()}</span>
             <span className="border-r border-white/[0.06] px-2.5 font-mono font-semibold tabular-nums text-[#B9C2CA]" title="Time remaining in candle">{formatCountdown(remaining)}</span>
             <button type="button" onClick={() => coordinateApi?.resetView?.()} className="h-full px-2.5 font-semibold text-[#929DA7] transition hover:bg-white/[0.05] hover:text-[#F1F4F6]" title="Return to live chart and restore the default view">Auto</button>
+          </div>
+        )}
+        </div>
+
+        {drawingToolbarOverlay && !tradePlan && (
+          <div className="flex h-7 items-center justify-end gap-0 border-t border-white/[0.10] bg-[#0d0d10] pr-2 text-[8px] font-medium text-[#7E8994]">
+            <span className="border-r border-white/[0.08] px-2">{localUtcLabel()}</span>
+            <span className="border-r border-white/[0.08] px-2 font-mono font-semibold tabular-nums text-[#B9C2CA]" title="Time remaining in candle">{formatCountdown(remaining)}</span>
+            <button type="button" onClick={() => coordinateApi?.resetView?.()} className="h-full px-2 font-semibold text-[#929DA7] transition hover:bg-white/[0.04] hover:text-[#F1F4F6]" title="Return to live chart and restore the default view">Auto</button>
           </div>
         )}
       </div>

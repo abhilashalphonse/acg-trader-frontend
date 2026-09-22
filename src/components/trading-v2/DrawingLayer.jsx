@@ -276,6 +276,7 @@ export default function DrawingLayer({
   onCreateRiskOrder = () => {},
   chartInstanceId = 'chart',
   interactionEnabled = true,
+  showHistoryControls = true,
 }) {
   const svgRef = useRef(null);
   const history = useSyncExternalStore(
@@ -766,10 +767,12 @@ export default function DrawingLayer({
         )}
       </svg>
 
-      <div className="pointer-events-auto absolute bottom-9 left-2 z-20 flex h-8 items-center overflow-hidden rounded-md border border-white/[0.08] bg-[#080808]/94 shadow-xl backdrop-blur-sm">
-        <button type="button" disabled={!canUndo} onClick={undo} className="grid size-8 place-items-center text-[#8194a7] hover:bg-white/[0.04] hover:text-white disabled:opacity-25" title="Undo (Ctrl/Cmd+Z)"><RotateCcw size={13}/></button>
-        <button type="button" disabled={!canRedo} onClick={redo} className="grid size-8 place-items-center border-l border-white/[0.07] text-[#8194a7] hover:bg-white/[0.04] hover:text-white disabled:opacity-25" title="Redo (Ctrl/Cmd+Shift+Z)"><RotateCw size={13}/></button>
-      </div>
+      {showHistoryControls && (
+        <div className="pointer-events-auto absolute bottom-9 left-2 z-20 flex h-8 items-center overflow-hidden rounded-md border border-white/[0.08] bg-[#080808]/94 shadow-xl backdrop-blur-sm">
+          <button type="button" disabled={!canUndo} onClick={undo} className="grid size-8 place-items-center text-[#8194a7] hover:bg-white/[0.04] hover:text-white disabled:opacity-25" title="Undo (Ctrl/Cmd+Z)"><RotateCcw size={13}/></button>
+          <button type="button" disabled={!canRedo} onClick={redo} className="grid size-8 place-items-center border-l border-white/[0.07] text-[#8194a7] hover:bg-white/[0.04] hover:text-white disabled:opacity-25" title="Redo (Ctrl/Cmd+Shift+Z)"><RotateCw size={13}/></button>
+        </div>
+      )}
 
       {selected && !disabled && (
         <div className="pointer-events-auto absolute right-2 top-11 z-20 flex items-center gap-0.5 rounded-md border border-white/[0.08] bg-[#080808]/96 p-1 shadow-xl backdrop-blur-sm">
