@@ -544,14 +544,31 @@ export default function DesktopOrderTicket({
             {mode === 'price' ? formatInstrumentPrice(tradePlan?.[field], market) : mode === 'distance' ? distanceUnit : currency}
           </span>
         </div>
-        <div className="mt-1.5 grid grid-cols-3 gap-2">
-          <FieldMetric label="Price" value={enabled ? formatInstrumentPrice(tradePlan?.[field], market) : '—'} />
-          <FieldMetric label={distanceUnit} value={Number.isFinite(distance) ? distance.toFixed(1) : '—'} />
-          <FieldMetric
-            label={isSl ? 'Loss' : 'Profit'}
-            value={Number.isFinite(amount) ? `${isSl ? '-' : '+'}${money(Math.abs(amount), currency)}` : '—'}
-            tone={isSl ? 'danger' : 'success'}
-          />
+        <div className="mt-1.5 grid grid-cols-2 gap-2">
+          {mode === 'price' ? (
+            <>
+              <FieldMetric label={distanceUnit} value={Number.isFinite(distance) ? distance.toFixed(1) : '—'} />
+              <FieldMetric
+                label={isSl ? 'Loss' : 'Profit'}
+                value={Number.isFinite(amount) ? `${isSl ? '-' : '+'}${money(Math.abs(amount), currency)}` : '—'}
+                tone={isSl ? 'danger' : 'success'}
+              />
+            </>
+          ) : mode === 'distance' ? (
+            <>
+              <FieldMetric label="Price" value={enabled ? formatInstrumentPrice(tradePlan?.[field], market) : '—'} />
+              <FieldMetric
+                label={isSl ? 'Loss' : 'Profit'}
+                value={Number.isFinite(amount) ? `${isSl ? '-' : '+'}${money(Math.abs(amount), currency)}` : '—'}
+                tone={isSl ? 'danger' : 'success'}
+              />
+            </>
+          ) : (
+            <>
+              <FieldMetric label="Price" value={enabled ? formatInstrumentPrice(tradePlan?.[field], market) : '—'} />
+              <FieldMetric label={distanceUnit} value={Number.isFinite(distance) ? distance.toFixed(1) : '—'} />
+            </>
+          )}
         </div>
         <div className="mt-1.5 flex justify-end">
           <button type="button" onClick={() => removeProtection(field)} className="h-6 rounded px-2 text-[8px] font-semibold text-[#6F8191] hover:bg-white/[0.03] hover:text-[#E6EDF3]">Remove</button>
