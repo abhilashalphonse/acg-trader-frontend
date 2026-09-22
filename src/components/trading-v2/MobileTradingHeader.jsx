@@ -1,5 +1,6 @@
 import React from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Star } from 'lucide-react';
+import InstrumentAvatar from './InstrumentAvatar.jsx';
 
 function displaySymbol(symbol = '') {
   const normalized = String(symbol || '').toUpperCase();
@@ -55,6 +56,8 @@ export default function MobileTradingHeader({
   account,
   positionsCount = 0,
   pendingCount = 0,
+  favorite = false,
+  onFavorite = () => {},
   onSelectInstrument = () => {},
   onOpenTrades = () => {},
   onOpenAccount = () => {},
@@ -69,24 +72,37 @@ export default function MobileTradingHeader({
 
   return (
     <header className="grid h-[44px] w-full shrink-0 grid-cols-[minmax(0,1.35fr)_70px_68px_48px] border-b border-white/[0.08] bg-[#080808]">
-      <button
-        type="button"
-        onClick={onSelectInstrument}
-        className="relative flex min-w-0 items-center gap-1.5 border-r border-white/[0.06] px-2 text-left active:bg-white/[0.035]"
-        aria-label="Open markets and watchlist"
-      >
-        <div className="min-w-0">
-          <div className="flex items-center gap-0.5">
-            <strong className="truncate text-[11px] font-black tracking-[-0.025em] text-[#f4f6f8]">{symbol || '—'}</strong>
-            <ChevronDown size={11} className="shrink-0 text-[#8d99a4]" strokeWidth={2.2}/>
+      <div className="relative flex min-w-0 items-center border-r border-white/[0.06] px-1.5">
+        <button
+          type="button"
+          onClick={onSelectInstrument}
+          className="flex min-w-0 flex-1 items-center gap-1.5 text-left active:opacity-80"
+          aria-label="Open markets and watchlist"
+        >
+          <InstrumentAvatar instrument={market} size={22}/>
+          <div className="min-w-0">
+            <div className="flex items-center gap-0.5">
+              <strong className="truncate text-[10.5px] font-black tracking-[-0.025em] text-[#f4f6f8]">{symbol || '—'}</strong>
+              <ChevronDown size={10} className="shrink-0 text-[#8d99a4]" strokeWidth={2.2}/>
+            </div>
+            <div className="mt-0.5 flex items-center gap-1.5 text-[5.8px] font-bold uppercase tracking-[0.055em]">
+              <span className="text-[#687783]">{category}</span>
+              <span className={marketStatus === 'LIVE' ? 'text-[#31d79b]' : 'text-[#7e8993]'}>{marketStatus}</span>
+            </div>
           </div>
-          <div className="mt-0.5 flex items-center gap-1.5 text-[6px] font-bold uppercase tracking-[0.06em]">
-            <span className="text-[#687783]">{category}</span>
-            <span className={marketStatus === 'LIVE' ? 'text-[#31d79b]' : 'text-[#7e8993]'}>{marketStatus}</span>
-          </div>
-        </div>
-        <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-[#53c7ff]" />
-      </button>
+        </button>
+
+        <button
+          type="button"
+          onClick={onFavorite}
+          aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
+          className={`ml-0.5 grid size-6 shrink-0 place-items-center active:scale-95 ${favorite ? 'text-[#f6c95d]' : 'text-[#6f7d88]'}`}
+        >
+          <Star size={12} fill={favorite ? 'currentColor' : 'none'} strokeWidth={1.8}/>
+        </button>
+
+        <span className="absolute bottom-0 left-1.5 right-1.5 h-0.5 bg-[#53c7ff]" />
+      </div>
 
       <button type="button" onClick={onOpenTrades} className="relative flex min-w-0 flex-col items-center justify-center border-r border-white/[0.06] text-[#9ba6af] active:bg-white/[0.035]">
         <span className="text-[7px] font-black uppercase tracking-[0.08em]">Trades</span>
