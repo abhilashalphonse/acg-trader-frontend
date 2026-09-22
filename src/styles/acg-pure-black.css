@@ -13,9 +13,10 @@
 :root{
   color-scheme:dark;
   --acg-canvas:#000;
-  --acg-panel:#080808;
-  --acg-control:#101010;
-  --acg-raised:#181818;
+  --acg-chart:#09090b;
+  --acg-panel:#0d0d10;
+  --acg-control:#15151a;
+  --acg-raised:#1a1a1f;
   --acg-border:rgba(255,255,255,.075);
   --acg-border-strong:rgba(255,255,255,.11);
   --acg-text:#f5f5f5;
@@ -181,8 +182,8 @@ textarea{
   color:var(--acg-text)!important;
 }
 
-/* Chart and overlays blend into one continuous black workspace. */
-.v2-lightweight-chart,.v2-chart-error{background:var(--acg-canvas)!important}
+/* Chart surface is intentionally recessed from the pure-black app shell. */
+.v2-lightweight-chart,.v2-chart-error{background:var(--acg-chart)!important}
 
 /* ACG cyan is an interaction signal, not a panel color. */
 button:focus-visible,input:focus-visible,select:focus-visible,[role="button"]:focus-visible{
@@ -273,23 +274,24 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
     backdrop-filter:none!important;
   }
 
-  /* Toolbars / grouped controls use the slightly raised matte surface from the reference. */
-  [class*="bg-[#080808]"]{
-    background-color:#101014!important;
+  /* Terminal chrome uses a matte charcoal layer above the chart surface. */
+  [class*="bg-[#080808]"],
+  [class*="bg-[#0d0d10]"]{
+    background-color:#0d0d10!important;
     background-image:none!important;
   }
-  [class*="bg-[#101010]"]{
-    background-color:#15151a!important;
-    background-image:none!important;
-  }
+  [class*="bg-[#101010]"],
+  [class*="bg-[#15151a]"],
   [class*="bg-[#0C1013]"]{
     background-color:#15151a!important;
     background-image:none!important;
   }
 
-  /* The chart workspace itself remains true black. */
+  /* Recess the actual plotting surface from the pure-black outer shell. */
   .v2-lightweight-chart,
-  .v2-chart-error,
+  .v2-chart-error{
+    background:#09090b!important;
+  }
   section[class*="overflow-hidden"][class*="bg-black"]{
     background:#000!important;
   }
