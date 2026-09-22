@@ -34,7 +34,7 @@ export default function ChartControls({
 }) {
   if (compactMobile) {
     return (
-      <div className={`flex h-10 w-full items-center gap-1.5 bg-[#0d0d10] px-1.5 ${disabled ? 'opacity-55' : ''}`}>
+      <div className={`flex h-10 w-full items-center gap-1.5 border-b border-white/[0.10] bg-[#0d0d10] px-1.5 ${disabled ? 'opacity-55' : ''}`}>
         <div className="flex min-w-0 flex-1 items-center justify-between">
           {mobileTimeframes.map(tf => (
             <button

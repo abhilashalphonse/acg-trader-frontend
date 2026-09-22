@@ -515,7 +515,7 @@ export default function ChartArea({
         : `grid ${heightClass} grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2`;
 
   const toolbarClass = drawingToolbarOverlay
-    ? 'absolute left-1 top-1 z-40 flex max-h-[calc(100%-8px)] w-9 flex-col items-center gap-0.5 overflow-y-auto rounded-md border border-white/[0.08] bg-[#0d0d10]/95 py-1 shadow-[0_8px_30px_rgba(0,0,0,.45)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+    ? 'absolute bottom-0 left-0 top-0 z-40 flex w-10 flex-col items-center gap-0.5 overflow-y-auto border-r border-white/[0.10] bg-[#0d0d10] py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
     : focusMode || embedded
       ? 'flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto bg-transparent py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
       : 'flex min-h-0 flex-col items-center gap-0.5 bg-transparent py-1';
@@ -604,6 +604,8 @@ export default function ChartArea({
             <button type="button" onClick={() => setShowDrawings(value => !value)} className={`grid size-7 place-items-center rounded border bg-[#07090B]/92 ${showDrawings ? 'border-white/[0.06] text-[#6F8191] hover:text-[#E6EDF3]' : 'border-[#315b72] text-[#59C7FF]'}`} title={showDrawings ? 'Hide drawings' : 'Show drawings'}>{showDrawings ? <Eye size={11}/> : <EyeOff size={11}/>}</button>
           </div>
         )}
+
+        {drawingToolbarOverlay && !tradePlan && <div className="pointer-events-none absolute bottom-9 left-0 right-0 z-20 h-px bg-white/[0.10]" />}
 
         {!tradePlan && (!embedded || desktopEnhanced) && (
           <div className="absolute bottom-1 right-[74px] z-30 flex h-7 items-center overflow-hidden rounded-md border border-white/[0.06] bg-black/86 text-[9px] font-medium text-[#7E8994] shadow-[0_4px_16px_rgba(0,0,0,.24)] backdrop-blur-sm">

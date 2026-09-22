@@ -32,7 +32,7 @@ export default function MarketPanel({
   const [drawingToolbarOpen, setDrawingToolbarOpen] = useState(false);
 
   return (
-    <section className={`overflow-hidden border border-white/[0.08] ${compactMobileToolbar ? 'bg-[#0d0d10]' : 'bg-black'}`}>
+    <section className={`overflow-hidden border ${compactMobileToolbar ? 'border-white/[0.12] bg-[#0d0d10]' : 'border-white/[0.08] bg-black'}`}>
       {showInstrumentHeader && <InstrumentHeader market={market} favorite={favorite} onFavorite={() => setFavorite(v => !v)} onSelectInstrument={onSelectInstrument} />}
       <ChartControls
         timeframe={timeframe}
