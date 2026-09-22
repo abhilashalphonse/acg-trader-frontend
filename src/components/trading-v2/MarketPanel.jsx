@@ -36,7 +36,7 @@ export default function MarketPanel({
   const [drawingToolbarOpen, setDrawingToolbarOpen] = useState(true);
 
   return (
-    <section className={`overflow-hidden border ${fillAvailableHeight ? 'flex h-full min-h-0 flex-col' : ''} ${compactMobileToolbar ? 'border-white/[0.12] bg-[#0d0d10]' : 'border-white/[0.08] bg-black'}`}>
+    <section className={`overflow-hidden ${fillAvailableHeight ? 'flex h-full min-h-0 flex-col' : ''} ${compactMobileToolbar ? 'acg-mobile-metal-surface border-0 bg-[#0b0b0d]' : 'border border-white/[0.08] bg-black'}`}>
       {showInstrumentHeader && <InstrumentHeader market={market} favorite={favorite} onFavorite={() => setFavorite(v => !v)} onSelectInstrument={onSelectInstrument} />}
       <ChartControls
         timeframe={timeframe}
