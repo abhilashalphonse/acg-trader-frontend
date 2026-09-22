@@ -106,7 +106,11 @@ function estimatedRisk(plan, riskPercent, manualLots, account, instrument) {
   if (!plan) return 0;
   const preview = resolveExecutionPreview({ plan, riskPercent, manualLots, account, instrument });
   if (!Number.isFinite(Number(preview.sizing?.lots))) return null;
-  return estimateStopRisk(preview.plan || plan, preview.sizing.lots, instrument, account?.currency);
+  const effectivePlan = preview.plan || plan;
+  const riskPlan = effectivePlan.pending && String(effectivePlan.orderType || '').toLowerCase() === 'stop-limit'
+    ? { ...effectivePlan, entry: effectivePlan.limitPrice }
+    : effectivePlan;
+  return estimateStopRisk(riskPlan, preview.sizing.lots, instrument, account?.currency);
 }
 
 function fillEvent(result, fallback) {
