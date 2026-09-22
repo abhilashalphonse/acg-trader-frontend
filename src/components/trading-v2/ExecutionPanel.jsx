@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, Minus, Plus, X, Check, SlidersHorizontal, Clock
 import { decimalPlaces, normalizeVolumeToStep } from '../../utils/tradingCommandNormalization.js';
 import { calculateRiskOrderSizing, effectiveLeverage, estimateRequiredMargin, estimateStopRisk, riskSizingSupported } from '../../utils/tradingRisk.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
+import { effectiveTradePlan, validateTradePlanForExecution } from '../../utils/tradePlanExecution.js';
 
 const orderTypes = [
   ['market', 'Market'],
@@ -152,12 +153,14 @@ export default function ExecutionPanel({
       .map(value => normalizeVolumeToStep(value, market, { rounding: 'nearest' }));
     return [...new Set(candidates)].slice(0, 8);
   }, [market, minVolume, maxVolume]);
-  const metrics = useMemo(() => getPlanMetrics(tradePlan, riskPercent, tradePlan?.manualLots ?? lots, market, account), [account, market, tradePlan, riskPercent, lots]);
+  const effectivePlan = useMemo(() => effectiveTradePlan(tradePlan, market), [market, tradePlan]);
+  const metrics = useMemo(() => getPlanMetrics(effectivePlan, riskPercent, effectivePlan?.manualLots ?? lots, market, account), [account, market, effectivePlan, riskPercent, lots]);
   const executableQuote = finiteQuote(market?.bid) && finiteQuote(market?.ask) && market?.isStale !== true && market?.sessionOpen !== false && !['WAITING', 'DISCONNECTED', 'ERROR', 'DISABLED', 'STALE'].includes(String(market?.marketState || '').toUpperCase());
   const riskModeSupported = sizingMode !== 'risk' || riskSizingSupported(market, account?.currency);
-  const riskConstraint = tradePlan && sizingMode === 'risk' ? metrics?.riskSizing : null;
+  const riskConstraint = effectivePlan && sizingMode === 'risk' ? metrics?.riskSizing : null;
   const riskOrderExecutable = !riskConstraint || riskConstraint.canExecute !== false;
-  const canSubmitExposure = executableQuote && exposureAllowed && riskModeSupported && riskOrderExecutable;
+  const planValidation = validateTradePlanForExecution(effectivePlan, market);
+  const canSubmitExposure = executableQuote && exposureAllowed && riskModeSupported && riskOrderExecutable && planValidation.valid;
   const pipSize = Number(market?.pipSize);
   const bid = Number(market?.bid);
   const ask = Number(market?.ask);
@@ -169,7 +172,7 @@ export default function ExecutionPanel({
       : riskConstraint?.blockReason === 'MIN_VOLUME'
         ? `Minimum ${Number(market?.minVolume || 0).toFixed(2)} lots exceeds the selected risk`
         : null;
-  const marketHint = !exposureAllowed ? exposureBlockReason : !riskModeSupported ? 'Risk % sizing requires the instrument P&L currency to match the account currency' : riskConstraintHint || (market?.sessionOpen === false ? 'Session closed' : market?.isStale ? 'Quote stale' : !executableQuote ? 'Waiting for quote' : orderType === 'market' ? (sizingMode === 'risk' ? 'Tap Buy/Sell' : `${spreadPips?.toFixed(1) ?? '—'} pips`) : 'Tap side to place on chart');
+  const marketHint = !exposureAllowed ? exposureBlockReason : !riskModeSupported ? 'Risk % sizing requires the instrument P&L currency to match the account currency' : riskConstraintHint || (!planValidation.valid ? planValidation.message : (market?.sessionOpen === false ? 'Session closed' : market?.isStale ? 'Quote stale' : !executableQuote ? 'Waiting for quote' : orderType === 'market' ? (sizingMode === 'risk' ? 'Tap Buy/Sell' : `${spreadPips?.toFixed(1) ?? '—'} pips`) : 'Tap side to place on chart'));
 
   const clickSide = side => {
     if (!canSubmitExposure || !market?.symbol) return;
@@ -187,8 +190,8 @@ export default function ExecutionPanel({
   const plannerDollarSupported = riskSizingSupported(market, account?.currency)
     && Number.isFinite(plannerContractSize)
     && plannerContractSize > 0;
-  const plannerMargin = tradePlan
-    ? estimateRequiredMargin(tradePlan.entry, plannerLots, market, account)
+  const plannerMargin = effectivePlan
+    ? estimateRequiredMargin(effectivePlan.entry, plannerLots, market, account)
     : null;
 
   const commitPlannerRisk = raw => {
@@ -223,7 +226,7 @@ export default function ExecutionPanel({
 
   const protectionPriceFromInput = (kind, raw, mode) => {
     const numeric = Math.abs(Number(raw));
-    const entry = Number(tradePlan?.entry);
+    const entry = Number(effectivePlan?.entry);
     if (!Number.isFinite(numeric) || numeric <= 0 || !Number.isFinite(entry)) return null;
     let distance = null;
     if (mode === 'amount') {
@@ -322,7 +325,7 @@ export default function ExecutionPanel({
     const tpValue = tpDisplayMode === 'amount'
       ? (tpAmount != null ? tpAmount.toFixed(2) : '')
       : (Number.isFinite(metrics?.tpPips) ? metrics.tpPips.toFixed(1) : '');
-    const actionPrice = formatInstrumentPrice(tradePlan.entry, market);
+    const actionPrice = formatInstrumentPrice(effectivePlan?.entry, market);
     const riskSummaryLabel = riskDisplayMode === 'amount' ? 'Account risk' : 'Risk';
     const riskSummaryValue = riskDisplayMode === 'amount'
       ? `${Number(riskPercent).toFixed(2)}%`
@@ -345,8 +348,12 @@ export default function ExecutionPanel({
     const entryField = (
       <div className="min-w-0 px-1 py-1.5 text-center">
         <span className={labelClass}>Entry</span>
-        <input key={`entry:${tradePlan.entry}`} defaultValue={formatInstrumentPrice(tradePlan.entry, market)} inputMode="decimal" onBlur={event => commitPlannerEntry(event.currentTarget.value)} onKeyDown={plannerInputKeyDown} className={inputClass} aria-label="Entry price" />
-        <span className="mt-1 block h-4 text-[6px] text-[#68686e]">price</span>
+        {tradePlan.pending ? (
+          <input key={`entry:${tradePlan.entry}`} defaultValue={formatInstrumentPrice(tradePlan.entry, market)} inputMode="decimal" onBlur={event => commitPlannerEntry(event.currentTarget.value)} onKeyDown={plannerInputKeyDown} className={inputClass} aria-label="Entry price" />
+        ) : (
+          <div className="w-full bg-transparent p-0 text-center font-mono text-[9px] font-semibold tabular-nums text-[#f0f0f2]" aria-label="Live market entry">{formatInstrumentPrice(effectivePlan?.entry, market)}</div>
+        )}
+        <span className="mt-1 block h-4 text-[6px] text-[#68686e]">{tradePlan.pending ? 'price' : 'live'}</span>
       </div>
     );
 

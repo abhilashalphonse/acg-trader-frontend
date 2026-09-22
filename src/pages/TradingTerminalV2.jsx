@@ -19,6 +19,7 @@ import { exposureAvailability } from '../utils/exposureAvailability.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../utils/instrumentFormatting.js';
 import { normalizeTradePlanPatch } from '../utils/tradePlanNormalization.js';
 import { DEFAULT_RISK_GUARD_SETTINGS, evaluateRiskGuard } from '../utils/riskGuard.js';
+import { createDefaultTradePlan, effectiveTradePlan, validateTradePlanForExecution } from '../utils/tradePlanExecution.js';
 
 const INDICATOR_STORAGE_KEY = 'acg-trader-indicators-v1';
 const INDICATOR_FAVORITES_KEY = 'acg-trader-indicator-favorites-v1';
@@ -569,27 +570,19 @@ export default function TradingTerminalV2({
   };
 
   const startPlan = (side, requestedType = orderType, options = {}) => {
-    const marketPrice = Number(side === 'buy' ? market?.ask : market?.bid);
-    if (!Number.isFinite(marketPrice) || marketPrice <= 0) {
+    const plan = createDefaultTradePlan({
+      side,
+      requestedType,
+      market,
+      sizingMode,
+      lots,
+      protection: options?.protection || 'both',
+    });
+    if (!plan) {
       showNotice('Executable market price is unavailable');
       return;
     }
-    const pip = instrumentPipSize(market);
-    const pending = requestedType !== 'market';
-    const sideUpper = String(side).toUpperCase();
-    let entry = marketPrice;
-    if (requestedType === 'limit') entry = side === 'buy' ? marketPrice - 5 * pip : marketPrice + 5 * pip;
-    if (requestedType === 'stop' || requestedType === 'stop-limit') entry = side === 'buy' ? marketPrice + 5 * pip : marketPrice - 5 * pip;
-    entry = normalizePriceToTick(entry, market, pendingPriceDirection(requestedType, sideUpper, 'entry'));
-    const defaultSl = normalizeProtectionPrice(side === 'buy' ? entry - 4.2 * pip : entry + 4.2 * pip, market, sideUpper, 'sl');
-    const defaultTp = normalizeProtectionPrice(side === 'buy' ? entry + 8.4 * pip : entry - 8.4 * pip, market, sideUpper, 'tp');
-    const protection = options?.protection || 'both';
-    const sl = protection === 'tp' || protection === 'none' ? null : defaultSl;
-    const tp = protection === 'sl' || protection === 'none' ? null : defaultTp;
-    const limitPrice = requestedType === 'stop-limit'
-      ? normalizePriceToTick(side === 'buy' ? entry + 1.5 * pip : entry - 1.5 * pip, market, pendingPriceDirection(requestedType, sideUpper, 'limit'))
-      : null;
-    setTradePlan({ symbol: market?.symbol, side, entry, sl, tp, limitPrice, marketPrice, orderType: requestedType, pending, sizingMode: 'lots', manualLots: lots, expiration: 'GTC', stage: 'planning', open: false });
+    setTradePlan(plan);
   };
 
   const createPlanFromRiskTool = setup => {
@@ -688,10 +681,13 @@ export default function TradingTerminalV2({
     const planMarket = markets.find(item => item.symbol === planSymbol) || market;
     const planExposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market: planMarket, commandState: trading.commandState });
     if (!planExposure.allowed) { showNotice(planExposure.reason); return; }
-    const calculated = calculatedLots(tradePlan, riskPercent, tradePlan.manualLots ?? lots, account.equity, planMarket, account.currency);
+    const executionPlan = effectiveTradePlan(tradePlan, planMarket);
+    const planValidation = validateTradePlanForExecution(executionPlan, planMarket);
+    if (!planValidation.valid) { showNotice(planValidation.message || 'Review the order before submitting'); return; }
+    const calculated = calculatedLots(executionPlan, riskPercent, executionPlan.manualLots ?? lots, account.equity, planMarket, account.currency);
     if (calculated == null) { showNotice('Risk % sizing is unavailable because this instrument P&L requires currency conversion. Use Lots sizing.'); return; }
     const volume = normalizeVolumeToStep(calculated, planMarket);
-    const proposedRisk = estimateStopRisk(tradePlan, volume, planMarket, account.currency);
+    const proposedRisk = estimateStopRisk(executionPlan, volume, planMarket, account.currency);
     const guard = evaluateRiskGuard({
       account,
       positions,
@@ -735,12 +731,12 @@ export default function TradingTerminalV2({
     }
 
     const result = await runMarketExecution({
-      side: tradePlan.side,
+      side: executionPlan.side,
       executionLots: volume,
       symbol: planSymbol,
-      requestedPrice: tradePlan.entry,
-      stopLoss: tradePlan.sl,
-      takeProfit: tradePlan.tp,
+      requestedPrice: executionPlan.entry,
+      stopLoss: executionPlan.sl,
+      takeProfit: executionPlan.tp,
     });
     if (result?.position || result?.reconciled || String(result?.order?.status || '').toUpperCase() === 'FILLED') {
       setTradePlan(null);
@@ -833,7 +829,8 @@ export default function TradingTerminalV2({
   });
 
   const plannedRiskInstrument = markets.find(item => item.symbol === tradePlan?.symbol) || market;
-  const plannedRisk = estimatedRisk(tradePlan, riskPercent, lots, account.equity, plannedRiskInstrument, account.currency);
+  const plannedRiskPlan = effectiveTradePlan(tradePlan, plannedRiskInstrument);
+  const plannedRisk = estimatedRisk(plannedRiskPlan, riskPercent, lots, account.equity, plannedRiskInstrument, account.currency);
 
   if (isDesktop) {
     return (
