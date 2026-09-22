@@ -113,6 +113,7 @@ export default function DesktopOrderTicket({
   const skipPendingPriceCommitRef = useRef(false);
   const [riskInput, setRiskInput] = useState(String(riskPercent));
   const [riskInputFocused, setRiskInputFocused] = useState(false);
+  const skipRiskCommitRef = useRef(false);
 
   const volumeStep = Math.max(Number(market?.volumeStep) || 0.01, 0.00000001);
   const minVolume = Math.max(Number(market?.minVolume) || volumeStep, volumeStep);
@@ -277,6 +278,11 @@ export default function DesktopOrderTicket({
   };
 
   const commitLotInput = () => {
+    if (activeSizingMode === 'risk') {
+      setLotInput(Number(displayedLots).toFixed(lotDecimals));
+      setLotFocused(false);
+      return;
+    }
     const numeric = Number(String(lotInput).trim());
     setLots(Number.isFinite(numeric) && numeric > 0 ? numeric : normalizedLots);
     setLotFocused(false);
@@ -295,6 +301,12 @@ export default function DesktopOrderTicket({
   };
 
   const commitRiskInput = () => {
+    if (skipRiskCommitRef.current) {
+      skipRiskCommitRef.current = false;
+      setRiskInput(String(riskPercent));
+      setRiskInputFocused(false);
+      return;
+    }
     const numeric = Number(String(riskInput).trim());
     setRisk(Number.isFinite(numeric) ? numeric : riskPercent);
     setRiskInputFocused(false);
@@ -887,7 +899,7 @@ export default function DesktopOrderTicket({
                 <>
                   <div className="grid grid-cols-4 gap-1">
                     {RISK_PRESETS.map(value => <button key={value} type="button" onClick={() => setRisk(value)} className={`h-7 rounded border text-[8px] font-bold ${Math.abs(riskPercent-value)<0.001 ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#7d90a2]'}`}>{value.toFixed(2)}%</button>)}
-                    <label className="flex h-7 items-center rounded border border-white/[0.06] bg-black px-1"><input type="text" inputMode="decimal" value={riskInput} onFocus={event => { setRiskInputFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }} onChange={event => setRiskInput(sanitizeProtectionInput(event.target.value))} onBlur={commitRiskInput} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); } else if (event.key === 'Escape') { event.preventDefault(); setRiskInput(String(riskPercent)); event.currentTarget.blur(); } }} className="w-full bg-transparent text-center font-mono text-[8px] font-bold text-[#E6EDF3] outline-none"/><span className="text-[6px] text-[#6F8191]">%</span></label>
+                    <label className="flex h-7 items-center rounded border border-white/[0.06] bg-black px-1"><input type="text" inputMode="decimal" value={riskInput} onFocus={event => { skipRiskCommitRef.current = false; setRiskInputFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }} onChange={event => setRiskInput(sanitizeProtectionInput(event.target.value))} onBlur={commitRiskInput} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); } else if (event.key === 'Escape') { event.preventDefault(); skipRiskCommitRef.current = true; setRiskInput(String(riskPercent)); event.currentTarget.blur(); } }} className="w-full bg-transparent text-center font-mono text-[8px] font-bold text-[#E6EDF3] outline-none"/><span className="text-[6px] text-[#6F8191]">%</span></label>
                   </div>
                   <div className="mt-1.5 grid grid-cols-2 gap-1">
                     <div className="rounded border border-white/[0.05] bg-black px-2 py-1.5">
