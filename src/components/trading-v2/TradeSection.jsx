@@ -58,14 +58,14 @@ export default function TradeSection({
   const price = (value, symbol) => formatInstrumentPrice(value, marketFor(symbol));
 
   return (
-    <section className="min-h-[calc(100dvh-98px)] px-3 pb-6 pt-3">
+    <section className="acg-mobile-terminal-page min-h-[calc(100dvh-92px)] px-2 pb-4 pt-2">
       <header className="flex items-start justify-between gap-3 pb-4">
         <div>
           <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#5f7488]">{accountLabel(account)}</p>
           <h1 className="mt-1 text-[26px] font-black tracking-[-0.045em] text-[#f5f8fb]">Trade</h1>
           <p className="mt-1 text-[10px] text-[#718397]">Positions, orders and margin at a glance.</p>
         </div>
-        <button type="button" onClick={onNewOrder} className="mt-1 flex h-10 items-center gap-1.5 rounded-md border border-white/[0.08] bg-[#101010] px-3 text-[9px] font-extrabold text-[#62cbff]"><Plus size={14}/>New order</button>
+        <button type="button" onClick={onNewOrder} className="acg-terminal-accent mt-1 flex h-9 items-center gap-1.5 border border-white/[0.08] bg-[#15151a] px-3 text-[9px] font-extrabold"><Plus size={14}/>New order</button>
       </header>
 
       <div className="border-y border-white/[0.08] bg-black py-3">

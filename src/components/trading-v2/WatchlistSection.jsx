@@ -77,7 +77,7 @@ export default function WatchlistSection({
   };
 
   return (
-    <section className="min-h-[calc(100dvh-98px)] px-3 pb-5 pt-3">
+    <section className="acg-mobile-terminal-page min-h-[calc(100dvh-92px)] px-2 pb-4 pt-2">
       <header className="flex items-start justify-between gap-3 pb-4">
         <div>
           <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#5e7489]">Markets</p>
@@ -87,7 +87,7 @@ export default function WatchlistSection({
         <button
           type="button"
           onClick={onAddInstrument}
-          className="mt-1 flex h-10 items-center gap-1.5 rounded-xl border border-white/[0.08] bg-[#101010] px-3 text-[10px] font-extrabold text-[#64c9ff] shadow-[inset_0_1px_rgba(255,255,255,.03)]"
+          className="acg-terminal-accent mt-1 flex h-9 items-center gap-1.5 border border-white/[0.08] bg-[#15151a] px-3 text-[9px] font-extrabold"
         >
           <Plus size={15} /> Add
         </button>
@@ -209,7 +209,7 @@ export default function WatchlistSection({
               key={item.symbol}
               type="button"
               onClick={() => onOpenTrade(item.symbol)}
-              className={`relative grid w-full grid-cols-[minmax(0,1fr)_70px_70px_52px] items-center gap-1 border-b border-white/[0.08] px-3 py-3 text-left last:border-b-0 ${selected ? 'bg-[#101010]' : 'hover:bg-white/[0.018]'}`}
+              className={`relative grid w-full grid-cols-[minmax(0,1fr)_70px_70px_52px] items-center gap-1 border-b border-white/[0.08] px-3 py-3 text-left last:border-b-0 ${selected ? 'acg-terminal-selected bg-[#101010]' : 'hover:bg-white/[0.018]'}`}
             >
               {selected && <span className="absolute bottom-2 left-0 top-2 w-0.5 rounded-r bg-[#101010]" />}
               <span className="flex min-w-0 items-center gap-2">

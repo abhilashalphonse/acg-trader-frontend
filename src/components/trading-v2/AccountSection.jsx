@@ -95,7 +95,7 @@ export default function AccountSection({ account = {}, onOpenSheet = () => {} })
   const valuation = String(account.valuationStatus || 'WAITING').toUpperCase();
 
   return (
-    <section className="min-h-[calc(100dvh-98px)] px-3 pb-6 pt-3">
+    <section className="acg-mobile-terminal-page min-h-[calc(100dvh-92px)] px-2 pb-4 pt-2">
       <header className="pb-4"><p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#5f7488]">ACG Trader</p><h1 className="mt-1 text-[26px] font-black tracking-[-0.045em] text-[#f5f8fb]">Account</h1><p className="mt-1 text-[10px] text-[#718397]">Balance, equity, margin and challenge risk.</p></header>
 
       <div className="border-y border-white/[0.08] bg-black py-3">

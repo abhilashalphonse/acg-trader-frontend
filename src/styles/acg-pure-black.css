@@ -307,4 +307,125 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
   [class*="border-[#202022]"]{
     border-color:rgba(255,255,255,.075)!important;
   }
+
+  /* Shared mobile terminal styling for Watchlist, Trade, History and Account. */
+  .acg-mobile-terminal-page{
+    background:#000!important;
+    color:#f5f5f5!important;
+  }
+
+  .acg-mobile-terminal-page > header{
+    padding-bottom:10px!important;
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+
+  .acg-mobile-terminal-page > header h1{
+    margin-top:2px!important;
+    font-size:20px!important;
+    line-height:1.05!important;
+    font-weight:800!important;
+    letter-spacing:-.035em!important;
+    color:#f3f3f4!important;
+  }
+
+  .acg-mobile-terminal-page > header p{
+    color:#68686e!important;
+  }
+
+  .acg-mobile-terminal-page [class*="rounded-xl"],
+  .acg-mobile-terminal-page [class*="rounded-lg"],
+  .acg-mobile-terminal-page [class*="rounded-[17px]"],
+  .acg-mobile-terminal-page [class*="rounded-md"],
+  .acg-mobile-terminal-page [class*="rounded-full"]{
+    border-radius:2px!important;
+  }
+
+  .acg-mobile-terminal-page [class*="bg-[#080808]"]{
+    background:#0d0d10!important;
+    background-image:none!important;
+  }
+
+  .acg-mobile-terminal-page [class*="bg-[#101010]"]{
+    background:#15151a!important;
+    background-image:none!important;
+  }
+
+  .acg-mobile-terminal-page [class*="border-white/[0.08]"],
+  .acg-mobile-terminal-page [class*="border-white/[0.09]"],
+  .acg-mobile-terminal-page [class*="border-white/[0.10]"],
+  .acg-mobile-terminal-page [class*="border-white/[0.12]"],
+  .acg-mobile-terminal-page [class*="border-white/[0.13]"]{
+    border-color:rgba(255,255,255,.09)!important;
+  }
+
+  .acg-mobile-terminal-page [class*="text-[#5f7488]"],
+  .acg-mobile-terminal-page [class*="text-[#5e7488]"],
+  .acg-mobile-terminal-page [class*="text-[#60758a]"],
+  .acg-mobile-terminal-page [class*="text-[#60768a]"],
+  .acg-mobile-terminal-page [class*="text-[#61768b]"],
+  .acg-mobile-terminal-page [class*="text-[#62778b]"],
+  .acg-mobile-terminal-page [class*="text-[#63798d]"],
+  .acg-mobile-terminal-page [class*="text-[#667b90]"],
+  .acg-mobile-terminal-page [class*="text-[#6f8296]"],
+  .acg-mobile-terminal-page [class*="text-[#718397]"],
+  .acg-mobile-terminal-page [class*="text-[#71859a]"],
+  .acg-mobile-terminal-page [class*="text-[#71869a]"],
+  .acg-mobile-terminal-page [class*="text-[#72869a]"],
+  .acg-mobile-terminal-page [class*="text-[#7e92a5]"],
+  .acg-mobile-terminal-page [class*="text-[#8397aa]"],
+  .acg-mobile-terminal-page [class*="text-[#8da0b1]"],
+  .acg-mobile-terminal-page [class*="text-[#90a2b4]"],
+  .acg-mobile-terminal-page [class*="text-[#9db0c1]"],
+  .acg-mobile-terminal-page [class*="text-[#9eafbe]"]{
+    color:#77777d!important;
+  }
+
+  .acg-mobile-terminal-page [class*="text-[#a8"],
+  .acg-mobile-terminal-page [class*="text-[#ae"],
+  .acg-mobile-terminal-page [class*="text-[#af"],
+  .acg-mobile-terminal-page [class*="text-[#b3"],
+  .acg-mobile-terminal-page [class*="text-[#b4"],
+  .acg-mobile-terminal-page [class*="text-[#b5"],
+  .acg-mobile-terminal-page [class*="text-[#b9"],
+  .acg-mobile-terminal-page [class*="text-[#c1"],
+  .acg-mobile-terminal-page [class*="text-[#c4"],
+  .acg-mobile-terminal-page [class*="text-[#cb"],
+  .acg-mobile-terminal-page [class*="text-[#d4"],
+  .acg-mobile-terminal-page [class*="text-[#d5"],
+  .acg-mobile-terminal-page [class*="text-[#d6"],
+  .acg-mobile-terminal-page [class*="text-[#db"],
+  .acg-mobile-terminal-page [class*="text-[#dc"]{
+    color:#a0a0a6!important;
+  }
+
+  .acg-mobile-terminal-page article{
+    border-color:rgba(255,255,255,.08)!important;
+  }
+
+  .acg-mobile-terminal-page article [class*="bg-[#080808]"]{
+    background:#0d0d10!important;
+  }
+
+  .acg-mobile-terminal-page .acg-terminal-selected{
+    background:#15151a!important;
+    color:#f3f3f4!important;
+    box-shadow:inset 0 -2px 0 rgba(83,199,255,.75)!important;
+  }
+
+  .acg-mobile-terminal-page .acg-terminal-accent{
+    color:#53c7ff!important;
+  }
+
+  .acg-mobile-terminal-page input,
+  .acg-mobile-terminal-page select,
+  .acg-mobile-terminal-page textarea{
+    border-radius:2px!important;
+    background:#15151a!important;
+    border-color:rgba(255,255,255,.09)!important;
+  }
+
+  .acg-mobile-terminal-page button{
+    box-shadow:none!important;
+  }
+
 }
