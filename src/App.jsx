@@ -6,6 +6,7 @@ import { useTraderAuth } from './hooks/useTraderAuth.js';
 import { useTradingStore } from './hooks/useTradingStore.js';
 import { useWatchlists } from './hooks/useWatchlists.js';
 import { deriveTerminalStatus } from './utils/terminalStatus.js';
+import { formatInstrumentPrice } from './utils/instrumentFormatting.js';
 
 const TradingTerminalV2 = lazy(() => import('./pages/TradingTerminalV2.jsx'));
 const MobileTraderShell = lazy(() => import('./pages/MobileTraderShell.jsx'));
@@ -103,6 +104,19 @@ export default function App() {
 
   const { markets, activeTick, activeMarket, status, error: marketError } = useMarketData(instruments, activeSymbol, subscriptionSymbols);
   const market = activeMarket || markets[0] || null;
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const symbol = String(market?.symbol || activeSymbol || '').replace('/', '').toUpperCase();
+    const livePrice = activeTick?.price ?? activeTick?.last ?? activeTick?.mid ?? market?.last ?? market?.bid;
+    const formattedPrice = formatInstrumentPrice(livePrice, market, '');
+
+    document.title = symbol && formattedPrice
+      ? `${symbol} ${formattedPrice}`
+      : symbol
+        ? symbol
+        : 'ACG Trader';
+  }, [activeSymbol, activeTick?.last, activeTick?.mid, activeTick?.price, market?.bid, market?.digits, market?.last, market?.pipSize, market?.symbol, market?.tickSize]);
 
   const primaryAccount = useMemo(() => {
     const granted = auth.principal?.accountIds?.map(String) || [];
