@@ -13,6 +13,7 @@ test('hydrates authoritative account state from trading snapshot', () => {
       accounts: [{
         account: { id: 'a1', status: 'ACTIVE', state: { balance: '10000' } },
         valuation: { accountId: 'a1', valuationStatus: 'LIVE', equity: '10010' },
+        positionValuations: [{ id: 'p1', accountId: 'a1', valuationStatus: 'LIVE', floatingPnl: '10' }],
         positions: [{ id: 'p1', accountId: 'a1', status: 'OPEN' }],
         orders: [{ id: 'o1', accountId: 'a1', status: 'PENDING' }],
         fills: [{ id: 'f1', accountId: 'a1', type: 'OPEN' }],
@@ -22,6 +23,7 @@ test('hydrates authoritative account state from trading snapshot', () => {
 
   assert.equal(state.trading.accountsById.a1.state.balance, '10000');
   assert.equal(state.trading.valuationsByAccountId.a1.valuationStatus, 'LIVE');
+  assert.equal(state.trading.positionValuationsById.p1.floatingPnl, '10');
   assert.equal(state.trading.positionsById.p1.status, 'OPEN');
   assert.equal(state.trading.ordersById.o1.status, 'PENDING');
   assert.equal(state.trading.fills[0].id, 'f1');
@@ -33,6 +35,7 @@ test('removes a position when the server emits a close event', () => {
     trading: {
       ...initialTradingState.trading,
       positionsById: { p1: { id: 'p1', accountId: 'a1', status: 'OPEN' } },
+      positionValuationsById: { p1: { id: 'p1', accountId: 'a1', floatingPnl: '10' } },
     },
   };
   const state = tradingReducer(seeded, {
@@ -40,6 +43,23 @@ test('removes a position when the server emits a close event', () => {
     payload: envelope('trading.position', { event: 'closed', position: { id: 'p1', accountId: 'a1', status: 'CLOSED' } }),
   });
   assert.equal(state.trading.positionsById.p1, undefined);
+  assert.equal(state.trading.positionValuationsById.p1, undefined);
+});
+
+test('updates realtime position valuation from the WebSocket stream', () => {
+  const state = tradingReducer(initialTradingState, {
+    type: 'socket/envelope',
+    payload: envelope('trading.position.valuation', {
+      id: 'p1',
+      accountId: 'a1',
+      floatingPnl: '42.5',
+      closePrice: '1.105',
+      valuationStatus: 'LIVE',
+    }),
+  });
+
+  assert.equal(state.trading.positionValuationsById.p1.floatingPnl, '42.5');
+  assert.equal(state.trading.positionValuationsById.p1.valuationStatus, 'LIVE');
 });
 
 test('deduplicates fills by server entity id', () => {

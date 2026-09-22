@@ -16,6 +16,7 @@ export const initialTradingState = Object.freeze({
   trading: {
     accountsById: {},
     valuationsByAccountId: {},
+    positionValuationsById: {},
     positionsById: {},
     ordersById: {},
     fills: [],
@@ -63,6 +64,7 @@ function replaceAccountScoped(map, accountId, entities) {
 function mergeSnapshot(state, snapshots) {
   let accountsById = state.trading.accountsById;
   let valuationsByAccountId = state.trading.valuationsByAccountId;
+  let positionValuationsById = state.trading.positionValuationsById;
   let positionsById = state.trading.positionsById;
   let ordersById = state.trading.ordersById;
   let fills = state.trading.fills;
@@ -72,6 +74,7 @@ function mergeSnapshot(state, snapshots) {
     if (!accountId) continue;
     accountsById = { ...accountsById, [accountId]: snapshot.account };
     if (snapshot.valuation) valuationsByAccountId = { ...valuationsByAccountId, [accountId]: snapshot.valuation };
+    positionValuationsById = replaceAccountScoped(positionValuationsById, accountId, snapshot.positionValuations || []);
     positionsById = replaceAccountScoped(positionsById, accountId, snapshot.positions || []);
     ordersById = replaceAccountScoped(ordersById, accountId, snapshot.orders || []);
     const otherFills = fills.filter(fill => String(fill?.accountId) !== accountId);
@@ -80,7 +83,7 @@ function mergeSnapshot(state, snapshots) {
 
   return {
     ...state,
-    trading: { accountsById, valuationsByAccountId, positionsById, ordersById, fills },
+    trading: { accountsById, valuationsByAccountId, positionValuationsById, positionsById, ordersById, fills },
   };
 }
 
@@ -93,11 +96,15 @@ function mergeCommandResult(state, result) {
   const valuation = result.valuation || null;
 
   let positionsById = state.trading.positionsById;
+  let positionValuationsById = state.trading.positionValuationsById;
   const positionId = entityId(position);
   if (positionId) {
     positionsById = { ...positionsById };
-    if (position.status === 'CLOSED') delete positionsById[positionId];
-    else positionsById[positionId] = position;
+    if (position.status === 'CLOSED') {
+      delete positionsById[positionId];
+      positionValuationsById = { ...positionValuationsById };
+      delete positionValuationsById[positionId];
+    } else positionsById[positionId] = position;
   }
 
   let valuationsByAccountId = state.trading.valuationsByAccountId;
@@ -110,6 +117,7 @@ function mergeCommandResult(state, result) {
       ...state.trading,
       accountsById: account ? upsert(state.trading.accountsById, account) : state.trading.accountsById,
       valuationsByAccountId,
+      positionValuationsById,
       positionsById,
       ordersById: order ? upsert(state.trading.ordersById, order) : state.trading.ordersById,
       fills: fill ? upsertFill(state.trading.fills, fill) : state.trading.fills,
@@ -192,10 +200,17 @@ function handleEnvelope(state, envelope) {
     if (!id) return next;
     if (data?.event === 'closed' || position?.status === 'CLOSED') {
       const positionsById = { ...next.trading.positionsById };
+      const positionValuationsById = { ...next.trading.positionValuationsById };
       delete positionsById[id];
-      return { ...next, trading: { ...next.trading, positionsById } };
+      delete positionValuationsById[id];
+      return { ...next, trading: { ...next.trading, positionsById, positionValuationsById } };
     }
     return { ...next, trading: { ...next.trading, positionsById: { ...next.trading.positionsById, [id]: position } } };
+  }
+  if (type === 'trading.position.valuation') {
+    const id = entityId(data);
+    if (!id) return next;
+    return { ...next, trading: { ...next.trading, positionValuationsById: { ...next.trading.positionValuationsById, [id]: data } } };
   }
   if (type === 'trading.account') {
     const account = data?.account;

@@ -141,7 +141,7 @@ function errorMessage(error) {
 export function useTradingTerminal(markets = []) {
   const auth = useTraderAuth();
   const { trading, connection, commands, requestSnapshot } = useTradingStore();
-  const [positionValuations, setPositionValuations] = useState({});
+  const positionValuations = trading.positionValuationsById;
   const [history, setHistory] = useState({ orders: [], deals: [], positions: [], loaded: false });
   const [commandState, setCommandState] = useState({ pending: false, uncertain: false, error: null, lastResult: null });
   const busyRef = useRef(0);
@@ -189,49 +189,6 @@ export function useTradingTerminal(markets = []) {
       .catch(() => { if (!controller.signal.aborted) setHistory(current => ({ ...current, loaded: false })); });
     return () => controller.abort();
   }, [accountId, commands, connection.status]);
-
-  useEffect(() => {
-    if (!rawPositions.length || connection.status !== 'ready') {
-      if (!rawPositions.length) setPositionValuations({});
-      return undefined;
-    }
-
-    let disposed = false;
-    let controller = new AbortController();
-
-    const refresh = async () => {
-      const results = await Promise.allSettled(
-        rawPositions.map(position => commands.positionValuation(position.id, controller.signal)),
-      );
-      if (disposed || controller.signal.aborted) return;
-
-      setPositionValuations(current => {
-        const next = { ...current };
-        rawPositions.forEach((position, index) => {
-          if (results[index]?.status === 'fulfilled') next[position.id] = results[index].value;
-          else if (results[index]?.reason?.status === 404) delete next[position.id];
-        });
-        return next;
-      });
-    };
-
-    void refresh();
-
-    // Position valuation is a fallback REST refresh. Account valuation itself is
-    // already realtime over WebSocket, so avoid 1-second HTTP polling that can
-    // exceed the global API rate limit with even one open position.
-    const timer = window.setInterval(() => {
-      controller.abort();
-      controller = new AbortController();
-      void refresh();
-    }, 15000);
-
-    return () => {
-      disposed = true;
-      controller.abort();
-      window.clearInterval(timer);
-    };
-  }, [commands, connection.status, rawPositions]);
 
   const run = useCallback(async operation => {
     busyRef.current += 1;
