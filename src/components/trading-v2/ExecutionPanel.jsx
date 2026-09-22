@@ -325,16 +325,12 @@ export default function ExecutionPanel({
       ? (tpAmount != null ? tpAmount.toFixed(2) : '')
       : (Number.isFinite(metrics?.tpPips) ? metrics.tpPips.toFixed(1) : '');
     const actionPrice = formatInstrumentPrice(effectivePlan?.entry, market);
-    const riskSummaryLabel = riskDisplayMode === 'amount' ? 'Account risk' : 'Risk';
-    const riskSummaryValue = riskDisplayMode === 'amount'
-      ? `${Number(riskPercent).toFixed(2)}%`
-      : formatMoney(metrics?.riskDollars, account?.currency);
     const inputClass = 'w-full bg-transparent p-0 text-center font-mono text-[9px] font-semibold tabular-nums text-[#f0f0f2] outline-none';
     const labelClass = 'block text-[6px] font-semibold uppercase tracking-[0.08em] text-[#77777d]';
     const modeButton = active => `h-4 min-w-[18px] border px-1 text-[6px] font-semibold ${active ? 'border-[#315b72] bg-[#15151a] text-[#53c7ff]' : 'border-white/[0.07] bg-transparent text-[#68686e]'}`;
 
     const riskField = (
-      <div className="min-w-0 px-1 py-1.5 text-center">
+      <div className="min-w-0 px-1 py-1 text-center">
         <span className={labelClass}>Risk</span>
         <input key={`risk:${riskDisplayMode}:${riskValue}`} defaultValue={riskValue} inputMode="decimal" onBlur={event => commitPlannerRisk(event.currentTarget.value)} onKeyDown={plannerInputKeyDown} className={inputClass} aria-label={`Risk ${riskDisplayMode === 'amount' ? 'amount' : 'percent'}`} />
         <div className="mt-1 flex justify-center gap-px">
@@ -345,7 +341,7 @@ export default function ExecutionPanel({
     );
 
     const entryField = (
-      <div className="min-w-0 px-1 py-1.5 text-center">
+      <div className="min-w-0 px-1 py-1 text-center">
         <span className={labelClass}>Entry</span>
         {tradePlan.pending ? (
           <input key={`entry:${tradePlan.entry}`} defaultValue={formatInstrumentPrice(tradePlan.entry, market)} inputMode="decimal" onBlur={event => commitPlannerEntry(event.currentTarget.value)} onKeyDown={plannerInputKeyDown} className={inputClass} aria-label="Entry price" />
@@ -357,7 +353,7 @@ export default function ExecutionPanel({
     );
 
     const lotsField = (
-      <div className="min-w-0 px-1 py-1.5 text-center">
+      <div className="min-w-0 px-1 py-1 text-center">
         <span className={labelClass}>Lots</span>
         <input key={`lots:${plannerLots}`} defaultValue={Number.isFinite(plannerLots) ? formatLots(plannerLots) : ''} inputMode="decimal" onBlur={event => commitPlannerLots(event.currentTarget.value)} onKeyDown={plannerInputKeyDown} className={inputClass} aria-label="Lot size" />
         <span className="mt-1 block h-4 text-[6px] text-[#68686e]">volume</span>
@@ -365,7 +361,7 @@ export default function ExecutionPanel({
     );
 
     const protectionField = (kind, label, mode, setMode, value) => (
-      <div className="min-w-0 px-1 py-1.5 text-center">
+      <div className="min-w-0 px-1 py-1 text-center">
         <span className={labelClass}>{label}</span>
         <input key={`${kind}:${mode}:${value}`} defaultValue={value} inputMode="decimal" onBlur={event => commitPlannerProtection(kind, event.currentTarget.value, mode)} onKeyDown={plannerInputKeyDown} className={inputClass} aria-label={`${label} ${mode === 'amount' ? 'amount' : 'pips'}`} />
         <div className="mt-1 flex justify-center gap-px">
@@ -377,15 +373,16 @@ export default function ExecutionPanel({
 
     return (
       <section className="relative overflow-hidden border border-white/[0.12] bg-[#0d0d10]">
-        <div className="flex min-h-10 items-center justify-between gap-2 border-b border-white/[0.10] px-2.5 py-1.5">
-          <div className="min-w-0">
-            <div className="flex items-baseline gap-1.5">
-              <strong className={`text-[9px] font-extrabold tracking-[0.04em] ${side === 'BUY' ? 'text-[#2ddb9f]' : 'text-[#ff5f6d]'}`}>{actionLabel}</strong>
-              <span className="truncate text-[8px] font-semibold text-[#f0f0f2]">· {symbolLabel}</span>
-            </div>
-            <p className="mt-0.5 text-[7px] text-[#68686e]">Drag entry / SL / TP on chart</p>
+        <div className="flex h-8 items-center gap-1.5 border-b border-white/[0.10] px-2">
+          <div className="flex min-w-0 flex-1 items-baseline gap-1">
+            <strong className={`truncate text-[8px] font-extrabold tracking-[0.035em] ${side === 'BUY' ? 'text-[#2ddb9f]' : 'text-[#ff5f6d]'}`}>{actionLabel}</strong>
+            <span className="shrink-0 text-[7px] font-semibold text-[#d9dfe5]">· {symbolLabel}</span>
           </div>
-          <button type="button" onClick={onCancelPlan} className="grid size-7 shrink-0 place-items-center border border-white/[0.08] bg-[#15151a] text-[#8a8a91]" aria-label="Cancel trade plan"><X size={13}/></button>
+          <div className="flex shrink-0 items-center gap-2 whitespace-nowrap font-mono text-[6.5px] tabular-nums text-[#6f7d88]">
+            <span>M <b className="font-semibold text-[#aab5bf]">{formatMoney(plannerMargin, account?.currency)}</b></span>
+            <span>Free <b className="font-semibold text-[#aab5bf]">{formatMoney(account?.freeMargin, account?.currency)}</b></span>
+          </div>
+          <button type="button" onClick={onCancelPlan} className="grid size-6 shrink-0 place-items-center border-l border-white/[0.08] text-[#7d8a95]" aria-label="Cancel trade plan"><X size={12}/></button>
         </div>
 
         <div className="grid grid-cols-5 divide-x divide-white/[0.08] border-b border-white/[0.10] bg-[#0d0d10]">
@@ -396,32 +393,27 @@ export default function ExecutionPanel({
           {protectionField('tp', 'TP', tpDisplayMode, setTpDisplayMode, tpValue)}
         </div>
 
-        <div className="flex h-8 items-center justify-between gap-2 border-b border-white/[0.08] px-2.5 text-[7px] text-[#77777d]">
-          <span>{riskSummaryLabel} <b className="ml-1 font-mono font-semibold tabular-nums text-[#f0f0f2]">{riskSummaryValue}</b></span>
-          <span>Potential <b className="ml-1 font-mono font-semibold tabular-nums text-[#42d7a2]">{formatMoney(metrics?.reward, account?.currency, true)}</b></span>
-          <span>R:R <b className="ml-1 font-mono font-semibold tabular-nums text-[#f0f0f2]">1:{Number.isFinite(metrics?.rr) ? metrics.rr.toFixed(1) : '—'}</b></span>
-        </div>
-
-        <div className="flex h-7 items-center justify-between gap-3 border-b border-white/[0.08] px-2.5 text-[7px] text-[#68686e]">
-          <span>Margin <b className="ml-1 font-mono font-semibold tabular-nums text-[#a0a0a6]">{formatMoney(plannerMargin, account?.currency)}</b></span>
-          <span>Free <b className="ml-1 font-mono font-semibold tabular-nums text-[#a0a0a6]">{formatMoney(account?.freeMargin, account?.currency)}</b></span>
+        <div className="grid h-7 grid-cols-3 items-center border-b border-white/[0.08] px-2 text-[6.5px] text-[#737f89]">
+          <span className="truncate">Risk <b className="ml-1 font-mono font-semibold tabular-nums text-[#f0f0f2]">{formatMoney(metrics?.riskDollars, account?.currency)}</b></span>
+          <span className="truncate text-center">P&amp;L <b className="ml-1 font-mono font-semibold tabular-nums text-[#42d7a2]">{formatMoney(metrics?.reward, account?.currency, true)}</b></span>
+          <span className="truncate text-right">R:R <b className="ml-1 font-mono font-semibold tabular-nums text-[#f0f0f2]">1:{Number.isFinite(metrics?.rr) ? metrics.rr.toFixed(1) : '—'}</b></span>
         </div>
 
         <div className={`grid gap-px bg-white/[0.07] ${side === 'SELL' ? 'grid-cols-[2fr_1fr]' : 'grid-cols-[1fr_2fr]'}`}>
           {side === 'BUY' && (
-            <button type="button" onClick={onCancelPlan} className="flex h-[58px] items-center justify-center bg-[#0d0d10] text-[8px] font-bold uppercase tracking-[0.08em] text-[#9a9aa0]">Cancel</button>
+            <button type="button" onClick={onCancelPlan} className="flex h-[49px] items-center justify-center bg-[#0d0d10] text-[8px] font-bold uppercase tracking-[0.08em] text-[#9a9aa0]">Cancel</button>
           )}
           <button
             type="button"
             disabled={!canSubmitExposure}
             onClick={onExecutePlan}
-            className={`flex h-[58px] min-w-0 flex-col justify-center bg-black px-3 disabled:cursor-not-allowed disabled:opacity-40 ${side === 'BUY' ? 'acg-execution-buy items-end text-right' : 'acg-execution-sell items-start text-left'}`}
+            className={`flex h-[49px] min-w-0 flex-col justify-center bg-black px-3 disabled:cursor-not-allowed disabled:opacity-40 ${side === 'BUY' ? 'acg-execution-buy items-end text-right' : 'acg-execution-sell items-start text-left'}`}
           >
             <span className="text-[9px] font-extrabold tracking-[0.045em]">{tradePlan.editingOrderId ? `UPDATE ${actionLabel}` : actionLabel}</span>
-            <strong className="mt-1 max-w-full whitespace-nowrap text-[20px] font-black tabular-nums leading-none tracking-[-0.035em] text-[#f5f5f6]">{actionPrice}</strong>
+            <strong className="mt-0.5 max-w-full whitespace-nowrap text-[18px] font-black tabular-nums leading-none tracking-[-0.035em] text-[#f5f5f6]">{actionPrice}</strong>
           </button>
           {side === 'SELL' && (
-            <button type="button" onClick={onCancelPlan} className="flex h-[58px] items-center justify-center bg-[#0d0d10] text-[8px] font-bold uppercase tracking-[0.08em] text-[#9a9aa0]">Cancel</button>
+            <button type="button" onClick={onCancelPlan} className="flex h-[49px] items-center justify-center bg-[#0d0d10] text-[8px] font-bold uppercase tracking-[0.08em] text-[#9a9aa0]">Cancel</button>
           )}
         </div>
       </section>
