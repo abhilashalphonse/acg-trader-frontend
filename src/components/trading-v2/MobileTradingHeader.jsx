@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUpFromLine, ChevronDown, ChevronRight, Star } from 'lucide-react';
+import { ArrowUpDown, ChevronDown, ChevronRight, Star } from 'lucide-react';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 
 function displaySymbol(symbol = '') {
@@ -109,10 +109,10 @@ export default function MobileTradingHeader({
         className="relative flex min-w-0 flex-col items-center justify-center overflow-visible border-r border-white/[0.035] text-[#c8d1d8] active:bg-white/[0.045]"
         aria-label={`Open trades${openPositionsCount ? `, ${openPositionsCount} open positions` : ''}`}
       >
-        <span className="relative grid size-[22px] place-items-center overflow-visible rounded-[4px] bg-white/[0.035]">
-          <ArrowUpFromLine size={14} strokeWidth={2.2} className="text-[#d8e0e6]"/>
+        <span className="relative grid size-[22px] place-items-center overflow-visible">
+          <ArrowUpDown size={15} strokeWidth={2.15} className="text-[#d8e0e6]"/>
           {openPositionsCount > 0 && (
-            <span className="absolute -right-[7px] -top-[5px] z-10 grid h-[14px] min-w-[14px] place-items-center rounded-full bg-[#1d8cff] px-[3px] font-mono text-[7px] font-black leading-none text-white shadow-[0_0_0_1px_#080808]">
+            <span className="absolute -right-3 -top-1.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-blue-600 px-1.5 py-0.5 text-[7px] font-semibold leading-none text-white ring-1 ring-inset ring-blue-400/30 shadow-sm">
               {openPositionsCount > 9 ? '9+' : openPositionsCount}
             </span>
           )}
