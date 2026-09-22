@@ -565,6 +565,37 @@ export default function ChartArea({
   const [keepDrawingTool, setKeepDrawingTool] = useState(false);
   const [drawingCount, setDrawingCount] = useState(0);
   const oscillatorCount = indicators.filter(item => item.visible !== false && oscillatorIds.has(item.id)).length;
+  const priceScaleAnchors = useMemo(() => {
+    const values = [];
+    const push = value => {
+      const numeric = Number(value);
+      if (Number.isFinite(numeric) && numeric > 0) values.push(numeric);
+    };
+
+    (Array.isArray(positions) ? positions : []).forEach(position => {
+      if (String(position?.symbol || '').toUpperCase() !== String(symbol || '').toUpperCase()) return;
+      push(position?.entry ?? position?.entryPrice);
+      push(position?.sl);
+      push(position?.tp);
+    });
+
+    (Array.isArray(pendingOrders) ? pendingOrders : []).forEach(order => {
+      if (String(order?.symbol || '').toUpperCase() !== String(symbol || '').toUpperCase()) return;
+      push(order?.entry);
+      push(order?.sl);
+      push(order?.tp);
+      push(order?.limitPrice);
+    });
+
+    if (String(tradePlan?.symbol || '').toUpperCase() === String(symbol || '').toUpperCase()) {
+      push(tradePlan?.entry);
+      push(tradePlan?.sl);
+      push(tradePlan?.tp);
+      push(tradePlan?.limitPrice);
+    }
+
+    return [...new Set(values)];
+  }, [pendingOrders, positions, symbol, tradePlan]);
 
   useEffect(() => {
     const update = () => {
@@ -639,6 +670,7 @@ export default function ChartArea({
           onCoordinateApi={setCoordinateApi}
           showBidAskLines={desktopEnhanced}
           showPositionPriceLines={false}
+          priceScaleAnchors={priceScaleAnchors}
           showIndicatorControls={desktopEnhanced}
           onToggleIndicator={onToggleIndicator}
           onOpenIndicatorSettings={onOpenIndicatorSettings}
