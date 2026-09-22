@@ -107,10 +107,16 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
         const currency = position?.pnlCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || 'USD';
         const lots = Number(position.volume ?? position.lots);
         const signedLots = `${isBuy ? '' : '-'}${formatPositionLots(lots)}`;
-        const lineColor = isBuy ? '#21d79a' : '#ff5a66';
-        const pillClass = isBuy
-          ? 'border-[#1e8f6b] bg-[#063c2f] text-[#eafff7]'
-          : 'border-[#a82f3d] bg-[#55151d] text-[#fff2f4]';
+        const lineColor = isBuy ? '#12b996' : '#ef5664';
+        const quantityBackground = isBuy ? '#087a62' : '#8f2734';
+        const closeColor = isBuy ? '#35d7b0' : '#ff7883';
+        const pnlColor = Number.isFinite(pnl)
+          ? pnl < 0
+            ? '#ff5968'
+            : pnl > 0
+              ? '#55dfa9'
+              : '#eef4f2'
+          : '#eef4f2';
 
         return (
           <div key={position.id || `${side}-${entry}-${lots}`} className="absolute left-0 right-0" style={{ top: y }}>
@@ -125,11 +131,22 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
                     onSelectPosition(position.id);
                   }
                 }}
-                className={`pointer-events-auto absolute left-3 top-1/2 flex h-7 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border font-mono text-[10px] font-bold tabular-nums shadow-[0_5px_16px_rgba(0,0,0,.38)] backdrop-blur-sm ${pillClass} ${String(selectedPositionId) === String(position.id) ? 'ring-1 ring-white/25' : ''}`}
+                className={`pointer-events-auto absolute left-3 top-1/2 flex h-6 -translate-y-1/2 items-stretch overflow-hidden rounded-[4px] border bg-[#07110f]/98 font-mono text-[10px] font-bold tabular-nums text-[#f3faf7] shadow-[0_2px_8px_rgba(0,0,0,.32)] ${String(selectedPositionId) === String(position.id) ? 'ring-1 ring-white/20' : ''}`}
+                style={{ borderColor: lineColor }}
                 aria-label={`Select ${side} ${position.symbol || symbol} position`}
               >
-                <span className="flex min-w-[34px] items-center justify-center border-r border-white/20 px-2">{signedLots}</span>
-                <span className="flex items-center border-r border-white/20 px-2.5">{formatPositionPnl(pnl, currency)}</span>
+                <span
+                  className="flex min-w-[30px] items-center justify-center border-r px-2 text-white"
+                  style={{ backgroundColor: quantityBackground, borderColor: `${lineColor}80` }}
+                >
+                  {signedLots}
+                </span>
+                <span
+                  className="flex min-w-[72px] items-center justify-center border-r px-2"
+                  style={{ color: pnlColor, borderColor: `${lineColor}55` }}
+                >
+                  {formatPositionPnl(pnl, currency)}
+                </span>
                 <button
                   type="button"
                   onClick={event => {
@@ -137,7 +154,8 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
                     event.stopPropagation();
                     void onClosePosition(position.id, 100);
                   }}
-                  className="grid w-9 place-items-center text-[15px] leading-none text-white/85 transition hover:bg-black/20 hover:text-white active:bg-black/30"
+                  className="grid w-7 place-items-center text-[13px] leading-none transition hover:bg-white/[0.05] active:bg-white/[0.08]"
+                  style={{ color: closeColor }}
                   aria-label={`Close ${side} ${position.symbol || symbol} position`}
                   title="Close position"
                 >
