@@ -103,6 +103,7 @@ export default function ExecutionPanel({
   const [riskDisplayMode, setRiskDisplayMode] = useState('percent');
   const [slDisplayMode, setSlDisplayMode] = useState('pips');
   const [tpDisplayMode, setTpDisplayMode] = useState('pips');
+  const [mobileAdvancedOpen, setMobileAdvancedOpen] = useState(false);
   const lots = controlledLots ?? internalLots;
   const setLots = onLotsChange ?? setInternalLots;
   const volumeStep = Math.max(Number(market?.volumeStep) || 0.01, 0.00000001);
@@ -303,7 +304,7 @@ export default function ExecutionPanel({
   );
 
   const orderPicker = orderPickerOpen && (
-    <div className={`absolute z-50 w-[190px] overflow-hidden rounded-lg border border-white/[0.10] bg-[#101010] p-1 shadow-[0_18px_55px_rgba(0,0,0,0.5)] ${focusMode ? 'bottom-[72px] left-2' : 'bottom-[112px] left-0'}`}>
+    <div className={`absolute z-50 w-[190px] overflow-hidden rounded-lg border border-white/[0.10] bg-[#101010] p-1 shadow-[0_18px_55px_rgba(0,0,0,0.5)] ${mobileDocked ? 'bottom-[62px] left-1.5' : focusMode ? 'bottom-[72px] left-2' : 'bottom-[112px] left-0'}`}>
       {orderTypes.map(([id, label]) => <button key={id} type="button" onClick={() => { onOrderTypeChange(id); setOrderPickerOpen(false); }} className={`flex w-full items-center justify-between rounded-md px-3 py-2.5 text-left text-[11px] ${orderType === id ? 'bg-[#101010] text-[#60caff]' : 'text-[#c0ccd7]'}`}><span><b className="block">{label}</b><small className="text-[#718398]">{id === 'market' ? 'Immediate execution' : id === 'limit' ? 'Better price retracement' : id === 'stop' ? 'Breakout trigger' : 'Stop trigger → limit order'}</small></span>{orderType === id && <Check size={14}/>}</button>)}
     </div>
   );
@@ -539,69 +540,110 @@ export default function ExecutionPanel({
   );
 
   if (mobileDocked && !tradePlan) {
-    return (
-      <section className="relative overflow-visible border border-white/[0.12] bg-[#0d0d10]">
-        <div className="flex h-8 items-center gap-2 border-b border-white/[0.10] px-2">
-          <button type="button" onClick={() => setOrderPickerOpen(value => !value)} className="flex h-6 items-center gap-1 bg-transparent px-1 text-[8px] font-extrabold text-[#b0b0b7]">
-            {orderTypes.find(([id]) => id === orderType)?.[1]} <ChevronDown size={10}/>
-          </button>
-          <span className="min-w-0 flex-1" aria-hidden="true" />
-          <button type="button" onClick={onToggleRisk} className={`grid size-7 shrink-0 place-items-center text-[#8a8a91] transition ${riskExpanded ? 'text-[#53c7ff]' : ''}`} aria-label={riskExpanded ? 'Hide challenge risk' : 'Show challenge risk'} aria-expanded={riskExpanded}>
-            {riskExpanded ? <ChevronUp size={15}/> : <ChevronDown size={15}/>}
-          </button>
-        </div>
+    const mobileSizingLabel = sizingMode === 'risk' ? `${Number(riskPercent).toFixed(2)}%` : formatLots(normalizedLots);
 
-        {riskExpanded && riskContent && (
-          <div className="border-b border-white/[0.10] bg-[#0d0d10]">
-            {riskContent}
+    return (
+      <>
+        <section className="relative shrink-0 overflow-visible border-t border-white/[0.10] bg-[#080808]">
+          {orderPicker}
+
+          <button
+            type="button"
+            onClick={() => setOrderPickerOpen(value => !value)}
+            className="flex h-[25px] w-full items-center justify-between border-b border-white/[0.08] px-2 text-left text-[8px] font-extrabold text-[#aab6c0]"
+            aria-label="Select order type"
+          >
+            <span>{orderTypes.find(([id]) => id === orderType)?.[1]}</span>
+            <ChevronDown size={10} className="text-[#677a8b]"/>
+          </button>
+
+          <div className="grid h-[54px] grid-cols-[36fr_28fr_36fr] divide-x divide-white/[0.08]">
+            <button
+              type="button"
+              disabled={!canSubmitExposure}
+              onClick={() => clickSide('sell')}
+              className="acg-execution-sell flex min-w-0 flex-col items-start justify-center bg-black px-2.5 text-left text-[#ff5f6d] disabled:cursor-not-allowed disabled:opacity-40 active:bg-[#120608]"
+            >
+              <span className="text-[8px] font-black tracking-[0.05em]">SELL</span>
+              <strong className="mt-1 max-w-full whitespace-nowrap text-[clamp(18px,5.2vw,22px)] font-black tabular-nums leading-none tracking-[-0.04em] text-[#f9f3f4]">{market?.bid || '—'}</strong>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMobileAdvancedOpen(true)}
+              className="flex min-w-0 flex-col items-center justify-center bg-[#070707] px-1 active:bg-[#101010]"
+              aria-label="Open position size and risk controls"
+            >
+              <span className="flex items-center gap-0.5 font-mono text-[13px] font-black tabular-nums text-[#f4f7fb]">{mobileSizingLabel}<ChevronDown size={10} className="text-[#718398]"/></span>
+              <span className="mt-1 text-[7px] font-semibold text-[#687783]">{sizingMode === 'risk' ? 'Risk' : 'Lots'}</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={!canSubmitExposure}
+              onClick={() => clickSide('buy')}
+              className="acg-execution-buy flex min-w-0 flex-col items-end justify-center bg-black px-2.5 text-right text-[#2ddb9f] disabled:cursor-not-allowed disabled:opacity-40 active:bg-[#06110d]"
+            >
+              <span className="text-[8px] font-black tracking-[0.05em]">BUY</span>
+              <strong className="mt-1 max-w-full whitespace-nowrap text-[clamp(18px,5.2vw,22px)] font-black tabular-nums leading-none tracking-[-0.04em] text-[#f3fbf8]">{market?.ask || '—'}</strong>
+            </button>
+          </div>
+        </section>
+
+        {mobileAdvancedOpen && (
+          <div className="fixed inset-0 z-[105] flex items-end justify-center bg-black/55 px-2 backdrop-blur-[2px]" onMouseDown={() => setMobileAdvancedOpen(false)}>
+            <section onMouseDown={event => event.stopPropagation()} className="mb-[max(8px,env(safe-area-inset-bottom))] w-full max-w-[444px] overflow-hidden rounded-t-[20px] border border-white/[0.10] bg-[#080808] shadow-[0_30px_90px_rgba(0,0,0,.7)]">
+              <header className="flex items-center justify-between border-b border-white/[0.08] px-3 py-2.5">
+                <div><b className="text-[11px] text-[#eaf1f6]">Position size</b><p className="mt-0.5 text-[7px] text-[#61768a]">Lots or account risk for the next order.</p></div>
+                <button type="button" onClick={() => setMobileAdvancedOpen(false)} className="grid size-8 place-items-center rounded-md border border-white/[0.08] bg-[#101010] text-[#8e9aa5]" aria-label="Close position sizing"><X size={14}/></button>
+              </header>
+
+              <div className="p-3">
+                <div className="grid grid-cols-2 border-b border-white/[0.08]">
+                  <button type="button" onClick={() => onSizingModeChange('lots')} className={`h-9 border-b-2 text-[8px] font-black uppercase tracking-[0.07em] ${sizingMode === 'lots' ? 'border-[#53c7ff] text-[#e7f2f8]' : 'border-transparent text-[#687b8d]'}`}>Lots</button>
+                  <button type="button" onClick={() => onSizingModeChange('risk')} className={`h-9 border-b-2 text-[8px] font-black uppercase tracking-[0.07em] ${sizingMode === 'risk' ? 'border-[#53c7ff] text-[#e7f2f8]' : 'border-transparent text-[#687b8d]'}`}>Risk</button>
+                </div>
+
+                {sizingMode === 'lots' ? (
+                  <div className="pt-3">
+                    <label className="block text-[7px] font-bold uppercase tracking-[0.09em] text-[#61768a]">Manual lots</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={lotInput}
+                      onFocus={event => { setLotInputFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }}
+                      onChange={event => updateLotInput(event.target.value)}
+                      onBlur={commitLotInput}
+                      onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); } }}
+                      className="mt-1.5 h-10 w-full border-y border-white/[0.08] bg-black px-2 text-center font-mono text-[15px] font-black tabular-nums text-[#f1f5f8] outline-none"
+                    />
+                    <div className="mt-2 grid grid-cols-4 gap-1">
+                      {lotPresets.slice(0, 8).map(value => (
+                        <button key={value} type="button" onClick={() => { const next = normalizeVolumeToStep(value, market, { rounding: 'nearest' }); setLots(next); setLotInput(formatLots(next)); }} className={`h-8 border text-[8px] font-bold tabular-nums ${Math.abs(Number(normalizedLots) - value) < volumeStep / 2 ? 'border-[#315b72] bg-[#101820] text-[#53c7ff]' : 'border-white/[0.08] bg-black text-[#94a4b2]'}`}>{formatLots(value)}</button>
+                      ))}
+                    </div>
+                    <p className="mt-2 font-mono text-[7px] text-[#596f82]">Min {formatLots(minVolume)} · Step {formatLots(volumeStep)} · Max {formatLots(maxVolume)}</p>
+                  </div>
+                ) : (
+                  <div className="pt-3">
+                    <label className="block text-[7px] font-bold uppercase tracking-[0.09em] text-[#61768a]">Risk per trade</label>
+                    <div className="mt-1.5 flex h-10 items-center border-y border-white/[0.08] bg-black px-2">
+                      <input type="number" inputMode="decimal" min="0.1" max="5" step="0.05" value={riskPercent} onChange={event => onRiskPercentChange(Math.max(0.1, Math.min(5, Number(event.target.value) || 0.1)))} className="min-w-0 flex-1 bg-transparent text-center font-mono text-[15px] font-black tabular-nums text-[#f1f5f8] outline-none"/>
+                      <span className="text-[9px] font-bold text-[#687b8d]">%</span>
+                    </div>
+                    <div className="mt-2 grid grid-cols-4 gap-1">
+                      {[0.25, 0.5, 1, 2].map(value => <button key={value} type="button" onClick={() => onRiskPercentChange(value)} className={`h-8 border text-[8px] font-bold ${Math.abs(Number(riskPercent) - value) < 0.001 ? 'border-[#315b72] bg-[#101820] text-[#53c7ff]' : 'border-white/[0.08] bg-black text-[#94a4b2]'}`}>{value}%</button>)}
+                    </div>
+                    <p className="mt-2 text-[8px] leading-4 text-[#61768a]">Risk sizing uses the stop-loss distance from the chart planner before execution.</p>
+                  </div>
+                )}
+
+                {riskContent && <div className="mt-3 border-t border-white/[0.08] pt-2">{riskContent}</div>}
+              </div>
+            </section>
           </div>
         )}
-
-        <div className="relative p-1.5">
-          {sizingPicker}{orderPicker}
-          <div className="grid grid-cols-[minmax(0,1fr)_88px_minmax(0,1fr)] gap-px overflow-hidden border border-white/[0.08] bg-white/[0.07]">
-            <button type="button" disabled={!canSubmitExposure} onClick={() => clickSide('sell')} className="acg-execution-sell flex h-[62px] min-w-0 flex-col items-start justify-center bg-black px-3 text-left text-[#ff5f6d] disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.99]">
-              <span className="text-[9px] font-extrabold tracking-[0.045em]">SELL</span>
-              <strong className="mt-1 max-w-full whitespace-nowrap text-[clamp(19px,5.6vw,24px)] font-black tabular-nums leading-none tracking-[-0.04em] text-[#f9f3f4]">{market?.bid || '—'}</strong>
-            </button>
-
-            <div className="grid h-[62px] grid-cols-2 grid-rows-[auto_auto_1fr] items-center bg-black px-2 py-1 text-center">
-              {sizingMode === 'lots' ? (
-                <div className="col-span-2 mx-auto flex min-w-0 items-center justify-center">
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    enterKeyHint="done"
-                    aria-label="Lot size"
-                    value={lotInput}
-                    onFocus={event => { setLotInputFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }}
-                    onChange={event => updateLotInput(event.target.value)}
-                    onBlur={commitLotInput}
-                    onKeyDown={event => {
-                      if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); }
-                      if (event.key === 'Escape') { event.preventDefault(); setLotInput(formatLots(normalizedLots)); event.currentTarget.blur(); }
-                    }}
-                    className="w-[50px] min-w-0 bg-transparent p-0 text-right text-[14px] font-black leading-none tabular-nums text-[#f4f7fb] outline-none"
-                  />
-                  <button type="button" onClick={() => setPickerOpen(value => !value)} className="ml-0.5 grid size-5 shrink-0 place-items-center text-[#77777f]" aria-label="Lot size presets"><ChevronDown size={12}/></button>
-                </div>
-              ) : (
-                <button type="button" onClick={() => setPickerOpen(value => !value)} className="col-span-2 mx-auto flex items-center gap-1 text-[14px] font-black leading-none text-[#f4f7fb]">{riskPercent.toFixed(2)}% <ChevronDown size={12} className="text-[#77777f]"/></button>
-              )}
-              <span className="col-span-2 text-[7px] font-medium text-[#717176]">{sizingMode === 'lots' ? 'Lots' : 'Risk'}</span>
-              <div className="col-span-2 flex items-end justify-between pt-0.5">
-                <button type="button" onClick={() => sizingMode === 'lots' ? decrease() : onRiskPercentChange(Math.max(0.1, +(riskPercent - 0.1).toFixed(2)))} className="grid h-5 w-[28px] place-items-center border border-white/[0.08] bg-[#15151a] text-[#a0a0a5]"><Minus size={12}/></button>
-                <button type="button" onClick={() => sizingMode === 'lots' ? increase() : onRiskPercentChange(Math.min(5, +(riskPercent + 0.1).toFixed(2)))} className="grid h-5 w-[28px] place-items-center border border-white/[0.08] bg-[#15151a] text-[#a0a0a5]"><Plus size={12}/></button>
-              </div>
-            </div>
-
-            <button type="button" disabled={!canSubmitExposure} onClick={() => clickSide('buy')} className="acg-execution-buy flex h-[62px] min-w-0 flex-col items-end justify-center bg-black px-3 text-right text-[#2ddb9f] disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.99]">
-              <span className="text-[9px] font-extrabold tracking-[0.045em]">BUY</span>
-              <strong className="mt-1 max-w-full whitespace-nowrap text-[clamp(19px,5.6vw,24px)] font-black tabular-nums leading-none tracking-[-0.04em] text-[#f3fbf8]">{market?.ask || '—'}</strong>
-            </button>
-          </div>
-        </div>
-      </section>
+      </>
     );
   }
 
