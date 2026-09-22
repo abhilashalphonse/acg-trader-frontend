@@ -562,7 +562,7 @@ export default function ExecutionPanel({
               type="button"
               disabled={!canSubmitExposure}
               onClick={() => clickSide('sell')}
-              className="flex min-w-0 flex-col items-start justify-center bg-[#080808] px-2.5 text-left text-[#ff5f6d] disabled:cursor-not-allowed disabled:opacity-40 active:bg-[#0f0f12]"
+              className="acg-mobile-metal-action flex min-w-0 flex-col items-start justify-center px-2.5 text-left text-[#ff5f6d] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <span className="text-[8px] font-black tracking-[0.05em]">SELL</span>
               <strong className="mt-1 max-w-full whitespace-nowrap text-[clamp(18px,5.2vw,22px)] font-black tabular-nums leading-none tracking-[-0.04em] text-[#f9f3f4]">{market?.bid || '—'}</strong>
@@ -571,7 +571,7 @@ export default function ExecutionPanel({
             <button
               type="button"
               onClick={() => setMobileAdvancedOpen(true)}
-              className="flex min-w-0 flex-col items-center justify-center bg-[#111114] px-1 active:bg-[#17171b]"
+              className="acg-mobile-metal-action flex min-w-0 flex-col items-center justify-center px-1"
               aria-label="Open position size and risk controls"
             >
               <span className="flex items-center gap-0.5 font-mono text-[13px] font-black tabular-nums text-[#f4f7fb]">{mobileSizingLabel}<ChevronDown size={10} className="text-[#718398]"/></span>
@@ -582,7 +582,7 @@ export default function ExecutionPanel({
               type="button"
               disabled={!canSubmitExposure}
               onClick={() => clickSide('buy')}
-              className="flex min-w-0 flex-col items-end justify-center bg-[#080808] px-2.5 text-right text-[#2ddb9f] disabled:cursor-not-allowed disabled:opacity-40 active:bg-[#0f0f12]"
+              className="acg-mobile-metal-action flex min-w-0 flex-col items-end justify-center px-2.5 text-right text-[#2ddb9f] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <span className="text-[8px] font-black tracking-[0.05em]">BUY</span>
               <strong className="mt-1 max-w-full whitespace-nowrap text-[clamp(18px,5.2vw,22px)] font-black tabular-nums leading-none tracking-[-0.04em] text-[#f3fbf8]">{market?.ask || '—'}</strong>
