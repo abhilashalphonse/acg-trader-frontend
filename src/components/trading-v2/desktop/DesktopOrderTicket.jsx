@@ -8,11 +8,11 @@ import {
   estimateOpeningRequirement,
   estimateRequiredMargin,
   estimateStopRisk,
-  resolveExecutionSizing,
   riskSizingSupported,
 } from '../../../utils/tradingRisk.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../../../utils/instrumentFormatting.js';
 import { effectiveTradePlan, validateTradePlanForExecution } from '../../../utils/tradePlanExecution.js';
+import { estimateExecutionPrice, resolveExecutionPreview } from '../../../utils/executionPricing.js';
 
 const ORDER_TYPES = [
   ['market', 'Market'],
@@ -134,30 +134,36 @@ export default function DesktopOrderTicket({
     [market, tradePlan],
   );
 
-  const executionSizing = useMemo(
-    () => previewPlan
-      ? resolveExecutionSizing(previewPlan, riskPercent, previewPlan.manualLots ?? normalizedLots, account, market)
-      : resolveExecutionSizing({ sizingMode: 'lots', manualLots: normalizedLots }, riskPercent, normalizedLots, account, market),
+  const executionPreview = useMemo(
+    () => resolveExecutionPreview({
+      plan: previewPlan,
+      riskPercent,
+      manualLots: previewPlan?.manualLots ?? normalizedLots,
+      account,
+      instrument: market,
+    }),
     [account, market, normalizedLots, previewPlan, riskPercent],
   );
+  const executionPlan = executionPreview.plan;
+  const executionSizing = executionPreview.sizing;
 
   const effectiveExecutionLots = Number.isFinite(Number(executionSizing?.lots))
     ? Number(executionSizing.lots)
     : normalizedLots;
 
   const planMetrics = useMemo(() => {
-    if (!previewPlan) return null;
+    if (!executionPlan) return null;
     const pip = instrumentPipSize(market);
-    const entry = validProtectionPrice(previewPlan.entry);
-    const sl = validProtectionPrice(previewPlan.sl);
-    const tp = validProtectionPrice(previewPlan.tp);
+    const entry = validProtectionPrice(executionPlan.entry);
+    const sl = validProtectionPrice(executionPlan.sl);
+    const tp = validProtectionPrice(executionPlan.tp);
     const slPips = [entry, sl, pip].every(Number.isFinite) && pip > 0 ? Math.abs(entry - sl) / pip : null;
     const tpPips = [entry, tp, pip].every(Number.isFinite) && pip > 0 ? Math.abs(tp - entry) / pip : null;
     const calculatedLots = effectiveExecutionLots;
-    const riskAmount = estimateStopRisk(previewPlan, calculatedLots, market, currency);
+    const riskAmount = estimateStopRisk(executionPlan, calculatedLots, market, currency);
     const requiredMargin = estimateRequiredMargin(entry, calculatedLots, market, account);
     const reward = Number.isFinite(tp) && Number.isFinite(entry)
-      ? estimateStopRisk({ ...previewPlan, entry, sl: tp }, calculatedLots, market, currency)
+      ? estimateStopRisk({ ...executionPlan, entry, sl: tp }, calculatedLots, market, currency)
       : null;
     const rr = Number.isFinite(slPips) && slPips > 0 && Number.isFinite(tpPips) ? tpPips / slPips : null;
 
@@ -171,21 +177,21 @@ export default function DesktopOrderTicket({
       requiredMargin,
       riskSizing: executionSizing?.riskSizing || null,
     };
-  }, [account, currency, effectiveExecutionLots, executionSizing?.riskSizing, market, previewPlan]);
+  }, [account, currency, effectiveExecutionLots, executionPlan, executionSizing?.riskSizing, market]);
 
   const previewMargin = useMemo(() => {
-    const side = String(previewPlan?.side || '').toLowerCase();
+    const side = String(executionPlan?.side || '').toLowerCase();
     const fallbackPrice = side === 'sell' ? Number(market?.bid) : Number(market?.ask);
-    const price = Number(previewPlan?.entry ?? fallbackPrice);
+    const price = Number(executionPlan?.entry ?? fallbackPrice);
     return estimateRequiredMargin(price, effectiveExecutionLots, market, account);
-  }, [account, effectiveExecutionLots, market, previewPlan]);
+  }, [account, effectiveExecutionLots, executionPlan, market]);
 
   const previewRequirement = useMemo(() => {
-    const side = String(previewPlan?.side || '').toLowerCase();
+    const side = String(executionPlan?.side || '').toLowerCase();
     const fallbackPrice = side === 'sell' ? Number(market?.bid) : Number(market?.ask);
-    const price = Number(previewPlan?.entry ?? fallbackPrice);
+    const price = Number(executionPlan?.entry ?? fallbackPrice);
     return estimateOpeningRequirement(price, effectiveExecutionLots, market, account);
-  }, [account, effectiveExecutionLots, market, previewPlan]);
+  }, [account, effectiveExecutionLots, executionPlan, market]);
 
   const freeMargin = Number(account?.freeMargin);
   const freeAfter = Number.isFinite(freeMargin) && Number.isFinite(previewRequirement) ? freeMargin - previewRequirement : null;
@@ -195,7 +201,7 @@ export default function DesktopOrderTicket({
   );
 
   const riskSupported = riskSizingSupported(market, currency);
-  const activeSizingMode = previewPlan?.sizingMode || sizingMode;
+  const activeSizingMode = executionPlan?.sizingMode || sizingMode;
   const displayedLots = activeSizingMode === 'risk' && Number.isFinite(effectiveExecutionLots)
     ? effectiveExecutionLots
     : normalizedLots;
@@ -213,7 +219,7 @@ export default function DesktopOrderTicket({
     && Number.isFinite(previewRequirement)
     && Number.isFinite(freeMargin)
     && previewRequirement > freeMargin + 1e-8;
-  const planValidation = previewPlan ? validateTradePlanForExecution(previewPlan, market) : { valid: true, code: 'NO_PLAN', message: null };
+  const planValidation = executionPlan ? validateTradePlanForExecution(executionPlan, market) : { valid: true, code: 'NO_PLAN', message: null };
   const riskGuard = useMemo(() => evaluateRiskGuard({
     account,
     positions,
@@ -374,7 +380,7 @@ export default function DesktopOrderTicket({
     return Number.isFinite(lots) && lots >= minVolume ? lots : null;
   })();
   const riskExecutableLoss = Number.isFinite(riskExecutableLots)
-    ? estimateStopRisk(previewPlan || tradePlan, riskExecutableLots, market, currency)
+    ? estimateStopRisk(executionPlan || tradePlan, riskExecutableLots, market, currency)
     : null;
   const riskTargetLoss = Number.isFinite(Number(account?.equity))
     ? Number(account.equity) * Number(riskPercent) / 100
@@ -456,7 +462,7 @@ export default function DesktopOrderTicket({
 
   const defaultProtectionPrice = field => {
     if (!tradePlan) return null;
-    const entry = Number(previewPlan?.entry ?? tradePlan.entry);
+    const entry = Number(executionPlan?.entry ?? tradePlan.entry);
     if (!Number.isFinite(entry) || !Number.isFinite(pipSize) || pipSize <= 0) return null;
     const distance = field === 'sl' ? 10 : 20;
     const side = String(tradePlan.side || '').toLowerCase();
@@ -576,7 +582,7 @@ export default function DesktopOrderTicket({
       return;
     }
 
-    const entry = Number(previewPlan?.entry ?? tradePlan.entry);
+    const entry = Number(executionPlan?.entry ?? tradePlan.entry);
     const side = String(tradePlan.side || '').toLowerCase();
     if (!Number.isFinite(entry) || !Number.isFinite(pipSize) || pipSize <= 0 || (side !== 'buy' && side !== 'sell')) {
       setProtectionDraft(null);
@@ -620,7 +626,7 @@ export default function DesktopOrderTicket({
 
   const applyRewardRatio = ratio => {
     if (!tradePlan || !hasStopLoss || !Number.isFinite(Number(planMetrics?.slPips))) return;
-    const entry = Number(previewPlan?.entry ?? tradePlan.entry);
+    const entry = Number(executionPlan?.entry ?? tradePlan.entry);
     const side = String(tradePlan.side || '').toLowerCase();
     if (!Number.isFinite(entry) || !Number.isFinite(pipSize) || pipSize <= 0) return;
     const tpDistance = Number(planMetrics.slPips) * ratio;
@@ -645,7 +651,8 @@ export default function DesktopOrderTicket({
 
   const executionButtonPrice = side => {
     if (pendingPlan && selectedSide === side) return tradePlan?.entry;
-    return side === 'buy' ? market?.ask : market?.bid;
+    const preview = estimateExecutionPrice(market, side, effectiveExecutionLots);
+    return preview?.price ?? (side === 'buy' ? market?.ask : market?.bid);
   };
 
   const executionButtonLabel = side => {
