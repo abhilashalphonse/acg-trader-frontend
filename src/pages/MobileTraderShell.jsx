@@ -626,7 +626,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
           <>
             {activeNav === 'watchlist' && <WatchlistSection markets={markets} activeSymbol={activeSymbol} onOpenTrade={openChart} onAddInstrument={() => setOverlay('search')} watchlists={watchlists} />}
             {activeNav === 'chart' && chartContent}
-            {activeNav === 'trade' && <TradeSection account={account} positions={positions} pendingOrders={pendingOrders} markets={markets} onOpenChart={openChart} onClosePosition={closePosition} onCloseAll={closeAllPositions} onCancelPending={cancelPendingOrder} onModifyPending={modifyPendingOrder} onUpdatePosition={updatePosition} onNewOrder={() => openChart(activeSymbol)} />}
+            {activeNav === 'trade' && <TradeSection account={account} positions={positions} pendingOrders={pendingOrders} markets={markets} onOpenChart={openChart} onClosePosition={closePosition} onCloseAll={closeAllPositions} onCancelPending={cancelPendingOrder} onModifyPending={modifyPendingOrder} onUpdatePosition={updatePosition} onBreakEven={movePositionToBreakEven} onNewOrder={() => openChart(activeSymbol)} />}
             {activeNav === 'history' && <HistorySection positionHistory={positionHistory} journal={journal} markets={markets} accountCurrency={account.currency} onOpenChart={openChart} onNotice={showNotice} />}
             {activeNav === 'account' && <AccountSection account={account} onOpenSheet={setOverlay} />}
             <BottomNavbar active={activeNav} onChange={id => { setActiveNav(id); setOverlay(null); }} />
