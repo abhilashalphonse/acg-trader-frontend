@@ -49,14 +49,14 @@ export default function ChartControls({
           ))}
         </div>
 
-        <div className="flex h-8 shrink-0 items-center overflow-hidden rounded-md border border-white/[0.08] bg-[#15151a]">
-          <button type="button" disabled={disabled} aria-label="Candlestick chart" onClick={() => onChartMode('candles')} className={`grid h-full w-8 place-items-center border-r border-white/[0.07] ${chartMode === 'candles' ? 'bg-[#1a1a20] text-[#5bc8ff]' : 'text-[#7e7e87]'}`}>
+        <div className="flex h-8 shrink-0 items-center overflow-hidden border border-white/[0.08] bg-[#0d0d10]">
+          <button type="button" disabled={disabled} aria-label="Candlestick chart" onClick={() => onChartMode('candles')} className={`grid h-full w-8 place-items-center border-r border-white/[0.08] ${chartMode === 'candles' ? 'bg-[#15151a] text-[#53c7ff]' : 'bg-transparent text-[#7a7a82]'}`}>
             <CandlestickChart size={15} />
           </button>
-          <button type="button" disabled={disabled} aria-label="Line chart" onClick={() => onChartMode('line')} className={`grid h-full w-8 place-items-center border-r border-white/[0.07] ${chartMode === 'line' ? 'bg-[#1a1a20] text-[#5bc8ff]' : 'text-[#7e7e87]'}`}>
+          <button type="button" disabled={disabled} aria-label="Line chart" onClick={() => onChartMode('line')} className={`grid h-full w-8 place-items-center border-r border-white/[0.08] ${chartMode === 'line' ? 'bg-[#15151a] text-[#53c7ff]' : 'bg-transparent text-[#7a7a82]'}`}>
             <ChartNoAxesCombined size={15} />
           </button>
-          <button type="button" disabled={disabled} onClick={onIndicators} aria-label="Indicators" className="grid h-full w-8 place-items-center border-r border-white/[0.07] text-[15px] font-medium italic text-[#8a8a92] active:bg-[#1a1a20] active:text-[#5bc8ff]">
+          <button type="button" disabled={disabled} onClick={onIndicators} aria-label="Indicators" className="grid h-full w-8 place-items-center border-r border-white/[0.08] bg-transparent text-[15px] font-medium italic text-[#7a7a82] active:bg-[#15151a] active:text-[#53c7ff]">
             ƒx
           </button>
           <button
@@ -65,7 +65,7 @@ export default function ChartControls({
             onClick={onToggleDrawings}
             aria-label={drawingsOpen ? 'Hide drawing tools' : 'Show drawing tools'}
             aria-pressed={drawingsOpen}
-            className={`grid h-full w-8 place-items-center ${drawingsOpen ? 'bg-[#1a1a20] text-[#5bc8ff]' : 'text-[#8a8a92]'}`}
+            className={`grid h-full w-8 place-items-center ${drawingsOpen ? 'bg-[#15151a] text-[#53c7ff]' : 'bg-transparent text-[#7a7a82]'}`}
           >
             <Pencil size={15} />
           </button>
