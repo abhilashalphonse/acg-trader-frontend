@@ -111,7 +111,6 @@ export default function MobileTradingHeader({
         <div className="min-w-0 text-right leading-none">
           <div className="flex items-center justify-end gap-1 whitespace-nowrap text-[12px] font-extrabold tracking-[-0.025em] text-[#f7f7f8]">
             <span>ACG Trader</span>
-            <span className="rounded bg-[#101010] px-1 py-0.5 text-[6.5px] font-extrabold tracking-[0.04em] text-[#55bdff]">V2</span>
           </div>
           <p className="mt-1 max-w-[105px] truncate text-[6.5px] font-medium text-[#77777d]">
             {account?.accountCode || 'Trading terminal'}
