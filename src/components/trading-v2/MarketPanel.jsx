@@ -61,6 +61,7 @@ export default function MarketPanel({
         tradePlan={tradePlan}
         onTradePlanChange={onTradePlanChange}
         onUpdatePosition={onUpdatePosition}
+        onClosePosition={onClosePosition}
         indicators={indicators}
         positions={positions}
         pendingOrders={pendingOrders}
