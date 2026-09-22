@@ -70,8 +70,8 @@ export default function DesktopMultiChart({
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-black">
-      <div className={`grid min-h-0 flex-1 gap-px bg-white/[0.08] ${cellGrid(layout)}`}>
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-black">
+      <div className={`grid h-full min-h-0 flex-1 gap-px overflow-hidden bg-white/[0.08] ${cellGrid(layout)}`}>
         {Array.from({ length: layout }, (_, index) => {
           const cell = cells[index] || {};
           const requestedSymbol = cell.symbol || (index === 0 ? activeSymbol : markets[index]?.symbol) || activeSymbol;
@@ -85,7 +85,7 @@ export default function DesktopMultiChart({
           return (
             <section
               key={index}
-              className={`relative grid min-h-0 min-w-0 ${singleChart ? 'grid-rows-[minmax(0,1fr)]' : 'grid-rows-[34px_minmax(0,1fr)]'} bg-black ${isActive && !singleChart ? 'ring-1 ring-inset ring-[#315b72]' : ''}`}
+              className={`relative grid h-full min-h-0 min-w-0 overflow-hidden ${singleChart ? 'grid-rows-[minmax(0,1fr)]' : 'grid-rows-[34px_minmax(0,1fr)]'} bg-black ${isActive && !singleChart ? 'ring-1 ring-inset ring-[#315b72]' : ''}`}
               onMouseDown={() => activateCell(index, timeframe, symbol, cellIndicators)}
             >
               {!singleChart && (
@@ -122,7 +122,7 @@ export default function DesktopMultiChart({
                 </div>
               )}
 
-              <div className="min-h-0 min-w-0">
+              <div className="h-full min-h-0 min-w-0 overflow-hidden">
                 <ChartArea
                   desktopEnhanced
                   symbol={symbol}

@@ -296,8 +296,14 @@ export default function TradingChart({
 
   useEffect(() => {
     if (!hostRef.current) return undefined;
-    const chart = createChart(hostRef.current, {
-      autoSize: true,
+    const host = hostRef.current;
+    const initialRect = host.getBoundingClientRect();
+    const initialWidth = Math.max(1, Math.floor(initialRect.width || host.clientWidth || 1));
+    const initialHeight = Math.max(1, Math.floor(initialRect.height || host.clientHeight || 1));
+    const chart = createChart(host, {
+      autoSize: false,
+      width: initialWidth,
+      height: initialHeight,
       layout: { background: { type: ColorType.Solid, color: chartTokens.background }, textColor: chartTokens.text, attributionLogo: true, fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif', fontSize: 11, panes: { separatorColor: '#1b1b1b', separatorHoverColor: 'rgba(83,199,255,0.18)', enableResize: true } },
       grid: { vertLines: { visible: true, color: chartTokens.gridline, style: LineStyle.Dotted }, horzLines: { visible: true, color: chartTokens.gridline, style: LineStyle.Dotted } },
       crosshair: { mode: CrosshairMode.Normal, vertLine: { visible: true, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: true, labelBackgroundColor: chartTokens.crosshairLabel }, horzLine: { visible: true, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: true, labelBackgroundColor: chartTokens.crosshairLabel } },
@@ -306,6 +312,28 @@ export default function TradingChart({
       handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true }, handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
     });
     chartRef.current = chart;
+
+    let resizeFrame = null;
+    const resizeChart = () => {
+      resizeFrame = null;
+      if (!host.isConnected || chartRef.current !== chart) return;
+      const rect = host.getBoundingClientRect();
+      const width = Math.floor(rect.width || host.clientWidth || 0);
+      const height = Math.floor(rect.height || host.clientHeight || 0);
+      if (width <= 0 || height <= 0) return;
+      chart.resize(width, height);
+    };
+    const scheduleResize = () => {
+      if (resizeFrame != null) window.cancelAnimationFrame(resizeFrame);
+      resizeFrame = window.requestAnimationFrame(resizeChart);
+    };
+    const resizeObserver = typeof ResizeObserver === 'function'
+      ? new ResizeObserver(scheduleResize)
+      : null;
+    resizeObserver?.observe(host);
+    window.addEventListener('resize', scheduleResize);
+    scheduleResize();
+
     const priceFormat = { type: 'price', precision: decimals, minMove };
     const series = chartMode === 'line' ? chart.addSeries(LineSeries, { color: chartTokens.blue, lineWidth: 2, priceFormat, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: true }) : chart.addSeries(CandlestickSeries, { upColor: chartTokens.buy, downColor: chartTokens.sell, wickUpColor: chartTokens.buyWick, wickDownColor: chartTokens.sellWick, borderVisible: false, priceFormat, priceLineVisible: false, lastValueVisible: false });
     const volume = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: 'volume', lastValueVisible: false, priceLineVisible: false });
@@ -460,6 +488,10 @@ export default function TradingChart({
       indicatorSeriesRef.current = [];
       indicatorBindingsRef.current = [];
       indicatorPanesRef.current = 0;
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', scheduleResize);
+      if (resizeFrame != null) window.cancelAnimationFrame(resizeFrame);
+      resizeFrame = null;
       chartRef.current = null;
       seriesRef.current = null;
       volumeRef.current = null;
