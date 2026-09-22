@@ -102,17 +102,11 @@ function loadJournal(accountId) {
   }
 }
 
-function calculatedLots(plan, riskPercent, manualLots, account, instrument) {
-  if (!plan) return Math.max(0.01, Number(manualLots) || 0.01);
-  const sizing = resolveExecutionSizing(plan, riskPercent, manualLots, account, instrument);
-  return sizing.canExecute ? sizing.lots : null;
-}
-
 function estimatedRisk(plan, riskPercent, manualLots, account, instrument) {
   if (!plan) return 0;
-  const sizing = resolveExecutionSizing(plan, riskPercent, manualLots, account, instrument);
-  if (!Number.isFinite(Number(sizing.lots))) return null;
-  return estimateStopRisk(plan, sizing.lots, instrument, account?.currency);
+  const preview = resolveExecutionPreview({ plan, riskPercent, manualLots, account, instrument });
+  if (!Number.isFinite(Number(preview.sizing?.lots))) return null;
+  return estimateStopRisk(preview.plan || plan, preview.sizing.lots, instrument, account?.currency);
 }
 
 function fillEvent(result, fallback) {
