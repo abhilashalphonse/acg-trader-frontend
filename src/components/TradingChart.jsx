@@ -646,18 +646,17 @@ export default function TradingChart({
 
     positionLinesRef.current = openPositions.map(position => {
       const isBuy = String(position?.side || '').toUpperCase() === 'BUY';
-      const lineColor = isBuy ? 'rgba(44,231,169,0.92)' : 'rgba(255,91,105,0.92)';
-      const labelColor = isBuy ? '#2ce7a9' : '#ff5b69';
-      const labelTextColor = isBuy ? '#03140e' : '#190306';
+      const lineColor = isBuy ? '#21d79a' : '#ff5a66';
+      const labelColor = isBuy ? '#0aa06f' : '#d94250';
 
       return series.createPriceLine({
         price: Number(position.entry ?? position.entryPrice),
         color: lineColor,
         lineWidth: 1,
-        lineStyle: LineStyle.Dotted,
+        lineStyle: LineStyle.Solid,
         axisLabelVisible: true,
         axisLabelColor: labelColor,
-        axisLabelTextColor: labelTextColor,
+        axisLabelTextColor: '#ffffff',
         title: '',
       });
     });
