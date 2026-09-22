@@ -143,6 +143,34 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     });
   }, [activeNav, activeSymbol, chartFocus]);
 
+  useEffect(() => {
+    if (typeof document === 'undefined' || chartFocus || activeNav !== 'chart') return undefined;
+
+    const html = document.documentElement;
+    const body = document.body;
+    const previous = {
+      htmlOverflow: html.style.overflow,
+      htmlOverscroll: html.style.overscrollBehavior,
+      bodyOverflow: body.style.overflow,
+      bodyOverscroll: body.style.overscrollBehavior,
+    };
+
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+
+    html.style.overflow = 'hidden';
+    html.style.overscrollBehavior = 'none';
+    body.style.overflow = 'hidden';
+    body.style.overscrollBehavior = 'none';
+
+    return () => {
+      html.style.overflow = previous.htmlOverflow;
+      html.style.overscrollBehavior = previous.htmlOverscroll;
+      body.style.overflow = previous.bodyOverflow;
+      body.style.overscrollBehavior = previous.bodyOverscroll;
+    };
+  }, [activeNav, chartFocus]);
+
   useEffect(() => () => {
     if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
     if (executionDismissRef.current) window.clearTimeout(executionDismissRef.current);
@@ -540,7 +568,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   };
 
   const chartContent = (
-    <div className="flex h-[calc(100dvh-46px-env(safe-area-inset-bottom))] min-h-0 flex-col overflow-hidden bg-black">
+    <div className="acg-mobile-chart-shell flex h-[calc(100dvh-46px-env(safe-area-inset-bottom))] min-h-0 flex-col overflow-hidden overscroll-none bg-black">
       <MobileTradingHeader
         market={market}
         account={account}
@@ -586,7 +614,11 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
   return (
     <div className="min-h-dvh bg-black font-sans text-[#f5f8fb] antialiased">
-      <main ref={shellRef} className={chartFocus ? 'relative mx-auto h-dvh w-full max-w-[460px] overflow-hidden bg-black' : 'relative mx-auto min-h-dvh w-full max-w-[460px] overflow-x-hidden bg-black pb-[calc(46px+env(safe-area-inset-bottom))]'}>
+      <main ref={shellRef} className={chartFocus
+        ? 'relative mx-auto h-dvh w-full max-w-[460px] overflow-hidden bg-black'
+        : activeNav === 'chart'
+          ? 'relative mx-auto h-dvh w-full max-w-[460px] overflow-hidden overscroll-none bg-black'
+          : 'relative mx-auto min-h-dvh w-full max-w-[460px] overflow-x-hidden bg-black pb-[calc(46px+env(safe-area-inset-bottom))]'}>
         {chartFocus ? (
           <MobileScalperMode market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} lots={lots} setLots={setLots} sizingMode={sizingMode} setSizingMode={setSizingMode} riskPercent={riskPercent} setRiskPercent={setRiskPercent} orderType={orderType} setOrderType={setOrderType} tradePlan={tradePlan} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} positions={positions} onUpdatePosition={updatePosition} onIndicators={() => setOverlay('indicators')} indicators={indicators} account={account} plannedRisk={plannedRisk} exposureAllowed={exposure.allowed} exposureBlockReason={exposure.reason} onExit={exitChartFocus} />
         ) : (
