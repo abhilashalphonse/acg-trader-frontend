@@ -669,7 +669,7 @@ export default function ChartArea({
   const toolbarVisible = !hideToolbar && drawingToolbarOpen;
   const mobileHeightClass = fillAvailableHeight ? 'h-full min-h-0 flex-1' : heightClass;
   const areaClass = drawingToolbarOverlay
-    ? `grid ${mobileHeightClass} ${toolbarVisible ? 'grid-cols-[40px_minmax(0,1fr)] gap-1' : 'grid-cols-[minmax(0,1fr)]'} bg-[#09090b]`
+    ? `acg-mobile-chart-surface grid ${mobileHeightClass} ${toolbarVisible ? 'grid-cols-[40px_minmax(0,1fr)] gap-1' : 'grid-cols-[minmax(0,1fr)]'} bg-[#0b0b0d]`
     : embedded
       ? `grid h-full min-h-0 grid-rows-[minmax(0,1fr)] ${!toolbarVisible ? 'grid-cols-[minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} gap-1.5`
       : focusMode
@@ -677,7 +677,7 @@ export default function ChartArea({
         : `grid ${heightClass} grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2`;
 
   const toolbarClass = drawingToolbarOverlay
-    ? 'flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto border-r border-white/[0.10] bg-[#0d0d10] py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+    ? 'flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto bg-[#0b0b0d] py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
     : focusMode || embedded
       ? 'flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto bg-transparent py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
       : 'flex min-h-0 flex-col items-center gap-0.5 bg-transparent py-1';
@@ -712,7 +712,7 @@ export default function ChartArea({
         </aside>
       )}
 
-      <div className="relative h-full min-h-0 min-w-0 overflow-hidden bg-[#09090b]">
+      <div className={`relative h-full min-h-0 min-w-0 overflow-hidden ${drawingToolbarOverlay ? 'bg-[#09090b]' : 'bg-[#09090b]'}`}>
         <div className={`relative h-full min-h-0 min-w-0 overflow-hidden bg-[#09090b] ${drawingToolbarOverlay ? (toolbarVisible ? '' : 'pl-3') : ''}`}>
         <TradingChart
           symbol={symbol}
