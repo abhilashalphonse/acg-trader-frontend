@@ -31,3 +31,12 @@ test('stop-limit trigger and limit legs use their own direction rules', () => {
   assert.equal(patch.entry, 1.24);
   assert.equal(patch.limitPrice, 1.24);
 });
+
+
+test('normalization uses the incoming pending order type when type and entry change together', () => {
+  const instrument = { tickSize: 0.0001, pipSize: 0.0001 };
+  const plan = { side: 'buy', orderType: 'limit', pending: true, entry: 1.0995 };
+  const patch = normalizeTradePlanPatch(plan, { orderType: 'stop', entry: 1.10056 }, instrument);
+  assert.equal(patch.orderType, 'stop');
+  assert.equal(patch.entry, 1.1006);
+});
