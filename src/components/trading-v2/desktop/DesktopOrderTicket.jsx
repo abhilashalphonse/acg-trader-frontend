@@ -5,6 +5,7 @@ import { DEFAULT_RISK_GUARD_SETTINGS, evaluateRiskGuard } from '../../../utils/r
 import { decimalPlaces, normalizeVolumeToStep } from '../../../utils/tradingCommandNormalization.js';
 import {
   effectiveLeverage,
+  estimateOpeningRequirement,
   estimateRequiredMargin,
   estimateStopRisk,
   resolveExecutionSizing,
@@ -178,8 +179,15 @@ export default function DesktopOrderTicket({
     return estimateRequiredMargin(price, effectiveExecutionLots, market, account);
   }, [account, effectiveExecutionLots, market, previewPlan]);
 
+  const previewRequirement = useMemo(() => {
+    const side = String(previewPlan?.side || '').toLowerCase();
+    const fallbackPrice = side === 'sell' ? Number(market?.bid) : Number(market?.ask);
+    const price = Number(previewPlan?.entry ?? fallbackPrice);
+    return estimateOpeningRequirement(price, effectiveExecutionLots, market, account);
+  }, [account, effectiveExecutionLots, market, previewPlan]);
+
   const freeMargin = Number(account?.freeMargin);
-  const freeAfter = Number.isFinite(freeMargin) && Number.isFinite(previewMargin) ? freeMargin - previewMargin : null;
+  const freeAfter = Number.isFinite(freeMargin) && Number.isFinite(previewRequirement) ? freeMargin - previewRequirement : null;
   const challenge = useMemo(
     () => calculateAccountRiskSummary(account, planMetrics?.riskAmount || 0),
     [account, planMetrics?.riskAmount],
@@ -189,9 +197,9 @@ export default function DesktopOrderTicket({
   const activeSizingMode = previewPlan?.sizingMode || sizingMode;
   const riskSizingBlocked = activeSizingMode === 'risk' && executionSizing?.canExecute === false;
   const marginBlocked = activeSizingMode === 'lots'
-    && Number.isFinite(previewMargin)
+    && Number.isFinite(previewRequirement)
     && Number.isFinite(freeMargin)
-    && previewMargin > freeMargin + 1e-8;
+    && previewRequirement > freeMargin + 1e-8;
   const planValidation = previewPlan ? validateTradePlanForExecution(previewPlan, market) : { valid: true, code: 'NO_PLAN', message: null };
   const riskGuard = useMemo(() => evaluateRiskGuard({
     account,
@@ -236,13 +244,13 @@ export default function DesktopOrderTicket({
   } else if (activeSizingMode === 'risk' && !riskSupported) {
     warning = 'Risk % sizing is unavailable because this instrument P&L cannot be converted safely to the account currency.';
   } else if (executionSizing?.blockReason === 'INSUFFICIENT_MARGIN') {
-    warning = `Required margin ${money(planMetrics.riskSizing.requiredMargin, currency)} exceeds free margin ${money(planMetrics.riskSizing.freeMargin, currency)}.`;
+    warning = `Opening requirement ${money(planMetrics.riskSizing.totalRequirement, currency)} exceeds free margin ${money(planMetrics.riskSizing.freeMargin, currency)}.`;
   } else if (executionSizing?.blockReason === 'MAX_VOLUME') {
     warning = 'Selected risk requires more than the instrument maximum lot size.';
   } else if (executionSizing?.blockReason === 'MIN_VOLUME') {
     warning = 'Selected risk is smaller than the instrument minimum lot size.';
   } else if (marginBlocked) {
-    warning = `Required margin ${money(previewMargin, currency)} exceeds free margin ${money(freeMargin, currency)}.`;
+    warning = `Opening requirement ${money(previewRequirement, currency)} exceeds free margin ${money(freeMargin, currency)}.`;
   } else if (Number.isFinite(riskBufferUsage) && riskBufferUsage >= 50) {
     warning = `Planned stop uses ${riskBufferUsage.toFixed(0)}% of the remaining daily-loss buffer.`;
   }
