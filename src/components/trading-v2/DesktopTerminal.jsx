@@ -854,19 +854,23 @@ export default function DesktopTerminal({
             </div>
           </section>
 
-          <aside className={`min-h-0 overflow-y-auto border-l border-white/[0.06] bg-[#07090B] [scrollbar-width:thin] ${desktopLayout.sidebarCollapsed ? 'hidden' : 'block'}`} style={{ gridColumn: '3', gridRow: '1' }}>
-            <DesktopOrderTicket market={market} markets={markets} account={account} positions={positions} positionHistory={positionHistory} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} riskGuardSettings={riskGuardSettings} onRiskGuardSettingsChange={onRiskGuardSettingsChange}/>
+          <aside className={`min-h-0 overflow-hidden border-l border-white/[0.06] bg-[#07090B] ${desktopLayout.sidebarCollapsed ? 'hidden' : 'flex flex-col'}`} style={{ gridColumn: '3', gridRow: '1' }}>
+            <div className="min-h-0 flex-1">
+              <DesktopOrderTicket market={market} markets={markets} account={account} positions={positions} positionHistory={positionHistory} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} riskGuardSettings={riskGuardSettings} onRiskGuardSettingsChange={onRiskGuardSettingsChange}/>
+            </div>
             {selectedPosition && (
-              <DesktopPositionManager
-                position={selectedPosition}
-                instrument={markets.find(item => item.symbol === selectedPosition.symbol) || market}
-                account={account}
-                onClose={onClosePosition}
-                onBreakEven={onBreakEven}
-                onUpdate={onUpdatePosition}
-                onSetTrailing={onSetTrailing}
-                onDismiss={() => setSelectedPositionId(null)}
-              />
+              <div className="max-h-[46%] shrink-0 overflow-y-auto [scrollbar-width:thin]">
+                <DesktopPositionManager
+                  position={selectedPosition}
+                  instrument={markets.find(item => item.symbol === selectedPosition.symbol) || market}
+                  account={account}
+                  onClose={onClosePosition}
+                  onBreakEven={onBreakEven}
+                  onUpdate={onUpdatePosition}
+                  onSetTrailing={onSetTrailing}
+                  onDismiss={() => setSelectedPositionId(null)}
+                />
+              </div>
             )}
           </aside>
 
