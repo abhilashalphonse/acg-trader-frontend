@@ -219,12 +219,12 @@ export default function TradeSection({
 
       {showOpen && (
         <>
-      <div className="mt-5 flex items-center justify-between px-1">
-        <div><h2 className="text-[12px] font-black text-[#eaf1f6]">Open positions <span className="ml-1 text-[#5e7890]">{positions.length}</span></h2><p className="mt-0.5 text-[8px] text-[#60758a]">Tap a position to set SL / TP or manage it.</p></div>
+      <div className={`${embedded ? 'mt-1' : 'mt-5'} flex items-center justify-between px-1`}>
+        <div><h2 className={`${embedded ? 'text-[10px]' : 'text-[12px]'} font-black text-[#eaf1f6]`}>Open positions <span className="ml-1 text-[#5e7890]">{positions.length}</span></h2>{!embedded && <p className="mt-0.5 text-[8px] text-[#60758a]">Tap a position to set SL / TP or manage it.</p>}</div>
         {positions.length > 1 && <button type="button" onClick={onCloseAll} className="rounded-lg border border-[#4b2830] bg-[#080808] px-2.5 py-1.5 text-[8px] font-bold text-[#ff7b85]">Close all</button>}
       </div>
 
-      <div className="mt-2 space-y-2">
+      <div className={`${embedded ? 'mt-1 space-y-0' : 'mt-2 space-y-2'}`}>
         {!positions.length && <EmptyState title="No open positions" subtitle="Orders executed from Chart will appear here." />}
         {positions.map(position => {
           const expanded = expandedId === position.id;
@@ -233,15 +233,18 @@ export default function TradeSection({
           const positive = Number(position.pnl) >= 0;
           return (
             <article key={position.id} className="overflow-hidden border-b border-white/[0.08] bg-black last:border-b-0">
-              <button type="button" onClick={() => openPositionDetails(position)} className="w-full px-3.5 py-3 text-left">
+              <button type="button" onClick={() => openPositionDetails(position)} className={`w-full text-left ${embedded ? 'px-2.5 py-2' : 'px-3.5 py-3'}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2"><InstrumentAvatar instrument={live} size={24}/><strong className="text-[13px] font-black text-[#f1f5f8]">{symbolLabel(position.symbol)}</strong><span className={`rounded-md px-1.5 py-1 text-[7px] font-black ${sideTone(position.side)}`}>{String(position.side).toUpperCase()} · {Number(position.volume).toFixed(2)}</span></div>
-                    <div className="mt-2 flex items-center gap-2 font-mono text-[9px] text-[#72869a]"><span>{price(position.entry, position.symbol)}</span><span className="text-[#354c60]">→</span><span className="text-[#afbdc9]">{price(current, position.symbol)}</span></div>
+                    <div className={`flex items-center ${embedded ? 'gap-1.5' : 'gap-2'}`}><InstrumentAvatar instrument={live} size={embedded ? 21 : 24}/><strong className={`${embedded ? 'text-[11.5px]' : 'text-[13px]'} font-black text-[#f1f5f8]`}>{symbolLabel(position.symbol)}</strong><span className={`rounded-md font-black ${embedded ? 'px-1.5 py-0.5 text-[6.5px]' : 'px-1.5 py-1 text-[7px]'} ${sideTone(position.side)}`}>{String(position.side).toUpperCase()} · {Number(position.volume).toFixed(2)}</span></div>
+                    <div className={`${embedded ? 'mt-1' : 'mt-2'} flex items-center gap-2 font-mono text-[8px] text-[#72869a]`}><span>{price(position.entry, position.symbol)}</span><span className="text-[#354c60]">→</span><span className="text-[#afbdc9]">{price(current, position.symbol)}</span></div>
                   </div>
-                  <div className="flex items-start gap-2"><div className="text-right"><b className={`block text-[15px] font-black ${positive ? 'text-[#42d8a5]' : 'text-[#ff6d79]'}`}>{money(position.pnl, position.pnlCurrency || currency, true)}</b><span className="mt-1 block text-[8px] text-[#5d7286]">P&amp;L</span></div>{expanded ? <ChevronUp size={15} className="mt-1 text-[#6e8498]"/> : <ChevronDown size={15} className="mt-1 text-[#6e8498]"/>}</div>
+                  <div className="flex items-start gap-1.5"><div className="text-right"><b className={`block ${embedded ? 'text-[13px]' : 'text-[15px]'} font-black ${positive ? 'text-[#42d8a5]' : 'text-[#ff6d79]'}`}>{money(position.pnl, position.pnlCurrency || currency, true)}</b>{!embedded && <span className="mt-1 block text-[8px] text-[#5d7286]">P&amp;L</span>}</div>{expanded ? <ChevronUp size={14} className="mt-0.5 text-[#6e8498]"/> : <ChevronDown size={14} className="mt-0.5 text-[#6e8498]"/>}</div>
                 </div>
-                {!expanded && <div className="mt-3 grid grid-cols-2 gap-2"><MiniMetric label="SL" value={price(position.sl, position.symbol)} /><MiniMetric label="TP" value={price(position.tp, position.symbol)} /></div>}
+                {!expanded && (embedded
+                  ? <div className="mt-1.5 flex items-center gap-3 font-mono text-[7px] text-[#60758a]"><span>SL <b className="text-[#9cacb9]">{price(position.sl, position.symbol)}</b></span><span>TP <b className="text-[#9cacb9]">{price(position.tp, position.symbol)}</b></span></div>
+                  : <div className="mt-3 grid grid-cols-2 gap-2"><MiniMetric label="SL" value={price(position.sl, position.symbol)} /><MiniMetric label="TP" value={price(position.tp, position.symbol)} /></div>
+                )}
               </button>
 
               {expanded && <div className="border-t border-white/[0.08] bg-[#080808] px-3.5 pb-3.5 pt-3">
@@ -402,8 +405,8 @@ export default function TradeSection({
 
       {showPending && (
         <>
-      <div className="mt-5 flex items-center justify-between px-1"><div><h2 className="text-[12px] font-black text-[#eaf1f6]">Pending orders <span className="ml-1 text-[#5e7890]">{pendingOrders.length}</span></h2><p className="mt-0.5 text-[8px] text-[#60758a]">Limit and stop orders waiting for execution.</p></div></div>
-      <div className="mt-2 space-y-2">
+      <div className={`${embedded ? 'mt-1' : 'mt-5'} flex items-center justify-between px-1`}><div><h2 className={`${embedded ? 'text-[10px]' : 'text-[12px]'} font-black text-[#eaf1f6]`}>Pending orders <span className="ml-1 text-[#5e7890]">{pendingOrders.length}</span></h2>{!embedded && <p className="mt-0.5 text-[8px] text-[#60758a]">Limit and stop orders waiting for execution.</p>}</div></div>
+      <div className={`${embedded ? 'mt-1 space-y-0' : 'mt-2 space-y-2'}`}>
         {!pendingOrders.length && <EmptyState title="No pending orders" subtitle="Limit and stop orders will appear here." compact />}
         {pendingOrders.map(order => {
           const side = String(order.side).toUpperCase();
