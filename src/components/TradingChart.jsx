@@ -26,9 +26,9 @@ import { instrumentDigits, instrumentTickSize } from '../utils/instrumentFormatt
 import { ArrowRight, Eye, EyeOff, Settings2, X } from 'lucide-react';
 
 const chartTokens = {
-  background: '#09090b',
+  background: '#000000',
   text: '#8b8b8f',
-  gridline: '#1a1a1d',
+  gridline: '#151515',
   buy: '#2dd39b',
   sell: '#f05d68',
   buyWick: 'rgba(45,211,155,0.78)',
@@ -293,11 +293,11 @@ export default function TradingChart({
     if (!hostRef.current) return undefined;
     const chart = createChart(hostRef.current, {
       autoSize: true,
-      layout: { background: { type: ColorType.Solid, color: chartTokens.background }, textColor: chartTokens.text, attributionLogo: true, fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif', fontSize: 11, panes: { separatorColor: '#242428', separatorHoverColor: 'rgba(83,199,255,0.18)', enableResize: true } },
+      layout: { background: { type: ColorType.Solid, color: chartTokens.background }, textColor: chartTokens.text, attributionLogo: true, fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif', fontSize: 11, panes: { separatorColor: '#1b1b1b', separatorHoverColor: 'rgba(83,199,255,0.18)', enableResize: true } },
       grid: { vertLines: { visible: true, color: chartTokens.gridline, style: LineStyle.Dotted }, horzLines: { visible: true, color: chartTokens.gridline, style: LineStyle.Dotted } },
       crosshair: { mode: CrosshairMode.Normal, vertLine: { visible: true, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: true, labelBackgroundColor: chartTokens.crosshairLabel }, horzLine: { visible: true, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: true, labelBackgroundColor: chartTokens.crosshairLabel } },
-      rightPriceScale: { visible: true, borderVisible: true, borderColor: '#242428', ticksVisible: true, scaleMargins: { top: 0.045, bottom: 0.07 } },
-      timeScale: { visible: true, borderVisible: true, borderColor: '#242428', ticksVisible: true, timeVisible: true, secondsVisible: ['S1', 'S5', 'S15', 'S30'].includes(timeframe), rightOffset: DEFAULT_RIGHT_BARS, barSpacing: 9, minBarSpacing: 3, fixLeftEdge: false, lockVisibleTimeRangeOnResize: true },
+      rightPriceScale: { visible: true, borderVisible: true, borderColor: '#242424', ticksVisible: true, scaleMargins: { top: 0.045, bottom: 0.07 } },
+      timeScale: { visible: true, borderVisible: true, borderColor: '#242424', ticksVisible: true, timeVisible: true, secondsVisible: ['S1', 'S5', 'S15', 'S30'].includes(timeframe), rightOffset: DEFAULT_RIGHT_BARS, barSpacing: 9, minBarSpacing: 3, fixLeftEdge: false, lockVisibleTimeRangeOnResize: true },
       handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true }, handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
     });
     chartRef.current = chart;
