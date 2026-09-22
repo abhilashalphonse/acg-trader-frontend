@@ -562,7 +562,7 @@ export default function ExecutionPanel({
               type="button"
               disabled={!canSubmitExposure}
               onClick={() => clickSide('sell')}
-              className="acg-execution-sell flex min-w-0 flex-col items-start justify-center bg-black px-2.5 text-left text-[#ff5f6d] disabled:cursor-not-allowed disabled:opacity-40 active:bg-[#120608]"
+              className="flex min-w-0 flex-col items-start justify-center bg-black px-2.5 text-left text-[#ff5f6d] disabled:cursor-not-allowed disabled:opacity-40 active:bg-[#120608]"
             >
               <span className="text-[8px] font-black tracking-[0.05em]">SELL</span>
               <strong className="mt-1 max-w-full whitespace-nowrap text-[clamp(18px,5.2vw,22px)] font-black tabular-nums leading-none tracking-[-0.04em] text-[#f9f3f4]">{market?.bid || '—'}</strong>
@@ -582,7 +582,7 @@ export default function ExecutionPanel({
               type="button"
               disabled={!canSubmitExposure}
               onClick={() => clickSide('buy')}
-              className="acg-execution-buy flex min-w-0 flex-col items-end justify-center bg-black px-2.5 text-right text-[#2ddb9f] disabled:cursor-not-allowed disabled:opacity-40 active:bg-[#06110d]"
+              className="flex min-w-0 flex-col items-end justify-center bg-black px-2.5 text-right text-[#2ddb9f] disabled:cursor-not-allowed disabled:opacity-40 active:bg-[#06110d]"
             >
               <span className="text-[8px] font-black tracking-[0.05em]">BUY</span>
               <strong className="mt-1 max-w-full whitespace-nowrap text-[clamp(18px,5.2vw,22px)] font-black tabular-nums leading-none tracking-[-0.04em] text-[#f3fbf8]">{market?.ask || '—'}</strong>
