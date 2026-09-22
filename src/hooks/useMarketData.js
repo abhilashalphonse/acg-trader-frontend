@@ -183,6 +183,7 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
       bid: formatPrice(quote?.bid, digits),
       ask: formatPrice(quote?.ask, digits),
       last: formatPrice(quote?.last ?? quote?.price ?? quote?.mid, digits),
+      spreadProfile: instrument.spreadProfile || instrument.spread || null,
       spread: Number.isFinite(Number(quote?.spread)) ? Number(quote.spread) : null,
       spreadPoints: Number.isFinite(Number(quote?.spreadPoints)) ? Number(quote.spreadPoints) : null,
       providerSpreadPoints: Number.isFinite(Number(quote?.providerSpreadPoints)) ? Number(quote.providerSpreadPoints) : null,
