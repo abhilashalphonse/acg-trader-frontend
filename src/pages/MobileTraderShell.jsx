@@ -572,6 +572,8 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
         account={account}
         positionsCount={positions.length}
         pendingCount={pendingOrders.length}
+        favorite={favorite}
+        onFavorite={setFavorite}
         onSelectInstrument={() => setOverlay('markets')}
         onOpenTrades={() => setOverlay('trades')}
         onOpenAccount={() => setOverlay('account')}
