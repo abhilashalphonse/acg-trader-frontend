@@ -156,6 +156,23 @@ export function AuthProvider({ children }) {
     return task;
   }, [commitSession, markReauthRequired]);
 
+  const ensureFreshAccessToken = useCallback(async ({ minValidityMs = 30_000 } = {}) => {
+    const inFlight = refreshPromiseRef.current;
+    if (inFlight) {
+      const renewed = await inFlight;
+      return renewed?.accessToken || sessionRef.current?.accessToken || null;
+    }
+
+    const current = sessionRef.current;
+    const expiresAtMs = current?.expiresAt ? new Date(current.expiresAt).getTime() : 0;
+    const remainingMs = Number.isFinite(expiresAtMs) ? expiresAtMs - Date.now() : 0;
+    const requiredValidityMs = Math.max(0, Number(minValidityMs) || 0);
+    if (current?.accessToken && remainingMs > requiredValidityMs) return current.accessToken;
+
+    const renewed = await refreshSession();
+    return renewed?.accessToken || sessionRef.current?.accessToken || null;
+  }, [refreshSession]);
+
   const exchangeTicket = useCallback(async ticket => {
     setStatus('authenticating');
     setError(null);
@@ -337,6 +354,7 @@ export function AuthProvider({ children }) {
     logout,
     refreshPrincipal,
     refreshSession,
+    ensureFreshAccessToken,
     invalidateSession,
   }), [
     error,
@@ -346,6 +364,7 @@ export function AuthProvider({ children }) {
     logout,
     refreshPrincipal,
     refreshSession,
+    ensureFreshAccessToken,
     refreshing,
     session,
     status,

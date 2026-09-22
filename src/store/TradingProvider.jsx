@@ -7,6 +7,8 @@ import { initialTradingState, tradingReducer } from './tradingReducer.js';
 
 export const TradingContext = createContext(null);
 
+const COMMAND_TOKEN_MIN_VALIDITY_MS = 30 * 1000;
+
 function isAuthExpiry(error) {
   return error?.status === 401
     || ['TRADER_SESSION_INVALID', 'AUTH_TOKEN_REQUIRED', 'TRADER_AUTH_REQUIRED'].includes(error?.code);
@@ -19,8 +21,10 @@ export function TradingProvider({ children }) {
   const [state, dispatch] = useReducer(tradingReducer, initialTradingState);
   const socketRef = useRef(null);
   const refreshSessionRef = useRef(auth.refreshSession);
+  const ensureFreshAccessToken = auth.ensureFreshAccessToken;
+  const refreshSession = auth.refreshSession;
 
-  useEffect(() => { refreshSessionRef.current = auth.refreshSession; }, [auth.refreshSession]);
+  useEffect(() => { refreshSessionRef.current = refreshSession; }, [refreshSession]);
 
   useEffect(() => {
     const socket = new TraderSocket({
@@ -52,11 +56,7 @@ export function TradingProvider({ children }) {
   const ingestQuotes = useCallback(quotes => dispatch({ type: 'market/quotes', payload: quotes }), []);
 
   const withTraderToken = useCallback(async executor => {
-    let token = auth.accessToken;
-    if (!token) {
-      const renewed = await auth.refreshSession();
-      token = renewed?.accessToken || null;
-    }
+    let token = await ensureFreshAccessToken({ minValidityMs: COMMAND_TOKEN_MIN_VALIDITY_MS });
     if (!token) {
       throw new ApiError('Trading authentication is required', { status: 401, code: 'TRADER_AUTH_REQUIRED' });
     }
@@ -65,12 +65,12 @@ export function TradingProvider({ children }) {
       return await executor(token);
     } catch (error) {
       if (!isAuthExpiry(error)) throw error;
-      const renewed = await auth.refreshSession();
+      const renewed = await refreshSession();
       const retryToken = renewed?.accessToken || null;
       if (!retryToken) throw error;
       return executor(retryToken);
     }
-  }, [auth.accessToken, auth.refreshSession]);
+  }, [ensureFreshAccessToken, refreshSession]);
 
   const executeCommand = useCallback(async executor => {
     const result = await withTraderToken(executor);
