@@ -72,11 +72,73 @@ export default function FrontendSheet({
     const watched = new Set(watchlists?.activeSymbols || []);
     const source = favoritesOnly ? filteredMarkets.filter(item => watched.has(item.symbol)) : filteredMarkets;
     const list = source.slice(0, visibleMarketLimit);
-    if (!source.length) return <div className="grid min-h-36 place-items-center rounded-md border border-white/[0.08] bg-[#080808] px-5 text-center text-[9px] text-[#687d91]">No instruments match this search.</div>;
-    return <div className="space-y-1.5">{list.map(item => {
-      const isWatched = watched.has(item.symbol);
-      return <div key={item.symbol} className={`flex items-center gap-2 rounded-md border px-2 py-2 ${activeSymbol === item.symbol ? 'border-white/[0.13] bg-[#101010]' : 'border-white/[0.08] bg-[#080808]'}`}><button type="button" onClick={() => { onSelectSymbol(item.symbol); onClose(); }} className="flex min-w-0 flex-1 items-center justify-between px-1 py-1 text-left"><div className="flex min-w-0 items-center gap-2.5"><InstrumentAvatar instrument={item} size={32}/><div className="min-w-0"><div className="flex items-center gap-2"><strong className="text-[12px] text-[#eef4f8]">{item.displaySymbol || symbolLabel(item.symbol)}</strong><span className="rounded-md bg-[#101010] px-1.5 py-0.5 text-[7px] font-bold text-[#738ba0]">{marketGroup(item)}</span></div><p className="mt-1 truncate text-[9px] text-[#6f8296]">{item.name || 'Market instrument'}</p></div></div><div className="ml-3 text-right"><b className="block text-[11px] text-[#dce5ec]">{item.subscribed ? (item.bid ?? '—') : '—'}</b><span className={`mt-1 block text-[8px] ${item.live ? 'text-[#31d79d]' : item.isStale ? 'text-[#e8c35f]' : 'text-[#71869a]'}`}>{item.subscribed ? (item.sessionOpen === false ? 'Closed' : item.live ? 'Live' : item.isStale ? 'Stale' : item.marketState || 'Waiting') : 'Open for quote'}</span></div></button><button type="button" onClick={() => watchlists?.toggleSymbol?.(item.symbol)} aria-label={isWatched ? 'Remove from watchlist' : 'Add to watchlist'} className={`grid size-9 shrink-0 place-items-center rounded-lg ${isWatched ? 'text-[#f6c95d]' : 'text-[#60758a] hover:bg-white/[0.04] hover:text-[#f6c95d]'}`}><Star size={16} fill={isWatched ? 'currentColor' : 'none'}/></button></div>;
-    })}{source.length > list.length && <button type="button" onClick={() => setVisibleMarketLimit(limit => limit + 60)} className="h-10 w-full rounded-md border border-white/[0.08] bg-[#101010] text-[9px] font-bold text-[#69cfff]">Show more · {source.length - list.length} remaining</button>}</div>;
+
+    if (!source.length) {
+      return (
+        <div className="grid min-h-36 place-items-center border-y border-dashed border-white/[0.08] bg-black px-5 text-center">
+          <div>
+            <b className="text-[10px] text-[#9eafbe]">No instruments found</b>
+            <p className="mt-1 text-[8px] text-[#5d7185]">Try another symbol, name or market group.</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="border-t border-white/[0.08]">
+        {list.map(item => {
+          const isWatched = watched.has(item.symbol);
+          const isActive = activeSymbol === item.symbol;
+
+          return (
+            <div
+              key={item.symbol}
+              className={`flex items-center gap-2 border-b border-white/[0.08] ${isActive ? 'bg-[#080808]' : 'bg-black'}`}
+            >
+              <button
+                type="button"
+                onClick={() => { onSelectSymbol(item.symbol); onClose(); }}
+                className="flex min-w-0 flex-1 items-center justify-between px-1 py-3 text-left"
+              >
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <InstrumentAvatar instrument={item} size={28}/>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <strong className="text-[12px] font-black text-[#f1f5f8]">{item.displaySymbol || symbolLabel(item.symbol)}</strong>
+                      <span className="rounded-md bg-[#101010] px-1.5 py-0.5 text-[7px] font-black text-[#738ba0]">{marketGroup(item)}</span>
+                    </div>
+                    <p className="mt-1 truncate text-[8px] text-[#60758a]">{item.name || 'Market instrument'}</p>
+                  </div>
+                </div>
+                <div className="ml-3 text-right">
+                  <b className="block font-mono text-[11px] font-bold text-[#dce5ec]">{item.subscribed ? (item.bid ?? '—') : '—'}</b>
+                  <span className={`mt-1 block text-[8px] ${item.live ? 'text-[#31d79d]' : item.isStale ? 'text-[#e8c35f]' : 'text-[#60758a]'}`}>
+                    {item.subscribed ? (item.sessionOpen === false ? 'Closed' : item.live ? 'Live' : item.isStale ? 'Stale' : item.marketState || 'Waiting') : 'Open for quote'}
+                  </span>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => watchlists?.toggleSymbol?.(item.symbol)}
+                aria-label={isWatched ? 'Remove from watchlist' : 'Add to watchlist'}
+                className={`grid size-10 shrink-0 place-items-center ${isWatched ? 'text-[#f6c95d]' : 'text-[#7b8ea0] hover:text-[#f6c95d]'}`}
+              >
+                <Star size={16} fill={isWatched ? 'currentColor' : 'none'}/>
+              </button>
+            </div>
+          );
+        })}
+        {source.length > list.length && (
+          <button
+            type="button"
+            onClick={() => setVisibleMarketLimit(limit => limit + 60)}
+            className="h-11 w-full border-b border-white/[0.08] bg-black text-[9px] font-bold text-[#69cfff]"
+          >
+            Show more · {source.length - list.length} remaining
+          </button>
+        )}
+      </div>
+    );
   };
 
   const isIndicators = type === 'indicators';
@@ -84,15 +146,15 @@ export default function FrontendSheet({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/55 px-2 backdrop-blur-[2px]" onMouseDown={onClose}>
-      <section onMouseDown={event => event.stopPropagation()} className={`${isMarketSheet ? 'flex h-[84dvh] min-h-0 flex-col' : isIndicators ? 'max-h-[90dvh]' : 'max-h-[84dvh]'} mb-[max(8px,env(safe-area-inset-bottom))] w-full max-w-[444px] overflow-hidden rounded-[24px] border border-white/[0.08] bg-[#080808] shadow-[0_30px_90px_rgba(0,0,0,.65)]`}>
-        <header className="flex shrink-0 items-center justify-between border-b border-white/[0.08] px-4 py-3.5"><div><h2 className="text-[15px] font-black text-[#f3f7fb]">{titleMap[type] || 'ACG Trader'}</h2><p className="mt-0.5 text-[9px] text-[#6e8195]">{isIndicators ? 'Technical studies · live chart' : type === 'more' ? 'Profiles, preferences and shortcuts' : type === 'notifications' ? 'Terminal and risk alerts' : type === 'profile' ? 'Trading account summary' : type === 'help' ? 'Using ACG Trader' : 'Markets and terminal tools'}</p></div><button type="button" onClick={onClose} className="grid size-9 place-items-center rounded-md border border-white/[0.08] bg-[#101010] text-[#93a6b8]"><X size={17}/></button></header>
-        <div className={`${isMarketSheet ? 'flex min-h-0 flex-1 flex-col overflow-hidden' : isIndicators ? 'max-h-[calc(90dvh-70px)] overflow-y-auto' : 'max-h-[calc(84dvh-70px)] overflow-y-auto'} p-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
+      <section onMouseDown={event => event.stopPropagation()} className={`${isMarketSheet ? 'flex h-[84dvh] min-h-0 flex-col bg-black' : isIndicators ? 'max-h-[90dvh] bg-[#080808]' : 'max-h-[84dvh] bg-[#080808]'} mb-[max(8px,env(safe-area-inset-bottom))] w-full max-w-[444px] overflow-hidden rounded-[24px] border border-white/[0.08] shadow-[0_30px_90px_rgba(0,0,0,.65)]`}>
+        <header className={`flex shrink-0 items-start justify-between gap-3 border-b border-white/[0.08] ${isMarketSheet ? 'bg-black px-4 pb-4 pt-4' : 'px-4 py-3.5'}`}><div><h2 className={`${isMarketSheet ? 'text-[20px] tracking-[-0.035em]' : 'text-[15px]'} font-black text-[#f3f7fb]`}>{titleMap[type] || 'ACG Trader'}</h2><p className={`${isMarketSheet ? 'mt-1 text-[9px] text-[#718397]' : 'mt-0.5 text-[9px] text-[#6e8195]'}`}>{isIndicators ? 'Technical studies · live chart' : type === 'more' ? 'Profiles, preferences and shortcuts' : type === 'notifications' ? 'Terminal and risk alerts' : type === 'profile' ? 'Trading account summary' : type === 'help' ? 'Using ACG Trader' : 'Markets and terminal tools'}</p></div><button type="button" onClick={onClose} className="grid size-9 place-items-center rounded-md border border-white/[0.08] bg-[#101010] text-[#93a6b8]"><X size={17}/></button></header>
+        <div className={`${isMarketSheet ? 'flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-3 pt-2' : isIndicators ? 'max-h-[calc(90dvh-70px)] overflow-y-auto p-3' : 'max-h-[calc(84dvh-70px)] overflow-y-auto p-3'} [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
           {message && <div className="mb-3 rounded-md border border-white/[0.08] bg-[#101010] px-3 py-2.5 text-[9px] leading-4 text-[#a9c5d8]">{message}</div>}
           {isMarketSheet && (
             <div className="flex min-h-0 flex-1 flex-col">
               <div className="shrink-0">
-                <div className="mb-2 flex h-11 items-center gap-2 rounded-md border border-white/[0.08] bg-[#080808] px-3"><Search size={16} className="text-[#6f8295]"/><input autoFocus={type === 'search'} value={query} onChange={e => setQuery(e.target.value)} placeholder="Search 300 markets…" className="min-w-0 flex-1 bg-transparent text-[12px] text-[#eef4f8] outline-none placeholder:text-[#53677b]"/></div>
-                <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{MARKET_GROUPS.map(group => <button key={group} type="button" onClick={() => setMarketGroupFilter(group)} className={`shrink-0 rounded-lg border px-2.5 py-1.5 text-[8px] font-bold ${marketGroupFilter === group ? 'border-white/[0.13] bg-[#101010] text-[#62cbff]' : 'border-white/[0.08] bg-[#080808] text-[#71869a]'}`}>{group}</button>)}</div>
+                <div className="mb-2 flex h-11 items-center gap-2 border-y border-white/[0.08] bg-black px-1"><Search size={15} className="text-[#6f8295]"/><input autoFocus={type === 'search'} value={query} onChange={e => setQuery(e.target.value)} placeholder="Search 300 markets…" className="min-w-0 flex-1 bg-transparent text-[12px] text-[#eef4f8] outline-none placeholder:text-[#53677b]"/></div>
+                <div className="mb-3 flex gap-1 overflow-x-auto border-b border-white/[0.08] pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{MARKET_GROUPS.map(group => <button key={group} type="button" onClick={() => setMarketGroupFilter(group)} className={`shrink-0 border-b-2 px-2.5 py-1.5 text-[8px] font-black ${marketGroupFilter === group ? 'border-[#62cbff] text-[#dce9f2]' : 'border-transparent text-[#60758a]'}`}>{group}</button>)}</div>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {renderMarkets(false)}
