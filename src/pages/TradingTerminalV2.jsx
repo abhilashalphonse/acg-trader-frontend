@@ -14,7 +14,7 @@ import useTradingHotkeys from '../hooks/useTradingHotkeys.js';
 import { useTradingTerminal } from '../hooks/useTradingTerminal.js';
 import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
 import { normalizePriceToTick, normalizeProtectionPrice, normalizeVolumeToStep, pendingPriceDirection } from '../utils/tradingCommandNormalization.js';
-import { estimateStopRisk, evaluateRiskToolSetup } from '../utils/tradingRisk.js';
+import { estimateOpeningRequirement, estimateStopRisk, evaluateRiskToolSetup } from '../utils/tradingRisk.js';
 import { exposureAvailability } from '../utils/exposureAvailability.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../utils/instrumentFormatting.js';
 import { normalizeTradePlanPatch } from '../utils/tradePlanNormalization.js';
@@ -262,6 +262,12 @@ export default function TradingTerminalV2({
     const effectiveRequestedPrice = Number.isFinite(modeledPrice) && modeledPrice > 0
       ? modeledPrice
       : Number(requestedPrice);
+    const openingRequirement = estimateOpeningRequirement(effectiveRequestedPrice, executionLots, instrument, account);
+    const freeMargin = Number(account?.freeMargin);
+    if (Number.isFinite(openingRequirement) && Number.isFinite(freeMargin) && openingRequirement > freeMargin + 1e-8) {
+      showNotice(`Opening requirement ${openingRequirement.toFixed(2)} ${account?.currency || 'USD'} exceeds available free margin.`);
+      return null;
+    }
     const proposedRisk = stopLoss == null
       ? null
       : estimateStopRisk({ entry: effectiveRequestedPrice, sl: stopLoss, side }, executionLots, instrument, account.currency);
@@ -705,6 +711,15 @@ export default function TradingTerminalV2({
       return;
     }
     const volume = executionSizing.lots;
+    const marginReference = executionPlan.pending && String(executionPlan.orderType || '').toLowerCase() === 'stop-limit'
+      ? executionPlan.limitPrice
+      : executionPlan.entry;
+    const openingRequirement = estimateOpeningRequirement(marginReference, volume, planMarket, account);
+    const freeMargin = Number(account?.freeMargin);
+    if (Number.isFinite(openingRequirement) && Number.isFinite(freeMargin) && openingRequirement > freeMargin + 1e-8) {
+      showNotice(`Opening requirement ${openingRequirement.toFixed(2)} ${account?.currency || 'USD'} exceeds available free margin.`);
+      return;
+    }
     const proposedRisk = estimateStopRisk(executionPlan, volume, planMarket, account.currency);
     const guard = evaluateRiskGuard({
       account,
