@@ -33,7 +33,7 @@ export default function MarketPanel({
   compactMobileToolbar = false,
   fillAvailableHeight = false,
 }) {
-  const [drawingToolbarOpen, setDrawingToolbarOpen] = useState(false);
+  const [drawingToolbarOpen, setDrawingToolbarOpen] = useState(true);
 
   return (
     <section className={`overflow-hidden border ${fillAvailableHeight ? 'flex h-full min-h-0 flex-col' : ''} ${compactMobileToolbar ? 'border-white/[0.12] bg-[#0d0d10]' : 'border-white/[0.08] bg-black'}`}>
