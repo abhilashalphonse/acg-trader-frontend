@@ -439,10 +439,10 @@ export default function ExecutionPanel({
 
     if (focusMode) {
       return (
-        <section className="relative shrink-0 border-t border-white/[0.08] bg-[#080808]/98 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 ">
+        <section className="acg-mobile-execution-surface relative shrink-0 bg-[#0b0b0d] px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 ">
           <div className="flex min-h-[52px] items-center gap-2">
             <button type="button" onClick={onCancelPlan} className="grid size-10 shrink-0 place-items-center rounded-md border border-white/[0.08] bg-[#101010] text-[#91a3b5]" aria-label={isOpen ? 'Close position' : 'Cancel plan'}><X size={15}/></button>
-            <div className="grid min-w-0 flex-1 grid-cols-3 divide-x divide-[#1b2b39] overflow-hidden rounded-md border border-white/[0.08] bg-[#080808] text-center">
+            <div className="grid min-w-0 flex-1 grid-cols-3 overflow-hidden rounded-md bg-[#111114] text-center">
               <div className="px-1 py-2"><span className="block text-[7px] text-[#718398]">{tradePlan.pending ? 'TYPE' : isOpen ? 'SIDE' : 'RISK'}</span><b className="mt-0.5 block truncate text-[9px]" style={{ color: accent }}>{tradePlan.pending ? String(tradePlan.orderType).toUpperCase() : isOpen ? side : `${riskPercent.toFixed(2)}%`}</b></div>
               <div className="px-1 py-2"><span className="block text-[7px] text-[#718398]">LOTS</span><b className="mt-0.5 block text-[10px]">{metrics?.lots.toFixed(2)}</b></div>
               <div className="px-1 py-2"><span className="block text-[7px] text-[#718398]">R:R</span><b className="mt-0.5 block text-[10px]">1:{metrics?.rr.toFixed(1)}</b></div>
@@ -494,8 +494,8 @@ export default function ExecutionPanel({
         <span className="text-[8px] text-[#60758a]">{orderType === 'market' ? 'Server market execution' : 'Server pending order'}</span>
       </div>
       <div className={`grid ${focusMode ? 'grid-cols-[minmax(0,1fr)_94px_minmax(0,1fr)] gap-1.5' : desktopSidebar ? 'grid-cols-[minmax(0,1fr)_82px_minmax(0,1fr)] gap-1.5' : 'grid-cols-[minmax(0,1fr)_88px_minmax(0,1fr)] gap-1.5 sm:grid-cols-[minmax(0,1fr)_100px_minmax(0,1fr)] sm:gap-2'}`}>
-        <button type="button" disabled={!canSubmitExposure} onClick={() => clickSide('sell')} className={`flex ${focusMode ? 'h-[58px] px-3' : desktopSidebar ? 'h-[56px] px-2.5' : 'h-[66px] px-3 sm:px-4'} min-w-0 flex-col items-start justify-center acg-execution-sell rounded-md border bg-black text-left text-[#ff5f6d] transition-colors disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.99]`}><span className="text-[10px] font-extrabold tracking-[0.045em]">SELL</span><strong className={`${focusMode ? 'text-[21px]' : desktopSidebar ? 'text-[17px]' : 'text-[clamp(21px,6.2vw,27px)]'} mt-1 max-w-full whitespace-nowrap font-black tabular-nums leading-none tracking-[-0.04em] text-[#f9f3f4]`}>{market?.bid || '—'}</strong></button>
-        <div className={`grid ${focusMode ? 'h-[58px]' : desktopSidebar ? 'h-[56px]' : 'h-[66px]'} grid-cols-2 grid-rows-[auto_auto_1fr] items-center rounded-md border border-white/[0.08] bg-black px-2 py-1 text-center`}>
+        <button type="button" disabled={!canSubmitExposure} onClick={() => clickSide('sell')} className={`flex ${focusMode ? 'h-[58px] px-3' : desktopSidebar ? 'h-[56px] px-2.5' : 'h-[66px] px-3 sm:px-4'} min-w-0 flex-col items-start justify-center acg-execution-sell rounded-md ${focusMode ? 'border-0' : 'border'} bg-black text-left text-[#ff5f6d] transition-colors disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.99]`}><span className="text-[10px] font-extrabold tracking-[0.045em]">SELL</span><strong className={`${focusMode ? 'text-[21px]' : desktopSidebar ? 'text-[17px]' : 'text-[clamp(21px,6.2vw,27px)]'} mt-1 max-w-full whitespace-nowrap font-black tabular-nums leading-none tracking-[-0.04em] text-[#f9f3f4]`}>{market?.bid || '—'}</strong></button>
+        <div className={`grid ${focusMode ? 'h-[58px]' : desktopSidebar ? 'h-[56px]' : 'h-[66px]'} grid-cols-2 grid-rows-[auto_auto_1fr] items-center rounded-md ${focusMode ? 'border-0 bg-[#111114]' : 'border border-white/[0.08] bg-black'} px-2 py-1 text-center`}>
           {sizingMode === 'lots' ? (
             <div className="col-span-2 mx-auto flex min-w-0 items-center justify-center">
               <input
@@ -534,7 +534,7 @@ export default function ExecutionPanel({
             <button type="button" onClick={() => sizingMode === 'lots' ? increase() : onRiskPercentChange(Math.min(5, +(riskPercent + 0.1).toFixed(2)))} className="grid h-5 w-[29px] place-items-center rounded-md border border-white/[0.08] bg-[#080808] text-[#a0a0a5]"><Plus size={13}/></button>
           </div>
         </div>
-        <button type="button" disabled={!canSubmitExposure} onClick={() => clickSide('buy')} className={`flex ${focusMode ? 'h-[58px] px-3' : desktopSidebar ? 'h-[56px] px-2.5' : 'h-[66px] px-3 sm:px-4'} min-w-0 flex-col items-end justify-center acg-execution-buy rounded-md border bg-black text-right text-[#2ddb9f] transition-colors disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.99]`}><span className="text-[10px] font-extrabold tracking-[0.045em]">BUY</span><strong className={`${focusMode ? 'text-[21px]' : desktopSidebar ? 'text-[17px]' : 'text-[clamp(21px,6.2vw,27px)]'} mt-1 max-w-full whitespace-nowrap font-black tabular-nums leading-none tracking-[-0.04em] text-[#f3fbf8]`}>{market?.ask || '—'}</strong></button>
+        <button type="button" disabled={!canSubmitExposure} onClick={() => clickSide('buy')} className={`flex ${focusMode ? 'h-[58px] px-3' : desktopSidebar ? 'h-[56px] px-2.5' : 'h-[66px] px-3 sm:px-4'} min-w-0 flex-col items-end justify-center acg-execution-buy rounded-md ${focusMode ? 'border-0' : 'border'} bg-black text-right text-[#2ddb9f] transition-colors disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.99]`}><span className="text-[10px] font-extrabold tracking-[0.045em]">BUY</span><strong className={`${focusMode ? 'text-[21px]' : desktopSidebar ? 'text-[17px]' : 'text-[clamp(21px,6.2vw,27px)]'} mt-1 max-w-full whitespace-nowrap font-black tabular-nums leading-none tracking-[-0.04em] text-[#f3fbf8]`}>{market?.ask || '—'}</strong></button>
       </div>
     </>
   );
