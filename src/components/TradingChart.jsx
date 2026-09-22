@@ -91,6 +91,7 @@ export default function TradingChart({
   onCoordinateApi = () => {},
   showBidAskLines = false,
   showPositionPriceLines = true,
+  priceScaleAnchors = [],
   showIndicatorControls = false,
   onToggleIndicator = () => {},
   onOpenIndicatorSettings = () => {},
@@ -108,6 +109,7 @@ export default function TradingChart({
   const marketLineRef = useRef(null);
   const askLineRef = useRef(null);
   const positionLinesRef = useRef([]);
+  const scaleAnchorLinesRef = useRef([]);
   const indicatorSeriesRef = useRef([]);
   const indicatorBindingsRef = useRef([]);
   const indicatorPanesRef = useRef(0);
@@ -308,7 +310,7 @@ export default function TradingChart({
     const series = chartMode === 'line' ? chart.addSeries(LineSeries, { color: chartTokens.blue, lineWidth: 2, priceFormat, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: true }) : chart.addSeries(CandlestickSeries, { upColor: chartTokens.buy, downColor: chartTokens.sell, wickUpColor: chartTokens.buyWick, wickDownColor: chartTokens.sellWick, borderVisible: false, priceFormat, priceLineVisible: false, lastValueVisible: false });
     const volume = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: 'volume', lastValueVisible: false, priceLineVisible: false });
     chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.80, bottom: 0 } });
-    seriesRef.current = series; volumeRef.current = volume; marketLineRef.current = null; askLineRef.current = null; positionLinesRef.current = []; setError('');
+    seriesRef.current = series; volumeRef.current = volume; marketLineRef.current = null; askLineRef.current = null; positionLinesRef.current = []; scaleAnchorLinesRef.current = []; setError('');
     const timeScale = chart.timeScale();
     const visibleRangeHandler = () => {
       const range = timeScale.getVisibleLogicalRange();
@@ -464,6 +466,7 @@ export default function TradingChart({
       marketLineRef.current = null;
       askLineRef.current = null;
       positionLinesRef.current = [];
+      scaleAnchorLinesRef.current = [];
       lastBarRef.current = null;
       barsRef.current = [];
       barsByTimeRef.current = new Map();
@@ -668,6 +671,40 @@ export default function TradingChart({
       positionLinesRef.current = [];
     };
   }, [positions, symbol, timeframe, chartMode, showPositionPriceLines]);
+
+  useEffect(() => {
+    const series = seriesRef.current;
+    if (!series) return undefined;
+
+    scaleAnchorLinesRef.current.forEach(line => {
+      try { series.removePriceLine(line); } catch { /* disposed */ }
+    });
+    scaleAnchorLinesRef.current = [];
+
+    const uniquePrices = [...new Set(
+      (Array.isArray(priceScaleAnchors) ? priceScaleAnchors : [])
+        .map(value => Number(value))
+        .filter(value => Number.isFinite(value) && value > 0)
+    )];
+
+    scaleAnchorLinesRef.current = uniquePrices.map(price =>
+      series.createPriceLine({
+        price,
+        color: 'rgba(0,0,0,0)',
+        lineWidth: 1,
+        lineStyle: LineStyle.Solid,
+        axisLabelVisible: false,
+        title: '',
+      })
+    );
+
+    return () => {
+      scaleAnchorLinesRef.current.forEach(line => {
+        try { series.removePriceLine(line); } catch { /* disposed */ }
+      });
+      scaleAnchorLinesRef.current = [];
+    };
+  }, [priceScaleAnchors, symbol, timeframe, chartMode]);
 
   useEffect(() => {
     if (!liveCandle || !seriesRef.current) return;
