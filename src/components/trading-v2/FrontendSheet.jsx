@@ -49,7 +49,7 @@ export default function FrontendSheet({
 }) {
   const [query, setQuery] = useState('');
   const [message, setMessage] = useState('');
-  const [marketGroupFilter, setMarketGroupFilter] = useState('All');
+  const [marketGroupFilter, setMarketGroupFilter] = useState('Forex');
   const [visibleMarketLimit, setVisibleMarketLimit] = useState(60);
   const filteredMarkets = useMemo(() => {
     const q = query.trim().toLowerCase();
