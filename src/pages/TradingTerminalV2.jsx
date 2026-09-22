@@ -245,9 +245,9 @@ export default function TradingTerminalV2({
     }, ...current].slice(0, 300));
   };
 
-  const dismissExecutionLater = () => {
+  const dismissExecutionLater = (delayMs = 6000) => {
     if (executionDismissRef.current) window.clearTimeout(executionDismissRef.current);
-    executionDismissRef.current = window.setTimeout(() => setExecutionEvent(null), 2200);
+    executionDismissRef.current = window.setTimeout(() => setExecutionEvent(null), delayMs);
   };
 
   const handleTradingError = (error, context = 'Trading command') => {
