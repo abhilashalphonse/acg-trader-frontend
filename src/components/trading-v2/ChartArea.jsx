@@ -212,15 +212,44 @@ function PendingOrderOverlay({
 
         return [
           <div key={`${order.id}:entry`} className="pointer-events-none absolute left-0 right-0 z-[21]" style={{ top: y }}>
-            <div className="relative border-t border-dashed border-[#d7a95f]/80">
-              <div className="pointer-events-auto absolute left-3 top-1/2 flex -translate-y-1/2 items-center gap-2 rounded-md border border-[#7d6238]/80 bg-black/94 px-2 py-1 text-[9px] font-semibold shadow-[0_6px_18px_rgba(0,0,0,.34)] backdrop-blur-sm">
-                <span style={{ color: sideColor }}>{side} {type}</span>
-                <span className="text-[#9aa4ad]">·</span>
-                <span className="text-[#DCE3E9]">{Number.isFinite(lots) ? lots.toFixed(Math.max(2, Number(instrument?.volumeStep) < 0.01 ? 3 : 2)) : '—'} lot</span>
-                <span className="font-mono tabular-nums text-[#F2F5F7]">{formatInstrumentPrice(entry, instrument)}</span>
-                <button type="button" onClick={event => { event.stopPropagation(); onModify(order.id); }} className="ml-1 rounded px-1.5 py-0.5 text-[#c7a56a] transition hover:bg-white/[0.06] hover:text-[#f0ca86]" aria-label={`Modify ${side} ${type} order`}>Modify</button>
-                <button type="button" onClick={event => { event.stopPropagation(); onCancel(order.id); }} className="rounded px-1.5 py-0.5 text-[#ff7b86] transition hover:bg-white/[0.06] hover:text-[#ff9ba4]" aria-label={`Cancel ${side} ${type} order`}>Cancel</button>
+            <div className="relative border-t border-dotted border-[#2f7df4]/90">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={event => { event.stopPropagation(); onModify(order.id); }}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onModify(order.id);
+                  }
+                }}
+                className="pointer-events-auto absolute left-3 top-1/2 flex h-6 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border border-[#2459a8] bg-[#0b2f66]/95 font-mono text-[10px] font-bold tabular-nums text-[#f4f8ff] shadow-[0_5px_16px_rgba(0,0,0,.38)] backdrop-blur-sm"
+                aria-label={`Modify ${side} ${type} order`}
+                title={`${type} pending order`}
+              >
+                <span className="flex min-w-[34px] items-center justify-center border-r border-white/20 px-2">
+                  {Number.isFinite(lots) ? formatPositionLots(lots) : '—'}
+                </span>
+                <span className={`flex min-w-[42px] items-center justify-center border-r border-white/20 px-2 ${side === 'BUY' ? 'text-[#35e0a4]' : 'text-[#ff6b77]'}`}>
+                  {side}
+                </span>
+                <button
+                  type="button"
+                  onClick={event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onCancel(order.id);
+                  }}
+                  className="grid w-7 place-items-center text-[14px] leading-none text-white/85 transition hover:bg-black/20 hover:text-white active:bg-black/30"
+                  aria-label={`Cancel ${side} ${type} order`}
+                  title="Cancel pending order"
+                >
+                  ×
+                </button>
               </div>
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[4px] border border-[#2d68bd] bg-[#1f5fc4] px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums text-white shadow-[0_3px_10px_rgba(0,0,0,.28)]">
+                {formatInstrumentPrice(entry, instrument)}
+              </span>
             </div>
           </div>,
           secondaryY != null && Number.isFinite(secondaryY) ? (
