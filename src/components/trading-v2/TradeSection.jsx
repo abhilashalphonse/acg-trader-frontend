@@ -60,6 +60,8 @@ export default function TradeSection({
   onUpdatePosition = async () => false,
   onBreakEven = async () => false,
   onNewOrder = () => {},
+  view = 'all',
+  embedded = false,
 }) {
   const [expandedId, setExpandedId] = useState(null);
   const [protectionDraft, setProtectionDraft] = useState({ sl: '', tp: '' });
@@ -70,6 +72,8 @@ export default function TradeSection({
   const [positionActionBusy, setPositionActionBusy] = useState(null);
   const [closeConfirmId, setCloseConfirmId] = useState(null);
   const currency = account.currency || 'USD';
+  const showOpen = view !== 'pending';
+  const showPending = view !== 'open';
   const floating = Number(account.floatingPnl);
   const balance = Number(account.balance);
   const equity = Number(account.equity);
@@ -189,17 +193,17 @@ export default function TradeSection({
   };
 
   return (
-    <section className="acg-mobile-terminal-page min-h-[calc(100dvh-92px)] px-2 pb-4 pt-2">
-      <header className="flex items-start justify-between gap-3 pb-4">
+    <section className={embedded ? 'px-0 pb-3 pt-0' : 'acg-mobile-terminal-page min-h-[calc(100dvh-92px)] px-2 pb-4 pt-2'}>
+{!embedded && (      <header className="flex items-start justify-between gap-3 pb-4">
         <div>
           <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#5f7488]">{accountLabel(account)}</p>
           <h1 className="mt-1 text-[26px] font-black tracking-[-0.045em] text-[#f5f8fb]">Trade</h1>
           <p className="mt-1 text-[10px] text-[#718397]">Positions, orders and margin at a glance.</p>
         </div>
         <button type="button" onClick={onNewOrder} className="acg-terminal-accent mt-1 flex h-9 items-center gap-1.5 border border-white/[0.08] bg-[#15151a] px-3 text-[9px] font-extrabold"><Plus size={14}/>New order</button>
-      </header>
+      </header>)}
 
-      <div className="border-y border-white/[0.08] bg-black py-3">
+      {!embedded && (      <div className="border-y border-white/[0.08] bg-black py-3">
         <div className="flex items-end justify-between gap-3">
           <div><p className="text-[8px] font-bold uppercase tracking-[0.14em] text-[#63798d]">Floating P&amp;L</p><strong className={`mt-1 block text-[28px] font-black tracking-[-0.045em] ${Number(floating) >= 0 ? 'text-[#43d9a6]' : 'text-[#ff6f7a]'}`}>{money(floating, currency, true)}</strong></div>
           <div className="text-right"><span className="text-[8px] font-semibold uppercase tracking-[0.12em] text-[#5e7488]">Equity</span><b className="mt-1 block text-[14px] text-[#eef4f8]">{money(equity, currency)}</b></div>
@@ -211,7 +215,10 @@ export default function TradeSection({
           <Metric label="Margin level" value={marginLevel == null ? '—' : `${marginLevel.toFixed(2)}%`} />
         </div>
       </div>
+      )}
 
+      {showOpen && (
+        <>
       <div className="mt-5 flex items-center justify-between px-1">
         <div><h2 className="text-[12px] font-black text-[#eaf1f6]">Open positions <span className="ml-1 text-[#5e7890]">{positions.length}</span></h2><p className="mt-0.5 text-[8px] text-[#60758a]">Tap a position to set SL / TP or manage it.</p></div>
         {positions.length > 1 && <button type="button" onClick={onCloseAll} className="rounded-lg border border-[#4b2830] bg-[#080808] px-2.5 py-1.5 text-[8px] font-bold text-[#ff7b85]">Close all</button>}
@@ -390,6 +397,11 @@ export default function TradeSection({
         })}
       </div>
 
+        </>
+      )}
+
+      {showPending && (
+        <>
       <div className="mt-5 flex items-center justify-between px-1"><div><h2 className="text-[12px] font-black text-[#eaf1f6]">Pending orders <span className="ml-1 text-[#5e7890]">{pendingOrders.length}</span></h2><p className="mt-0.5 text-[8px] text-[#60758a]">Limit and stop orders waiting for execution.</p></div></div>
       <div className="mt-2 space-y-2">
         {!pendingOrders.length && <EmptyState title="No pending orders" subtitle="Limit and stop orders will appear here." compact />}
@@ -398,6 +410,8 @@ export default function TradeSection({
           return <article key={order.id} className="border-b border-white/[0.08] bg-black px-1 py-3 last:border-b-0"><div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2"><InstrumentAvatar instrument={marketFor(order.symbol)} size={24}/><strong className="text-[12px] font-black text-[#eff4f8]">{symbolLabel(order.symbol)}</strong><span className={`rounded-md px-1.5 py-1 text-[7px] font-black ${sideTone(side)}`}>{side} {String(order.orderType || 'order').toUpperCase()}</span></div><p className="mt-2 text-[9px] text-[#71859a]">{Number(order.lots || order.manualLots || 0).toFixed(2)} lots · Entry <b className="font-mono text-[#c1ccd6]">{price(order.entry, order.symbol)}</b></p><div className="mt-2 flex gap-3 text-[8px] text-[#60758a]"><span>SL <b className="text-[#9eb0bf]">{price(order.sl, order.symbol)}</b></span><span>TP <b className="text-[#9eb0bf]">{price(order.tp, order.symbol)}</b></span></div></div></div><div className="mt-3 grid grid-cols-3 gap-2"><button type="button" onClick={() => onOpenChart(order.symbol)} className="h-9 rounded-md border border-white/[0.08] bg-[#101010] text-[8px] font-bold text-[#5fc9ff]">Chart</button><button type="button" onClick={() => onModifyPending(order.id)} className="h-9 rounded-xl border border-white/[0.08] bg-[#080808] text-[8px] font-bold text-[#b5c3ce]">Modify</button><button type="button" onClick={() => onCancelPending(order.id)} className="h-9 rounded-xl border border-[#512b34] bg-[#101010] text-[8px] font-bold text-[#ff7984]">Cancel</button></div></article>;
         })}
       </div>
+        </>
+      )}
     </section>
   );
 }
