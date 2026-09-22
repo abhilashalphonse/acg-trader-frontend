@@ -6,8 +6,8 @@ import {
 
 export function normalizeTradePlanPatch(plan, patch, instrument) {
   if (!plan || !patch || typeof patch !== 'object') return patch || {};
-  const side = String(plan.side || '').toUpperCase();
-  const type = String(plan.orderType || 'market');
+  const side = String(patch.side ?? plan.side ?? '').toUpperCase();
+  const type = String(patch.orderType ?? plan.orderType ?? 'market');
   const normalized = { ...patch };
 
   if (Object.prototype.hasOwnProperty.call(patch, 'entry')) {
