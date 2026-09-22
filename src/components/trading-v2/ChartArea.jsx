@@ -507,7 +507,7 @@ export default function ChartArea({
   const heightClass = oscillatorCount ? (oscillatorCount > 1 ? 'h-[500px] md:h-[580px]' : 'h-[430px] md:h-[520px]') : 'h-[360px] md:h-[460px]';
   const toolbarVisible = !hideToolbar && drawingToolbarOpen;
   const areaClass = drawingToolbarOverlay
-    ? `relative grid ${heightClass} grid-cols-[minmax(0,1fr)] bg-black px-0 pb-2`
+    ? `relative grid ${heightClass} grid-cols-[minmax(0,1fr)] bg-black pb-2 pl-3`
     : embedded
       ? `grid h-full min-h-0 ${!toolbarVisible ? 'grid-cols-[minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} gap-1.5`
       : focusMode
