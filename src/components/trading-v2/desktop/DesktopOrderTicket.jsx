@@ -68,8 +68,8 @@ function FieldMetric({ label, value, tone = 'default' }) {
         : 'text-[#E6EDF3]';
   return (
     <div className="min-w-0">
-      <span className="block text-[8px] font-semibold uppercase tracking-[0.075em] text-[#6F8191]">{label}</span>
-      <strong className={`mt-0.5 block truncate font-mono text-[10px] font-semibold tabular-nums ${toneClass}`}>{value}</strong>
+      <span className="block text-[9px] font-semibold uppercase tracking-[0.07em] text-[#6F8191]">{label}</span>
+      <strong className={`mt-0.5 block truncate font-mono text-[11px] font-semibold tabular-nums ${toneClass}`}>{value}</strong>
     </div>
   );
 }
@@ -677,7 +677,7 @@ export default function DesktopOrderTicket({
 
         <div className="rounded-md border border-white/[0.06] bg-[#0C1013] p-2">
           <div className="mb-1.5 flex items-center justify-between">
-            <strong className="text-[8px] font-bold uppercase tracking-[0.08em] text-[#A1AFBC]">Position size</strong>
+            <strong className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#A1AFBC]">Position size</strong>
             <span className="text-[8px] text-[#6F8191]">{minVolume}–{maxVolume} lots</span>
           </div>
           <div className="grid grid-cols-[34px_minmax(0,1fr)_34px] items-center rounded-md border border-white/[0.06] bg-black">
@@ -782,7 +782,7 @@ export default function DesktopOrderTicket({
 
         <div className="rounded-md border border-white/[0.06] bg-[#0C1013] p-2">
           <div className="mb-1.5 flex items-center justify-between">
-            <strong className="text-[8px] font-bold uppercase tracking-[0.08em] text-[#A1AFBC]">Protection</strong>
+            <strong className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#A1AFBC]">Protection</strong>
             {pendingPlan && <div className="flex items-center gap-1.5"><span className={`text-[8px] font-black ${selectedSide === 'buy' ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{selectedSide === 'buy' ? 'LONG' : 'SHORT'}</span><button type="button" onClick={onCancelPlan} className="grid size-5 place-items-center rounded text-[#6F8191] hover:bg-white/[0.04] hover:text-white" aria-label="Cancel trade plan"><X size={10}/></button></div>}
           </div>
 
@@ -791,7 +791,7 @@ export default function DesktopOrderTicket({
               <div className="flex h-7 items-center justify-between">
                 <button type="button" onClick={() => enableProtection('sl')} className="flex min-w-0 flex-1 items-center gap-2 text-left">
                   <span className={`grid size-3.5 place-items-center rounded border text-[8px] ${hasStopLoss ? 'border-[#8e3b49] bg-[#331017] text-[#FF6F7A]' : 'border-white/[0.12] text-transparent'}`}>✓</span>
-                  <span className="text-[8px] font-bold text-[#DCE6EE]">Stop Loss</span>
+                  <span className="text-[9px] font-bold text-[#DCE6EE]">Stop Loss</span>
                   {hasStopLoss && <span className="truncate font-mono text-[8px] text-[#FF6F7A]">{Number.isFinite(planMetrics?.riskAmount) ? `-${money(Math.abs(planMetrics.riskAmount),currency)}` : '—'}</span>}
                 </button>
                 <button type="button" onClick={() => enableProtection('sl')} className="text-[8px] font-bold text-[#8295A7] hover:text-white">{hasStopLoss ? 'Edit' : 'Add'}</button>
@@ -809,7 +809,7 @@ export default function DesktopOrderTicket({
               <div className="flex h-7 items-center justify-between">
                 <button type="button" onClick={() => enableProtection('tp')} className="flex min-w-0 flex-1 items-center gap-2 text-left">
                   <span className={`grid size-3.5 place-items-center rounded border text-[8px] ${hasTakeProfit ? 'border-[#286b52] bg-[#0a281d] text-[#42D7A1]' : 'border-white/[0.12] text-transparent'}`}>✓</span>
-                  <span className="text-[8px] font-bold text-[#DCE6EE]">Take Profit</span>
+                  <span className="text-[9px] font-bold text-[#DCE6EE]">Take Profit</span>
                   {hasTakeProfit && <span className="truncate font-mono text-[8px] text-[#42D7A1]">{Number.isFinite(planMetrics?.reward) ? `+${money(Math.abs(planMetrics.reward),currency)}` : '—'}</span>}
                 </button>
                 <button type="button" onClick={() => enableProtection('tp')} className="text-[8px] font-bold text-[#8295A7] hover:text-white">{hasTakeProfit ? 'Edit' : 'Add'}</button>
