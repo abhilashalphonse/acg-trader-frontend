@@ -63,17 +63,26 @@ function lineStyle(drawing, selected) {
 function Handle({ point, onPointerDown }) {
   if (!point) return null;
   return (
-    <circle
-      cx={point.x}
-      cy={point.y}
-      r="5"
-      fill="#000000"
-      stroke="#7bd4ff"
-      strokeWidth="2"
-      vectorEffect="non-scaling-stroke"
-      className="pointer-events-auto cursor-grab"
-      onPointerDown={onPointerDown}
-    />
+    <g>
+      <circle
+        cx={point.x}
+        cy={point.y}
+        r="14"
+        fill="transparent"
+        className="pointer-events-auto cursor-grab"
+        onPointerDown={onPointerDown}
+      />
+      <circle
+        cx={point.x}
+        cy={point.y}
+        r="5"
+        fill="#000000"
+        stroke="#7bd4ff"
+        strokeWidth="2"
+        vectorEffect="non-scaling-stroke"
+        className="pointer-events-none"
+      />
+    </g>
   );
 }
 

@@ -70,7 +70,7 @@ export default function MobileTradingHeader({
   const openPositionsCount = Math.max(0, Number(positionsCount) || 0);
 
   return (
-    <header className="acg-mobile-metal-surface grid h-[44px] w-full shrink-0 grid-cols-[minmax(0,1fr)_60px_84px_58px] bg-[#0b0b0d]">
+    <header className="acg-mobile-metal-surface grid h-[calc(44px+env(safe-area-inset-top))] w-full shrink-0 grid-cols-[minmax(0,1fr)_60px_84px_58px] bg-[#0b0b0d] pt-[env(safe-area-inset-top)]">
       <div className="relative flex min-w-0 items-center px-1">
         <button
           type="button"
@@ -84,7 +84,7 @@ export default function MobileTradingHeader({
               <strong className="truncate text-[10px] font-black tracking-[-0.025em] text-[#f4f6f8] min-[360px]:text-[10.5px]">{symbol || '—'}</strong>
               <ChevronDown size={10} className="shrink-0 text-[#8d99a4]" strokeWidth={2.2}/>
             </div>
-            <div className="mt-0.5 flex items-center gap-1.5 text-[5.8px] font-bold uppercase tracking-[0.055em]">
+            <div className="mt-0.5 flex items-center gap-1.5 text-[7px] font-bold uppercase tracking-[0.055em]">
               <span className="text-[#687783]">{category}</span>
               <span className={marketStatus === 'LIVE' ? 'text-[#31d79b]' : 'text-[#7e8993]'}>{marketStatus}</span>
             </div>
@@ -95,9 +95,9 @@ export default function MobileTradingHeader({
           type="button"
           onClick={onFavorite}
           aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
-          className={`grid size-5 shrink-0 place-items-center active:scale-95 ${favorite ? 'text-[#f6c95d]' : 'text-[#65747f]'}`}
+          className={`grid size-8 shrink-0 place-items-center active:scale-95 ${favorite ? 'text-[#f6c95d]' : 'text-[#65747f]'}`}
         >
-          <Star size={10} fill={favorite ? 'currentColor' : 'none'} strokeWidth={1.8}/>
+          <Star size={12} fill={favorite ? 'currentColor' : 'none'} strokeWidth={1.8}/>
         </button>
 
         <span className="absolute bottom-0 left-1 right-1 h-0.5 bg-[#53c7ff]" />
@@ -117,11 +117,11 @@ export default function MobileTradingHeader({
             </span>
           )}
         </span>
-        <span className="mt-[2px] text-[6.5px] font-black uppercase tracking-[0.07em] text-[#aeb9c2]">Trades</span>
+        <span className="mt-[2px] text-[7.5px] font-black uppercase tracking-[0.07em] text-[#aeb9c2]">Trades</span>
       </button>
 
       <div className="flex min-w-0 flex-col items-center justify-center px-1">
-        <span className="rounded-[2px] bg-white/[0.10] px-1.5 py-[1px] text-[6px] font-black uppercase leading-none tracking-[0.09em] text-[#dfe6ec]">P&amp;L</span>
+        <span className="rounded-[2px] bg-white/[0.10] px-1.5 py-[1px] text-[7px] font-black uppercase leading-none tracking-[0.09em] text-[#dfe6ec]">P&amp;L</span>
         <strong className={`mt-[3px] max-w-full truncate font-mono text-[10.5px] font-black leading-none tabular-nums tracking-[-0.045em] min-[360px]:text-[11px] ${pnlTone}`}>{money(pnl, account?.currency || 'USD')}</strong>
       </div>
 

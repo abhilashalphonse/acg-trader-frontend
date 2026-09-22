@@ -19,6 +19,9 @@ export default function MarketPanel({
   tradePlan,
   tradePlanLots,
   accountCurrency = 'USD',
+  account = null,
+  riskPercent = 0.5,
+  onCreateRiskOrder = () => {},
   onTradePlanChange,
   indicators = [],
   onSelectInstrument = () => {},
@@ -33,7 +36,7 @@ export default function MarketPanel({
   compactMobileToolbar = false,
   fillAvailableHeight = false,
 }) {
-  const [drawingToolbarOpen, setDrawingToolbarOpen] = useState(true);
+  const [drawingToolbarOpen, setDrawingToolbarOpen] = useState(false);
 
   return (
     <section className={`overflow-hidden ${fillAvailableHeight ? 'flex h-full min-h-0 flex-col' : ''} ${compactMobileToolbar ? 'acg-mobile-metal-surface border-0 bg-[#0b0b0d]' : 'border border-white/[0.08] bg-black'}`}>
@@ -49,7 +52,6 @@ export default function MarketPanel({
         drawingsOpen={drawingToolbarOpen}
         onToggleDrawings={() => setDrawingToolbarOpen(value => !value)}
         compactMobile={compactMobileToolbar}
-        disabled={Boolean(tradePlan && !tradePlan.open)}
       />
       <ChartArea
         symbol={market.symbol}
@@ -64,6 +66,9 @@ export default function MarketPanel({
         tradePlan={tradePlan}
         tradePlanLots={tradePlanLots}
         accountCurrency={accountCurrency}
+        account={account}
+        riskPercent={riskPercent}
+        onCreateRiskOrder={onCreateRiskOrder}
         onTradePlanChange={onTradePlanChange}
         onUpdatePosition={onUpdatePosition}
         onClosePosition={onClosePosition}

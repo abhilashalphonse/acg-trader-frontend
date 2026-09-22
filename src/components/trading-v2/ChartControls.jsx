@@ -42,7 +42,7 @@ export default function ChartControls({
               type="button"
               disabled={disabled}
               onClick={() => onTimeframe(tf)}
-              className={`grid h-8 min-w-0 flex-1 place-items-center rounded text-[9px] font-bold transition ${timeframe === tf ? 'text-[#f5f5f5]' : 'text-[#85858d] hover:text-[#d9d9de]'}`}
+              className={`grid h-8 min-w-0 flex-1 place-items-center rounded text-[10px] font-bold transition ${timeframe === tf ? 'text-[#f5f5f5]' : 'text-[#85858d] hover:text-[#d9d9de]'}`}
             >
               {tf}
             </button>
@@ -118,6 +118,18 @@ export default function ChartControls({
         <button type="button" disabled={disabled} onClick={onIndicators} aria-label="Indicators" className={`grid h-full ${focusMode ? 'w-8 text-[15px]' : 'w-9 text-[17px]'} place-items-center font-medium italic text-[#8799ad] active:bg-[#101010] active:text-[#5bc8ff]`}>
           ƒx
         </button>
+        {focusMode && (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onToggleDrawings}
+            aria-label={drawingsOpen ? 'Hide drawing tools' : 'Show drawing tools'}
+            aria-pressed={drawingsOpen}
+            className={`grid h-full w-9 place-items-center ${drawingsOpen ? 'bg-[#101010] text-[#5bc8ff]' : 'text-[#75879b]'}`}
+          >
+            <Pencil size={16}/>
+          </button>
+        )}
       </div>
 
       <button type="button" aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'} onClick={onFullscreen} className={fullScreenClass}>

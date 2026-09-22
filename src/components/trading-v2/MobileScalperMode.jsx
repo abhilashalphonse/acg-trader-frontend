@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import ChartControls, { mapTimeframe } from './ChartControls.jsx';
 import ChartArea from './ChartArea.jsx';
@@ -36,6 +36,7 @@ export default function MobileScalperMode({
   onModifyPlan,
   onManualOrder,
   onTradePlanChange,
+  onCreateRiskOrder = () => {},
   positions = [],
   pendingOrders = [],
   onModifyPending = () => {},
@@ -50,6 +51,7 @@ export default function MobileScalperMode({
   exposureBlockReason = 'New exposure is temporarily unavailable',
   onExit,
 }) {
+  const [drawingToolbarOpen, setDrawingToolbarOpen] = useState(false);
   const pipSize = Number(market?.pipSize);
   const bid = Number(market?.bid);
   const ask = Number(market?.ask);
@@ -78,11 +80,11 @@ export default function MobileScalperMode({
       </header>
 
       <div className="acg-mobile-metal-surface shrink-0 bg-[#0b0b0d] pt-2">
-        <ChartControls timeframe={timeframe} onTimeframe={setTimeframe} chartMode={chartMode} onChartMode={setChartMode} fullscreen onFullscreen={onExit} onIndicators={onIndicators} focusMode disabled={Boolean(tradePlan && !tradePlan.open)} />
+        <ChartControls timeframe={timeframe} onTimeframe={setTimeframe} chartMode={chartMode} onChartMode={setChartMode} fullscreen onFullscreen={onExit} onIndicators={onIndicators} focusMode drawingsOpen={drawingToolbarOpen} onToggleDrawings={() => setDrawingToolbarOpen(value => !value)} />
       </div>
 
       <div className="acg-mobile-chart-surface min-h-0 flex-1 bg-[#0b0b0d]">
-        <ChartArea symbol={market?.symbol} instrument={market} chartTimeframe={mapTimeframe(timeframe)} tick={tick} price={market?.bid} ask={market?.ask} chartMode={chartMode} selectedTool={selectedTool} onSelectTool={tradePlan && !tradePlan.open ? () => {} : setSelectedTool} focusMode tradePlan={tradePlan} tradePlanLots={tradePlanLots} accountCurrency={account?.currency || 'USD'} onTradePlanChange={onTradePlanChange} indicators={indicators} positions={positions} pendingOrders={pendingOrders} onModifyPending={onModifyPending} onCancelPending={onCancelPending} onUpdatePosition={onUpdatePosition} onClosePosition={onClosePosition} />
+        <ChartArea symbol={market?.symbol} instrument={market} chartTimeframe={mapTimeframe(timeframe)} tick={tick} price={market?.bid} ask={market?.ask} chartMode={chartMode} selectedTool={selectedTool} onSelectTool={tradePlan && !tradePlan.open ? () => {} : setSelectedTool} focusMode tradePlan={tradePlan} tradePlanLots={tradePlanLots} accountCurrency={account?.currency || 'USD'} account={account} riskPercent={riskPercent} onCreateRiskOrder={onCreateRiskOrder} onTradePlanChange={onTradePlanChange} indicators={indicators} positions={positions} pendingOrders={pendingOrders} onModifyPending={onModifyPending} onCancelPending={onCancelPending} onUpdatePosition={onUpdatePosition} onClosePosition={onClosePosition} drawingToolbarOpen={drawingToolbarOpen} />
       </div>
 
       <div className="shrink-0"><PropRiskStrip account={account} plannedRisk={plannedRisk} compact /></div>

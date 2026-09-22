@@ -11,7 +11,7 @@ import MobileTradesSheet from '../components/trading-v2/MobileTradesSheet.jsx';
 import MobileAccountSheet from '../components/trading-v2/MobileAccountSheet.jsx';
 import { useTradingTerminal } from '../hooks/useTradingTerminal.js';
 import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
-import { calculateRiskOrderSizing, defaultPlannerStopDistance, estimateStopRisk } from '../utils/tradingRisk.js';
+import { calculateRiskOrderSizing, defaultPlannerStopDistance, estimateStopRisk, evaluateRiskToolSetup } from '../utils/tradingRisk.js';
 import { exposureAvailability } from '../utils/exposureAvailability.js';
 import {
   normalizePriceToTick,
@@ -356,6 +356,93 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     setTradePlan({ symbol: market?.symbol, side, entry, sl, tp, limitPrice, marketPrice, orderType: requestedType, pending, sizingMode, manualLots: lots, expiration: 'GTC', stage: 'planning', open: false });
   };
 
+
+  const createPlanFromRiskTool = setup => {
+    if (!setup?.symbol || !setup?.side) return;
+    const instrument = markets.find(item => item.symbol === setup.symbol) || (market?.symbol === setup.symbol ? market : null);
+    if (!instrument) {
+      showNotice('Instrument is unavailable for this risk setup');
+      return;
+    }
+
+    const side = String(setup.side).toLowerCase();
+    if (!['buy', 'sell'].includes(side)) return;
+    const livePrice = Number(side === 'buy' ? instrument.ask : instrument.bid);
+    if (!Number.isFinite(livePrice) || livePrice <= 0) {
+      showNotice('Live market price is unavailable — risk setup was not loaded');
+      return;
+    }
+
+    const rawEntry = Number(setup.entry);
+    const rawSl = Number(setup.sl);
+    const rawTp = Number(setup.tp);
+    const numericRisk = Math.max(0.1, Math.min(5, Number(setup.riskPercent) || riskPercent));
+    const evaluation = evaluateRiskToolSetup({
+      plan: { entry: rawEntry, sl: rawSl, tp: rawTp, side },
+      riskPercent: numericRisk,
+      account,
+      instrument,
+    });
+    if (!evaluation.canCreateOrder) {
+      showNotice(evaluation.message || 'Risk setup cannot create an order');
+      return;
+    }
+
+    const tickSize = Number(instrument.tickSize) > 0 ? Number(instrument.tickSize) : Number(instrumentPipSize(instrument));
+    const nearMarket = Number.isFinite(tickSize) && tickSize > 0 && Math.abs(rawEntry - livePrice) <= tickSize * 1.5;
+    let nextOrderType = 'market';
+    if (!nearMarket) {
+      if (side === 'buy') nextOrderType = rawEntry < livePrice ? 'limit' : 'stop';
+      else nextOrderType = rawEntry > livePrice ? 'limit' : 'stop';
+    }
+
+    const sideUpper = side.toUpperCase();
+    const entry = nextOrderType === 'market'
+      ? normalizePriceToTick(livePrice, instrument, 'nearest')
+      : normalizePriceToTick(rawEntry, instrument, pendingPriceDirection(nextOrderType, sideUpper, 'entry'));
+    const sl = normalizeProtectionPrice(rawSl, instrument, sideUpper, 'sl');
+    const tp = normalizeProtectionPrice(rawTp, instrument, sideUpper, 'tp');
+    const sizedLots = Number(evaluation.sizing?.requestedLots);
+    const normalizedLots = Number.isFinite(sizedLots) && sizedLots > 0
+      ? normalizeVolumeToStep(sizedLots, instrument)
+      : lots;
+
+    if (setup.symbol !== activeSymbol) onSelectSymbol(setup.symbol);
+    setRiskPercent(numericRisk);
+    setSizingMode('risk');
+    setOrderType(nextOrderType);
+    setLots(normalizedLots);
+    setTradePlan({
+      symbol: setup.symbol,
+      side,
+      entry,
+      sl,
+      tp,
+      limitPrice: null,
+      marketPrice: livePrice,
+      orderType: nextOrderType,
+      pending: nextOrderType !== 'market',
+      sizingMode: 'risk',
+      manualLots: normalizedLots,
+      expiration: 'GTC',
+      stage: 'ready',
+      open: false,
+      sourceDrawingId: setup.sourceDrawingId || null,
+    });
+    setSelectedTool('cursor');
+    setOverlay(null);
+    logEvent('planner', `${sideUpper} risk setup loaded from chart · ${numericRisk.toFixed(2)}% risk`, {
+      symbol: setup.symbol,
+      entry,
+      stopLoss: sl,
+      takeProfit: tp,
+      lots: normalizedLots,
+      riskPercent: numericRisk,
+      orderType: nextOrderType,
+    });
+    showNotice('Risk setup loaded into order planner — review and confirm');
+  };
+
   const cancelPlan = () => {
     if (tradePlan?.open && tradePlan.positionId) {
       void closePosition(tradePlan.positionId, 100);
@@ -585,7 +672,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       />
       <div className="flex min-h-0 flex-1 flex-col px-2 pt-[10px]">
         <div className="min-h-0 flex-1">
-          <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} accountCurrency={account.currency} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onClosePosition={closePosition} onSelectInstrument={() => setOverlay('markets')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} compactMobileToolbar fillAvailableHeight />
+          <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} accountCurrency={account.currency} account={account} riskPercent={riskPercent} onCreateRiskOrder={createPlanFromRiskTool} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onClosePosition={closePosition} onSelectInstrument={() => setOverlay('markets')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} compactMobileToolbar fillAvailableHeight />
         </div>
         <div className="mt-1.5 shrink-0">
           <ExecutionPanel
@@ -621,7 +708,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     <div className="min-h-dvh bg-black font-sans text-[#f5f8fb] antialiased">
       <main ref={shellRef} className="relative mx-auto h-dvh w-full max-w-[460px] overflow-hidden overscroll-none bg-black">
         {chartFocus ? (
-          <MobileScalperMode market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} lots={lots} setLots={setLots} sizingMode={sizingMode} setSizingMode={setSizingMode} riskPercent={riskPercent} setRiskPercent={setRiskPercent} orderType={orderType} setOrderType={setOrderType} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onClosePosition={closePosition} onIndicators={() => setOverlay('indicators')} indicators={indicators} account={account} plannedRisk={plannedRisk} exposureAllowed={exposure.allowed} exposureBlockReason={exposure.reason} onExit={exitChartFocus} />
+          <MobileScalperMode market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} lots={lots} setLots={setLots} sizingMode={sizingMode} setSizingMode={setSizingMode} riskPercent={riskPercent} setRiskPercent={setRiskPercent} orderType={orderType} setOrderType={setOrderType} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} onCreateRiskOrder={createPlanFromRiskTool} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onClosePosition={closePosition} onIndicators={() => setOverlay('indicators')} indicators={indicators} account={account} plannedRisk={plannedRisk} exposureAllowed={exposure.allowed} exposureBlockReason={exposure.reason} onExit={exitChartFocus} />
         ) : chartContent}
 
         <ExecutionStatus event={executionEvent} instrument={market} onDismiss={() => setExecutionEvent(null)} />

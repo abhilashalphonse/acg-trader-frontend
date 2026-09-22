@@ -47,24 +47,23 @@ export default function MobileTradesSheet({
   };
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/55 px-2 backdrop-blur-[2px]" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/55 px-2 backdrop-blur-[2px]" onPointerDown={onClose}>
       <section
-        onMouseDown={event => event.stopPropagation()}
+        onPointerDown={event => event.stopPropagation()}
         className="mb-[max(8px,env(safe-area-inset-bottom))] flex h-[84dvh] w-full max-w-[444px] min-h-0 flex-col overflow-hidden rounded-t-[18px] border border-white/[0.08] bg-black shadow-[0_30px_90px_rgba(0,0,0,.7)]"
       >
-        <div className="mx-auto mt-1.5 h-1 w-9 shrink-0 rounded-full bg-white/[0.14]" aria-hidden="true" />
         <header className="shrink-0 border-b border-white/[0.06] bg-[#080808] px-3 pt-3">
           <div className="flex items-start justify-between gap-3 pb-2.5">
             <div>
               <h2 className="text-[17px] font-black tracking-[-0.035em] text-[#f3f7fb]">Trades</h2>
-              <p className="mt-0.5 text-[8px] text-[#667b8e]">Positions, pending orders and executed history.</p>
+              <p className="mt-0.5 text-[9px] text-[#667b8e]">Positions, pending orders and executed history.</p>
             </div>
             <div className="flex items-center gap-2">
               <div className="text-right">
-                <span className="block text-[6.5px] font-bold uppercase tracking-[0.09em] text-[#616f7b]">P&amp;L</span>
-                <b className={`mt-1 block font-mono text-[9px] font-black tabular-nums ${pnlTone}`}>{money(pnl, account?.currency || 'USD')}</b>
+                <span className="block text-[7.5px] font-bold uppercase tracking-[0.09em] text-[#616f7b]">P&amp;L</span>
+                <b className={`mt-1 block font-mono text-[10px] font-black tabular-nums ${pnlTone}`}>{money(pnl, account?.currency || 'USD')}</b>
               </div>
-              <button type="button" onClick={onClose} className="grid size-8 place-items-center rounded-md border border-white/[0.06] bg-[#101010] text-[#91a0ad]" aria-label="Close trades"><X size={15}/></button>
+              <button type="button" onClick={onClose} className="grid size-9 place-items-center rounded-md border border-white/[0.06] bg-[#101010] text-[#91a0ad]" aria-label="Close trades"><X size={15}/></button>
             </div>
           </div>
 
@@ -78,7 +77,7 @@ export default function MobileTradesSheet({
                 key={id}
                 type="button"
                 onClick={() => setTab(id)}
-                className={`relative h-9 text-[8px] font-black uppercase tracking-[0.07em] ${tab === id ? 'text-[#e8f2f8]' : 'text-[#62778a]'}`}
+                className={`relative h-10 text-[9px] font-black uppercase tracking-[0.07em] ${tab === id ? 'text-[#e8f2f8]' : 'text-[#62778a]'}`}
               >
                 {label}
                 {tab === id && <span className="absolute bottom-0 left-1/2 h-0.5 w-8 -translate-x-1/2 bg-[#53c7ff]" />}
