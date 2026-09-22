@@ -204,7 +204,6 @@ function PendingOrderOverlay({
         const side = String(order.side || '').toUpperCase();
         const type = String(order.orderType || '').replace('-', ' ').toUpperCase();
         const lots = Number(order.volume ?? order.lots);
-        const sideColor = side === 'BUY' ? '#3bd9a3' : '#ff6c78';
         const secondary = order.orderType === 'stop-limit' && Number.isFinite(Number(order.limitPrice))
           ? Number(order.limitPrice)
           : null;
