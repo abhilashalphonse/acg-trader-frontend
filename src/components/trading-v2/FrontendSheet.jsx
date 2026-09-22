@@ -66,7 +66,7 @@ export default function FrontendSheet({
     setVisibleMarketLimit(60);
   }, [marketGroupFilter, query, type]);
 
-  const titleMap = { search: 'Search markets', notifications: 'Notifications', profile: 'Account', instruments: 'Select instrument', indicators: 'Indicators', watchlist: 'Watchlist', markets: 'Markets', history: 'History', more: 'Terminal', help: 'Help & support' };
+  const titleMap = { search: 'Search markets', notifications: 'Notifications', profile: 'Account', instruments: 'Select instrument', indicators: 'Indicators', watchlist: 'Watchlist', markets: 'Markets', history: 'History', more: 'Terminal', platform: 'Platform settings', help: 'Help & support' };
 
   const renderMarkets = favoritesOnly => {
     const watched = new Set(watchlists?.activeSymbols || []);
@@ -147,7 +147,7 @@ export default function FrontendSheet({
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/55 px-2 backdrop-blur-[2px]" onMouseDown={onClose}>
       <section onMouseDown={event => event.stopPropagation()} className={`${isMarketSheet ? 'flex h-[84dvh] min-h-0 flex-col bg-black' : isIndicators ? 'max-h-[90dvh] bg-[#080808]' : 'max-h-[84dvh] bg-[#080808]'} mb-[max(8px,env(safe-area-inset-bottom))] w-full max-w-[444px] overflow-hidden rounded-[24px] border border-white/[0.08] shadow-[0_30px_90px_rgba(0,0,0,.65)]`}>
-        <header className={`flex shrink-0 items-start justify-between gap-3 border-b border-white/[0.08] ${isMarketSheet ? 'bg-black px-4 pb-4 pt-4' : 'px-4 py-3.5'}`}><div><h2 className={`${isMarketSheet ? 'text-[20px] tracking-[-0.035em]' : 'text-[15px]'} font-black text-[#f3f7fb]`}>{titleMap[type] || 'ACG Trader'}</h2><p className={`${isMarketSheet ? 'mt-1 text-[9px] text-[#718397]' : 'mt-0.5 text-[9px] text-[#6e8195]'}`}>{isIndicators ? 'Technical studies · live chart' : type === 'more' ? 'Profiles, preferences and shortcuts' : type === 'notifications' ? 'Terminal and risk alerts' : type === 'profile' ? 'Trading account summary' : type === 'help' ? 'Using ACG Trader' : 'Markets and terminal tools'}</p></div><button type="button" onClick={onClose} className="grid size-9 place-items-center rounded-md border border-white/[0.08] bg-[#101010] text-[#93a6b8]"><X size={17}/></button></header>
+        <header className={`flex shrink-0 items-start justify-between gap-3 border-b border-white/[0.08] ${isMarketSheet ? 'bg-black px-4 pb-4 pt-4' : 'px-4 py-3.5'}`}><div><h2 className={`${isMarketSheet ? 'text-[20px] tracking-[-0.035em]' : 'text-[15px]'} font-black text-[#f3f7fb]`}>{titleMap[type] || 'ACG Trader'}</h2><p className={`${isMarketSheet ? 'mt-1 text-[9px] text-[#718397]' : 'mt-0.5 text-[9px] text-[#6e8195]'}`}>{isIndicators ? 'Technical studies · live chart' : type === 'more' ? 'Profiles, preferences and shortcuts' : type === 'platform' ? 'Terminal preferences and trading profiles' : type === 'notifications' ? 'Terminal and risk alerts' : type === 'profile' ? 'Trading account summary' : type === 'help' ? 'Using ACG Trader' : 'Markets and terminal tools'}</p></div><button type="button" onClick={onClose} className="grid size-9 place-items-center rounded-md border border-white/[0.08] bg-[#101010] text-[#93a6b8]"><X size={17}/></button></header>
         <div className={`${isMarketSheet ? 'flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-3 pt-2' : isIndicators ? 'max-h-[calc(90dvh-70px)] overflow-y-auto p-3' : 'max-h-[calc(84dvh-70px)] overflow-y-auto p-3'} [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
           {message && <div className="mb-3 rounded-md border border-white/[0.08] bg-[#101010] px-3 py-2.5 text-[9px] leading-4 text-[#a9c5d8]">{message}</div>}
           {isMarketSheet && (
@@ -182,6 +182,27 @@ export default function FrontendSheet({
                 <div className="flex items-center gap-2"><Settings size={14} className="text-[#7d91a5]"/><b className="text-[10px] text-[#dbe5ed]">Saved terminal preferences</b></div>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-[8px]"><Pref label="Timeframe" value={terminalPrefs.timeframe || '1m'}/><Pref label="Chart" value={terminalPrefs.chartMode || 'candles'}/><Pref label="Sizing" value={terminalPrefs.sizingMode || 'lots'}/><Pref label="Risk" value={`${Number(terminalPrefs.riskPercent || 0.5).toFixed(2)}%`}/><Pref label="Lots" value={Number(terminalPrefs.lots || 0.1).toFixed(2)}/><Pref label="Order" value={terminalPrefs.orderType || 'market'}/></div>
               </section></div>
+          )}
+          {type === 'platform' && (
+            <div className="space-y-4">
+              <section>
+                <div className="mb-2 px-1"><b className="text-[9px] uppercase tracking-[0.12em] text-[#6b8195]">Terminal preferences</b></div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Pref label="Timeframe" value={terminalPrefs.timeframe || '1m'}/>
+                  <Pref label="Chart" value={terminalPrefs.chartMode || 'candles'}/>
+                  <Pref label="Sizing" value={terminalPrefs.sizingMode || 'lots'}/>
+                  <Pref label="Risk" value={`${Number(terminalPrefs.riskPercent || 0.5).toFixed(2)}%`}/>
+                  <Pref label="Lots" value={Number(terminalPrefs.lots || 0.1).toFixed(2)}/>
+                  <Pref label="Order" value={terminalPrefs.orderType || 'market'}/>
+                </div>
+                <p className="mt-2 px-1 text-[8px] leading-4 text-[#60758a]">These preferences are saved automatically as you trade.</p>
+              </section>
+
+              <section>
+                <div className="mb-2 flex items-center justify-between px-1"><b className="text-[9px] uppercase tracking-[0.12em] text-[#6b8195]">Trading profiles</b><span className="text-[8px] text-[#52687b]">One tap setup</span></div>
+                <div className="grid grid-cols-2 gap-2">{tradingProfiles.map(profile => <button key={profile.id} type="button" onClick={() => { onApplyTradingProfile(profile); setMessage(`${profile.name} profile applied.`); }} className="rounded-md border border-white/[0.08] bg-[#080808] p-3 text-left active:bg-[#101010]"><b className="text-[10px] text-[#edf3f7]">{profile.name}</b><p className="mt-1.5 text-[8px] leading-4 text-[#6f8396]">{profile.description}</p></button>)}</div>
+              </section>
+            </div>
           )}
            {type === 'help' && <div className="space-y-2"><div className="rounded-lg border border-white/[0.08] bg-[#080808] p-4"><b className="text-[11px] text-[#edf3f7]">Trading help</b><p className="mt-2 text-[9px] leading-4 text-[#71869a]">Use Search to find markets, Chart to place and manage trades, Trade for positions and orders, and History for completed activity.</p></div><div className="rounded-lg border border-white/[0.08] bg-[#080808] p-4"><b className="text-[11px] text-[#edf3f7]">Account or challenge support</b><p className="mt-2 text-[9px] leading-4 text-[#71869a]">Account, payment and challenge support is handled from your ACG Funded account.</p></div></div>}
        </div>
