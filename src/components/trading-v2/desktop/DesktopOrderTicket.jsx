@@ -862,23 +862,27 @@ export default function DesktopOrderTicket({
           )}
         </div>
 
-        <div className="grid grid-cols-3 gap-x-3 gap-y-2 rounded-md border border-white/[0.06] bg-black/35 px-2 py-2">
-          <FieldMetric label="Spread" value={Number.isFinite(spreadPips) ? `${spreadPips.toFixed(1)}p` : '—'} />
-          <FieldMetric label="Commission" value={formatCommission(market?.commissionPerLotPerSide ?? market?.commissionPerLot, market?.commissionRate)} />
-          <FieldMetric label="Pricing" value={market?.pricingModel === 'ACG_DYNAMIC' ? 'Dynamic' : market?.pricingModel || '—'} tone={market?.pricingModel === 'ACG_DYNAMIC' ? 'accent' : 'default'} />
-          <FieldMetric label="Leverage" value={effectiveLeverage(account, market) ? `1:${effectiveLeverage(account, market)}` : '—'} />
-          <FieldMetric label="Margin" value={money(previewMargin, currency)} />
-          <FieldMetric label="Free after" value={money(freeAfter, currency)} tone={Number.isFinite(freeAfter) && freeAfter < 0 ? 'danger' : 'default'} />
-          <FieldMetric
-            label="Risk at SL"
-            value={Number.isFinite(planMetrics?.riskAmount) ? money(planMetrics.riskAmount, currency) : '—'}
-            tone={activeTool === 'sl' ? 'danger' : Number.isFinite(riskBufferUsage) && riskBufferUsage >= 50 ? 'danger' : 'default'}
-          />
-          <FieldMetric
-            label="R:R"
-            value={Number.isFinite(planMetrics?.rr) ? `1:${planMetrics.rr.toFixed(2)}` : '—'}
-            tone={activeTool === 'sl' || activeTool === 'tp' ? 'accent' : 'default'}
-          />
+        <div className="rounded-md border border-white/[0.06] bg-black/35 px-2 py-2">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+            <FieldMetric label="Margin" value={money(previewMargin, currency)} />
+            <FieldMetric label="Free after" value={money(freeAfter, currency)} tone={Number.isFinite(freeAfter) && freeAfter < 0 ? 'danger' : 'default'} />
+            <FieldMetric
+              label="Risk at SL"
+              value={Number.isFinite(planMetrics?.riskAmount) ? money(planMetrics.riskAmount, currency) : '—'}
+              tone={activeTool === 'sl' ? 'danger' : Number.isFinite(riskBufferUsage) && riskBufferUsage >= 50 ? 'danger' : 'default'}
+            />
+            <FieldMetric
+              label="R:R"
+              value={Number.isFinite(planMetrics?.rr) ? `1:${planMetrics.rr.toFixed(2)}` : '—'}
+              tone={activeTool === 'sl' || activeTool === 'tp' ? 'accent' : 'default'}
+            />
+          </div>
+          <div className="mt-2 grid grid-cols-4 gap-2 border-t border-white/[0.05] pt-2">
+            <FieldMetric label="Spread" value={Number.isFinite(spreadPips) ? `${spreadPips.toFixed(1)}p` : '—'} />
+            <FieldMetric label="Commission" value={formatCommission(market?.commissionPerLotPerSide ?? market?.commissionPerLot, market?.commissionRate)} />
+            <FieldMetric label="Leverage" value={effectiveLeverage(account, market) ? `1:${effectiveLeverage(account, market)}` : '—'} />
+            <FieldMetric label="Pricing" value={market?.pricingModel === 'ACG_DYNAMIC' ? 'Dynamic' : market?.pricingModel || '—'} tone={market?.pricingModel === 'ACG_DYNAMIC' ? 'accent' : 'default'} />
+          </div>
         </div>
 
         {pendingPlan && (
