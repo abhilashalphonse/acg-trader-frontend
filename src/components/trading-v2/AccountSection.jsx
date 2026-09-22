@@ -1,8 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Bell, Camera, Check, ChevronRight, CircleHelp, Gauge, ImageOff, Save, Settings, ShieldCheck, SlidersHorizontal, UserRound } from 'lucide-react';
+import React from 'react';
+import { ChevronRight, CircleHelp, Gauge, ShieldCheck } from 'lucide-react';
 import { calculateAccountRiskSummary } from '../../utils/accountRisk.js';
-import { useTraderProfile } from '../../hooks/useTraderProfile.js';
-import { compressShareProfileImage } from '../../utils/profileImage.js';
 
 function money(value, currency = 'USD') {
   if (value === null || value === undefined || value === '') return '—';
@@ -29,58 +27,6 @@ function statusClass(status) {
 
 export default function AccountSection({ account = {}, onOpenSheet = () => {} }) {
   const currency = account.currency || 'USD';
-  const fileInputRef = useRef(null);
-  const { profile, loading: profileLoading, saving: profileSaving, error: profileError, save: saveProfile } = useTraderProfile();
-  const [profileDraft, setProfileDraft] = useState({
-    displayName: 'Trader',
-    sharePhotoDataUrl: null,
-    shareTemplate: 'PERFORMANCE',
-  });
-  const [profileNotice, setProfileNotice] = useState('');
-  const [imageBusy, setImageBusy] = useState(false);
-
-  useEffect(() => {
-    setProfileDraft({
-      displayName: profile.displayName || 'Trader',
-      sharePhotoDataUrl: profile.sharePhotoDataUrl || null,
-      shareTemplate: profile.shareTemplate === 'PHOTO' ? 'PHOTO' : 'PERFORMANCE',
-    });
-  }, [profile.displayName, profile.sharePhotoDataUrl, profile.shareTemplate]);
-
-  const choosePhoto = async event => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-    setImageBusy(true);
-    setProfileNotice('');
-    try {
-      const sharePhotoDataUrl = await compressShareProfileImage(file);
-      setProfileDraft(current => ({ ...current, sharePhotoDataUrl }));
-    } catch (error) {
-      setProfileNotice(error?.message || 'Unable to prepare this image.');
-    } finally {
-      setImageBusy(false);
-    }
-  };
-
-  const commitShareProfile = async () => {
-    const displayName = String(profileDraft.displayName || '').trim();
-    if (!displayName) {
-      setProfileNotice('Enter a display name.');
-      return;
-    }
-    setProfileNotice('');
-    try {
-      await saveProfile({
-        displayName,
-        sharePhotoDataUrl: profileDraft.sharePhotoDataUrl || null,
-        shareTemplate: profileDraft.shareTemplate === 'PHOTO' ? 'PHOTO' : 'PERFORMANCE',
-      });
-      setProfileNotice('Share profile saved.');
-    } catch (error) {
-      setProfileNotice(error?.message || 'Unable to save share profile.');
-    }
-  };
   const balance = Number(account.balance);
   const equity = Number(account.equity);
   const risk = calculateAccountRiskSummary(account);
@@ -118,55 +64,8 @@ export default function AccountSection({ account = {}, onOpenSheet = () => {} })
         <div className="grid grid-cols-2 gap-2"><Stat label="Floating P&L" value={money(account.floatingPnl, currency)}/><Stat label="Realized today" value={money(account.realizedPnlToday, currency)}/></div>
       </div>
 
-      <div className="mt-5 px-1"><h2 className="text-[11px] font-black text-[#e9f0f5]">Share profile</h2><p className="mt-1 text-[8px] text-[#60758a]">Used automatically when you share an open-position P&amp;L card.</p></div>
-      <div className="mt-2 border-y border-white/[0.08] bg-black px-1 py-3">
-        <div className="flex items-center gap-3">
-          <div className="relative size-16 shrink-0 overflow-hidden rounded-full border border-white/[0.12] bg-[#101010]">
-            {profileDraft.sharePhotoDataUrl
-              ? <img src={profileDraft.sharePhotoDataUrl} alt="" className="h-full w-full object-cover" />
-              : <div className="grid h-full w-full place-items-center text-[#737373]"><UserRound size={25}/></div>}
-          </div>
-          <div className="min-w-0 flex-1">
-            <label className="block text-[8px] font-bold uppercase tracking-[0.1em] text-[#737373]">Display name</label>
-            <input
-              value={profileDraft.displayName}
-              onChange={event => setProfileDraft(current => ({ ...current, displayName: event.target.value.slice(0, 64) }))}
-              maxLength={64}
-              placeholder="Trader"
-              className="mt-1.5 h-9 w-full rounded-md border border-white/[0.08] bg-[#101010] px-3 text-[10px] font-semibold text-[#f5f5f5] outline-none focus:border-white/[0.18]"
-            />
-          </div>
-        </div>
-
-        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={choosePhoto} />
-
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <button type="button" disabled={imageBusy} onClick={() => fileInputRef.current?.click()} className="flex h-9 items-center justify-center gap-2 rounded-md border border-white/[0.09] bg-black text-[9px] font-bold text-[#d4d4d4] disabled:opacity-40"><Camera size={13}/>{imageBusy ? 'Preparing…' : profileDraft.sharePhotoDataUrl ? 'Change photo' : 'Add photo'}</button>
-          <button type="button" disabled={!profileDraft.sharePhotoDataUrl} onClick={() => setProfileDraft(current => ({ ...current, sharePhotoDataUrl: null, shareTemplate: 'PERFORMANCE' }))} className="flex h-9 items-center justify-center gap-2 rounded-md border border-white/[0.09] bg-black text-[9px] font-bold text-[#a3a3a3] disabled:opacity-35"><ImageOff size={13}/>Remove</button>
-        </div>
-
-        <div className="mt-4">
-          <span className="block text-[8px] font-bold uppercase tracking-[0.1em] text-[#737373]">Share-card template</span>
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => setProfileDraft(current => ({ ...current, shareTemplate: 'PERFORMANCE' }))} className={`h-11 rounded-md border text-[9px] font-bold ${profileDraft.shareTemplate === 'PERFORMANCE' ? 'border-[#53c7ff] text-[#53c7ff]' : 'border-white/[0.08] text-[#a3a3a3]'}`}>Performance</button>
-            <button type="button" disabled={!profileDraft.sharePhotoDataUrl} onClick={() => setProfileDraft(current => ({ ...current, shareTemplate: 'PHOTO' }))} className={`h-11 rounded-md border text-[9px] font-bold disabled:opacity-35 ${profileDraft.shareTemplate === 'PHOTO' ? 'border-[#53c7ff] text-[#53c7ff]' : 'border-white/[0.08] text-[#a3a3a3]'}`}>Photo</button>
-          </div>
-          <p className="mt-2 text-[8px] leading-relaxed text-[#737373]">{profileDraft.shareTemplate === 'PHOTO' && profileDraft.sharePhotoDataUrl ? 'Your photo becomes the card background and avatar.' : 'Black ACG performance card with your photo used as the avatar.'}</p>
-        </div>
-
-        {(profileNotice || profileError) && <div className="mt-3 border-t border-white/[0.07] pt-2 text-[9px] text-[#a3a3a3]">{profileNotice || profileError?.message}</div>}
-
-        <button type="button" disabled={profileLoading || profileSaving || imageBusy} onClick={commitShareProfile} className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-md border border-white/[0.12] bg-[#101010] text-[10px] font-black text-[#f5f5f5] disabled:opacity-40">
-          {profileSaving ? <><Check size={13}/>Saving…</> : <><Save size={13}/>Save share profile</>}
-        </button>
-      </div>
-
-      <div className="mt-5 px-1"><h2 className="text-[11px] font-black text-[#e9f0f5]">Account &amp; platform</h2></div>
+      <div className="mt-5 px-1"><h2 className="text-[11px] font-black text-[#e9f0f5]">Help &amp; support</h2><p className="mt-1 text-[8px] text-[#60758a]">Trading and account assistance.</p></div>
       <div className="mt-2 overflow-hidden border-y border-white/[0.08] bg-[#080808]">
-        <Action icon={UserRound} label="Account details" subtitle="Profile and trading account" onClick={() => onOpenSheet('profile')} />
-        <Action icon={SlidersHorizontal} label="Trading preferences" subtitle="Profiles, sizing and chart defaults" onClick={() => onOpenSheet('more')} />
-        <Action icon={Bell} label="Notifications" subtitle="Price alerts and risk events" onClick={() => onOpenSheet('notifications')} />
-        <Action icon={Settings} label="Platform settings" subtitle="Appearance and terminal preferences" onClick={() => onOpenSheet('more')} />
         <Action icon={CircleHelp} label="Help & support" subtitle="Trading and account assistance" onClick={() => onOpenSheet('help')} last />
       </div>
     </section>
