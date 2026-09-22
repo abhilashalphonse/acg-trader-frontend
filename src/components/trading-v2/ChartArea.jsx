@@ -480,6 +480,8 @@ export default function ChartArea({
   onCreateRiskOrder = () => {},
   chartInstanceId = 'chart',
   drawingInteractionEnabled = true,
+  drawingToolbarOpen = true,
+  drawingToolbarOverlay = false,
 }) {
   const timeframeSeconds = secondsByTimeframe[chartTimeframe] || 60;
   const [remaining, setRemaining] = useState(() => timeframeSeconds - (Math.floor(Date.now() / 1000) % timeframeSeconds));
@@ -503,19 +505,24 @@ export default function ChartArea({
   }, [timeframeSeconds]);
 
   const heightClass = oscillatorCount ? (oscillatorCount > 1 ? 'h-[500px] md:h-[580px]' : 'h-[430px] md:h-[520px]') : 'h-[360px] md:h-[460px]';
-  const areaClass = embedded
-    ? `grid h-full min-h-0 ${hideToolbar ? 'grid-cols-[minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} gap-1.5`
-    : focusMode
-      ? 'grid h-full min-h-0 grid-cols-[36px_minmax(0,1fr)] gap-1.5 px-1.5 pb-1.5'
-      : `grid ${heightClass} grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2`;
+  const toolbarVisible = !hideToolbar && drawingToolbarOpen;
+  const areaClass = drawingToolbarOverlay
+    ? `relative grid ${heightClass} grid-cols-[minmax(0,1fr)] bg-black px-0 pb-2`
+    : embedded
+      ? `grid h-full min-h-0 ${!toolbarVisible ? 'grid-cols-[minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} gap-1.5`
+      : focusMode
+        ? 'grid h-full min-h-0 grid-cols-[36px_minmax(0,1fr)] gap-1.5 px-1.5 pb-1.5'
+        : `grid ${heightClass} grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2`;
 
-  const toolbarClass = focusMode || embedded
-    ? 'flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto bg-transparent py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
-    : 'flex min-h-0 flex-col items-center gap-0.5 bg-transparent py-1';
+  const toolbarClass = drawingToolbarOverlay
+    ? 'absolute left-1 top-1 z-40 flex max-h-[calc(100%-8px)] w-9 flex-col items-center gap-0.5 overflow-y-auto rounded-md border border-white/[0.08] bg-[#0d0d10]/95 py-1 shadow-[0_8px_30px_rgba(0,0,0,.45)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+    : focusMode || embedded
+      ? 'flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto bg-transparent py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+      : 'flex min-h-0 flex-col items-center gap-0.5 bg-transparent py-1';
 
   return (
     <div className={areaClass}>
-      {!hideToolbar && (
+      {toolbarVisible && (
         <aside className={toolbarClass} aria-label="Drawing tools">
           {toolGroups.map((group, groupIndex) => (
             <React.Fragment key={groupIndex}>

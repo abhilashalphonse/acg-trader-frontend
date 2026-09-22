@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import InstrumentHeader from './InstrumentHeader.jsx';
 import ChartControls, { mapTimeframe } from './ChartControls.jsx';
 import ChartArea from './ChartArea.jsx';
@@ -27,9 +27,12 @@ export default function MarketPanel({
   onCancelPending = () => {},
   onUpdatePosition = () => {},
   showInstrumentHeader = true,
+  compactMobileToolbar = false,
 }) {
+  const [drawingToolbarOpen, setDrawingToolbarOpen] = useState(false);
+
   return (
-    <section className="overflow-hidden border-y border-white/[0.08] bg-black">
+    <section className={`overflow-hidden border-y border-white/[0.08] ${compactMobileToolbar ? 'bg-[#0d0d10]' : 'bg-black'}`}>
       {showInstrumentHeader && <InstrumentHeader market={market} favorite={favorite} onFavorite={() => setFavorite(v => !v)} onSelectInstrument={onSelectInstrument} />}
       <ChartControls
         timeframe={timeframe}
@@ -39,6 +42,9 @@ export default function MarketPanel({
         fullscreen={fullscreen}
         onFullscreen={onFullscreen}
         onIndicators={onIndicators}
+        drawingsOpen={drawingToolbarOpen}
+        onToggleDrawings={() => setDrawingToolbarOpen(value => !value)}
+        compactMobile={compactMobileToolbar}
         disabled={Boolean(tradePlan && !tradePlan.open)}
       />
       <ChartArea
@@ -59,6 +65,8 @@ export default function MarketPanel({
         pendingOrders={pendingOrders}
         onModifyPending={onModifyPending}
         onCancelPending={onCancelPending}
+        drawingToolbarOpen={compactMobileToolbar ? drawingToolbarOpen : true}
+        drawingToolbarOverlay={compactMobileToolbar}
       />
     </section>
   );
