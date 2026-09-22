@@ -14,12 +14,13 @@ import useTradingHotkeys from '../hooks/useTradingHotkeys.js';
 import { useTradingTerminal } from '../hooks/useTradingTerminal.js';
 import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
 import { normalizePriceToTick, normalizeProtectionPrice, normalizeVolumeToStep, pendingPriceDirection } from '../utils/tradingCommandNormalization.js';
-import { estimateStopRisk, evaluateRiskToolSetup, resolveExecutionSizing } from '../utils/tradingRisk.js';
+import { estimateStopRisk, evaluateRiskToolSetup } from '../utils/tradingRisk.js';
 import { exposureAvailability } from '../utils/exposureAvailability.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../utils/instrumentFormatting.js';
 import { normalizeTradePlanPatch } from '../utils/tradePlanNormalization.js';
 import { DEFAULT_RISK_GUARD_SETTINGS, evaluateRiskGuard } from '../utils/riskGuard.js';
 import { createDefaultTradePlan, effectiveTradePlan, validateTradePlanForExecution } from '../utils/tradePlanExecution.js';
+import { estimateExecutionPrice, resolveExecutionPreview } from '../utils/executionPricing.js';
 
 const INDICATOR_STORAGE_KEY = 'acg-trader-indicators-v1';
 const INDICATOR_FAVORITES_KEY = 'acg-trader-indicator-favorites-v1';
@@ -680,10 +681,18 @@ export default function TradingTerminalV2({
     const planMarket = markets.find(item => item.symbol === planSymbol) || market;
     const planExposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market: planMarket, commandState: trading.commandState });
     if (!planExposure.allowed) { showNotice(planExposure.reason); return; }
-    const executionPlan = effectiveTradePlan(tradePlan, planMarket);
+    const baseExecutionPlan = effectiveTradePlan(tradePlan, planMarket);
+    const executionPreview = resolveExecutionPreview({
+      plan: baseExecutionPlan,
+      riskPercent,
+      manualLots: baseExecutionPlan.manualLots ?? lots,
+      account,
+      instrument: planMarket,
+    });
+    const executionPlan = executionPreview.plan || baseExecutionPlan;
+    const executionSizing = executionPreview.sizing;
     const planValidation = validateTradePlanForExecution(executionPlan, planMarket);
     if (!planValidation.valid) { showNotice(planValidation.message || 'Review the order before submitting'); return; }
-    const executionSizing = resolveExecutionSizing(executionPlan, riskPercent, executionPlan.manualLots ?? lots, account, planMarket);
     if (!executionSizing.canExecute || !Number.isFinite(Number(executionSizing.lots))) {
       const reason = executionSizing.blockReason === 'UNSUPPORTED_RISK_CURRENCY'
         ? 'Risk % sizing is unavailable because this instrument P&L requires currency conversion. Use Lots sizing.'
@@ -771,11 +780,14 @@ export default function TradingTerminalV2({
 
   const manualOrder = order => {
     if (trading.commandState.pending || !exposure.allowed) { if (!exposure.allowed) showNotice(exposure.reason); return; }
+    const instrument = markets.find(item => item.symbol === order.symbol) || market;
+    const executionLots = normalizeVolumeToStep(order.lots, instrument);
+    const executionPrice = estimateExecutionPrice(instrument, order.side, executionLots)?.price;
     void runMarketExecution({
       side: order.side,
-      executionLots: normalizeVolumeToStep(order.lots, markets.find(item => item.symbol === order.symbol) || market),
+      executionLots,
       symbol: order.symbol,
-      requestedPrice: order.price,
+      requestedPrice: Number.isFinite(Number(executionPrice)) ? Number(executionPrice) : order.price,
     });
   };
 
