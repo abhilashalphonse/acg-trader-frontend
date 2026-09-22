@@ -580,8 +580,74 @@ export default function DesktopOrderTicket({
         {orderFamily === 'pending' && (
           <div className="grid grid-cols-3 gap-1">
             {ORDER_TYPES.filter(([id]) => id !== 'market').map(([id, label]) => (
-              <button key={id} type="button" onClick={() => { onOrderTypeChange(id); if (tradePlan) onCancelPlan(); }} className={`h-7 rounded border text-[8px] font-semibold ${orderType === id ? 'border-[#6d5830] bg-[#171208] text-[#E7BD58]' : 'border-white/[0.06] bg-black text-[#6F8191] hover:text-white'}`}>{label}</button>
+              <button key={id} type="button" onClick={() => changePendingType(id)} className={`h-7 rounded border text-[9px] font-semibold ${orderType === id ? 'border-[#6d5830] bg-[#171208] text-[#E7BD58]' : 'border-white/[0.06] bg-black text-[#6F8191] hover:text-white'}`}>{label}</button>
             ))}
+          </div>
+        )}
+
+        {orderFamily === 'pending' && pendingPlan && (
+          <div className="rounded-md border border-white/[0.06] bg-[#0C1013] p-2">
+            <div className={`grid gap-2 ${orderType === 'stop-limit' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              <label className="min-w-0">
+                <span className="mb-1 block text-[9px] font-bold uppercase tracking-[0.06em] text-[#7D90A2]">{orderType === 'limit' ? 'Limit price' : 'Stop price'}</span>
+                <input
+                  value={formatInstrumentPrice(tradePlan?.entry, market, '')}
+                  onFocus={event => event.currentTarget.select()}
+                  onChange={event => {
+                    const numeric = Number(event.target.value.replace(/[^0-9.]/g, ''));
+                    if (Number.isFinite(numeric) && numeric > 0) onTradePlanChange({ entry: numeric, stage: 'ready' });
+                  }}
+                  inputMode="decimal"
+                  className="h-9 w-full rounded-md border border-white/[0.07] bg-black px-2.5 text-right font-mono text-[11px] font-bold text-[#E6EDF3] outline-none focus:border-[#315b72]"
+                  aria-label="Pending entry price"
+                />
+              </label>
+              {orderType === 'stop-limit' && (
+                <label className="min-w-0">
+                  <span className="mb-1 block text-[9px] font-bold uppercase tracking-[0.06em] text-[#7D90A2]">Limit price</span>
+                  <input
+                    value={formatInstrumentPrice(tradePlan?.limitPrice, market, '')}
+                    onFocus={event => event.currentTarget.select()}
+                    onChange={event => {
+                      const numeric = Number(event.target.value.replace(/[^0-9.]/g, ''));
+                      if (Number.isFinite(numeric) && numeric > 0) onTradePlanChange({ limitPrice: numeric, stage: 'ready' });
+                    }}
+                    inputMode="decimal"
+                    className="h-9 w-full rounded-md border border-white/[0.07] bg-black px-2.5 text-right font-mono text-[11px] font-bold text-[#E6EDF3] outline-none focus:border-[#315b72]"
+                    aria-label="Stop limit price"
+                  />
+                </label>
+              )}
+            </div>
+
+            <div className="mt-2">
+              <span className="mb-1 block text-[9px] font-bold uppercase tracking-[0.06em] text-[#7D90A2]">Expiry</span>
+              <div className="grid grid-cols-3 gap-1">
+                {['GTC', 'TODAY', 'SPECIFIED'].map(value => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => onTradePlanChange({
+                      expiration: value,
+                      ...(value === 'SPECIFIED' ? {} : { expirationAt: null }),
+                      stage: 'ready',
+                    })}
+                    className={`h-7 rounded border text-[8px] font-bold ${String(tradePlan?.expiration || 'GTC').toUpperCase() === value ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] bg-black text-[#718497] hover:text-white'}`}
+                  >
+                    {value === 'SPECIFIED' ? 'Specified' : value === 'TODAY' ? 'Today' : 'GTC'}
+                  </button>
+                ))}
+              </div>
+              {String(tradePlan?.expiration || 'GTC').toUpperCase() === 'SPECIFIED' && (
+                <input
+                  type="datetime-local"
+                  value={tradePlan?.expirationAt || ''}
+                  onChange={event => onTradePlanChange({ expirationAt: event.target.value, stage: 'ready' })}
+                  className="mt-1.5 h-8 w-full rounded-md border border-white/[0.07] bg-black px-2 font-mono text-[9px] text-[#DDE6ED] outline-none focus:border-[#315b72]"
+                  aria-label="Pending order expiry"
+                />
+              )}
+            </div>
           </div>
         )}
 
@@ -790,25 +856,6 @@ export default function DesktopOrderTicket({
             tone={activeTool === 'sl' || activeTool === 'tp' ? 'accent' : 'default'}
           />
         </div>
-
-        {pendingPlan && orderFamily === 'pending' && (
-          <div className="rounded-md border border-white/[0.06] bg-[#0C1013] px-2 py-1.5">
-            <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
-              <span className="text-[8px] font-semibold uppercase tracking-[0.06em] text-[#6F8191]">Entry price</span>
-              <input
-                value={formatInstrumentPrice(tradePlan?.entry, market, '')}
-                onFocus={event => event.currentTarget.select()}
-                onChange={event => {
-                  const numeric = Number(event.target.value.replace(/[^0-9.]/g, ''));
-                  if (Number.isFinite(numeric) && numeric > 0) onTradePlanChange({ entry: numeric, stage: 'ready' });
-                }}
-                inputMode="decimal"
-                className="h-7 min-w-0 rounded border border-white/[0.06] bg-black px-2 text-right font-mono text-[9px] font-bold text-[#E6EDF3] outline-none focus:border-[#315b72]"
-                aria-label="Pending entry price"
-              />
-            </div>
-          </div>
-        )}
 
         {pendingPlan && (
           <div className="flex items-center justify-between px-0.5 text-[8px] font-semibold text-[#6F8191]">
