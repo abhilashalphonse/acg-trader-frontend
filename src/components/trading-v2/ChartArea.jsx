@@ -669,7 +669,7 @@ export default function ChartArea({
   const toolbarVisible = !hideToolbar && drawingToolbarOpen;
   const mobileHeightClass = fillAvailableHeight ? 'h-full min-h-0 flex-1' : heightClass;
   const areaClass = drawingToolbarOverlay
-    ? `grid ${mobileHeightClass} ${toolbarVisible ? 'grid-cols-[40px_minmax(0,1fr)] gap-1' : 'grid-cols-[minmax(0,1fr)]'} bg-[#09090b] pb-2`
+    ? `grid ${mobileHeightClass} ${toolbarVisible ? 'grid-cols-[40px_minmax(0,1fr)] gap-1' : 'grid-cols-[minmax(0,1fr)]'} bg-[#09090b]`
     : embedded
       ? `grid h-full min-h-0 grid-rows-[minmax(0,1fr)] ${!toolbarVisible ? 'grid-cols-[minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} gap-1.5`
       : focusMode
@@ -712,7 +712,7 @@ export default function ChartArea({
         </aside>
       )}
 
-      <div className={`h-full min-h-0 min-w-0 ${drawingToolbarOverlay ? 'grid grid-rows-[minmax(0,1fr)_28px]' : 'relative overflow-hidden'} bg-[#09090b]`}>
+      <div className="relative h-full min-h-0 min-w-0 overflow-hidden bg-[#09090b]">
         <div className={`relative h-full min-h-0 min-w-0 overflow-hidden bg-[#09090b] ${drawingToolbarOverlay ? (toolbarVisible ? '' : 'pl-3') : ''}`}>
         <TradingChart
           symbol={symbol}
@@ -780,10 +780,10 @@ export default function ChartArea({
         </div>
 
         {drawingToolbarOverlay && !tradePlan && (
-          <div className="flex h-7 items-center justify-end gap-0 border-t border-white/[0.10] bg-[#0d0d10] pr-2 text-[8px] font-medium text-[#7E8994]">
-            <span className="border-r border-white/[0.08] px-2">{localUtcLabel()}</span>
-            <span className="border-r border-white/[0.08] px-2 font-mono font-semibold tabular-nums text-[#B9C2CA]" title="Time remaining in candle">{formatCountdown(remaining)}</span>
-            <button type="button" onClick={() => coordinateApi?.resetView?.()} className="h-full px-2 font-semibold text-[#929DA7] transition hover:bg-white/[0.04] hover:text-[#F1F4F6]" title="Return to live chart and restore the default view">Auto</button>
+          <div className="pointer-events-auto absolute bottom-0 right-0 z-30 flex h-5 items-center overflow-hidden rounded-tl-[4px] border-l border-t border-white/[0.08] bg-black/88 text-[7px] font-medium text-[#7E8994] shadow-[-4px_-2px_10px_rgba(0,0,0,.22)] backdrop-blur-sm">
+            <span className="border-r border-white/[0.07] px-1.5">{localUtcLabel()}</span>
+            <span className="border-r border-white/[0.07] px-1.5 font-mono font-semibold tabular-nums text-[#B9C2CA]" title="Time remaining in candle">{formatCountdown(remaining)}</span>
+            <button type="button" onClick={() => coordinateApi?.resetView?.()} className="h-full px-1.5 font-semibold text-[#929DA7] transition active:bg-white/[0.05] active:text-[#F1F4F6]" title="Return to live chart and restore the default view">Auto</button>
           </div>
         )}
       </div>
