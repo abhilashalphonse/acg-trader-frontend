@@ -147,7 +147,10 @@ export default function TradeSection({
     if (positionActionBusy) return;
     setPositionActionBusy(`be:${position.id}`);
     try {
-      await onBreakEven(position.id);
+      const moved = await onBreakEven(position.id);
+      if (moved === true) {
+        setProtectionDraft(currentDraft => ({ ...currentDraft, sl: price(position.entry, position.symbol) }));
+      }
     } finally {
       setPositionActionBusy(null);
     }
@@ -157,9 +160,11 @@ export default function TradeSection({
     if (positionActionBusy) return;
     setPositionActionBusy(`partial:${position.id}`);
     try {
-      await onClosePosition(position.id, Number(percent));
-      setPartialCloseId(null);
-      setPartialClosePercent(50);
+      const closed = await onClosePosition(position.id, Number(percent));
+      if (closed === true) {
+        setPartialCloseId(null);
+        setPartialClosePercent(50);
+      }
     } finally {
       setPositionActionBusy(null);
     }
@@ -173,9 +178,11 @@ export default function TradeSection({
     }
     setPositionActionBusy(`close:${position.id}`);
     try {
-      await onClosePosition(position.id, 100);
-      setCloseConfirmId(null);
-      setExpandedId(null);
+      const closed = await onClosePosition(position.id, 100);
+      if (closed === true) {
+        setCloseConfirmId(null);
+        setExpandedId(null);
+      }
     } finally {
       setPositionActionBusy(null);
     }
