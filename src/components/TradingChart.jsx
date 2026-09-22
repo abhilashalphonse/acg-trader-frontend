@@ -26,9 +26,9 @@ import { instrumentDigits, instrumentTickSize } from '../utils/instrumentFormatt
 import { ArrowRight, Eye, EyeOff, Settings2, X } from 'lucide-react';
 
 const chartTokens = {
-  background: '#000000',
+  background: '#09090b',
   text: '#8b8b8f',
-  gridline: '#151515',
+  gridline: '#1a1a1d',
   buy: '#2dd39b',
   sell: '#f05d68',
   buyWick: 'rgba(45,211,155,0.78)',
