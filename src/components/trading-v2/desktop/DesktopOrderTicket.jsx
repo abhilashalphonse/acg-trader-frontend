@@ -219,7 +219,7 @@ export default function DesktopOrderTicket({
     && Number.isFinite(previewRequirement)
     && Number.isFinite(freeMargin)
     && previewRequirement > freeMargin + 1e-8;
-  const planValidation = executionPlan ? validateTradePlanForExecution(executionPlan, market) : { valid: true, code: 'NO_PLAN', message: null };
+  const planValidation = executionPlan ? validateTradePlanForExecution(executionPlan, market, { preserveEntry: true }) : { valid: true, code: 'NO_PLAN', message: null };
   const riskGuard = useMemo(() => evaluateRiskGuard({
     account,
     positions,
