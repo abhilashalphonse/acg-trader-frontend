@@ -553,7 +553,7 @@ export default function ChartArea({
       )}
 
       <div className={`min-h-0 min-w-0 ${drawingToolbarOverlay ? 'grid grid-rows-[minmax(0,1fr)_28px]' : 'relative overflow-hidden'} bg-[#09090b]`}>
-        <div className={`relative min-h-0 min-w-0 overflow-hidden bg-[#09090b] ${drawingToolbarOverlay ? (toolbarVisible ? 'pl-1' : 'pl-3') : ''}`}>
+        <div className={`relative min-h-0 min-w-0 overflow-hidden bg-[#09090b] ${drawingToolbarOverlay ? (toolbarVisible ? '' : 'pl-3') : ''}`}>
         <TradingChart
           symbol={symbol}
           instrument={instrument}

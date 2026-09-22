@@ -332,7 +332,7 @@ export default function ExecutionPanel({
           <button type="button" onClick={() => setOrderPickerOpen(value => !value)} className="flex h-6 items-center gap-1 bg-transparent px-1 text-[8px] font-extrabold text-[#b0b0b7]">
             {orderTypes.find(([id]) => id === orderType)?.[1]} <ChevronDown size={10}/>
           </button>
-          <span className="min-w-0 flex-1 truncate text-[7px] text-[#6f6f76]">{orderType === 'market' ? 'Server market execution' : 'Server pending order'}</span>
+          <span className="min-w-0 flex-1" aria-hidden="true" />
           <button type="button" onClick={onToggleRisk} className={`grid size-7 shrink-0 place-items-center text-[#8a8a91] transition ${riskExpanded ? 'text-[#53c7ff]' : ''}`} aria-label={riskExpanded ? 'Hide challenge risk' : 'Show challenge risk'} aria-expanded={riskExpanded}>
             {riskExpanded ? <ChevronUp size={15}/> : <ChevronDown size={15}/>}
           </button>
