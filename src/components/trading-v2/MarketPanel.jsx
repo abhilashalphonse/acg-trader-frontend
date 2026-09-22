@@ -26,6 +26,7 @@ export default function MarketPanel({
   onModifyPending = () => {},
   onCancelPending = () => {},
   onUpdatePosition = () => {},
+  onClosePosition = () => {},
   showInstrumentHeader = true,
   compactMobileToolbar = false,
   fillAvailableHeight = false,
