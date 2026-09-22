@@ -410,7 +410,28 @@ export default function TradeSection({
         {!pendingOrders.length && <EmptyState title="No pending orders" subtitle="Limit and stop orders will appear here." compact />}
         {pendingOrders.map(order => {
           const side = String(order.side).toUpperCase();
-          return <article key={order.id} className="border-b border-white/[0.08] bg-black px-1 py-3 last:border-b-0"><div className="flex items-start justify-between gap-3"><div><div className="flex items-center gap-2"><InstrumentAvatar instrument={marketFor(order.symbol)} size={24}/><strong className="text-[12px] font-black text-[#eff4f8]">{symbolLabel(order.symbol)}</strong><span className={`rounded-md px-1.5 py-1 text-[7px] font-black ${sideTone(side)}`}>{side} {String(order.orderType || 'order').toUpperCase()}</span></div><p className="mt-2 text-[9px] text-[#71859a]">{Number(order.lots || order.manualLots || 0).toFixed(2)} lots · Entry <b className="font-mono text-[#c1ccd6]">{price(order.entry, order.symbol)}</b></p><div className="mt-2 flex gap-3 text-[8px] text-[#60758a]"><span>SL <b className="text-[#9eb0bf]">{price(order.sl, order.symbol)}</b></span><span>TP <b className="text-[#9eb0bf]">{price(order.tp, order.symbol)}</b></span></div></div></div><div className="mt-3 grid grid-cols-3 gap-2"><button type="button" onClick={() => onOpenChart(order.symbol)} className="h-9 rounded-md border border-white/[0.08] bg-[#101010] text-[8px] font-bold text-[#5fc9ff]">Chart</button><button type="button" onClick={() => onModifyPending(order.id)} className="h-9 rounded-xl border border-white/[0.08] bg-[#080808] text-[8px] font-bold text-[#b5c3ce]">Modify</button><button type="button" onClick={() => onCancelPending(order.id)} className="h-9 rounded-xl border border-[#512b34] bg-[#101010] text-[8px] font-bold text-[#ff7984]">Cancel</button></div></article>;
+          return (
+            <article key={order.id} className={`border-b border-white/[0.07] bg-black px-1 last:border-b-0 ${embedded ? 'py-2' : 'py-3'}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className={`flex items-center ${embedded ? 'gap-1.5' : 'gap-2'}`}>
+                    <InstrumentAvatar instrument={marketFor(order.symbol)} size={embedded ? 21 : 24}/>
+                    <strong className={`${embedded ? 'text-[11px]' : 'text-[12px]'} font-black text-[#eff4f8]`}>{symbolLabel(order.symbol)}</strong>
+                    <span className={`rounded-md font-black ${embedded ? 'px-1.5 py-0.5 text-[6.5px]' : 'px-1.5 py-1 text-[7px]'} ${sideTone(side)}`}>{side} {String(order.orderType || 'order').toUpperCase()}</span>
+                  </div>
+                  <div className={`${embedded ? 'mt-1 text-[7px]' : 'mt-2 text-[9px]'} flex flex-wrap items-center gap-x-3 gap-y-1 text-[#71859a]`}>
+                    <span>{Number(order.lots || order.manualLots || 0).toFixed(2)} lots · Entry <b className="font-mono text-[#c1ccd6]">{price(order.entry, order.symbol)}</b></span>
+                    <span>SL <b className="font-mono text-[#9eb0bf]">{price(order.sl, order.symbol)}</b> · TP <b className="font-mono text-[#9eb0bf]">{price(order.tp, order.symbol)}</b></span>
+                  </div>
+                </div>
+              </div>
+              <div className={`${embedded ? 'mt-2 gap-1' : 'mt-3 gap-2'} grid grid-cols-3`}>
+                <button type="button" onClick={() => onOpenChart(order.symbol)} className={`${embedded ? 'h-8' : 'h-9'} rounded-md border border-white/[0.06] bg-[#101010] text-[8px] font-bold text-[#5fc9ff]`}>Chart</button>
+                <button type="button" onClick={() => onModifyPending(order.id)} className={`${embedded ? 'h-8' : 'h-9'} rounded-md border border-white/[0.06] bg-[#080808] text-[8px] font-bold text-[#b5c3ce]`}>Modify</button>
+                <button type="button" onClick={() => onCancelPending(order.id)} className={`${embedded ? 'h-8' : 'h-9'} rounded-md border border-[#512b34] bg-[#101010] text-[8px] font-bold text-[#ff7984]`}>Cancel</button>
+              </div>
+            </article>
+          );
         })}
       </div>
         </>
