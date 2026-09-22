@@ -26,10 +26,11 @@ export default function MarketPanel({
   onModifyPending = () => {},
   onCancelPending = () => {},
   onUpdatePosition = () => {},
+  showInstrumentHeader = true,
 }) {
   return (
     <section className="overflow-hidden border-y border-white/[0.08] bg-black">
-      <InstrumentHeader market={market} favorite={favorite} onFavorite={() => setFavorite(v => !v)} onSelectInstrument={onSelectInstrument} />
+      {showInstrumentHeader && <InstrumentHeader market={market} favorite={favorite} onFavorite={() => setFavorite(v => !v)} onSelectInstrument={onSelectInstrument} />}
       <ChartControls
         timeframe={timeframe}
         onTimeframe={setTimeframe}

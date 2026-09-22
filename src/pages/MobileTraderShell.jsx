@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import TopBar from '../components/trading-v2/TopBar.jsx';
+import MobileTradingHeader from '../components/trading-v2/MobileTradingHeader.jsx';
 import MarketPanel from '../components/trading-v2/MarketPanel.jsx';
 import ExecutionPanel from '../components/trading-v2/ExecutionPanel.jsx';
 import PositionsPanel from '../components/trading-v2/PositionsPanel.jsx';
@@ -541,9 +541,15 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
   const chartContent = (
     <>
-      <TopBar balance={`${account.currency === 'EUR' ? '€' : '$'}${Number(account.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} live={trading.connection.status === 'ready'} onSearch={() => setOverlay('search')} onNotifications={() => setOverlay('notifications')} onProfile={() => setOverlay('profile')} />
+      <MobileTradingHeader
+        market={market}
+        account={account}
+        favorite={favorite}
+        onFavorite={setFavorite}
+        onSelectInstrument={() => setOverlay('instruments')}
+      />
       <div className="px-2">
-        <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={tradePlan} onTradePlanChange={updatePlan} positions={positions} onUpdatePosition={updatePosition} onSelectInstrument={() => setOverlay('instruments')} onIndicators={() => setOverlay('indicators')} indicators={indicators} />
+        <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={tradePlan} onTradePlanChange={updatePlan} positions={positions} onUpdatePosition={updatePosition} onSelectInstrument={() => setOverlay('instruments')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} />
         <PropRiskStrip account={account} plannedRisk={plannedRisk} />
         <ExecutionPanel market={market} account={account} exposureAllowed={exposure.allowed} exposureBlockReason={exposure.reason} lots={lots} onLotsChange={setLots} sizingMode={sizingMode} onSizingModeChange={setSizingMode} riskPercent={riskPercent} onRiskPercentChange={setRiskPercent} orderType={orderType} onOrderTypeChange={setOrderType} tradePlan={tradePlan} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} />
         <PositionsPanel positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={closePosition} onCloseAll={closeAllPositions} onBreakEven={movePositionToBreakEven} onReverse={reversePosition} onUpdatePosition={updatePosition} onSetTrailing={setPositionTrailing} onDuplicate={duplicatePosition} onCancelPending={cancelPendingOrder} onModifyPending={modifyPendingOrder} />
@@ -553,7 +559,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
   return (
     <div className="min-h-dvh bg-black font-sans text-[#f5f8fb] antialiased">
-      <main ref={shellRef} className={chartFocus ? 'relative mx-auto h-dvh w-full max-w-[460px] overflow-hidden bg-black' : 'relative mx-auto min-h-dvh w-full max-w-[460px] overflow-x-hidden bg-black bg-[radial-gradient(circle_at_top,rgba(26,79,116,0.20),transparent_36%)] pb-[calc(88px+env(safe-area-inset-bottom))]'}>
+      <main ref={shellRef} className={chartFocus ? 'relative mx-auto h-dvh w-full max-w-[460px] overflow-hidden bg-black' : 'relative mx-auto min-h-dvh w-full max-w-[460px] overflow-x-hidden bg-black pb-[calc(88px+env(safe-area-inset-bottom))]'}>
         {chartFocus ? (
           <MobileScalperMode market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} lots={lots} setLots={setLots} sizingMode={sizingMode} setSizingMode={setSizingMode} riskPercent={riskPercent} setRiskPercent={setRiskPercent} orderType={orderType} setOrderType={setOrderType} tradePlan={tradePlan} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} positions={positions} onUpdatePosition={updatePosition} onIndicators={() => setOverlay('indicators')} indicators={indicators} account={account} plannedRisk={plannedRisk} exposureAllowed={exposure.allowed} exposureBlockReason={exposure.reason} onExit={exitChartFocus} />
         ) : (
