@@ -70,8 +70,8 @@ export default function MobileTradingHeader({
   const openPositionsCount = Math.max(0, Number(positionsCount) || 0);
 
   return (
-    <header className="grid h-[44px] w-full shrink-0 grid-cols-[minmax(0,1fr)_60px_84px_58px] border-b border-white/[0.06] bg-[#080808]">
-      <div className="relative flex min-w-0 items-center border-r border-white/[0.035] px-1">
+    <header className="acg-mobile-metal-surface grid h-[44px] w-full shrink-0 grid-cols-[minmax(0,1fr)_60px_84px_58px] bg-[#0b0b0d]">
+      <div className="relative flex min-w-0 items-center px-1">
         <button
           type="button"
           onClick={onSelectInstrument}
@@ -106,7 +106,7 @@ export default function MobileTradingHeader({
       <button
         type="button"
         onClick={onOpenTrades}
-        className="relative flex min-w-0 flex-col items-center justify-center overflow-visible border-r border-white/[0.035] text-[#c8d1d8] active:bg-white/[0.045]"
+        className="relative flex min-w-0 flex-col items-center justify-center overflow-visible text-[#c8d1d8] active:bg-white/[0.045]"
         aria-label={`Open trades${openPositionsCount ? `, ${openPositionsCount} open positions` : ''}`}
       >
         <span className="relative grid size-[22px] place-items-center overflow-visible">
@@ -120,7 +120,7 @@ export default function MobileTradingHeader({
         <span className="mt-[2px] text-[6.5px] font-black uppercase tracking-[0.07em] text-[#aeb9c2]">Trades</span>
       </button>
 
-      <div className="flex min-w-0 flex-col items-center justify-center border-r border-white/[0.035] px-1">
+      <div className="flex min-w-0 flex-col items-center justify-center px-1">
         <span className="rounded-[2px] bg-white/[0.10] px-1.5 py-[1px] text-[6px] font-black uppercase leading-none tracking-[0.09em] text-[#dfe6ec]">P&amp;L</span>
         <strong className={`mt-[3px] max-w-full truncate font-mono text-[10.5px] font-black leading-none tabular-nums tracking-[-0.045em] min-[360px]:text-[11px] ${pnlTone}`}>{money(pnl, account?.currency || 'USD')}</strong>
       </div>
