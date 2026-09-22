@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, ExternalLink, Plus, X } from 'lucide-react';
 import { formatInstrumentPrice, instrumentForSymbol } from '../../utils/instrumentFormatting.js';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
+import { estimatePositionPnlAtPrice, positionDistancePips } from '../../utils/tradingRisk.js';
 
 function money(value, currency = 'USD', signed = false) {
   if (value === null || value === undefined || value === '') return '—';
@@ -31,6 +32,19 @@ function accountLabel(account) {
   if (type === 'DEMO') return 'Trial account';
   if (type === 'FUNDED') return 'Master account';
   return 'Evaluation account';
+}
+
+function projectedProtection(position, value, instrument, currency) {
+  const target = Number(value);
+  if (!Number.isFinite(target) || target <= 0 || !instrument) return null;
+
+  const pnl = estimatePositionPnlAtPrice(position, target, instrument);
+  const pips = positionDistancePips(position, target, instrument);
+  return {
+    pnl,
+    pips,
+    currency: position?.pnlCurrency || instrument?.pnlCurrency || currency || 'USD',
+  };
 }
 
 export default function TradeSection({
@@ -165,12 +179,14 @@ export default function TradeSection({
                   <ProtectionField
                     label="SL"
                     value={protectionDraft.sl}
+                    projection={projectedProtection(position, protectionDraft.sl, live, currency)}
                     onChange={value => { setProtectionDraft(currentDraft => ({ ...currentDraft, sl: value })); setProtectionError(''); }}
                     onClear={() => { setProtectionDraft(currentDraft => ({ ...currentDraft, sl: '' })); setProtectionError(''); }}
                   />
                   <ProtectionField
                     label="TP"
                     value={protectionDraft.tp}
+                    projection={projectedProtection(position, protectionDraft.tp, live, currency)}
                     onChange={value => { setProtectionDraft(currentDraft => ({ ...currentDraft, tp: value })); setProtectionError(''); }}
                     onClear={() => { setProtectionDraft(currentDraft => ({ ...currentDraft, tp: '' })); setProtectionError(''); }}
                   />
@@ -215,7 +231,15 @@ function MiniMetric({ label, value }) {
   return <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-[#080808] px-2.5 py-2"><span className="text-[7px] font-bold text-[#5e7488]">{label}</span><b className="font-mono text-[9px] text-[#b9c6d1]">{value}</b></div>;
 }
 
-function ProtectionField({ label, value, onChange, onClear }) {
+function ProtectionField({ label, value, projection, onChange, onClear }) {
+  const pnl = Number(projection?.pnl);
+  const hasPnl = Number.isFinite(pnl);
+  const pips = Number(projection?.pips);
+  const hasPips = Number.isFinite(pips);
+  const pnlText = hasPnl ? money(pnl, projection?.currency || 'USD', true) : '—';
+  const distanceText = hasPips ? `${pips.toFixed(1)} pips` : '—';
+  const pnlTone = !hasPnl ? 'text-[#60758a]' : pnl < 0 ? 'text-[#ff6f7a]' : pnl > 0 ? 'text-[#43d9a6]' : 'text-[#9aabba]';
+
   return (
     <div className="block rounded-md border border-white/[0.08] bg-black px-2.5 py-2">
       <div className="flex items-center justify-between text-[7px] font-black uppercase tracking-[0.1em] text-[#61768a]">
@@ -232,6 +256,10 @@ function ProtectionField({ label, value, onChange, onClear }) {
         placeholder="No protection"
         className="mt-1.5 w-full bg-transparent font-mono text-[11px] font-bold tabular-nums text-[#eef4f8] outline-none placeholder:text-[#405364]"
       />
+      <div className="mt-2 flex items-center justify-between border-t border-white/[0.06] pt-2">
+        <span className={`font-mono text-[9px] font-black tabular-nums ${pnlTone}`}>{pnlText}</span>
+        <span className="text-[7px] font-semibold tabular-nums text-[#60758a]">{distanceText}</span>
+      </div>
     </div>
   );
 }
