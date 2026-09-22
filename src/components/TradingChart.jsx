@@ -644,16 +644,23 @@ export default function TradingChart({
       && Number.isFinite(Number(position?.entry ?? position?.entryPrice))
     );
 
-    positionLinesRef.current = openPositions.map(position =>
-      series.createPriceLine({
+    positionLinesRef.current = openPositions.map(position => {
+      const isBuy = String(position?.side || '').toUpperCase() === 'BUY';
+      const lineColor = isBuy ? 'rgba(44,231,169,0.92)' : 'rgba(255,91,105,0.92)';
+      const labelColor = isBuy ? '#2ce7a9' : '#ff5b69';
+      const labelTextColor = isBuy ? '#03140e' : '#190306';
+
+      return series.createPriceLine({
         price: Number(position.entry ?? position.entryPrice),
-        color: chartTokens.blue,
+        color: lineColor,
         lineWidth: 1,
-        lineStyle: LineStyle.Solid,
+        lineStyle: LineStyle.Dotted,
         axisLabelVisible: true,
+        axisLabelColor: labelColor,
+        axisLabelTextColor: labelTextColor,
         title: '',
-      })
-    );
+      });
+    });
 
     return () => {
       positionLinesRef.current.forEach(line => {
