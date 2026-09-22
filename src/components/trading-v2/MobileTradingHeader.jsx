@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, Star } from 'lucide-react';
+import { Activity, ChevronDown, ChevronRight, Star } from 'lucide-react';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 
 function displaySymbol(symbol = '') {
@@ -55,7 +55,6 @@ export default function MobileTradingHeader({
   market,
   account,
   positionsCount = 0,
-  pendingCount = 0,
   favorite = false,
   onFavorite = () => {},
   onSelectInstrument = () => {},
@@ -68,7 +67,7 @@ export default function MobileTradingHeader({
   const floatingPnl = Number(account?.floatingPnl);
   const pnl = Number.isFinite(floatingPnl) ? floatingPnl : 0;
   const pnlTone = pnl > 0 ? 'text-[#31d79b]' : pnl < 0 ? 'text-[#f05d68]' : 'text-[#b7c0c8]';
-  const tradeCount = Math.max(0, Number(positionsCount) || 0) + Math.max(0, Number(pendingCount) || 0);
+  const openPositionsCount = Math.max(0, Number(positionsCount) || 0);
 
   return (
     <header className="grid h-[44px] w-full shrink-0 grid-cols-[minmax(0,1.35fr)_70px_68px_48px] border-b border-white/[0.08] bg-[#080808]">
@@ -98,24 +97,32 @@ export default function MobileTradingHeader({
           aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
           className={`ml-0.5 grid size-6 shrink-0 place-items-center active:scale-95 ${favorite ? 'text-[#f6c95d]' : 'text-[#6f7d88]'}`}
         >
-          <Star size={12} fill={favorite ? 'currentColor' : 'none'} strokeWidth={1.8}/>
+          <Star size={11} fill={favorite ? 'currentColor' : 'none'} strokeWidth={1.8}/>
         </button>
 
         <span className="absolute bottom-0 left-1.5 right-1.5 h-0.5 bg-[#53c7ff]" />
       </div>
 
-      <button type="button" onClick={onOpenTrades} className="relative flex min-w-0 flex-col items-center justify-center border-r border-white/[0.06] text-[#9ba6af] active:bg-white/[0.035]">
-        <span className="text-[7px] font-black uppercase tracking-[0.08em]">Trades</span>
-        <span className="mt-1 font-mono text-[7px] font-bold tabular-nums text-[#d7dfe5]">{tradeCount ? tradeCount : '—'}</span>
+      <button type="button" onClick={onOpenTrades} className="relative flex min-w-0 flex-col items-center justify-center border-r border-white/[0.06] text-[#9ba6af] active:bg-white/[0.035]" aria-label={`Open trades${openPositionsCount ? `, ${openPositionsCount} open positions` : ''}`}>
+        <span className="relative grid size-5 place-items-center">
+          <Activity size={14} strokeWidth={1.9} className="text-[#a8b4be]"/>
+          {openPositionsCount > 0 && (
+            <span className="absolute -right-1.5 -top-1 grid min-w-[14px] h-[14px] place-items-center rounded-full bg-[#187fb1] px-1 font-mono text-[6px] font-black leading-none text-white">
+              {openPositionsCount > 99 ? '99+' : openPositionsCount}
+            </span>
+          )}
+        </span>
+        <span className="mt-0.5 text-[6px] font-black uppercase tracking-[0.075em] text-[#7f8d98]">Trades</span>
       </button>
 
-      <div className="flex min-w-0 flex-col items-center justify-center border-r border-white/[0.06]">
-        <span className="text-[6px] font-black uppercase tracking-[0.09em] text-[#6f7b85]">P&amp;L</span>
-        <strong className={`mt-1 max-w-full truncate px-1 font-mono text-[8px] font-black tabular-nums ${pnlTone}`}>{money(pnl, account?.currency || 'USD')}</strong>
+      <div className="flex min-w-0 flex-col items-center justify-center border-r border-white/[0.06] px-1">
+        <span className="text-[6px] font-black uppercase tracking-[0.095em] text-[#687681]">P&amp;L</span>
+        <strong className={`mt-0.5 max-w-full truncate font-mono text-[10px] font-black leading-none tabular-nums tracking-[-0.035em] ${pnlTone}`}>{money(pnl, account?.currency || 'USD')}</strong>
       </div>
 
-      <button type="button" onClick={onOpenAccount} className="flex items-center justify-center text-[10px] font-black tracking-[-0.02em] text-[#f4f6f8] active:bg-white/[0.035]" aria-label="Open ACG account">
-        ACG
+      <button type="button" onClick={onOpenAccount} className="flex items-center justify-center gap-0.5 px-1 text-[9.5px] font-black tracking-[-0.02em] text-[#f4f6f8] active:bg-white/[0.035]" aria-label="Open ACG account">
+        <span>ACG</span>
+        <ChevronRight size={10} strokeWidth={2.2} className="text-[#71808c]"/>
       </button>
     </header>
   );
