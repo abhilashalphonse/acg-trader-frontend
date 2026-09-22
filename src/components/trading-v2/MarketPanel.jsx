@@ -17,6 +17,8 @@ export default function MarketPanel({
   fullscreen,
   onFullscreen,
   tradePlan,
+  tradePlanLots,
+  accountCurrency = 'USD',
   onTradePlanChange,
   indicators = [],
   onSelectInstrument = () => {},
@@ -60,6 +62,8 @@ export default function MarketPanel({
         selectedTool={selectedTool}
         onSelectTool={setSelectedTool}
         tradePlan={tradePlan}
+        tradePlanLots={tradePlanLots}
+        accountCurrency={accountCurrency}
         onTradePlanChange={onTradePlanChange}
         onUpdatePosition={onUpdatePosition}
         onClosePosition={onClosePosition}

@@ -96,7 +96,7 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
   if (!coordinateApi?.priceToY || !activePositions.length) return null;
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-[19] overflow-hidden">
+    <div className="pointer-events-none absolute inset-0 z-[34] overflow-hidden">
       {activePositions.map(position => {
         const entry = Number(position.entry ?? position.entryPrice);
         const y = coordinateApi.priceToY(entry);
@@ -145,7 +145,7 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
                 </button>
               </div>
               <span
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums text-white shadow-[0_3px_10px_rgba(0,0,0,.28)]"
+                className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums text-white shadow-[0_3px_10px_rgba(0,0,0,.28)]"
                 style={{ borderColor: lineColor, backgroundColor: isBuy ? '#0aa06f' : '#d94250' }}
               >
                 {formatInstrumentPrice(entry, instrument)}
@@ -196,7 +196,7 @@ function PendingOrderOverlay({
           <span className="absolute left-3 top-1/2 -translate-y-1/2 rounded-[4px] border bg-[#09090b]/94 px-1.5 py-0.5 text-[8px] font-black" style={{ borderColor: `${color}70`, color }}>
             {label}
           </span>
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 font-mono text-[8px] font-bold tabular-nums" style={{ borderColor: `${color}88`, backgroundColor: kind === 'sl' ? '#5b1721' : '#0b4b37', color: '#ffffff' }}>
+          <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 font-mono text-[8px] font-bold tabular-nums" style={{ borderColor: `${color}88`, backgroundColor: kind === 'sl' ? '#5b1721' : '#0b4b37', color: '#ffffff' }}>
             {formatInstrumentPrice(price, instrument)}
           </span>
         </div>
@@ -205,7 +205,7 @@ function PendingOrderOverlay({
   };
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-[18] overflow-hidden">
+    <div className="pointer-events-none absolute inset-0 z-[28] overflow-hidden">
       {activeOrders.flatMap(order => {
         const entry = Number(order.entry);
         const y = coordinateApi.priceToY(entry);
@@ -255,7 +255,7 @@ function PendingOrderOverlay({
                   ×
                 </button>
               </div>
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[4px] border border-[#2d68bd] bg-[#1f5fc4] px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums text-white shadow-[0_3px_10px_rgba(0,0,0,.28)]">
+              <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border border-[#2d68bd] bg-[#1f5fc4] px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums text-white shadow-[0_3px_10px_rgba(0,0,0,.28)]">
                 {formatInstrumentPrice(entry, instrument)}
               </span>
             </div>
@@ -304,43 +304,51 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
     if (!dragging || !coordinateApi?.yToPrice) return undefined;
     const field = dragging === 'limit' ? 'limitPrice' : dragging;
 
+    const clearPreview = () => {
+      setPreview(current => {
+        if (!Object.prototype.hasOwnProperty.call(current, field)) return current;
+        const next = { ...current };
+        delete next[field];
+        return next;
+      });
+    };
+
     const priceFromEvent = event => {
       const rect = layerRef.current?.getBoundingClientRect();
-      if (!rect) return null;
-      const clientY = event.touches?.[0]?.clientY ?? event.changedTouches?.[0]?.clientY ?? event.clientY;
-      const price = coordinateApi.yToPrice(clientY - rect.top);
-      return Number.isFinite(price) ? price : null;
+      const clientY = Number(event?.clientY);
+      if (!rect || !Number.isFinite(clientY)) return null;
+      const converted = coordinateApi.yToPrice(clientY - rect.top);
+      return Number.isFinite(converted) ? converted : null;
     };
 
     const move = event => {
-      const price = priceFromEvent(event);
-      if (price == null) return;
+      const converted = priceFromEvent(event);
+      if (converted == null) return;
       event.preventDefault?.();
-      setPreview(current => ({ ...current, [field]: price }));
+      setPreview(current => ({ ...current, [field]: converted }));
     };
 
-    const up = event => {
-      const price = priceFromEvent(event);
-      const currentField = field;
+    const finish = (event, commit) => {
+      const converted = commit ? priceFromEvent(event) : null;
       setDragging(null);
-      setPreview(current => {
-        const next = { ...current };
-        delete next[currentField];
-        return next;
-      });
-      if (price != null) onChange({ [currentField]: price, stage: 'ready' });
+      clearPreview();
+      if (converted != null) onChange({ [field]: converted, stage: 'ready' });
       else onChange({ stage: 'ready' });
+    };
+
+    const up = event => finish(event, true);
+    const cancel = event => {
+      event?.preventDefault?.();
+      finish(event, false);
     };
 
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up, { once: true });
-    window.addEventListener('touchmove', move, { passive: false });
-    window.addEventListener('touchend', up, { once: true });
+    window.addEventListener('pointercancel', cancel, { once: true });
     return () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
-      window.removeEventListener('touchmove', move);
-      window.removeEventListener('touchend', up);
+      window.removeEventListener('pointercancel', cancel);
     };
   }, [coordinateApi, dragging, onChange]);
 
@@ -360,11 +368,11 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
   const entryY = yFor('entry');
   const slY = yFor('sl');
   const tpY = yFor('tp');
-  const displayLots = Number(plan?.manualLots ?? lots);
+  const rawDisplayLots = plan?.sizingMode === 'risk' ? lots : (plan?.manualLots ?? lots);
+  const displayLots = rawDisplayLots == null ? Number.NaN : Number(rawDisplayLots);
   const liveEntry = sourcePrice('entry');
   const liveSl = sourcePrice('sl');
   const liveTp = sourcePrice('tp');
-  const livePip = instrumentPipSize(instrument);
   const liveRisk = Number.isFinite(displayLots) && Number.isFinite(liveEntry) && Number.isFinite(liveSl)
     ? estimateStopRisk({ ...plan, entry: liveEntry, sl: liveSl }, displayLots, instrument, accountCurrency)
     : null;
@@ -384,8 +392,8 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
       <div className="absolute left-0 right-0 z-30" style={{ top }}>
         <div className="relative h-px" style={{ backgroundColor: `${color}bf` }}>
           <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-md border px-1.5 py-1 text-[8px] font-black tracking-[0.03em]" style={{ borderColor: `${color}99`, backgroundColor: 'rgba(8,8,8,0.92)', color }}>{label}</span>
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md px-2 py-1 font-mono text-[8px] font-extrabold tabular-nums" style={{ backgroundColor: color, color: kind === 'sl' ? '#2b0810' : '#032219' }}>{value}</span>
-          {draggable && <button type="button" aria-label={`Drag ${label}`} onPointerDown={event => { event.preventDefault(); event.stopPropagation(); setDragging(kind); onChange({ stage: `dragging-${kind}` }); }} onTouchStart={event => { event.preventDefault(); event.stopPropagation(); setDragging(kind); onChange({ stage: `dragging-${kind}` }); }} className="pointer-events-auto absolute right-[54px] top-1/2 size-7 -translate-y-1/2 cursor-ns-resize touch-none rounded-full border-2 bg-[#080808] shadow-[0_0_0_5px_rgba(255,255,255,0.04)]" style={{ borderColor: color }} />}
+          <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 whitespace-nowrap rounded-md px-2 py-1 font-mono text-[8px] font-extrabold tabular-nums" style={{ backgroundColor: color, color: kind === 'sl' ? '#2b0810' : '#032219' }}>{value}</span>
+          {draggable && <button type="button" aria-label={`Drag ${label}`} onPointerDown={event => { event.preventDefault(); event.stopPropagation(); setDragging(kind); onChange({ stage: `dragging-${kind}` }); }} className="pointer-events-auto absolute left-[44%] top-1/2 size-7 -translate-y-1/2 cursor-ns-resize touch-none rounded-full border-2 bg-[#080808] shadow-[0_0_0_5px_rgba(255,255,255,0.04)] lg:left-auto lg:right-[54px]" style={{ borderColor: color }} />}
         </div>
       </div>
     );
@@ -394,14 +402,14 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
   const entryLabel = plan.pending ? `${isBuy ? 'BUY' : 'SELL'} ${String(plan.orderType || '').toUpperCase()}` : (isBuy ? 'BUY' : 'SELL');
 
   return (
-    <div ref={layerRef} className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
+    <div ref={layerRef} className="pointer-events-none absolute inset-0 z-[40] overflow-hidden">
       {rewardTop != null && <div className="pointer-events-none absolute left-[42%] right-0" style={{ top: rewardTop, height: rewardHeight, background: 'linear-gradient(90deg, rgba(22,134,95,0.10), rgba(34,167,125,0.20))' }} />}
       {riskTop != null && <div className="pointer-events-none absolute left-[42%] right-0" style={{ top: riskTop, height: riskHeight, background: 'linear-gradient(90deg, rgba(138,43,57,0.10), rgba(255,68,91,0.17))' }} />}
       {line('tp', 'tp', '#35d79d', 'TP', `${lotLabel} · ${Number.isFinite(liveReward) ? formatProjectedPnl(Math.abs(liveReward), accountCurrency) : Number.isFinite(metrics.tpPips) ? '+' + metrics.tpPips.toFixed(1) + 'p' : '—'} · TP ${formatInstrumentPrice(liveTp, instrument)}`, true)}
       {line('entry', 'entry', '#42a5ff', entryLabel, formatInstrumentPrice(sourcePrice('entry'), instrument), Boolean(plan.pending))}
       {plan.pending && plan.orderType === 'stop-limit' && line('limit', 'limitPrice', '#b58cff', 'LIMIT', formatInstrumentPrice(sourcePrice('limitPrice'), instrument), true)}
       {line('sl', 'sl', '#ff5968', 'SL', `${lotLabel} · ${Number.isFinite(liveRisk) ? formatProjectedPnl(-Math.abs(liveRisk), accountCurrency) : Number.isFinite(metrics.slPips) ? '-' + metrics.slPips.toFixed(1) + 'p' : '—'} · SL ${formatInstrumentPrice(liveSl, instrument)}`, true)}
-      {dragging && <div className="pointer-events-none absolute right-[86px] top-3 z-40 rounded-lg border border-white/10 bg-[#080808]/95 px-2.5 py-1.5 text-right shadow-xl"><div className="text-[8px] uppercase tracking-[0.12em] text-[#708397]">{dragging === 'sl' ? 'Stop loss' : dragging === 'tp' ? 'Take profit' : dragging === 'limit' ? 'Limit price' : 'Entry price'}</div><strong className={`mt-0.5 block text-[11px] ${dragging === 'sl' ? 'text-[#ff6b78]' : dragging === 'tp' ? 'text-[#53e0ad]' : 'text-[#69bdff]'}`}>{formatInstrumentPrice(sourcePrice(dragging === 'limit' ? 'limitPrice' : dragging), instrument)}</strong></div>}
+      {dragging && <div className="pointer-events-none absolute right-[64px] top-3 lg:right-[86px] z-40 rounded-lg border border-white/10 bg-[#080808]/95 px-2.5 py-1.5 text-right shadow-xl"><div className="text-[8px] uppercase tracking-[0.12em] text-[#708397]">{dragging === 'sl' ? 'Stop loss' : dragging === 'tp' ? 'Take profit' : dragging === 'limit' ? 'Limit price' : 'Entry price'}</div><strong className={`mt-0.5 block text-[11px] ${dragging === 'sl' ? 'text-[#ff6b78]' : dragging === 'tp' ? 'text-[#53e0ad]' : 'text-[#69bdff]'}`}>{formatInstrumentPrice(sourcePrice(dragging === 'limit' ? 'limitPrice' : dragging), instrument)}</strong></div>}
     </div>
   );
 }
@@ -427,45 +435,59 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
   useEffect(() => {
     if (!dragging || !coordinateApi?.yToPrice) return undefined;
 
-    const move = event => {
-      const rect = layerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const clientY = event.touches?.[0]?.clientY ?? event.clientY;
-      const price = coordinateApi.yToPrice(clientY - rect.top);
-      if (!Number.isFinite(price)) return;
-      const key = `${dragging.positionId}:${dragging.kind}`;
-      setPreview(current => ({ ...current, [key]: price }));
+    const clearPreview = current => {
+      if (!current) return;
+      const key = current.positionId + ':' + current.kind;
+      setPreview(values => {
+        if (!Object.prototype.hasOwnProperty.call(values, key)) return values;
+        const next = { ...values };
+        delete next[key];
+        return next;
+      });
     };
 
-    const up = async event => {
+    const priceFromEvent = event => {
       const rect = layerRef.current?.getBoundingClientRect();
-      const clientY = event.changedTouches?.[0]?.clientY ?? event.clientY;
-      const price = rect ? coordinateApi.yToPrice(clientY - rect.top) : null;
+      const clientY = Number(event?.clientY);
+      if (!rect || !Number.isFinite(clientY)) return null;
+      const converted = coordinateApi.yToPrice(clientY - rect.top);
+      return Number.isFinite(converted) ? converted : null;
+    };
+
+    const move = event => {
+      const converted = priceFromEvent(event);
+      if (converted == null) return;
+      event.preventDefault?.();
+      const key = dragging.positionId + ':' + dragging.kind;
+      setPreview(current => ({ ...current, [key]: converted }));
+    };
+
+    const finish = async (event, commit) => {
       const current = dragging;
+      const converted = commit ? priceFromEvent(event) : null;
       setDragging(null);
-      if (Number.isFinite(price)) {
-        try {
-          await onUpdatePosition(current.positionId, { [current.kind]: price });
-        } finally {
-          const key = `${current.positionId}:${current.kind}`;
-          setPreview(values => {
-            const next = { ...values };
-            delete next[key];
-            return next;
-          });
+      try {
+        if (commit && Number.isFinite(converted)) {
+          await onUpdatePosition(current.positionId, { [current.kind]: converted });
         }
+      } finally {
+        clearPreview(current);
       }
+    };
+
+    const up = event => { void finish(event, true); };
+    const cancel = event => {
+      event?.preventDefault?.();
+      void finish(event, false);
     };
 
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up, { once: true });
-    window.addEventListener('touchmove', move, { passive: false });
-    window.addEventListener('touchend', up, { once: true });
+    window.addEventListener('pointercancel', cancel, { once: true });
     return () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
-      window.removeEventListener('touchmove', move);
-      window.removeEventListener('touchend', up);
+      window.removeEventListener('pointercancel', cancel);
     };
   }, [coordinateApi, dragging, onUpdatePosition]);
 
@@ -494,13 +516,12 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
       <div key={key} className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: y }}>
         <div className="relative h-px" style={{ backgroundColor: color }}>
           <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 text-[8px] font-black" style={{ borderColor: `${color}88`, backgroundColor: 'rgba(8,8,8,0.92)', color }}>{label}</span>
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 text-[8px] font-bold tabular-nums text-white" style={{ borderColor: `${color}88`, backgroundColor: kind === 'sl' ? '#5b1721' : '#0b4b37' }}>{previewText}</span>
+          <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 text-[8px] font-bold tabular-nums text-white" style={{ borderColor: `${color}88`, backgroundColor: kind === 'sl' ? '#5b1721' : '#0b4b37' }}>{previewText}</span>
           <button
             type="button"
             aria-label={`Drag ${label}`}
             onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onSelectPosition(position.id); setDragging({ positionId: position.id, kind }); }}
-            onTouchStart={event => { event.preventDefault(); event.stopPropagation(); onSelectPosition(position.id); setDragging({ positionId: position.id, kind }); }}
-            className={`pointer-events-auto absolute inset-x-0 top-1/2 h-5 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent ${String(selectedPositionId) === String(position.id) ? 'ring-1 ring-inset ring-white/10' : ''}`}
+            className={`pointer-events-auto absolute left-[64px] right-[56px] top-1/2 h-5 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent lg:inset-x-0 ${String(selectedPositionId) === String(position.id) ? 'ring-1 ring-inset ring-white/10' : ''}`}
           />
         </div>
       </div>
@@ -508,7 +529,7 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
   };
 
   return (
-    <div ref={layerRef} className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
+    <div ref={layerRef} className="pointer-events-none absolute inset-0 z-[24] overflow-hidden">
       {activePositions.flatMap(position => [
         renderLine(position, 'tp', '#35d79d', 'TP'),
         renderLine(position, 'sl', '#ff5968', 'SL'),
@@ -566,36 +587,54 @@ export default function ChartArea({
   const [drawingCount, setDrawingCount] = useState(0);
   const oscillatorCount = indicators.filter(item => item.visible !== false && oscillatorIds.has(item.id)).length;
   const priceScaleAnchors = useMemo(() => {
-    const values = [];
-    const push = value => {
+    const passive = [];
+    const priority = [];
+    const push = (target, value) => {
       const numeric = Number(value);
-      if (Number.isFinite(numeric) && numeric > 0) values.push(numeric);
+      if (Number.isFinite(numeric) && numeric > 0) target.push(numeric);
     };
 
     (Array.isArray(positions) ? positions : []).forEach(position => {
       if (String(position?.symbol || '').toUpperCase() !== String(symbol || '').toUpperCase()) return;
-      push(position?.entry ?? position?.entryPrice);
-      push(position?.sl);
-      push(position?.tp);
+      push(passive, position?.entry ?? position?.entryPrice);
+      push(passive, position?.sl);
+      push(passive, position?.tp);
     });
 
     (Array.isArray(pendingOrders) ? pendingOrders : []).forEach(order => {
       if (String(order?.symbol || '').toUpperCase() !== String(symbol || '').toUpperCase()) return;
-      push(order?.entry);
-      push(order?.sl);
-      push(order?.tp);
-      push(order?.limitPrice);
+      push(passive, order?.entry);
+      push(passive, order?.sl);
+      push(passive, order?.tp);
+      push(passive, order?.limitPrice);
     });
 
     if (String(tradePlan?.symbol || '').toUpperCase() === String(symbol || '').toUpperCase()) {
-      push(tradePlan?.entry);
-      push(tradePlan?.sl);
-      push(tradePlan?.tp);
-      push(tradePlan?.limitPrice);
+      push(priority, tradePlan?.entry);
+      push(priority, tradePlan?.sl);
+      push(priority, tradePlan?.tp);
+      push(priority, tradePlan?.limitPrice);
     }
 
-    return [...new Set(values)];
-  }, [pendingOrders, positions, symbol, tradePlan]);
+    const priorityUnique = [...new Set(priority)];
+    const passiveUnique = [...new Set(passive)].filter(value => !priorityUnique.includes(value));
+    if (desktopEnhanced) return [...priorityUnique, ...passiveUnique];
+
+    const bid = Number(price);
+    const offer = Number(ask);
+    const reference = Number.isFinite(bid) && Number.isFinite(offer)
+      ? (bid + offer) / 2
+      : Number.isFinite(bid)
+        ? bid
+        : Number.isFinite(offer)
+          ? offer
+          : null;
+    const nearby = Number.isFinite(reference)
+      ? passiveUnique.slice().sort((left, right) => Math.abs(left - reference) - Math.abs(right - reference)).slice(0, 8)
+      : passiveUnique.slice(0, 8);
+
+    return [...priorityUnique, ...nearby];
+  }, [ask, desktopEnhanced, pendingOrders, positions, price, symbol, tradePlan]);
 
   useEffect(() => {
     const update = () => {
