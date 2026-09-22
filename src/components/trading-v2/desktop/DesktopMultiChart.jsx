@@ -44,6 +44,7 @@ export default function DesktopMultiChart({
   onUpdatePosition = () => {},
   selectedPositionId = null,
   onSelectPosition = () => {},
+  onClosePosition = () => {},
 }) {
   const layout = [1,2,4].includes(Number(config?.layout)) ? Number(config.layout) : 1;
   const cells = Array.isArray(config?.cells) ? config.cells : [];
@@ -147,6 +148,7 @@ export default function DesktopMultiChart({
                   onUpdatePosition={onUpdatePosition}
                   selectedPositionId={selectedPositionId}
                   onSelectPosition={onSelectPosition}
+                  onClosePosition={onClosePosition}
                   indicators={cellIndicators}
                   onToggleIndicator={isActive ? onToggleIndicator : () => {}}
                   onOpenIndicatorSettings={isActive ? onOpenIndicatorSettings : () => {}}
