@@ -58,12 +58,17 @@ export default function TradeSection({
   onCancelPending = () => {},
   onModifyPending = () => {},
   onUpdatePosition = async () => false,
+  onBreakEven = async () => false,
   onNewOrder = () => {},
 }) {
   const [expandedId, setExpandedId] = useState(null);
   const [protectionDraft, setProtectionDraft] = useState({ sl: '', tp: '' });
   const [protectionSaving, setProtectionSaving] = useState(false);
   const [protectionError, setProtectionError] = useState('');
+  const [partialCloseId, setPartialCloseId] = useState(null);
+  const [partialClosePercent, setPartialClosePercent] = useState(50);
+  const [positionActionBusy, setPositionActionBusy] = useState(null);
+  const [closeConfirmId, setCloseConfirmId] = useState(null);
   const currency = account.currency || 'USD';
   const floating = Number(account.floatingPnl);
   const balance = Number(account.balance);
@@ -79,6 +84,10 @@ export default function TradeSection({
     const nextExpanded = expandedId === position.id ? null : position.id;
     setExpandedId(nextExpanded);
     setProtectionError('');
+    setPartialCloseId(null);
+    setPartialClosePercent(50);
+    setPositionActionBusy(null);
+    setCloseConfirmId(null);
     if (nextExpanded != null) {
       setProtectionDraft({
         sl: position.sl == null ? '' : price(position.sl, position.symbol),
@@ -114,6 +123,61 @@ export default function TradeSection({
       });
     } finally {
       setProtectionSaving(false);
+    }
+  };
+
+  const partialClosePreview = (position, percent, instrument) => {
+    const volume = Number(position?.volume);
+    const numericPercent = Number(percent);
+    const step = Math.max(Number(position?.volumeStep || instrument?.volumeStep) || 0.01, 0.00000001);
+    const minimum = Math.max(Number(instrument?.minVolume) || step, step);
+    if (!Number.isFinite(volume) || volume <= 0 || !Number.isFinite(numericPercent) || numericPercent <= 0 || numericPercent >= 100) {
+      return { valid: false, closeLots: null, remainingLots: null };
+    }
+    const units = Math.floor(((volume * numericPercent / 100) + step * 1e-8) / step);
+    const closeLots = Number((units * step).toFixed(8));
+    const remainingLots = Number((volume - closeLots).toFixed(8));
+    const valid = closeLots >= minimum - step * 1e-8
+      && closeLots < volume - step * 1e-8
+      && (remainingLots <= step * 1e-8 || remainingLots >= minimum - step * 1e-8);
+    return { valid, closeLots, remainingLots };
+  };
+
+  const runBreakEven = async position => {
+    if (positionActionBusy) return;
+    setPositionActionBusy(`be:${position.id}`);
+    try {
+      await onBreakEven(position.id);
+    } finally {
+      setPositionActionBusy(null);
+    }
+  };
+
+  const runPartialClose = async (position, percent) => {
+    if (positionActionBusy) return;
+    setPositionActionBusy(`partial:${position.id}`);
+    try {
+      await onClosePosition(position.id, Number(percent));
+      setPartialCloseId(null);
+      setPartialClosePercent(50);
+    } finally {
+      setPositionActionBusy(null);
+    }
+  };
+
+  const runFullClose = async position => {
+    if (positionActionBusy) return;
+    if (closeConfirmId !== position.id) {
+      setCloseConfirmId(position.id);
+      return;
+    }
+    setPositionActionBusy(`close:${position.id}`);
+    try {
+      await onClosePosition(position.id, 100);
+      setCloseConfirmId(null);
+      setExpandedId(null);
+    } finally {
+      setPositionActionBusy(null);
     }
   };
 
@@ -163,7 +227,7 @@ export default function TradeSection({
                   </div>
                   <div className="flex items-start gap-2"><div className="text-right"><b className={`block text-[15px] font-black ${positive ? 'text-[#42d8a5]' : 'text-[#ff6d79]'}`}>{money(position.pnl, position.pnlCurrency || currency, true)}</b><span className="mt-1 block text-[8px] text-[#5d7286]">P&amp;L</span></div>{expanded ? <ChevronUp size={15} className="mt-1 text-[#6e8498]"/> : <ChevronDown size={15} className="mt-1 text-[#6e8498]"/>}</div>
                 </div>
-                <div className="mt-3 grid grid-cols-2 gap-2"><MiniMetric label="SL" value={price(position.sl, position.symbol)} /><MiniMetric label="TP" value={price(position.tp, position.symbol)} /></div>
+                {!expanded && <div className="mt-3 grid grid-cols-2 gap-2"><MiniMetric label="SL" value={price(position.sl, position.symbol)} /><MiniMetric label="TP" value={price(position.tp, position.symbol)} /></div>}
               </button>
 
               {expanded && <div className="border-t border-white/[0.08] bg-[#080808] px-3.5 pb-3.5 pt-3">
@@ -203,8 +267,116 @@ export default function TradeSection({
                   {protectionSaving ? 'Saving protection…' : 'Save protection'}
                 </button>
 
+                <div className="mt-4 border-t border-white/[0.08] pt-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <div>
+                      <b className="text-[10px] font-black text-[#dce6ee]">Manage position</b>
+                      <p className="mt-0.5 text-[8px] text-[#60758a]">Reduce risk or close the trade.</p>
+                    </div>
+                  </div>
+
+                  {(() => {
+                    const entry = Number(position.entry);
+                    const tickSize = Math.max(Number(live?.tickSize) || Number(live?.pipSize) || 0, 0);
+                    const isBuy = String(position.side).toUpperCase() === 'BUY';
+                    const alreadyBreakEven = Number.isFinite(Number(position.sl))
+                      && Number.isFinite(entry)
+                      && Math.abs(Number(position.sl) - entry) <= Math.max(tickSize / 2, 1e-10);
+                    const breakEvenAvailable = Number.isFinite(current)
+                      && Number.isFinite(entry)
+                      && (isBuy ? current > entry + tickSize / 2 : current < entry - tickSize / 2);
+                    const breakEvenDisabled = !breakEvenAvailable || alreadyBreakEven || Boolean(positionActionBusy);
+                    const partialOpen = partialCloseId === position.id;
+                    const preview = partialClosePreview(position, partialClosePercent, live);
+
+                    return (
+                      <>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void runBreakEven(position)}
+                            disabled={breakEvenDisabled}
+                            className="h-10 rounded-md border border-white/[0.08] bg-black text-[9px] font-bold text-[#c4d0da] disabled:cursor-not-allowed disabled:text-[#465968]"
+                          >
+                            {alreadyBreakEven ? 'At break even' : positionActionBusy === `be:${position.id}` ? 'Moving…' : 'Break even'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setPartialCloseId(partialOpen ? null : position.id); setCloseConfirmId(null); }}
+                            disabled={Boolean(positionActionBusy)}
+                            className="h-10 rounded-md border border-white/[0.08] bg-black text-[9px] font-bold text-[#c4d0da] disabled:opacity-50"
+                          >
+                            Partial close
+                          </button>
+                        </div>
+
+                        {partialOpen && (
+                          <div className="mt-2 border-y border-white/[0.08] bg-black px-2.5 py-3">
+                            <div className="flex gap-1.5">
+                              {[25, 50, 75].map(percent => (
+                                <button
+                                  key={percent}
+                                  type="button"
+                                  onClick={() => setPartialClosePercent(percent)}
+                                  className={`h-8 flex-1 rounded-md border text-[8px] font-black ${Number(partialClosePercent) === percent ? 'border-white/[0.14] bg-[#15151a] text-[#67ccff]' : 'border-white/[0.08] bg-[#080808] text-[#73879a]'}`}
+                                >
+                                  {percent}%
+                                </button>
+                              ))}
+                              <div className="flex h-8 w-[88px] items-center rounded-md border border-white/[0.08] bg-[#080808] px-2">
+                                <input
+                                  aria-label="Custom partial close percentage"
+                                  type="number"
+                                  inputMode="decimal"
+                                  min="1"
+                                  max="99"
+                                  step="1"
+                                  value={partialClosePercent}
+                                  onChange={event => setPartialClosePercent(event.target.value)}
+                                  className="min-w-0 flex-1 bg-transparent text-center font-mono text-[9px] font-bold text-[#e8eff4] outline-none"
+                                />
+                                <span className="text-[8px] text-[#60758a]">%</span>
+                              </div>
+                            </div>
+                            <div className="mt-2 flex items-center justify-between text-[8px]">
+                              <span className="text-[#60758a]">Close <b className="font-mono text-[#c9d4dc]">{preview.closeLots == null ? '—' : preview.closeLots.toFixed(2)} lots</b></span>
+                              <span className="text-[#60758a]">Keep <b className="font-mono text-[#c9d4dc]">{preview.remainingLots == null ? '—' : preview.remainingLots.toFixed(2)} lots</b></span>
+                            </div>
+                            {!preview.valid && <p className="mt-2 text-[8px] leading-4 text-[#e8c35f]">Choose a percentage that leaves both the closed and remaining size tradable.</p>}
+                            <button
+                              type="button"
+                              onClick={() => void runPartialClose(position, partialClosePercent)}
+                              disabled={!preview.valid || Boolean(positionActionBusy)}
+                              className="mt-2 h-9 w-full rounded-md border border-white/[0.10] bg-[#15151a] text-[8px] font-black text-[#67ccff] disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              {positionActionBusy === `partial:${position.id}` ? 'Closing…' : `Close ${Number(partialClosePercent) || 0}%`}
+                            </button>
+                          </div>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => void runFullClose(position)}
+                          disabled={Boolean(positionActionBusy)}
+                          className={`mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-md border text-[9px] font-black disabled:opacity-50 ${closeConfirmId === position.id ? 'border-[#7b3440] bg-[#351820] text-[#ff8790]' : 'border-[#562c35] bg-[#251319] text-[#ff7a85]'}`}
+                        >
+                          <X size={13}/>
+                          {positionActionBusy === `close:${position.id}` ? 'Closing…' : closeConfirmId === position.id ? 'Confirm full close' : 'Close position'}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => onOpenChart(position.symbol)}
+                          className="mt-2 flex h-9 w-full items-center justify-center gap-2 rounded-md border border-white/[0.08] bg-black text-[8px] font-bold text-[#63cbff]"
+                        >
+                          <ExternalLink size={12}/>View on chart
+                        </button>
+                      </>
+                    );
+                  })()}
+                </div>
+
                 <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-3"><Metric label="Opened" value={position.openedAt || '—'} /><Metric label="Ticket" value={`#${String(position.id).slice(-8)}`} /><Metric label="Swap" value={money(position.swap || 0, position.pnlCurrency || currency)} /><Metric label="Source" value={String(position.source || 'market').replace('-', ' ')} /></div>
-                <div className="mt-3 grid grid-cols-2 gap-2"><button type="button" onClick={() => onOpenChart(position.symbol)} className="flex h-10 items-center justify-center gap-2 rounded-md border border-white/[0.08] bg-[#101010] text-[9px] font-bold text-[#63cbff]"><ExternalLink size={13}/>View on chart</button><button type="button" onClick={() => onClosePosition(position.id, 100)} className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#562c35] bg-[#251319] text-[9px] font-bold text-[#ff7a85]"><X size={13}/>Close position</button></div>
               </div>}
             </article>
           );
