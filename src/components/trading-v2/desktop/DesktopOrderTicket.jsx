@@ -339,6 +339,50 @@ export default function DesktopOrderTicket({
     if (tradePlan) onCancelPlan();
   };
 
+  const changePendingType = nextType => {
+    onOrderTypeChange(nextType);
+    if (!tradePlan || !tradePlan.pending) return;
+
+    const side = String(tradePlan.side || '').toLowerCase();
+    const quote = Number(side === 'buy' ? market?.ask : market?.bid);
+    if (!Number.isFinite(quote) || quote <= 0) {
+      onTradePlanChange({ orderType: nextType, stage: 'ready' });
+      return;
+    }
+
+    const pip = instrumentPipSize(market);
+    const safePip = Number.isFinite(Number(pip)) && Number(pip) > 0 ? Number(pip) : quote * 0.0001;
+    const oldEntry = Number(tradePlan.entry);
+    const oldSl = validProtectionPrice(tradePlan.sl);
+    const oldTp = validProtectionPrice(tradePlan.tp);
+    const slDistance = Number.isFinite(oldEntry) && Number.isFinite(oldSl) ? Math.abs(oldEntry - oldSl) : null;
+    const tpDistance = Number.isFinite(oldEntry) && Number.isFinite(oldTp) ? Math.abs(oldTp - oldEntry) : null;
+
+    let entry = quote;
+    if (nextType === 'limit') entry = side === 'buy' ? quote - 5 * safePip : quote + 5 * safePip;
+    else entry = side === 'buy' ? quote + 5 * safePip : quote - 5 * safePip;
+
+    const limitPrice = nextType === 'stop-limit'
+      ? (side === 'buy' ? entry + 1.5 * safePip : entry - 1.5 * safePip)
+      : null;
+    const sl = Number.isFinite(slDistance)
+      ? (side === 'buy' ? entry - slDistance : entry + slDistance)
+      : tradePlan.sl;
+    const tp = Number.isFinite(tpDistance)
+      ? (side === 'buy' ? entry + tpDistance : entry - tpDistance)
+      : tradePlan.tp;
+
+    onTradePlanChange({
+      orderType: nextType,
+      pending: true,
+      entry,
+      limitPrice,
+      sl,
+      tp,
+      stage: 'ready',
+    });
+  };
+
   const openRiskSizing = () => {
     setActiveTool(current => {
       const next = current === 'risk' ? null : 'risk';
