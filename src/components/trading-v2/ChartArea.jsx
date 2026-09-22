@@ -671,9 +671,9 @@ export default function ChartArea({
   const areaClass = drawingToolbarOverlay
     ? `grid ${mobileHeightClass} ${toolbarVisible ? 'grid-cols-[40px_minmax(0,1fr)] gap-1' : 'grid-cols-[minmax(0,1fr)]'} bg-[#09090b] pb-2`
     : embedded
-      ? `grid h-full min-h-0 ${!toolbarVisible ? 'grid-cols-[minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} gap-1.5`
+      ? `grid h-full min-h-0 grid-rows-[minmax(0,1fr)] ${!toolbarVisible ? 'grid-cols-[minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} gap-1.5`
       : focusMode
-        ? 'grid h-full min-h-0 grid-cols-[36px_minmax(0,1fr)] gap-1.5 px-1.5 pb-1.5'
+        ? 'grid h-full min-h-0 grid-cols-[36px_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] gap-1.5 px-1.5 pb-1.5'
         : `grid ${heightClass} grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2`;
 
   const toolbarClass = drawingToolbarOverlay
@@ -712,8 +712,8 @@ export default function ChartArea({
         </aside>
       )}
 
-      <div className={`min-h-0 min-w-0 ${drawingToolbarOverlay ? 'grid grid-rows-[minmax(0,1fr)_28px]' : 'relative overflow-hidden'} bg-[#09090b]`}>
-        <div className={`relative min-h-0 min-w-0 overflow-hidden bg-[#09090b] ${drawingToolbarOverlay ? (toolbarVisible ? '' : 'pl-3') : ''}`}>
+      <div className={`h-full min-h-0 min-w-0 ${drawingToolbarOverlay ? 'grid grid-rows-[minmax(0,1fr)_28px]' : 'relative overflow-hidden'} bg-[#09090b]`}>
+        <div className={`relative h-full min-h-0 min-w-0 overflow-hidden bg-[#09090b] ${drawingToolbarOverlay ? (toolbarVisible ? '' : 'pl-3') : ''}`}>
         <TradingChart
           symbol={symbol}
           instrument={instrument}
