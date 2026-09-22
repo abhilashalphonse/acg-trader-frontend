@@ -1,3 +1,5 @@
+import { normalizeVolumeToStep } from './tradingCommandNormalization.js';
+
 function accountCurrencyOf(accountCurrency) {
   return String(accountCurrency || '').trim().toUpperCase();
 }
@@ -120,6 +122,54 @@ export function calculateRiskOrderSizing(plan, riskPercent, account, instrument)
     marginLimited,
     blockReason,
     canExecute: !blockReason,
+  };
+}
+
+export function resolveExecutionSizing(plan, riskPercent, manualLots, account, instrument) {
+  const mode = String(plan?.sizingMode || 'lots').toLowerCase() === 'risk' ? 'risk' : 'lots';
+
+  if (mode === 'lots') {
+    const lots = normalizeVolumeToStep(plan?.manualLots ?? manualLots, instrument, { rounding: 'nearest' });
+    return {
+      mode,
+      lots,
+      requestedLots: lots,
+      canExecute: Number.isFinite(lots) && lots > 0,
+      blockReason: Number.isFinite(lots) && lots > 0 ? null : 'INVALID_VOLUME',
+      riskSizing: null,
+    };
+  }
+
+  if (!riskSizingSupported(instrument, account?.currency)) {
+    return {
+      mode,
+      lots: null,
+      requestedLots: null,
+      canExecute: false,
+      blockReason: 'UNSUPPORTED_RISK_CURRENCY',
+      riskSizing: null,
+    };
+  }
+
+  const riskSizing = calculateRiskOrderSizing(plan, riskPercent, account, instrument);
+  if (!riskSizing) {
+    return {
+      mode,
+      lots: null,
+      requestedLots: null,
+      canExecute: false,
+      blockReason: 'SIZING_UNAVAILABLE',
+      riskSizing: null,
+    };
+  }
+
+  return {
+    mode,
+    lots: Number.isFinite(Number(riskSizing.requestedLots)) ? Number(riskSizing.requestedLots) : null,
+    requestedLots: Number.isFinite(Number(riskSizing.requestedLots)) ? Number(riskSizing.requestedLots) : null,
+    canExecute: riskSizing.canExecute === true,
+    blockReason: riskSizing.blockReason || null,
+    riskSizing,
   };
 }
 
