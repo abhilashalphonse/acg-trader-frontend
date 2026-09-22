@@ -243,14 +243,16 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
   const closePosition = async (id, percentage = 100) => {
     const position = positions.find(item => String(item.id) === String(id));
-    if (!position) return;
+    if (!position) return false;
     try {
       await trading.closePosition(id, percentage);
       if (tradePlan?.positionId === id && Number(percentage) >= 100) setTradePlan(null);
       logEvent('position', `${percentage >= 100 ? 'Closed' : `Closed ${percentage}% of`} ${position.symbol} ${position.side}`);
       showNotice(percentage >= 100 ? 'Position closed' : `${percentage}% of position closed`);
+      return true;
     } catch (error) {
       handleTradingError(error, `Close ${position.symbol}`);
+      return false;
     }
   };
 
@@ -297,14 +299,16 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
   const movePositionToBreakEven = async id => {
     const position = positions.find(item => String(item.id) === String(id));
-    if (!position) return;
+    if (!position) return false;
     try {
       await trading.movePositionToBreakEven(id);
       if (tradePlan?.positionId === id) setTradePlan(plan => plan ? { ...plan, sl: position.entry } : plan);
       logEvent('modify', `${position.symbol} stop moved to break even`);
       showNotice('Stop moved to break even');
+      return true;
     } catch (error) {
       handleTradingError(error, `Break-even ${position.symbol}`);
+      return false;
     }
   };
 
