@@ -4,7 +4,6 @@ import { calculateAccountRiskSummary } from '../../../utils/accountRisk.js';
 import { DEFAULT_RISK_GUARD_SETTINGS, evaluateRiskGuard } from '../../../utils/riskGuard.js';
 import { decimalPlaces, normalizeVolumeToStep } from '../../../utils/tradingCommandNormalization.js';
 import {
-  calculateRiskOrderSizing,
   effectiveLeverage,
   estimateRequiredMargin,
   estimateStopRisk,
@@ -242,6 +241,7 @@ export default function DesktopOrderTicket({
   const setLots = (value, options = {}) => {
     const next = normalizeVolumeToStep(value, market, { rounding: 'nearest' });
     onLotsChange(next);
+    onSizingModeChange('lots');
     setLotInput(Number(next).toFixed(lotDecimals));
     if (!options.preserveRiskBadge) setAppliedRiskSizing(null);
     if (tradePlan) onTradePlanChange({ manualLots: next, sizingMode: 'lots' });
@@ -371,7 +371,6 @@ export default function DesktopOrderTicket({
   };
 
   const enableProtection = field => {
-    if (sizingMode === 'risk') setMode('lots');
     if (!tradePlan) {
       setActiveTool(field);
       return;
@@ -420,8 +419,14 @@ export default function DesktopOrderTicket({
 
     let distance = numeric;
     if (mode === 'money') {
+      if (field === 'sl' && activeSizingMode === 'risk') {
+        const equity = Number(account?.equity);
+        if (!Number.isFinite(equity) || equity <= 0) return;
+        onRiskPercentChange(Math.max(0.01, (numeric / equity) * 100));
+        return;
+      }
       const oneUnitPrice = side === 'buy' ? entry - pipSize : entry + pipSize;
-      const perUnit = estimateStopRisk({ ...tradePlan, entry, sl: oneUnitPrice }, normalizedLots, market, currency);
+      const perUnit = estimateStopRisk({ ...tradePlan, entry, sl: oneUnitPrice }, effectiveExecutionLots, market, currency);
       if (!Number.isFinite(perUnit) || perUnit <= 0) return;
       distance = numeric / perUnit;
     }
@@ -453,6 +458,7 @@ export default function DesktopOrderTicket({
     if (!Number.isFinite(numeric) || numeric <= 0) return;
     const next = normalizeVolumeToStep(numeric, market, { rounding: 'nearest' });
     onLotsChange(next);
+    onSizingModeChange('lots');
     setAppliedRiskSizing(null);
     if (tradePlan) onTradePlanChange({ manualLots: next, sizingMode: 'lots' });
   };
