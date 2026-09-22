@@ -227,8 +227,8 @@ export function evaluateRiskToolSetup({ plan, riskPercent, account, instrument }
     return { canCreateOrder: false, code: 'SIZING_UNAVAILABLE', message: 'Risk sizing is unavailable for this setup.', sizing: null };
   }
 
-  if (!Number.isFinite(sizing.requiredMargin) || !Number.isFinite(sizing.freeMargin)) {
-    return { canCreateOrder: false, code: 'MARGIN_UNAVAILABLE', message: 'Margin requirement cannot be verified for this instrument/account currency.', sizing };
+  if (!Number.isFinite(sizing.requiredMargin) || !Number.isFinite(sizing.totalRequirement) || !Number.isFinite(sizing.freeMargin)) {
+    return { canCreateOrder: false, code: 'MARGIN_UNAVAILABLE', message: 'Opening margin and commission requirement cannot be verified for this instrument/account currency.', sizing };
   }
 
   if (sizing.blockReason === 'MIN_VOLUME') {
