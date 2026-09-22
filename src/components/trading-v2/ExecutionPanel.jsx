@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, Minus, Plus, X, Check, SlidersHorizontal, Clock3 } from 'lucide-react';
+import { ChevronDown, Minus, Plus, X, Check, SlidersHorizontal, Clock3 } from 'lucide-react';
 import { decimalPlaces, normalizeVolumeToStep } from '../../utils/tradingCommandNormalization.js';
 import { calculateRiskOrderSizing, effectiveLeverage, estimateRequiredMargin, estimateStopRisk, riskSizingSupported } from '../../utils/tradingRisk.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
@@ -91,8 +91,6 @@ export default function ExecutionPanel({
   exposureBlockReason = 'New exposure is temporarily unavailable',
   account = {},
   mobileDocked = false,
-  riskExpanded = false,
-  onToggleRisk = () => {},
   riskContent = null,
 }) {
   const [internalLots, setInternalLots] = useState(0.10);
