@@ -26,7 +26,7 @@ function accountLabel(account) {
 function Action({ icon: Icon, title, subtitle, onClick }) {
   return (
     <button type="button" onClick={onClick} className="flex w-full items-center gap-3 border-b border-white/[0.08] px-3 py-3.5 text-left last:border-b-0">
-      <div className="grid size-9 shrink-0 place-items-center rounded-md border border-white/[0.08] bg-[#101010] text-[#718da3]"><Icon size={15}/></div>
+      <div className="grid size-9 shrink-0 place-items-center rounded-md border border-white/[0.06] bg-[#101010] text-[#718da3]"><Icon size={15}/></div>
       <div className="min-w-0 flex-1">
         <b className="block text-[10px] text-[#dce5ec]">{title}</b>
         <p className="mt-0.5 truncate text-[8px] text-[#61768b]">{subtitle}</p>
@@ -48,13 +48,14 @@ export default function MobileAccountSheet({
 
   return (
     <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/55 px-2 backdrop-blur-[2px]" onMouseDown={onClose}>
-      <section onMouseDown={event => event.stopPropagation()} className="mb-[max(8px,env(safe-area-inset-bottom))] w-full max-w-[444px] overflow-hidden rounded-t-[20px] border border-white/[0.09] bg-black shadow-[0_30px_90px_rgba(0,0,0,.7)]">
-        <header className="flex items-start justify-between gap-3 border-b border-white/[0.08] bg-[#080808] px-3 py-3">
+      <section onMouseDown={event => event.stopPropagation()} className="mb-[max(8px,env(safe-area-inset-bottom))] w-full max-w-[444px] overflow-hidden rounded-t-[18px] border border-white/[0.08] bg-black shadow-[0_30px_90px_rgba(0,0,0,.7)]">
+        <div className="mx-auto mt-1.5 h-1 w-9 shrink-0 rounded-full bg-white/[0.14]" aria-hidden="true" />
+        <header className="flex items-start justify-between gap-3 border-b border-white/[0.06] bg-[#080808] px-3 py-3">
           <div>
             <p className="text-[7px] font-black uppercase tracking-[0.12em] text-[#62778a]">ACG Trader</p>
             <h2 className="mt-1 text-[17px] font-black tracking-[-0.035em] text-[#f3f7fb]">Account</h2>
           </div>
-          <button type="button" onClick={onClose} className="grid size-8 place-items-center rounded-md border border-white/[0.08] bg-[#101010] text-[#91a0ad]" aria-label="Close account"><X size={15}/></button>
+          <button type="button" onClick={onClose} className="grid size-8 place-items-center rounded-md border border-white/[0.06] bg-[#101010] text-[#91a0ad]" aria-label="Close account"><X size={15}/></button>
         </header>
 
         <div className="px-3 py-3">
