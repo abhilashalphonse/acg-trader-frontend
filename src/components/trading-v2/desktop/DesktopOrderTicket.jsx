@@ -186,6 +186,10 @@ export default function DesktopOrderTicket({
   const riskSupported = riskSizingSupported(market, currency);
   const activeSizingMode = previewPlan?.sizingMode || sizingMode;
   const riskSizingBlocked = activeSizingMode === 'risk' && executionSizing?.canExecute === false;
+  const marginBlocked = activeSizingMode === 'lots'
+    && Number.isFinite(previewMargin)
+    && Number.isFinite(freeMargin)
+    && previewMargin > freeMargin + 1e-8;
   const planValidation = previewPlan ? validateTradePlanForExecution(previewPlan, market) : { valid: true, code: 'NO_PLAN', message: null };
   const riskGuard = useMemo(() => evaluateRiskGuard({
     account,
@@ -200,6 +204,7 @@ export default function DesktopOrderTicket({
     && exposureAllowed
     && (activeSizingMode !== 'risk' || riskSupported)
     && !riskSizingBlocked
+    && !marginBlocked
     && planValidation.valid
     && riskGuard.allowed;
 
@@ -234,6 +239,8 @@ export default function DesktopOrderTicket({
     warning = 'Selected risk requires more than the instrument maximum lot size.';
   } else if (executionSizing?.blockReason === 'MIN_VOLUME') {
     warning = 'Selected risk is smaller than the instrument minimum lot size.';
+  } else if (marginBlocked) {
+    warning = `Required margin ${money(previewMargin, currency)} exceeds free margin ${money(freeMargin, currency)}.`;
   } else if (Number.isFinite(riskBufferUsage) && riskBufferUsage >= 50) {
     warning = `Planned stop uses ${riskBufferUsage.toFixed(0)}% of the remaining daily-loss buffer.`;
   }
@@ -466,7 +473,7 @@ export default function DesktopOrderTicket({
       if (field === 'sl' && activeSizingMode === 'risk') {
         const equity = Number(account?.equity);
         if (!Number.isFinite(equity) || equity <= 0) return;
-        onRiskPercentChange(Math.max(0.01, (numeric / equity) * 100));
+        onRiskPercentChange(Math.max(0.01, Math.min(5, (numeric / equity) * 100)));
         return;
       }
       const oneUnitPrice = side === 'buy' ? entry - pipSize : entry + pipSize;
