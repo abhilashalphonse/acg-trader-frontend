@@ -382,8 +382,8 @@ export default function ExecutionPanel({
     );
 
     return (
-      <section className="relative overflow-hidden border-t border-white/[0.11] bg-[#0b0b0d] shadow-[0_-8px_22px_rgba(0,0,0,.26)]">
-        <div className="flex h-8 items-center gap-1.5 border-b border-white/[0.10] px-2">
+      <section className="acg-mobile-execution-surface relative overflow-hidden bg-[#0b0b0d]">
+        <div className="flex h-8 items-center gap-1.5 px-2">
           <div className="flex min-w-0 flex-1 items-baseline gap-1">
             <strong className={`truncate text-[8px] font-extrabold tracking-[0.035em] ${side === 'BUY' ? 'text-[#2ddb9f]' : 'text-[#ff5f6d]'}`}>{actionLabel}</strong>
             <span className="shrink-0 text-[7px] font-semibold text-[#d9dfe5]">· {symbolLabel}</span>
@@ -392,10 +392,10 @@ export default function ExecutionPanel({
             <span>M <b className="font-semibold text-[#aab5bf]">{formatMoney(plannerMargin, account?.currency)}</b></span>
             <span>Free <b className="font-semibold text-[#aab5bf]">{formatMoney(account?.freeMargin, account?.currency)}</b></span>
           </div>
-          <button type="button" onClick={onCancelPlan} className="grid size-6 shrink-0 place-items-center border-l border-white/[0.08] text-[#7d8a95]" aria-label="Cancel trade plan"><X size={12}/></button>
+          <button type="button" onClick={onCancelPlan} className="grid size-6 shrink-0 place-items-center text-[#7d8a95]" aria-label="Cancel trade plan"><X size={12}/></button>
         </div>
 
-        <div className="grid grid-cols-5 divide-x divide-white/[0.045] border-b border-white/[0.07] bg-[#0d0d10]">
+        <div className="grid grid-cols-5 bg-[#111114]">
           {riskField}
           {entryField}
           {lotsField}
@@ -403,13 +403,13 @@ export default function ExecutionPanel({
           {protectionField('tp', 'TP', tpDisplayMode, setTpDisplayMode, tpValue)}
         </div>
 
-        <div className="grid h-7 grid-cols-3 items-center border-b border-white/[0.08] px-2 text-[6.5px] text-[#737f89]">
+        <div className="grid h-7 grid-cols-3 items-center px-2 text-[6.5px] text-[#737f89]">
           <span className="truncate">Risk <b className="ml-1 font-mono font-semibold tabular-nums text-[#f0f0f2]">{formatMoney(metrics?.riskDollars, account?.currency)}</b></span>
           <span className="truncate text-center">P&amp;L <b className="ml-1 font-mono font-semibold tabular-nums text-[#42d7a2]">{formatMoney(metrics?.reward, account?.currency, true)}</b></span>
           <span className="truncate text-right">R:R <b className="ml-1 font-mono font-semibold tabular-nums text-[#f0f0f2]">1:{Number.isFinite(metrics?.rr) ? metrics.rr.toFixed(1) : '—'}</b></span>
         </div>
 
-        <div className={`grid gap-px bg-white/[0.07] ${side === 'SELL' ? 'grid-cols-[2fr_1fr]' : 'grid-cols-[1fr_2fr]'}`}>
+        <div className={`grid ${side === 'SELL' ? 'grid-cols-[2fr_1fr]' : 'grid-cols-[1fr_2fr]'}`}>
           {side === 'BUY' && (
             <button type="button" onClick={onCancelPlan} className="flex h-[49px] items-center justify-center bg-[#0d0d10] text-[8px] font-bold uppercase tracking-[0.08em] text-[#9a9aa0]">Cancel</button>
           )}
@@ -544,20 +544,20 @@ export default function ExecutionPanel({
 
     return (
       <>
-        <section className="relative shrink-0 overflow-visible border-t border-white/[0.11] bg-[#080808] shadow-[0_-7px_18px_rgba(0,0,0,.24)]">
+        <section className="acg-mobile-execution-surface relative shrink-0 overflow-visible bg-[#0b0b0d]">
           {orderPicker}
 
           <button
             type="button"
             onClick={() => setOrderPickerOpen(value => !value)}
-            className="flex h-[24px] w-full items-center justify-between border-b border-white/[0.055] px-2 text-left text-[8px] font-extrabold text-[#aab6c0]"
+            className="flex h-[24px] w-full items-center justify-between px-2 text-left text-[8px] font-extrabold text-[#aab6c0]"
             aria-label="Select order type"
           >
             <span>{orderTypes.find(([id]) => id === orderType)?.[1]}</span>
             <ChevronDown size={10} className="text-[#677a8b]"/>
           </button>
 
-          <div className="grid h-[53px] grid-cols-[36fr_28fr_36fr] divide-x divide-white/[0.045]">
+          <div className="grid h-[53px] grid-cols-[36fr_28fr_36fr]">
             <button
               type="button"
               disabled={!canSubmitExposure}
@@ -571,7 +571,7 @@ export default function ExecutionPanel({
             <button
               type="button"
               onClick={() => setMobileAdvancedOpen(true)}
-              className="flex min-w-0 flex-col items-center justify-center bg-[#070707] px-1 active:bg-[#101010]"
+              className="flex min-w-0 flex-col items-center justify-center bg-[#111114] px-1 active:bg-[#17171b]"
               aria-label="Open position size and risk controls"
             >
               <span className="flex items-center gap-0.5 font-mono text-[13px] font-black tabular-nums text-[#f4f7fb]">{mobileSizingLabel}<ChevronDown size={10} className="text-[#718398]"/></span>
@@ -648,7 +648,7 @@ export default function ExecutionPanel({
     );
   }
 
-  if (focusMode) return <section className="relative shrink-0 border-t border-white/[0.08] bg-[#080808]/98 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 ">{compactControls}</section>;
+  if (focusMode) return <section className="acg-mobile-execution-surface relative shrink-0 bg-[#0b0b0d] px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 ">{compactControls}</section>;
 
   return (
     <section className={`relative ${desktopSidebar ? 'mt-1.5' : 'mt-2.5'}`}>
