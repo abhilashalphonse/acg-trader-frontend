@@ -374,7 +374,7 @@ export default function DesktopOrderTicket({
     return Number.isFinite(lots) && lots >= minVolume ? lots : null;
   })();
   const riskExecutableLoss = Number.isFinite(riskExecutableLots)
-    ? estimateStopRisk(tradePlan, riskExecutableLots, market, currency)
+    ? estimateStopRisk(previewPlan || tradePlan, riskExecutableLots, market, currency)
     : null;
   const riskTargetLoss = Number.isFinite(Number(account?.equity))
     ? Number(account.equity) * Number(riskPercent) / 100
