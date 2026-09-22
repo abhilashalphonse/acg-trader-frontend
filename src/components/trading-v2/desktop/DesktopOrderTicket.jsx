@@ -109,6 +109,10 @@ export default function DesktopOrderTicket({
   const [appliedRiskSizing, setAppliedRiskSizing] = useState(null);
   const [protectionDraft, setProtectionDraft] = useState(null);
   const skipProtectionCommitRef = useRef(false);
+  const [pendingPriceDraft, setPendingPriceDraft] = useState(null);
+  const skipPendingPriceCommitRef = useRef(false);
+  const [riskInput, setRiskInput] = useState(String(riskPercent));
+  const [riskInputFocused, setRiskInputFocused] = useState(false);
 
   const volumeStep = Math.max(Number(market?.volumeStep) || 0.01, 0.00000001);
   const minVolume = Math.max(Number(market?.minVolume) || volumeStep, volumeStep);
@@ -116,10 +120,6 @@ export default function DesktopOrderTicket({
   const lotDecimals = Math.min(8, Math.max(0, decimalPlaces(market?.volumeStep ?? volumeStep)));
   const normalizedLots = normalizeVolumeToStep(lots, market, { rounding: 'nearest' });
   const currency = account?.currency || 'USD';
-
-  useEffect(() => {
-    if (!lotFocused) setLotInput(Number(normalizedLots).toFixed(lotDecimals));
-  }, [lotDecimals, lotFocused, normalizedLots]);
 
   const executableQuote = finiteQuote(market?.bid)
     && finiteQuote(market?.ask)
@@ -195,6 +195,18 @@ export default function DesktopOrderTicket({
 
   const riskSupported = riskSizingSupported(market, currency);
   const activeSizingMode = previewPlan?.sizingMode || sizingMode;
+  const displayedLots = activeSizingMode === 'risk' && Number.isFinite(effectiveExecutionLots)
+    ? effectiveExecutionLots
+    : normalizedLots;
+
+  useEffect(() => {
+    if (!lotFocused) setLotInput(Number(displayedLots).toFixed(lotDecimals));
+  }, [displayedLots, lotDecimals, lotFocused]);
+
+  useEffect(() => {
+    if (!riskInputFocused) setRiskInput(String(riskPercent));
+  }, [riskInputFocused, riskPercent]);
+
   const riskSizingBlocked = activeSizingMode === 'risk' && executionSizing?.canExecute === false;
   const marginBlocked = activeSizingMode === 'lots'
     && Number.isFinite(previewRequirement)
@@ -276,8 +288,16 @@ export default function DesktopOrderTicket({
   };
 
   const setRisk = value => {
-    onRiskPercentChange(value);
+    const next = Math.max(0.1, Math.min(5, Number(value) || 0.1));
+    setRiskInput(String(next));
+    onRiskPercentChange(next);
     setMode('risk');
+  };
+
+  const commitRiskInput = () => {
+    const numeric = Number(String(riskInput).trim());
+    setRisk(Number.isFinite(numeric) ? numeric : riskPercent);
+    setRiskInputFocused(false);
   };
 
   const clickSide = side => {
@@ -290,7 +310,7 @@ export default function DesktopOrderTicket({
       onStartPlan(side, orderType, { protection: 'none' });
       return;
     }
-    if (sizingMode === 'risk') {
+    if (activeSizingMode === 'risk') {
       onStartPlan(side, 'market', { protection: 'sl' });
       return;
     }
@@ -475,6 +495,32 @@ export default function DesktopOrderTicket({
     return point < 0
       ? normalized
       : normalized.slice(0, point + 1) + normalized.slice(point + 1).replace(/\./g, '');
+  };
+
+  const pendingPriceValue = field => formatInstrumentPrice(tradePlan?.[field], market, '');
+
+  const beginPendingPriceEdit = field => {
+    skipPendingPriceCommitRef.current = false;
+    setPendingPriceDraft({ field, value: pendingPriceValue(field) });
+  };
+
+  const discardPendingPriceEdit = () => {
+    skipPendingPriceCommitRef.current = true;
+    setPendingPriceDraft(null);
+  };
+
+  const commitPendingPriceInput = (field, rawValue) => {
+    if (skipPendingPriceCommitRef.current) {
+      skipPendingPriceCommitRef.current = false;
+      setPendingPriceDraft(null);
+      return;
+    }
+    const raw = String(rawValue ?? '').trim();
+    const numeric = Number(raw);
+    if (raw && raw !== '.' && Number.isFinite(numeric) && numeric > 0) {
+      onTradePlanChange({ [field]: numeric, stage: 'ready' });
+    }
+    setPendingPriceDraft(null);
   };
 
   const beginProtectionEdit = (field, mode) => {
@@ -703,11 +749,22 @@ export default function DesktopOrderTicket({
               <label className="min-w-0">
                 <span className="mb-1 block text-[9px] font-bold uppercase tracking-[0.06em] text-[#7D90A2]">{orderType === 'limit' ? 'Limit price' : 'Stop price'}</span>
                 <input
-                  value={formatInstrumentPrice(tradePlan?.entry, market, '')}
-                  onFocus={event => event.currentTarget.select()}
-                  onChange={event => {
-                    const numeric = Number(event.target.value.replace(/[^0-9.]/g, ''));
-                    if (Number.isFinite(numeric) && numeric > 0) onTradePlanChange({ entry: numeric, stage: 'ready' });
+                  value={pendingPriceDraft?.field === 'entry' ? pendingPriceDraft.value : pendingPriceValue('entry')}
+                  onFocus={event => {
+                    beginPendingPriceEdit('entry');
+                    requestAnimationFrame(() => event.currentTarget.select());
+                  }}
+                  onChange={event => setPendingPriceDraft({ field: 'entry', value: sanitizeProtectionInput(event.target.value) })}
+                  onBlur={event => commitPendingPriceInput('entry', event.currentTarget.value)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      event.currentTarget.blur();
+                    } else if (event.key === 'Escape') {
+                      event.preventDefault();
+                      discardPendingPriceEdit();
+                      event.currentTarget.blur();
+                    }
                   }}
                   inputMode="decimal"
                   className="h-9 w-full rounded-md border border-white/[0.07] bg-black px-2.5 text-right font-mono text-[11px] font-bold text-[#E6EDF3] outline-none focus:border-[#315b72]"
@@ -718,11 +775,22 @@ export default function DesktopOrderTicket({
                 <label className="min-w-0">
                   <span className="mb-1 block text-[9px] font-bold uppercase tracking-[0.06em] text-[#7D90A2]">Limit price</span>
                   <input
-                    value={formatInstrumentPrice(tradePlan?.limitPrice, market, '')}
-                    onFocus={event => event.currentTarget.select()}
-                    onChange={event => {
-                      const numeric = Number(event.target.value.replace(/[^0-9.]/g, ''));
-                      if (Number.isFinite(numeric) && numeric > 0) onTradePlanChange({ limitPrice: numeric, stage: 'ready' });
+                    value={pendingPriceDraft?.field === 'limitPrice' ? pendingPriceDraft.value : pendingPriceValue('limitPrice')}
+                    onFocus={event => {
+                      beginPendingPriceEdit('limitPrice');
+                      requestAnimationFrame(() => event.currentTarget.select());
+                    }}
+                    onChange={event => setPendingPriceDraft({ field: 'limitPrice', value: sanitizeProtectionInput(event.target.value) })}
+                    onBlur={event => commitPendingPriceInput('limitPrice', event.currentTarget.value)}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        event.currentTarget.blur();
+                      } else if (event.key === 'Escape') {
+                        event.preventDefault();
+                        discardPendingPriceEdit();
+                        event.currentTarget.blur();
+                      }
                     }}
                     inputMode="decimal"
                     className="h-9 w-full rounded-md border border-white/[0.07] bg-black px-2.5 text-right font-mono text-[11px] font-bold text-[#E6EDF3] outline-none focus:border-[#315b72]"
@@ -775,6 +843,8 @@ export default function DesktopOrderTicket({
                 value={lotInput}
                 onFocus={event => { setLotFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }}
                 onChange={liveLotInput}
+                readOnly={activeSizingMode === 'risk'}
+                title={activeSizingMode === 'risk' ? 'Position size is calculated from risk and stop loss. Choose a lot preset to switch back to Lots sizing.' : 'Manual lot size'}
                 onBlur={commitLotInput}
                 onKeyDown={event => {
                   if (event.key === 'ArrowUp') { event.preventDefault(); nudgeLots(1); }
@@ -817,15 +887,15 @@ export default function DesktopOrderTicket({
                 <>
                   <div className="grid grid-cols-4 gap-1">
                     {RISK_PRESETS.map(value => <button key={value} type="button" onClick={() => setRisk(value)} className={`h-7 rounded border text-[8px] font-bold ${Math.abs(riskPercent-value)<0.001 ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#7d90a2]'}`}>{value.toFixed(2)}%</button>)}
-                    <label className="flex h-7 items-center rounded border border-white/[0.06] bg-black px-1"><input type="number" min="0.1" max="5" step="0.05" value={riskPercent} onChange={event => setRisk(Math.max(0.1,Math.min(5,Number(event.target.value)||0.1)))} className="w-full bg-transparent text-center font-mono text-[8px] font-bold text-[#E6EDF3] outline-none"/><span className="text-[6px] text-[#6F8191]">%</span></label>
+                    <label className="flex h-7 items-center rounded border border-white/[0.06] bg-black px-1"><input type="text" inputMode="decimal" value={riskInput} onFocus={event => { setRiskInputFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }} onChange={event => setRiskInput(sanitizeProtectionInput(event.target.value))} onBlur={commitRiskInput} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); } else if (event.key === 'Escape') { event.preventDefault(); setRiskInput(String(riskPercent)); event.currentTarget.blur(); } }} className="w-full bg-transparent text-center font-mono text-[8px] font-bold text-[#E6EDF3] outline-none"/><span className="text-[6px] text-[#6F8191]">%</span></label>
                   </div>
                   <div className="mt-1.5 grid grid-cols-2 gap-1">
                     <div className="rounded border border-white/[0.05] bg-black px-2 py-1.5">
-                      <span className="block text-[8px] text-[#6F8191]">Current size</span>
+                      <span className="block text-[8px] text-[#6F8191]">Manual size</span>
                       <strong className="mt-0.5 block font-mono text-[10px] text-[#E6EDF3]">{Number(normalizedLots).toFixed(Math.max(2,lotDecimals))} lots</strong>
                     </div>
                     <div className="rounded border border-[#315b72]/50 bg-[#0d1a22]/35 px-2 py-1.5">
-                      <span className="block text-[8px] text-[#6F8191]">{riskNeedsCap ? 'Requested size' : 'Suggested size'}</span>
+                      <span className="block text-[8px] text-[#6F8191]">{riskNeedsCap ? 'Requested size' : 'Execution size'}</span>
                       <strong className="mt-0.5 block font-mono text-[10px] text-[#59C7FF]">{Number.isFinite(riskRequestedRaw) ? riskRequestedRaw.toFixed(Math.max(2,lotDecimals)) : Number.isFinite(riskCalculatedLots) ? riskCalculatedLots.toFixed(Math.max(2,lotDecimals)) : '—'} lots</strong>
                     </div>
                   </div>
@@ -857,7 +927,7 @@ export default function DesktopOrderTicket({
                     disabled={!Number.isFinite(riskExecutableLots)}
                     className="mt-1.5 h-8 w-full rounded border border-[#315b72] bg-[#0d1a22] text-[8px] font-black text-[#59C7FF] disabled:opacity-30"
                   >
-                    {Number.isFinite(riskExecutableLots) ? `APPLY ${riskExecutableLots.toFixed(Math.max(2,lotDecimals))} LOTS` : 'SIZE UNAVAILABLE'}
+                    {Number.isFinite(riskExecutableLots) ? `USE ${riskExecutableLots.toFixed(Math.max(2,lotDecimals))} LOTS MANUALLY` : 'SIZE UNAVAILABLE'}
                   </button>
                   {Number.isFinite(riskExecutableLoss) && (
                     <p className="mt-1 text-center text-[8px] text-[#6F8191]">Estimated SL loss after apply: <span className="font-mono text-[#FF6F7A]">-{money(Math.abs(riskExecutableLoss), currency)}</span></p>
