@@ -3,8 +3,23 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 export const WATCHLIST_STORAGE_KEY = 'acg-trader-watchlists-v1';
 
 export const DEFAULT_WATCHLIST_SYMBOLS = Object.freeze([
-  'EURUSD', 'GBPUSD', 'USDJPY', 'XAUUSD', 'US500', 'US100',
-  'BTCUSD', 'ETHUSD', 'AAPL', 'NVDA', 'TSLA',
+  'XAUUSD',
+  'EURUSD',
+  'GBPUSD',
+  'USDJPY',
+  'AUDUSD',
+  'USDCAD',
+  'USDCHF',
+  'NZDUSD',
+  'EURGBP',
+  'EURJPY',
+  'GBPJPY',
+  'EURCHF',
+  'EURAUD',
+  'GBPAUD',
+  'AUDJPY',
+  'CADJPY',
+  'CHFJPY',
 ]);
 
 const EMPTY_WORKSPACE = Object.freeze({ activeListId: 'favorites', lists: [] });
