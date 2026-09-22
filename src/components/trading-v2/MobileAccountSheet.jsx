@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, CircleHelp, Settings, ShieldCheck, X } from 'lucide-react';
+import { ChevronRight, CircleHelp, Settings, X } from 'lucide-react';
 
 function money(value, currency = 'USD') {
   const numeric = Number(value);
@@ -76,7 +76,6 @@ export default function MobileAccountSheet({
           </div>
 
           <div className="mt-3 overflow-hidden border-y border-white/[0.08] bg-[#080808]">
-            <Action icon={ShieldCheck} title="Account" subtitle="Trading account and challenge status" onClick={() => {}} />
             <Action icon={Settings} title="Platform settings" subtitle="Terminal preferences and profiles" onClick={onPlatformSettings} />
             <Action icon={CircleHelp} title="Help & support" subtitle="Trading and account assistance" onClick={onHelp} />
           </div>
