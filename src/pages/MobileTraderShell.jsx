@@ -654,7 +654,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
           <MobileAccountSheet
             account={account}
             onClose={() => setOverlay(null)}
-            onPlatformSettings={() => setOverlay('more')}
+            onPlatformSettings={() => setOverlay('platform')}
             onHelp={() => setOverlay('help')}
           />
         )}
