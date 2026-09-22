@@ -60,7 +60,7 @@ export default function MobileScalperMode({
 
   return (
     <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-black">
-      <header className="shrink-0 border-b border-white/[0.08] bg-[#080808]/95 px-3 pb-2 pt-[max(10px,env(safe-area-inset-top))] backdrop-blur-xl">
+      <header className="acg-mobile-metal-surface shrink-0 bg-[#0b0b0d]/98 px-3 pb-2 pt-[max(10px,env(safe-area-inset-top))] backdrop-blur-xl">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
             <InstrumentAvatar instrument={market} size={30}/>
@@ -73,15 +73,15 @@ export default function MobileScalperMode({
               <div className="mt-1 flex items-center gap-2.5 text-[9px] font-semibold text-[#74879c]"><span>Bid <b className="text-[#44dda9]">{market?.bid || '—'}</b></span><span>Ask <b className="text-[#ff6975]">{market?.ask || '—'}</b></span><span>Spread <b className="text-[#aebdcb]">{spread}</b></span></div>
             </div>
           </div>
-          <button type="button" onClick={onExit} aria-label="Exit chart focus mode" className="grid size-9 shrink-0 place-items-center rounded-md border border-white/[0.08] bg-[#080808] text-[#93a5b7] shadow-[inset_0_1px_rgba(255,255,255,0.025)]"><X size={18}/></button>
+          <button type="button" onClick={onExit} aria-label="Exit chart focus mode" className="grid size-9 shrink-0 place-items-center rounded-md bg-[#111114] text-[#93a5b7]"><X size={18}/></button>
         </div>
       </header>
 
-      <div className="shrink-0 bg-[#080808] pt-2">
+      <div className="acg-mobile-metal-surface shrink-0 bg-[#0b0b0d] pt-2">
         <ChartControls timeframe={timeframe} onTimeframe={setTimeframe} chartMode={chartMode} onChartMode={setChartMode} fullscreen onFullscreen={onExit} onIndicators={onIndicators} focusMode disabled={Boolean(tradePlan && !tradePlan.open)} />
       </div>
 
-      <div className="min-h-0 flex-1 bg-[#080808]">
+      <div className="acg-mobile-chart-surface min-h-0 flex-1 bg-[#0b0b0d]">
         <ChartArea symbol={market?.symbol} instrument={market} chartTimeframe={mapTimeframe(timeframe)} tick={tick} price={market?.bid} ask={market?.ask} chartMode={chartMode} selectedTool={selectedTool} onSelectTool={tradePlan && !tradePlan.open ? () => {} : setSelectedTool} focusMode tradePlan={tradePlan} tradePlanLots={tradePlanLots} accountCurrency={account?.currency || 'USD'} onTradePlanChange={onTradePlanChange} indicators={indicators} positions={positions} pendingOrders={pendingOrders} onModifyPending={onModifyPending} onCancelPending={onCancelPending} onUpdatePosition={onUpdatePosition} onClosePosition={onClosePosition} />
       </div>
 
