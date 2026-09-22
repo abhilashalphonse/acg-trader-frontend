@@ -258,9 +258,13 @@ export default function TradingTerminalV2({
     const instrument = markets.find(item => item.symbol === symbol) || market;
     const executionExposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market: instrument, commandState: trading.commandState });
     if (!executionExposure.allowed) { showNotice(executionExposure.reason); return null; }
+    const modeledPrice = Number(estimateExecutionPrice(instrument, side, executionLots)?.price);
+    const effectiveRequestedPrice = Number.isFinite(modeledPrice) && modeledPrice > 0
+      ? modeledPrice
+      : Number(requestedPrice);
     const proposedRisk = stopLoss == null
       ? null
-      : estimateStopRisk({ entry: requestedPrice, sl: stopLoss, side }, executionLots, instrument, account.currency);
+      : estimateStopRisk({ entry: effectiveRequestedPrice, sl: stopLoss, side }, executionLots, instrument, account.currency);
     const guard = evaluateRiskGuard({
       account,
       positions,
@@ -279,7 +283,7 @@ export default function TradingTerminalV2({
       side: String(side).toUpperCase(),
       lots: Number(executionLots),
       symbol,
-      requestedPrice: Number(requestedPrice),
+      requestedPrice: effectiveRequestedPrice,
       timeframe,
       sizingMode,
       riskPercent,
