@@ -125,7 +125,7 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
                     onSelectPosition(position.id);
                   }
                 }}
-                className={`pointer-events-auto absolute left-3 top-1/2 flex h-6 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border font-mono text-[10px] font-bold tabular-nums shadow-[0_5px_16px_rgba(0,0,0,.38)] backdrop-blur-sm ${pillClass} ${String(selectedPositionId) === String(position.id) ? 'ring-1 ring-white/25' : ''}`}
+                className={`pointer-events-auto absolute left-3 top-1/2 flex h-7 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border font-mono text-[10px] font-bold tabular-nums shadow-[0_5px_16px_rgba(0,0,0,.38)] backdrop-blur-sm ${pillClass} ${String(selectedPositionId) === String(position.id) ? 'ring-1 ring-white/25' : ''}`}
                 aria-label={`Select ${side} ${position.symbol || symbol} position`}
               >
                 <span className="flex min-w-[34px] items-center justify-center border-r border-white/20 px-2">{signedLots}</span>
@@ -137,13 +137,19 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
                     event.stopPropagation();
                     void onClosePosition(position.id, 100);
                   }}
-                  className="grid w-7 place-items-center text-[14px] leading-none text-white/85 transition hover:bg-black/20 hover:text-white active:bg-black/30"
+                  className="grid w-9 place-items-center text-[15px] leading-none text-white/85 transition hover:bg-black/20 hover:text-white active:bg-black/30"
                   aria-label={`Close ${side} ${position.symbol || symbol} position`}
                   title="Close position"
                 >
                   ×
                 </button>
               </div>
+              <span
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums text-white shadow-[0_3px_10px_rgba(0,0,0,.28)]"
+                style={{ borderColor: lineColor, backgroundColor: isBuy ? '#0aa06f' : '#d94250' }}
+              >
+                {formatInstrumentPrice(entry, instrument)}
+              </span>
             </div>
           </div>
         );
@@ -186,9 +192,12 @@ function PendingOrderOverlay({
     if (!Number.isFinite(y)) return null;
     return (
       <div key={`${order.id}:${kind}`} className="pointer-events-none absolute left-0 right-0 z-[18]" style={{ top: y }}>
-        <div className="relative border-t border-dashed" style={{ borderColor: `${color}88` }}>
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 rounded border bg-black/90 px-1.5 py-0.5 text-[8px] font-bold" style={{ borderColor: `${color}66`, color }}>
-            {label} {formatInstrumentPrice(price, instrument)}
+        <div className="relative border-t border-dotted" style={{ borderColor: `${color}99` }}>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 rounded-[4px] border bg-[#09090b]/94 px-1.5 py-0.5 text-[8px] font-black" style={{ borderColor: `${color}70`, color }}>
+            {label}
+          </span>
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 font-mono text-[8px] font-bold tabular-nums" style={{ borderColor: `${color}88`, backgroundColor: kind === 'sl' ? '#5b1721' : '#0b4b37', color: '#ffffff' }}>
+            {formatInstrumentPrice(price, instrument)}
           </span>
         </div>
       </div>
@@ -222,7 +231,7 @@ function PendingOrderOverlay({
                     onModify(order.id);
                   }
                 }}
-                className="pointer-events-auto absolute left-3 top-1/2 flex h-6 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border border-[#2459a8] bg-[#0b2f66]/95 font-mono text-[10px] font-bold tabular-nums text-[#f4f8ff] shadow-[0_5px_16px_rgba(0,0,0,.38)] backdrop-blur-sm"
+                className="pointer-events-auto absolute left-3 top-1/2 flex h-7 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border border-[#2459a8] bg-[#0b2f66]/95 font-mono text-[10px] font-bold tabular-nums text-[#f4f8ff] shadow-[0_5px_16px_rgba(0,0,0,.38)] backdrop-blur-sm"
                 aria-label={`Modify ${side} ${type} order`}
                 title={`${type} pending order`}
               >
@@ -239,7 +248,7 @@ function PendingOrderOverlay({
                     event.stopPropagation();
                     onCancel(order.id);
                   }}
-                  className="grid w-7 place-items-center text-[14px] leading-none text-white/85 transition hover:bg-black/20 hover:text-white active:bg-black/30"
+                  className="grid w-9 place-items-center text-[15px] leading-none text-white/85 transition hover:bg-black/20 hover:text-white active:bg-black/30"
                   aria-label={`Cancel ${side} ${type} order`}
                   title="Cancel pending order"
                 >
@@ -356,8 +365,6 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
   const liveSl = sourcePrice('sl');
   const liveTp = sourcePrice('tp');
   const livePip = instrumentPipSize(instrument);
-  const liveSlPips = [liveEntry, liveSl, livePip].every(Number.isFinite) && livePip > 0 ? Math.abs(liveEntry - liveSl) / livePip : null;
-  const liveTpPips = [liveEntry, liveTp, livePip].every(Number.isFinite) && livePip > 0 ? Math.abs(liveTp - liveEntry) / livePip : null;
   const liveRisk = Number.isFinite(displayLots) && Number.isFinite(liveEntry) && Number.isFinite(liveSl)
     ? estimateStopRisk({ ...plan, entry: liveEntry, sl: liveSl }, displayLots, instrument, accountCurrency)
     : null;
@@ -375,7 +382,7 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
     if (top == null) return null;
     return (
       <div className="absolute left-0 right-0 z-30" style={{ top }}>
-        <div className="relative h-px" style={{ backgroundColor: color, boxShadow: `0 0 10px ${color}55` }}>
+        <div className="relative h-px" style={{ backgroundColor: `${color}bf` }}>
           <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-md border px-1.5 py-1 text-[8px] font-black tracking-[0.03em]" style={{ borderColor: `${color}99`, backgroundColor: 'rgba(8,8,8,0.92)', color }}>{label}</span>
           <span className="absolute right-2 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md px-2 py-1 font-mono text-[8px] font-extrabold tabular-nums" style={{ backgroundColor: color, color: kind === 'sl' ? '#2b0810' : '#032219' }}>{value}</span>
           {draggable && <button type="button" aria-label={`Drag ${label}`} onPointerDown={event => { event.preventDefault(); event.stopPropagation(); setDragging(kind); onChange({ stage: `dragging-${kind}` }); }} onTouchStart={event => { event.preventDefault(); event.stopPropagation(); setDragging(kind); onChange({ stage: `dragging-${kind}` }); }} className="pointer-events-auto absolute right-[54px] top-1/2 size-7 -translate-y-1/2 cursor-ns-resize touch-none rounded-full border-2 bg-[#080808] shadow-[0_0_0_5px_rgba(255,255,255,0.04)]" style={{ borderColor: color }} />}
@@ -475,15 +482,19 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
     const projectedPnl = estimatePositionPnlAtPrice(position, price, instrument);
     const pips = positionDistancePips(position, price, instrument);
     const currency = position?.pnlCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || 'USD';
-    const previewText = projectedPnl == null
-      ? `${displayPrice(price)} · ${pips?.toFixed(1) ?? '—'}p`
-      : `${displayPrice(price)} · ${formatProjectedPnl(projectedPnl, currency)} · ${pips?.toFixed(1) ?? '—'}p`;
+    const selected = String(selectedPositionId) === String(position.id);
+    const active = selected || (dragging?.positionId === position.id && dragging?.kind === kind);
+    const previewText = active
+      ? (projectedPnl == null
+          ? `${displayPrice(price)} · ${pips?.toFixed(1) ?? '—'}p`
+          : `${displayPrice(price)} · ${formatProjectedPnl(projectedPnl, currency)} · ${pips?.toFixed(1) ?? '—'}p`)
+      : displayPrice(price);
 
     return (
       <div key={key} className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: y }}>
         <div className="relative h-px" style={{ backgroundColor: color }}>
-          <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded border px-1.5 py-0.5 text-[8px] font-black" style={{ borderColor: `${color}88`, backgroundColor: 'rgba(8,8,8,0.92)', color }}>{label}</span>
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded border px-1.5 py-0.5 text-[8px] font-bold tabular-nums" style={{ borderColor: `${color}66`, backgroundColor: 'rgba(8,8,8,0.94)', color }}>{previewText}</span>
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 text-[8px] font-black" style={{ borderColor: `${color}88`, backgroundColor: 'rgba(8,8,8,0.92)', color }}>{label}</span>
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 text-[8px] font-bold tabular-nums text-white" style={{ borderColor: `${color}88`, backgroundColor: kind === 'sl' ? '#5b1721' : '#0b4b37' }}>{previewText}</span>
           <button
             type="button"
             aria-label={`Drag ${label}`}
@@ -656,8 +667,8 @@ export default function ChartArea({
         />}
         <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} coordinateApi={coordinateApi} instrument={instrument} lots={tradePlanLots} accountCurrency={accountCurrency} />
         {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} />}
-        {!tradePlan && <OpenPositionEntryOverlay symbol={symbol} positions={positions} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} />}
-        {!tradePlan && <OpenPositionProtectionOverlay symbol={symbol} positions={positions} coordinateApi={coordinateApi} instrument={instrument} onUpdatePosition={onUpdatePosition} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} />}
+        <OpenPositionEntryOverlay symbol={symbol} positions={positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} />
+        <OpenPositionProtectionOverlay symbol={symbol} positions={positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} onUpdatePosition={onUpdatePosition} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} />
 
         {desktopEnhanced && (
           <div className="absolute right-[74px] top-2 z-30 flex items-center gap-1">
