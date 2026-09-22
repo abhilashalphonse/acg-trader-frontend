@@ -720,7 +720,10 @@ export default function TradingTerminalV2({
       showNotice(`Opening requirement ${openingRequirement.toFixed(2)} ${account?.currency || 'USD'} exceeds available free margin.`);
       return;
     }
-    const proposedRisk = estimateStopRisk(executionPlan, volume, planMarket, account.currency);
+    const riskPlan = executionPlan.pending && String(executionPlan.orderType || '').toLowerCase() === 'stop-limit'
+      ? { ...executionPlan, entry: executionPlan.limitPrice }
+      : executionPlan;
+    const proposedRisk = estimateStopRisk(riskPlan, volume, planMarket, account.currency);
     const guard = evaluateRiskGuard({
       account,
       positions,
