@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateRiskOrderSizing, calculateRiskSizedLots, defaultPlannerStopDistance, effectiveLeverage, estimatePositionPnlAtPrice, estimateRequiredMargin, estimateStopRisk, evaluateRiskToolSetup, positionDistancePips, riskSizingSupported } from '../src/utils/tradingRisk.js';
+import { calculateRiskOrderSizing, calculateRiskSizedLots, defaultPlannerStopDistance, effectiveLeverage, estimatePositionPnlAtPrice, estimateRequiredMargin, estimateStopRisk, evaluateRiskToolSetup, positionDistancePips, resolveExecutionSizing, riskSizingSupported } from '../src/utils/tradingRisk.js';
 import { exposureAvailability } from '../src/utils/exposureAvailability.js';
 
 const xau = { pnlCurrency: 'USD', quoteCurrency: 'USD', contractSize: 100 };
@@ -152,4 +152,32 @@ test('risk tool marks a valid risk-sized setup ready', () => {
   assert.equal(result.canCreateOrder, true);
   assert.equal(result.code, 'READY');
   assert.equal(result.sizing.requestedLots, 1);
+});
+
+
+test('execution sizing uses the same risk-sized lots that the order preview uses', () => {
+  const instrument = { pnlCurrency: 'USD', quoteCurrency: 'USD', marginCurrency: 'USD', contractSize: 100, defaultLeverage: 100, minVolume: 0.01, maxVolume: 100, volumeStep: 0.01 };
+  const account = { currency: 'USD', leverage: 100, equity: 10000, freeMargin: 10000 };
+  const plan = { side: 'buy', entry: 2500, sl: 2499, sizingMode: 'risk' };
+  const result = resolveExecutionSizing(plan, 1, 0.25, account, instrument);
+  assert.equal(result.canExecute, true);
+  assert.equal(result.lots, 1);
+  assert.equal(result.riskSizing.requestedLots, 1);
+});
+
+test('execution sizing blocks risk mode before submission when required margin is unavailable', () => {
+  const instrument = { pnlCurrency: 'USD', quoteCurrency: 'USD', marginCurrency: 'USD', contractSize: 1, defaultLeverage: 100, minVolume: 0.01, maxVolume: 1000, volumeStep: 0.01 };
+  const account = { currency: 'USD', leverage: 100, equity: 10000, freeMargin: 50 };
+  const plan = { side: 'buy', entry: 80000, sl: 79600, sizingMode: 'risk' };
+  const result = resolveExecutionSizing(plan, 1, 0.25, account, instrument);
+  assert.equal(result.canExecute, false);
+  assert.equal(result.blockReason, 'INSUFFICIENT_MARGIN');
+  assert.equal(result.lots, 0.25);
+});
+
+test('manual execution sizing normalizes the same lot size sent by execution', () => {
+  const instrument = { minVolume: 0.01, maxVolume: 100, volumeStep: 0.01 };
+  const result = resolveExecutionSizing({ sizingMode: 'lots', manualLots: 0.127 }, 1, 0.1, { currency: 'USD' }, instrument);
+  assert.equal(result.canExecute, true);
+  assert.equal(result.lots, 0.13);
 });
