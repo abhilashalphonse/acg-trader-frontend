@@ -179,12 +179,22 @@ export default function ExecutionPanel({
   };
 
   const sizingPicker = pickerOpen && (
-    <div className={`absolute z-50 w-[196px] overflow-hidden rounded-lg border border-white/[0.10] bg-[#101010] p-1.5 shadow-[0_18px_55px_rgba(0,0,0,0.5)] ${focusMode ? 'bottom-[72px] left-1/2 -translate-x-1/2' : 'bottom-[112px] left-1/2 -translate-x-1/2'}`}>
-      <button type="button" onClick={() => { onSizingModeChange('lots'); setPickerOpen(false); }} className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-[10px] ${sizingMode === 'lots' ? 'bg-[#181818] text-[#60caff]' : 'text-[#c0ccd7]'}`}><span><b className="block">Lots</b><small className="text-[#718398]">Type exact size or use presets</small></span>{sizingMode === 'lots' && <Check size={13}/>}</button>
+    <div className={`absolute z-50 w-[196px] overflow-hidden border border-white/[0.12] bg-[#0d0d10] shadow-[0_10px_28px_rgba(0,0,0,0.38)] ${mobileDocked ? 'bottom-[70px] left-1/2 -translate-x-1/2' : focusMode ? 'bottom-[72px] left-1/2 -translate-x-1/2' : 'bottom-[112px] left-1/2 -translate-x-1/2'}`}>
+      <div className="border-b border-white/[0.08] px-2.5 py-2">
+        <span className="block text-[7px] font-semibold uppercase tracking-[0.1em] text-[#77777d]">Lot size</span>
+      </div>
+
+      <button type="button" onClick={() => { onSizingModeChange('lots'); setPickerOpen(false); }} className={`flex w-full items-center justify-between border-b border-white/[0.08] px-2.5 py-2 text-left text-[9px] ${sizingMode === 'lots' ? 'bg-[#15151a] text-[#53c7ff]' : 'bg-transparent text-[#d6d6da]'}`}>
+        <span>
+          <b className="block font-semibold">Lots</b>
+          <small className="mt-0.5 block text-[7px] text-[#68686e]">Type exact size or use presets</small>
+        </span>
+        {sizingMode === 'lots' && <Check size={12}/>}
+      </button>
 
       {sizingMode === 'lots' && (
-        <div className="mt-1.5 border-t border-white/[0.08] px-1 pt-1.5">
-          <span className="block px-1 pb-1 text-[7px] font-bold uppercase tracking-[0.1em] text-[#737373]">Quick sizes</span>
+        <div className="border-b border-white/[0.08] px-2 py-2">
+          <span className="block pb-1.5 text-[7px] font-semibold uppercase tracking-[0.1em] text-[#77777d]">Quick sizes</span>
           <div className="grid grid-cols-4 gap-1">
             {lotPresets.map(value => (
               <button
@@ -196,17 +206,23 @@ export default function ExecutionPanel({
                   setLotInput(formatLots(next));
                   setPickerOpen(false);
                 }}
-                className={`h-7 rounded-md border text-[8px] font-bold tabular-nums ${Math.abs(Number(lots) - value) < volumeStep / 2 ? 'border-[#2d708f] bg-[#181818] text-[#53c7ff]' : 'border-white/[0.08] bg-black text-[#b3b3b3]'}`}
+                className={`h-7 border text-[8px] font-semibold tabular-nums ${Math.abs(Number(lots) - value) < volumeStep / 2 ? 'border-[#315b72] bg-[#15151a] text-[#53c7ff]' : 'border-white/[0.08] bg-[#15151a] text-[#a0a0a6]'}`}
               >
                 {formatLots(value)}
               </button>
             ))}
           </div>
-          <span className="mt-1.5 block px-1 text-[7px] text-[#666]">Min {formatLots(minVolume)} · Step {formatLots(volumeStep)} · Max {formatLots(maxVolume)}</span>
+          <span className="mt-1.5 block font-mono text-[7px] tabular-nums text-[#68686e]">Min {formatLots(minVolume)} · Step {formatLots(volumeStep)} · Max {formatLots(maxVolume)}</span>
         </div>
       )}
 
-      <button type="button" onClick={() => { onSizingModeChange('risk'); setPickerOpen(false); }} className={`mt-1.5 flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-[10px] ${sizingMode === 'risk' ? 'bg-[#181818] text-[#60caff]' : 'text-[#c0ccd7]'}`}><span><b className="block">Risk %</b><small className="text-[#718398]">Chart trade planner</small></span>{sizingMode === 'risk' && <Check size={13}/>}</button>
+      <button type="button" onClick={() => { onSizingModeChange('risk'); setPickerOpen(false); }} className={`flex w-full items-center justify-between px-2.5 py-2 text-left text-[9px] ${sizingMode === 'risk' ? 'bg-[#15151a] text-[#53c7ff]' : 'bg-transparent text-[#d6d6da]'}`}>
+        <span>
+          <b className="block font-semibold">Risk %</b>
+          <small className="mt-0.5 block text-[7px] text-[#68686e]">Chart trade planner</small>
+        </span>
+        {sizingMode === 'risk' && <Check size={12}/>}
+      </button>
     </div>
   );
 
