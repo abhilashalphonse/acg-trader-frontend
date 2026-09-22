@@ -585,8 +585,8 @@ export default function DesktopOrderTicket({
   };
 
   return (
-    <section className="min-h-0 bg-[#07090B]">
-      <div className="flex h-10 items-center justify-between border-b border-white/[0.06] px-3">
+    <section className="flex h-full min-h-0 flex-col bg-[#07090B]">
+      <div className="flex h-10 shrink-0 items-center justify-between border-b border-white/[0.06] px-3">
         <div className="flex min-w-0 items-center gap-2">
           <strong className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#E6EDF3]">Order</strong>
           <span className="truncate text-[9px] font-semibold text-[#A1AFBC]">{market?.displaySymbol || market?.symbol || '—'}</span>
@@ -595,7 +595,7 @@ export default function DesktopOrderTicket({
         <span className="text-[8px] font-semibold text-[#6F8191]">{orderFamily === 'market' ? '1-click' : String(orderType).replace('-', ' ')}</span>
       </div>
 
-      <div className="space-y-2 overflow-y-auto px-2.5 py-2.5 [scrollbar-width:thin]">
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-2.5 py-2.5 [scrollbar-width:thin]">
         <div className="grid grid-cols-2 rounded-md border border-white/[0.07] bg-black p-0.5">
           <button type="button" onClick={() => { chooseOrderFamily('market'); setActiveTool(null); }} className={`h-8 rounded text-[9px] font-bold ${orderFamily === 'market' ? 'bg-white/[0.065] text-[#E6EDF3]' : 'text-[#66798b] hover:text-[#cbd6df]'}`}>Market</button>
           <button type="button" onClick={() => { chooseOrderFamily('pending'); setActiveTool(null); }} className={`h-8 rounded text-[9px] font-bold ${orderFamily === 'pending' ? 'bg-[#171208] text-[#E7BD58]' : 'text-[#66798b] hover:text-[#cbd6df]'}`}>Pending</button>
@@ -885,10 +885,13 @@ export default function DesktopOrderTicket({
           </div>
         </div>
 
+      </div>
+
+      <div className="shrink-0 border-t border-white/[0.07] bg-[#080A0C]/98 px-2.5 pb-2.5 pt-2 shadow-[0_-12px_30px_rgba(0,0,0,.28)] backdrop-blur">
         {pendingPlan && (
-          <div className="flex items-center justify-between px-0.5 text-[8px] font-semibold text-[#6F8191]">
+          <div className="mb-1.5 flex items-center justify-between px-0.5 text-[8px] font-semibold text-[#6F8191]">
             <span>{tradePlan?.pending ? 'Pending order ready' : 'Protected market plan'}</span>
-            <span>{String(selectedSide || '').toUpperCase()} · final confirmation below</span>
+            <span>{String(selectedSide || '').toUpperCase()} · review and confirm</span>
           </div>
         )}
 
@@ -900,7 +903,7 @@ export default function DesktopOrderTicket({
             className="flex h-[58px] min-w-0 flex-col justify-center rounded-md border border-[#6d2d37] bg-[#18080c] px-3 text-left transition hover:bg-[#210b10] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35"
           >
             <strong className="truncate font-mono text-[15px] font-black tracking-[-0.03em] text-[#f7edef]">{formatInstrumentPrice(market?.bid, market)}</strong>
-            <span className="mt-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-[#FF6F7A]">{pendingPlan && selectedSide === 'sell' ? (tradePlan?.pending ? 'Place sell' : 'Execute sell') : 'Sell'}</span>
+            <span className="mt-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#FF6F7A]">{pendingPlan && selectedSide === 'sell' ? (tradePlan?.pending ? 'Place sell' : 'Execute sell') : 'Sell'}</span>
           </button>
           <button
             type="button"
@@ -909,7 +912,7 @@ export default function DesktopOrderTicket({
             className="flex h-[58px] min-w-0 flex-col items-end justify-center rounded-md border border-[#35D79D]/55 bg-[#071710] px-3 text-right shadow-[inset_0_0_0_1px_rgba(53,215,157,0.10),0_0_14px_rgba(53,215,157,0.06)] transition hover:border-[#42E3AA]/70 hover:bg-[#092016] active:scale-[0.99] disabled:cursor-not-allowed disabled:border-[#35D79D]/35 disabled:shadow-[inset_0_0_0_1px_rgba(53,215,157,0.06)] disabled:opacity-55"
           >
             <strong className="truncate font-mono text-[15px] font-black tracking-[-0.03em] text-[#edf8f4]">{formatInstrumentPrice(market?.ask, market)}</strong>
-            <span className="mt-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-[#42D7A1]">{pendingPlan && selectedSide === 'buy' ? (tradePlan?.pending ? 'Place buy' : 'Execute buy') : 'Buy'}</span>
+            <span className="mt-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#42D7A1]">{pendingPlan && selectedSide === 'buy' ? (tradePlan?.pending ? 'Place buy' : 'Execute buy') : 'Buy'}</span>
           </button>
         </div>
       </div>
