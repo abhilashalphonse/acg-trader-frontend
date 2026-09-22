@@ -30,6 +30,9 @@ const chartTokens = {
   text: '#8b8b8f',
   gridline: '#1a1a1d',
   buy: '#2dd39b',
+  livePriceLine: 'rgba(45,211,155,0.68)',
+  livePriceLabel: '#38d6a3',
+  livePriceLabelText: '#06130f',
   sell: '#f05d68',
   buyWick: 'rgba(45,211,155,0.78)',
   sellWick: 'rgba(240,93,104,0.78)',
@@ -586,17 +589,21 @@ export default function TradingChart({
       if (!marketLineRef.current) {
         marketLineRef.current = series.createPriceLine({
           price: liveBid,
-          color: showBidAskLines ? '#42a5ff' : chartTokens.buy,
+          color: showBidAskLines ? '#42a5ff' : chartTokens.livePriceLine,
           lineWidth: 1,
           lineStyle: showBidAskLines ? LineStyle.Dashed : LineStyle.Solid,
           axisLabelVisible: true,
+          axisLabelColor: showBidAskLines ? '#42a5ff' : chartTokens.livePriceLabel,
+          axisLabelTextColor: showBidAskLines ? '#ffffff' : chartTokens.livePriceLabelText,
           title: showBidAskLines ? 'BID' : '',
         });
       } else {
         marketLineRef.current.applyOptions({
           price: liveBid,
-          color: showBidAskLines ? '#42a5ff' : chartTokens.buy,
+          color: showBidAskLines ? '#42a5ff' : chartTokens.livePriceLine,
           lineStyle: showBidAskLines ? LineStyle.Dashed : LineStyle.Solid,
+          axisLabelColor: showBidAskLines ? '#42a5ff' : chartTokens.livePriceLabel,
+          axisLabelTextColor: showBidAskLines ? '#ffffff' : chartTokens.livePriceLabelText,
           title: showBidAskLines ? 'BID' : '',
         });
       }
