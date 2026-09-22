@@ -50,10 +50,10 @@ export default function ChartControls({
         </div>
 
         <div className="flex h-8 shrink-0 items-center overflow-hidden border border-white/[0.08] bg-[#0d0d10]">
-          <button type="button" disabled={disabled} aria-label="Candlestick chart" onClick={() => onChartMode('candles')} className={`grid h-full w-8 place-items-center border-r border-white/[0.08] ${chartMode === 'candles' ? 'bg-[#15151a] text-[#53c7ff]' : 'bg-transparent text-[#7a7a82]'}`}>
+          <button type="button" disabled={disabled} aria-label="Candlestick chart" onClick={() => onChartMode('candles')} className={`grid h-full w-8 place-items-center border-r border-white/[0.08] ${chartMode === 'candles' ? 'bg-[#15151a] text-[#53c7ff] shadow-[inset_0_-2px_0_rgba(83,199,255,0.75)]' : 'bg-transparent text-[#7a7a82]'}`}>
             <CandlestickChart size={15} />
           </button>
-          <button type="button" disabled={disabled} aria-label="Line chart" onClick={() => onChartMode('line')} className={`grid h-full w-8 place-items-center border-r border-white/[0.08] ${chartMode === 'line' ? 'bg-[#15151a] text-[#53c7ff]' : 'bg-transparent text-[#7a7a82]'}`}>
+          <button type="button" disabled={disabled} aria-label="Line chart" onClick={() => onChartMode('line')} className={`grid h-full w-8 place-items-center border-r border-white/[0.08] ${chartMode === 'line' ? 'bg-[#15151a] text-[#53c7ff] shadow-[inset_0_-2px_0_rgba(83,199,255,0.75)]' : 'bg-transparent text-[#7a7a82]'}`}>
             <ChartNoAxesCombined size={15} />
           </button>
           <button type="button" disabled={disabled} onClick={onIndicators} aria-label="Indicators" className="grid h-full w-8 place-items-center border-r border-white/[0.08] bg-transparent text-[15px] font-medium italic text-[#7a7a82] active:bg-[#15151a] active:text-[#53c7ff]">
@@ -65,7 +65,7 @@ export default function ChartControls({
             onClick={onToggleDrawings}
             aria-label={drawingsOpen ? 'Hide drawing tools' : 'Show drawing tools'}
             aria-pressed={drawingsOpen}
-            className={`grid h-full w-8 place-items-center ${drawingsOpen ? 'bg-[#15151a] text-[#53c7ff]' : 'bg-transparent text-[#7a7a82]'}`}
+            className={`grid h-full w-8 place-items-center ${drawingsOpen ? 'bg-[#15151a] text-[#53c7ff] shadow-[inset_0_-2px_0_rgba(83,199,255,0.75)]' : 'bg-transparent text-[#7a7a82]'}`}
           >
             <Pencil size={15} />
           </button>
