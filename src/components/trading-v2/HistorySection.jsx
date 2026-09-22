@@ -48,7 +48,7 @@ function normalizeDeal(deal) {
   };
 }
 
-export default function HistorySection({ positionHistory = [], journal = [], markets = [], accountCurrency = 'USD', onOpenChart = () => {}, onNotice = () => {} }) {
+export default function HistorySection({ positionHistory = [], journal = [], markets = [], accountCurrency = 'USD', onOpenChart = () => {}, onNotice = () => {}, embedded = false }) {
   const durable = useDurableTradingHistory();
   const [tab, setTab] = useState('deals');
   const [period, setPeriod] = useState('Recent');
@@ -90,11 +90,11 @@ export default function HistorySection({ positionHistory = [], journal = [], mar
   );
 
   return (
-    <section className="acg-mobile-terminal-page min-h-[calc(100dvh-92px)] px-2 pb-4 pt-2">
-      <header className="flex items-start justify-between gap-3 pb-3">
+    <section className={embedded ? 'px-0 pb-3 pt-0' : 'acg-mobile-terminal-page min-h-[calc(100dvh-92px)] px-2 pb-4 pt-2'}>
+{!embedded && (      <header className="flex items-start justify-between gap-3 pb-3">
         <div><p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#5f7488]">Trading record</p><h1 className="mt-1 text-[26px] font-black tracking-[-0.045em] text-[#f5f8fb]">History</h1><p className="mt-1 max-w-[290px] text-[10px] leading-relaxed text-[#718397]">{durable.loaded ? 'Showing your executed orders and deals.' : durable.error ? 'Full history is temporarily unavailable; recent fills are still shown.' : 'Loading trading history…'}</p></div>
         <button type="button" onClick={shareSummary} className="acg-terminal-accent mt-1 grid size-9 place-items-center border border-white/[0.08] bg-[#15151a]" aria-label="Share trading performance"><Share2 size={16}/></button>
-      </header>
+      </header>)}
 
       <div className="grid grid-cols-3 border-y border-white/[0.08] bg-black">
         {[['deals', 'Deals'], ['orders', 'Orders'], ['session', 'Session']].map(([id, label]) => <button key={id} type="button" onClick={() => setTab(id)} className={`relative h-10 text-[9px] font-extrabold transition ${tab === id ? 'acg-terminal-selected bg-[#101010] text-[#edf5fa]' : 'text-[#71869a]'}`}>{label}{tab === id && <span className="absolute bottom-0.5 left-1/2 h-0.5 w-7 -translate-x-1/2 rounded-full bg-[#101010]"/>}</button>)}
