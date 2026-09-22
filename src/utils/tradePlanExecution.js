@@ -92,7 +92,7 @@ export function createDefaultTradePlan({
   };
 }
 
-export function validateTradePlanForExecution(plan, market) {
+export function validateTradePlanForExecution(plan, market, { preserveEntry = false } = {}) {
   if (!plan) return { valid: true, code: 'NO_PLAN', message: null };
   const side = normalizedSide(plan.side);
   if (!side) return { valid: false, code: 'INVALID_SIDE', message: 'Select Buy or Sell.' };
@@ -102,7 +102,7 @@ export function validateTradePlanForExecution(plan, market) {
   if (!bid || !ask || ask < bid) return { valid: false, code: 'INVALID_QUOTE', message: 'Executable bid/ask is unavailable.' };
 
   const type = String(plan.orderType || 'market').toLowerCase();
-  const effective = effectiveTradePlan(plan, market);
+  const effective = preserveEntry ? plan : effectiveTradePlan(plan, market);
   const entry = finitePositive(effective?.entry);
   if (!entry) return { valid: false, code: 'INVALID_ENTRY', message: 'Entry price is unavailable.' };
 
