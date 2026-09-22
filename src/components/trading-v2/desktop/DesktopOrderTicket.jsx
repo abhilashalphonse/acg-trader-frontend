@@ -640,6 +640,19 @@ export default function DesktopOrderTicket({
     if (tradePlan) onTradePlanChange({ manualLots: next, sizingMode: 'lots' });
   };
 
+  const executionButtonPrice = side => {
+    if (pendingPlan && selectedSide === side) return tradePlan?.entry;
+    return side === 'buy' ? market?.ask : market?.bid;
+  };
+
+  const executionButtonLabel = side => {
+    if (!pendingPlan || selectedSide !== side) return side === 'buy' ? 'Buy' : 'Sell';
+    if (tradePlan?.editingOrderId) return 'Update order';
+    if (!tradePlan?.pending) return side === 'buy' ? 'Execute buy' : 'Execute sell';
+    const typeLabel = String(tradePlan?.orderType || orderType || '').replace('-', ' ');
+    return `Place ${side} ${typeLabel}`;
+  };
+
   const renderProtectionEditor = field => {
     const enabled = Number.isFinite(validProtectionPrice(tradePlan?.[field]));
     const mode = protectionMode[field];
@@ -1072,8 +1085,8 @@ export default function DesktopOrderTicket({
             onClick={() => clickSide('sell')}
             className="flex h-[58px] min-w-0 flex-col justify-center rounded-md border border-[#6d2d37] bg-[#18080c] px-3 text-left transition hover:bg-[#210b10] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35"
           >
-            <strong className="truncate font-mono text-[15px] font-black tracking-[-0.03em] text-[#f7edef]">{formatInstrumentPrice(market?.bid, market)}</strong>
-            <span className="mt-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#FF6F7A]">{pendingPlan && selectedSide === 'sell' ? (tradePlan?.pending ? 'Place sell' : 'Execute sell') : 'Sell'}</span>
+            <strong className="truncate font-mono text-[15px] font-black tracking-[-0.03em] text-[#f7edef]">{formatInstrumentPrice(executionButtonPrice('sell'), market)}</strong>
+            <span className="mt-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#FF6F7A]">{executionButtonLabel('sell')}</span>
           </button>
           <button
             type="button"
@@ -1081,8 +1094,8 @@ export default function DesktopOrderTicket({
             onClick={() => clickSide('buy')}
             className="flex h-[58px] min-w-0 flex-col items-end justify-center rounded-md border border-[#35D79D]/55 bg-[#071710] px-3 text-right shadow-[inset_0_0_0_1px_rgba(53,215,157,0.10),0_0_14px_rgba(53,215,157,0.06)] transition hover:border-[#42E3AA]/70 hover:bg-[#092016] active:scale-[0.99] disabled:cursor-not-allowed disabled:border-[#35D79D]/35 disabled:shadow-[inset_0_0_0_1px_rgba(53,215,157,0.06)] disabled:opacity-55"
           >
-            <strong className="truncate font-mono text-[15px] font-black tracking-[-0.03em] text-[#edf8f4]">{formatInstrumentPrice(market?.ask, market)}</strong>
-            <span className="mt-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#42D7A1]">{pendingPlan && selectedSide === 'buy' ? (tradePlan?.pending ? 'Place buy' : 'Execute buy') : 'Buy'}</span>
+            <strong className="truncate font-mono text-[15px] font-black tracking-[-0.03em] text-[#edf8f4]">{formatInstrumentPrice(executionButtonPrice('buy'), market)}</strong>
+            <span className="mt-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#42D7A1]">{executionButtonLabel('buy')}</span>
           </button>
         </div>
       </div>
