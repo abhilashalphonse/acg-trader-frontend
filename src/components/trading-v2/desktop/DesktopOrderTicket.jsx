@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Minus, Plus, ShieldCheck, X } from 'lucide-react';
 import { calculateAccountRiskSummary } from '../../../utils/accountRisk.js';
 import { DEFAULT_RISK_GUARD_SETTINGS, evaluateRiskGuard } from '../../../utils/riskGuard.js';
@@ -106,6 +106,8 @@ export default function DesktopOrderTicket({
   const [protectionMode, setProtectionMode] = useState({ sl: 'price', tp: 'price' });
   const [riskGuardOpen, setRiskGuardOpen] = useState(false);
   const [appliedRiskSizing, setAppliedRiskSizing] = useState(null);
+  const [protectionDraft, setProtectionDraft] = useState(null);
+  const skipProtectionCommitRef = useRef(false);
 
   const volumeStep = Math.max(Number(market?.volumeStep) || 0.01, 0.00000001);
   const minVolume = Math.max(Number(market?.minVolume) || volumeStep, volumeStep);
@@ -411,7 +413,7 @@ export default function DesktopOrderTicket({
 
   const defaultProtectionPrice = field => {
     if (!tradePlan) return null;
-    const entry = Number(tradePlan.entry);
+    const entry = Number(previewPlan?.entry ?? tradePlan.entry);
     if (!Number.isFinite(entry) || !Number.isFinite(pipSize) || pipSize <= 0) return null;
     const distance = field === 'sl' ? 10 : 20;
     const side = String(tradePlan.side || '').toLowerCase();
@@ -430,6 +432,7 @@ export default function DesktopOrderTicket({
       const price = defaultProtectionPrice(field);
       if (Number.isFinite(price)) onTradePlanChange({ [field]: price, stage: 'ready' });
     }
+    setProtectionDraft(null);
     setActiveTool(current => current === field ? null : field);
   };
 
@@ -438,6 +441,7 @@ export default function DesktopOrderTicket({
     const other = field === 'sl' ? 'tp' : 'sl';
     if (!Number.isFinite(validProtectionPrice(tradePlan?.[other]))) onCancelPlan();
     else onTradePlanChange({ [field]: null, stage: 'ready' });
+    setProtectionDraft(null);
     setActiveTool(null);
   };
 
@@ -455,30 +459,83 @@ export default function DesktopOrderTicket({
     return Number.isFinite(amount) ? Math.abs(amount).toFixed(2) : '';
   };
 
-  const setProtectionFromInput = (field, mode, raw) => {
-    if (!tradePlan) return;
-    const numeric = Number(raw);
-    if (!Number.isFinite(numeric) || numeric <= 0) return;
-    if (mode === 'price') {
-      updateProtection(field, raw);
+  const protectionDraftKey = (field, mode) => `${field}:${mode}`;
+
+  const sanitizeProtectionInput = value => {
+    const normalized = String(value ?? '').replace(',', '.').replace(/[^0-9.]/g, '');
+    const point = normalized.indexOf('.');
+    return point < 0
+      ? normalized
+      : normalized.slice(0, point + 1) + normalized.slice(point + 1).replace(/\./g, '');
+  };
+
+  const beginProtectionEdit = (field, mode) => {
+    skipProtectionCommitRef.current = false;
+    setProtectionDraft({
+      key: protectionDraftKey(field, mode),
+      value: protectionValue(field, mode),
+    });
+  };
+
+  const discardProtectionEdit = () => {
+    skipProtectionCommitRef.current = true;
+    setProtectionDraft(null);
+  };
+
+  const commitProtectionInput = (field, mode, rawValue) => {
+    if (!tradePlan) {
+      setProtectionDraft(null);
       return;
     }
 
-    const entry = Number(tradePlan.entry);
+    if (skipProtectionCommitRef.current) {
+      skipProtectionCommitRef.current = false;
+      setProtectionDraft(null);
+      return;
+    }
+
+    const raw = String(rawValue ?? '').trim();
+    const numeric = Number(raw);
+    if (!raw || raw === '.' || !Number.isFinite(numeric) || numeric <= 0) {
+      setProtectionDraft(null);
+      return;
+    }
+
+    if (mode === 'price') {
+      updateProtection(field, raw);
+      setProtectionDraft(null);
+      return;
+    }
+
+    const entry = Number(previewPlan?.entry ?? tradePlan.entry);
     const side = String(tradePlan.side || '').toLowerCase();
-    if (!Number.isFinite(entry) || !Number.isFinite(pipSize) || pipSize <= 0 || (side !== 'buy' && side !== 'sell')) return;
+    if (!Number.isFinite(entry) || !Number.isFinite(pipSize) || pipSize <= 0 || (side !== 'buy' && side !== 'sell')) {
+      setProtectionDraft(null);
+      return;
+    }
 
     let distance = numeric;
     if (mode === 'money') {
       if (field === 'sl' && activeSizingMode === 'risk') {
         const equity = Number(account?.equity);
-        if (!Number.isFinite(equity) || equity <= 0) return;
-        onRiskPercentChange(Math.max(0.01, Math.min(5, (numeric / equity) * 100)));
+        if (Number.isFinite(equity) && equity > 0) {
+          onRiskPercentChange(Math.max(0.01, Math.min(5, (numeric / equity) * 100)));
+        }
+        setProtectionDraft(null);
         return;
       }
+
       const oneUnitPrice = side === 'buy' ? entry - pipSize : entry + pipSize;
-      const perUnit = estimateStopRisk({ ...tradePlan, entry, sl: oneUnitPrice }, effectiveExecutionLots, market, currency);
-      if (!Number.isFinite(perUnit) || perUnit <= 0) return;
+      const perUnit = estimateStopRisk(
+        { ...tradePlan, entry, sl: oneUnitPrice },
+        effectiveExecutionLots,
+        market,
+        currency,
+      );
+      if (!Number.isFinite(perUnit) || perUnit <= 0) {
+        setProtectionDraft(null);
+        return;
+      }
       distance = numeric / perUnit;
     }
 
@@ -486,12 +543,15 @@ export default function DesktopOrderTicket({
       ? (side === 'buy' ? -1 : 1)
       : (side === 'buy' ? 1 : -1);
     const price = entry + direction * distance * pipSize;
-    if (Number.isFinite(price) && price > 0) onTradePlanChange({ [field]: price, stage: 'ready' });
+    if (Number.isFinite(price) && price > 0) {
+      onTradePlanChange({ [field]: price, stage: 'ready' });
+    }
+    setProtectionDraft(null);
   };
 
   const applyRewardRatio = ratio => {
     if (!tradePlan || !hasStopLoss || !Number.isFinite(Number(planMetrics?.slPips))) return;
-    const entry = Number(tradePlan.entry);
+    const entry = Number(previewPlan?.entry ?? tradePlan.entry);
     const side = String(tradePlan.side || '').toLowerCase();
     if (!Number.isFinite(entry) || !Number.isFinite(pipSize) || pipSize <= 0) return;
     const tpDistance = Number(planMetrics.slPips) * ratio;
@@ -531,7 +591,10 @@ export default function DesktopOrderTicket({
             <button
               key={id}
               type="button"
-              onClick={() => setProtectionMode(current => ({ ...current, [field]: id }))}
+              onClick={() => {
+                setProtectionDraft(null);
+                setProtectionMode(current => ({ ...current, [field]: id }));
+              }}
               className={`h-7 rounded text-[8px] font-bold ${mode === id ? 'bg-white/[0.07] text-[#E6EDF3]' : 'text-[#687c90] hover:bg-white/[0.03] hover:text-white'}`}
             >
               {label}
@@ -540,9 +603,26 @@ export default function DesktopOrderTicket({
         </div>
         <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-md border border-white/[0.06] bg-[#07090B] px-2">
           <input
-            value={protectionValue(field, mode)}
-            onFocus={event => event.currentTarget.select()}
-            onChange={event => setProtectionFromInput(field, mode, event.target.value.replace(/[^0-9.]/g, ''))}
+            value={protectionDraft?.key === protectionDraftKey(field, mode) ? protectionDraft.value : protectionValue(field, mode)}
+            onFocus={event => {
+              beginProtectionEdit(field, mode);
+              requestAnimationFrame(() => event.currentTarget.select());
+            }}
+            onChange={event => {
+              const value = sanitizeProtectionInput(event.target.value);
+              setProtectionDraft({ key: protectionDraftKey(field, mode), value });
+            }}
+            onBlur={event => commitProtectionInput(field, mode, event.currentTarget.value)}
+            onKeyDown={event => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                event.currentTarget.blur();
+              } else if (event.key === 'Escape') {
+                event.preventDefault();
+                discardProtectionEdit();
+                event.currentTarget.blur();
+              }
+            }}
             inputMode="decimal"
             className={`h-9 min-w-0 bg-transparent font-mono text-[11px] font-bold outline-none ${isSl ? 'text-[#FF6F7A]' : 'text-[#42D7A1]'}`}
             aria-label={`${isSl ? 'Stop loss' : 'Take profit'} ${mode}`}
