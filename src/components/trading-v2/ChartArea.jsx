@@ -507,7 +507,7 @@ export default function ChartArea({
   const heightClass = oscillatorCount ? (oscillatorCount > 1 ? 'h-[500px] md:h-[580px]' : 'h-[430px] md:h-[520px]') : 'h-[360px] md:h-[460px]';
   const toolbarVisible = !hideToolbar && drawingToolbarOpen;
   const areaClass = drawingToolbarOverlay
-    ? `relative grid ${heightClass} grid-cols-[minmax(0,1fr)] bg-black pb-2 pl-3`
+    ? `grid ${heightClass} ${toolbarVisible ? 'grid-cols-[40px_minmax(0,1fr)] gap-1' : 'grid-cols-[minmax(0,1fr)]'} bg-black pb-2`
     : embedded
       ? `grid h-full min-h-0 ${!toolbarVisible ? 'grid-cols-[minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} gap-1.5`
       : focusMode
@@ -515,7 +515,7 @@ export default function ChartArea({
         : `grid ${heightClass} grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2`;
 
   const toolbarClass = drawingToolbarOverlay
-    ? 'absolute bottom-0 left-0 top-0 z-40 flex w-10 flex-col items-center gap-0.5 overflow-y-auto border-r border-white/[0.10] bg-[#0d0d10] py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+    ? 'flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto border-r border-white/[0.10] bg-[#0d0d10] py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
     : focusMode || embedded
       ? 'flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto bg-transparent py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
       : 'flex min-h-0 flex-col items-center gap-0.5 bg-transparent py-1';
@@ -550,7 +550,7 @@ export default function ChartArea({
         </aside>
       )}
 
-      <div className={`relative min-h-0 min-w-0 overflow-hidden bg-black`}>
+      <div className={`relative min-h-0 min-w-0 overflow-hidden bg-black ${drawingToolbarOverlay ? (toolbarVisible ? 'pl-1' : 'pl-3') : ''}`}>
         <TradingChart
           symbol={symbol}
           instrument={instrument}
