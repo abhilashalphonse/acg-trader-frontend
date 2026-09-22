@@ -43,9 +43,13 @@ export default function TradeSection({
   onCloseAll = () => {},
   onCancelPending = () => {},
   onModifyPending = () => {},
+  onUpdatePosition = async () => false,
   onNewOrder = () => {},
 }) {
   const [expandedId, setExpandedId] = useState(null);
+  const [protectionDraft, setProtectionDraft] = useState({ sl: '', tp: '' });
+  const [protectionSaving, setProtectionSaving] = useState(false);
+  const [protectionError, setProtectionError] = useState('');
   const currency = account.currency || 'USD';
   const floating = Number(account.floatingPnl);
   const balance = Number(account.balance);
@@ -56,6 +60,48 @@ export default function TradeSection({
 
   const marketFor = symbol => instrumentForSymbol(markets, symbol);
   const price = (value, symbol) => formatInstrumentPrice(value, marketFor(symbol));
+
+  const openPositionDetails = position => {
+    const nextExpanded = expandedId === position.id ? null : position.id;
+    setExpandedId(nextExpanded);
+    setProtectionError('');
+    if (nextExpanded != null) {
+      setProtectionDraft({
+        sl: position.sl == null ? '' : price(position.sl, position.symbol),
+        tp: position.tp == null ? '' : price(position.tp, position.symbol),
+      });
+    }
+  };
+
+  const protectionValue = value => {
+    const text = String(value ?? '').trim();
+    if (!text) return null;
+    const numeric = Number(text);
+    return Number.isFinite(numeric) && numeric > 0 ? numeric : NaN;
+  };
+
+  const saveProtection = async position => {
+    if (protectionSaving) return;
+    const sl = protectionValue(protectionDraft.sl);
+    const tp = protectionValue(protectionDraft.tp);
+    if (Number.isNaN(sl) || Number.isNaN(tp)) {
+      setProtectionError('Enter a valid positive price or leave the field empty to remove it.');
+      return;
+    }
+
+    setProtectionSaving(true);
+    setProtectionError('');
+    try {
+      const saved = await onUpdatePosition(position.id, { sl, tp });
+      if (saved === false) return;
+      setProtectionDraft({
+        sl: sl == null ? '' : price(sl, position.symbol),
+        tp: tp == null ? '' : price(tp, position.symbol),
+      });
+    } finally {
+      setProtectionSaving(false);
+    }
+  };
 
   return (
     <section className="acg-mobile-terminal-page min-h-[calc(100dvh-92px)] px-2 pb-4 pt-2">
@@ -95,7 +141,7 @@ export default function TradeSection({
           const positive = Number(position.pnl) >= 0;
           return (
             <article key={position.id} className="overflow-hidden border-b border-white/[0.08] bg-black last:border-b-0">
-              <button type="button" onClick={() => setExpandedId(expanded ? null : position.id)} className="w-full px-3.5 py-3 text-left">
+              <button type="button" onClick={() => openPositionDetails(position)} className="w-full px-3.5 py-3 text-left">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2"><InstrumentAvatar instrument={live} size={24}/><strong className="text-[13px] font-black text-[#f1f5f8]">{symbolLabel(position.symbol)}</strong><span className={`rounded-md px-1.5 py-1 text-[7px] font-black ${sideTone(position.side)}`}>{String(position.side).toUpperCase()} · {Number(position.volume).toFixed(2)}</span></div>
@@ -107,7 +153,41 @@ export default function TradeSection({
               </button>
 
               {expanded && <div className="border-t border-white/[0.08] bg-[#080808] px-3.5 pb-3.5 pt-3">
-                <div className="grid grid-cols-2 gap-x-5 gap-y-3"><Metric label="Opened" value={position.openedAt || '—'} /><Metric label="Ticket" value={`#${String(position.id).slice(-8)}`} /><Metric label="Swap" value={money(position.swap || 0, position.pnlCurrency || currency)} /><Metric label="Source" value={String(position.source || 'market').replace('-', ' ')} /></div>
+                <div className="mb-3 flex items-center justify-between">
+                  <div>
+                    <b className="text-[10px] font-black text-[#dce6ee]">Protection</b>
+                    <p className="mt-0.5 text-[8px] text-[#60758a]">Set or remove stop loss and take profit.</p>
+                  </div>
+                  <span className="font-mono text-[8px] text-[#71859a]">Now {price(current, position.symbol)}</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <ProtectionField
+                    label="SL"
+                    value={protectionDraft.sl}
+                    onChange={value => { setProtectionDraft(currentDraft => ({ ...currentDraft, sl: value })); setProtectionError(''); }}
+                    onClear={() => { setProtectionDraft(currentDraft => ({ ...currentDraft, sl: '' })); setProtectionError(''); }}
+                  />
+                  <ProtectionField
+                    label="TP"
+                    value={protectionDraft.tp}
+                    onChange={value => { setProtectionDraft(currentDraft => ({ ...currentDraft, tp: value })); setProtectionError(''); }}
+                    onClear={() => { setProtectionDraft(currentDraft => ({ ...currentDraft, tp: '' })); setProtectionError(''); }}
+                  />
+                </div>
+
+                {protectionError && <p className="mt-2 text-[8px] font-semibold leading-4 text-[#ff7b85]">{protectionError}</p>}
+
+                <button
+                  type="button"
+                  onClick={() => void saveProtection(position)}
+                  disabled={protectionSaving}
+                  className="mt-2 flex h-10 w-full items-center justify-center rounded-md border border-white/[0.10] bg-[#15151a] text-[9px] font-black text-[#67ccff] disabled:cursor-wait disabled:opacity-55"
+                >
+                  {protectionSaving ? 'Saving protection…' : 'Save protection'}
+                </button>
+
+                <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-3"><Metric label="Opened" value={position.openedAt || '—'} /><Metric label="Ticket" value={`#${String(position.id).slice(-8)}`} /><Metric label="Swap" value={money(position.swap || 0, position.pnlCurrency || currency)} /><Metric label="Source" value={String(position.source || 'market').replace('-', ' ')} /></div>
                 <div className="mt-3 grid grid-cols-2 gap-2"><button type="button" onClick={() => onOpenChart(position.symbol)} className="flex h-10 items-center justify-center gap-2 rounded-md border border-white/[0.08] bg-[#101010] text-[9px] font-bold text-[#63cbff]"><ExternalLink size={13}/>View on chart</button><button type="button" onClick={() => onClosePosition(position.id, 100)} className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#562c35] bg-[#251319] text-[9px] font-bold text-[#ff7a85]"><X size={13}/>Close position</button></div>
               </div>}
             </article>
@@ -133,6 +213,26 @@ function Metric({ label, value }) {
 
 function MiniMetric({ label, value }) {
   return <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-[#080808] px-2.5 py-2"><span className="text-[7px] font-bold text-[#5e7488]">{label}</span><b className="font-mono text-[9px] text-[#b9c6d1]">{value}</b></div>;
+}
+
+function ProtectionField({ label, value, onChange, onClear }) {
+  return (
+    <label className="block rounded-md border border-white/[0.08] bg-black px-2.5 py-2">
+      <span className="flex items-center justify-between text-[7px] font-black uppercase tracking-[0.1em] text-[#61768a]">
+        {label}
+        <button type="button" onClick={onClear} className="text-[7px] font-bold normal-case tracking-normal text-[#70869a]">Clear</button>
+      </span>
+      <input
+        type="text"
+        inputMode="decimal"
+        autoComplete="off"
+        value={value}
+        onChange={event => onChange(event.target.value)}
+        placeholder="No protection"
+        className="mt-1.5 w-full bg-transparent font-mono text-[11px] font-bold tabular-nums text-[#eef4f8] outline-none placeholder:text-[#405364]"
+      />
+    </label>
+  );
 }
 
 function EmptyState({ title, subtitle, compact = false }) {
