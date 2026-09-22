@@ -2,15 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import MobileTradingHeader from '../components/trading-v2/MobileTradingHeader.jsx';
 import MarketPanel from '../components/trading-v2/MarketPanel.jsx';
 import ExecutionPanel from '../components/trading-v2/ExecutionPanel.jsx';
-import BottomNavbar from '../components/trading-v2/BottomNavbar.jsx';
 import MobileScalperMode from '../components/trading-v2/MobileScalperMode.jsx';
 import FrontendSheet from '../components/trading-v2/FrontendSheet.jsx';
-import WatchlistSection from '../components/trading-v2/WatchlistSection.jsx';
 import PropRiskStrip from '../components/trading-v2/PropRiskStrip.jsx';
 import ExecutionStatus from '../components/trading-v2/ExecutionStatus.jsx';
-import TradeSection from '../components/trading-v2/TradeSection.jsx';
-import HistorySection from '../components/trading-v2/HistorySection.jsx';
-import AccountSection from '../components/trading-v2/AccountSection.jsx';
+import MobileInstrumentSheet from '../components/trading-v2/MobileInstrumentSheet.jsx';
+import MobileTradesSheet from '../components/trading-v2/MobileTradesSheet.jsx';
+import MobileAccountSheet from '../components/trading-v2/MobileAccountSheet.jsx';
 import { useTradingTerminal } from '../hooks/useTradingTerminal.js';
 import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
 import { calculateRiskOrderSizing, calculateRiskSizedLots, defaultPlannerStopDistance, estimateStopRisk } from '../utils/tradingRisk.js';
@@ -114,7 +112,6 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const trading = useTradingTerminal(markets);
   const { account, positions, pendingOrders, positionHistory } = trading;
 
-  const [activeNav, setActiveNav] = useState('chart');
   const [timeframe, setTimeframe] = useState(prefsRef.current.timeframe || '1m');
   const [chartMode, setChartMode] = useState(prefsRef.current.chartMode || 'candles');
   const [selectedTool, setSelectedTool] = useState('cursor');
@@ -132,7 +129,6 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const [indicatorFavorites, setIndicatorFavorites] = useState(loadIndicatorFavorites);
   const [overlay, setOverlay] = useState(null);
   const [notice, setNotice] = useState('');
-  const [riskExpanded, setRiskExpanded] = useState(false);
   const exposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market, commandState: trading.commandState });
 
   useEffect(() => {
@@ -141,10 +137,10 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
     });
-  }, [activeNav, activeSymbol, chartFocus]);
+  }, [activeSymbol, chartFocus]);
 
   useEffect(() => {
-    if (typeof document === 'undefined' || chartFocus || activeNav !== 'chart') return undefined;
+    if (typeof document === 'undefined' || chartFocus) return undefined;
 
     const html = document.documentElement;
     const body = document.body;
@@ -169,7 +165,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       body.style.overflow = previous.bodyOverflow;
       body.style.overscrollBehavior = previous.bodyOverscroll;
     };
-  }, [activeNav, chartFocus]);
+  }, [chartFocus]);
 
   useEffect(() => () => {
     if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
@@ -504,14 +500,12 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     setOrderType(order.orderType);
     setSizingMode('lots');
     if (Number.isFinite(Number(order.manualLots))) setLots(Number(order.manualLots));
-    setActiveNav('chart');
     setOverlay(null);
     showNotice('Pending order loaded for modification');
   };
 
   const openChart = symbol => {
     if (symbol) onSelectSymbol(symbol);
-    setActiveNav('chart');
     setOverlay(null);
   };
 
@@ -541,7 +535,6 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     if (profile.symbol && markets.some(item => item.symbol === profile.symbol)) onSelectSymbol(profile.symbol);
     setSelectedTool('cursor');
     setTradePlan(null);
-    setActiveNav('chart');
     setOverlay(null);
     showNotice(`${profile.name || 'Trading'} profile applied`);
   };
@@ -573,19 +566,21 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   };
 
   const chartContent = (
-    <div className="acg-mobile-chart-shell flex h-[calc(100dvh-46px-env(safe-area-inset-bottom))] min-h-0 flex-col overflow-hidden overscroll-none bg-black">
+    <div className="acg-mobile-chart-shell flex h-dvh min-h-0 flex-col overflow-hidden overscroll-none bg-black">
       <MobileTradingHeader
         market={market}
         account={account}
-        favorite={favorite}
-        onFavorite={setFavorite}
-        onSelectInstrument={() => setOverlay('instruments')}
+        positionsCount={positions.length}
+        pendingCount={pendingOrders.length}
+        onSelectInstrument={() => setOverlay('markets')}
+        onOpenTrades={() => setOverlay('trades')}
+        onOpenAccount={() => setOverlay('account')}
       />
       <div className="flex min-h-0 flex-1 flex-col px-2 pt-[10px]">
         <div className="min-h-0 flex-1">
-          <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={tradePlan} tradePlanLots={tradePlanLots} accountCurrency={account.currency} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onClosePosition={closePosition} onSelectInstrument={() => setOverlay('instruments')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} compactMobileToolbar fillAvailableHeight />
+          <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={tradePlan} tradePlanLots={tradePlanLots} accountCurrency={account.currency} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onClosePosition={closePosition} onSelectInstrument={() => setOverlay('markets')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} compactMobileToolbar fillAvailableHeight />
         </div>
-        <div className="mt-2.5 shrink-0">
+        <div className="mt-1.5 shrink-0">
           <ExecutionPanel
             market={market}
             account={account}
@@ -607,39 +602,74 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
             onManualOrder={manualOrder}
             onTradePlanChange={updatePlan}
             mobileDocked
-            riskExpanded={riskExpanded}
-            onToggleRisk={() => setRiskExpanded(value => !value)}
             riskContent={<PropRiskStrip account={account} plannedRisk={plannedRisk} embedded />}
           />
         </div>
-        <div className="h-2.5 shrink-0 bg-black" aria-hidden="true" />
+        <div className="h-[max(5px,env(safe-area-inset-bottom))] shrink-0 bg-black" aria-hidden="true" />
       </div>
     </div>
   );
 
   return (
     <div className="min-h-dvh bg-black font-sans text-[#f5f8fb] antialiased">
-      <main ref={shellRef} className={chartFocus
-        ? 'relative mx-auto h-dvh w-full max-w-[460px] overflow-hidden bg-black'
-        : activeNav === 'chart'
-          ? 'relative mx-auto h-dvh w-full max-w-[460px] overflow-hidden overscroll-none bg-black'
-          : 'relative mx-auto min-h-dvh w-full max-w-[460px] overflow-x-hidden bg-black pb-[calc(46px+env(safe-area-inset-bottom))]'}>
+      <main ref={shellRef} className="relative mx-auto h-dvh w-full max-w-[460px] overflow-hidden overscroll-none bg-black">
         {chartFocus ? (
           <MobileScalperMode market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} lots={lots} setLots={setLots} sizingMode={sizingMode} setSizingMode={setSizingMode} riskPercent={riskPercent} setRiskPercent={setRiskPercent} orderType={orderType} setOrderType={setOrderType} tradePlan={tradePlan} tradePlanLots={tradePlanLots} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onClosePosition={closePosition} onIndicators={() => setOverlay('indicators')} indicators={indicators} account={account} plannedRisk={plannedRisk} exposureAllowed={exposure.allowed} exposureBlockReason={exposure.reason} onExit={exitChartFocus} />
-        ) : (
-          <>
-            {activeNav === 'watchlist' && <WatchlistSection markets={markets} activeSymbol={activeSymbol} onOpenTrade={openChart} onAddInstrument={() => setOverlay('search')} watchlists={watchlists} />}
-            {activeNav === 'chart' && chartContent}
-            {activeNav === 'trade' && <TradeSection account={account} positions={positions} pendingOrders={pendingOrders} markets={markets} onOpenChart={openChart} onClosePosition={closePosition} onCloseAll={closeAllPositions} onCancelPending={cancelPendingOrder} onModifyPending={modifyPendingOrder} onUpdatePosition={updatePosition} onBreakEven={movePositionToBreakEven} onNewOrder={() => openChart(activeSymbol)} />}
-            {activeNav === 'history' && <HistorySection positionHistory={positionHistory} journal={journal} markets={markets} accountCurrency={account.currency} onOpenChart={openChart} onNotice={showNotice} />}
-            {activeNav === 'account' && <AccountSection account={account} onOpenSheet={setOverlay} />}
-            <BottomNavbar active={activeNav} onChange={id => { setActiveNav(id); setOverlay(null); }} />
-          </>
-        )}
+        ) : chartContent}
 
         <ExecutionStatus event={executionEvent} instrument={market} onDismiss={() => setExecutionEvent(null)} />
-        {notice && <div className="fixed left-1/2 top-[74px] z-[120] w-[calc(100%-24px)] max-w-[420px] -translate-x-1/2 rounded-xl border border-white/[0.08] bg-[#101010]/95 px-3 py-2.5 text-center text-[10px] font-semibold text-[#dce9f2] shadow-[0_16px_48px_rgba(0,0,0,.45)] backdrop-blur-xl">{notice}</div>}
-        {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} watchlists={watchlists} onSelectSymbol={symbol => { onSelectSymbol(symbol); if (overlay === 'search' || overlay === 'instruments') setActiveNav('chart'); }} {...indicatorSheetProps} />}
+        {notice && <div className="fixed left-1/2 top-[52px] z-[120] w-[calc(100%-24px)] max-w-[420px] -translate-x-1/2 rounded-xl border border-white/[0.08] bg-[#101010]/95 px-3 py-2.5 text-center text-[10px] font-semibold text-[#dce9f2] shadow-[0_16px_48px_rgba(0,0,0,.45)] backdrop-blur-xl">{notice}</div>}
+
+        {overlay === 'markets' && (
+          <MobileInstrumentSheet
+            markets={markets}
+            activeSymbol={activeSymbol}
+            watchlists={watchlists}
+            onSelectSymbol={onSelectSymbol}
+            onClose={() => setOverlay(null)}
+          />
+        )}
+
+        {overlay === 'trades' && (
+          <MobileTradesSheet
+            onClose={() => setOverlay(null)}
+            account={account}
+            positions={positions}
+            pendingOrders={pendingOrders}
+            positionHistory={positionHistory}
+            journal={journal}
+            markets={markets}
+            onOpenChart={openChart}
+            onClosePosition={closePosition}
+            onCloseAll={closeAllPositions}
+            onCancelPending={cancelPendingOrder}
+            onModifyPending={modifyPendingOrder}
+            onUpdatePosition={updatePosition}
+            onBreakEven={movePositionToBreakEven}
+            onNotice={showNotice}
+          />
+        )}
+
+        {overlay === 'account' && (
+          <MobileAccountSheet
+            account={account}
+            onClose={() => setOverlay(null)}
+            onPlatformSettings={() => setOverlay('more')}
+            onHelp={() => setOverlay('help')}
+          />
+        )}
+
+        {overlay && !['markets', 'trades', 'account'].includes(overlay) && (
+          <FrontendSheet
+            type={overlay}
+            onClose={() => setOverlay(null)}
+            markets={markets}
+            activeSymbol={activeSymbol}
+            watchlists={watchlists}
+            onSelectSymbol={symbol => { onSelectSymbol(symbol); setOverlay(null); }}
+            {...indicatorSheetProps}
+          />
+        )}
       </main>
     </div>
   );
