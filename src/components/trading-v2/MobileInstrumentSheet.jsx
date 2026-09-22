@@ -55,11 +55,12 @@ export default function MobileInstrumentSheet({
 
   return (
     <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/55 px-2 backdrop-blur-[2px]" onMouseDown={onClose}>
-      <section onMouseDown={event => event.stopPropagation()} className="mb-[max(8px,env(safe-area-inset-bottom))] flex h-[84dvh] w-full max-w-[444px] min-h-0 flex-col overflow-hidden rounded-t-[20px] border border-white/[0.09] bg-black shadow-[0_30px_90px_rgba(0,0,0,.7)]">
-        <header className="shrink-0 border-b border-white/[0.08] bg-[#080808] px-3 pt-3">
+      <section onMouseDown={event => event.stopPropagation()} className="mb-[max(8px,env(safe-area-inset-bottom))] flex h-[84dvh] w-full max-w-[444px] min-h-0 flex-col overflow-hidden rounded-t-[18px] border border-white/[0.08] bg-black shadow-[0_30px_90px_rgba(0,0,0,.7)]">
+        <div className="mx-auto mt-1.5 h-1 w-9 shrink-0 rounded-full bg-white/[0.14]" aria-hidden="true" />
+        <header className="shrink-0 border-b border-white/[0.06] bg-[#080808] px-3 pt-3">
           <div className="flex items-start justify-between gap-3 pb-2.5">
             <div><h2 className="text-[17px] font-black tracking-[-0.035em] text-[#f3f7fb]">Markets</h2><p className="mt-0.5 text-[8px] text-[#667b8e]">Switch instrument without leaving the chart.</p></div>
-            <button type="button" onClick={onClose} className="grid size-8 place-items-center rounded-md border border-white/[0.08] bg-[#101010] text-[#91a0ad]" aria-label="Close markets"><X size={15}/></button>
+            <button type="button" onClick={onClose} className="grid size-8 place-items-center rounded-md border border-white/[0.06] bg-[#101010] text-[#91a0ad]" aria-label="Close markets"><X size={15}/></button>
           </div>
           <div className="grid grid-cols-2">
             {[['markets','Markets'],['watchlist','Watchlist']].map(([id,label]) => (
