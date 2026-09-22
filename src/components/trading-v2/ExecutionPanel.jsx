@@ -376,7 +376,8 @@ export default function ExecutionPanel({
           className={modeToggle}
           aria-label={`Toggle ${label} display mode`}
         >
-          {mode === 'amount' ? '
+          {mode === 'amount' ? '$' : 'pips'}
+        </button>
       </div>
     );
 
