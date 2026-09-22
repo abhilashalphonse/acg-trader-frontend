@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import MobileTradingHeader from '../components/trading-v2/MobileTradingHeader.jsx';
 import MarketPanel from '../components/trading-v2/MarketPanel.jsx';
 import ExecutionPanel from '../components/trading-v2/ExecutionPanel.jsx';
@@ -11,7 +11,7 @@ import MobileTradesSheet from '../components/trading-v2/MobileTradesSheet.jsx';
 import MobileAccountSheet from '../components/trading-v2/MobileAccountSheet.jsx';
 import { useTradingTerminal } from '../hooks/useTradingTerminal.js';
 import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
-import { calculateRiskOrderSizing, calculateRiskSizedLots, defaultPlannerStopDistance, estimateStopRisk } from '../utils/tradingRisk.js';
+import { calculateRiskOrderSizing, defaultPlannerStopDistance, estimateStopRisk } from '../utils/tradingRisk.js';
 import { exposureAvailability } from '../utils/exposureAvailability.js';
 import {
   normalizePriceToTick,
@@ -21,6 +21,7 @@ import {
 } from '../utils/tradingCommandNormalization.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../utils/instrumentFormatting.js';
 import { normalizeTradePlanPatch } from '../utils/tradePlanNormalization.js';
+import { effectiveTradePlan } from '../utils/tradePlanExecution.js';
 
 const INDICATOR_STORAGE_KEY = 'acg-trader-indicators-v1';
 const INDICATOR_FAVORITES_KEY = 'acg-trader-indicator-favorites-v1';
@@ -63,20 +64,6 @@ function loadTerminalPrefs() {
   } catch {
     return {};
   }
-}
-
-function calculatedLots(plan, riskPercent, manualLots, equity, instrument, accountCurrency) {
-  if (!plan || plan.sizingMode !== 'risk') return Math.max(0.01, Number(manualLots) || 0.01);
-  return calculateRiskSizedLots(plan, riskPercent, equity, instrument, accountCurrency);
-}
-
-function estimatedRisk(plan, riskPercent, manualLots, equity, instrument, accountCurrency) {
-  if (!plan) return 0;
-  const sizedLots = plan.sizingMode === 'risk'
-    ? calculateRiskSizedLots(plan, riskPercent, equity, instrument, accountCurrency)
-    : Number(plan.manualLots ?? manualLots);
-  if (sizedLots == null) return null;
-  return estimateStopRisk(plan, normalizeVolumeToStep(sizedLots, instrument), instrument, accountCurrency);
 }
 
 function formatMoneyForNotice(value, currency = 'USD') {
@@ -395,10 +382,11 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       showNotice(`${planSymbol} is unavailable. Cancel this plan and try again.`);
       return;
     }
+    const executionPlan = tradePlan.open ? tradePlan : effectiveTradePlan(tradePlan, planMarket);
 
     let calculated;
-    if (tradePlan.sizingMode === 'risk') {
-      const sizing = calculateRiskOrderSizing(tradePlan, riskPercent, account, planMarket);
+    if (executionPlan.sizingMode === 'risk') {
+      const sizing = calculateRiskOrderSizing(executionPlan, riskPercent, account, planMarket);
       if (!sizing) {
         showNotice('Risk % sizing is unavailable because this instrument P&L requires currency conversion. Use Lots sizing.');
         return;
@@ -415,29 +403,29 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       }
       calculated = sizing.requestedLots;
     } else {
-      calculated = Math.max(0.01, Number(tradePlan.manualLots ?? lots) || 0.01);
+      calculated = Math.max(0.01, Number(executionPlan.manualLots ?? lots) || 0.01);
     }
     const volume = normalizeVolumeToStep(calculated, planMarket);
-    if (tradePlan.pending) {
+    if (executionPlan.pending) {
       const request = {
         symbol: planSymbol,
-        side: tradePlan.side,
-        type: tradePlan.orderType,
+        side: executionPlan.side,
+        type: executionPlan.orderType,
         volume,
-        entry: tradePlan.entry,
-        limitPrice: tradePlan.limitPrice,
-        stopLoss: tradePlan.sl,
-        takeProfit: tradePlan.tp,
-        timeInForce: tradePlan.expiration || 'GTC',
-        expiresAt: tradePlan.expirationAt || tradePlan.expiresAt || null,
+        entry: executionPlan.entry,
+        limitPrice: executionPlan.limitPrice,
+        stopLoss: executionPlan.sl,
+        takeProfit: executionPlan.tp,
+        timeInForce: executionPlan.expiration || 'GTC',
+        expiresAt: executionPlan.expirationAt || executionPlan.expiresAt || null,
       };
-      setExecutionEvent({ side: tradePlan.side, lots: volume, symbol: planSymbol, requestedPrice: tradePlan.entry, status: 'submitting' });
+      setExecutionEvent({ side: executionPlan.side, lots: volume, symbol: planSymbol, requestedPrice: executionPlan.entry, status: 'submitting' });
       try {
-        const result = tradePlan.editingOrderId
-          ? await trading.replacePendingOrder(tradePlan.editingOrderId, request)
+        const result = executionPlan.editingOrderId
+          ? await trading.replacePendingOrder(executionPlan.editingOrderId, request)
           : await trading.placePendingOrder(request);
-        setExecutionEvent({ side: tradePlan.side, lots: volume, symbol: planSymbol, requestedPrice: tradePlan.entry, status: 'pending', message: `${String(tradePlan.orderType).toUpperCase()} order waiting for trigger` });
-        logEvent('order', `${String(tradePlan.side).toUpperCase()} ${String(tradePlan.orderType).toUpperCase()} ${volume.toFixed(2)} ${planSymbol} placed`, { orderId: result?.order?.id });
+        setExecutionEvent({ side: executionPlan.side, lots: volume, symbol: planSymbol, requestedPrice: executionPlan.entry, status: 'pending', message: `${String(executionPlan.orderType).toUpperCase()} order waiting for trigger` });
+        logEvent('order', `${String(executionPlan.side).toUpperCase()} ${String(executionPlan.orderType).toUpperCase()} ${volume.toFixed(2)} ${planSymbol} placed`, { orderId: result?.order?.id });
         setTradePlan(null);
         dismissExecutionLater();
       } catch (error) {
@@ -447,12 +435,12 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     }
 
     const result = await runMarketExecution({
-      side: tradePlan.side,
+      side: executionPlan.side,
       executionLots: volume,
       symbol: planSymbol,
-      requestedPrice: tradePlan.entry,
-      stopLoss: tradePlan.sl,
-      takeProfit: tradePlan.tp,
+      requestedPrice: executionPlan.entry,
+      stopLoss: executionPlan.sl,
+      takeProfit: executionPlan.tp,
     });
     if (result?.position || result?.reconciled || String(result?.order?.status || '').toUpperCase() === 'FILLED') setTradePlan(null);
   };
@@ -549,8 +537,25 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   };
 
   const plannedRiskInstrument = markets.find(item => String(item?.symbol || '').toUpperCase() === String(tradePlan?.symbol || '').toUpperCase()) || market;
-  const tradePlanLots = tradePlan ? calculatedLots(tradePlan, riskPercent, lots, account.equity, plannedRiskInstrument, account.currency) : lots;
-  const plannedRisk = estimatedRisk(tradePlan, riskPercent, lots, account.equity, plannedRiskInstrument, account.currency);
+  const canonicalTradePlan = useMemo(() => {
+    if (!tradePlan || tradePlan.open) return tradePlan;
+    return effectiveTradePlan(tradePlan, plannedRiskInstrument);
+  }, [plannedRiskInstrument, tradePlan]);
+  const canonicalRiskSizing = useMemo(() => {
+    if (!canonicalTradePlan || canonicalTradePlan.sizingMode !== 'risk') return null;
+    return calculateRiskOrderSizing(canonicalTradePlan, riskPercent, account, plannedRiskInstrument);
+  }, [account, canonicalTradePlan, plannedRiskInstrument, riskPercent]);
+  const tradePlanLots = canonicalTradePlan
+    ? normalizeVolumeToStep(
+      canonicalTradePlan.sizingMode === 'risk'
+        ? (canonicalRiskSizing?.requestedLots ?? canonicalTradePlan.manualLots ?? lots)
+        : (canonicalTradePlan.manualLots ?? lots),
+      plannedRiskInstrument,
+    )
+    : lots;
+  const plannedRisk = canonicalTradePlan && Number.isFinite(Number(tradePlanLots))
+    ? estimateStopRisk(canonicalTradePlan, tradePlanLots, plannedRiskInstrument, account.currency)
+    : 0;
   const indicatorSheetProps = {
     indicators,
     indicatorFavorites,
@@ -580,7 +585,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       />
       <div className="flex min-h-0 flex-1 flex-col px-2 pt-[10px]">
         <div className="min-h-0 flex-1">
-          <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={tradePlan} tradePlanLots={tradePlanLots} accountCurrency={account.currency} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onClosePosition={closePosition} onSelectInstrument={() => setOverlay('markets')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} compactMobileToolbar fillAvailableHeight />
+          <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} accountCurrency={account.currency} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onClosePosition={closePosition} onSelectInstrument={() => setOverlay('markets')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} compactMobileToolbar fillAvailableHeight />
         </div>
         <div className="mt-1.5 shrink-0">
           <ExecutionPanel
@@ -596,7 +601,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
             onRiskPercentChange={setRiskPercent}
             orderType={orderType}
             onOrderTypeChange={setOrderType}
-            tradePlan={tradePlan}
+            tradePlan={canonicalTradePlan}
             onStartPlan={startPlan}
             onCancelPlan={cancelPlan}
             onExecutePlan={executePlan}
@@ -616,7 +621,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     <div className="min-h-dvh bg-black font-sans text-[#f5f8fb] antialiased">
       <main ref={shellRef} className="relative mx-auto h-dvh w-full max-w-[460px] overflow-hidden overscroll-none bg-black">
         {chartFocus ? (
-          <MobileScalperMode market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} lots={lots} setLots={setLots} sizingMode={sizingMode} setSizingMode={setSizingMode} riskPercent={riskPercent} setRiskPercent={setRiskPercent} orderType={orderType} setOrderType={setOrderType} tradePlan={tradePlan} tradePlanLots={tradePlanLots} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onClosePosition={closePosition} onIndicators={() => setOverlay('indicators')} indicators={indicators} account={account} plannedRisk={plannedRisk} exposureAllowed={exposure.allowed} exposureBlockReason={exposure.reason} onExit={exitChartFocus} />
+          <MobileScalperMode market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} lots={lots} setLots={setLots} sizingMode={sizingMode} setSizingMode={setSizingMode} riskPercent={riskPercent} setRiskPercent={setRiskPercent} orderType={orderType} setOrderType={setOrderType} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onClosePosition={closePosition} onIndicators={() => setOverlay('indicators')} indicators={indicators} account={account} plannedRisk={plannedRisk} exposureAllowed={exposure.allowed} exposureBlockReason={exposure.reason} onExit={exitChartFocus} />
         ) : chartContent}
 
         <ExecutionStatus event={executionEvent} instrument={market} onDismiss={() => setExecutionEvent(null)} />
