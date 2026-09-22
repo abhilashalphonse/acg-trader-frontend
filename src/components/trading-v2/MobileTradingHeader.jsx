@@ -112,7 +112,7 @@ export default function MobileTradingHeader({
         <span className="relative grid size-[22px] place-items-center overflow-visible">
           <ArrowUpDown size={15} strokeWidth={2.15} className="text-[#d8e0e6]"/>
           {openPositionsCount > 0 && (
-            <span className="absolute -right-3 -top-1.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-blue-600 px-1.5 py-0.5 text-[7px] font-semibold leading-none text-white ring-1 ring-inset ring-blue-400/30 shadow-sm">
+            <span className="absolute -right-1.5 -top-1 inline-flex h-[13px] min-w-[13px] items-center justify-center rounded-full bg-blue-500 px-[3px] text-[6.5px] font-bold leading-none text-white ring-1 ring-black shadow-sm">
               {openPositionsCount > 9 ? '9+' : openPositionsCount}
             </span>
           )}
