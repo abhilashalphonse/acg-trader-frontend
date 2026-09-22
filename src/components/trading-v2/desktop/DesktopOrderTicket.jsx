@@ -474,9 +474,18 @@ export default function DesktopOrderTicket({
   const distanceUnit = String(market?.assetClass || '').toUpperCase() === 'FOREX' ? 'pips' : 'pts';
   const pipSize = instrumentPipSize(market);
 
+  const protectionReferenceEntry = () => {
+    if (!tradePlan) return null;
+    const plan = executionPlan || tradePlan;
+    const type = String(plan?.orderType || '').toLowerCase();
+    const reference = plan?.pending && type === 'stop-limit' ? plan?.limitPrice : plan?.entry;
+    const numeric = Number(reference);
+    return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+  };
+
   const defaultProtectionPrice = field => {
     if (!tradePlan) return null;
-    const entry = Number(executionPlan?.entry ?? tradePlan.entry);
+    const entry = protectionReferenceEntry();
     if (!Number.isFinite(entry) || !Number.isFinite(pipSize) || pipSize <= 0) return null;
     const distance = field === 'sl' ? 10 : 20;
     const side = String(tradePlan.side || '').toLowerCase();
@@ -596,7 +605,7 @@ export default function DesktopOrderTicket({
       return;
     }
 
-    const entry = Number(executionPlan?.entry ?? tradePlan.entry);
+    const entry = protectionReferenceEntry();
     const side = String(tradePlan.side || '').toLowerCase();
     if (!Number.isFinite(entry) || !Number.isFinite(pipSize) || pipSize <= 0 || (side !== 'buy' && side !== 'sell')) {
       setProtectionDraft(null);
@@ -640,7 +649,7 @@ export default function DesktopOrderTicket({
 
   const applyRewardRatio = ratio => {
     if (!tradePlan || !hasStopLoss || !Number.isFinite(Number(planMetrics?.slPips))) return;
-    const entry = Number(executionPlan?.entry ?? tradePlan.entry);
+    const entry = protectionReferenceEntry();
     const side = String(tradePlan.side || '').toLowerCase();
     if (!Number.isFinite(entry) || !Number.isFinite(pipSize) || pipSize <= 0) return;
     const tpDistance = Number(planMetrics.slPips) * ratio;
