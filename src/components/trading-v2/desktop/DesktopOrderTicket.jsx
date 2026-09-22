@@ -8,9 +8,11 @@ import {
   effectiveLeverage,
   estimateRequiredMargin,
   estimateStopRisk,
+  resolveExecutionSizing,
   riskSizingSupported,
 } from '../../../utils/tradingRisk.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../../../utils/instrumentFormatting.js';
+import { effectiveTradePlan, validateTradePlanForExecution } from '../../../utils/tradePlanExecution.js';
 
 const ORDER_TYPES = [
   ['market', 'Market'],
@@ -124,40 +126,56 @@ export default function DesktopOrderTicket({
     && market?.sessionOpen !== false
     && !['WAITING', 'DISCONNECTED', 'ERROR', 'DISABLED', 'STALE'].includes(String(market?.marketState || '').toUpperCase());
 
+  const previewPlan = useMemo(
+    () => tradePlan ? effectiveTradePlan(tradePlan, market) : null,
+    [market, tradePlan],
+  );
+
+  const executionSizing = useMemo(
+    () => previewPlan
+      ? resolveExecutionSizing(previewPlan, riskPercent, previewPlan.manualLots ?? normalizedLots, account, market)
+      : resolveExecutionSizing({ sizingMode: 'lots', manualLots: normalizedLots }, riskPercent, normalizedLots, account, market),
+    [account, market, normalizedLots, previewPlan, riskPercent],
+  );
+
+  const effectiveExecutionLots = Number.isFinite(Number(executionSizing?.lots))
+    ? Number(executionSizing.lots)
+    : normalizedLots;
+
   const planMetrics = useMemo(() => {
-    if (!tradePlan) return null;
+    if (!previewPlan) return null;
     const pip = instrumentPipSize(market);
-    const entry = validProtectionPrice(tradePlan.entry);
-    const sl = validProtectionPrice(tradePlan.sl);
-    const tp = validProtectionPrice(tradePlan.tp);
+    const entry = validProtectionPrice(previewPlan.entry);
+    const sl = validProtectionPrice(previewPlan.sl);
+    const tp = validProtectionPrice(previewPlan.tp);
     const slPips = [entry, sl, pip].every(Number.isFinite) && pip > 0 ? Math.abs(entry - sl) / pip : null;
     const tpPips = [entry, tp, pip].every(Number.isFinite) && pip > 0 ? Math.abs(tp - entry) / pip : null;
-
-    let riskSizing = null;
-    if (sizingMode === 'risk') {
-      riskSizing = calculateRiskOrderSizing(
-        { ...tradePlan, sizingMode: 'risk' },
-        riskPercent,
-        account,
-        market,
-      );
-    }
-
-    const calculatedLots = normalizedLots;
-    const riskAmount = estimateStopRisk(tradePlan, calculatedLots, market, currency);
+    const calculatedLots = effectiveExecutionLots;
+    const riskAmount = estimateStopRisk(previewPlan, calculatedLots, market, currency);
     const requiredMargin = estimateRequiredMargin(entry, calculatedLots, market, account);
     const reward = Number.isFinite(tp) && Number.isFinite(entry)
-      ? estimateStopRisk({ ...tradePlan, entry, sl: tp }, calculatedLots, market, currency)
+      ? estimateStopRisk({ ...previewPlan, entry, sl: tp }, calculatedLots, market, currency)
       : null;
     const rr = Number.isFinite(slPips) && slPips > 0 && Number.isFinite(tpPips) ? tpPips / slPips : null;
 
-    return { lots: calculatedLots, slPips, tpPips, riskAmount, reward, rr, requiredMargin, riskSizing };
-  }, [account, currency, market, normalizedLots, riskPercent, sizingMode, tradePlan]);
+    return {
+      lots: calculatedLots,
+      slPips,
+      tpPips,
+      riskAmount,
+      reward,
+      rr,
+      requiredMargin,
+      riskSizing: executionSizing?.riskSizing || null,
+    };
+  }, [account, currency, effectiveExecutionLots, executionSizing?.riskSizing, market, previewPlan]);
 
   const previewMargin = useMemo(() => {
-    const price = Number(tradePlan?.entry ?? market?.ask);
-    return estimateRequiredMargin(price, normalizedLots, market, account);
-  }, [account, market, normalizedLots, tradePlan?.entry]);
+    const side = String(previewPlan?.side || '').toLowerCase();
+    const fallbackPrice = side === 'sell' ? Number(market?.bid) : Number(market?.ask);
+    const price = Number(previewPlan?.entry ?? fallbackPrice);
+    return estimateRequiredMargin(price, effectiveExecutionLots, market, account);
+  }, [account, effectiveExecutionLots, market, previewPlan]);
 
   const freeMargin = Number(account?.freeMargin);
   const freeAfter = Number.isFinite(freeMargin) && Number.isFinite(previewMargin) ? freeMargin - previewMargin : null;
@@ -167,7 +185,9 @@ export default function DesktopOrderTicket({
   );
 
   const riskSupported = riskSizingSupported(market, currency);
-  const riskSizingBlocked = activeTool === 'risk' && sizingMode === 'risk' && Boolean(planMetrics?.riskSizing && planMetrics.riskSizing.canExecute === false);
+  const activeSizingMode = previewPlan?.sizingMode || sizingMode;
+  const riskSizingBlocked = activeSizingMode === 'risk' && executionSizing?.canExecute === false;
+  const planValidation = previewPlan ? validateTradePlanForExecution(previewPlan, market) : { valid: true, code: 'NO_PLAN', message: null };
   const riskGuard = useMemo(() => evaluateRiskGuard({
     account,
     positions,
@@ -179,8 +199,9 @@ export default function DesktopOrderTicket({
 
   const canSubmit = executableQuote
     && exposureAllowed
-    && (!(activeTool === 'risk' && sizingMode === 'risk') || riskSupported)
+    && (activeSizingMode !== 'risk' || riskSupported)
     && !riskSizingBlocked
+    && planValidation.valid
     && riskGuard.allowed;
 
   const spreadPips = useMemo(() => {
@@ -204,13 +225,15 @@ export default function DesktopOrderTicket({
     else if (market?.isStale) warning = 'Quote is stale. New exposure is disabled.';
     else if (Number(market?.ask) < Number(market?.bid)) warning = 'Executable quote book is invalid.';
     else warning = 'Waiting for an executable quote.';
-  } else if (activeTool === 'risk' && sizingMode === 'risk' && !riskSupported) {
+  } else if (!planValidation.valid) {
+    warning = planValidation.message || 'Review this order before submitting.';
+  } else if (activeSizingMode === 'risk' && !riskSupported) {
     warning = 'Risk % sizing is unavailable because this instrument P&L cannot be converted safely to the account currency.';
-  } else if (planMetrics?.riskSizing?.blockReason === 'INSUFFICIENT_MARGIN') {
+  } else if (executionSizing?.blockReason === 'INSUFFICIENT_MARGIN') {
     warning = `Required margin ${money(planMetrics.riskSizing.requiredMargin, currency)} exceeds free margin ${money(planMetrics.riskSizing.freeMargin, currency)}.`;
-  } else if (planMetrics?.riskSizing?.blockReason === 'MAX_VOLUME') {
+  } else if (executionSizing?.blockReason === 'MAX_VOLUME') {
     warning = 'Selected risk requires more than the instrument maximum lot size.';
-  } else if (planMetrics?.riskSizing?.blockReason === 'MIN_VOLUME') {
+  } else if (executionSizing?.blockReason === 'MIN_VOLUME') {
     warning = 'Selected risk is smaller than the instrument minimum lot size.';
   } else if (Number.isFinite(riskBufferUsage) && riskBufferUsage >= 50) {
     warning = `Planned stop uses ${riskBufferUsage.toFixed(0)}% of the remaining daily-loss buffer.`;
