@@ -670,16 +670,14 @@ export default function TradingChart({
           lineWidth: 1,
           lineStyle: LineStyle.Dashed,
           axisLabelVisible: true,
-          axisLabelColor: mobileQuotes ? '#d93d52' : undefined,
-          axisLabelTextColor: '#ffffff',
+          ...(mobileQuotes ? { axisLabelColor: '#d93d52', axisLabelTextColor: '#ffffff' } : {}),
           title: 'ASK',
         });
       } else {
         askLineRef.current.applyOptions({
           price: liveAsk,
           color: askColor,
-          axisLabelColor: mobileQuotes ? '#d93d52' : undefined,
-          axisLabelTextColor: '#ffffff',
+          ...(mobileQuotes ? { axisLabelColor: '#d93d52', axisLabelTextColor: '#ffffff' } : {}),
           title: 'ASK',
         });
       }
