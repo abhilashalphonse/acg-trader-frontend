@@ -589,3 +589,420 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
       0 7px 18px rgba(0,143,122,.12)!important;
   }
 }
+
+
+/* Reference lock for phone widths only (360–430px target).
+   Tablet/desktop layouts intentionally remain untouched. */
+@media (max-width:430px){
+  .acg-mobile-chart-shell{
+    --acg-m-space-1:8px;
+    --acg-m-space-2:10px;
+    --acg-m-space-3:12px;
+    --acg-m-space-4:16px;
+    background:#03080d!important;
+  }
+
+  .acg-mobile-reference-header{
+    height:calc(80px + env(safe-area-inset-top))!important;
+    grid-template-columns:minmax(0,1fr) 48px 98px 74px!important;
+    background:
+      radial-gradient(circle at 15% -20%,rgba(54,92,126,.24),transparent 44%),
+      linear-gradient(180deg,#0a141e 0%,#060c13 100%)!important;
+    border-bottom:1px solid rgba(122,151,181,.16)!important;
+    box-shadow:0 12px 30px rgba(0,0,0,.26)!important;
+  }
+
+  .acg-mobile-reference-header > button:first-child{
+    gap:10px!important;
+    padding-left:12px!important;
+    padding-right:8px!important;
+  }
+
+  .acg-mobile-reference-header > button:first-child > span:first-child{
+    transform:scale(1.16);
+    transform-origin:center;
+    margin-right:3px;
+  }
+
+  .acg-mobile-reference-header > button:first-child strong{
+    font-size:19px!important;
+    line-height:1!important;
+    font-weight:900!important;
+    letter-spacing:-.04em!important;
+  }
+
+  .acg-mobile-reference-header > button:first-child strong + svg{
+    width:18px!important;
+    height:18px!important;
+  }
+
+  .acg-mobile-reference-header > button:first-child > div > div:last-child{
+    margin-top:8px!important;
+    gap:7px!important;
+    font-size:10.5px!important;
+    line-height:1!important;
+  }
+
+  .acg-mobile-reference-header > button:nth-child(2) svg{
+    width:23px!important;
+    height:23px!important;
+  }
+
+  .acg-mobile-header-divider{
+    border-left:1px solid rgba(151,174,198,.18)!important;
+  }
+
+  .acg-mobile-pnl-card{
+    margin:9px 6px!important;
+    min-width:0;
+    border-radius:12px!important;
+    border:1px solid rgba(124,153,181,.24)!important;
+    background:
+      linear-gradient(180deg,rgba(18,30,43,.98),rgba(8,15,24,.99))!important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.035),
+      0 8px 22px rgba(0,0,0,.24)!important;
+  }
+
+  .acg-mobile-pnl-card > span{
+    font-size:10px!important;
+    letter-spacing:.055em!important;
+  }
+
+  .acg-mobile-pnl-card > strong{
+    margin-top:5px!important;
+    font-size:15.5px!important;
+    line-height:1!important;
+  }
+
+  .acg-mobile-reference-header > button:last-child{
+    padding-inline:4px!important;
+  }
+
+  .acg-mobile-reference-header > button:last-child > span:first-child{
+    font-size:15px!important;
+    line-height:1!important;
+  }
+
+  .acg-mobile-reference-header > button:last-child > span:first-child svg{
+    width:14px!important;
+    height:14px!important;
+  }
+
+  .acg-mobile-reference-header > button:last-child > span:last-child{
+    margin-top:7px!important;
+    font-size:8.5px!important;
+  }
+
+  .acg-mobile-reference-content{
+    padding:12px 10px 0!important;
+  }
+
+  .acg-mobile-reference-chart-wrap{
+    min-height:0!important;
+  }
+
+  .acg-mobile-reference-chart-frame.acg-mobile-metal-surface{
+    height:100%!important;
+    border-radius:18px!important;
+    border:1px solid rgba(104,137,169,.22)!important;
+    background:
+      linear-gradient(180deg,#09131d 0%,#060c13 100%)!important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.025),
+      0 16px 42px rgba(0,0,0,.24)!important;
+  }
+
+  .acg-mobile-reference-chart-controls{
+    height:56px!important;
+    border-radius:16px!important;
+    padding-inline:4px!important;
+    border-color:rgba(118,151,184,.22)!important;
+    background:
+      radial-gradient(circle at 48% -70%,rgba(65,101,135,.22),transparent 62%),
+      linear-gradient(180deg,#0d1823 0%,#09111a 100%)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.025)!important;
+  }
+
+  .acg-mobile-reference-chart-controls > div:first-child button{
+    min-width:0!important;
+    font-size:12px!important;
+    font-weight:800!important;
+  }
+
+  .acg-mobile-reference-chart-controls > div:first-child button > span{
+    left:16%!important;
+    right:16%!important;
+    height:3px!important;
+    background:#35d8ee!important;
+  }
+
+  .acg-mobile-reference-chart-controls > div:nth-child(2){
+    height:32px!important;
+    margin-inline:5px!important;
+    background:rgba(173,193,213,.16)!important;
+  }
+
+  .acg-mobile-reference-chart-controls > div:nth-child(3){
+    min-width:154px;
+  }
+
+  .acg-mobile-reference-chart-controls > div:nth-child(3) button{
+    width:31px!important;
+  }
+
+  .acg-mobile-reference-chart-controls > div:nth-child(3) button svg{
+    width:20px!important;
+    height:20px!important;
+  }
+
+  .acg-mobile-reference-chart-controls > div:nth-child(3) button > span{
+    height:3px!important;
+    left:14%!important;
+    right:14%!important;
+  }
+
+  .acg-mobile-reference-chart-controls > div:nth-child(3) > div{
+    height:32px!important;
+    margin-inline:3px!important;
+    background:rgba(173,193,213,.16)!important;
+  }
+
+  .acg-mobile-reference-chart-area.acg-mobile-chart-surface{
+    grid-template-columns:52px minmax(0,1fr)!important;
+    column-gap:4px!important;
+    background:#061019!important;
+    border-top:1px solid rgba(117,147,175,.11)!important;
+  }
+
+  .acg-mobile-reference-drawing-rail{
+    width:48px!important;
+    margin:6px 0 6px 4px!important;
+    padding-block:4px!important;
+    gap:2px!important;
+    border-radius:11px!important;
+    border:1px solid rgba(109,141,171,.20)!important;
+    background:
+      linear-gradient(180deg,rgba(11,22,32,.99),rgba(6,13,20,.99))!important;
+  }
+
+  .acg-mobile-reference-drawing-rail button{
+    width:44px!important;
+    height:44px!important;
+    min-width:44px!important;
+    min-height:44px!important;
+    border-radius:10px!important;
+  }
+
+  .acg-mobile-reference-drawing-rail button svg{
+    width:20px!important;
+    height:20px!important;
+  }
+
+  .acg-mobile-reference-drawing-rail .acg-mobile-drawing-tool-selected{
+    color:#47dcf0!important;
+    background:
+      linear-gradient(180deg,rgba(36,72,94,.72),rgba(18,46,63,.80))!important;
+    box-shadow:
+      inset 0 0 0 1px rgba(76,214,236,.28),
+      0 4px 12px rgba(0,0,0,.18)!important;
+  }
+
+  .acg-mobile-reference-drawing-rail > div{
+    width:24px!important;
+    margin-block:3px!important;
+  }
+
+  .acg-mobile-chart-info{
+    left:12px!important;
+    top:12px!important;
+    max-width:78%!important;
+  }
+
+  .acg-mobile-chart-info > div:first-child{
+    font-size:14.5px!important;
+    line-height:1.1!important;
+  }
+
+  .acg-mobile-chart-info > div:nth-child(2),
+  .acg-mobile-chart-info > div:nth-child(3){
+    font-size:10.5px!important;
+    line-height:1.25!important;
+  }
+
+  .acg-mobile-history-controls{
+    bottom:28px!important;
+    left:8px!important;
+    height:32px!important;
+    border-radius:8px!important;
+    opacity:.72;
+    box-shadow:0 5px 14px rgba(0,0,0,.28)!important;
+  }
+
+  .acg-mobile-history-controls button{
+    width:32px!important;
+    height:32px!important;
+  }
+
+  .acg-mobile-history-controls svg{
+    width:14px!important;
+    height:14px!important;
+  }
+
+  .acg-mobile-reference-order-wrap{
+    margin-top:12px!important;
+  }
+
+  .acg-mobile-reference-execution.acg-mobile-execution-surface{
+    padding:12px 10px 10px!important;
+    border:1px solid rgba(105,138,170,.23)!important;
+    border-radius:18px!important;
+    background:
+      radial-gradient(circle at 50% -30%,rgba(47,78,106,.19),transparent 52%),
+      linear-gradient(180deg,#0b1620 0%,#071019 100%)!important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.026),
+      0 -8px 28px rgba(0,0,0,.18)!important;
+  }
+
+  .acg-mobile-order-controls-row{
+    height:46px!important;
+    grid-template-columns:minmax(92px,1.55fr) repeat(3,minmax(48px,.92fr)) 44px!important;
+    gap:8px!important;
+  }
+
+  .acg-mobile-order-control{
+    min-width:0!important;
+    border-radius:11px!important;
+    border:1px solid rgba(113,146,177,.22)!important;
+    background:
+      linear-gradient(180deg,#101d29 0%,#0a141e 100%)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.024)!important;
+  }
+
+  .acg-mobile-order-controls-row .acg-mobile-order-control{
+    font-size:11px!important;
+  }
+
+  .acg-mobile-order-controls-row .acg-mobile-order-control svg{
+    width:17px!important;
+    height:17px!important;
+  }
+
+  .acg-mobile-order-controls-row > button:first-child{
+    padding-inline:12px!important;
+    font-size:12px!important;
+  }
+
+  .acg-mobile-reference-execution > .my-2{
+    margin-block:10px!important;
+  }
+
+  .acg-mobile-sizing-summary{
+    height:34px!important;
+    padding-inline:4px!important;
+    gap:7px!important;
+    border-top:1px solid rgba(255,255,255,.07);
+    border-bottom:1px solid rgba(255,255,255,.07);
+    font-size:11px!important;
+  }
+
+  .acg-mobile-sizing-summary svg{
+    width:15px!important;
+    height:15px!important;
+  }
+
+  .acg-mobile-sizing-summary b{
+    font-size:12px!important;
+    font-weight:900!important;
+  }
+
+  .acg-mobile-action-row{
+    height:82px!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:9px!important;
+    margin-top:10px!important;
+  }
+
+  .acg-mobile-sell-action,
+  .acg-mobile-buy-action,
+  .acg-mobile-lot-control{
+    border-radius:15px!important;
+  }
+
+  .acg-mobile-sell-action{
+    border:1px solid rgba(255,88,103,.94)!important;
+    background:
+      linear-gradient(135deg,#f33a50 0%,#dc2f45 54%,#bb2238 100%)!important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.18),
+      inset 0 -18px 34px rgba(86,0,18,.17),
+      0 8px 20px rgba(156,17,40,.14)!important;
+  }
+
+  .acg-mobile-buy-action{
+    border:1px solid rgba(44,231,199,.95)!important;
+    background:
+      linear-gradient(135deg,#13d4b7 0%,#09bfa5 52%,#008f80 100%)!important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.17),
+      inset 0 -18px 34px rgba(0,74,65,.16),
+      0 8px 20px rgba(0,135,116,.14)!important;
+  }
+
+  .acg-mobile-sell-action > strong,
+  .acg-mobile-buy-action > strong{
+    font-size:clamp(22px,6.2vw,26px)!important;
+    line-height:1!important;
+    font-weight:900!important;
+  }
+
+  .acg-mobile-sell-action > span,
+  .acg-mobile-buy-action > span{
+    margin-top:9px!important;
+    font-size:14.5px!important;
+    letter-spacing:.015em!important;
+  }
+
+  .acg-mobile-lot-control{
+    grid-template-columns:38px minmax(0,1fr) 38px!important;
+    padding-inline:4px!important;
+    border:1px solid rgba(113,145,176,.23)!important;
+    background:
+      radial-gradient(circle at 50% 0%,rgba(51,83,112,.21),transparent 62%),
+      linear-gradient(180deg,#0e1924 0%,#08111a 100%)!important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.025),
+      0 8px 18px rgba(0,0,0,.13)!important;
+  }
+
+  .acg-mobile-lot-control > button{
+    width:36px!important;
+    height:44px!important;
+  }
+
+  .acg-mobile-lot-control > button svg{
+    width:21px!important;
+    height:21px!important;
+  }
+
+  .acg-mobile-lot-control input{
+    font-size:22px!important;
+    line-height:1!important;
+    font-weight:900!important;
+  }
+
+  .acg-mobile-lot-control > div > span{
+    font-size:22px!important;
+  }
+
+  .acg-mobile-lot-control > div > button{
+    margin-top:7px!important;
+    font-size:9.5px!important;
+    line-height:1!important;
+  }
+
+  .v2-lightweight-chart{
+    background:#071019!important;
+  }
+}
