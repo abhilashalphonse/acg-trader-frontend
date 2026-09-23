@@ -630,6 +630,20 @@ export default function ChartArea({
   const [lockAllDrawings, setLockAllDrawings] = useState(false);
   const [keepDrawingTool, setKeepDrawingTool] = useState(false);
   const [drawingCount, setDrawingCount] = useState(0);
+  const [narrowMobile, setNarrowMobile] = useState(() => (
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 430px)').matches : false
+  ));
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const media = window.matchMedia('(max-width: 430px)');
+    const onChange = event => setNarrowMobile(event.matches);
+    setNarrowMobile(media.matches);
+    media.addEventListener?.('change', onChange);
+    return () => media.removeEventListener?.('change', onChange);
+  }, []);
+
+  const mobileReference = drawingToolbarOverlay && narrowMobile;
   const oscillatorCount = indicators.filter(item => item.visible !== false && oscillatorIds.has(item.id)).length;
   const priceScaleAnchors = useMemo(() => {
     const passive = [];
@@ -674,12 +688,24 @@ export default function ChartArea({
         : Number.isFinite(offer)
           ? offer
           : null;
-    const nearby = Number.isFinite(reference)
-      ? passiveUnique.slice().sort((left, right) => Math.abs(left - reference) - Math.abs(right - reference)).slice(0, 8)
-      : passiveUnique.slice(0, 8);
+    const sortedNearby = Number.isFinite(reference)
+      ? passiveUnique.slice().sort((left, right) => Math.abs(left - reference) - Math.abs(right - reference))
+      : passiveUnique.slice();
 
-    return [...priorityUnique, ...nearby];
-  }, [ask, desktopEnhanced, pendingOrders, positions, price, symbol, tradePlan]);
+    if (mobileReference && Number.isFinite(reference)) {
+      const pip = Number(instrumentPipSize(instrument));
+      const sensibleRange = Math.max(
+        Math.abs(reference) * 0.015,
+        Number.isFinite(pip) && pip > 0 ? pip * 400 : 0,
+      );
+      const nearby = sortedNearby
+        .filter(value => Math.abs(value - reference) <= sensibleRange)
+        .slice(0, 4);
+      return [...priorityUnique, ...nearby];
+    }
+
+    return [...priorityUnique, ...sortedNearby.slice(0, 8)];
+  }, [ask, desktopEnhanced, instrument, mobileReference, pendingOrders, positions, price, symbol, tradePlan]);
 
   useEffect(() => {
     const update = () => {
@@ -753,6 +779,8 @@ export default function ChartArea({
           indicators={indicators}
           onCoordinateApi={setCoordinateApi}
           showBidAskLines={desktopEnhanced}
+          showMobileQuoteMarkers={mobileReference}
+          mobileReference={mobileReference}
           showPositionPriceLines={false}
           priceScaleAnchors={priceScaleAnchors}
           showIndicatorControls={desktopEnhanced}
