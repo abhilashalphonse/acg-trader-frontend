@@ -147,7 +147,12 @@ export function AuthProvider({ children }) {
         }
       }
 
+      const current = sessionRef.current;
       const next = sessionFromAuthResponse(response);
+      if (current?.principal?.accountGrants && next?.principal?.authMethod === 'FEDERATED') {
+        next.principal.accountGrants = current.principal.accountGrants;
+        next.principal.grantsRefreshedAt = current.principal.grantsRefreshedAt || null;
+      }
       commitSession(next);
       return next;
     })().finally(() => {
@@ -281,11 +286,16 @@ export function AuthProvider({ children }) {
       const principal = response?.principal;
       if (!principal) throw new ApiError('Session response is missing principal data', { code: 'INVALID_AUTH_RESPONSE' });
       const current = sessionRef.current;
+      const mergedPrincipal = {
+        ...principal,
+        accountGrants: current?.principal?.accountGrants || principal.accountGrants || [],
+        grantsRefreshedAt: current?.principal?.grantsRefreshedAt || principal.grantsRefreshedAt || null,
+      };
       const next = {
         ...current,
         expiresAt: principal.expiresAt || current?.expiresAt || null,
         refreshExpiresAt: principal.refreshExpiresAt || current?.refreshExpiresAt || null,
-        principal,
+        principal: mergedPrincipal,
       };
       commitSession(next);
       return principal;
