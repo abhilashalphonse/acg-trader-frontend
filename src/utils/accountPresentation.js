@@ -47,3 +47,16 @@ export function accountLimitsUnavailableCopy(account) {
 export function isMasterAccount(account) {
   return accountTypeKey(account) === 'MASTER';
 }
+
+
+export function accountStatusLabel(status) {
+  const value = String(status || '').trim().toUpperCase();
+  const labels = {
+    ACTIVE: 'Active',
+    PAUSED: 'Paused',
+    BREACHED: 'Breached',
+    DISABLED: 'Disabled',
+    CLOSED: 'Closed',
+  };
+  return labels[value] || (value ? value.replaceAll('_', ' ') : 'Unknown');
+}
