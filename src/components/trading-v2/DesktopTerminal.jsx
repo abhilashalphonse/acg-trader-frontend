@@ -34,7 +34,7 @@ import PositionsPanel from './PositionsPanel.jsx';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import IndicatorManager from './IndicatorManager.jsx';
 import { calculateAccountRiskSummary } from '../../utils/accountRisk.js';
-import { accountLimitsUnavailableCopy, accountRiskTitle, accountTypeBadge, accountTypeLabel, isMasterAccount } from '../../utils/accountPresentation.js';
+import { accountLimitsUnavailableCopy, accountRiskTitle, accountStatusLabel, accountTypeBadge, accountTypeLabel, isMasterAccount } from '../../utils/accountPresentation.js';
 
 const timeframes = [['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], ['1H', '1H'], ['4H', '4H'], ['1D', '1D'], ['1W', '1W']];
 const navItems = [['trade', CandlestickChart, 'Trade'], ['watchlist', Star, 'Watchlist'], ['markets', List, 'Markets'], ['history', History, 'History'], ['more', MoreHorizontal, 'More']];
@@ -615,11 +615,11 @@ export default function DesktopTerminal({
           
           <button type="button" onClick={() => searchRef.current?.focus()} className="grid size-8 place-items-center rounded-md text-[#A1AFBC] hover:bg-white/[0.035] hover:text-white" aria-label="Search"><Search size={16}/></button>
           <button type="button" onClick={() => setNotice('Notification delivery is not connected to a backend event inbox yet.')} className="grid size-8 place-items-center rounded-md border border-white/[0.06] bg-black/20 text-[#A1AFBC]" aria-label="Notifications"><Bell size={15}/></button>
-          <button type="button" onClick={() => setNotice(`${account?.accountCode || 'Trading account'} • ${accountTypeLabel(account)} • ${accountStatus} • ${valuationStatus}`)} className="flex h-8 items-center gap-2 rounded-md border border-white/[0.06] bg-black/20 px-2.5 text-left">
+          <button type="button" onClick={() => setNotice(`${account?.accountCode || 'Trading account'} • ${accountTypeLabel(account)} • ${accountStatusLabel(accountStatus)} • ${valuationStatus}`)} className="flex h-8 items-center gap-2 rounded-md border border-white/[0.06] bg-black/20 px-2.5 text-left">
             <span className={`size-1.5 rounded-full ${canOpen ? 'bg-[#2fd9a0]' : valuationStatus === 'STALE' ? 'bg-[#e8bd55]' : 'bg-[#343434]'}`}/>
             <div className="leading-none"><strong className="block text-[9px]">{money(account?.equity, currency)}</strong><span className="mt-1 block text-[8px] text-[#6F8191]">{account?.accountCode || accountStatus} · {accountTypeBadge(account)}</span></div>
           </button>
-          <button type="button" onClick={() => setNotice(`Account ${accountStatus.toLowerCase()} • valuation ${valuationStatus.toLowerCase()}`)} className="grid size-8 place-items-center rounded-full border border-white/[0.06] bg-black/20 text-[#A1AFBC]" aria-label="Profile"><UserRound size={15}/></button>
+          <button type="button" onClick={() => setNotice(`${accountTypeLabel(account)} • ${accountStatusLabel(accountStatus)} • valuation ${valuationStatus.toLowerCase()}`)} className="grid size-8 place-items-center rounded-full border border-white/[0.06] bg-black/20 text-[#A1AFBC]" aria-label="Profile"><UserRound size={15}/></button>
         </div>
       </header>
 
