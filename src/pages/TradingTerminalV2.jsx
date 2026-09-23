@@ -141,6 +141,11 @@ export default function TradingTerminalV2({
   const isDesktop = useDesktopLayout();
   const trading = useTradingTerminal(markets);
   const { account, positions, pendingOrders, positionHistory } = trading;
+  const executionCommandState = {
+    ...trading.commandState,
+    accountSwitching: trading.accountSwitching,
+    accountSwitchError: trading.accountSwitchError,
+  };
 
   const [timeframe, setTimeframe] = useState(prefsRef.current.timeframe || '1m');
   const [chartMode, setChartMode] = useState(prefsRef.current.chartMode || 'candles');
@@ -162,7 +167,7 @@ export default function TradingTerminalV2({
   const [overlay, setOverlay] = useState(null);
   const [notice, setNotice] = useState('');
   const [riskGuardSettings, setRiskGuardSettings] = useState(loadRiskGuardSettings);
-  const exposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market, commandState: trading.commandState });
+  const exposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market, commandState: executionCommandState });
 
   useEffect(() => {
     const onFullscreenChange = () => {
@@ -215,6 +220,21 @@ export default function TradingTerminalV2({
     noticeTimerRef.current = window.setTimeout(() => setNotice(''), 2600);
   };
 
+  const selectTradingAccount = nextAccountId => {
+    const target = String(nextAccountId || '').trim();
+    if (!target) return false;
+    try {
+      if (tradePlan) setTradePlan(null);
+      setExecutionEvent(null);
+      trading.selectAccount(target);
+      showNotice('Switching account — synchronizing trading state…');
+      return true;
+    } catch (error) {
+      showNotice(error?.message || 'Unable to switch trading account');
+      return false;
+    }
+  };
+
   const selectSymbol = symbol => {
     const normalized = String(symbol || '').toUpperCase();
     if (!normalized) return;
@@ -260,7 +280,7 @@ export default function TradingTerminalV2({
   const runMarketExecution = async ({ side, executionLots, symbol, requestedPrice, stopLoss = null, takeProfit = null }) => {
     if (!symbol || !trading.accountId) return null;
     const instrument = markets.find(item => item.symbol === symbol) || market;
-    const executionExposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market: instrument, commandState: trading.commandState });
+    const executionExposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market: instrument, commandState: executionCommandState });
     if (!executionExposure.allowed) { showNotice(executionExposure.reason); return null; }
     const modeledPrice = Number(estimateExecutionPrice(instrument, side, executionLots)?.price);
     const effectiveRequestedPrice = Number.isFinite(modeledPrice) && modeledPrice > 0
@@ -454,7 +474,7 @@ export default function TradingTerminalV2({
     const position = positions.find(item => String(item.id) === String(id));
     if (!position) return;
     const instrument = markets.find(item => item.symbol === position.symbol) || market;
-    const reverseExposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market: instrument, commandState: trading.commandState });
+    const reverseExposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market: instrument, commandState: executionCommandState });
     if (!reverseExposure.allowed) { showNotice(reverseExposure.reason); return; }
 
     const currentSide = String(position.side || '').toUpperCase();
@@ -687,7 +707,7 @@ export default function TradingTerminalV2({
     if (!tradePlan || trading.commandState.pending) return;
     const planSymbol = tradePlan.symbol || market?.symbol;
     const planMarket = markets.find(item => item.symbol === planSymbol) || market;
-    const planExposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market: planMarket, commandState: trading.commandState });
+    const planExposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market: planMarket, commandState: executionCommandState });
     if (!planExposure.allowed) { showNotice(planExposure.reason); return; }
     const baseExecutionPlan = effectiveTradePlan(tradePlan, planMarket);
     const executionPreview = resolveExecutionPreview({
@@ -911,6 +931,11 @@ export default function TradingTerminalV2({
           onToggleIndicatorFavorite={toggleIndicatorFavorite}
           onIndicatorsChange={setIndicators}
           account={account}
+          accounts={trading.accounts}
+          activeAccountId={trading.activeAccountId}
+          accountSwitching={trading.accountSwitching}
+          accountSwitchError={trading.accountSwitchError}
+          onSelectAccount={selectTradingAccount}
           plannedRisk={plannedRisk}
           hotkeysEnabled={hotkeysEnabled}
           timeframe={timeframe}
@@ -993,12 +1018,12 @@ export default function TradingTerminalV2({
               <WatchlistSection markets={markets} activeSymbol={activeSymbol} onOpenTrade={openTradeFromWatchlist} onAddInstrument={() => setOverlay('search')} watchlists={watchlists} />
             ) : (
               <>
-                <TopBar balance={`${account.currency === 'EUR' ? '€' : '$'}${Number(account.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} live={trading.connection.status === 'ready'} onSearch={() => setOverlay('search')} onNotifications={() => setOverlay('notifications')} onProfile={() => setOverlay('profile')} />
+                <TopBar account={account} accounts={trading.accounts} activeAccountId={trading.activeAccountId} connectionStatus={trading.connection.status} accountSwitching={trading.accountSwitching} accountSwitchError={trading.accountSwitchError} onSelectAccount={selectTradingAccount} onSearch={() => setOverlay('search')} onNotifications={() => setOverlay('notifications')} onProfile={() => setOverlay('profile')} />
                 <div className="px-2">
                   <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={tradePlan} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onSelectInstrument={() => setOverlay('instruments')} onIndicators={() => setOverlay('indicators')} indicators={indicators} />
                   <PropRiskStrip account={account} plannedRisk={plannedRisk} />
-                  <ExecutionPanel market={market} account={account} exposureAllowed={exposure.allowed} exposureBlockReason={exposure.reason} lots={lots} onLotsChange={setLots} sizingMode={sizingMode} onSizingModeChange={setSizingMode} riskPercent={riskPercent} onRiskPercentChange={setRiskPercent} orderType={orderType} onOrderTypeChange={setOrderType} tradePlan={tradePlan} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} />
-                  <PositionsPanel positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={closePosition} onCloseAll={closeAllPositions} onBreakEven={movePositionToBreakEven} onReverse={reversePosition} onUpdatePosition={updatePosition} onSetTrailing={setPositionTrailing} onDuplicate={duplicatePosition} onCancelPending={cancelPendingOrder} onModifyPending={modifyPendingOrder} />
+                  <ExecutionPanel key={`execution-${trading.accountId || 'none'}`} market={market} account={account} exposureAllowed={exposure.allowed} exposureBlockReason={exposure.reason} lots={lots} onLotsChange={setLots} sizingMode={sizingMode} onSizingModeChange={setSizingMode} riskPercent={riskPercent} onRiskPercentChange={setRiskPercent} orderType={orderType} onOrderTypeChange={setOrderType} tradePlan={tradePlan} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} />
+                  <PositionsPanel key={`positions-${trading.accountId || 'none'}`} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={closePosition} onCloseAll={closeAllPositions} onBreakEven={movePositionToBreakEven} onReverse={reversePosition} onUpdatePosition={updatePosition} onSetTrailing={setPositionTrailing} onDuplicate={duplicatePosition} onCancelPending={cancelPendingOrder} onModifyPending={modifyPendingOrder} />
                 </div>
               </>
             )}
