@@ -534,7 +534,7 @@ export default function ExecutionPanel({
           {!isOpen && <button type="button" onClick={onCancelPlan} className="grid size-8 place-items-center rounded-lg border border-white/[0.08] bg-[#101010] text-[#8193a6]" aria-label="Cancel trade plan"><X size={15}/></button>}
         </div>
 
-        <div className="mt-2 grid grid-cols-4 gap-1.5 text-center"><Metric label={tradePlan.pending ? 'Entry' : 'Risk'} value={tradePlan.pending ? formatInstrumentPrice(tradePlan.entry, market) : `${riskPercent.toFixed(2)}%`}/><Metric label="Lots" value={metrics?.lots.toFixed(2)}/><Metric label="SL" value={`${metrics?.slPips.toFixed(1)}p`}/><Metric label="R:R" value={`1:${metrics?.rr.toFixed(1)}`}/></div>
+        <div className="mt-2 grid grid-cols-4 gap-1.5 text-center"><Metric label={tradePlan.pending ? 'Entry' : 'Risk'} value={tradePlan.pending ? formatInstrumentPrice(tradePlan.entry, market) : `${riskPercent.toFixed(2)}%`}/><Metric label="Lots" value={metrics?.lots.toFixed(2)}/><Metric label="SL" value={Number.isFinite(Number(effectivePlan?.sl)) ? `${metrics?.slPips.toFixed(1)}p` : '—'}/><Metric label="TP" value={Number.isFinite(Number(effectivePlan?.tp)) ? `${metrics?.tpPips.toFixed(1)}p` : '—'}/></div>
 
         {tradePlan.pending && (
           <div className="mt-1.5 space-y-1.5">
@@ -658,9 +658,10 @@ export default function ExecutionPanel({
 
             <button
               type="button"
-              onClick={() => setMobileAdvancedOpen(true)}
-              className="acg-mobile-order-control acg-mobile-protection-control flex min-w-0 items-center justify-center gap-1 rounded-[7px] px-1 text-[10px] font-bold text-[#b6c0cd]"
-              aria-label="Open stop-loss controls"
+              disabled
+              className="acg-mobile-order-control acg-mobile-protection-control flex min-w-0 items-center justify-center gap-1 rounded-[7px] px-1 text-[10px] font-bold text-[#77838f]"
+              aria-label="Stop loss becomes available after choosing Buy or Sell"
+              title="Choose Buy or Sell to set stop loss"
             >
               <CircleMinus size={15} strokeWidth={1.8}/>
               <span>SL</span>
@@ -668,9 +669,10 @@ export default function ExecutionPanel({
 
             <button
               type="button"
-              onClick={() => setMobileAdvancedOpen(true)}
-              className="acg-mobile-order-control acg-mobile-protection-control flex min-w-0 items-center justify-center gap-1 rounded-[7px] px-1 text-[10px] font-bold text-[#b6c0cd]"
-              aria-label="Open take-profit controls"
+              disabled
+              className="acg-mobile-order-control acg-mobile-protection-control flex min-w-0 items-center justify-center gap-1 rounded-[7px] px-1 text-[10px] font-bold text-[#77838f]"
+              aria-label="Take profit becomes available after choosing Buy or Sell"
+              title="Choose Buy or Sell to set take profit"
             >
               <Target size={15} strokeWidth={1.8}/>
               <span>TP</span>
