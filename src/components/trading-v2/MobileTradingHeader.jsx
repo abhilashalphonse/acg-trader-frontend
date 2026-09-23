@@ -74,7 +74,7 @@ export default function MobileTradingHeader({
       <button
         type="button"
         onClick={onSelectInstrument}
-        className="flex min-w-0 items-center gap-2.5 px-3 text-left active:opacity-80"
+        className="acg-mobile-instrument-selector relative flex min-w-0 items-center gap-2.5 px-3 text-left active:opacity-80"
         aria-label="Open markets and watchlist"
       >
         <span className="acg-mobile-instrument-icon-shell grid shrink-0 place-items-center">
