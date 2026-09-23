@@ -595,7 +595,6 @@ export default function DesktopTerminal({
       <header className="flex h-[52px] items-center border-b border-white/[0.06] bg-[#07090B] px-3 shadow-[0_1px_0_rgba(255,255,255,0.015)]">
         <div className="flex min-w-[178px] items-center gap-2">
           <span className="text-[16px] font-extrabold tracking-[-0.03em]">ACG Trader</span>
-          <span className="rounded bg-white/[0.04] px-1.5 py-0.5 text-[8px] font-extrabold tracking-[0.06em] text-[#59C7FF]">V2</span>
         </div>
 
         <div className="ml-2 hidden items-stretch divide-x divide-white/[0.07] rounded-md border border-white/[0.06] bg-black/25 xl:flex">
