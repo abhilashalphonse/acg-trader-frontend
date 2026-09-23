@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowUpDown, ChevronDown, ChevronRight, Star } from 'lucide-react';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
+import { accountTypeBadge } from '../../utils/accountPresentation.js';
 
 function displaySymbol(symbol = '') {
   const normalized = String(symbol || '').toUpperCase();
@@ -125,9 +126,9 @@ export default function MobileTradingHeader({
         <strong className={`mt-[3px] max-w-full truncate font-mono text-[10.5px] font-black leading-none tabular-nums tracking-[-0.045em] min-[360px]:text-[11px] ${pnlTone}`}>{money(pnl, account?.currency || 'USD')}</strong>
       </div>
 
-      <button type="button" onClick={onOpenAccount} className="flex items-center justify-center gap-0.5 px-1 text-[10.5px] font-black tracking-[-0.025em] text-[#f4f7f9] active:bg-white/[0.045]" aria-label="Open ACG account">
-        <span>ACG</span>
-        <ChevronRight size={12} strokeWidth={2.6} className="text-[#a8b4be]"/>
+      <button type="button" onClick={onOpenAccount} className="flex flex-col items-center justify-center px-1 text-[#f4f7f9] active:bg-white/[0.045]" aria-label="Open ACG account">
+        <span className="flex items-center gap-0.5 text-[10.5px] font-black tracking-[-0.025em]">ACG<ChevronRight size={11} strokeWidth={2.6} className="text-[#a8b4be]"/></span>
+        <span className="mt-0.5 max-w-full truncate text-[5.5px] font-black uppercase tracking-[0.08em] text-[#74828d]">{accountTypeBadge(account)}</span>
       </button>
     </header>
   );
