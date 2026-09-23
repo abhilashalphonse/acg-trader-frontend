@@ -142,8 +142,9 @@ export function useTradingTerminal(markets = []) {
   const auth = useTraderAuth();
   const { trading, connection, commands, requestSnapshot } = useTradingStore();
   const positionValuations = trading.positionValuationsById;
-  const [history, setHistory] = useState({ orders: [], deals: [], positions: [], loaded: false });
+  const [history, setHistory] = useState({ accountId: null, orders: [], deals: [], positions: [], loaded: false, error: null });
   const [commandState, setCommandState] = useState({ pending: false, uncertain: false, error: null, lastResult: null });
+  const [switchContext, setSwitchContext] = useState(null);
   const busyRef = useRef(0);
 
   const grantedAccountIds = useMemo(
@@ -168,23 +169,38 @@ export function useTradingTerminal(markets = []) {
       error.code = 'ACCOUNT_ACCESS_FORBIDDEN';
       throw error;
     }
+    if (commandState.pending || commandState.uncertain) {
+      const error = new Error(commandState.uncertain
+        ? 'Wait for the current execution to reconcile before switching accounts'
+        : 'Wait for the current trading command to finish before switching accounts');
+      error.code = 'ACCOUNT_SWITCH_BLOCKED';
+      throw error;
+    }
+    const baselineRevision = Number(trading.snapshotRevisionByAccountId?.[target] || 0);
+    setHistory({ accountId: target, orders: [], deals: [], positions: [], loaded: false, error: null });
+    setSwitchContext({ targetId: target, baselineRevision, startedAt: Date.now() });
     setActiveAccountId(target);
     return target;
-  }, [grantedAccountIds]);
+  }, [commandState.pending, commandState.uncertain, grantedAccountIds, trading.snapshotRevisionByAccountId]);
 
   const accountId = activeAccountId;
   const rawAccount = accountId ? trading.accountsById[accountId] || null : null;
   const valuation = accountId ? trading.valuationsByAccountId[accountId] || null : null;
   const account = useMemo(() => normalizeAccount(rawAccount, valuation), [rawAccount, valuation]);
+  const accounts = useMemo(() => grantedAccountIds
+    .map(id => normalizeAccount(trading.accountsById[id], trading.valuationsByAccountId[id]))
+    .filter(item => item.id), [grantedAccountIds, trading.accountsById, trading.valuationsByAccountId]);
+  const accountSwitching = Boolean(switchContext && switchContext.targetId === accountId);
+  const accountSwitchError = accountSwitching && history.accountId === accountId ? history.error : null;
   const rawPositions = useMemo(() => Object.values(trading.positionsById).filter(item => (!accountId || String(item.accountId) === String(accountId)) && item.status !== 'CLOSED').sort((a, b) => new Date(b.openedAt || 0) - new Date(a.openedAt || 0)), [accountId, trading.positionsById]);
   const positions = useMemo(() => rawPositions.map(position => normalizePosition(position, positionValuations[position.id], markets.find(item => item.symbol === position.symbol), account.currency)), [account.currency, markets, positionValuations, rawPositions]);
   const pendingOrders = useMemo(() => Object.values(trading.ordersById).filter(order => (!accountId || String(order.accountId) === String(accountId)) && ACTIVE_ORDER_STATUSES.has(String(order.status || '').toUpperCase()) && String(order.type || '').toUpperCase() !== 'MARKET').sort((a, b) => new Date(b.createdAt || b.receivedAt || 0) - new Date(a.createdAt || a.receivedAt || 0)).map(normalizePendingOrder), [accountId, trading.ordersById]);
   const positionHistory = useMemo(() => {
     const closedFromStore = Object.values(trading.positionsById)
       .filter(position => (!accountId || String(position?.accountId) === String(accountId)) && String(position?.status || '').toUpperCase() === 'CLOSED');
-    const source = history.loaded ? [...closedFromStore, ...history.positions] : closedFromStore;
+    const source = history.loaded && history.accountId === accountId ? [...closedFromStore, ...history.positions] : closedFromStore;
     const seen = new Set();
-    const deals = history.loaded ? [...trading.fills, ...history.deals] : trading.fills;
+    const deals = history.loaded && history.accountId === accountId ? [...trading.fills, ...history.deals] : trading.fills;
     const uniqueDeals = [];
     const seenDeals = new Set();
     deals.forEach(deal => {
@@ -204,18 +220,30 @@ export function useTradingTerminal(markets = []) {
       })
       .map(position => normalizeClosedPosition(position, uniqueDeals, account.currency))
       .sort((a, b) => new Date(b.closedAtIso || 0) - new Date(a.closedAtIso || 0));
-  }, [account.currency, accountId, history.deals, history.loaded, history.positions, trading.fills, trading.positionsById]);
+  }, [account.currency, accountId, history.accountId, history.deals, history.loaded, history.positions, trading.fills, trading.positionsById]);
 
   useEffect(() => { if (!accountId || connection.status !== 'ready') return; requestSnapshot([accountId]); }, [accountId, connection.status, requestSnapshot]);
   useEffect(() => {
-    setHistory({ orders: [], deals: [], positions: [], loaded: false });
+    setHistory({ accountId, orders: [], deals: [], positions: [], loaded: false, error: null });
     if (!accountId || connection.status !== 'ready') return undefined;
     const controller = new AbortController();
     Promise.all([commands.historyOrders(accountId, { limit: 200 }, controller.signal), commands.historyDeals(accountId, { limit: 200 }, controller.signal), commands.historyPositions(accountId, { limit: 200 }, controller.signal)])
-      .then(([orders, deals, positionsResult]) => { if (!controller.signal.aborted) setHistory({ orders: orders.items || [], deals: deals.items || [], positions: positionsResult.items || [], loaded: true }); })
-      .catch(() => { if (!controller.signal.aborted) setHistory(current => ({ ...current, loaded: false })); });
+      .then(([orders, deals, positionsResult]) => {
+        if (!controller.signal.aborted) setHistory({ accountId, orders: orders.items || [], deals: deals.items || [], positions: positionsResult.items || [], loaded: true, error: null });
+      })
+      .catch(error => {
+        if (!controller.signal.aborted) setHistory({ accountId, orders: [], deals: [], positions: [], loaded: false, error: error?.message || 'Unable to load account history' });
+      });
     return () => controller.abort();
   }, [accountId, commands, connection.status]);
+
+  useEffect(() => {
+    if (!switchContext || !accountId || switchContext.targetId !== accountId) return;
+    const currentRevision = Number(trading.snapshotRevisionByAccountId?.[accountId] || 0);
+    const freshSnapshot = currentRevision > Number(switchContext.baselineRevision || 0);
+    const historyReady = history.accountId === accountId && history.loaded === true && !history.error;
+    if (freshSnapshot && rawAccount && valuation && historyReady) setSwitchContext(null);
+  }, [accountId, history.accountId, history.error, history.loaded, rawAccount, switchContext, trading.snapshotRevisionByAccountId, valuation]);
 
   const run = useCallback(async operation => {
     busyRef.current += 1;
@@ -233,7 +261,15 @@ export function useTradingTerminal(markets = []) {
       if (busyRef.current === 0) setCommandState(current => ({ ...current, pending: false }));
     }
   }, []);
-  const requireAccount = useCallback(() => { if (!accountId) throw new Error('No trading account is available for this session'); return accountId; }, [accountId]);
+  const requireAccount = useCallback(() => {
+    if (!accountId) throw new Error('No trading account is available for this session');
+    if (accountSwitching) {
+      const error = new Error(accountSwitchError || 'Trading account is still synchronizing');
+      error.code = 'ACCOUNT_SWITCH_IN_PROGRESS';
+      throw error;
+    }
+    return accountId;
+  }, [accountId, accountSwitchError, accountSwitching]);
 
   const executeExposureCommand = useCallback(({ accountId: targetAccountId, clientOrderId, submit }) => executeWithOrderReconciliation({
     submit,
@@ -412,5 +448,5 @@ export function useTradingTerminal(markets = []) {
     }));
   }, [commands, instrumentForSymbol, pendingOrders, requireAccount, run]);
 
-  return { accountId, activeAccountId, grantedAccountIds, selectAccount, account, rawAccount, valuation, positions, pendingOrders, positionHistory, historyOrders: history.orders, historyDeals: history.deals, historyPositions: history.positions, historyLoaded: history.loaded, fills: trading.fills, orders: Object.values(trading.ordersById), connection, commandState, tradingReady: Boolean(accountId && rawAccount && account.tradingEnabled && connection.status === 'ready' && !commandState.uncertain), refreshState, openMarketOrder, placePendingOrder, replacePendingOrder, cancelPendingOrder, closePosition, closeAllPositions, updatePosition, movePositionToBreakEven, setPositionTrailing, duplicatePosition, reversePosition, errorMessage };
+  return { accountId, activeAccountId, grantedAccountIds, accounts, selectAccount, accountSwitching, accountSwitchError, account, rawAccount, valuation, positions, pendingOrders, positionHistory, historyOrders: history.accountId === accountId ? history.orders : [], historyDeals: history.accountId === accountId ? history.deals : [], historyPositions: history.accountId === accountId ? history.positions : [], historyLoaded: history.accountId === accountId && history.loaded, fills: trading.fills, orders: Object.values(trading.ordersById), connection, commandState, tradingReady: Boolean(accountId && rawAccount && account.tradingEnabled && connection.status === 'ready' && !commandState.uncertain && !accountSwitching), refreshState, openMarketOrder, placePendingOrder, replacePendingOrder, cancelPendingOrder, closePosition, closeAllPositions, updatePosition, movePositionToBreakEven, setPositionTrailing, duplicatePosition, reversePosition, errorMessage };
 }
