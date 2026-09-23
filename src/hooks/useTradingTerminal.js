@@ -235,7 +235,7 @@ export function useTradingTerminal(markets = []) {
         if (!controller.signal.aborted) setHistory({ accountId, orders: [], deals: [], positions: [], loaded: false, error: error?.message || 'Unable to load account history' });
       });
     return () => controller.abort();
-  }, [accountId, commands, connection.status]);
+  }, [accountId, commands, connection.status, switchContext?.startedAt]);
 
   useEffect(() => {
     if (!switchContext || !accountId || switchContext.targetId !== accountId) return;
