@@ -35,7 +35,7 @@ export default function ChartControls({
   if (compactMobile) {
     return (
       <div className={`acg-mobile-reference-chart-controls flex h-[46px] w-full items-center overflow-hidden rounded-[12px] border border-white/[0.09] px-1 ${disabled ? 'opacity-55' : ''}`}>
-        <div className="flex min-w-0 flex-1 self-stretch items-center">
+        <div className="acg-mobile-timeframes flex min-w-0 flex-1 self-stretch items-center">
           {mobileTimeframes.map(tf => (
             <button
               key={tf}
@@ -50,9 +50,9 @@ export default function ChartControls({
           ))}
         </div>
 
-        <div className="mx-1 h-7 w-px shrink-0 bg-white/[0.11]" aria-hidden="true"/>
+        <div className="acg-mobile-toolbar-separator mx-1 h-7 w-px shrink-0 bg-white/[0.11]" aria-hidden="true"/>
 
-        <div className="flex h-full shrink-0 items-center">
+        <div className="acg-mobile-chart-tools flex h-full shrink-0 items-center">
           <button
             type="button"
             disabled={disabled}
@@ -93,7 +93,7 @@ export default function ChartControls({
             <Pencil size={19} strokeWidth={1.8}/>
             {drawingsOpen && <span className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full bg-[#32d9ed]" aria-hidden="true"/>}
           </button>
-          <div className="mx-1 h-7 w-px shrink-0 bg-white/[0.11]" aria-hidden="true"/>
+          <div className="acg-mobile-toolbar-separator mx-1 h-7 w-px shrink-0 bg-white/[0.11]" aria-hidden="true"/>
           <button
             type="button"
             disabled={disabled}

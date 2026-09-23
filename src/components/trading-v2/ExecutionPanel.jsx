@@ -621,7 +621,7 @@ export default function ExecutionPanel({
             <button
               type="button"
               onClick={() => setMobileAdvancedOpen(true)}
-              className="acg-mobile-order-control flex min-w-0 items-center justify-center gap-1 rounded-[7px] px-1 text-[10px] font-bold text-[#b6c0cd]"
+              className="acg-mobile-order-control acg-mobile-protection-control flex min-w-0 items-center justify-center gap-1 rounded-[7px] px-1 text-[10px] font-bold text-[#b6c0cd]"
               aria-label="Open stop-loss controls"
             >
               <CircleMinus size={15} strokeWidth={1.8}/>
@@ -631,7 +631,7 @@ export default function ExecutionPanel({
             <button
               type="button"
               onClick={() => setMobileAdvancedOpen(true)}
-              className="acg-mobile-order-control flex min-w-0 items-center justify-center gap-1 rounded-[7px] px-1 text-[10px] font-bold text-[#b6c0cd]"
+              className="acg-mobile-order-control acg-mobile-protection-control flex min-w-0 items-center justify-center gap-1 rounded-[7px] px-1 text-[10px] font-bold text-[#b6c0cd]"
               aria-label="Open take-profit controls"
             >
               <Target size={15} strokeWidth={1.8}/>
@@ -682,7 +682,7 @@ export default function ExecutionPanel({
                 <Minus size={20} strokeWidth={1.8}/>
               </button>
 
-              <div className="flex min-w-0 flex-col items-center justify-center">
+              <div className="acg-mobile-sizing-center flex min-w-0 flex-col items-center justify-center">
                 {sizingMode === 'lots' ? (
                   <input
                     type="text"
@@ -709,15 +709,15 @@ export default function ExecutionPanel({
                         event.currentTarget.blur();
                       }
                     }}
-                    className="w-full min-w-0 bg-transparent p-0 text-center font-mono text-[18px] font-black leading-none tabular-nums text-[#f5f7fa] outline-none"
+                    className="acg-mobile-lot-value w-full min-w-0 bg-transparent p-0 text-center font-mono text-[18px] font-black leading-none tabular-nums text-[#f5f7fa] outline-none"
                   />
                 ) : (
-                  <span className="font-mono text-[18px] font-black leading-none tabular-nums text-[#f5f7fa]">{mobileSizingLabel}</span>
+                  <span className="acg-mobile-risk-value font-mono text-[18px] font-black leading-none tabular-nums text-[#f5f7fa]">{mobileSizingLabel}</span>
                 )}
                 <button
                   type="button"
                   onClick={() => setMobileAdvancedOpen(true)}
-                  className="mt-2 text-[9px] font-semibold uppercase tracking-[0.03em] text-[#a1adbb] active:text-[#31d9ec]"
+                  className="acg-mobile-sizing-label mt-2 text-[9px] font-semibold uppercase tracking-[0.03em] text-[#a1adbb] active:text-[#31d9ec]"
                   aria-label="Open position size controls"
                 >
                   {sizingMode === 'risk' ? 'Risk' : 'Lots'}
