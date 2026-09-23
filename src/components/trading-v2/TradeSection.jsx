@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, ExternalLink, Plus, X } from 'lucide-react';
 import { formatInstrumentPrice, instrumentForSymbol } from '../../utils/instrumentFormatting.js';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import { estimatePositionPnlAtPrice, positionDistancePips } from '../../utils/tradingRisk.js';
+import { accountTypeLabel } from '../../utils/accountPresentation.js';
 import { buildOpenPositionSummary } from '../../utils/openPositionPresentation.js';
 
 function money(value, currency = 'USD', signed = false) {
@@ -26,13 +27,6 @@ function sideTone(side) {
   return String(side).toUpperCase() === 'BUY'
     ? 'bg-[#0d3328] text-[#43d9a6]'
     : 'bg-[#351820] text-[#ff717d]';
-}
-
-function accountLabel(account) {
-  const type = String(account?.accountType || account?.mode || '').toUpperCase();
-  if (type === 'DEMO') return 'Trial account';
-  if (type === 'FUNDED') return 'Master account';
-  return 'Evaluation account';
 }
 
 function projectedProtection(position, value, instrument, currency) {
@@ -198,7 +192,7 @@ export default function TradeSection({
     <section className={embedded ? 'px-0 pb-3 pt-0' : 'acg-mobile-terminal-page min-h-[calc(100dvh-92px)] px-2 pb-4 pt-2'}>
 {!embedded && (      <header className="flex items-start justify-between gap-3 pb-4">
         <div>
-          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#5f7488]">{accountLabel(account)}</p>
+          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#5f7488]">{accountTypeLabel(account)}</p>
           <h1 className="mt-1 text-[26px] font-black tracking-[-0.045em] text-[#f5f8fb]">Trade</h1>
           <p className="mt-1 text-[10px] text-[#718397]">Positions, orders and margin at a glance.</p>
         </div>
