@@ -38,7 +38,6 @@ export default function MobileAccountSheet({
 }) {
   const currency = account?.currency || 'USD';
   const status = String(account?.status || 'UNKNOWN').toUpperCase();
-  const live = status === 'ACTIVE';
 
   return (
     <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/55 px-2 backdrop-blur-[2px]" onMouseDown={onClose}>
