@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, CircleHelp, Settings, X } from 'lucide-react';
+import { Check, ChevronRight, CircleHelp, Loader2, Settings, X } from 'lucide-react';
 import { accountStatusLabel, accountStatusToneClass, accountTypeLabel } from '../../utils/accountPresentation.js';
 
 function money(value, currency = 'USD') {
@@ -32,6 +32,11 @@ function Action({ icon: Icon, title, subtitle, onClick }) {
 
 export default function MobileAccountSheet({
   account = {},
+  accounts = [],
+  activeAccountId = null,
+  accountSwitching = false,
+  accountSwitchError = null,
+  onSelectAccount = () => false,
   onClose = () => {},
   onPlatformSettings = () => {},
   onHelp = () => {},
@@ -68,6 +73,39 @@ export default function MobileAccountSheet({
               <div className="px-2"><span className="block text-[6px] font-bold uppercase tracking-[0.08em] text-[#5f7488]">Free margin</span><b className="mt-1 block truncate font-mono text-[9px] text-[#dce5ec]">{money(account?.freeMargin, currency)}</b></div>
             </div>
           </div>
+
+          {accounts.length > 1 && (
+            <div className="mb-3 overflow-hidden border-y border-white/[0.08] bg-[#080808]">
+              <div className="border-b border-white/[0.06] px-3 py-2">
+                <strong className="block text-[8px] font-black uppercase tracking-[0.09em] text-[#8ea0af]">Switch account</strong>
+                <span className="mt-0.5 block text-[7px] text-[#61768b]">Trading stays locked until the selected account finishes synchronizing.</span>
+              </div>
+              {accountSwitchError && <div className="border-b border-[#54262f] bg-[#1a0d11] px-3 py-2 text-[7px] font-semibold text-[#f08a95]">{accountSwitchError} · Tap the account again to retry.</div>}
+              {accounts.map(item => {
+                const id = String(item.id);
+                const selected = id === String(activeAccountId || '');
+                const itemStatus = String(item.status || 'UNKNOWN').toUpperCase();
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    disabled={accountSwitching && !selected}
+                    onClick={() => onSelectAccount(id)}
+                    className={`flex w-full items-center gap-2.5 border-b border-white/[0.06] px-3 py-2.5 text-left last:border-b-0 disabled:cursor-wait disabled:opacity-45 ${selected ? 'bg-white/[0.04]' : ''}`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <strong className="truncate text-[9px] text-[#e6edf3]">{item.accountCode || 'Trading account'}</strong>
+                        <span className="rounded bg-white/[0.07] px-1.5 py-0.5 text-[6px] font-black uppercase tracking-[0.06em] text-[#9aabb9]">{accountTypeLabel(item)}</span>
+                      </div>
+                      <span className="mt-1 block text-[7px] text-[#61768b]">{money(item.balance, item.currency || 'USD')} · {accountStatusLabel(itemStatus)}</span>
+                    </div>
+                    {selected && (accountSwitching ? <Loader2 size={12} className="animate-spin text-[#53c7ff]"/> : <Check size={12} className="text-[#53c7ff]"/>)}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           <div className="mt-3 overflow-hidden border-y border-white/[0.08] bg-[#080808]">
             <Action icon={Settings} title="Platform settings" subtitle="Terminal preferences and profiles" onClick={onPlatformSettings} />
