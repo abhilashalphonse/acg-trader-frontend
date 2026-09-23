@@ -34,6 +34,7 @@ import PositionsPanel from './PositionsPanel.jsx';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import IndicatorManager from './IndicatorManager.jsx';
 import { calculateAccountRiskSummary } from '../../utils/accountRisk.js';
+import { accountLimitsUnavailableCopy, accountRiskTitle, accountTypeBadge, accountTypeLabel, isMasterAccount } from '../../utils/accountPresentation.js';
 
 const timeframes = [['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], ['1H', '1H'], ['4H', '4H'], ['1D', '1D'], ['1W', '1W']];
 const navItems = [['trade', CandlestickChart, 'Trade'], ['watchlist', Star, 'Watchlist'], ['markets', List, 'Markets'], ['history', History, 'History'], ['more', MoreHorizontal, 'More']];
@@ -547,6 +548,8 @@ export default function DesktopTerminal({
     && (!challengeRisk.riskAvailabilityLive || plannedRisk >= challengeRisk.remainingDaily * 0.75);
   const valuationStatus = String(account?.valuationStatus || 'WAITING').toUpperCase();
   const accountStatus = String(account?.status || 'UNKNOWN').toUpperCase();
+  const masterAccount = isMasterAccount(account);
+  const riskTitle = accountRiskTitle(account);
   const canOpen = exposureAllowed && executableMarket(market) && accountStatus === 'ACTIVE' && account?.tradingEnabled === true && valuationStatus === 'LIVE';
 
   const toggleFullscreen = async () => {
@@ -613,9 +616,9 @@ export default function DesktopTerminal({
           
           <button type="button" onClick={() => searchRef.current?.focus()} className="grid size-8 place-items-center rounded-md text-[#A1AFBC] hover:bg-white/[0.035] hover:text-white" aria-label="Search"><Search size={16}/></button>
           <button type="button" onClick={() => setNotice('Notification delivery is not connected to a backend event inbox yet.')} className="grid size-8 place-items-center rounded-md border border-white/[0.06] bg-black/20 text-[#A1AFBC]" aria-label="Notifications"><Bell size={15}/></button>
-          <button type="button" onClick={() => setNotice(`${account?.accountCode || 'Trading account'} • ${accountStatus} • ${valuationStatus}`)} className="flex h-8 items-center gap-2 rounded-md border border-white/[0.06] bg-black/20 px-2.5 text-left">
+          <button type="button" onClick={() => setNotice(`${account?.accountCode || 'Trading account'} • ${accountTypeLabel(account)} • ${accountStatus} • ${valuationStatus}`)} className="flex h-8 items-center gap-2 rounded-md border border-white/[0.06] bg-black/20 px-2.5 text-left">
             <span className={`size-1.5 rounded-full ${canOpen ? 'bg-[#2fd9a0]' : valuationStatus === 'STALE' ? 'bg-[#e8bd55]' : 'bg-[#343434]'}`}/>
-            <div className="leading-none"><strong className="block text-[9px]">{money(account?.equity, currency)}</strong><span className="mt-1 block text-[8px] text-[#6F8191]">{account?.accountCode || accountStatus}</span></div>
+            <div className="leading-none"><strong className="block text-[9px]">{money(account?.equity, currency)}</strong><span className="mt-1 block text-[8px] text-[#6F8191]">{account?.accountCode || accountStatus} · {accountTypeBadge(account)}</span></div>
           </button>
           <button type="button" onClick={() => setNotice(`Account ${accountStatus.toLowerCase()} • valuation ${valuationStatus.toLowerCase()}`)} className="grid size-8 place-items-center rounded-full border border-white/[0.06] bg-black/20 text-[#A1AFBC]" aria-label="Profile"><UserRound size={15}/></button>
         </div>
@@ -672,31 +675,31 @@ export default function DesktopTerminal({
               </div>
 
               <div className="relative ml-5 hidden lg:block">
-                <button type="button" onClick={() => setRiskPopoverOpen(value => !value)} className={`flex h-8 items-center gap-3 rounded-md border px-2.5 text-[8px] transition ${riskPopoverOpen ? 'border-[#315b72] bg-[#0d1a22]' : 'border-white/[0.06] bg-black/20 hover:bg-white/[0.025]'}`} title="Challenge risk">
+                <button type="button" onClick={() => setRiskPopoverOpen(value => !value)} className={`flex h-8 items-center gap-3 rounded-md border px-2.5 text-[8px] transition ${riskPopoverOpen ? 'border-[#315b72] bg-[#0d1a22]' : 'border-white/[0.06] bg-black/20 hover:bg-white/[0.025]'}`} title={riskTitle}>
                   <ShieldAlert size={12} className={challengeWarning ? 'text-[#FF6F7A]' : 'text-[#59C7FF]'}/>
                   {hasChallengeRules ? (
                     <>
                       <span className="whitespace-nowrap text-[#6F8191]">Daily <b className={challengeWarning ? 'text-[#FF6F7A]' : 'text-[#E6EDF3]'}>{money(challengeRisk.remainingDaily, currency)}</b></span>
                       <span className="hidden whitespace-nowrap text-[#6F8191] xl:inline">Max <b className="text-[#E6EDF3]">{money(challengeRisk.remainingMax, currency)}</b></span>
-                      <span className="hidden whitespace-nowrap text-[#6F8191] 2xl:inline">Target <b className="text-[#42D7A1]">{money(challengeRisk.profit, currency)} / {money(challengeRisk.profitTarget, currency)}</b></span>
+                      {!masterAccount && challengeRisk.profitTarget > 0 && <span className="hidden whitespace-nowrap text-[#6F8191] 2xl:inline">Target <b className="text-[#42D7A1]">{money(challengeRisk.profit, currency)} / {money(challengeRisk.profitTarget, currency)}</b></span>}
                     </>
                   ) : (
-                    <span className="whitespace-nowrap text-[#6F8191]">Challenge <b className="text-[#A1AFBC]">No limits</b></span>
+                    <span className="whitespace-nowrap text-[#6F8191]">{accountTypeBadge(account)} <b className="text-[#A1AFBC]">No limits</b></span>
                   )}
                 </button>
 
                 {riskPopoverOpen && (
                   <div className="absolute left-0 top-10 z-[100] w-[300px] rounded-md border border-white/[0.10] bg-[#0C1013] p-3 shadow-[0_18px_50px_rgba(0,0,0,.60)]">
-                    <div className="flex items-center justify-between"><strong className="text-[10px] text-[#E6EDF3]">Challenge health</strong><span className={`text-[8px] font-bold ${valuationStatus === 'LIVE' ? 'text-[#42D7A1]' : valuationStatus === 'STALE' ? 'text-[#E7BD58]' : 'text-[#A1AFBC]'}`}>{valuationStatus}</span></div>
+                    <div className="flex items-center justify-between"><strong className="text-[10px] text-[#E6EDF3]">{riskTitle}</strong><span className={`text-[8px] font-bold ${valuationStatus === 'LIVE' ? 'text-[#42D7A1]' : valuationStatus === 'STALE' ? 'text-[#E7BD58]' : 'text-[#A1AFBC]'}`}>{valuationStatus}</span></div>
                     {hasChallengeRules ? (
                       <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
                         <div><span className="block text-[8px] uppercase text-[#6F8191]">Daily room</span><b className="mt-0.5 block text-[10px] text-[#E6EDF3]">{money(challengeRisk.remainingDaily, currency)}</b></div>
                         <div><span className="block text-[8px] uppercase text-[#6F8191]">Max room</span><b className="mt-0.5 block text-[10px] text-[#E6EDF3]">{money(challengeRisk.remainingMax, currency)}</b></div>
-                        <div><span className="block text-[8px] uppercase text-[#6F8191]">Profit</span><b className="mt-0.5 block text-[10px] text-[#42D7A1]">{money(challengeRisk.profit, currency)} / {money(challengeRisk.profitTarget, currency)}</b></div>
+                        {!masterAccount && challengeRisk.profitTarget > 0 && <div><span className="block text-[8px] uppercase text-[#6F8191]">Profit</span><b className="mt-0.5 block text-[10px] text-[#42D7A1]">{money(challengeRisk.profit, currency)} / {money(challengeRisk.profitTarget, currency)}</b></div>}
                         <div><span className="block text-[8px] uppercase text-[#6F8191]">After current SL</span><b className={`mt-0.5 block text-[10px] ${challengeWarning ? 'text-[#FF6F7A]' : 'text-[#59C7FF]'}`}>{plannedRisk > 0 ? money(challengeRisk.postTradeDaily, currency) : '—'}</b></div>
                       </div>
                     ) : (
-                      <div className="mt-3 text-[8px] leading-4 text-[#6F8191]">Challenge limits are not configured for this account. Current free margin is <b className="text-[#E6EDF3]">{money(account?.freeMargin, currency)}</b>.</div>
+                      <div className="mt-3 text-[8px] leading-4 text-[#6F8191]">{accountLimitsUnavailableCopy(account)} Current free margin is <b className="text-[#E6EDF3]">{money(account?.freeMargin, currency)}</b>.</div>
                     )}
                   </div>
                 )}
