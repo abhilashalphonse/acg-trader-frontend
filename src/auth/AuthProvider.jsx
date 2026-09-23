@@ -74,6 +74,7 @@ export function AuthProvider({ children }) {
   const [refreshing, setRefreshing] = useState(false);
   const sessionRef = useRef(null);
   const refreshPromiseRef = useRef(null);
+  const refreshRetryRef = useRef(null);
   const retryTimerRef = useRef(null);
   const grantRefreshPromiseRef = useRef(null);
 
@@ -113,7 +114,7 @@ export function AuthProvider({ children }) {
       if (typeof window === 'undefined' || retryTimerRef.current) return;
       retryTimerRef.current = window.setTimeout(() => {
         retryTimerRef.current = null;
-        void refreshSession().catch(() => {});
+        void refreshRetryRef.current?.().catch(() => {});
       }, NETWORK_RETRY_MS);
     };
 
@@ -163,6 +164,10 @@ export function AuthProvider({ children }) {
     refreshPromiseRef.current = task;
     return task;
   }, [commitSession, markReauthRequired]);
+
+  useEffect(() => {
+    refreshRetryRef.current = refreshSession;
+  }, [refreshSession]);
 
   const ensureFreshAccessToken = useCallback(async ({ minValidityMs = 30_000 } = {}) => {
     const inFlight = refreshPromiseRef.current;
