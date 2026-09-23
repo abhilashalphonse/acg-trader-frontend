@@ -670,11 +670,11 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
         onOpenTrades={() => setOverlay('trades')}
         onOpenAccount={() => setOverlay('account')}
       />
-      <div className="flex min-h-0 flex-1 flex-col px-2 pt-[10px]">
-        <div className="min-h-0 flex-1">
+      <div className="acg-mobile-reference-content flex min-h-0 flex-1 flex-col px-2 pt-[10px]">
+        <div className="acg-mobile-reference-chart-wrap min-h-0 flex-1">
           <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} accountCurrency={account.currency} account={account} riskPercent={riskPercent} onCreateRiskOrder={createPlanFromRiskTool} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onClosePosition={closePosition} onSelectInstrument={() => setOverlay('markets')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} compactMobileToolbar fillAvailableHeight />
         </div>
-        <div className="mt-1.5 shrink-0">
+        <div className="acg-mobile-reference-order-wrap mt-1.5 shrink-0">
           <ExecutionPanel
             market={market}
             account={account}
