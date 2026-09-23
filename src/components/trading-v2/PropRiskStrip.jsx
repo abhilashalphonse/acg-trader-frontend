@@ -75,7 +75,7 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
       <div className="flex h-9 items-center gap-3 border-y border-white/[0.06] bg-[#07090B] px-3 text-[8px]">
         <span className="flex items-center gap-1 font-bold text-[#68686E]"><ShieldAlert size={11}/>Daily <b className={riskWarning ? 'text-[#FF6F7A]' : 'text-[#E6EDF3]'}>{money(risk.remainingDaily, currency)}</b></span>
         <span className="text-[#68686E]">Max <b className="text-[#E6EDF3]">{money(risk.remainingMax, currency)}</b></span>
-        <span className="text-[#68686E]">Target <b className="text-[#42D7A1]">{money(risk.profit, currency)} / {money(risk.profitTarget, currency)}</b></span>
+        {!master && risk.profitTarget > 0 && <span className="text-[#68686E]">Target <b className="text-[#42D7A1]">{money(risk.profit, currency)} / {money(risk.profitTarget, currency)}</b></span>}
         {plannedRisk > 0 && <span className={`ml-auto font-bold ${riskWarning ? 'text-[#FF6F7A]' : 'text-[#59C7FF]'}`}>After SL {money(risk.postTradeDaily, currency)}</span>}
       </div>
     );
@@ -90,7 +90,7 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
             <b className={embedded ? 'text-[9px] font-semibold text-[#f1f1f2]' : 'text-[10px] text-[#E6EDF3]'}>{riskTitle}</b>
           </div>
           <p className={`${embedded ? 'mt-0.5 text-[7px]' : 'mt-1 text-[8px]'} text-[#68686E]`}>
-            {risk.riskAvailabilityLive ? 'Current loss room and target progress' : 'Risk availability is paused until account valuation is live'}
+            {risk.riskAvailabilityLive ? (master ? 'Current loss room and account risk' : 'Current loss room and target progress') : 'Risk availability is paused until account valuation is live'}
           </p>
         </div>
         <div className="shrink-0 text-right">
@@ -99,7 +99,7 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
         </div>
       </div>
 
-      <div className={`${embedded ? 'mt-1.5 gap-2' : 'mt-2.5 gap-3'} grid grid-cols-3`}>
+      <div className={`${embedded ? 'mt-1.5 gap-2' : 'mt-2.5 gap-3'} grid ${master || risk.profitTarget <= 0 ? 'grid-cols-2' : 'grid-cols-3'}`}>
         <Meter
           label="Daily loss"
           value={risk.dailyLossUsed}
