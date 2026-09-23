@@ -777,7 +777,7 @@ export default function DrawingLayer({
       </svg>
 
       {showHistoryControls && (
-        <div className="pointer-events-auto absolute bottom-9 left-2 z-20 flex h-8 items-center overflow-hidden rounded-md border border-white/[0.08] bg-[#080808]/94 shadow-xl backdrop-blur-sm">
+        <div className="acg-mobile-history-controls pointer-events-auto absolute bottom-9 left-2 z-20 flex h-8 items-center overflow-hidden rounded-md border border-white/[0.08] bg-[#080808]/94 shadow-xl backdrop-blur-sm">
           <button type="button" disabled={!canUndo} onClick={undo} className="grid size-8 place-items-center text-[#8194a7] hover:bg-white/[0.04] hover:text-white disabled:opacity-25" title="Undo (Ctrl/Cmd+Z)"><RotateCcw size={13}/></button>
           <button type="button" disabled={!canRedo} onClick={redo} className="grid size-8 place-items-center border-l border-white/[0.07] text-[#8194a7] hover:bg-white/[0.04] hover:text-white disabled:opacity-25" title="Redo (Ctrl/Cmd+Shift+Z)"><RotateCw size={13}/></button>
         </div>

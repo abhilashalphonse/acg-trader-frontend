@@ -64,6 +64,10 @@ function volumeForBar(bar) {
   return Number.isFinite(bar?.volume) && bar.volume >= 0 ? bar.volume : null;
 }
 function toSeriesPoint(bar, mode) { return mode === 'line' ? { time: bar.time, value: bar.close } : bar; }
+function displayTimeframeLabel(value) {
+  const map = { M1: '1', M5: '5', M15: '15', M30: '30', H1: '1H', H4: '4H', D1: '1D', W1: '1W' };
+  return map[String(value || '').toUpperCase()] || String(value || '').replace(/^M/i, '');
+}
 function indicatorLabel(indicator) {
   const settings = indicator.settings || {};
   if (indicator.id === 'ema') return `EMA ${settings.period || 20}`;
@@ -90,6 +94,8 @@ export default function TradingChart({
   indicators = [],
   onCoordinateApi = () => {},
   showBidAskLines = false,
+  showMobileQuoteMarkers = false,
+  mobileReference = false,
   showPositionPriceLines = true,
   priceScaleAnchors = [],
   showIndicatorControls = false,
@@ -108,6 +114,7 @@ export default function TradingChart({
   const volumeRef = useRef(null);
   const marketLineRef = useRef(null);
   const askLineRef = useRef(null);
+  const midLineRef = useRef(null);
   const positionLinesRef = useRef([]);
   const scaleAnchorLinesRef = useRef([]);
   const indicatorSeriesRef = useRef([]);
@@ -338,7 +345,7 @@ export default function TradingChart({
     const series = chartMode === 'line' ? chart.addSeries(LineSeries, { color: chartTokens.blue, lineWidth: 2, priceFormat, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: true }) : chart.addSeries(CandlestickSeries, { upColor: chartTokens.buy, downColor: chartTokens.sell, wickUpColor: chartTokens.buyWick, wickDownColor: chartTokens.sellWick, borderVisible: false, priceFormat, priceLineVisible: false, lastValueVisible: false });
     const volume = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: 'volume', lastValueVisible: false, priceLineVisible: false });
     chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.80, bottom: 0 } });
-    seriesRef.current = series; volumeRef.current = volume; marketLineRef.current = null; askLineRef.current = null; positionLinesRef.current = []; scaleAnchorLinesRef.current = []; setError('');
+    seriesRef.current = series; volumeRef.current = volume; marketLineRef.current = null; askLineRef.current = null; midLineRef.current = null; positionLinesRef.current = []; scaleAnchorLinesRef.current = []; setError('');
     const timeScale = chart.timeScale();
     const visibleRangeHandler = () => {
       const range = timeScale.getVisibleLogicalRange();
@@ -497,6 +504,7 @@ export default function TradingChart({
       volumeRef.current = null;
       marketLineRef.current = null;
       askLineRef.current = null;
+      midLineRef.current = null;
       positionLinesRef.current = [];
       scaleAnchorLinesRef.current = [];
       lastBarRef.current = null;
@@ -611,57 +619,96 @@ export default function TradingChart({
   }, [showIndicatorControls]);
   useEffect(() => {
     volumeRef.current?.applyOptions({ visible: showVolume });
-    chartRef.current?.priceScale('right').applyOptions({ scaleMargins: { top: 0.045, bottom: showVolume ? 0.205 : 0.07 } });
-  }, [showVolume, symbol, timeframe, chartMode]);
+    chartRef.current?.priceScale('right').applyOptions({
+      scaleMargins: mobileReference
+        ? { top: 0.085, bottom: showVolume ? 0.16 : 0.09 }
+        : { top: 0.045, bottom: showVolume ? 0.205 : 0.07 },
+    });
+  }, [chartMode, mobileReference, showVolume, symbol, timeframe]);
   useEffect(() => {
     const series = seriesRef.current;
     if (!series) return;
 
     const liveBid = Number(tick?.bid ?? tick?.price ?? bidPrice);
     const liveAsk = Number(tick?.ask ?? askPrice);
+    const mobileQuotes = showMobileQuoteMarkers === true;
+    const labelledQuotes = showBidAskLines || mobileQuotes;
 
     if (Number.isFinite(liveBid)) {
+      const bidColor = mobileQuotes ? '#19c9ad' : showBidAskLines ? '#42a5ff' : chartTokens.livePriceLine;
+      const bidLabelColor = mobileQuotes ? '#0fa68f' : showBidAskLines ? '#42a5ff' : chartTokens.livePriceLabel;
+      const bidLabelText = labelledQuotes ? '#ffffff' : chartTokens.livePriceLabelText;
       if (!marketLineRef.current) {
         marketLineRef.current = series.createPriceLine({
           price: liveBid,
-          color: showBidAskLines ? '#42a5ff' : chartTokens.livePriceLine,
+          color: bidColor,
           lineWidth: 1,
-          lineStyle: showBidAskLines ? LineStyle.Dashed : LineStyle.Dotted,
+          lineStyle: labelledQuotes ? LineStyle.Dashed : LineStyle.Dotted,
           axisLabelVisible: true,
-          axisLabelColor: showBidAskLines ? '#42a5ff' : chartTokens.livePriceLabel,
-          axisLabelTextColor: showBidAskLines ? '#ffffff' : chartTokens.livePriceLabelText,
-          title: showBidAskLines ? 'BID' : '',
+          axisLabelColor: bidLabelColor,
+          axisLabelTextColor: bidLabelText,
+          title: labelledQuotes ? 'BID' : '',
         });
       } else {
         marketLineRef.current.applyOptions({
           price: liveBid,
-          color: showBidAskLines ? '#42a5ff' : chartTokens.livePriceLine,
-          lineStyle: showBidAskLines ? LineStyle.Dashed : LineStyle.Dotted,
-          axisLabelColor: showBidAskLines ? '#42a5ff' : chartTokens.livePriceLabel,
-          axisLabelTextColor: showBidAskLines ? '#ffffff' : chartTokens.livePriceLabelText,
-          title: showBidAskLines ? 'BID' : '',
+          color: bidColor,
+          lineStyle: labelledQuotes ? LineStyle.Dashed : LineStyle.Dotted,
+          axisLabelColor: bidLabelColor,
+          axisLabelTextColor: bidLabelText,
+          title: labelledQuotes ? 'BID' : '',
         });
       }
     }
 
-    if (showBidAskLines && Number.isFinite(liveAsk)) {
+    if (labelledQuotes && Number.isFinite(liveAsk)) {
+      const askColor = '#ff5d70';
       if (!askLineRef.current) {
         askLineRef.current = series.createPriceLine({
           price: liveAsk,
-          color: '#ff6673',
+          color: askColor,
           lineWidth: 1,
           lineStyle: LineStyle.Dashed,
           axisLabelVisible: true,
+          ...(mobileQuotes ? { axisLabelColor: '#d93d52', axisLabelTextColor: '#ffffff' } : {}),
           title: 'ASK',
         });
       } else {
-        askLineRef.current.applyOptions({ price: liveAsk });
+        askLineRef.current.applyOptions({
+          price: liveAsk,
+          color: askColor,
+          ...(mobileQuotes ? { axisLabelColor: '#d93d52', axisLabelTextColor: '#ffffff' } : {}),
+          title: 'ASK',
+        });
       }
     } else if (askLineRef.current) {
       try { series.removePriceLine(askLineRef.current); } catch { /* disposed */ }
       askLineRef.current = null;
     }
-  }, [tick?.bid, tick?.ask, tick?.price, bidPrice, askPrice, showBidAskLines, symbol, timeframe, chartMode]);
+
+    const midpoint = Number.isFinite(liveBid) && Number.isFinite(liveAsk)
+      ? (liveBid + liveAsk) / 2
+      : null;
+    if (mobileQuotes && Number.isFinite(midpoint)) {
+      if (!midLineRef.current) {
+        midLineRef.current = series.createPriceLine({
+          price: midpoint,
+          color: '#448cff',
+          lineWidth: 1,
+          lineStyle: LineStyle.Dotted,
+          axisLabelVisible: true,
+          axisLabelColor: '#2f6fd7',
+          axisLabelTextColor: '#ffffff',
+          title: 'MID',
+        });
+      } else {
+        midLineRef.current.applyOptions({ price: midpoint });
+      }
+    } else if (midLineRef.current) {
+      try { series.removePriceLine(midLineRef.current); } catch { /* disposed */ }
+      midLineRef.current = null;
+    }
+  }, [askPrice, bidPrice, chartMode, showBidAskLines, showMobileQuoteMarkers, symbol, tick?.ask, tick?.bid, tick?.price, timeframe]);
 
   useEffect(() => {
     const series = seriesRef.current;
@@ -778,6 +825,10 @@ export default function TradingChart({
     const numeric = Number(value);
     return `${numeric > 0 ? '+' : ''}${formatter(numeric)}`;
   };
+  const mobileTimeframeLabel = displayTimeframeLabel(timeframe);
+  const mobileQuoteLive = Number.isFinite(Number(tick?.bid ?? bidPrice))
+    && instrument?.sessionOpen !== false
+    && instrument?.isStale !== true;
 
   const overlayIndicators = visibleIndicators.filter(indicator => ['ema', 'sma', 'vwap', 'bollinger', 'volume'].includes(indicator.id));
   const paneIndicators = visibleIndicators.filter(indicator => !['ema', 'sma', 'vwap', 'bollinger', 'volume'].includes(indicator.id));
@@ -792,9 +843,39 @@ export default function TradingChart({
 
   return <div className="relative size-full min-h-0 min-w-0 overflow-hidden bg-black">
     <div ref={hostRef} className="absolute inset-0" />
-    <div className="pointer-events-none absolute left-2.5 top-2.5 z-20 max-w-[72%] px-1 text-[11px] leading-[1.45] text-[#8E99A5] [text-shadow:0_1px_2px_#000,0_0_6px_#000]">
-      <div className="text-[12px] font-semibold tracking-[-0.01em] text-[#F0F3F6]">{symbol} <span className="text-[#7F8A95]">· {timeframe}</span></div>
-      <div className="mt-1 flex flex-wrap gap-x-2 whitespace-nowrap font-medium"><span>O <b className="text-[#aab9c8]">{format(ohlc?.open)}</b></span><span>H <b className="text-[#aab9c8]">{format(ohlc?.high)}</b></span><span>L <b className="text-[#aab9c8]">{format(ohlc?.low)}</b></span><span>C <b className="text-[#aab9c8]">{format(ohlc?.close)}</b></span>{candleChange != null && <span className={`font-semibold ${candleChangeTone}`}>{signed(candleChange, value => value.toFixed(decimals))}{candleChangePercent != null ? ` (${signed(candleChangePercent, value => value.toFixed(2))}%)` : ''}</span>}</div>
+    <div className={mobileReference
+      ? "acg-mobile-chart-info pointer-events-none absolute left-3 top-3 z-20 max-w-[78%] text-[#9ba8b6] [text-shadow:0_1px_2px_#000,0_0_8px_#000]"
+      : "pointer-events-none absolute left-2.5 top-2.5 z-20 max-w-[72%] px-1 text-[11px] leading-[1.45] text-[#8E99A5] [text-shadow:0_1px_2px_#000,0_0_6px_#000]"
+    }>
+      {mobileReference ? (
+        <>
+          <div className="flex items-center gap-1.5 text-[14px] font-extrabold tracking-[-0.015em] text-[#f2f6f9]">
+            <span>{symbol}</span>
+            <span className="text-[#7f8b98]">·</span>
+            <span>{mobileTimeframeLabel}</span>
+            <span className="text-[#7f8b98]">·</span>
+            <span>ACG</span>
+            <span className={`ml-0.5 size-1.5 rounded-full ${mobileQuoteLive ? 'bg-[#24d7b7]' : 'bg-[#697785]'}`} aria-label={mobileQuoteLive ? 'Live quotes' : 'Quotes unavailable'} />
+          </div>
+          <div className="mt-1.5 flex flex-wrap gap-x-2.5 whitespace-nowrap text-[10px] font-semibold text-[#9ba8b6]">
+            <span>O <b className="font-bold text-[#c5ced8]">{format(ohlc?.open)}</b></span>
+            <span>H <b className="font-bold text-[#c5ced8]">{format(ohlc?.high)}</b></span>
+            <span>L <b className="font-bold text-[#c5ced8]">{format(ohlc?.low)}</b></span>
+            <span>C <b className="font-bold text-[#c5ced8]">{format(ohlc?.close)}</b></span>
+          </div>
+          {candleChange != null && (
+            <div className={`mt-1 text-[10px] font-bold ${candleChangeTone}`}>
+              {signed(candleChange, value => value.toFixed(decimals))}
+              {candleChangePercent != null ? ` (${signed(candleChangePercent, value => value.toFixed(2))}%)` : ''}
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="text-[12px] font-semibold tracking-[-0.01em] text-[#F0F3F6]">{symbol} <span className="text-[#7F8A95]">· {timeframe}</span></div>
+          <div className="mt-1 flex flex-wrap gap-x-2 whitespace-nowrap font-medium"><span>O <b className="text-[#aab9c8]">{format(ohlc?.open)}</b></span><span>H <b className="text-[#aab9c8]">{format(ohlc?.high)}</b></span><span>L <b className="text-[#aab9c8]">{format(ohlc?.low)}</b></span><span>C <b className="text-[#aab9c8]">{format(ohlc?.close)}</b></span>{candleChange != null && <span className={`font-semibold ${candleChangeTone}`}>{signed(candleChange, value => value.toFixed(decimals))}{candleChangePercent != null ? ` (${signed(candleChangePercent, value => value.toFixed(2))}%)` : ''}</span>}</div>
+        </>
+      )}
       {overlayIndicators.length > 0 && (
         <div className="mt-1.5 flex flex-wrap gap-x-1.5 gap-y-1 text-[9px] font-medium text-[#7F8A95]">
           {overlayIndicators.map(indicator => (

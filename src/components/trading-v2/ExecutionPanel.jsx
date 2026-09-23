@@ -597,7 +597,7 @@ export default function ExecutionPanel({
         <section className="acg-mobile-reference-execution acg-mobile-execution-surface relative shrink-0 overflow-visible rounded-t-[14px] border border-white/[0.09] bg-[#081019] px-2 pb-2 pt-2">
           {orderPicker}
 
-          <div className="grid h-[39px] grid-cols-[1.65fr_repeat(3,1fr)_38px] gap-1.5">
+          <div className="acg-mobile-order-controls-row grid h-[39px] grid-cols-[1.65fr_repeat(3,1fr)_38px] gap-1.5">
             <button
               type="button"
               onClick={() => setOrderPickerOpen(value => !value)}
@@ -650,7 +650,7 @@ export default function ExecutionPanel({
 
           <div className="my-2 h-px bg-white/[0.08]" aria-hidden="true"/>
 
-          <div className="flex h-[20px] items-center gap-1.5 px-1 text-[10px] font-medium text-[#a9b3c1]">
+          <div className="acg-mobile-sizing-summary flex h-[20px] items-center gap-1.5 px-1 text-[10px] font-medium text-[#a9b3c1]">
             <Info size={13} className="shrink-0 text-[#c3ccd7]" strokeWidth={1.9}/>
             <span className="truncate">
               <b className="font-black text-[#eef2f7]">{formatLots(normalizedLots)} lots</b>
@@ -661,7 +661,7 @@ export default function ExecutionPanel({
             </span>
           </div>
 
-          <div className="mt-1.5 grid h-[64px] grid-cols-[1fr_1.02fr_1fr] gap-2">
+          <div className="acg-mobile-action-row mt-1.5 grid h-[64px] grid-cols-[1fr_1.02fr_1fr] gap-2">
             <button
               type="button"
               disabled={!canSubmitExposure}
