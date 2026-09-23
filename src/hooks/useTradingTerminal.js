@@ -184,6 +184,7 @@ export function useTradingTerminal(markets = []) {
   const [commandState, setCommandState] = useState({ pending: false, uncertain: false, error: null, lastResult: null });
   const [switchContext, setSwitchContext] = useState(null);
   const [switchRequestVersion, setSwitchRequestVersion] = useState(0);
+  const lifecycleRefreshRef = useRef({ accountId: null, attempts: 0 });
   const busyRef = useRef(0);
 
   const grantedAccountIds = useMemo(
@@ -307,6 +308,28 @@ export function useTradingTerminal(markets = []) {
     : accountSwitching && history.accountId === accountId
       ? history.error
       : null;
+  useEffect(() => {
+    if (!accountGrantMissing || !accountId || auth.principal?.authMethod !== 'FEDERATED') {
+      lifecycleRefreshRef.current = { accountId: null, attempts: 0 };
+      return undefined;
+    }
+
+    const previousGrant = grantHistoryRef.current.get(String(accountId));
+    if (!previousGrant?.fundedAccountId) return undefined;
+
+    if (lifecycleRefreshRef.current.accountId !== accountId) {
+      lifecycleRefreshRef.current = { accountId, attempts: 0 };
+    }
+    if (lifecycleRefreshRef.current.attempts >= 5) return undefined;
+
+    const timer = window.setTimeout(() => {
+      lifecycleRefreshRef.current.attempts += 1;
+      void auth.refreshAccountGrants?.().catch(() => {});
+    }, 2500);
+
+    return () => window.clearTimeout(timer);
+  }, [accountGrantMissing, accountId, auth.principal?.authMethod, auth.principal?.grantsRefreshedAt, auth.refreshAccountGrants]);
+
   const rawPositions = useMemo(() => Object.values(trading.positionsById).filter(item => (!accountId || String(item.accountId) === String(accountId)) && item.status !== 'CLOSED').sort((a, b) => new Date(b.openedAt || 0) - new Date(a.openedAt || 0)), [accountId, trading.positionsById]);
   const positions = useMemo(() => rawPositions.map(position => normalizePosition(position, positionValuations[position.id], markets.find(item => item.symbol === position.symbol), account.currency)), [account.currency, markets, positionValuations, rawPositions]);
   const pendingOrders = useMemo(() => Object.values(trading.ordersById).filter(order => (!accountId || String(order.accountId) === String(accountId)) && ACTIVE_ORDER_STATUSES.has(String(order.status || '').toUpperCase()) && String(order.type || '').toUpperCase() !== 'MARKET').sort((a, b) => new Date(b.createdAt || b.receivedAt || 0) - new Date(a.createdAt || a.receivedAt || 0)).map(normalizePendingOrder), [accountId, trading.ordersById]);
