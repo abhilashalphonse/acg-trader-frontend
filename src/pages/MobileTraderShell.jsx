@@ -95,6 +95,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const shellRef = useRef(null);
   const noticeTimerRef = useRef(null);
   const executionDismissRef = useRef(null);
+  const nativeFullscreenRef = useRef(false);
   const prefsRef = useRef(loadTerminalPrefs());
   const trading = useTradingTerminal(markets);
   const { account, positions, pendingOrders, positionHistory } = trading;
@@ -125,6 +126,28 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
     });
   }, [activeSymbol, chartFocus]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined' || typeof window === 'undefined') return undefined;
+
+    const syncFullscreenState = () => {
+      const shellIsNativeFullscreen = document.fullscreenElement === shellRef.current;
+      if (shellIsNativeFullscreen) {
+        nativeFullscreenRef.current = true;
+      } else if (nativeFullscreenRef.current) {
+        nativeFullscreenRef.current = false;
+        setChartFocus(false);
+      }
+
+      window.requestAnimationFrame(() => {
+        window.dispatchEvent(new Event('resize'));
+        window.requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+      });
+    };
+
+    document.addEventListener('fullscreenchange', syncFullscreenState);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
+  }, []);
 
   useEffect(() => {
     if (typeof document === 'undefined' || chartFocus) return undefined;
@@ -616,11 +639,35 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
   const enterChartFocus = async () => {
     setChartFocus(true);
-    try { if (!document.fullscreenElement && shellRef.current?.requestFullscreen) await shellRef.current.requestFullscreen(); } catch { /* in-app focus remains */ }
+    try {
+      if (!document.fullscreenElement && shellRef.current?.requestFullscreen) {
+        await shellRef.current.requestFullscreen();
+        nativeFullscreenRef.current = document.fullscreenElement === shellRef.current;
+      }
+    } catch {
+      nativeFullscreenRef.current = false;
+      // Native fullscreen is optional; keep the in-app focus layout available.
+    }
+
+    window.requestAnimationFrame(() => {
+      window.dispatchEvent(new Event('resize'));
+      window.requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+    });
   };
+
   const exitChartFocus = async () => {
-    setChartFocus(false);
-    try { if (document.fullscreenElement) await document.exitFullscreen?.(); } catch { /* ignore */ }
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen?.();
+    } catch {
+      // The in-app focus state still needs to close even if the browser rejects exitFullscreen.
+    } finally {
+      nativeFullscreenRef.current = false;
+      setChartFocus(false);
+      window.requestAnimationFrame(() => {
+        window.dispatchEvent(new Event('resize'));
+        window.requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+      });
+    }
   };
 
   const plannedRiskInstrument = markets.find(item => String(item?.symbol || '').toUpperCase() === String(tradePlan?.symbol || '').toUpperCase()) || market;
