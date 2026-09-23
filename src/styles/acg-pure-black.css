@@ -1833,3 +1833,26 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
     background:#195be1!important;
   }
 }
+
+
+/* Final selected-tab treatment: blue underline for timeframe and active instrument. */
+@media (max-width:430px){
+  .acg-mobile-instrument-selector::after{
+    content:""!important;
+    position:absolute!important;
+    left:8px!important;
+    bottom:0!important;
+    width:50px!important;
+    height:2px!important;
+    border-radius:999px!important;
+    background:#195be1!important;
+    box-shadow:none!important;
+    pointer-events:none!important;
+  }
+
+  .acg-mobile-timeframes button > span,
+  .acg-mobile-chart-tools button > span{
+    background:#195be1!important;
+    box-shadow:none!important;
+  }
+}
