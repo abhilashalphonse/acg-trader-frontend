@@ -10,6 +10,7 @@ import {
   pendingPriceDirection,
 } from '../utils/tradingCommandNormalization.js';
 import { executeWithOrderReconciliation } from '../utils/executionReconciliation.js';
+import { resolveCommandAccountId, resolveLifecycleReplacement } from '../utils/accountLifecycleRouting.js';
 import {
   calculateLocalPositionValuation,
   canUseLocalPositionValuation,
@@ -252,17 +253,11 @@ export function useTradingTerminal(markets = []) {
 
     const previousGrant = grantHistoryRef.current.get(String(activeAccountId)) || null;
     const lifecycleId = String(previousGrant?.fundedAccountId || '').trim();
-    const replacements = lifecycleId
-      ? accountGrants
-          .filter(item => String(item?.fundedAccountId || '').trim() === lifecycleId && String(item?.id || '') !== String(activeAccountId))
-          .sort((a, b) => {
-            const aMaster = String(a?.accountType || '').toUpperCase() === 'FUNDED' ? 1 : 0;
-            const bMaster = String(b?.accountType || '').toUpperCase() === 'FUNDED' ? 1 : 0;
-            if (aMaster !== bMaster) return bMaster - aMaster;
-            return Number(b?.phase || 0) - Number(a?.phase || 0);
-          })
-      : [];
-    const replacement = replacements[0] || null;
+    const replacement = resolveLifecycleReplacement({
+      accountGrants,
+      activeAccountId,
+      lifecycleId,
+    });
 
     if (replacement?.id) {
       const target = String(replacement.id);
@@ -399,20 +394,12 @@ export function useTradingTerminal(markets = []) {
       if (busyRef.current === 0) setCommandState(current => ({ ...current, pending: false }));
     }
   }, []);
-  const requireAccount = useCallback(() => {
-    if (!accountId) throw new Error('No trading account is available for this session');
-    if (accountGrantMissing) {
-      const error = new Error('This account is no longer granted to the current trading session');
-      error.code = 'ACCOUNT_ACCESS_REVOKED';
-      throw error;
-    }
-    if (accountSwitching) {
-      const error = new Error(accountSwitchError || 'Trading account is still synchronizing');
-      error.code = 'ACCOUNT_SWITCH_IN_PROGRESS';
-      throw error;
-    }
-    return accountId;
-  }, [accountGrantMissing, accountId, accountSwitchError, accountSwitching]);
+  const requireAccount = useCallback(() => resolveCommandAccountId({
+    activeAccountId: accountId,
+    grantedAccountIds,
+    accountSwitching,
+    accountSwitchError,
+  }), [accountId, accountSwitchError, accountSwitching, grantedAccountIds]);
 
   const executeExposureCommand = useCallback(({ accountId: targetAccountId, clientOrderId, submit }) => executeWithOrderReconciliation({
     submit,
