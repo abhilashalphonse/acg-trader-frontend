@@ -146,7 +146,33 @@ export function useTradingTerminal(markets = []) {
   const [commandState, setCommandState] = useState({ pending: false, uncertain: false, error: null, lastResult: null });
   const busyRef = useRef(0);
 
-  const accountId = useMemo(() => { const granted = auth.principal?.accountIds?.map(String) || []; const loaded = Object.keys(trading.accountsById); return granted.find(id => loaded.includes(id)) || granted[0] || loaded[0] || null; }, [auth.principal?.accountIds, trading.accountsById]);
+  const grantedAccountIds = useMemo(
+    () => [...new Set((auth.principal?.accountIds || []).map(String).filter(Boolean))],
+    [auth.principal?.accountIds],
+  );
+  const preferredAccountId = auth.principal?.selectedAccountId ? String(auth.principal.selectedAccountId) : null;
+  const [activeAccountId, setActiveAccountId] = useState(null);
+
+  useEffect(() => {
+    setActiveAccountId(current => {
+      if (current && grantedAccountIds.includes(current)) return current;
+      if (preferredAccountId && grantedAccountIds.includes(preferredAccountId)) return preferredAccountId;
+      return grantedAccountIds[0] || null;
+    });
+  }, [grantedAccountIds, preferredAccountId]);
+
+  const selectAccount = useCallback(nextAccountId => {
+    const target = String(nextAccountId || '').trim();
+    if (!target || !grantedAccountIds.includes(target)) {
+      const error = new Error('Trading session does not grant access to this account');
+      error.code = 'ACCOUNT_ACCESS_FORBIDDEN';
+      throw error;
+    }
+    setActiveAccountId(target);
+    return target;
+  }, [grantedAccountIds]);
+
+  const accountId = activeAccountId;
   const rawAccount = accountId ? trading.accountsById[accountId] || null : null;
   const valuation = accountId ? trading.valuationsByAccountId[accountId] || null : null;
   const account = useMemo(() => normalizeAccount(rawAccount, valuation), [rawAccount, valuation]);
@@ -182,6 +208,7 @@ export function useTradingTerminal(markets = []) {
 
   useEffect(() => { if (!accountId || connection.status !== 'ready') return; requestSnapshot([accountId]); }, [accountId, connection.status, requestSnapshot]);
   useEffect(() => {
+    setHistory({ orders: [], deals: [], positions: [], loaded: false });
     if (!accountId || connection.status !== 'ready') return undefined;
     const controller = new AbortController();
     Promise.all([commands.historyOrders(accountId, { limit: 200 }, controller.signal), commands.historyDeals(accountId, { limit: 200 }, controller.signal), commands.historyPositions(accountId, { limit: 200 }, controller.signal)])
@@ -385,5 +412,5 @@ export function useTradingTerminal(markets = []) {
     }));
   }, [commands, instrumentForSymbol, pendingOrders, requireAccount, run]);
 
-  return { accountId, account, rawAccount, valuation, positions, pendingOrders, positionHistory, historyOrders: history.orders, historyDeals: history.deals, historyPositions: history.positions, historyLoaded: history.loaded, fills: trading.fills, orders: Object.values(trading.ordersById), connection, commandState, tradingReady: Boolean(accountId && rawAccount && account.tradingEnabled && connection.status === 'ready' && !commandState.uncertain), refreshState, openMarketOrder, placePendingOrder, replacePendingOrder, cancelPendingOrder, closePosition, closeAllPositions, updatePosition, movePositionToBreakEven, setPositionTrailing, duplicatePosition, reversePosition, errorMessage };
+  return { accountId, activeAccountId, grantedAccountIds, selectAccount, account, rawAccount, valuation, positions, pendingOrders, positionHistory, historyOrders: history.orders, historyDeals: history.deals, historyPositions: history.positions, historyLoaded: history.loaded, fills: trading.fills, orders: Object.values(trading.ordersById), connection, commandState, tradingReady: Boolean(accountId && rawAccount && account.tradingEnabled && connection.status === 'ready' && !commandState.uncertain), refreshState, openMarketOrder, placePendingOrder, replacePendingOrder, cancelPendingOrder, closePosition, closeAllPositions, updatePosition, movePositionToBreakEven, setPositionTrailing, duplicatePosition, reversePosition, errorMessage };
 }
