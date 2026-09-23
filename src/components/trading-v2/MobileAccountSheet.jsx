@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronRight, CircleHelp, Settings, X } from 'lucide-react';
+import { accountTypeLabel } from '../../utils/accountPresentation.js';
 
 function money(value, currency = 'USD') {
   const numeric = Number(value);
@@ -14,13 +15,6 @@ function money(value, currency = 'USD') {
   } catch {
     return `${numeric.toFixed(2)} ${currency || ''}`.trim();
   }
-}
-
-function accountLabel(account) {
-  const type = String(account?.accountType || account?.mode || '').toUpperCase();
-  if (type === 'DEMO') return 'Trial account';
-  if (type === 'FUNDED') return 'Master account';
-  return 'Evaluation account';
 }
 
 function Action({ icon: Icon, title, subtitle, onClick }) {
@@ -62,7 +56,7 @@ export default function MobileAccountSheet({
           <div className="border-b border-white/[0.08] pb-3">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <span className="text-[7px] font-bold uppercase tracking-[0.1em] text-[#60758a]">{accountLabel(account)}</span>
+                <span className="text-[7px] font-bold uppercase tracking-[0.1em] text-[#60758a]">{accountTypeLabel(account)}</span>
                 <strong className="mt-1.5 block text-[17px] font-black tracking-[-0.03em] text-[#eef4f8]">{account?.accountCode || 'Trading account'}</strong>
                 <p className="mt-1 text-[8px] text-[#667b8e]">{currency}{account?.leverage ? ` · 1:${account.leverage}` : ''}</p>
               </div>
