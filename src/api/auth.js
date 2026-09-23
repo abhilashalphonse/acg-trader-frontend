@@ -32,6 +32,10 @@ export const authApi = Object.freeze({
     return apiRequest('/v1/auth/me', { token, signal });
   },
 
+  accounts(token, signal) {
+    return apiRequest('/v1/auth/accounts', { token, signal });
+  },
+
   logout(token = null, signal) {
     return apiRequest('/v1/auth/logout', {
       method: 'POST',
