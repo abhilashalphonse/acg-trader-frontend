@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronRight, CircleHelp, Gauge, ShieldCheck } from 'lucide-react';
 import { calculateAccountRiskSummary } from '../../utils/accountRisk.js';
+import { accountLimitsUnavailableCopy, accountRiskDescription, accountRiskTitle, accountTypeLabel, isMasterAccount } from '../../utils/accountPresentation.js';
 
 function money(value, currency = 'USD') {
   if (value === null || value === undefined || value === '') return '—';
@@ -39,27 +40,29 @@ export default function AccountSection({ account = {}, onOpenSheet = () => {} })
   const maxLoss = risk.maxLossUsed;
   const status = String(account.status || 'UNKNOWN').toUpperCase();
   const valuation = String(account.valuationStatus || 'WAITING').toUpperCase();
+  const master = isMasterAccount(account);
+  const typeLabel = accountTypeLabel(account);
 
   return (
     <section className="acg-mobile-terminal-page min-h-[calc(100dvh-92px)] px-2 pb-4 pt-2">
-      <header className="pb-4"><p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#5f7488]">ACG Trader</p><h1 className="mt-1 text-[26px] font-black tracking-[-0.045em] text-[#f5f8fb]">Account</h1><p className="mt-1 text-[10px] text-[#718397]">Balance, equity, margin and challenge risk.</p></header>
+      <header className="pb-4"><p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#5f7488]">ACG Trader</p><h1 className="mt-1 text-[26px] font-black tracking-[-0.045em] text-[#f5f8fb]">Account</h1><p className="mt-1 text-[10px] text-[#718397]">{`Balance, equity, margin and ${accountRiskTitle(account).toLowerCase()}.`}</p></header>
 
       <div className="border-y border-white/[0.08] bg-black py-3">
-        <div className="flex items-start justify-between gap-3"><div><span className="text-[8px] font-bold uppercase tracking-[0.12em] text-[#60768a]">Trading account</span><strong className="mt-1.5 block text-[20px] font-black tracking-[-0.04em] text-[#f0f5f8]">{account.accountCode || '—'}</strong><p className="mt-1 text-[9px] text-[#71869a]">{currency}{account.leverage ? ` • 1:${account.leverage}` : ''}</p></div><span className={`rounded-full border px-2.5 py-1.5 text-[8px] font-black ${statusClass(status)}`}>{status}</span></div>
+        <div className="flex items-start justify-between gap-3"><div><span className="text-[8px] font-bold uppercase tracking-[0.12em] text-[#60768a]">{typeLabel}</span><strong className="mt-1.5 block text-[20px] font-black tracking-[-0.04em] text-[#f0f5f8]">{account.accountCode || '—'}</strong><p className="mt-1 text-[9px] text-[#71869a]">{currency}{account.leverage ? ` • 1:${account.leverage}` : ''}</p></div><span className={`rounded-full border px-2.5 py-1.5 text-[8px] font-black ${statusClass(status)}`}>{status}</span></div>
         <div className="mt-4 grid grid-cols-2 gap-2"><Stat label="Balance" value={money(balance, currency)}/><Stat label="Equity" value={money(equity, currency)}/><Stat label="Free margin" value={money(account.freeMargin, currency)}/><Stat label="Used margin" value={money(account.usedMargin, currency)}/></div>
         <div className="mt-2 flex items-center justify-between rounded-md border border-white/[0.08] bg-[#101010] px-3 py-2.5"><span className="text-[8px] font-bold uppercase tracking-[0.09em] text-[#5d7287]">Valuation</span><span className={`text-[9px] font-black ${valuation === 'LIVE' ? 'text-[#45dda9]' : valuation === 'STALE' ? 'text-[#e8c35f]' : 'text-[#90a2b4]'}`}>{valuation}</span></div>
       </div>
 
-      <div className="mt-5 px-1"><h2 className="text-[11px] font-black text-[#e9f0f5]">Risk state</h2><p className="mt-1 text-[8px] text-[#60758a]">Current challenge limits and trading risk.</p></div>
+      <div className="mt-5 px-1"><h2 className="text-[11px] font-black text-[#e9f0f5]">{accountRiskTitle(account)}</h2><p className="mt-1 text-[8px] text-[#60758a]">{accountRiskDescription(account)}</p></div>
       <div className="mt-2 space-y-2">
         {hasChallengeRules ? (
           <>
-            {target > 0 && <ProgressCard icon={Gauge} label="Profit target" value={targetProfit} total={target} valueLabel={`${money(targetProfit, currency)} / ${money(target, currency)}`} tone="blue" />}
+            {!master && target > 0 && <ProgressCard icon={Gauge} label="Profit target" value={targetProfit} total={target} valueLabel={`${money(targetProfit, currency)} / ${money(target, currency)}`} tone="blue" />}
             {dailyLossLimit > 0 && <ProgressCard icon={ShieldCheck} label="Daily loss" value={dailyLoss} total={dailyLossLimit} valueLabel={`${money(dailyLoss, currency)} / ${money(dailyLossLimit, currency)}`} tone="green" invert />}
             {maxLossLimit > 0 && <ProgressCard icon={ShieldCheck} label="Maximum loss" value={maxLoss} total={maxLossLimit} valueLabel={`${money(maxLoss, currency)} / ${money(maxLossLimit, currency)}`} tone="green" invert />}
           </>
         ) : (
-          <div className="rounded-[17px] border border-white/[0.08] bg-[#080808] p-3"><div className="flex items-center gap-2"><div className="grid size-8 place-items-center rounded-md border border-white/[0.08] bg-[#101010] text-[#69cfff]"><Gauge size={14}/></div><div><b className="block text-[10px] text-[#dbe4eb]">Challenge rules</b><span className="mt-0.5 block text-[8px] leading-relaxed text-[#60758a]">Challenge limits are not available for this account.</span></div></div></div>
+          <div className="rounded-[17px] border border-white/[0.08] bg-[#080808] p-3"><div className="flex items-center gap-2"><div className="grid size-8 place-items-center rounded-md border border-white/[0.08] bg-[#101010] text-[#69cfff]"><Gauge size={14}/></div><div><b className="block text-[10px] text-[#dbe4eb]">{accountRiskTitle(account)}</b><span className="mt-0.5 block text-[8px] leading-relaxed text-[#60758a]">{accountLimitsUnavailableCopy(account)}</span></div></div></div>
         )}
         <div className="grid grid-cols-2 gap-2"><Stat label="Floating P&L" value={money(account.floatingPnl, currency)}/><Stat label="Realized today" value={money(account.realizedPnlToday, currency)}/></div>
       </div>
