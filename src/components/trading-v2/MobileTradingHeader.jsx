@@ -77,8 +77,10 @@ export default function MobileTradingHeader({
         className="flex min-w-0 items-center gap-2.5 px-3 text-left active:opacity-80"
         aria-label="Open markets and watchlist"
       >
-        <InstrumentAvatar instrument={market} size={34}/>
-        <div className="min-w-0">
+        <span className="acg-mobile-instrument-icon-shell grid shrink-0 place-items-center">
+          <InstrumentAvatar instrument={market} size={30}/>
+        </span>
+        <div className="acg-mobile-instrument-meta min-w-0">
           <div className="flex min-w-0 items-center gap-1.5">
             <strong className="truncate text-[17px] font-black leading-none tracking-[-0.035em] text-[#f7f9fb]">{symbol || '—'}</strong>
             <ChevronDown size={16} className="shrink-0 text-[#c4ccd5]" strokeWidth={2.2}/>
@@ -95,7 +97,7 @@ export default function MobileTradingHeader({
         type="button"
         onClick={onFavorite}
         aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
-        className={`acg-mobile-header-divider grid place-items-center active:scale-95 ${favorite ? 'text-[#f5c85b]' : 'text-[#eef2f7]'}`}
+        className={`acg-mobile-header-star acg-mobile-header-divider grid place-items-center active:scale-95 ${favorite ? 'text-[#f5c85b]' : 'text-[#eef2f7]'}`}
       >
         <Star size={21} fill={favorite ? 'currentColor' : 'none'} strokeWidth={1.9}/>
       </button>
@@ -113,7 +115,7 @@ export default function MobileTradingHeader({
       <button
         type="button"
         onClick={onOpenAccount}
-        className="acg-mobile-header-divider flex flex-col items-center justify-center px-1 text-[#f5f7fa] active:bg-white/[0.035]"
+        className="acg-mobile-account-selector acg-mobile-header-divider flex flex-col items-center justify-center px-1 text-[#f5f7fa] active:bg-white/[0.035]"
         aria-label="Open ACG account"
       >
         <span className="flex items-center gap-1 text-[14px] font-black tracking-[-0.04em]">
