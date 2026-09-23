@@ -174,7 +174,7 @@ export function AuthProvider({ children }) {
 
     const renewed = await refreshSession();
     return renewed?.accessToken || sessionRef.current?.accessToken || null;
-  }, [refreshAccountGrants, refreshSession]);
+  }, [refreshSession]);
 
   const refreshAccountGrants = useCallback(async () => {
     if (grantRefreshPromiseRef.current) return grantRefreshPromiseRef.current;
@@ -392,7 +392,7 @@ export function AuthProvider({ children }) {
       window.removeEventListener('focus', refreshAfterWake);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [refreshSession]);
+  }, [refreshAccountGrants, refreshSession]);
 
   useEffect(() => {
     if (status !== 'authenticated' || session?.principal?.authMethod !== 'FEDERATED') return undefined;
