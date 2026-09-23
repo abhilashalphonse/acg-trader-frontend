@@ -143,7 +143,7 @@ export default function TradingTerminalV2({
   const { account, positions, pendingOrders, positionHistory } = trading;
   const executionCommandState = {
     ...trading.commandState,
-    accountSwitching: trading.accountSwitching,
+    accountSwitching: trading.accountSwitching || trading.accountGrantMissing,
     accountSwitchError: trading.accountSwitchError,
   };
 
@@ -219,6 +219,12 @@ export default function TradingTerminalV2({
     if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
     noticeTimerRef.current = window.setTimeout(() => setNotice(''), 2600);
   };
+
+  useEffect(() => {
+    if (!trading.lifecycleEvent?.id) return;
+    showNotice(trading.lifecycleEvent.message);
+    trading.clearLifecycleEvent?.();
+  }, [trading.lifecycleEvent?.id]);
 
   const selectTradingAccount = nextAccountId => {
     const target = String(nextAccountId || '').trim();
