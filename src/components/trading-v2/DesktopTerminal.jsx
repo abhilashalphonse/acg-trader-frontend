@@ -655,7 +655,7 @@ export default function DesktopTerminal({
               aria-label="Switch trading account"
               aria-expanded={accountMenuOpen}
             >
-              {accountSwitching ? <Loader2 size={11} className="shrink-0 animate-spin text-[#59C7FF]"/> : <span className={`size-1.5 shrink-0 rounded-full ${canOpen ? 'bg-[#2fd9a0]' : valuationStatus === 'STALE' ? 'bg-[#e8bd55]' : 'bg-[#343434]'}`}/>}
+              {accountSwitching ? <Loader2 size={11} className="shrink-0 animate-spin text-[#195be1]"/> : <span className={`size-1.5 shrink-0 rounded-full ${canOpen ? 'bg-[#2fd9a0]' : valuationStatus === 'STALE' ? 'bg-[#e8bd55]' : 'bg-[#343434]'}`}/>}
               <div className="min-w-0 flex-1 leading-none">
                 <strong className="block truncate text-[9px]">{account?.accountCode || accountStatus}</strong>
                 <span className="mt-1 block truncate text-[8px] text-[#6F8191]">{accountTypeBadge(account)} · {accountSwitching ? 'SWITCHING' : money(account?.equity, currency)}</span>
@@ -707,7 +707,7 @@ export default function DesktopTerminal({
                               </div>
                               <span className="mt-0.5 block text-[7px] text-[#556572]">Equity {money(item.equity, item.currency || 'USD')}</span>
                             </div>
-                            {selected && (accountSwitching ? <Loader2 size={13} className="shrink-0 animate-spin text-[#59C7FF]"/> : <Check size={13} className="shrink-0 text-[#59C7FF]"/>)}
+                            {selected && (accountSwitching ? <Loader2 size={13} className="shrink-0 animate-spin text-[#195be1]"/> : <Check size={13} className="shrink-0 text-[#195be1]"/>)}
                           </button>
                         );
                       })}
@@ -727,7 +727,7 @@ export default function DesktopTerminal({
           {navItems.map(([id, Icon, label]) => {
             const active = activeNav === id;
             return (
-              <button key={id} type="button" title={label} onClick={() => handleNav(id)} className={`mb-0.5 flex h-11 w-10 flex-col items-center justify-center gap-0.5 rounded text-[8px] font-semibold transition ${active ? 'border-l-2 border-[#53c7ff] bg-white/[0.02] text-[#59C7FF]' : 'text-[#6F8191] hover:bg-white/[0.03] hover:text-[#E6EDF3]'}`}>
+              <button key={id} type="button" title={label} onClick={() => handleNav(id)} className={`mb-0.5 flex h-11 w-10 flex-col items-center justify-center gap-0.5 rounded text-[8px] font-semibold transition ${active ? 'border-l-2 border-[#195be1] bg-white/[0.02] text-[#195be1]' : 'text-[#6F8191] hover:bg-white/[0.03] hover:text-[#E6EDF3]'}`}>
                 <Icon size={16} strokeWidth={1.8}/><span>{label}</span>
               </button>
             );
@@ -773,8 +773,8 @@ export default function DesktopTerminal({
               </div>
 
               <div className="relative ml-5 hidden lg:block">
-                <button type="button" onClick={() => setRiskPopoverOpen(value => !value)} className={`flex h-8 items-center gap-3 rounded-md border px-2.5 text-[8px] transition ${riskPopoverOpen ? 'border-[#315b72] bg-[#0d1a22]' : 'border-white/[0.06] bg-black/20 hover:bg-white/[0.025]'}`} title={riskTitle}>
-                  <ShieldAlert size={12} className={challengeWarning ? 'text-[#FF6F7A]' : 'text-[#59C7FF]'}/>
+                <button type="button" onClick={() => setRiskPopoverOpen(value => !value)} className={`flex h-8 items-center gap-3 rounded-md border px-2.5 text-[8px] transition ${riskPopoverOpen ? 'border-[#195be1] bg-[#0d1a22]' : 'border-white/[0.06] bg-black/20 hover:bg-white/[0.025]'}`} title={riskTitle}>
+                  <ShieldAlert size={12} className={challengeWarning ? 'text-[#FF6F7A]' : 'text-[#195be1]'}/>
                   {hasChallengeRules ? (
                     <>
                       <span className="whitespace-nowrap text-[#6F8191]">Daily <b className={challengeWarning ? 'text-[#FF6F7A]' : 'text-[#E6EDF3]'}>{money(challengeRisk.remainingDaily, currency)}</b></span>
@@ -794,7 +794,7 @@ export default function DesktopTerminal({
                         <div><span className="block text-[8px] uppercase text-[#6F8191]">Daily room</span><b className="mt-0.5 block text-[10px] text-[#E6EDF3]">{money(challengeRisk.remainingDaily, currency)}</b></div>
                         <div><span className="block text-[8px] uppercase text-[#6F8191]">Max room</span><b className="mt-0.5 block text-[10px] text-[#E6EDF3]">{money(challengeRisk.remainingMax, currency)}</b></div>
                         {!masterAccount && challengeRisk.profitTarget > 0 && <div><span className="block text-[8px] uppercase text-[#6F8191]">Profit</span><b className="mt-0.5 block text-[10px] text-[#42D7A1]">{money(challengeRisk.profit, currency)} / {money(challengeRisk.profitTarget, currency)}</b></div>}
-                        <div><span className="block text-[8px] uppercase text-[#6F8191]">After current SL</span><b className={`mt-0.5 block text-[10px] ${challengeWarning ? 'text-[#FF6F7A]' : 'text-[#59C7FF]'}`}>{plannedRisk > 0 ? money(challengeRisk.postTradeDaily, currency) : '—'}</b></div>
+                        <div><span className="block text-[8px] uppercase text-[#6F8191]">After current SL</span><b className={`mt-0.5 block text-[10px] ${challengeWarning ? 'text-[#FF6F7A]' : 'text-[#195be1]'}`}>{plannedRisk > 0 ? money(challengeRisk.postTradeDaily, currency) : '—'}</b></div>
                       </div>
                     ) : (
                       <div className="mt-3 text-[8px] leading-4 text-[#6F8191]">{accountLimitsUnavailableCopy(account)} Current free margin is <b className="text-[#E6EDF3]">{money(account?.freeMargin, currency)}</b>.</div>
@@ -816,10 +816,10 @@ export default function DesktopTerminal({
                 ))}
               </div>
               <div className="terminal-toolbar-group flex items-center gap-0.5">
-                <button type="button" onClick={() => onChartModeChange('candles')} disabled={Boolean(tradePlan && !tradePlan.open)} className={`grid size-6 place-items-center rounded ${chartMode === 'candles' ? 'bg-white/[0.05] text-[#59C7FF]' : 'text-[#6F8191]'} disabled:opacity-30`} title="Candlesticks"><CandlestickChart size={13}/></button>
-                <button type="button" onClick={() => onChartModeChange('line')} disabled={Boolean(tradePlan && !tradePlan.open)} className={`grid size-6 place-items-center rounded ${chartMode === 'line' ? 'bg-white/[0.05] text-[#59C7FF]' : 'text-[#6F8191]'} disabled:opacity-30`} title="Line chart"><ChartNoAxesCombined size={13}/></button>
+                <button type="button" onClick={() => onChartModeChange('candles')} disabled={Boolean(tradePlan && !tradePlan.open)} className={`grid size-6 place-items-center rounded ${chartMode === 'candles' ? 'bg-white/[0.05] text-[#195be1]' : 'text-[#6F8191]'} disabled:opacity-30`} title="Candlesticks"><CandlestickChart size={13}/></button>
+                <button type="button" onClick={() => onChartModeChange('line')} disabled={Boolean(tradePlan && !tradePlan.open)} className={`grid size-6 place-items-center rounded ${chartMode === 'line' ? 'bg-white/[0.05] text-[#195be1]' : 'text-[#6F8191]'} disabled:opacity-30`} title="Line chart"><ChartNoAxesCombined size={13}/></button>
                 <div className="relative">
-                  <button type="button" onClick={() => { setIndicatorFocusId(null); setObjectManagerOpen(false); setIndicatorPanelOpen(value => !value); }} className={`relative grid size-6 place-items-center rounded text-[9px] font-black hover:text-white ${indicatorPanelOpen || indicators.length ? 'bg-white/[0.05] text-[#59C7FF]' : 'text-[#6F8191]'}`} title="Indicators">ƒx{indicators.length > 0 && <span className="absolute -right-1 -top-1 grid size-3 place-items-center rounded-full bg-[#151515] text-[5px] text-white">{indicators.length}</span>}</button>
+                  <button type="button" onClick={() => { setIndicatorFocusId(null); setObjectManagerOpen(false); setIndicatorPanelOpen(value => !value); }} className={`relative grid size-6 place-items-center rounded text-[9px] font-black hover:text-white ${indicatorPanelOpen || indicators.length ? 'bg-white/[0.05] text-[#195be1]' : 'text-[#6F8191]'}`} title="Indicators">ƒx{indicators.length > 0 && <span className="absolute -right-1 -top-1 grid size-3 place-items-center rounded-full bg-[#151515] text-[5px] text-white">{indicators.length}</span>}</button>
                   {indicatorPanelOpen && (
                     <div className="absolute left-0 top-8 z-[110] w-[390px] max-h-[min(680px,calc(100dvh-150px))] overflow-y-auto rounded-lg border border-white/[0.10] bg-[#0B0D0F]/98 p-3 shadow-[0_24px_70px_rgba(0,0,0,.68)] backdrop-blur-xl [scrollbar-width:thin]">
                       <div className="mb-3 flex items-center justify-between border-b border-white/[0.07] pb-2.5">
@@ -844,7 +844,7 @@ export default function DesktopTerminal({
                   <button
                     type="button"
                     onClick={() => { setIndicatorPanelOpen(false); setObjectManagerOpen(value => !value); }}
-                    className={`relative grid size-6 place-items-center rounded hover:text-white ${objectManagerOpen ? 'bg-white/[0.06] text-[#59C7FF]' : 'text-[#6F8191]'}`}
+                    className={`relative grid size-6 place-items-center rounded hover:text-white ${objectManagerOpen ? 'bg-white/[0.06] text-[#195be1]' : 'text-[#6F8191]'}`}
                     title="Chart manager"
                     aria-label="Chart manager"
                   >
@@ -872,7 +872,7 @@ export default function DesktopTerminal({
               </div>
               <div className="terminal-toolbar-group ml-auto flex items-center gap-1">
                 <div className="relative">
-                  <button type="button" onClick={() => setChartMenuOpen(value => !value)} className={`flex h-7 items-center gap-1.5 rounded-md border px-2 text-[8px] font-semibold ${chartMenuOpen || chartLayout > 1 ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] bg-black/20 text-[#6F8191] hover:text-white'}`} title="Chart layout">
+                  <button type="button" onClick={() => setChartMenuOpen(value => !value)} className={`flex h-7 items-center gap-1.5 rounded-md border px-2 text-[8px] font-semibold ${chartMenuOpen || chartLayout > 1 ? 'border-[#195be1] bg-[#0d1a22] text-[#195be1]' : 'border-white/[0.06] bg-black/20 text-[#6F8191] hover:text-white'}`} title="Chart layout">
                     {chartLayout === 1 ? <Square size={12}/> : chartLayout === 2 ? <Columns2 size={12}/> : <Grid2X2 size={12}/>}
                     <span className="hidden xl:inline">Charts</span>
                     <ChevronDown size={10}/>
@@ -884,12 +884,12 @@ export default function DesktopTerminal({
                         [2, Columns2, 'Two charts'],
                         [4, Grid2X2, 'Four charts'],
                       ].map(([value, Icon, label]) => (
-                        <button key={value} type="button" onClick={() => setChartLayout(value)} className={`flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold ${chartLayout === value ? 'bg-[#0d1a22] text-[#59C7FF]' : 'text-[#A1AFBC] hover:bg-white/[0.03]'}`}><Icon size={12}/>{label}</button>
+                        <button key={value} type="button" onClick={() => setChartLayout(value)} className={`flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold ${chartLayout === value ? 'bg-[#0d1a22] text-[#195be1]' : 'text-[#A1AFBC] hover:bg-white/[0.03]'}`}><Icon size={12}/>{label}</button>
                       ))}
                       {chartLayout > 1 && (
                         <>
                           <div className="my-1 border-t border-white/[0.06]"/>
-                          <button type="button" onClick={toggleChartLink} className={`flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold ${chartLinked ? 'text-[#59C7FF]' : 'text-[#A1AFBC]'} hover:bg-white/[0.03]`}><span className="flex items-center gap-2">{chartLinked ? <Link2 size={12}/> : <Link2Off size={12}/>}Link symbols</span><span className="text-[#6F8191]">{chartLinked ? 'On' : 'Off'}</span></button>
+                          <button type="button" onClick={toggleChartLink} className={`flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold ${chartLinked ? 'text-[#195be1]' : 'text-[#A1AFBC]'} hover:bg-white/[0.03]`}><span className="flex items-center gap-2">{chartLinked ? <Link2 size={12}/> : <Link2Off size={12}/>}Link symbols</span><span className="text-[#6F8191]">{chartLinked ? 'On' : 'Off'}</span></button>
                           <button type="button" onClick={applyActiveIndicatorsToAllCharts} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Copy indicators to all</span><span className="text-[#6F8191]">ƒx {indicators.length}</span></button>
                         </>
                       )}
@@ -900,7 +900,7 @@ export default function DesktopTerminal({
                 <span className="mx-0.5 h-4 w-px bg-white/[0.07]" aria-hidden="true"/>
                 <button type="button" onClick={() => setReviewOpen(true)} className="flex h-7 items-center gap-1 rounded-md border border-white/[0.06] bg-black/20 px-2 text-[9px] font-semibold text-[#6F8191] hover:text-white" title="Trade review"><BookOpen size={12}/>Review</button>
                 <div className="relative">
-                  <button type="button" onClick={() => setLayoutMenuOpen(value => !value)} className={`flex h-7 items-center gap-1 rounded-md border px-2 text-[8px] font-semibold ${layoutMenuOpen ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] bg-black/20 text-[#6F8191] hover:text-white'}`} title="Layout options"><MoreHorizontal size={12}/>Layout</button>
+                  <button type="button" onClick={() => setLayoutMenuOpen(value => !value)} className={`flex h-7 items-center gap-1 rounded-md border px-2 text-[8px] font-semibold ${layoutMenuOpen ? 'border-[#195be1] bg-[#0d1a22] text-[#195be1]' : 'border-white/[0.06] bg-black/20 text-[#6F8191] hover:text-white'}`} title="Layout options"><MoreHorizontal size={12}/>Layout</button>
                   {layoutMenuOpen && (
                     <div className="absolute right-0 top-8 z-[95] w-[190px] rounded-md border border-white/[0.10] bg-[#0C1013] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
                       <button type="button" onClick={() => { toggleSidebar(); setLayoutMenuOpen(false); }} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Right trading panel</span><span className="text-[#6F8191]">{desktopLayout.sidebarCollapsed ? 'Hidden' : 'Shown'}</span></button>

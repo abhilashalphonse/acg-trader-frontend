@@ -9,14 +9,14 @@
   .mobile-chart-screen,.mobile-data-screen{background:#0c1218!important;color:#e9eef5!important}
   .mobile-bottom-nav{background:#111923!important;border-top:1px solid #263544!important;box-shadow:0 -8px 24px rgba(0,0,0,.18)!important}
   .mobile-bottom-nav button{background:transparent!important;color:#8d99a9!important}
-  .mobile-bottom-nav button.active,.mobile-bottom-nav button.active svg{color:#4c91ff!important}
+  .mobile-bottom-nav button.active,.mobile-bottom-nav button.active svg{color:#195be1!important}
   .mobile-chart-toolbar{background:#111923!important;border-bottom:1px solid #263544!important;color:#8d99a9!important}
   .mobile-chart-toolbar>button{background:#111923!important;color:#8d99a9!important;border-right-color:#1b2632!important}
-  .mobile-chart-toolbar .mobile-toolbar-active{color:#4c91ff!important}
+  .mobile-chart-toolbar .mobile-toolbar-active{color:#195be1!important}
   .mobile-timeframe{color:#e9eef5!important;background:transparent!important}
   .mobile-timeframe-menu{background:#151f2b!important;border:1px solid #263544!important;box-shadow:0 12px 35px rgba(0,0,0,.45)!important}
   .mobile-timeframe-menu button{background:#151f2b!important;color:#8d99a9!important}
-  .mobile-timeframe-menu button.active{background:rgba(76,145,255,.12)!important;color:#4c91ff!important}
+  .mobile-timeframe-menu button.active{background:rgba(25,91,225,.12)!important;color:#195be1!important}
   .mobile-quote-strip{background:#111923!important;border-bottom-color:#263544!important}
   .mobile-lot{background:#111923!important;color:#e9eef5!important;border-color:#263544!important}
   .mobile-lot button{background:#111923!important;color:#8d99a9!important}
@@ -35,18 +35,18 @@
   .mobile-search input{background:transparent!important;color:#e9eef5!important}
   .mobile-group-tabs{background:#111923!important;border-bottom-color:#263544!important}
   .mobile-group-tabs button{background:transparent!important;color:#8d99a9!important}
-  .mobile-group-tabs button.active{color:#4c91ff!important;border-bottom-color:#4c91ff!important}
+  .mobile-group-tabs button.active{color:#195be1!important;border-bottom-color:#195be1!important}
   .mobile-quote-head{background:#151f2b!important;border-bottom-color:#263544!important;color:#8d99a9!important}
   .mobile-market-row{background:#111923!important;border-bottom-color:#263544!important;color:#aeb9c7!important}
-  .mobile-market-row.selected{background:rgba(76,145,255,.12)!important}
+  .mobile-market-row.selected{background:rgba(25,91,225,.12)!important}
   .mobile-symbol-cell strong{color:#e9eef5!important}.mobile-symbol-cell small{color:#687789!important}
   .fav-star{color:#566475!important}.fav-star.active{color:#e5a900!important}
   .trade-screen{background:#0c1218!important}
   .mobile-metrics{background:#0c1218!important}.metric-card,.mobile-panel{background:#111923!important;border-color:#263544!important}
   .metric-card span,.mobile-panel-kicker,.risk-row,.safe-text{color:#8d99a9!important}.metric-card strong,.risk-row strong{color:#e9eef5!important}
-  .mobile-tabs,.mobile-tabs button{background:#111923!important;border-color:#263544!important;color:#8d99a9!important}.mobile-tabs button.active{color:#4c91ff!important}
+  .mobile-tabs,.mobile-tabs button{background:#111923!important;border-color:#263544!important;color:#8d99a9!important}.mobile-tabs button.active{color:#195be1!important}
   .mobile-history-row{background:#111923!important;border-bottom-color:#263544!important;color:#e9eef5!important}
   .empty-list,.empty-state span{color:#8d99a9!important}.empty-state strong{color:#e9eef5!important}
-  .mobile-primary{background:#4c91ff!important;color:#fff!important}
+  .mobile-primary{background:#195be1!important;color:#fff!important}
   .settings-screen,.settings-card{background:#0c1218!important;color:#e9eef5!important}
 }

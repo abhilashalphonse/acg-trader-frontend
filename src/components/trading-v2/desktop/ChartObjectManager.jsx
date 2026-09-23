@@ -99,7 +99,7 @@ export default function ChartObjectManager({
     <div className="w-[330px] overflow-hidden rounded-lg border border-white/[0.10] bg-[#0B0D0F]/98 shadow-[0_24px_70px_rgba(0,0,0,.68)] backdrop-blur-xl">
       <header className="flex h-11 items-center justify-between border-b border-white/[0.07] px-3">
         <div className="flex min-w-0 items-center gap-2">
-          <Layers3 size={14} className="shrink-0 text-[#59C7FF]"/>
+          <Layers3 size={14} className="shrink-0 text-[#195be1]"/>
           <div className="min-w-0">
             <strong className="block truncate text-[10px] text-[#EDF3F7]">Chart manager</strong>
             <span className="block truncate text-[8px] text-[#64798D]">{symbol || '—'} · {timeframe || '—'} · {counts.indicators + counts.drawings} objects</span>
@@ -128,7 +128,7 @@ export default function ChartObjectManager({
                       <span className="mt-0.5 block truncate text-[8px] text-[#5F7488]">{visibleHere ? 'Visible on this timeframe' : globallyVisible ? 'Hidden by timeframe rule' : 'Hidden'}</span>
                     </button>
                     <button type="button" onClick={() => onToggleIndicator(indicator.instanceId)} className={`grid size-7 place-items-center rounded ${visibleHere ? 'text-[#8298AA]' : 'text-[#4F6273]'} hover:bg-white/[0.04] hover:text-white`} title={globallyVisible ? 'Hide indicator' : 'Show indicator'}>{globallyVisible ? <Eye size={12}/> : <EyeOff size={12}/>}</button>
-                    <button type="button" onClick={() => onOpenIndicatorSettings(indicator.instanceId)} className="grid size-7 place-items-center rounded text-[#71869A] hover:bg-white/[0.04] hover:text-[#59C7FF]" title="Indicator settings"><Settings2 size={12}/></button>
+                    <button type="button" onClick={() => onOpenIndicatorSettings(indicator.instanceId)} className="grid size-7 place-items-center rounded text-[#71869A] hover:bg-white/[0.04] hover:text-[#195be1]" title="Indicator settings"><Settings2 size={12}/></button>
                     <button type="button" onClick={() => onRemoveIndicator(indicator.instanceId)} className="grid size-7 place-items-center rounded text-[#805F68] opacity-0 transition group-hover:opacity-100 hover:bg-[#35151d] hover:text-[#FF7380]" title="Remove indicator"><Trash2 size={12}/></button>
                   </div>
                 );
@@ -152,7 +152,7 @@ export default function ChartObjectManager({
               {drawings.map(drawing => {
                 const selected = drawing.id === selectedDrawingId;
                 return (
-                  <div key={drawing.id} className={`group flex min-h-10 items-center gap-1 rounded-md border px-1.5 ${selected ? 'border-[#315B72] bg-[#0D1A22]' : 'border-transparent hover:border-white/[0.06] hover:bg-white/[0.025]'}`}>
+                  <div key={drawing.id} className={`group flex min-h-10 items-center gap-1 rounded-md border px-1.5 ${selected ? 'border-[#195be1] bg-[#0D1A22]' : 'border-transparent hover:border-white/[0.06] hover:bg-white/[0.025]'}`}>
                     <button type="button" onClick={() => { setSelectedDrawingId(drawing.id); drawingUiCommand(symbol, chartInstanceId, drawing.id, 'select'); }} className="min-w-0 flex-1 px-1 text-left">
                       <span className="block truncate text-[9px] font-semibold text-[#DDE7EE]">{drawingLabel(drawing)}</span>
                       <span className="mt-0.5 flex items-center gap-1.5 text-[8px] text-[#5F7488]">
@@ -161,10 +161,10 @@ export default function ChartObjectManager({
                         {drawing.locked && <span>· locked</span>}
                       </span>
                     </button>
-                    <button type="button" onClick={() => { setSelectedDrawingId(drawing.id); drawingUiCommand(symbol, chartInstanceId, drawing.id, 'focus'); }} className="grid size-7 place-items-center rounded text-[#71869A] hover:bg-white/[0.04] hover:text-[#59C7FF]" title="Locate drawing on chart"><LocateFixed size={12}/></button>
+                    <button type="button" onClick={() => { setSelectedDrawingId(drawing.id); drawingUiCommand(symbol, chartInstanceId, drawing.id, 'focus'); }} className="grid size-7 place-items-center rounded text-[#71869A] hover:bg-white/[0.04] hover:text-[#195be1]" title="Locate drawing on chart"><LocateFixed size={12}/></button>
                     <button type="button" onClick={() => patchDrawing(symbol, drawing.id, { hidden: !drawing.hidden })} className={`grid size-7 place-items-center rounded ${drawing.hidden ? 'text-[#4F6273]' : 'text-[#8298AA]'} hover:bg-white/[0.04] hover:text-white`} title={drawing.hidden ? 'Show drawing' : 'Hide drawing'}>{drawing.hidden ? <EyeOff size={12}/> : <Eye size={12}/>}</button>
-                    <button type="button" onClick={() => patchDrawing(symbol, drawing.id, { locked: !drawing.locked })} className={`grid size-7 place-items-center rounded ${drawing.locked ? 'text-[#59C7FF]' : 'text-[#71869A]'} hover:bg-white/[0.04] hover:text-white`} title={drawing.locked ? 'Unlock drawing' : 'Lock drawing'}>{drawing.locked ? <Lock size={12}/> : <LockOpen size={12}/>}</button>
-                    <button type="button" onClick={() => { setSelectedDrawingId(drawing.id); drawingUiCommand(symbol, chartInstanceId, drawing.id, 'settings'); }} className="grid size-7 place-items-center rounded text-[#71869A] opacity-0 transition group-hover:opacity-100 hover:bg-white/[0.04] hover:text-[#59C7FF]" title="Drawing settings"><Settings2 size={12}/></button>
+                    <button type="button" onClick={() => patchDrawing(symbol, drawing.id, { locked: !drawing.locked })} className={`grid size-7 place-items-center rounded ${drawing.locked ? 'text-[#195be1]' : 'text-[#71869A]'} hover:bg-white/[0.04] hover:text-white`} title={drawing.locked ? 'Unlock drawing' : 'Lock drawing'}>{drawing.locked ? <Lock size={12}/> : <LockOpen size={12}/>}</button>
+                    <button type="button" onClick={() => { setSelectedDrawingId(drawing.id); drawingUiCommand(symbol, chartInstanceId, drawing.id, 'settings'); }} className="grid size-7 place-items-center rounded text-[#71869A] opacity-0 transition group-hover:opacity-100 hover:bg-white/[0.04] hover:text-[#195be1]" title="Drawing settings"><Settings2 size={12}/></button>
                     <button type="button" onClick={() => { removeDrawing(symbol, drawing.id); if (selectedDrawingId === drawing.id) setSelectedDrawingId(null); }} className="grid size-7 place-items-center rounded text-[#805F68] opacity-0 transition group-hover:opacity-100 hover:bg-[#35151d] hover:text-[#FF7380]" title="Delete drawing"><Trash2 size={12}/></button>
                   </div>
                 );

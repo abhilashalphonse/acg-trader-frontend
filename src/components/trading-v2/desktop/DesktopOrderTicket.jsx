@@ -65,7 +65,7 @@ function FieldMetric({ label, value, tone = 'default' }) {
     : tone === 'success'
       ? 'text-[#42D7A1]'
       : tone === 'accent'
-        ? 'text-[#59C7FF]'
+        ? 'text-[#195be1]'
         : 'text-[#E6EDF3]';
   return (
     <div className="min-w-0">
@@ -825,7 +825,7 @@ export default function DesktopOrderTicket({
                     }
                   }}
                   inputMode="decimal"
-                  className="h-9 w-full rounded-md border border-white/[0.07] bg-black px-2.5 text-right font-mono text-[11px] font-bold text-[#E6EDF3] outline-none focus:border-[#315b72]"
+                  className="h-9 w-full rounded-md border border-white/[0.07] bg-black px-2.5 text-right font-mono text-[11px] font-bold text-[#E6EDF3] outline-none focus:border-[#195be1]"
                   aria-label="Pending entry price"
                 />
               </label>
@@ -851,7 +851,7 @@ export default function DesktopOrderTicket({
                       }
                     }}
                     inputMode="decimal"
-                    className="h-9 w-full rounded-md border border-white/[0.07] bg-black px-2.5 text-right font-mono text-[11px] font-bold text-[#E6EDF3] outline-none focus:border-[#315b72]"
+                    className="h-9 w-full rounded-md border border-white/[0.07] bg-black px-2.5 text-right font-mono text-[11px] font-bold text-[#E6EDF3] outline-none focus:border-[#195be1]"
                     aria-label="Stop limit price"
                   />
                 </label>
@@ -870,7 +870,7 @@ export default function DesktopOrderTicket({
                       ...(value === 'SPECIFIED' ? {} : { expirationAt: null }),
                       stage: 'ready',
                     })}
-                    className={`h-7 rounded border text-[8px] font-bold ${String(tradePlan?.expiration || 'GTC').toUpperCase() === value ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] bg-black text-[#718497] hover:text-white'}`}
+                    className={`h-7 rounded border text-[8px] font-bold ${String(tradePlan?.expiration || 'GTC').toUpperCase() === value ? 'border-[#195be1] bg-[#0d1a22] text-[#195be1]' : 'border-white/[0.06] bg-black text-[#718497] hover:text-white'}`}
                   >
                     {value === 'SPECIFIED' ? 'Specified' : value === 'TODAY' ? 'Today' : 'GTC'}
                   </button>
@@ -881,7 +881,7 @@ export default function DesktopOrderTicket({
                   type="datetime-local"
                   value={tradePlan?.expirationAt || ''}
                   onChange={event => onTradePlanChange({ expirationAt: event.target.value, stage: 'ready' })}
-                  className="mt-1.5 h-8 w-full rounded-md border border-white/[0.07] bg-black px-2 font-mono text-[9px] text-[#DDE6ED] outline-none focus:border-[#315b72]"
+                  className="mt-1.5 h-8 w-full rounded-md border border-white/[0.07] bg-black px-2 font-mono text-[9px] text-[#DDE6ED] outline-none focus:border-[#195be1]"
                   aria-label="Pending order expiry"
                 />
               )}
@@ -919,16 +919,16 @@ export default function DesktopOrderTicket({
             <button type="button" onClick={() => nudgeLots(1)} className="grid h-10 place-items-center text-[#6F8191] hover:bg-white/[0.025] hover:text-white" aria-label="Increase lot size"><Plus size={12}/></button>
           </div>
           {appliedRiskSizing && Math.abs(Number(appliedRiskSizing.lots) - Number(normalizedLots)) < volumeStep / 2 && (
-            <div className="mt-1.5 flex items-center justify-between rounded border border-[#315b72]/60 bg-[#0d1a22]/55 px-2 py-1">
-              <span className="text-[8px] font-semibold text-[#59C7FF]">Risk-based size applied</span>
+            <div className="mt-1.5 flex items-center justify-between rounded border border-[#195be1]/60 bg-[#0d1a22]/55 px-2 py-1">
+              <span className="text-[8px] font-semibold text-[#195be1]">Risk-based size applied</span>
               <strong className="font-mono text-[8px] text-[#9bdcff]">{Number(appliedRiskSizing.percent).toFixed(2)}%</strong>
             </div>
           )}
           <div className="mt-1.5 grid grid-cols-5 gap-1">
             {LOT_PRESETS.filter(value => value >= minVolume && value <= maxVolume).map(value => (
-              <button key={value} type="button" onClick={() => setLots(value)} className={`h-7 rounded border font-mono text-[8px] font-bold ${Math.abs(normalizedLots-value)<volumeStep/2 ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#687c90] hover:text-white'}`}>{value.toFixed(Math.max(2,lotDecimals))}</button>
+              <button key={value} type="button" onClick={() => setLots(value)} className={`h-7 rounded border font-mono text-[8px] font-bold ${Math.abs(normalizedLots-value)<volumeStep/2 ? 'border-[#195be1] bg-[#0d1a22] text-[#195be1]' : 'border-white/[0.06] text-[#687c90] hover:text-white'}`}>{value.toFixed(Math.max(2,lotDecimals))}</button>
             ))}
-            <button type="button" onClick={openRiskSizing} className={`h-7 rounded border text-[8px] font-black ${activeTool === 'risk' ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#8da0b2] hover:text-white'}`}>Risk</button>
+            <button type="button" onClick={openRiskSizing} className={`h-7 rounded border text-[8px] font-black ${activeTool === 'risk' ? 'border-[#195be1] bg-[#0d1a22] text-[#195be1]' : 'border-white/[0.06] text-[#8da0b2] hover:text-white'}`}>Risk</button>
           </div>
 
           {activeTool === 'risk' && (
@@ -944,7 +944,7 @@ export default function DesktopOrderTicket({
               ) : (
                 <>
                   <div className="grid grid-cols-4 gap-1">
-                    {RISK_PRESETS.map(value => <button key={value} type="button" onClick={() => setRisk(value)} className={`h-7 rounded border text-[8px] font-bold ${Math.abs(riskPercent-value)<0.001 ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#7d90a2]'}`}>{value.toFixed(2)}%</button>)}
+                    {RISK_PRESETS.map(value => <button key={value} type="button" onClick={() => setRisk(value)} className={`h-7 rounded border text-[8px] font-bold ${Math.abs(riskPercent-value)<0.001 ? 'border-[#195be1] bg-[#0d1a22] text-[#195be1]' : 'border-white/[0.06] text-[#7d90a2]'}`}>{value.toFixed(2)}%</button>)}
                     <label className="flex h-7 items-center rounded border border-white/[0.06] bg-black px-1"><input type="text" inputMode="decimal" value={riskInput} onFocus={event => { skipRiskCommitRef.current = false; setRiskInputFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }} onChange={event => setRiskInput(sanitizeProtectionInput(event.target.value))} onBlur={commitRiskInput} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); } else if (event.key === 'Escape') { event.preventDefault(); skipRiskCommitRef.current = true; setRiskInput(String(riskPercent)); event.currentTarget.blur(); } }} className="w-full bg-transparent text-center font-mono text-[8px] font-bold text-[#E6EDF3] outline-none"/><span className="text-[6px] text-[#6F8191]">%</span></label>
                   </div>
                   <div className="mt-1.5 grid grid-cols-2 gap-1">
@@ -952,9 +952,9 @@ export default function DesktopOrderTicket({
                       <span className="block text-[8px] text-[#6F8191]">Manual size</span>
                       <strong className="mt-0.5 block font-mono text-[10px] text-[#E6EDF3]">{Number(normalizedLots).toFixed(Math.max(2,lotDecimals))} lots</strong>
                     </div>
-                    <div className="rounded border border-[#315b72]/50 bg-[#0d1a22]/35 px-2 py-1.5">
+                    <div className="rounded border border-[#195be1]/50 bg-[#0d1a22]/35 px-2 py-1.5">
                       <span className="block text-[8px] text-[#6F8191]">{riskNeedsCap ? 'Requested size' : 'Execution size'}</span>
-                      <strong className="mt-0.5 block font-mono text-[10px] text-[#59C7FF]">{Number.isFinite(riskRequestedRaw) ? riskRequestedRaw.toFixed(Math.max(2,lotDecimals)) : Number.isFinite(riskCalculatedLots) ? riskCalculatedLots.toFixed(Math.max(2,lotDecimals)) : '—'} lots</strong>
+                      <strong className="mt-0.5 block font-mono text-[10px] text-[#195be1]">{Number.isFinite(riskRequestedRaw) ? riskRequestedRaw.toFixed(Math.max(2,lotDecimals)) : Number.isFinite(riskCalculatedLots) ? riskCalculatedLots.toFixed(Math.max(2,lotDecimals)) : '—'} lots</strong>
                     </div>
                   </div>
 
@@ -983,7 +983,7 @@ export default function DesktopOrderTicket({
                     type="button"
                     onClick={applyCalculatedRiskLots}
                     disabled={!Number.isFinite(riskExecutableLots)}
-                    className="mt-1.5 h-8 w-full rounded border border-[#315b72] bg-[#0d1a22] text-[8px] font-black text-[#59C7FF] disabled:opacity-30"
+                    className="mt-1.5 h-8 w-full rounded border border-[#195be1] bg-[#0d1a22] text-[8px] font-black text-[#195be1] disabled:opacity-30"
                   >
                     {Number.isFinite(riskExecutableLots) ? `USE ${riskExecutableLots.toFixed(Math.max(2,lotDecimals))} LOTS MANUALLY` : 'SIZE UNAVAILABLE'}
                   </button>
@@ -1043,7 +1043,7 @@ export default function DesktopOrderTicket({
           {hasStopLoss && (
             <div className="mt-1.5 flex items-center gap-1">
               <span className="mr-1 text-[8px] font-semibold text-[#6F8191]">R:R</span>
-              {[1,1.5,2,3].map(value => <button key={value} type="button" onClick={() => applyRewardRatio(value)} className={`h-6 flex-1 rounded border text-[8px] font-bold ${Number.isFinite(planMetrics?.rr) && Math.abs(planMetrics.rr-value)<0.03 ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#718497] hover:text-white'}`}>1:{value}</button>)}
+              {[1,1.5,2,3].map(value => <button key={value} type="button" onClick={() => applyRewardRatio(value)} className={`h-6 flex-1 rounded border text-[8px] font-bold ${Number.isFinite(planMetrics?.rr) && Math.abs(planMetrics.rr-value)<0.03 ? 'border-[#195be1] bg-[#0d1a22] text-[#195be1]' : 'border-white/[0.06] text-[#718497] hover:text-white'}`}>1:{value}</button>)}
             </div>
           )}
         </div>
@@ -1058,11 +1058,11 @@ export default function DesktopOrderTicket({
         <div className={`rounded-md border ${riskGuard.blocks.length ? 'border-[#5e2932]' : 'border-white/[0.06]'} bg-black/35`}>
           <div className="flex h-8 items-center gap-2 px-2">
             <button type="button" onClick={() => setRiskGuardOpen(value => !value)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
-              <ShieldCheck size={11} className={riskGuard.blocks.length ? 'text-[#FF6F7A]' : riskGuard.enabled ? 'text-[#59C7FF]' : 'text-[#6F8191]'}/>
+              <ShieldCheck size={11} className={riskGuard.blocks.length ? 'text-[#FF6F7A]' : riskGuard.enabled ? 'text-[#195be1]' : 'text-[#6F8191]'}/>
               <strong className="text-[8px] font-black uppercase tracking-[0.06em] text-[#A1AFBC]">Risk Guard</strong>
               <span className="truncate text-[8px] text-[#6F8191]">{riskGuard.enabled ? (riskGuard.blocks[0]?.message || riskGuard.warnings[0]?.message || `${Number(riskGuardSettings?.maxRiskPerTrade || 1).toFixed(2)}% max trade`) : 'Off'}</span>
             </button>
-            <button type="button" onClick={() => onRiskGuardSettingsChange({ ...riskGuardSettings, enabled: !riskGuardSettings?.enabled })} className={`relative h-4 w-7 rounded-full border transition ${riskGuard.enabled ? 'border-[#2a6682] bg-[#0b2938]' : 'border-white/[0.06] bg-[#111]'}`} aria-label="Toggle Risk Guard">
+            <button type="button" onClick={() => onRiskGuardSettingsChange({ ...riskGuardSettings, enabled: !riskGuardSettings?.enabled })} className={`relative h-4 w-7 rounded-full border transition ${riskGuard.enabled ? 'border-[#195be1] bg-[#0b2938]' : 'border-white/[0.06] bg-[#111]'}`} aria-label="Toggle Risk Guard">
               <span className={`absolute top-[1px] size-3 rounded-full bg-white transition ${riskGuard.enabled ? 'left-[13px]' : 'left-[1px]'}`} />
             </button>
           </div>

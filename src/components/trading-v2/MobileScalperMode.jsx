@@ -69,7 +69,7 @@ export default function MobileScalperMode({
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <strong className="truncate text-[15px] font-black tracking-[-0.025em] text-[#f5f8fb]">{market?.displaySymbol || displaySymbol(market?.symbol)}</strong>
-                <span className="rounded-md border border-white/[0.08] bg-[#101010] px-1.5 py-0.5 text-[9px] font-extrabold text-[#59c8ff]">{timeframe}</span>
+                <span className="rounded-md border border-white/[0.08] bg-[#101010] px-1.5 py-0.5 text-[9px] font-extrabold text-[#195be1]">{timeframe}</span>
                 {tradePlan && <span className={`rounded-md border px-1.5 py-0.5 text-[9px] font-extrabold ${tradePlan.side === 'buy' ? 'border-[#176347] bg-[#0d2f25] text-[#44dda9]' : 'border-[#6d2934] bg-[#31151d] text-[#ff6975]'}`}>{tradePlan.pending ? String(tradePlan.orderType).toUpperCase() : tradePlan.open ? (tradePlan.stage === 'modifying' ? 'MODIFYING' : 'OPEN') : 'PLANNING'} {tradePlan.side?.toUpperCase()}</span>}
               </div>
               <div className="mt-1 flex items-center gap-2.5 text-[9px] font-semibold text-[#74879c]"><span>Bid <b className="text-[#44dda9]">{market?.bid || '—'}</b></span><span>Ask <b className="text-[#ff6975]">{market?.ask || '—'}</b></span><span>Spread <b className="text-[#aebdcb]">{spread}</b></span></div>

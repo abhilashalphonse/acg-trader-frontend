@@ -85,7 +85,7 @@ export default function DesktopMultiChart({
           return (
             <section
               key={index}
-              className={`relative grid h-full min-h-0 min-w-0 overflow-hidden ${singleChart ? 'grid-rows-[minmax(0,1fr)]' : 'grid-rows-[34px_minmax(0,1fr)]'} bg-black ${isActive && !singleChart ? 'ring-1 ring-inset ring-[#315b72]' : ''}`}
+              className={`relative grid h-full min-h-0 min-w-0 overflow-hidden ${singleChart ? 'grid-rows-[minmax(0,1fr)]' : 'grid-rows-[34px_minmax(0,1fr)]'} bg-black ${isActive && !singleChart ? 'ring-1 ring-inset ring-[#195be1]' : ''}`}
               onMouseDown={() => activateCell(index, timeframe, symbol, cellIndicators)}
             >
               {!singleChart && (

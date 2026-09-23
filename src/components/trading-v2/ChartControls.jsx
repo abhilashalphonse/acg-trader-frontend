@@ -78,7 +78,7 @@ export default function ChartControls({
             disabled={disabled}
             onClick={onIndicators}
             aria-label="Indicators"
-            className="grid h-full w-[34px] place-items-center text-[22px] font-light italic leading-none text-[#e1e6ed] active:text-[#32d9ed]"
+            className="grid h-full w-[34px] place-items-center text-[22px] font-light italic leading-none text-[#e1e6ed] active:text-[#195be1]"
           >
             ƒ
           </button>
@@ -99,7 +99,7 @@ export default function ChartControls({
             disabled={disabled}
             onClick={onFullscreen}
             aria-label={fullscreen ? 'Exit chart focus' : 'Open chart focus'}
-            className="grid h-full w-[31px] place-items-center text-[#d6dce5] active:text-[#32d9ed]"
+            className="grid h-full w-[31px] place-items-center text-[#d6dce5] active:text-[#195be1]"
           >
             <MoreVertical size={20} strokeWidth={2.1}/>
           </button>
@@ -150,7 +150,7 @@ export default function ChartControls({
         <button type="button" disabled={disabled} aria-label="Line chart" onClick={() => onChartMode('line')} className={`relative grid h-full ${focusMode ? 'w-8' : 'w-9'} place-items-center ${focusMode ? '' : 'border-r border-white/[0.08]'} ${chartMode === 'line' ? 'bg-[#101010] text-[#f2f2f2]' : 'text-[#75879b]'}`}>
           <ChartNoAxesCombined size={focusMode ? 16 : 18} />{focusMode && chartMode === 'line' && <span className="absolute bottom-0 left-[18%] right-[18%] h-[2px] rounded-full bg-[#195be1]" aria-hidden="true"/>}
         </button>
-        <button type="button" disabled={disabled} onClick={onIndicators} aria-label="Indicators" className={`grid h-full ${focusMode ? 'w-8 text-[15px]' : 'w-9 text-[17px]'} place-items-center font-medium italic text-[#8799ad] active:bg-[#101010] active:text-[#5bc8ff]`}>
+        <button type="button" disabled={disabled} onClick={onIndicators} aria-label="Indicators" className={`grid h-full ${focusMode ? 'w-8 text-[15px]' : 'w-9 text-[17px]'} place-items-center font-medium italic text-[#8799ad] active:bg-[#101010] active:text-[#195be1]`}>
           ƒx
         </button>
         {focusMode && (

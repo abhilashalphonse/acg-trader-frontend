@@ -61,7 +61,7 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
     return (
       <section className={`${embedded ? 'bg-[#0d0d10] px-3 py-2.5' : 'mt-2.5 border-y border-white/[0.06] bg-black px-1 py-3'}`}>
         <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0"><div className="flex items-center gap-1.5"><Activity size={13} className="text-[#59C7FF]"/><b className="text-[12px] font-semibold text-[#E6EDF3]">Account Health</b></div><p className="mt-1 text-[9px] text-[#68686E]">Live account valuation</p></div>
+          <div className="min-w-0"><div className="flex items-center gap-1.5"><Activity size={13} className="text-[#195be1]"/><b className="text-[12px] font-semibold text-[#E6EDF3]">Account Health</b></div><p className="mt-1 text-[9px] text-[#68686E]">Live account valuation</p></div>
           <div className="text-right"><span className="block text-[8px] uppercase tracking-[0.08em] text-[#68686E]">Valuation</span><b className={`mt-0.5 block text-[11px] ${valuation === 'LIVE' ? 'text-[#42D7A1]' : valuation === 'STALE' ? 'text-[#E7BD58]' : 'text-[#A0A0A6]'}`}>{valuation}</b></div>
         </div>
         <div className="mt-2.5 grid grid-cols-3 gap-2"><HealthStat label="Equity" value={money(account?.equity, currency)}/><HealthStat label="Free margin" value={money(account?.freeMargin, currency)}/><HealthStat label="Floating P&L" value={money(account?.floatingPnl, currency)}/></div>
@@ -76,7 +76,7 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
         <span className="flex items-center gap-1 font-bold text-[#68686E]"><ShieldAlert size={11}/>Daily <b className={riskWarning ? 'text-[#FF6F7A]' : 'text-[#E6EDF3]'}>{money(risk.remainingDaily, currency)}</b></span>
         <span className="text-[#68686E]">Max <b className="text-[#E6EDF3]">{money(risk.remainingMax, currency)}</b></span>
         {!master && risk.profitTarget > 0 && <span className="text-[#68686E]">Target <b className="text-[#42D7A1]">{money(risk.profit, currency)} / {money(risk.profitTarget, currency)}</b></span>}
-        {plannedRisk > 0 && <span className={`ml-auto font-bold ${riskWarning ? 'text-[#FF6F7A]' : 'text-[#59C7FF]'}`}>After SL {money(risk.postTradeDaily, currency)}</span>}
+        {plannedRisk > 0 && <span className={`ml-auto font-bold ${riskWarning ? 'text-[#FF6F7A]' : 'text-[#195be1]'}`}>After SL {money(risk.postTradeDaily, currency)}</span>}
       </div>
     );
   }
@@ -86,7 +86,7 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
       <div className={`flex items-center justify-between gap-3 ${embedded ? 'pb-1.5' : ''}`}>
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
-            <ShieldAlert size={embedded ? 11 : 13} className={embedded ? 'text-[#77777d]' : 'text-[#59C7FF]'}/>
+            <ShieldAlert size={embedded ? 11 : 13} className={embedded ? 'text-[#77777d]' : 'text-[#195be1]'}/>
             <b className={embedded ? 'text-[9px] font-semibold text-[#f1f1f2]' : 'text-[10px] text-[#E6EDF3]'}>{riskTitle}</b>
           </div>
           <p className={`${embedded ? 'mt-0.5 text-[7px]' : 'mt-1 text-[8px]'} text-[#68686E]`}>

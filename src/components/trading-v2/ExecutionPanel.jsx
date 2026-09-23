@@ -305,7 +305,7 @@ export default function ExecutionPanel({
         <span className="block text-[7px] font-semibold uppercase tracking-[0.1em] text-[#77777d]">Lot size</span>
       </div>
 
-      <button type="button" onClick={() => { onSizingModeChange('lots'); setPickerOpen(false); }} className={`flex w-full items-center justify-between border-b border-white/[0.08] px-2.5 py-2 text-left text-[9px] ${sizingMode === 'lots' ? 'bg-[#15151a] text-[#53c7ff]' : 'bg-transparent text-[#d6d6da]'}`}>
+      <button type="button" onClick={() => { onSizingModeChange('lots'); setPickerOpen(false); }} className={`flex w-full items-center justify-between border-b border-white/[0.08] px-2.5 py-2 text-left text-[9px] ${sizingMode === 'lots' ? 'bg-[#15151a] text-[#195be1]' : 'bg-transparent text-[#d6d6da]'}`}>
         <span>
           <b className="block font-semibold">Lots</b>
           <small className="mt-0.5 block text-[7px] text-[#68686e]">Type exact size or use presets</small>
@@ -327,7 +327,7 @@ export default function ExecutionPanel({
                   setLotInput(formatLots(next));
                   setPickerOpen(false);
                 }}
-                className={`h-7 border text-[8px] font-semibold tabular-nums ${Math.abs(Number(lots) - value) < volumeStep / 2 ? 'border-[#315b72] bg-[#15151a] text-[#53c7ff]' : 'border-white/[0.08] bg-[#15151a] text-[#a0a0a6]'}`}
+                className={`h-7 border text-[8px] font-semibold tabular-nums ${Math.abs(Number(lots) - value) < volumeStep / 2 ? 'border-[#195be1] bg-[#15151a] text-[#195be1]' : 'border-white/[0.08] bg-[#15151a] text-[#a0a0a6]'}`}
               >
                 {formatLots(value)}
               </button>
@@ -337,7 +337,7 @@ export default function ExecutionPanel({
         </div>
       )}
 
-      <button type="button" onClick={() => { onSizingModeChange('risk'); setPickerOpen(false); }} className={`flex w-full items-center justify-between px-2.5 py-2 text-left text-[9px] ${sizingMode === 'risk' ? 'bg-[#15151a] text-[#53c7ff]' : 'bg-transparent text-[#d6d6da]'}`}>
+      <button type="button" onClick={() => { onSizingModeChange('risk'); setPickerOpen(false); }} className={`flex w-full items-center justify-between px-2.5 py-2 text-left text-[9px] ${sizingMode === 'risk' ? 'bg-[#15151a] text-[#195be1]' : 'bg-transparent text-[#d6d6da]'}`}>
         <span>
           <b className="block font-semibold">Risk %</b>
           <small className="mt-0.5 block text-[7px] text-[#68686e]">Chart trade planner</small>
@@ -349,7 +349,7 @@ export default function ExecutionPanel({
 
   const orderPicker = orderPickerOpen && (
     <div className={`absolute z-50 w-[190px] overflow-hidden rounded-lg border border-white/[0.10] bg-[#101010] p-1 shadow-[0_18px_55px_rgba(0,0,0,0.5)] ${mobileDocked ? 'bottom-[62px] left-1.5' : focusMode ? 'bottom-[72px] left-2' : 'bottom-[112px] left-0'}`}>
-      {orderTypes.map(([id, label]) => <button key={id} type="button" onClick={() => { onOrderTypeChange(id); setOrderPickerOpen(false); }} className={`flex w-full items-center justify-between rounded-md px-3 py-2.5 text-left text-[11px] ${orderType === id ? 'bg-[#101010] text-[#60caff]' : 'text-[#c0ccd7]'}`}><span><b className="block">{label}</b><small className="text-[#718398]">{id === 'market' ? 'Immediate execution' : id === 'limit' ? 'Better price retracement' : id === 'stop' ? 'Breakout trigger' : 'Stop trigger → limit order'}</small></span>{orderType === id && <Check size={14}/>}</button>)}
+      {orderTypes.map(([id, label]) => <button key={id} type="button" onClick={() => { onOrderTypeChange(id); setOrderPickerOpen(false); }} className={`flex w-full items-center justify-between rounded-md px-3 py-2.5 text-left text-[11px] ${orderType === id ? 'bg-[#101010] text-[#195be1]' : 'text-[#c0ccd7]'}`}><span><b className="block">{label}</b><small className="text-[#718398]">{id === 'market' ? 'Immediate execution' : id === 'limit' ? 'Better price retracement' : id === 'stop' ? 'Breakout trigger' : 'Stop trigger → limit order'}</small></span>{orderType === id && <Check size={14}/>}</button>)}
     </div>
   );
 
@@ -649,7 +649,7 @@ export default function ExecutionPanel({
             <button
               type="button"
               onClick={() => setMobileAdvancedOpen(true)}
-              className={`acg-mobile-order-control flex min-w-0 items-center justify-center gap-1 rounded-[7px] px-1 text-[10px] font-bold ${sizingMode === 'risk' ? 'text-[#31d9ec]' : 'text-[#b6c0cd]'}`}
+              className={`acg-mobile-order-control flex min-w-0 items-center justify-center gap-1 rounded-[7px] px-1 text-[10px] font-bold ${sizingMode === 'risk' ? 'text-[#195be1]' : 'text-[#b6c0cd]'}`}
               aria-label="Open risk controls"
             >
               <Shield size={15} strokeWidth={1.8}/>
@@ -766,7 +766,7 @@ export default function ExecutionPanel({
                 <button
                   type="button"
                   onClick={() => setMobileAdvancedOpen(true)}
-                  className="acg-mobile-sizing-label mt-2 text-[9px] font-semibold uppercase tracking-[0.03em] text-[#a1adbb] active:text-[#31d9ec]"
+                  className="acg-mobile-sizing-label mt-2 text-[9px] font-semibold uppercase tracking-[0.03em] text-[#a1adbb] active:text-[#195be1]"
                   aria-label="Open position size controls"
                 >
                   {sizingMode === 'risk' ? 'Risk' : 'Lots'}
@@ -806,8 +806,8 @@ export default function ExecutionPanel({
 
               <div className="p-3">
                 <div className="grid grid-cols-2 border-b border-white/[0.08]">
-                  <button type="button" onClick={() => onSizingModeChange('lots')} className={`h-9 border-b-2 text-[8px] font-black uppercase tracking-[0.07em] ${sizingMode === 'lots' ? 'border-[#53c7ff] text-[#e7f2f8]' : 'border-transparent text-[#687b8d]'}`}>Lots</button>
-                  <button type="button" onClick={() => onSizingModeChange('risk')} className={`h-9 border-b-2 text-[8px] font-black uppercase tracking-[0.07em] ${sizingMode === 'risk' ? 'border-[#53c7ff] text-[#e7f2f8]' : 'border-transparent text-[#687b8d]'}`}>Risk</button>
+                  <button type="button" onClick={() => onSizingModeChange('lots')} className={`h-9 border-b-2 text-[8px] font-black uppercase tracking-[0.07em] ${sizingMode === 'lots' ? 'border-[#195be1] text-[#e7f2f8]' : 'border-transparent text-[#687b8d]'}`}>Lots</button>
+                  <button type="button" onClick={() => onSizingModeChange('risk')} className={`h-9 border-b-2 text-[8px] font-black uppercase tracking-[0.07em] ${sizingMode === 'risk' ? 'border-[#195be1] text-[#e7f2f8]' : 'border-transparent text-[#687b8d]'}`}>Risk</button>
                 </div>
 
                 {sizingMode === 'lots' ? (
@@ -825,7 +825,7 @@ export default function ExecutionPanel({
                     />
                     <div className="mt-2 grid grid-cols-4 gap-1">
                       {lotPresets.slice(0, 8).map(value => (
-                        <button key={value} type="button" onClick={() => { const next = normalizeVolumeToStep(value, market, { rounding: 'nearest' }); setLots(next); setLotInput(formatLots(next)); }} className={`h-8 border text-[8px] font-bold tabular-nums ${Math.abs(Number(normalizedLots) - value) < volumeStep / 2 ? 'border-[#315b72] bg-[#101820] text-[#53c7ff]' : 'border-white/[0.08] bg-black text-[#94a4b2]'}`}>{formatLots(value)}</button>
+                        <button key={value} type="button" onClick={() => { const next = normalizeVolumeToStep(value, market, { rounding: 'nearest' }); setLots(next); setLotInput(formatLots(next)); }} className={`h-8 border text-[8px] font-bold tabular-nums ${Math.abs(Number(normalizedLots) - value) < volumeStep / 2 ? 'border-[#195be1] bg-[#101820] text-[#195be1]' : 'border-white/[0.08] bg-black text-[#94a4b2]'}`}>{formatLots(value)}</button>
                       ))}
                     </div>
                     <p className="mt-2 font-mono text-[7px] text-[#596f82]">Min {formatLots(minVolume)} · Step {formatLots(volumeStep)} · Max {formatLots(maxVolume)}</p>
@@ -838,7 +838,7 @@ export default function ExecutionPanel({
                       <span className="text-[9px] font-bold text-[#687b8d]">%</span>
                     </div>
                     <div className="mt-2 grid grid-cols-4 gap-1">
-                      {[0.25, 0.5, 1, 2].map(value => <button key={value} type="button" onClick={() => onRiskPercentChange(value)} className={`h-8 border text-[8px] font-bold ${Math.abs(Number(riskPercent) - value) < 0.001 ? 'border-[#315b72] bg-[#101820] text-[#53c7ff]' : 'border-white/[0.08] bg-black text-[#94a4b2]'}`}>{value}%</button>)}
+                      {[0.25, 0.5, 1, 2].map(value => <button key={value} type="button" onClick={() => onRiskPercentChange(value)} className={`h-8 border text-[8px] font-bold ${Math.abs(Number(riskPercent) - value) < 0.001 ? 'border-[#195be1] bg-[#101820] text-[#195be1]' : 'border-white/[0.08] bg-black text-[#94a4b2]'}`}>{value}%</button>)}
                     </div>
                     <p className="mt-2 text-[8px] leading-4 text-[#61768a]">Risk sizing uses the stop-loss distance from the chart planner before execution.</p>
                   </div>

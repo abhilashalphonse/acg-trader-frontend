@@ -904,12 +904,12 @@ export default function DrawingLayer({
           )}
           {['long-position', 'short-position'].includes(selected.type) && (() => {
             const metrics = riskMetricsFor(selected);
-            return <button type="button" disabled={!metrics?.canCreateOrder} onClick={createOrderFromSelectedRisk} className="h-7 shrink-0 rounded-md border border-[#245070] bg-[#0d1a22] px-2 text-[8px] font-black text-[#59c8ff] hover:bg-[#102431] disabled:cursor-not-allowed disabled:border-white/[0.07] disabled:bg-[#0a0a0a] disabled:text-[#52616e]" title={metrics?.canCreateOrder ? 'Load this risk setup into the order planner' : (metrics?.message || 'Risk setup cannot create an order')}>Create order</button>;
+            return <button type="button" disabled={!metrics?.canCreateOrder} onClick={createOrderFromSelectedRisk} className="h-7 shrink-0 rounded-md border border-[#195be1] bg-[#0d1a22] px-2 text-[8px] font-black text-[#195be1] hover:bg-[#102431] disabled:cursor-not-allowed disabled:border-white/[0.07] disabled:bg-[#0a0a0a] disabled:text-[#52616e]" title={metrics?.canCreateOrder ? 'Load this risk setup into the order planner' : (metrics?.message || 'Risk setup cannot create an order')}>Create order</button>;
           })()}
           <button type="button" onClick={() => patchSelected({ hidden: true })} className="grid size-7 shrink-0 place-items-center rounded-md text-[#8194a7] hover:bg-white/[0.05] hover:text-white" title="Hide drawing"><EyeOff size={13}/></button>
-          <button type="button" onClick={() => patchSelected({ locked: !selected.locked })} className={`grid size-7 shrink-0 place-items-center rounded-md ${selected.locked ? 'bg-[#10202a] text-[#59c8ff]' : 'text-[#8194a7] hover:bg-white/[0.05]'}`} title={selected.locked ? 'Unlock drawing' : 'Lock drawing'}>{selected.locked ? <Lock size={13}/> : <LockOpen size={13}/>}</button>
+          <button type="button" onClick={() => patchSelected({ locked: !selected.locked })} className={`grid size-7 shrink-0 place-items-center rounded-md ${selected.locked ? 'bg-[#10202a] text-[#195be1]' : 'text-[#8194a7] hover:bg-white/[0.05]'}`} title={selected.locked ? 'Unlock drawing' : 'Lock drawing'}>{selected.locked ? <Lock size={13}/> : <LockOpen size={13}/>}</button>
           <button type="button" onClick={duplicateSelected} className="grid size-7 shrink-0 place-items-center rounded-md text-[#8194a7] hover:bg-white/[0.05] hover:text-white" title="Duplicate drawing"><Copy size={13}/></button>
-          <button type="button" onClick={() => setSettingsOpen(value => !value)} className={`grid size-7 shrink-0 place-items-center rounded-md ${settingsOpen ? 'bg-[#10202a] text-[#59c8ff]' : 'text-[#8194a7] hover:bg-white/[0.05]'}`} title="Drawing properties"><Settings2 size={13}/></button>
+          <button type="button" onClick={() => setSettingsOpen(value => !value)} className={`grid size-7 shrink-0 place-items-center rounded-md ${settingsOpen ? 'bg-[#10202a] text-[#195be1]' : 'text-[#8194a7] hover:bg-white/[0.05]'}`} title="Drawing properties"><Settings2 size={13}/></button>
           <button type="button" onClick={deleteSelected} className="grid size-7 shrink-0 place-items-center rounded-md text-[#d76d77] hover:bg-[#35151d] hover:text-[#ff7b86]" title="Delete drawing"><Trash2 size={13}/></button>
           <button type="button" onClick={() => { setSelectedId(null); setSettingsOpen(false); }} className="grid size-7 shrink-0 place-items-center rounded-md text-[#8194a7] hover:bg-white/[0.05] hover:text-white" title="Deselect"><X size={13}/></button>
         </div>
@@ -927,7 +927,7 @@ export default function DrawingLayer({
             return <>
               <label className="mt-3 block">
                 <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Risk %</span>
-                <input type="number" min="0.01" max="100" step="0.05" value={selected.riskPercent ?? riskPercent} onChange={event => patchSelected({ riskPercent: Math.min(100, Math.max(0.01, Number(event.target.value) || 0.01)) })} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] text-[#dbe5ed] outline-none focus:border-[#53c7ff]" />
+                <input type="number" min="0.01" max="100" step="0.05" value={selected.riskPercent ?? riskPercent} onChange={event => patchSelected({ riskPercent: Math.min(100, Math.max(0.01, Number(event.target.value) || 0.01)) })} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] text-[#dbe5ed] outline-none focus:border-[#195be1]" />
               </label>
               <div className={`mt-2 rounded-md border px-2.5 py-2 text-[8px] leading-[1.45] ${metrics?.canCreateOrder ? 'border-[#1f4b3d] bg-[#0d1915] text-[#74d9b5]' : 'border-[#4a2026] bg-[#180d10] text-[#e9858d]'}`}>
                 {metrics?.message || 'Risk sizing unavailable'}
@@ -939,7 +939,7 @@ export default function DrawingLayer({
             <div className="mt-3 grid grid-cols-[1fr_78px] gap-2">
               <label>
                 <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Text</span>
-                <input value={selected.text || ''} onChange={event => patchSelected({ text: event.target.value })} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] text-[#dbe5ed] outline-none focus:border-[#53c7ff]" />
+                <input value={selected.text || ''} onChange={event => patchSelected({ text: event.target.value })} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] text-[#dbe5ed] outline-none focus:border-[#195be1]" />
               </label>
               <label>
                 <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Size</span>
@@ -977,15 +977,15 @@ export default function DrawingLayer({
           {selected.type === 'rectangle' && (
             <label className="mt-3 block">
               <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Fill opacity</span>
-              <input type="range" min="0" max="0.35" step="0.01" value={Number(selected.style?.fillOpacity ?? 0.07)} onChange={event => patchSelected({ style: { fillOpacity: Number(event.target.value) } })} className="w-full accent-[#59c8ff]" />
+              <input type="range" min="0" max="0.35" step="0.01" value={Number(selected.style?.fillOpacity ?? 0.07)} onChange={event => patchSelected({ style: { fillOpacity: Number(event.target.value) } })} className="w-full accent-[#195be1]" />
             </label>
           )}
 
           <div className="mt-3">
             <span className="mb-1.5 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Timeframe visibility</span>
             <div className="grid grid-cols-2 gap-1.5">
-              <button type="button" onClick={() => patchSelected({ timeframeVisibility: 'all' })} className={`h-8 rounded-md border text-[8px] font-semibold ${selected.timeframeVisibility === 'all' || !selected.timeframeVisibility ? 'border-[#315b72] bg-[#10202a] text-[#59c8ff]' : 'border-white/[0.08] bg-[#080808] text-[#8ea0b1]'}`}>All</button>
-              <button type="button" onClick={() => patchSelected({ timeframeVisibility: [timeframe] })} className={`h-8 rounded-md border text-[8px] font-semibold ${Array.isArray(selected.timeframeVisibility) && selected.timeframeVisibility.length === 1 && selected.timeframeVisibility[0] === timeframe ? 'border-[#315b72] bg-[#10202a] text-[#59c8ff]' : 'border-white/[0.08] bg-[#080808] text-[#8ea0b1]'}`}>This timeframe</button>
+              <button type="button" onClick={() => patchSelected({ timeframeVisibility: 'all' })} className={`h-8 rounded-md border text-[8px] font-semibold ${selected.timeframeVisibility === 'all' || !selected.timeframeVisibility ? 'border-[#195be1] bg-[#10202a] text-[#195be1]' : 'border-white/[0.08] bg-[#080808] text-[#8ea0b1]'}`}>All</button>
+              <button type="button" onClick={() => patchSelected({ timeframeVisibility: [timeframe] })} className={`h-8 rounded-md border text-[8px] font-semibold ${Array.isArray(selected.timeframeVisibility) && selected.timeframeVisibility.length === 1 && selected.timeframeVisibility[0] === timeframe ? 'border-[#195be1] bg-[#10202a] text-[#195be1]' : 'border-white/[0.08] bg-[#080808] text-[#8ea0b1]'}`}>This timeframe</button>
             </div>
           </div>
 

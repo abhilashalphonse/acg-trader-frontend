@@ -273,9 +273,9 @@ export default function PositionsPanel({
               <div
                 key={position.id}
                 onClick={() => onSelectPosition(position.id)}
-                className={`relative grid cursor-pointer grid-cols-[1.45fr_1.55fr_1.15fr_1fr_170px] items-center border-b px-3 py-2 text-[9px] transition ${String(selectedPositionId) === String(position.id) ? 'border-[#315b72] bg-[#0b141a]' : 'border-white/[0.06] hover:bg-white/[0.015]'}`}
+                className={`relative grid cursor-pointer grid-cols-[1.45fr_1.55fr_1.15fr_1fr_170px] items-center border-b px-3 py-2 text-[9px] transition ${String(selectedPositionId) === String(position.id) ? 'border-[#195be1] bg-[#0b141a]' : 'border-white/[0.06] hover:bg-white/[0.015]'}`}
               >
-                {String(selectedPositionId) === String(position.id) && <span className="absolute inset-y-1 left-0 w-0.5 rounded-r bg-[#59C7FF]" />}
+                {String(selectedPositionId) === String(position.id) && <span className="absolute inset-y-1 left-0 w-0.5 rounded-r bg-[#195be1]" />}
 
                 <div className="flex min-w-0 items-center gap-2">
                   <InstrumentAvatar instrument={instrument} size={20}/>
@@ -355,13 +355,13 @@ export default function PositionsPanel({
                         <InstrumentAvatar instrument={instrumentForSymbol(markets, position.symbol)} size={24}/>
                         <strong className="truncate text-[13px] font-black tracking-[-0.025em] text-[#f5f5f5]">{formatSymbol(position.symbol)}</strong>
                         <span className={`rounded-md px-1.5 py-1 text-[8px] font-black leading-none ${sideBuy ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{position.side}</span>
-                        {position.trailingEnabled && <span className="rounded-md border border-white/[0.10] bg-black px-1.5 py-1 text-[8px] font-bold text-[#59C7FF]">TRAIL {position.trailingPips}p</span>}
+                        {position.trailingEnabled && <span className="rounded-md border border-white/[0.10] bg-black px-1.5 py-1 text-[8px] font-bold text-[#195be1]">TRAIL {position.trailingPips}p</span>}
                       </div>
                       <p className="mt-1.5 text-[9px] text-[#6F8191]"><b className="text-[#A1AFBC]">{Number(position.volume).toFixed(2)} lots</b><span className="mx-1.5 text-[#44515D]">•</span>Entry {formatInstrumentPrice(position.entry, instrumentForSymbol(markets, position.symbol))}</p>
                     </div>
                     <div className="flex shrink-0 items-start gap-2">
                       <div className="text-right"><span className="block text-[8px] font-semibold uppercase tracking-[0.08em] text-[#6F8191]">P&amp;L</span><b className={`mt-1 block text-[14px] font-black ${positive ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{formatPnl(position.pnl, position.pnlCurrency)}</b></div>
-                      <button type="button" onClick={() => setExpandedId(expanded ? null : position.id)} aria-label="More position controls" className={`grid size-8 place-items-center rounded-lg border transition ${expanded ? 'border-white/[0.13] bg-[#0C1013] text-[#59C7FF]' : 'border-white/[0.06] bg-black text-[#6F8191]'}`}><MoreHorizontal size={16}/></button>
+                      <button type="button" onClick={() => setExpandedId(expanded ? null : position.id)} aria-label="More position controls" className={`grid size-8 place-items-center rounded-lg border transition ${expanded ? 'border-white/[0.13] bg-[#0C1013] text-[#195be1]' : 'border-white/[0.06] bg-black text-[#6F8191]'}`}><MoreHorizontal size={16}/></button>
                     </div>
                   </div>
 
@@ -381,7 +381,7 @@ export default function PositionsPanel({
                 {expanded && (
                   <div className="space-y-2 border-t border-white/[0.06] bg-black p-2.5">
                     <div className="grid grid-cols-3 gap-2">
-                      <button type="button" onClick={() => editing ? cancelProtectionEdit() : startProtectionEdit(position)} className={`flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md border text-[9px] font-bold ${editing ? 'border-white/[0.13] bg-[#0C1013] text-[#59C7FF]' : 'border-white/[0.06] bg-black text-[#A1AFBC]'}`}><SlidersHorizontal size={13}/><span className="truncate">{editing ? 'Editing' : 'SL / TP'}</span></button>
+                      <button type="button" onClick={() => editing ? cancelProtectionEdit() : startProtectionEdit(position)} className={`flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md border text-[9px] font-bold ${editing ? 'border-white/[0.13] bg-[#0C1013] text-[#195be1]' : 'border-white/[0.06] bg-black text-[#A1AFBC]'}`}><SlidersHorizontal size={13}/><span className="truncate">{editing ? 'Editing' : 'SL / TP'}</span></button>
                       <button type="button" onClick={() => onDuplicate(position.id)} className="flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md border border-white/[0.06] bg-black text-[9px] font-bold text-[#A1AFBC]"><Copy size={13}/><span className="truncate">Duplicate</span></button>
                       <button type="button" onClick={() => setSharePosition(position)} className="flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md border border-white/[0.06] bg-black text-[9px] font-bold text-[#E6EDF3]"><Share2 size={13}/><span className="truncate">Share P&amp;L</span></button>
                     </div>
@@ -421,7 +421,7 @@ export default function PositionsPanel({
 
                     <div className="border-t border-white/[0.06] bg-black p-2.5">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2"><ShieldCheck size={15} className={position.trailingEnabled ? 'text-[#59C7FF]' : 'text-[#6F8191]'}/><div><b className="block text-[10px] text-[#E6EDF3]">Trailing Stop</b><span className="mt-0.5 block text-[9px] text-[#6F8191]">Automatically moves the stop as price advances</span></div></div>
+                        <div className="flex items-center gap-2"><ShieldCheck size={15} className={position.trailingEnabled ? 'text-[#195be1]' : 'text-[#6F8191]'}/><div><b className="block text-[10px] text-[#E6EDF3]">Trailing Stop</b><span className="mt-0.5 block text-[9px] text-[#6F8191]">Automatically moves the stop as price advances</span></div></div>
                         <button type="button" onClick={() => onSetTrailing(position.id, !position.trailingEnabled, position.trailingPips)} className={`relative h-6 w-11 rounded-full transition ${position.trailingEnabled ? 'bg-[#101010]' : 'bg-[#101010]'}`} aria-label="Toggle trailing stop"><span className={`absolute top-1 size-4 rounded-full bg-white transition ${position.trailingEnabled ? 'left-6' : 'left-1'}`} /></button>
                       </div>
                       <div className="mt-2 flex items-center gap-2"><span className="text-[8px] font-semibold text-[#6F8191]">Distance</span><button type="button" onClick={() => onSetTrailing(position.id, true, Math.max(1, Number(position.trailingPips) - 1))} className="grid size-7 place-items-center rounded-lg border border-white/[0.06] bg-[#0C1013] text-[#A1AFBC]"><Minus size={12}/></button><b className="min-w-[54px] rounded-lg border border-white/[0.06] bg-black px-2 py-1.5 text-center text-[10px] text-[#E6EDF3]">{position.trailingPips || 5} pips</b><button type="button" onClick={() => onSetTrailing(position.id, true, Number(position.trailingPips || 5) + 1)} className="grid size-7 place-items-center rounded-lg border border-white/[0.06] bg-[#0C1013] text-[#A1AFBC]"><Plus size={12}/></button></div>
@@ -449,8 +449,8 @@ export default function PositionsPanel({
                 <div className="min-w-0"><div className="flex items-center gap-1.5"><InstrumentAvatar instrument={instrumentForSymbol(markets, order.symbol)} size={22}/><strong className="truncate text-[11px] font-semibold text-[#E6EDF3]">{formatSymbol(order.symbol || 'Current symbol')}</strong><span className={`rounded-md px-1.5 py-1 text-[8px] font-black ${order.side === 'buy' ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{String(order.side).toUpperCase()} {String(order.orderType).toUpperCase()}</span></div><p className="mt-1 text-[8px] text-[#6F8191]">{Number(order.lots || 0).toFixed(2)} lots · Entry {formatInstrumentPrice(order.entry, instrumentForSymbol(markets, order.symbol))} · {order.expiration}</p></div>
                 <div className="flex shrink-0 items-center gap-1"><button type="button" onClick={() => onModifyPending(order.id)} className="grid size-8 place-items-center rounded-lg border border-white/[0.06] bg-black text-[#A1AFBC]" aria-label="Modify pending order"><SlidersHorizontal size={13}/></button><button type="button" onClick={() => onCancelPending(order.id)} className="grid size-8 place-items-center rounded-lg border border-[#642832] bg-black text-[#ff7480]" aria-label="Cancel pending order"><X size={13}/></button></div>
               </div>
-              <div className="mt-2 grid grid-cols-3 gap-1.5 text-[8px]"><div className="rounded-lg bg-black px-2 py-1.5 text-[#6F8191]">SL <b className="ml-1 text-[#A1AFBC]">{formatInstrumentPrice(order.sl, instrumentForSymbol(markets, order.symbol))}</b></div><div className="rounded-lg bg-black px-2 py-1.5 text-[#6F8191]">TP <b className="ml-1 text-[#A1AFBC]">{formatInstrumentPrice(order.tp, instrumentForSymbol(markets, order.symbol))}</b></div><div className="rounded-lg bg-black px-2 py-1.5 text-[#6F8191]">Status <b className="ml-1 text-[#5bc8ff]">Pending</b></div></div>
-              {order.orderType === 'stop-limit' && <div className="mt-1.5 rounded-lg border border-white/[0.06] bg-black px-2 py-1.5 text-[8px] text-[#6F8191]">Limit price <b className="ml-1 text-[#59C7FF]">{formatInstrumentPrice(order.limitPrice, instrumentForSymbol(markets, order.symbol))}</b></div>}
+              <div className="mt-2 grid grid-cols-3 gap-1.5 text-[8px]"><div className="rounded-lg bg-black px-2 py-1.5 text-[#6F8191]">SL <b className="ml-1 text-[#A1AFBC]">{formatInstrumentPrice(order.sl, instrumentForSymbol(markets, order.symbol))}</b></div><div className="rounded-lg bg-black px-2 py-1.5 text-[#6F8191]">TP <b className="ml-1 text-[#A1AFBC]">{formatInstrumentPrice(order.tp, instrumentForSymbol(markets, order.symbol))}</b></div><div className="rounded-lg bg-black px-2 py-1.5 text-[#6F8191]">Status <b className="ml-1 text-[#195be1]">Pending</b></div></div>
+              {order.orderType === 'stop-limit' && <div className="mt-1.5 rounded-lg border border-white/[0.06] bg-black px-2 py-1.5 text-[8px] text-[#6F8191]">Limit price <b className="ml-1 text-[#195be1]">{formatInstrumentPrice(order.limitPrice, instrumentForSymbol(markets, order.symbol))}</b></div>}
             </div>
           ))}
         </div>

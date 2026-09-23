@@ -21,7 +21,7 @@
   --acg-text:#f5f5f5;
   --acg-text-2:#b3b3b3;
   --acg-muted:#737373;
-  --acg-cyan:#53c7ff;
+  --acg-cyan:#195be1;
   --acg-buy:#2dd39b;
   --acg-sell:#f05d68;
 }
@@ -186,7 +186,7 @@ textarea{
 
 /* ACG cyan is an interaction signal, not a panel color. */
 button:focus-visible,input:focus-visible,select:focus-visible,[role="button"]:focus-visible{
-  outline:2px solid rgba(83,199,255,.78);
+  outline:2px solid rgba(25,91,225,.78);
   outline-offset:2px;
 }
 
@@ -409,11 +409,11 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
   .acg-mobile-terminal-page .acg-terminal-selected{
     background:#15151a!important;
     color:#f3f3f4!important;
-    box-shadow:inset 0 -2px 0 rgba(83,199,255,.75)!important;
+    box-shadow:inset 0 -2px 0 rgba(25,91,225,.75)!important;
   }
 
   .acg-mobile-terminal-page .acg-terminal-accent{
-    color:#53c7ff!important;
+    color:#195be1!important;
   }
 
   .acg-mobile-terminal-page input,
@@ -762,7 +762,7 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
     left:16%!important;
     right:16%!important;
     height:3px!important;
-    background:#35d8ee!important;
+    background:#195be1!important;
   }
 
   .acg-mobile-toolbar-separator{
@@ -824,11 +824,11 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
   }
 
   .acg-mobile-reference-drawing-rail .acg-mobile-drawing-tool-selected{
-    color:#47dcf0!important;
+    color:#195be1!important;
     background:
       linear-gradient(180deg,rgba(31,62,81,.52),rgba(16,40,54,.60))!important;
     box-shadow:
-      inset 0 0 0 1px rgba(76,214,236,.18),
+      inset 0 0 0 1px rgba(25,91,225,.22),
       0 3px 10px rgba(0,0,0,.14)!important;
   }
 
@@ -1554,9 +1554,9 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
   }
 
   .acg-mobile-reference-drawing-rail .acg-mobile-drawing-tool-selected{
-    color:#35d8ee!important;
+    color:#195be1!important;
     background:rgba(21,46,61,.42)!important;
-    box-shadow:inset 0 0 0 1px rgba(76,214,236,.12)!important;
+    box-shadow:inset 0 0 0 1px rgba(25,91,225,.20)!important;
   }
 
   .acg-mobile-reference-drawing-rail > div{
@@ -1583,7 +1583,7 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
     --acg-mobile-border:rgba(255,255,255,.075);
     --acg-mobile-border-soft:rgba(255,255,255,.05);
     --acg-mobile-muted:#8d98a4;
-    --acg-mobile-cyan:#32d9ed;
+    --acg-mobile-cyan:#195be1;
     background:var(--acg-mobile-black)!important;
   }
 
@@ -1653,7 +1653,7 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
     background:#13171a!important;
     color:var(--acg-mobile-cyan)!important;
     box-shadow:none!important;
-    outline:1px solid rgba(50,217,237,.18)!important;
+    outline:1px solid rgba(25,91,225,.22)!important;
     outline-offset:-1px!important;
   }
 
@@ -1890,3 +1890,56 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
     color:#ff5a66!important;
   }
 }
+
+
+/* Canonical ACG interaction accent.
+   Semantic Buy/Sell, SL/TP and P&L colors stay independent. */
+:root{--acg-interaction-accent:#195be1}
+.acg-terminal{--terminal-accent:#195be1}
+
+.acg-mobile-timeframes button > span,
+.acg-mobile-chart-tools button > span,
+.acg-mobile-reference-drawing-rail .acg-mobile-drawing-tool-selected::after,
+.acg-mobile-instrument-selector::after{
+  background:#195be1!important;
+  box-shadow:none!important;
+}
+
+.acg-mobile-reference-drawing-rail .acg-mobile-drawing-tool-selected{
+  color:#195be1!important;
+  outline-color:rgba(25,91,225,.30)!important;
+}
+
+[class*="text-[#53c7ff]"],
+[class*="text-[#53C7FF]"],
+[class*="text-[#59c7ff]"],
+[class*="text-[#59C7FF]"],
+[class*="text-[#59c8ff]"],
+[class*="text-[#60caff]"],
+[class*="text-[#67ccff]"],
+[class*="text-[#63cbff]"],
+[class*="text-[#5fc9ff]"],
+[class*="text-[#5bc8ff]"],
+[class*="text-[#32d9ed]"],
+[class*="text-[#31d9ec]"]{color:#195be1!important}
+
+[class*="border-[#53c7ff]"],
+[class*="border-[#53C7FF]"],
+[class*="border-[#315b72]"],
+[class*="border-[#315B72]"],
+[class*="border-[#245070]"],
+[class*="border-[#2a6682]"]{border-color:#195be1!important}
+
+[class*="ring-[#315b72]"],
+[class*="ring-[#315B72]"]{--tw-ring-color:#195be1!important}
+
+[class*="bg-[#53c7ff]"],
+[class*="bg-[#53C7FF]"],
+[class*="bg-[#59c7ff]"],
+[class*="bg-[#59C7FF]"],
+[class*="bg-[#59c8ff]"],
+[class*="bg-[#32d9ed]"],
+[class*="bg-[#31d9ec]"]{background-color:#195be1!important}
+
+[class*="accent-[#59c8ff]"],
+[class*="accent-[#53c7ff]"]{accent-color:#195be1!important}

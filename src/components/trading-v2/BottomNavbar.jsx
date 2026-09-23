@@ -22,8 +22,8 @@ export default function BottomNavbar({ active = 'chart', onChange = () => {} }) 
               onClick={() => onChange(id)}
               className={`relative flex h-[46px] min-w-0 flex-col items-center justify-center gap-0.5 text-[7px] font-semibold transition ${selected ? 'text-[#f3f3f4]' : 'text-[#77777d]'}`}
             >
-              <span className={`absolute top-0 h-0.5 w-6 transition ${selected ? 'bg-[#53c7ff]' : 'bg-transparent'}`} />
-              <Icon size={17} className={selected ? 'text-[#53c7ff]' : 'text-[#85858b]'} strokeWidth={1.8} />
+              <span className={`absolute top-0 h-0.5 w-6 transition ${selected ? 'bg-[#195be1]' : 'bg-transparent'}`} />
+              <Icon size={17} className={selected ? 'text-[#195be1]' : 'text-[#85858b]'} strokeWidth={1.8} />
               <span className="leading-none">{label}</span>
             </button>
           );
