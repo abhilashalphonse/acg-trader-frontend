@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Activity, ShieldAlert, Target, TrendingDown } from 'lucide-react';
 import { calculateAccountRiskSummary } from '../../utils/accountRisk.js';
+import { accountLimitsUnavailableCopy, accountRiskTitle, isMasterAccount } from '../../utils/accountPresentation.js';
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
@@ -43,6 +44,8 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
   const riskWarning = risk.dailyLossLimit > 0 && plannedRisk > 0 && (!risk.riskAvailabilityLive || plannedRisk >= risk.remainingDaily * 0.75);
   const currency = account?.currency || 'USD';
   const valuation = String(account?.valuationStatus || 'WAITING').toUpperCase();
+  const master = isMasterAccount(account);
+  const riskTitle = accountRiskTitle(account);
 
   if (!hasChallengeRules) {
     if (compact) {
@@ -62,7 +65,7 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
           <div className="text-right"><span className="block text-[8px] uppercase tracking-[0.08em] text-[#68686E]">Valuation</span><b className={`mt-0.5 block text-[11px] ${valuation === 'LIVE' ? 'text-[#42D7A1]' : valuation === 'STALE' ? 'text-[#E7BD58]' : 'text-[#A0A0A6]'}`}>{valuation}</b></div>
         </div>
         <div className="mt-2.5 grid grid-cols-3 gap-2"><HealthStat label="Equity" value={money(account?.equity, currency)}/><HealthStat label="Free margin" value={money(account?.freeMargin, currency)}/><HealthStat label="Floating P&L" value={money(account?.floatingPnl, currency)}/></div>
-        {plannedRisk > 0 && <div className="mt-2.5 border-t border-white/[0.06] px-0 py-2 text-[8px] font-semibold text-[#A0A0A6]">Estimated ticket risk <b className="text-[#e6edf3]">{money(plannedRisk, currency)}</b>. Challenge limits are not available for this account.</div>}
+        {plannedRisk > 0 && <div className="mt-2.5 border-t border-white/[0.06] px-0 py-2 text-[8px] font-semibold text-[#A0A0A6]">Estimated ticket risk <b className="text-[#e6edf3]">{money(plannedRisk, currency)}</b>. {accountLimitsUnavailableCopy(account)}</div>}
       </section>
     );
   }
@@ -84,7 +87,7 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <ShieldAlert size={embedded ? 11 : 13} className={embedded ? 'text-[#77777d]' : 'text-[#59C7FF]'}/>
-            <b className={embedded ? 'text-[9px] font-semibold text-[#f1f1f2]' : 'text-[10px] text-[#E6EDF3]'}>Challenge Risk</b>
+            <b className={embedded ? 'text-[9px] font-semibold text-[#f1f1f2]' : 'text-[10px] text-[#E6EDF3]'}>{riskTitle}</b>
           </div>
           <p className={`${embedded ? 'mt-0.5 text-[7px]' : 'mt-1 text-[8px]'} text-[#68686E]`}>
             {risk.riskAvailabilityLive ? 'Current loss room and target progress' : 'Risk availability is paused until account valuation is live'}
@@ -115,15 +118,17 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
           currency={currency}
           embedded={embedded}
         />
-        <Meter
-          label="Profit target"
-          value={risk.profit}
-          limit={risk.profitTarget}
-          headline={`${risk.profitProgressPercent.toFixed(0)}%`}
-          tone="success"
-          currency={currency}
-          embedded={embedded}
-        />
+        {!master && risk.profitTarget > 0 && (
+          <Meter
+            label="Profit target"
+            value={risk.profit}
+            limit={risk.profitTarget}
+            headline={`${risk.profitProgressPercent.toFixed(0)}%`}
+            tone="success"
+            currency={currency}
+            embedded={embedded}
+          />
+        )}
       </div>
 
       {plannedRisk > 0 && (
