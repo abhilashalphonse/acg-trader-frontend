@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronRight, CircleHelp, Settings, X } from 'lucide-react';
-import { accountStatusLabel, accountTypeLabel } from '../../utils/accountPresentation.js';
+import { accountStatusLabel, accountStatusToneClass, accountTypeLabel } from '../../utils/accountPresentation.js';
 
 function money(value, currency = 'USD') {
   const numeric = Number(value);
@@ -60,7 +60,7 @@ export default function MobileAccountSheet({
                 <strong className="mt-1.5 block text-[17px] font-black tracking-[-0.03em] text-[#eef4f8]">{account?.accountCode || 'Trading account'}</strong>
                 <p className="mt-1 text-[8px] text-[#667b8e]">{currency}{account?.leverage ? ` · 1:${account.leverage}` : ''}</p>
               </div>
-              <span className={`rounded-full border px-2 py-1 text-[7px] font-black ${live ? 'border-[#176247] bg-[#0c2d23] text-[#45dda9]' : 'border-white/[0.08] bg-[#101010] text-[#8999a8]'}`}>{accountStatusLabel(status)}</span>
+              <span className={`rounded-full border px-2 py-1 text-[7px] font-black ${accountStatusToneClass(status)}`}>{accountStatusLabel(status)}</span>
             </div>
 
             <div className="mt-3 grid grid-cols-3 divide-x divide-white/[0.08] border-y border-white/[0.08] bg-[#080808] py-2.5">
