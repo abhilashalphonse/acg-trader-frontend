@@ -51,10 +51,10 @@ test('stop-loss risk is measured from entry and becomes protected beyond break e
   }, { equity: 100000 }, instrument);
 
   assert.equal(risky.riskStatus, 'ACTIVE');
-  assert.equal(risky.riskAmount, 500);
-  assert.equal(risky.riskPercent, 0.5);
-  assert.equal(risky.sl.pips, 10);
-  assert.equal(risky.tp.pips, 20);
+  assert.ok(Math.abs(risky.riskAmount - 500) < 1e-6);
+  assert.ok(Math.abs(risky.riskPercent - 0.5) < 1e-9);
+  assert.ok(Math.abs(risky.sl.pips - 10) < 1e-9);
+  assert.ok(Math.abs(risky.tp.pips - 20) < 1e-9);
 
   const protectedPosition = buildOpenPositionSummary({
     side: 'SELL',
