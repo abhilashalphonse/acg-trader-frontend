@@ -1,4 +1,5 @@
 export function exposureAvailability({ account, connectionStatus, market, commandState } = {}) {
+  if (commandState?.accountSwitching) return { allowed: false, reason: commandState?.accountSwitchError || 'Switching account — loading valuation, positions, orders, history and risk state' };
   if (commandState?.uncertain) return { allowed: false, reason: 'Reconciling an execution with unknown transport status' };
   if (connectionStatus !== 'ready') return { allowed: false, reason: 'Realtime account connection is unavailable' };
   if (!account?.id) return { allowed: false, reason: 'Trading account is still loading' };
