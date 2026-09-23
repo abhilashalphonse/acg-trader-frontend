@@ -10,6 +10,7 @@ import {
   pendingPriceDirection,
 } from '../utils/tradingCommandNormalization.js';
 import { executeWithOrderReconciliation } from '../utils/executionReconciliation.js';
+import { resolveCommandAccountId, resolveLifecycleReplacement } from '../utils/accountLifecycleRouting.js';
 import {
   calculateLocalPositionValuation,
   canUseLocalPositionValuation,
@@ -174,54 +175,6 @@ function errorMessage(error) {
   }
   if (Array.isArray(error.details) && error.details.length) return `${error.message}: ${error.details.map(item => item.message).join(', ')}`;
   return error.message || 'Trading command failed';
-}
-
-export function resolveCommandAccountId({
-  activeAccountId,
-  grantedAccountIds = [],
-  accountSwitching = false,
-  accountSwitchError = null,
-} = {}) {
-  const accountId = String(activeAccountId || '').trim();
-  if (!accountId) throw new Error('No trading account is available for this session');
-
-  const grants = new Set((grantedAccountIds || []).map(String).filter(Boolean));
-  if (!grants.has(accountId)) {
-    const error = new Error('This account is no longer granted to the current trading session');
-    error.code = 'ACCOUNT_ACCESS_REVOKED';
-    throw error;
-  }
-  if (accountSwitching) {
-    const error = new Error(accountSwitchError || 'Trading account is still synchronizing');
-    error.code = 'ACCOUNT_SWITCH_IN_PROGRESS';
-    throw error;
-  }
-  return accountId;
-}
-
-export function resolveLifecycleReplacement({
-  accountGrants = [],
-  activeAccountId = null,
-  lifecycleId = null,
-} = {}) {
-  const active = String(activeAccountId || '').trim();
-  const lifecycle = String(lifecycleId || '').trim();
-  if (!lifecycle) return null;
-
-  return (Array.isArray(accountGrants) ? accountGrants : [])
-    .filter(item => {
-      const id = String(item?.id || '').trim();
-      const sameLifecycle = String(item?.fundedAccountId || '').trim() === lifecycle;
-      const activeAndTradable = String(item?.status || '').toUpperCase() === 'ACTIVE'
-        && item?.tradingEnabled === true;
-      return id && id !== active && sameLifecycle && activeAndTradable;
-    })
-    .sort((a, b) => {
-      const aMaster = String(a?.accountType || '').toUpperCase() === 'FUNDED' ? 1 : 0;
-      const bMaster = String(b?.accountType || '').toUpperCase() === 'FUNDED' ? 1 : 0;
-      if (aMaster !== bMaster) return bMaster - aMaster;
-      return Number(b?.phase || 0) - Number(a?.phase || 0);
-    })[0] || null;
 }
 
 export function useTradingTerminal(markets = []) {
