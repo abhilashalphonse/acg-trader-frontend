@@ -16,6 +16,7 @@ export const initialTradingState = Object.freeze({
   trading: {
     accountsById: {},
     valuationsByAccountId: {},
+    snapshotRevisionByAccountId: {},
     positionValuationsById: {},
     positionsById: {},
     ordersById: {},
@@ -64,6 +65,7 @@ function replaceAccountScoped(map, accountId, entities) {
 function mergeSnapshot(state, snapshots) {
   let accountsById = state.trading.accountsById;
   let valuationsByAccountId = state.trading.valuationsByAccountId;
+  let snapshotRevisionByAccountId = state.trading.snapshotRevisionByAccountId;
   let positionValuationsById = state.trading.positionValuationsById;
   let positionsById = state.trading.positionsById;
   let ordersById = state.trading.ordersById;
@@ -73,6 +75,10 @@ function mergeSnapshot(state, snapshots) {
     const accountId = entityId(snapshot?.account);
     if (!accountId) continue;
     accountsById = { ...accountsById, [accountId]: snapshot.account };
+    snapshotRevisionByAccountId = {
+      ...snapshotRevisionByAccountId,
+      [accountId]: Number(snapshotRevisionByAccountId[accountId] || 0) + 1,
+    };
     if (snapshot.valuation) valuationsByAccountId = { ...valuationsByAccountId, [accountId]: snapshot.valuation };
     positionValuationsById = replaceAccountScoped(positionValuationsById, accountId, snapshot.positionValuations || []);
     positionsById = replaceAccountScoped(positionsById, accountId, snapshot.positions || []);
@@ -83,7 +89,7 @@ function mergeSnapshot(state, snapshots) {
 
   return {
     ...state,
-    trading: { accountsById, valuationsByAccountId, positionValuationsById, positionsById, ordersById, fills },
+    trading: { accountsById, valuationsByAccountId, snapshotRevisionByAccountId, positionValuationsById, positionsById, ordersById, fills },
   };
 }
 
