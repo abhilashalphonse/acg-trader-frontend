@@ -469,3 +469,123 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
     background-image:linear-gradient(180deg,#101014 0%,#0b0b0e 100%)!important;
   }
 }
+
+
+/* Mobile reference layout — scoped to ACG Trader below desktop breakpoint.
+   Reintroduces subtle blue-black depth only for the mobile terminal mockup,
+   leaving desktop and all trading behavior untouched. */
+@media (max-width:1023px){
+  .acg-mobile-reference-header{
+    background:
+      radial-gradient(circle at 12% -25%,rgba(44,76,105,.20),transparent 42%),
+      linear-gradient(180deg,#09111a 0%,#050a10 100%)!important;
+    border-bottom:1px solid rgba(121,150,180,.13)!important;
+    box-shadow:0 10px 28px rgba(0,0,0,.22);
+  }
+
+  .acg-mobile-header-divider{
+    border-left:1px solid rgba(151,172,195,.18)!important;
+  }
+
+  .acg-mobile-pnl-card{
+    background:linear-gradient(180deg,rgba(17,27,39,.96),rgba(8,14,22,.98))!important;
+    border:1px solid rgba(119,148,177,.20)!important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.025),
+      0 7px 18px rgba(0,0,0,.18)!important;
+  }
+
+  .acg-mobile-reference-chart-frame.acg-mobile-metal-surface{
+    border:1px solid rgba(94,124,154,.22)!important;
+    border-radius:14px!important;
+    background-color:#071019!important;
+    background-image:linear-gradient(180deg,#09131d 0%,#050b12 100%)!important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.018),
+      0 16px 42px rgba(0,0,0,.22)!important;
+  }
+
+  .acg-mobile-reference-chart-controls{
+    border-color:rgba(111,142,172,.20)!important;
+    background:
+      radial-gradient(circle at 50% -60%,rgba(57,87,116,.18),transparent 65%),
+      linear-gradient(180deg,#0b151f 0%,#081019 100%)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.02)!important;
+  }
+
+  .acg-mobile-reference-chart-area.acg-mobile-chart-surface{
+    background-color:#060d14!important;
+    background-image:linear-gradient(180deg,#071018 0%,#050a10 100%)!important;
+    border-top:1px solid rgba(119,145,170,.10)!important;
+  }
+
+  .acg-mobile-reference-drawing-rail{
+    border:1px solid rgba(102,133,163,.20)!important;
+    background:
+      linear-gradient(180deg,rgba(10,20,30,.98),rgba(6,12,18,.98))!important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.02),
+      0 6px 18px rgba(0,0,0,.18)!important;
+  }
+
+  .acg-mobile-reference-drawing-rail button{
+    border-radius:6px!important;
+  }
+
+  .acg-mobile-reference-execution.acg-mobile-execution-surface{
+    border:1px solid rgba(98,128,158,.22)!important;
+    border-bottom:0!important;
+    border-radius:14px 14px 0 0!important;
+    background-color:#071019!important;
+    background-image:
+      radial-gradient(circle at 50% -35%,rgba(42,69,94,.18),transparent 48%),
+      linear-gradient(180deg,#09131d 0%,#050b12 100%)!important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.02),
+      0 -10px 30px rgba(0,0,0,.16)!important;
+  }
+
+  .acg-mobile-order-control{
+    border:1px solid rgba(109,139,169,.20)!important;
+    background:linear-gradient(180deg,#0e1924 0%,#09111a 100%)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.018)!important;
+  }
+
+  .acg-mobile-order-control:active{
+    background:linear-gradient(180deg,#122131 0%,#0a141e 100%)!important;
+  }
+
+  .acg-mobile-lot-control{
+    border:1px solid rgba(105,136,167,.20)!important;
+    background:
+      radial-gradient(circle at 50% 0%,rgba(42,66,90,.18),transparent 60%),
+      linear-gradient(180deg,#0c151f 0%,#071019 100%)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.022)!important;
+  }
+
+  .acg-mobile-lot-control input{
+    background:transparent!important;
+    border:0!important;
+    box-shadow:none!important;
+  }
+
+  .acg-mobile-sell-action{
+    border:1px solid rgba(255,82,96,.88)!important;
+    background:
+      linear-gradient(135deg,#ef3348 0%,#d92d41 54%,#b91f34 100%)!important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.16),
+      inset 0 -12px 28px rgba(86,0,16,.17),
+      0 7px 18px rgba(166,20,42,.12)!important;
+  }
+
+  .acg-mobile-buy-action{
+    border:1px solid rgba(37,225,193,.90)!important;
+    background:
+      linear-gradient(135deg,#10cdb0 0%,#08bfa4 52%,#009a89 100%)!important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.15),
+      inset 0 -12px 28px rgba(0,78,67,.15),
+      0 7px 18px rgba(0,143,122,.12)!important;
+  }
+}

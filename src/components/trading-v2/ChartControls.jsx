@@ -1,5 +1,5 @@
 import React from 'react';
-import { CandlestickChart, ChartNoAxesCombined, Maximize2, Minimize2, Pencil } from 'lucide-react';
+import { CandlestickChart, ChartNoAxesCombined, Maximize2, Minimize2, MoreVertical, Pencil } from 'lucide-react';
 
 const timeframes = ['1m', '5m', '15m', '30m', '1H', '4H', '1D', '1W'];
 const mobileTimeframes = ['1m', '5m', '15m', '30m', '1H', '4H', '1D'];
@@ -34,30 +34,53 @@ export default function ChartControls({
 }) {
   if (compactMobile) {
     return (
-      <div className={`acg-mobile-metal-surface flex h-10 w-full items-center gap-1.5 bg-[#0b0b0d] px-1.5 ${disabled ? 'opacity-55' : ''}`}>
-        <div className="flex min-w-0 flex-1 items-center justify-between">
+      <div className={`acg-mobile-reference-chart-controls flex h-[46px] w-full items-center overflow-hidden rounded-[12px] border border-white/[0.09] px-1 ${disabled ? 'opacity-55' : ''}`}>
+        <div className="flex min-w-0 flex-1 self-stretch items-center">
           {mobileTimeframes.map(tf => (
             <button
               key={tf}
               type="button"
               disabled={disabled}
               onClick={() => onTimeframe(tf)}
-              className={`grid h-8 min-w-0 flex-1 place-items-center rounded text-[10px] font-bold transition ${timeframe === tf ? 'text-[#f5f5f5]' : 'text-[#85858d] hover:text-[#d9d9de]'}`}
+              className={`relative grid h-full min-w-0 flex-1 place-items-center text-[11px] font-bold transition ${timeframe === tf ? 'text-[#36dcec]' : 'text-[#a8b1c0] active:text-[#e9edf3]'}`}
             >
               {tf}
+              {timeframe === tf && <span className="absolute bottom-0 left-[18%] right-[18%] h-[2px] rounded-full bg-[#32d9ed]" aria-hidden="true"/>}
             </button>
           ))}
         </div>
 
-        <div className="flex h-8 shrink-0 items-center overflow-hidden bg-[#111114]">
-          <button type="button" disabled={disabled} aria-label="Candlestick chart" onClick={() => onChartMode('candles')} className={`grid h-full w-8 place-items-center ${chartMode === 'candles' ? 'bg-[#15151a] text-[#53c7ff] shadow-[inset_0_-2px_0_rgba(83,199,255,0.75)]' : 'bg-transparent text-[#7a7a82]'}`}>
-            <CandlestickChart size={15} />
+        <div className="mx-1 h-7 w-px shrink-0 bg-white/[0.11]" aria-hidden="true"/>
+
+        <div className="flex h-full shrink-0 items-center">
+          <button
+            type="button"
+            disabled={disabled}
+            aria-label="Candlestick chart"
+            onClick={() => onChartMode('candles')}
+            className={`relative grid h-full w-[34px] place-items-center ${chartMode === 'candles' ? 'text-[#32d9ed]' : 'text-[#d6dce5]'}`}
+          >
+            <CandlestickChart size={19} strokeWidth={1.9}/>
+            {chartMode === 'candles' && <span className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full bg-[#32d9ed]" aria-hidden="true"/>}
           </button>
-          <button type="button" disabled={disabled} aria-label="Line chart" onClick={() => onChartMode('line')} className={`grid h-full w-8 place-items-center ${chartMode === 'line' ? 'bg-[#15151a] text-[#53c7ff] shadow-[inset_0_-2px_0_rgba(83,199,255,0.75)]' : 'bg-transparent text-[#7a7a82]'}`}>
-            <ChartNoAxesCombined size={15} />
+          <button
+            type="button"
+            disabled={disabled}
+            aria-label="Line chart"
+            onClick={() => onChartMode('line')}
+            className={`relative grid h-full w-[34px] place-items-center ${chartMode === 'line' ? 'text-[#32d9ed]' : 'text-[#d6dce5]'}`}
+          >
+            <ChartNoAxesCombined size={19} strokeWidth={1.9}/>
+            {chartMode === 'line' && <span className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full bg-[#32d9ed]" aria-hidden="true"/>}
           </button>
-          <button type="button" disabled={disabled} onClick={onIndicators} aria-label="Indicators" className="grid h-full w-8 place-items-center bg-transparent text-[15px] font-medium italic text-[#7a7a82] active:bg-[#15151a] active:text-[#53c7ff]">
-            ƒx
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onIndicators}
+            aria-label="Indicators"
+            className="grid h-full w-[34px] place-items-center text-[22px] font-light italic leading-none text-[#e1e6ed] active:text-[#32d9ed]"
+          >
+            ƒ
           </button>
           <button
             type="button"
@@ -65,9 +88,20 @@ export default function ChartControls({
             onClick={onToggleDrawings}
             aria-label={drawingsOpen ? 'Hide drawing tools' : 'Show drawing tools'}
             aria-pressed={drawingsOpen}
-            className={`grid h-full w-8 place-items-center ${drawingsOpen ? 'bg-[#15151a] text-[#53c7ff] shadow-[inset_0_-2px_0_rgba(83,199,255,0.75)]' : 'bg-transparent text-[#7a7a82]'}`}
+            className={`relative grid h-full w-[34px] place-items-center ${drawingsOpen ? 'text-[#32d9ed]' : 'text-[#d6dce5]'}`}
           >
-            <Pencil size={15} />
+            <Pencil size={19} strokeWidth={1.8}/>
+            {drawingsOpen && <span className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full bg-[#32d9ed]" aria-hidden="true"/>}
+          </button>
+          <div className="mx-1 h-7 w-px shrink-0 bg-white/[0.11]" aria-hidden="true"/>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onFullscreen}
+            aria-label={fullscreen ? 'Exit chart focus' : 'Open chart focus'}
+            className="grid h-full w-[31px] place-items-center text-[#d6dce5] active:text-[#32d9ed]"
+          >
+            <MoreVertical size={20} strokeWidth={2.1}/>
           </button>
         </div>
       </div>

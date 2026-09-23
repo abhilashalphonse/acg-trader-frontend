@@ -36,10 +36,10 @@ export default function MarketPanel({
   compactMobileToolbar = false,
   fillAvailableHeight = false,
 }) {
-  const [drawingToolbarOpen, setDrawingToolbarOpen] = useState(false);
+  const [drawingToolbarOpen, setDrawingToolbarOpen] = useState(compactMobileToolbar);
 
   return (
-    <section className={`overflow-hidden ${fillAvailableHeight ? 'flex h-full min-h-0 flex-col' : ''} ${compactMobileToolbar ? 'acg-mobile-metal-surface border-0 bg-[#0b0b0d]' : 'border border-white/[0.08] bg-black'}`}>
+    <section className={`overflow-hidden ${fillAvailableHeight ? 'flex h-full min-h-0 flex-col' : ''} ${compactMobileToolbar ? 'acg-mobile-reference-chart-frame acg-mobile-metal-surface rounded-[14px] border border-white/[0.09] bg-[#081019]' : 'border border-white/[0.08] bg-black'}`}>
       {showInstrumentHeader && <InstrumentHeader market={market} favorite={favorite} onFavorite={() => setFavorite(v => !v)} onSelectInstrument={onSelectInstrument} />}
       <ChartControls
         timeframe={timeframe}
