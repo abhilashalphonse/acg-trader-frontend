@@ -119,7 +119,45 @@ function normalizeAccount(account, valuation) {
   return {
     id: account?.id || null, accountCode: account?.accountCode || null, accountType: account?.accountType || null, currency: account?.currency || 'USD', status: account?.status || 'UNKNOWN', tradingEnabled: account?.tradingEnabled === true, leverage: account?.leverage || null,
     initialBalance: nullableNumber(durable.initialBalance), balance: valuationNumber('balance', durable.balance), equity: valuationNumber('equity', durable.equity), floatingPnl: valuationNumber('floatingPnl', durable.floatingPnl), margin: valuationNumber('usedMargin', durable.usedMargin), usedMargin: valuationNumber('usedMargin', durable.usedMargin), freeMargin: valuationNumber('freeMargin', durable.freeMargin), marginLevel: hasValuation ? nullableNumber(valuation?.marginLevel) : null, dailyStartEquity: nullableNumber(durable.dailyStartEquity), realizedPnlToday: nullableNumber(durable.realizedPnlToday), valuationStatus: valuation?.valuationStatus || 'WAITING', complete: valuation?.complete !== false, staleSymbols: valuation?.staleSymbols || [],
-    dailyLossLimit: numberOr(policy?.dailyLoss?.limit), dailyLossReference: policy?.dailyLoss?.reference || 'DAILY_START_EQUITY', maxLossLimit: numberOr(policy?.maxLoss?.limit), maxLossReference: policy?.maxLoss?.reference || 'INITIAL_BALANCE', profitTarget: numberOr(policy?.profitTarget), riskPolicy: policy, challenge: account?.challenge || {}, riskDayKey: account?.riskDayKey || null, riskTimezone: account?.riskTimezone || 'UTC',
+    dailyLossLimit: numberOr(policy?.dailyLoss?.limit), dailyLossReference: policy?.dailyLoss?.reference || 'DAILY_START_EQUITY', maxLossLimit: numberOr(policy?.maxLoss?.limit), maxLossReference: policy?.maxLoss?.reference || 'INITIAL_BALANCE', profitTarget: numberOr(policy?.profitTarget), riskPolicy: policy, challenge: account?.challenge || {}, fundedAccountId: account?.challenge?.fundedAccountId || account?.fundedAccountId || null, riskDayKey: account?.riskDayKey || null, riskTimezone: account?.riskTimezone || 'UTC',
+  };
+}
+
+function normalizeGrantAccount(grant) {
+  if (!grant?.id) return null;
+  return {
+    id: String(grant.id),
+    accountCode: grant.accountCode || null,
+    accountType: grant.accountType || null,
+    currency: grant.currency || 'USD',
+    status: grant.status || 'UNKNOWN',
+    tradingEnabled: grant.tradingEnabled === true,
+    leverage: grant.leverage || null,
+    initialBalance: nullableNumber(grant.initialBalance),
+    balance: nullableNumber(grant.balance),
+    equity: nullableNumber(grant.equity),
+    floatingPnl: null,
+    margin: null,
+    usedMargin: null,
+    freeMargin: null,
+    marginLevel: null,
+    dailyStartEquity: null,
+    realizedPnlToday: null,
+    valuationStatus: 'WAITING',
+    complete: false,
+    staleSymbols: [],
+    dailyLossLimit: 0,
+    maxLossLimit: 0,
+    profitTarget: 0,
+    riskPolicy: {},
+    challenge: {
+      phase: grant.phase || null,
+      status: grant.status || null,
+      fundedAccountId: grant.fundedAccountId || null,
+    },
+    fundedAccountId: grant.fundedAccountId || null,
+    riskDayKey: grant.riskDayKey || null,
+    riskTimezone: 'UTC',
   };
 }
 function sourceForViewport() { return typeof window !== 'undefined' && window.matchMedia?.('(max-width: 1023px)').matches ? 'MOBILE' : 'WEB'; }
@@ -152,16 +190,31 @@ export function useTradingTerminal(markets = []) {
     () => [...new Set((auth.principal?.accountIds || []).map(String).filter(Boolean))],
     [auth.principal?.accountIds],
   );
+  const accountGrants = useMemo(
+    () => Array.isArray(auth.principal?.accountGrants) ? auth.principal.accountGrants : [],
+    [auth.principal?.accountGrants],
+  );
+  const grantById = useMemo(
+    () => new Map(accountGrants.map(item => [String(item?.id || ''), item]).filter(([id]) => id)),
+    [accountGrants],
+  );
+  const grantHistoryRef = useRef(new Map());
+  for (const grant of accountGrants) {
+    if (grant?.id) grantHistoryRef.current.set(String(grant.id), grant);
+  }
+
   const preferredAccountId = auth.principal?.selectedAccountId ? String(auth.principal.selectedAccountId) : null;
   const [activeAccountId, setActiveAccountId] = useState(null);
+  const [lifecycleEvent, setLifecycleEvent] = useState(null);
 
-  useEffect(() => {
-    setActiveAccountId(current => {
-      if (current && grantedAccountIds.includes(current)) return current;
-      if (preferredAccountId && grantedAccountIds.includes(preferredAccountId)) return preferredAccountId;
-      return grantedAccountIds[0] || null;
-    });
-  }, [grantedAccountIds, preferredAccountId]);
+  const beginAccountSwitch = useCallback((target, reason = 'manual') => {
+    const baselineRevision = Number(trading.snapshotRevisionByAccountId?.[target] || 0);
+    setHistory({ accountId: target, orders: [], deals: [], positions: [], loaded: false, error: null });
+    setSwitchContext({ targetId: target, baselineRevision, startedAt: Date.now(), reason });
+    setSwitchRequestVersion(version => version + 1);
+    setActiveAccountId(target);
+    return target;
+  }, [trading.snapshotRevisionByAccountId]);
 
   const selectAccount = useCallback(nextAccountId => {
     const target = String(nextAccountId || '').trim();
@@ -177,23 +230,79 @@ export function useTradingTerminal(markets = []) {
       error.code = 'ACCOUNT_SWITCH_BLOCKED';
       throw error;
     }
-    const baselineRevision = Number(trading.snapshotRevisionByAccountId?.[target] || 0);
-    setHistory({ accountId: target, orders: [], deals: [], positions: [], loaded: false, error: null });
-    setSwitchContext({ targetId: target, baselineRevision, startedAt: Date.now() });
-    setSwitchRequestVersion(version => version + 1);
-    setActiveAccountId(target);
-    return target;
-  }, [commandState.pending, commandState.uncertain, grantedAccountIds, trading.snapshotRevisionByAccountId]);
+    return beginAccountSwitch(target, 'manual');
+  }, [beginAccountSwitch, commandState.pending, commandState.uncertain, grantedAccountIds]);
+
+  useEffect(() => {
+    if (activeAccountId && grantedAccountIds.includes(activeAccountId)) return;
+    if (commandState.pending || commandState.uncertain) return;
+
+    if (!activeAccountId) {
+      const initialTarget = preferredAccountId && grantedAccountIds.includes(preferredAccountId)
+        ? preferredAccountId
+        : grantedAccountIds[0] || null;
+      if (initialTarget) beginAccountSwitch(initialTarget, 'initial');
+      return;
+    }
+
+    const previousGrant = grantHistoryRef.current.get(String(activeAccountId)) || null;
+    const lifecycleId = String(previousGrant?.fundedAccountId || '').trim();
+    const replacements = lifecycleId
+      ? accountGrants
+          .filter(item => String(item?.fundedAccountId || '').trim() === lifecycleId && String(item?.id || '') !== String(activeAccountId))
+          .sort((a, b) => {
+            const aMaster = String(a?.accountType || '').toUpperCase() === 'FUNDED' ? 1 : 0;
+            const bMaster = String(b?.accountType || '').toUpperCase() === 'FUNDED' ? 1 : 0;
+            if (aMaster !== bMaster) return bMaster - aMaster;
+            return Number(b?.phase || 0) - Number(a?.phase || 0);
+          })
+      : [];
+    const replacement = replacements[0] || null;
+
+    if (replacement?.id) {
+      const target = String(replacement.id);
+      const previousPhase = Number(previousGrant?.phase || 0);
+      const nextPhase = Number(replacement?.phase || 0);
+      const master = String(replacement?.accountType || '').toUpperCase() === 'FUNDED';
+      setLifecycleEvent({
+        id: `${Date.now()}:${target}`,
+        message: master
+          ? 'Master Account ready — synchronizing trading state…'
+          : nextPhase > previousPhase
+            ? `Phase ${nextPhase} ready — synchronizing trading state…`
+            : 'Trading account updated — synchronizing state…',
+      });
+      beginAccountSwitch(target, 'lifecycle-replacement');
+      return;
+    }
+
+    if (!lifecycleId) {
+      const fallback = preferredAccountId && grantedAccountIds.includes(preferredAccountId)
+        ? preferredAccountId
+        : grantedAccountIds[0] || null;
+      if (fallback) beginAccountSwitch(fallback, 'grant-fallback');
+    }
+  }, [accountGrants, activeAccountId, beginAccountSwitch, commandState.pending, commandState.uncertain, grantedAccountIds, preferredAccountId]);
 
   const accountId = activeAccountId;
+  const accountGrantMissing = Boolean(accountId && !grantedAccountIds.includes(accountId));
   const rawAccount = accountId ? trading.accountsById[accountId] || null : null;
   const valuation = accountId ? trading.valuationsByAccountId[accountId] || null : null;
   const account = useMemo(() => normalizeAccount(rawAccount, valuation), [rawAccount, valuation]);
   const accounts = useMemo(() => grantedAccountIds
-    .map(id => normalizeAccount(trading.accountsById[id], trading.valuationsByAccountId[id]))
-    .filter(item => item.id), [grantedAccountIds, trading.accountsById, trading.valuationsByAccountId]);
+    .map(id => {
+      const raw = trading.accountsById[id];
+      return raw
+        ? normalizeAccount(raw, trading.valuationsByAccountId[id])
+        : normalizeGrantAccount(grantById.get(id));
+    })
+    .filter(item => item?.id), [grantById, grantedAccountIds, trading.accountsById, trading.valuationsByAccountId]);
   const accountSwitching = Boolean(switchContext && switchContext.targetId === accountId);
-  const accountSwitchError = accountSwitching && history.accountId === accountId ? history.error : null;
+  const accountSwitchError = accountGrantMissing
+    ? 'This account is no longer available for trading. Waiting for its next lifecycle account, or select another account.'
+    : accountSwitching && history.accountId === accountId
+      ? history.error
+      : null;
   const rawPositions = useMemo(() => Object.values(trading.positionsById).filter(item => (!accountId || String(item.accountId) === String(accountId)) && item.status !== 'CLOSED').sort((a, b) => new Date(b.openedAt || 0) - new Date(a.openedAt || 0)), [accountId, trading.positionsById]);
   const positions = useMemo(() => rawPositions.map(position => normalizePosition(position, positionValuations[position.id], markets.find(item => item.symbol === position.symbol), account.currency)), [account.currency, markets, positionValuations, rawPositions]);
   const pendingOrders = useMemo(() => Object.values(trading.ordersById).filter(order => (!accountId || String(order.accountId) === String(accountId)) && ACTIVE_ORDER_STATUSES.has(String(order.status || '').toUpperCase()) && String(order.type || '').toUpperCase() !== 'MARKET').sort((a, b) => new Date(b.createdAt || b.receivedAt || 0) - new Date(a.createdAt || a.receivedAt || 0)).map(normalizePendingOrder), [accountId, trading.ordersById]);
@@ -265,13 +374,18 @@ export function useTradingTerminal(markets = []) {
   }, []);
   const requireAccount = useCallback(() => {
     if (!accountId) throw new Error('No trading account is available for this session');
+    if (accountGrantMissing) {
+      const error = new Error('This account is no longer granted to the current trading session');
+      error.code = 'ACCOUNT_ACCESS_REVOKED';
+      throw error;
+    }
     if (accountSwitching) {
       const error = new Error(accountSwitchError || 'Trading account is still synchronizing');
       error.code = 'ACCOUNT_SWITCH_IN_PROGRESS';
       throw error;
     }
     return accountId;
-  }, [accountId, accountSwitchError, accountSwitching]);
+  }, [accountGrantMissing, accountId, accountSwitchError, accountSwitching]);
 
   const executeExposureCommand = useCallback(({ accountId: targetAccountId, clientOrderId, submit }) => executeWithOrderReconciliation({
     submit,
@@ -450,5 +564,5 @@ export function useTradingTerminal(markets = []) {
     }));
   }, [commands, instrumentForSymbol, pendingOrders, requireAccount, run]);
 
-  return { accountId, activeAccountId, grantedAccountIds, accounts, selectAccount, accountSwitching, accountSwitchError, account, rawAccount, valuation, positions, pendingOrders, positionHistory, historyOrders: history.accountId === accountId ? history.orders : [], historyDeals: history.accountId === accountId ? history.deals : [], historyPositions: history.accountId === accountId ? history.positions : [], historyLoaded: history.accountId === accountId && history.loaded, fills: trading.fills.filter(fill => String(fill?.accountId || '') === String(accountId || '')), orders: Object.values(trading.ordersById).filter(order => String(order?.accountId || '') === String(accountId || '')), connection, commandState, tradingReady: Boolean(accountId && rawAccount && account.tradingEnabled && connection.status === 'ready' && !commandState.uncertain && !accountSwitching), refreshState, openMarketOrder, placePendingOrder, replacePendingOrder, cancelPendingOrder, closePosition, closeAllPositions, updatePosition, movePositionToBreakEven, setPositionTrailing, duplicatePosition, reversePosition, errorMessage };
+  return { accountId, activeAccountId, grantedAccountIds, accountGrants, accounts, selectAccount, accountSwitching, accountGrantMissing, accountSwitchError, lifecycleEvent, clearLifecycleEvent: () => setLifecycleEvent(null), account, rawAccount, valuation, positions, pendingOrders, positionHistory, historyOrders: history.accountId === accountId ? history.orders : [], historyDeals: history.accountId === accountId ? history.deals : [], historyPositions: history.accountId === accountId ? history.positions : [], historyLoaded: history.accountId === accountId && history.loaded, fills: trading.fills.filter(fill => String(fill?.accountId || '') === String(accountId || '')), orders: Object.values(trading.ordersById).filter(order => String(order?.accountId || '') === String(accountId || '')), connection, commandState, tradingReady: Boolean(accountId && !accountGrantMissing && rawAccount && account.tradingEnabled && connection.status === 'ready' && !commandState.uncertain && !accountSwitching), refreshState, openMarketOrder, placePendingOrder, replacePendingOrder, cancelPendingOrder, closePosition, closeAllPositions, updatePosition, movePositionToBreakEven, setPositionTrailing, duplicatePosition, reversePosition, errorMessage };
 }
