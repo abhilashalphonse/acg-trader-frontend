@@ -78,7 +78,7 @@ export default function MobileTradingHeader({
         aria-label="Open markets and watchlist"
       >
         <span className="acg-mobile-instrument-icon-shell grid shrink-0 place-items-center">
-          <InstrumentAvatar instrument={market} size={30}/>
+          <InstrumentAvatar instrument={market} size={34}/>
         </span>
         <div className="acg-mobile-instrument-meta min-w-0">
           <div className="flex min-w-0 items-center gap-1.5">
