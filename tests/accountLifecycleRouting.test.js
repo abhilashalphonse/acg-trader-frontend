@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {
   resolveCommandAccountId,
   resolveLifecycleReplacement,
-} from '../src/hooks/useTradingTerminal.js';
+} from '../src/utils/accountLifecycleRouting.js';
 import { exposureAvailability } from '../src/utils/exposureAvailability.js';
 
 function grant(id, fundedAccountId, {
