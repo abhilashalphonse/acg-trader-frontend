@@ -70,6 +70,18 @@ export class TraderSocket {
     this.open();
   }
 
+  refreshSessionContext(token = this.token) {
+    const nextToken = String(token || '').trim();
+    if (!nextToken) return false;
+    this.closeSocket(1000, 'Account grants changed');
+    this.token = nextToken;
+    this.intentionalClose = false;
+    this.retry = 0;
+    this.clearReconnect();
+    this.open();
+    return true;
+  }
+
   disconnect() {
     this.intentionalClose = true;
     this.token = null;
