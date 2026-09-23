@@ -1856,3 +1856,37 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
     box-shadow:none!important;
   }
 }
+
+
+/* Mobile bug fixes: aligned instrument identity and MT5-style quote tick flash. */
+@media (max-width:430px){
+  .acg-mobile-instrument-icon-shell{
+    display:grid!important;
+    place-items:center!important;
+    overflow:visible!important;
+  }
+
+  .acg-mobile-instrument-icon-shell > span{
+    width:26px!important;
+    height:26px!important;
+    transform:none!important;
+    margin:0!important;
+  }
+
+  .acg-mobile-instrument-icon-shell > span > span{
+    transform:none!important;
+  }
+
+  .acg-mobile-quote-price{
+    transition:color 80ms linear!important;
+    will-change:color;
+  }
+
+  .acg-mobile-quote-up{
+    color:#32d583!important;
+  }
+
+  .acg-mobile-quote-down{
+    color:#ff5a66!important;
+  }
+}
