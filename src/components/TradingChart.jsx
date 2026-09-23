@@ -136,7 +136,7 @@ export default function TradingChart({
   const [displayBar, setDisplayBar] = useState(null);
   const [paneLayout, setPaneLayout] = useState([]);
   const [isAtRealtime, setIsAtRealtime] = useState(true);
-  const chartRightBars = mobileReference ? 9 : DEFAULT_RIGHT_BARS;
+  const chartRightBars = mobileReference ? 10 : DEFAULT_RIGHT_BARS;
 
   const backendTimeframe = useMemo(() => {
     try { return toBackendTimeframe(timeframe); } catch { return null; }
