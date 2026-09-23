@@ -145,6 +145,7 @@ export function useTradingTerminal(markets = []) {
   const [history, setHistory] = useState({ accountId: null, orders: [], deals: [], positions: [], loaded: false, error: null });
   const [commandState, setCommandState] = useState({ pending: false, uncertain: false, error: null, lastResult: null });
   const [switchContext, setSwitchContext] = useState(null);
+  const [switchRequestVersion, setSwitchRequestVersion] = useState(0);
   const busyRef = useRef(0);
 
   const grantedAccountIds = useMemo(
@@ -179,6 +180,7 @@ export function useTradingTerminal(markets = []) {
     const baselineRevision = Number(trading.snapshotRevisionByAccountId?.[target] || 0);
     setHistory({ accountId: target, orders: [], deals: [], positions: [], loaded: false, error: null });
     setSwitchContext({ targetId: target, baselineRevision, startedAt: Date.now() });
+    setSwitchRequestVersion(version => version + 1);
     setActiveAccountId(target);
     return target;
   }, [commandState.pending, commandState.uncertain, grantedAccountIds, trading.snapshotRevisionByAccountId]);
@@ -222,7 +224,7 @@ export function useTradingTerminal(markets = []) {
       .sort((a, b) => new Date(b.closedAtIso || 0) - new Date(a.closedAtIso || 0));
   }, [account.currency, accountId, history.accountId, history.deals, history.loaded, history.positions, trading.fills, trading.positionsById]);
 
-  useEffect(() => { if (!accountId || connection.status !== 'ready') return; requestSnapshot([accountId]); }, [accountId, connection.status, requestSnapshot, switchContext?.startedAt]);
+  useEffect(() => { if (!accountId || connection.status !== 'ready') return; requestSnapshot([accountId]); }, [accountId, connection.status, requestSnapshot, switchRequestVersion]);
   useEffect(() => {
     setHistory({ accountId, orders: [], deals: [], positions: [], loaded: false, error: null });
     if (!accountId || connection.status !== 'ready') return undefined;
@@ -235,7 +237,7 @@ export function useTradingTerminal(markets = []) {
         if (!controller.signal.aborted) setHistory({ accountId, orders: [], deals: [], positions: [], loaded: false, error: error?.message || 'Unable to load account history' });
       });
     return () => controller.abort();
-  }, [accountId, commands, connection.status, switchContext?.startedAt]);
+  }, [accountId, commands, connection.status, switchRequestVersion]);
 
   useEffect(() => {
     if (!switchContext || !accountId || switchContext.targetId !== accountId) return;
