@@ -1570,3 +1570,162 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
     color:#4f5d69!important;
   }
 }
+
+
+/* Flat black / metallic-black mobile theme.
+   Removes glow, glossy gradients and blue cast from phone UI only.
+   Trading/chart/order behavior is unchanged. */
+@media (max-width:430px){
+  .acg-mobile-chart-shell{
+    --acg-mobile-black:#050505;
+    --acg-mobile-metal:#0d0f12;
+    --acg-mobile-metal-2:#111318;
+    --acg-mobile-border:rgba(255,255,255,.075);
+    --acg-mobile-border-soft:rgba(255,255,255,.05);
+    --acg-mobile-muted:#8d98a4;
+    --acg-mobile-cyan:#32d9ed;
+    background:var(--acg-mobile-black)!important;
+  }
+
+  /* Remove glow/shine from all primary mobile surfaces */
+  .acg-mobile-reference-header,
+  .acg-mobile-instrument-icon-shell,
+  .acg-mobile-pnl-card,
+  .acg-mobile-reference-chart-frame.acg-mobile-metal-surface,
+  .acg-mobile-reference-chart-controls,
+  .acg-mobile-reference-drawing-rail,
+  .acg-mobile-reference-execution.acg-mobile-execution-surface,
+  .acg-mobile-order-control,
+  .acg-mobile-lot-control{
+    background-image:none!important;
+    box-shadow:none!important;
+    filter:none!important;
+  }
+
+  .acg-mobile-reference-header{
+    background:var(--acg-mobile-black)!important;
+    border-bottom-color:var(--acg-mobile-border-soft)!important;
+  }
+
+  .acg-mobile-instrument-icon-shell{
+    background:var(--acg-mobile-metal)!important;
+    border-color:var(--acg-mobile-border)!important;
+  }
+
+  .acg-mobile-header-divider{
+    border-left-color:var(--acg-mobile-border-soft)!important;
+  }
+
+  .acg-mobile-pnl-card{
+    background:var(--acg-mobile-metal)!important;
+    border-color:var(--acg-mobile-border)!important;
+  }
+
+  .acg-mobile-reference-content{
+    background:var(--acg-mobile-black)!important;
+  }
+
+  .acg-mobile-reference-chart-frame.acg-mobile-metal-surface{
+    background:var(--acg-mobile-black)!important;
+    border-color:var(--acg-mobile-border-soft)!important;
+  }
+
+  .acg-mobile-reference-chart-controls{
+    background:var(--acg-mobile-metal)!important;
+    border-color:var(--acg-mobile-border)!important;
+  }
+
+  .acg-mobile-toolbar-separator{
+    background:rgba(255,255,255,.07)!important;
+  }
+
+  .acg-mobile-reference-chart-area.acg-mobile-chart-surface{
+    background:var(--acg-mobile-black)!important;
+    border-top-color:var(--acg-mobile-border-soft)!important;
+  }
+
+  .acg-mobile-reference-drawing-rail{
+    background:#08090b!important;
+    border-color:var(--acg-mobile-border-soft)!important;
+  }
+
+  .acg-mobile-reference-drawing-rail .acg-mobile-drawing-tool-selected{
+    background:#13171a!important;
+    color:var(--acg-mobile-cyan)!important;
+    box-shadow:none!important;
+    outline:1px solid rgba(50,217,237,.18)!important;
+    outline-offset:-1px!important;
+  }
+
+  .acg-mobile-reference-drawing-rail .acg-mobile-drawing-tool:not(.acg-mobile-drawing-tool-selected),
+  .acg-mobile-reference-drawing-rail > button:not(.acg-mobile-drawing-tool-selected){
+    color:#858f99!important;
+  }
+
+  .acg-mobile-reference-drawing-rail > div{
+    background:rgba(255,255,255,.055)!important;
+  }
+
+  .acg-mobile-reference-execution.acg-mobile-execution-surface{
+    background:var(--acg-mobile-black)!important;
+    border-color:transparent!important;
+  }
+
+  .acg-mobile-order-control{
+    background:var(--acg-mobile-metal)!important;
+    border-color:var(--acg-mobile-border)!important;
+  }
+
+  .acg-mobile-order-control:active{
+    background:var(--acg-mobile-metal-2)!important;
+  }
+
+  .acg-mobile-lot-control{
+    background:var(--acg-mobile-metal)!important;
+    border-color:var(--acg-mobile-border)!important;
+  }
+
+  /* Keep actions strong, but make them flat rather than glossy */
+  .acg-mobile-sell-action{
+    background:#d92f45!important;
+    background-image:none!important;
+    border-color:#e1475a!important;
+    box-shadow:none!important;
+  }
+
+  .acg-mobile-buy-action{
+    background:#0db59e!important;
+    background-image:none!important;
+    border-color:#19c9af!important;
+    box-shadow:none!important;
+  }
+
+  .acg-mobile-sell-action:active{
+    background:#c9293e!important;
+  }
+
+  .acg-mobile-buy-action:active{
+    background:#0aa58f!important;
+  }
+
+  /* Selected states use color, not glow */
+  .acg-mobile-timeframes button > span,
+  .acg-mobile-chart-tools button > span{
+    box-shadow:none!important;
+  }
+
+  .acg-mobile-chart-tools button[aria-pressed="true"],
+  .acg-mobile-chart-tools button[class*="text-[#32d9ed]"],
+  .acg-mobile-timeframes button[class*="text-[#36dcec]"]{
+    text-shadow:none!important;
+    filter:none!important;
+  }
+
+  /* Keep the chart itself neutral black */
+  .v2-lightweight-chart,
+  .acg-mobile-chart-surface,
+  .acg-mobile-reference-chart-area > div,
+  .acg-mobile-reference-chart-area > div > div{
+    background-color:#09090b!important;
+  }
+}
