@@ -8,6 +8,7 @@ export const AuthContext = createContext(null);
 const REFRESH_EARLY_MS = 2 * 60 * 1000;
 const WAKE_REFRESH_WINDOW_MS = 5 * 60 * 1000;
 const NETWORK_RETRY_MS = 15 * 1000;
+const ACCOUNT_GRANT_REFRESH_MS = 45 * 1000;
 
 function sessionFromAuthResponse(response) {
   if (!response?.accessToken || !response?.expiresAt || !response?.session) {
@@ -74,6 +75,7 @@ export function AuthProvider({ children }) {
   const sessionRef = useRef(null);
   const refreshPromiseRef = useRef(null);
   const retryTimerRef = useRef(null);
+  const grantRefreshPromiseRef = useRef(null);
 
   const commitSession = useCallback(next => {
     sessionRef.current = next;
@@ -172,7 +174,59 @@ export function AuthProvider({ children }) {
 
     const renewed = await refreshSession();
     return renewed?.accessToken || sessionRef.current?.accessToken || null;
-  }, [refreshSession]);
+  }, [refreshAccountGrants, refreshSession]);
+
+  const refreshAccountGrants = useCallback(async () => {
+    if (grantRefreshPromiseRef.current) return grantRefreshPromiseRef.current;
+
+    const task = (async () => {
+      let token = await ensureFreshAccessToken({ minValidityMs: 30_000 });
+      if (!token) return null;
+
+      let response;
+      try {
+        response = await authApi.accounts(token);
+      } catch (firstError) {
+        if (firstError?.status !== 401) throw firstError;
+        const renewed = await refreshSession();
+        token = renewed?.accessToken || null;
+        if (!token) throw firstError;
+        response = await authApi.accounts(token);
+      }
+
+      const accounts = Array.isArray(response?.accounts) ? response.accounts : [];
+      const accountIds = accounts.map(item => String(item?.id || '')).filter(Boolean);
+      const current = sessionRef.current;
+      if (!current?.principal) return null;
+
+      const currentSelected = current.principal.selectedAccountId ? String(current.principal.selectedAccountId) : null;
+      const serverSelected = response?.selectedAccountId ? String(response.selectedAccountId) : null;
+      const selectedAccountId = accountIds.includes(currentSelected)
+        ? currentSelected
+        : accountIds.includes(serverSelected)
+          ? serverSelected
+          : accountIds[0] || null;
+
+      const principal = {
+        ...current.principal,
+        accountIds,
+        selectedAccountId,
+        accountGrants: accounts,
+        grantsRefreshedAt: new Date().toISOString(),
+      };
+      const next = { ...current, principal };
+      commitSession(next);
+      return { accounts, selectedAccountId, principal };
+    })().catch(nextError => {
+      setError(nextError);
+      throw nextError;
+    }).finally(() => {
+      grantRefreshPromiseRef.current = null;
+    });
+
+    grantRefreshPromiseRef.current = task;
+    return task;
+  }, [commitSession, ensureFreshAccessToken, refreshSession]);
 
   const exchangeTicket = useCallback(async ticket => {
     setStatus('authenticating');
@@ -317,8 +371,12 @@ export function AuthProvider({ children }) {
       if (!current?.principal) return;
       const remaining = current.expiresAt ? new Date(current.expiresAt).getTime() - Date.now() : 0;
       if (!current.accessToken || remaining <= WAKE_REFRESH_WINDOW_MS) {
-        void refreshSession().catch(() => {});
+        void refreshSession().then(next => {
+          if (next?.principal?.authMethod === 'FEDERATED') void refreshAccountGrants().catch(() => {});
+        }).catch(() => {});
+        return;
       }
+      if (current.principal.authMethod === 'FEDERATED') void refreshAccountGrants().catch(() => {});
     };
 
     const onVisibility = () => {
@@ -335,6 +393,24 @@ export function AuthProvider({ children }) {
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [refreshSession]);
+
+  useEffect(() => {
+    if (status !== 'authenticated' || session?.principal?.authMethod !== 'FEDERATED') return undefined;
+
+    let active = true;
+    const refresh = () => {
+      if (!active) return;
+      void refreshAccountGrants().catch(() => {});
+    };
+    const initial = window.setTimeout(refresh, 0);
+    const interval = window.setInterval(refresh, ACCOUNT_GRANT_REFRESH_MS);
+
+    return () => {
+      active = false;
+      window.clearTimeout(initial);
+      window.clearInterval(interval);
+    };
+  }, [refreshAccountGrants, session?.principal?.authMethod, status]);
 
   useEffect(() => () => {
     if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current);
@@ -354,6 +430,7 @@ export function AuthProvider({ children }) {
     exchangeTicket,
     logout,
     refreshPrincipal,
+    refreshAccountGrants,
     refreshSession,
     ensureFreshAccessToken,
     invalidateSession,
@@ -364,6 +441,7 @@ export function AuthProvider({ children }) {
     login,
     logout,
     refreshPrincipal,
+    refreshAccountGrants,
     refreshSession,
     ensureFreshAccessToken,
     refreshing,
