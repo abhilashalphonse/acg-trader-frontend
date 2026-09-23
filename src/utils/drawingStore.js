@@ -119,10 +119,10 @@ function emit(symbol) {
   listeners.get(key)?.forEach(listener => listener());
 }
 
-function replaceState(symbol, next) {
+function replaceState(symbol, next, { persistPresent = true } = {}) {
   const key = symbolKey(symbol);
   stores.set(key, { ...next, revision: (next.revision || 0) + 1 });
-  persist(key, next.present);
+  if (persistPresent) persist(key, next.present);
   emit(key);
 }
 
@@ -160,7 +160,7 @@ export function replaceDrawingsLive(symbol, nextPresent) {
   replaceState(symbol, {
     ...current,
     present: normalized,
-  });
+  }, { persistPresent: false });
 }
 
 export function commitLiveDrawingTransaction(symbol, before) {

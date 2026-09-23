@@ -358,7 +358,72 @@ export default function TradingChart({
       }
     };
     timeScale.subscribeVisibleLogicalRangeChange(visibleRangeHandler);
-    const coordinateApi = { toData(point) { if (!point) return null; const time = timeScale.coordinateToTime(Number(point.x)); const price = series.coordinateToPrice(Number(point.y)); return time == null || price == null || !Number.isFinite(Number(price)) ? null : { time, price: Number(price) }; }, toScreen(point) { if (!point || point.time == null || point.price == null) return null; const x = timeScale.timeToCoordinate(point.time); const y = series.priceToCoordinate(Number(point.price)); return x == null || y == null ? null : { x: Number(x), y: Number(y) }; }, priceToY(price) { const y = series.priceToCoordinate(Number(price)); return y == null || !Number.isFinite(Number(price)) || !Number.isFinite(Number(y)) ? null : Number(y); }, yToPrice(y) { const price = series.coordinateToPrice(Number(y)); return price == null || !Number.isFinite(Number(price)) ? null : Number(price); }, fitContent() { timeScale.fitContent(); }, focusTime(time) { const numeric = Number(time); const index = barsRef.current.findIndex(bar => Number(bar.time) === numeric); if (index < 0) return; const halfWindow = 22; timeScale.setVisibleLogicalRange({ from: Math.max(0, index - halfWindow), to: Math.min(barsRef.current.length - 1 + chartRightBars, index + halfWindow) }); }, resetView() { const lastIndex = barsRef.current.length - 1; if (lastIndex >= 0) timeScale.setVisibleLogicalRange({ from: Math.max(0, lastIndex - DEFAULT_BARS_BACK), to: lastIndex + chartRightBars }); }, subscribe(handler) { const rangeHandler = () => handler?.(); const sizeHandler = () => handler?.(); timeScale.subscribeVisibleLogicalRangeChange(rangeHandler); timeScale.subscribeSizeChange(sizeHandler); return () => { timeScale.unsubscribeVisibleLogicalRangeChange(rangeHandler); timeScale.unsubscribeSizeChange(sizeHandler); }; } };
+    const coordinateApi = {
+      toData(point) {
+        if (!point) return null;
+        const time = timeScale.coordinateToTime(Number(point.x));
+        const price = series.coordinateToPrice(Number(point.y));
+        return time == null || price == null || !Number.isFinite(Number(price)) ? null : { time, price: Number(price) };
+      },
+      toScreen(point) {
+        if (!point || point.time == null || point.price == null) return null;
+        const x = timeScale.timeToCoordinate(point.time);
+        const y = series.priceToCoordinate(Number(point.price));
+        return x == null || y == null ? null : { x: Number(x), y: Number(y) };
+      },
+      priceToY(price) {
+        const y = series.priceToCoordinate(Number(price));
+        return y == null || !Number.isFinite(Number(price)) || !Number.isFinite(Number(y)) ? null : Number(y);
+      },
+      yToPrice(y) {
+        const price = series.coordinateToPrice(Number(y));
+        return price == null || !Number.isFinite(Number(price)) ? null : Number(price);
+      },
+      snapToCandle(point, maxDistancePx = 14) {
+        if (!point) return null;
+        const logical = timeScale.coordinateToLogical(Number(point.x));
+        if (logical == null || !Number.isFinite(Number(logical))) return null;
+        const bar = barsRef.current[Math.round(Number(logical))];
+        if (!bar) return null;
+        const candleX = timeScale.timeToCoordinate(bar.time);
+        if (candleX == null || !Number.isFinite(Number(candleX))) return null;
+
+        let best = null;
+        for (const source of ['open', 'high', 'low', 'close']) {
+          const price = Number(bar[source]);
+          if (!Number.isFinite(price)) continue;
+          const candleY = series.priceToCoordinate(price);
+          if (candleY == null || !Number.isFinite(Number(candleY))) continue;
+          const distance = Math.hypot(Number(candleX) - Number(point.x), Number(candleY) - Number(point.y));
+          if (!best || distance < best.distance) best = { time: bar.time, price, source, distance };
+        }
+
+        const threshold = Math.max(0, Number(maxDistancePx) || 0);
+        return best && best.distance <= threshold ? best : null;
+      },
+      fitContent() { timeScale.fitContent(); },
+      focusTime(time) {
+        const numeric = Number(time);
+        const index = barsRef.current.findIndex(bar => Number(bar.time) === numeric);
+        if (index < 0) return;
+        const halfWindow = 22;
+        timeScale.setVisibleLogicalRange({ from: Math.max(0, index - halfWindow), to: Math.min(barsRef.current.length - 1 + chartRightBars, index + halfWindow) });
+      },
+      resetView() {
+        const lastIndex = barsRef.current.length - 1;
+        if (lastIndex >= 0) timeScale.setVisibleLogicalRange({ from: Math.max(0, lastIndex - DEFAULT_BARS_BACK), to: lastIndex + chartRightBars });
+      },
+      subscribe(handler) {
+        const rangeHandler = () => handler?.();
+        const sizeHandler = () => handler?.();
+        timeScale.subscribeVisibleLogicalRangeChange(rangeHandler);
+        timeScale.subscribeSizeChange(sizeHandler);
+        return () => {
+          timeScale.unsubscribeVisibleLogicalRangeChange(rangeHandler);
+          timeScale.unsubscribeSizeChange(sizeHandler);
+        };
+      },
+    };
     coordinateCallbackRef.current?.(coordinateApi);
     const controller = new AbortController();
     let disposed = false;

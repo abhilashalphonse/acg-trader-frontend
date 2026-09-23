@@ -626,7 +626,7 @@ export default function ChartArea({
   const [remaining, setRemaining] = useState(() => timeframeSeconds - (Math.floor(Date.now() / 1000) % timeframeSeconds));
   const [coordinateApi, setCoordinateApi] = useState(null);
   const [showDrawings, setShowDrawings] = useState(true);
-  const [drawingSnap, setDrawingSnap] = useState(false);
+  const [drawingSnap, setDrawingSnap] = useState('off');
   const [lockAllDrawings, setLockAllDrawings] = useState(false);
   const [keepDrawingTool, setKeepDrawingTool] = useState(false);
   const [drawingCount, setDrawingCount] = useState(0);
@@ -642,6 +642,8 @@ export default function ChartArea({
     media.addEventListener?.('change', onChange);
     return () => media.removeEventListener?.('change', onChange);
   }, []);
+
+  const cycleDrawingSnap = () => setDrawingSnap(current => current === 'off' ? 'weak' : current === 'weak' ? 'strong' : 'off');
 
   const mobileReference = drawingToolbarOverlay && narrowMobile;
   const oscillatorCount = indicators.filter(item => item.visible !== false && oscillatorIds.has(item.id)).length;
@@ -747,10 +749,14 @@ export default function ChartArea({
                   key={id}
                   type="button"
                   title={label}
-                  onClick={() => !tradePlan && onSelectTool(id)}
+                  onClick={() => {
+                    if (tradePlan) return;
+                    setShowDrawings(true);
+                    onSelectTool(id);
+                  }}
                   aria-label={label}
                   disabled={Boolean(tradePlan)}
-                  className={`acg-mobile-drawing-tool relative grid ${focusMode ? 'size-[34px]' : 'size-[32px]'} shrink-0 place-items-center rounded-md transition ${selectedTool === id ? 'acg-mobile-drawing-tool-selected bg-white/[0.08] text-[#59c8ff] ring-1 ring-inset ring-white/[0.04]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:cursor-not-allowed disabled:opacity-30`}
+                  className={`acg-mobile-drawing-tool relative grid ${focusMode ? 'size-[34px]' : 'size-[32px]'} shrink-0 place-items-center rounded-md transition ${selectedTool === id ? 'acg-mobile-drawing-tool-selected bg-[#10202a] text-[#59c8ff] ring-1 ring-inset ring-[#315b72]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:cursor-not-allowed disabled:opacity-30`}
                 >
                   <Icon size={focusMode ? 17 : 16} strokeWidth={1.75} />
                 </button>
@@ -758,10 +764,10 @@ export default function ChartArea({
             </React.Fragment>
           ))}
           <div className="my-1 h-px w-5 shrink-0 bg-white/[0.07]" />
-          <button type="button" onClick={() => setDrawingSnap(value => !value)} disabled={Boolean(tradePlan)} className={`grid ${focusMode ? 'size-[34px]' : 'size-[32px]'} shrink-0 place-items-center rounded-md transition ${drawingSnap ? 'bg-[#10202a] text-[#59c8ff]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:opacity-30`} title="Snap drawing prices to instrument increments"><Magnet size={15}/></button>
+          <button type="button" onClick={() => setShowDrawings(value => !value)} className={`relative grid ${focusMode ? 'size-[34px]' : 'size-[32px]'} shrink-0 place-items-center rounded-md transition ${showDrawings ? 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]' : 'bg-[#10202a] text-[#59c8ff]'}`} title={showDrawings ? 'Hide all drawings' : 'Show all drawings'}>{showDrawings ? <Eye size={14}/> : <EyeOff size={14}/>}<span className="absolute bottom-0.5 right-0.5 min-w-3 rounded bg-black/75 px-0.5 text-center text-[6px] font-black leading-3 text-[#72879a]">{drawingCount}</span></button>
+          <button type="button" onClick={cycleDrawingSnap} disabled={Boolean(tradePlan)} className={`relative grid ${focusMode ? 'size-[34px]' : 'size-[32px]'} shrink-0 place-items-center rounded-md transition ${drawingSnap !== 'off' ? 'bg-[#10202a] text-[#59c8ff]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:opacity-30`} title={drawingSnap === 'off' ? 'Magnet off — click for weak OHLC snapping' : drawingSnap === 'weak' ? 'Weak OHLC magnet — click for strong' : 'Strong OHLC magnet — click to turn off'}><Magnet size={15}/>{drawingSnap !== 'off' && <span className="absolute bottom-0.5 right-1 text-[6px] font-black leading-none text-[#59c8ff]">{drawingSnap === 'strong' ? 'S' : 'W'}</span>}</button>
           <button type="button" onClick={() => setLockAllDrawings(value => !value)} disabled={Boolean(tradePlan)} className={`grid ${focusMode ? 'size-[34px]' : 'size-[32px]'} shrink-0 place-items-center rounded-md transition ${lockAllDrawings ? 'bg-[#10202a] text-[#59c8ff]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:opacity-30`} title={lockAllDrawings ? 'Unlock drawing movement' : 'Lock all drawing movement'}>{lockAllDrawings ? <Lock size={14}/> : <Unlock size={14}/>}</button>
           <button type="button" onClick={() => setKeepDrawingTool(value => !value)} disabled={Boolean(tradePlan) || selectedTool === 'cursor'} className={`relative grid ${focusMode ? 'size-[34px]' : 'size-[32px]'} shrink-0 place-items-center rounded-md transition ${keepDrawingTool ? 'bg-[#10202a] text-[#59c8ff]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:opacity-25`} title="Keep selected drawing tool active"><Pin size={14}/>{keepDrawingTool && <span className="absolute bottom-1 right-1 size-1 rounded-full bg-[#59c8ff]"/>}</button>
-          <div className="mt-1 text-[8px] font-bold tabular-nums text-[#52616e]" title="Drawings on this symbol">{drawingCount}</div>
         </aside>
       )}
 
@@ -796,7 +802,7 @@ export default function ChartArea({
           disabled={Boolean(tradePlan)}
           coordinateApi={coordinateApi}
           keepToolActive={keepDrawingTool}
-          snapEnabled={drawingSnap}
+          snapMode={drawingSnap}
           snapStep={instrumentPipSize(instrument)}
           lockAll={lockAllDrawings}
           onDrawingCountChange={setDrawingCount}

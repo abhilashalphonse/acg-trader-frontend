@@ -39,10 +39,27 @@ const TOOL_DEFAULTS = {
   hline: { color: '#f0c35c' },
   vline: { color: '#f0c35c' },
   fibonacci: { color: '#b78cff' },
-  text: { color: '#d8e4ee', width: 1 },
+  text: { color: '#d8e4ee', width: 1, fontSize: 10 },
   'long-position': { color: '#35d79d' },
   'short-position': { color: '#ff6673' },
 };
+
+const DRAWING_LABELS = {
+  trendline: 'Trend line',
+  hline: 'Horizontal line',
+  vline: 'Vertical line',
+  rectangle: 'Rectangle',
+  fibonacci: 'Fib retracement',
+  text: 'Text',
+  'long-position': 'Long position',
+  'short-position': 'Short position',
+};
+
+function drawingLabel(drawing) {
+  if (!drawing) return 'Drawing';
+  if (drawing.type === 'text') return drawing.text?.trim() || 'Text';
+  return DRAWING_LABELS[drawing.type] || drawing.type || 'Drawing';
+}
 
 function dashArray(style) {
   if (style?.dash === 'dashed') return '6 4';
@@ -159,10 +176,22 @@ function DrawingShape({
   }
 
   if (drawing.type === 'hline') {
-    return <line x1="0" y1={a.y} x2={size.width} y2={a.y} {...lineStyle(drawing, selected)} {...common} />;
+    return (
+      <g>
+        <line x1="0" y1={a.y} x2={size.width} y2={a.y} stroke="transparent" strokeWidth="16" {...common} />
+        <line x1="0" y1={a.y} x2={size.width} y2={a.y} {...lineStyle(drawing, selected)} className="pointer-events-none" />
+        {selected && !drawing.locked && <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />}
+      </g>
+    );
   }
   if (drawing.type === 'vline') {
-    return <line x1={a.x} y1="0" x2={a.x} y2={size.height} {...lineStyle(drawing, selected)} {...common} />;
+    return (
+      <g>
+        <line x1={a.x} y1="0" x2={a.x} y2={size.height} stroke="transparent" strokeWidth="16" {...common} />
+        <line x1={a.x} y1="0" x2={a.x} y2={size.height} {...lineStyle(drawing, selected)} className="pointer-events-none" />
+        {selected && !drawing.locked && <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />}
+      </g>
+    );
   }
 
   if (drawing.type === 'rectangle') {
@@ -238,7 +267,7 @@ function DrawingShape({
           x={a.x}
           y={a.y}
           fill={selected ? '#ffffff' : style.color}
-          fontSize="10"
+          fontSize={Number(style.fontSize) || 10}
           fontWeight="600"
           style={{ paintOrder: 'stroke', stroke: '#000000', strokeWidth: 3 }}
         >
@@ -251,7 +280,8 @@ function DrawingShape({
 
   return (
     <g>
-      <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} {...lineStyle(drawing, selected)} {...common} />
+      <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent" strokeWidth="16" {...common} />
+      <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} {...lineStyle(drawing, selected)} className="pointer-events-none" />
       {selected && !drawing.locked && (
         <>
           <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />
@@ -274,7 +304,7 @@ export default function DrawingLayer({
   disabled = false,
   coordinateApi = null,
   keepToolActive = false,
-  snapEnabled = false,
+  snapMode = 'off',
   snapStep = null,
   lockAll = false,
   onDrawingCountChange = () => {},
@@ -437,8 +467,14 @@ export default function DrawingLayer({
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
   };
 
-  const snapDataPoint = point => {
-    if (!point || !snapEnabled) return point;
+  const snapDataPoint = (point, screen = null) => {
+    if (!point || snapMode === 'off') return point;
+
+    if (screen && coordinateApi?.snapToCandle) {
+      const candleSnap = coordinateApi.snapToCandle(screen, snapMode === 'strong' ? 28 : 12);
+      if (candleSnap) return { time: candleSnap.time, price: candleSnap.price };
+    }
+
     const step = Number(snapStep);
     if (!Number.isFinite(step) || step <= 0) return point;
     return { ...point, price: Math.round(Number(point.price) / step) * step };
@@ -447,7 +483,7 @@ export default function DrawingLayer({
   const eventDataPoint = event => {
     const screen = eventScreenPoint(event);
     const point = screen ? coordinateApi?.toData?.(screen) || null : null;
-    return snapDataPoint(point);
+    return snapDataPoint(point, screen);
   };
 
   const makeDrawing = (type, a, b = a, text = '') => ({
@@ -501,7 +537,7 @@ export default function DrawingLayer({
     if (!coordinateApi) return;
     const screen = eventScreenPoint(event);
     const rawData = screen ? coordinateApi.toData?.(screen) : null;
-    const data = snapDataPoint(rawData);
+    const data = snapDataPoint(rawData, screen);
     if (!screen || !data) return;
 
     if (draft) {
@@ -559,7 +595,8 @@ export default function DrawingLayer({
         const movePoint = point => {
           const originalScreen = coordinateApi.toScreen?.(point);
           if (!originalScreen) return point;
-          return snapDataPoint(coordinateApi.toData?.({ x: originalScreen.x + dx, y: originalScreen.y + dy }) || point);
+          const targetScreen = { x: originalScreen.x + dx, y: originalScreen.y + dy };
+          return snapDataPoint(coordinateApi.toData?.(targetScreen) || point, targetScreen);
         };
         return {
           ...item,
@@ -725,6 +762,66 @@ export default function DrawingLayer({
   const canUndo = history.past.length > 0;
   const canRedo = history.future.length > 0;
   const visibleDrawings = drawings.filter(item => visibleDrawingOnTimeframe(item, timeframe));
+  const compactDrawingUi = size.width < 560;
+
+  const selectedAnchor = useMemo(() => {
+    if (!selected || !coordinateApi?.toScreen) return null;
+    const points = [selected.a, selected.b, selected.riskTarget]
+      .filter(Boolean)
+      .map(point => coordinateApi.toScreen(point))
+      .filter(point => Number.isFinite(point?.x) && Number.isFinite(point?.y));
+    if (!points.length) return null;
+    return {
+      x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
+      y: Math.min(...points.map(point => point.y)),
+    };
+  }, [coordinateApi, selected]);
+
+  const selectedToolbarStyle = compactDrawingUi
+    ? { left: 8, right: 8, bottom: 46 }
+    : {
+        left: Math.max(8, Math.min(size.width - 360, (selectedAnchor?.x ?? size.width / 2) - 165)),
+        top: Math.max(8, Math.min(size.height - 46, (selectedAnchor?.y ?? 54) - 42)),
+      };
+
+  const settingsPanelStyle = compactDrawingUi
+    ? { left: 8, right: 8, bottom: 90, width: 'auto', maxHeight: '56%', overflowY: 'auto' }
+    : {
+        left: Math.max(8, Math.min(size.width - 258, (selectedAnchor?.x ?? size.width / 2) - 124)),
+        top: Math.max(54, Math.min(size.height - 342, (selectedAnchor?.y ?? 54) + 8)),
+        width: 250,
+        maxHeight: Math.max(220, size.height - 80),
+        overflowY: 'auto',
+      };
+
+  const cycleSelectedWidth = () => {
+    if (!selected) return;
+    const widths = [1, 1.4, 2, 3];
+    const current = Number(selected.style?.width) || 1.4;
+    const index = Math.max(0, widths.findIndex(value => Math.abs(value - current) < 0.01));
+    patchSelected({ style: { width: widths[(index + 1) % widths.length] } });
+  };
+
+  const cycleSelectedDash = () => {
+    if (!selected) return;
+    const styles = ['solid', 'dashed', 'dotted'];
+    const index = Math.max(0, styles.indexOf(selected.style?.dash || 'solid'));
+    patchSelected({ style: { dash: styles[(index + 1) % styles.length] } });
+  };
+
+  const moveSelectedLayer = direction => {
+    if (!selectedId) return;
+    commit(current => {
+      const index = current.findIndex(item => item.id === selectedId);
+      if (index < 0) return current;
+      const next = [...current];
+      const [item] = next.splice(index, 1);
+      if (direction === 'front') next.push(item);
+      else next.unshift(item);
+      return next;
+    });
+    setContextMenu(null);
+  };
 
   return (
     <div className="pointer-events-none absolute inset-0 z-[16]">
@@ -784,22 +881,42 @@ export default function DrawingLayer({
       )}
 
       {selected && !disabled && (
-        <div className="pointer-events-auto absolute right-2 top-11 z-20 flex items-center gap-0.5 rounded-md border border-white/[0.08] bg-[#080808]/96 p-1 shadow-xl backdrop-blur-sm">
-          <span className="max-w-[88px] truncate px-1.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#74899d]">{selected.type}</span>
+        <div
+          className="pointer-events-auto absolute z-30 flex min-h-9 max-w-[calc(100%-16px)] items-center gap-0.5 overflow-hidden rounded-[7px] border border-white/[0.08] bg-[#07090b]/97 p-1 shadow-[0_12px_34px_rgba(0,0,0,.52)] backdrop-blur-md"
+          style={selectedToolbarStyle}
+        >
+          <span className="hidden max-w-[96px] truncate border-r border-white/[0.07] px-2 text-[8px] font-bold uppercase tracking-[0.08em] text-[#7e91a3] sm:block">{drawingLabel(selected)}</span>
+          <label className="relative grid size-7 shrink-0 cursor-pointer place-items-center rounded-md hover:bg-white/[0.05]" title="Drawing color">
+            <span className="size-3.5 rounded-full border border-white/20" style={{ backgroundColor: selected.style?.color || DEFAULT_STYLE.color }} />
+            <input
+              type="color"
+              value={selected.style?.color || DEFAULT_STYLE.color}
+              onChange={event => patchSelected({ style: { color: event.target.value } })}
+              className="absolute inset-0 cursor-pointer opacity-0"
+              aria-label="Drawing color"
+            />
+          </label>
+          {!['text', 'long-position', 'short-position'].includes(selected.type) && (
+            <>
+              <button type="button" onClick={cycleSelectedWidth} className="h-7 min-w-7 rounded-md px-1.5 font-mono text-[8px] font-bold text-[#8fa0ae] hover:bg-white/[0.05] hover:text-white" title="Cycle line width">{Number(selected.style?.width || 1.4).toFixed(Number(selected.style?.width || 1.4) % 1 ? 1 : 0)}</button>
+              <button type="button" onClick={cycleSelectedDash} className="grid size-7 place-items-center rounded-md text-[#8194a7] hover:bg-white/[0.05] hover:text-white" title={`Line style: ${selected.style?.dash || 'solid'}`}><MoreHorizontal size={14}/></button>
+            </>
+          )}
           {['long-position', 'short-position'].includes(selected.type) && (() => {
             const metrics = riskMetricsFor(selected);
-            return <button type="button" disabled={!metrics?.canCreateOrder} onClick={createOrderFromSelectedRisk} className="h-7 rounded-md border border-[#245070] bg-[#0d1a22] px-2.5 text-[8px] font-black text-[#59c8ff] hover:bg-[#102431] disabled:cursor-not-allowed disabled:border-white/[0.07] disabled:bg-[#0a0a0a] disabled:text-[#52616e]" title={metrics?.canCreateOrder ? 'Load this risk setup into the order planner' : (metrics?.message || 'Risk setup cannot create an order')}>Create order</button>;
+            return <button type="button" disabled={!metrics?.canCreateOrder} onClick={createOrderFromSelectedRisk} className="h-7 shrink-0 rounded-md border border-[#245070] bg-[#0d1a22] px-2 text-[8px] font-black text-[#59c8ff] hover:bg-[#102431] disabled:cursor-not-allowed disabled:border-white/[0.07] disabled:bg-[#0a0a0a] disabled:text-[#52616e]" title={metrics?.canCreateOrder ? 'Load this risk setup into the order planner' : (metrics?.message || 'Risk setup cannot create an order')}>Create order</button>;
           })()}
-                    <button type="button" onClick={() => patchSelected({ locked: !selected.locked })} className={`grid size-7 place-items-center rounded-md ${selected.locked ? 'bg-[#172229] text-[#59c8ff]' : 'text-[#8194a7] hover:bg-white/[0.04]'}`} title={selected.locked ? 'Unlock drawing' : 'Lock drawing'}>{selected.locked ? <Lock size={13}/> : <LockOpen size={13}/>}</button>
-          <button type="button" onClick={duplicateSelected} className="grid size-7 place-items-center rounded-md text-[#8194a7] hover:bg-white/[0.04] hover:text-white" title="Duplicate drawing"><Copy size={13}/></button>
-          <button type="button" onClick={() => setSettingsOpen(value => !value)} className={`grid size-7 place-items-center rounded-md ${settingsOpen ? 'bg-white/[0.06] text-[#59c8ff]' : 'text-[#8194a7] hover:bg-white/[0.04]'}`} title="Drawing settings"><Settings2 size={13}/></button>
-          <button type="button" onClick={deleteSelected} className="grid size-7 place-items-center rounded-md text-[#ff7480] hover:bg-[#35151d]" title="Delete drawing"><Trash2 size={13}/></button>
-          <button type="button" onClick={() => { setSelectedId(null); setSettingsOpen(false); }} className="grid size-7 place-items-center rounded-md text-[#8194a7] hover:bg-white/[0.04]" title="Deselect"><X size={13}/></button>
+          <button type="button" onClick={() => patchSelected({ hidden: true })} className="grid size-7 shrink-0 place-items-center rounded-md text-[#8194a7] hover:bg-white/[0.05] hover:text-white" title="Hide drawing"><EyeOff size={13}/></button>
+          <button type="button" onClick={() => patchSelected({ locked: !selected.locked })} className={`grid size-7 shrink-0 place-items-center rounded-md ${selected.locked ? 'bg-[#10202a] text-[#59c8ff]' : 'text-[#8194a7] hover:bg-white/[0.05]'}`} title={selected.locked ? 'Unlock drawing' : 'Lock drawing'}>{selected.locked ? <Lock size={13}/> : <LockOpen size={13}/>}</button>
+          <button type="button" onClick={duplicateSelected} className="grid size-7 shrink-0 place-items-center rounded-md text-[#8194a7] hover:bg-white/[0.05] hover:text-white" title="Duplicate drawing"><Copy size={13}/></button>
+          <button type="button" onClick={() => setSettingsOpen(value => !value)} className={`grid size-7 shrink-0 place-items-center rounded-md ${settingsOpen ? 'bg-[#10202a] text-[#59c8ff]' : 'text-[#8194a7] hover:bg-white/[0.05]'}`} title="Drawing properties"><Settings2 size={13}/></button>
+          <button type="button" onClick={deleteSelected} className="grid size-7 shrink-0 place-items-center rounded-md text-[#d76d77] hover:bg-[#35151d] hover:text-[#ff7b86]" title="Delete drawing"><Trash2 size={13}/></button>
+          <button type="button" onClick={() => { setSelectedId(null); setSettingsOpen(false); }} className="grid size-7 shrink-0 place-items-center rounded-md text-[#8194a7] hover:bg-white/[0.05] hover:text-white" title="Deselect"><X size={13}/></button>
         </div>
       )}
 
       {selected && settingsOpen && (
-        <div className="pointer-events-auto absolute right-2 top-[82px] z-30 w-[238px] rounded-md border border-white/[0.10] bg-[#0b0d0f]/98 p-3 shadow-[0_18px_50px_rgba(0,0,0,.62)] backdrop-blur-md">
+        <div className="pointer-events-auto absolute z-40 rounded-[8px] border border-white/[0.10] bg-[#0b0d0f]/98 p-3 shadow-[0_18px_50px_rgba(0,0,0,.62)] backdrop-blur-md [scrollbar-width:thin]" style={settingsPanelStyle}>
           <div className="flex items-center justify-between">
             <strong className="text-[10px] text-[#e7eef4]">Drawing settings</strong>
             <button type="button" onClick={() => setSettingsOpen(false)} className="grid size-6 place-items-center rounded text-[#71869a] hover:bg-white/[0.04]"><X size={12}/></button>
@@ -819,10 +936,18 @@ export default function DrawingLayer({
             </>;
           })()}
                     {selected.type === 'text' && (
-            <label className="mt-3 block">
-              <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Text</span>
-              <input value={selected.text || ''} onChange={event => patchSelected({ text: event.target.value })} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] text-[#dbe5ed] outline-none focus:border-[#53c7ff]" />
-            </label>
+            <div className="mt-3 grid grid-cols-[1fr_78px] gap-2">
+              <label>
+                <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Text</span>
+                <input value={selected.text || ''} onChange={event => patchSelected({ text: event.target.value })} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] text-[#dbe5ed] outline-none focus:border-[#53c7ff]" />
+              </label>
+              <label>
+                <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Size</span>
+                <select value={Number(selected.style?.fontSize) || 10} onChange={event => patchSelected({ style: { fontSize: Number(event.target.value) } })} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2 text-[9px] text-[#dbe5ed] outline-none">
+                  <option value="9">9</option><option value="10">10</option><option value="12">12</option><option value="14">14</option><option value="16">16</option>
+                </select>
+              </label>
+            </div>
           )}
 
           <div className="mt-3">
@@ -849,6 +974,21 @@ export default function DrawingLayer({
             </label>
           </div>
 
+          {selected.type === 'rectangle' && (
+            <label className="mt-3 block">
+              <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Fill opacity</span>
+              <input type="range" min="0" max="0.35" step="0.01" value={Number(selected.style?.fillOpacity ?? 0.07)} onChange={event => patchSelected({ style: { fillOpacity: Number(event.target.value) } })} className="w-full accent-[#59c8ff]" />
+            </label>
+          )}
+
+          <div className="mt-3">
+            <span className="mb-1.5 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Timeframe visibility</span>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button type="button" onClick={() => patchSelected({ timeframeVisibility: 'all' })} className={`h-8 rounded-md border text-[8px] font-semibold ${selected.timeframeVisibility === 'all' || !selected.timeframeVisibility ? 'border-[#315b72] bg-[#10202a] text-[#59c8ff]' : 'border-white/[0.08] bg-[#080808] text-[#8ea0b1]'}`}>All</button>
+              <button type="button" onClick={() => patchSelected({ timeframeVisibility: [timeframe] })} className={`h-8 rounded-md border text-[8px] font-semibold ${Array.isArray(selected.timeframeVisibility) && selected.timeframeVisibility.length === 1 && selected.timeframeVisibility[0] === timeframe ? 'border-[#315b72] bg-[#10202a] text-[#59c8ff]' : 'border-white/[0.08] bg-[#080808] text-[#8ea0b1]'}`}>This timeframe</button>
+            </div>
+          </div>
+
           <div className="mt-3 flex gap-2">
             <button type="button" onClick={() => patchSelected({ hidden: true })} className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-white/[0.08] bg-[#080808] text-[8px] font-semibold text-[#8ea0b1] hover:text-white"><EyeOff size={12}/>Hide</button>
             <button type="button" onClick={() => patchSelected({ locked: !selected.locked })} className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-white/[0.08] bg-[#080808] text-[8px] font-semibold text-[#8ea0b1] hover:text-white">{selected.locked ? <LockOpen size={12}/> : <Lock size={12}/>} {selected.locked ? 'Unlock' : 'Lock'}</button>
@@ -862,6 +1002,9 @@ export default function DrawingLayer({
           <button type="button" onClick={duplicateSelected} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[9px] text-[#a9b7c4] hover:bg-white/[0.04] hover:text-white"><Copy size={12}/>Duplicate</button>
           <button type="button" onClick={() => { patchSelected({ locked: !selected.locked }); setContextMenu(null); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[9px] text-[#a9b7c4] hover:bg-white/[0.04] hover:text-white">{selected.locked ? <LockOpen size={12}/> : <Lock size={12}/>} {selected.locked ? 'Unlock' : 'Lock'}</button>
           <button type="button" onClick={() => { patchSelected({ hidden: !selected.hidden }); setContextMenu(null); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[9px] text-[#a9b7c4] hover:bg-white/[0.04] hover:text-white">{selected.hidden ? <Eye size={12}/> : <EyeOff size={12}/>} {selected.hidden ? 'Show' : 'Hide'}</button>
+          <div className="my-1 border-t border-white/[0.07]"/>
+          <button type="button" onClick={() => moveSelectedLayer('front')} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[9px] text-[#a9b7c4] hover:bg-white/[0.04] hover:text-white"><span className="w-3 text-center">↑</span>Bring to front</button>
+          <button type="button" onClick={() => moveSelectedLayer('back')} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[9px] text-[#a9b7c4] hover:bg-white/[0.04] hover:text-white"><span className="w-3 text-center">↓</span>Send to back</button>
           <div className="my-1 border-t border-white/[0.07]"/>
           <button type="button" onClick={deleteSelected} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[9px] text-[#ff7380] hover:bg-[#35151d]"><Trash2 size={12}/>Delete</button>
         </div>
