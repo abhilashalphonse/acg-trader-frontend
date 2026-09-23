@@ -51,12 +51,16 @@ test('history merge enforces the chart memory ceiling from the oldest side', () 
 });
 
 
-test('realtime range stays active while the newest candle is visible', () => {
-  assert.equal(isRealtimeLogicalRange({ from: 90, to: 106 }, 100), true);
-  assert.equal(isRealtimeLogicalRange({ from: 70, to: 99.6 }, 100), true);
+test('realtime range stays active only while anchored to the configured live right offset', () => {
+  assert.equal(isRealtimeLogicalRange({ from: 60, to: 107 }, 100, 7), true);
+  assert.equal(isRealtimeLogicalRange({ from: 60, to: 106.4 }, 100, 7), true);
+  assert.equal(isRealtimeLogicalRange({ from: 60, to: 107.8 }, 100, 7), true);
 });
 
-test('realtime range disables once the newest candle leaves the viewport', () => {
-  assert.equal(isRealtimeLogicalRange({ from: 50, to: 99.4 }, 100), false);
-  assert.equal(isRealtimeLogicalRange({ from: 10, to: 80 }, 100), false);
+test('manual horizontal pan disables realtime tracking in either direction', () => {
+  // User pans into history: right edge moves left of the live anchor.
+  assert.equal(isRealtimeLogicalRange({ from: 50, to: 104 }, 100, 7), false);
+  // User drags candles left to create future space: right edge moves right of the live anchor.
+  assert.equal(isRealtimeLogicalRange({ from: 70, to: 114 }, 100, 7), false);
+  assert.equal(isRealtimeLogicalRange({ from: 10, to: 80 }, 100, 7), false);
 });

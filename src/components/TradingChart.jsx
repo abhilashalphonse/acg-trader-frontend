@@ -352,7 +352,7 @@ export default function TradingChart({
       const range = timeScale.getVisibleLogicalRange();
       const lastIndex = barsRef.current.length - 1;
       if (!range || lastIndex < 0) return;
-      setRealtimeTracking(isRealtimeLogicalRange(range, lastIndex));
+      setRealtimeTracking(isRealtimeLogicalRange(range, lastIndex, chartRightBars));
       if (range.from <= HISTORY_PREFETCH_BARS) {
         void loadOlderHistoryRef.current?.();
       }

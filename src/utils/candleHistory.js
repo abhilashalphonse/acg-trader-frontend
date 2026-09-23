@@ -20,10 +20,14 @@ export function reconcileLatestCandles(existing = [], latest = [], maxBars = 10_
 }
 
 
-export function isRealtimeLogicalRange(range, lastIndex, tolerance = 0.5) {
+export function isRealtimeLogicalRange(range, lastIndex, rightOffset = 0, tolerance = 1.25) {
   const rightEdge = Number(range?.to);
   const latestIndex = Number(lastIndex);
+  const expectedOffset = Number(rightOffset);
   const safeTolerance = Math.max(0, Number(tolerance) || 0);
+
   if (!Number.isFinite(rightEdge) || !Number.isFinite(latestIndex) || latestIndex < 0) return true;
-  return rightEdge >= latestIndex - safeTolerance;
+
+  const expectedRightEdge = latestIndex + (Number.isFinite(expectedOffset) ? expectedOffset : 0);
+  return Math.abs(rightEdge - expectedRightEdge) <= safeTolerance;
 }
