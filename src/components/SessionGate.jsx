@@ -14,18 +14,6 @@ export default function SessionGate({ children }) {
     return <div className="grid min-h-dvh place-items-center bg-[#050b12] text-[#7f93a6]"><div className="flex items-center gap-2 text-sm font-semibold"><Loader2 size={16} className="animate-spin"/>Preparing ACG Trader…</div></div>;
   }
 
-  if (auth.authenticated && (auth.principal?.accountIds?.length || 0) > 1) {
-    return (
-      <div className="grid min-h-dvh place-items-center bg-[#050b12] px-4 text-[#eef4f8]">
-        <div className="w-full max-w-[430px] rounded-[22px] border border-[#5a4724] bg-[#19150d] p-5 text-center shadow-[0_28px_80px_rgba(0,0,0,.38)]">
-          <LockKeyhole size={22} className="mx-auto text-[#e8c35f]" />
-          <h1 className="mt-3 text-lg font-black">Select one trading account</h1>
-          <p className="mt-2 text-sm leading-relaxed text-[#b9aa83]">This session grants multiple accounts. ACG Trader will not guess which account should receive orders. Reopen the terminal from the specific ACG Funded challenge or account you want to trade.</p>
-        </div>
-      </div>
-    );
-  }
-
   if (auth.authenticated) return children;
 
   const submit = async event => {
