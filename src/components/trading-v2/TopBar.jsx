@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Bell, Search, UserRound } from 'lucide-react';
 import { useTraderAuth } from '../../hooks/useTraderAuth.js';
 import { useTradingStore } from '../../hooks/useTradingStore.js';
+import { accountTypeBadge, accountTypeLabel } from '../../utils/accountPresentation.js';
 
 function money(value, currency = 'USD') {
   if (value === null || value === undefined || value === '') return '—';
@@ -42,9 +43,10 @@ export default function TopBar({
       <div className="min-w-0 leading-none">
         <div className="flex items-center gap-1.5 whitespace-nowrap text-[15px] font-extrabold tracking-[-0.025em] text-[#f7f9fc]">
           <span>ACG Trader</span>
-          <span className="hidden rounded-md bg-[#101010] px-1.5 py-1 text-[9px] font-extrabold tracking-[0.04em] text-[#55bdff] min-[360px]:inline">V2</span>
         </div>
-        <p className="mt-1.5 truncate text-[9px] font-medium text-[#77777d]">{account?.accountCode || 'Trading terminal'}</p>
+        <p className="mt-1.5 truncate text-[9px] font-medium text-[#77777d]">
+          {account ? `${account.accountCode || 'Trading account'} · ${accountTypeLabel(account)}` : 'Trading terminal'}
+        </p>
       </div>
 
       <div className="flex shrink-0 items-center gap-1.5">
@@ -60,7 +62,7 @@ export default function TopBar({
           <strong className="whitespace-nowrap text-[11px] font-extrabold tracking-[-0.015em] text-[#f6f9fc]">{money(balance, currency)}</strong>
           <span className="mt-0.5 flex items-center gap-1 text-[8px] font-medium text-[#7e7e84]">
             <span className={`size-1.5 rounded-full ${live ? 'bg-[#31dfa3]' : valuationStatus === 'STALE' ? 'bg-[#eab84e]' : 'bg-[#101010]'}`} />
-            {stateLabel}
+            {account ? `${accountTypeBadge(account)} · ${stateLabel}` : stateLabel}
           </span>
         </button>
 
