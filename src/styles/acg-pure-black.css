@@ -612,7 +612,7 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
 
   .acg-mobile-reference-header{
     height:calc(73px + env(safe-area-inset-top))!important;
-    grid-template-columns:minmax(0,1fr) 46px 90px 78px!important;
+    grid-template-columns:minmax(0,1fr) 44px 86px 76px!important;
     background:
       radial-gradient(circle at 15% -20%,rgba(54,92,126,.24),transparent 44%),
       linear-gradient(180deg,#0a141e 0%,#060c13 100%)!important;
@@ -637,6 +637,11 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
 
   .acg-mobile-instrument-icon-shell > span{
     transform:scale(.90);
+    transform-origin:center;
+  }
+
+  .acg-mobile-instrument-icon-shell > span > span{
+    transform:scale(.86);
     transform-origin:center;
   }
 
@@ -762,18 +767,18 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
 
   .acg-mobile-toolbar-separator{
     height:28px!important;
-    margin-inline:4px!important;
+    margin-inline:3px!important;
     background:rgba(173,193,213,.12)!important;
   }
 
   .acg-mobile-chart-tools{
-    min-width:145px!important;
+    min-width:137px!important;
     justify-content:space-between!important;
   }
 
   .acg-mobile-chart-tools button{
-    width:28px!important;
-    min-width:28px!important;
+    width:27px!important;
+    min-width:27px!important;
   }
 
   .acg-mobile-chart-tools button svg{
