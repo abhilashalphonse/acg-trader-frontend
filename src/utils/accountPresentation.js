@@ -60,3 +60,12 @@ export function accountStatusLabel(status) {
   };
   return labels[value] || (value ? value.replaceAll('_', ' ') : 'Unknown');
 }
+
+
+export function accountStatusToneClass(status) {
+  const value = String(status || '').trim().toUpperCase();
+  if (value === 'ACTIVE') return 'border-[#176247] bg-[#0c2d23] text-[#45dda9]';
+  if (value === 'PAUSED') return 'border-[#655126] bg-[#2a220f] text-[#e7c76b]';
+  if (value === 'BREACHED' || value === 'DISABLED' || value === 'CLOSED') return 'border-[#63313b] bg-[#2a151a] text-[#ff8994]';
+  return 'border-white/[0.08] bg-[#101010] text-[#8999a8]';
+}
