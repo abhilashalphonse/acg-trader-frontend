@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, ExternalLink, Plus, X } from 'lucide-react';
 import { formatInstrumentPrice, instrumentForSymbol } from '../../utils/instrumentFormatting.js';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import { estimatePositionPnlAtPrice, positionDistancePips } from '../../utils/tradingRisk.js';
+import { buildOpenPositionSummary } from '../../utils/openPositionPresentation.js';
 
 function money(value, currency = 'USD', signed = false) {
   if (value === null || value === undefined || value === '') return '—';
@@ -62,6 +63,7 @@ export default function TradeSection({
   onNewOrder = () => {},
   view = 'all',
   embedded = false,
+  mobilePositionLayout = false,
 }) {
   const [expandedId, setExpandedId] = useState(null);
   const [protectionDraft, setProtectionDraft] = useState({ sl: '', tp: '' });
@@ -229,35 +231,100 @@ export default function TradeSection({
         {positions.map(position => {
           const expanded = expandedId === position.id;
           const live = marketFor(position.symbol);
-          const current = Number(position.side === 'BUY' ? live?.bid : live?.ask);
-          const positive = Number(position.pnl) >= 0;
+          const summary = buildOpenPositionSummary(position, account, live);
+          const current = summary.currentPrice;
+          const numericPnl = Number(position.pnl);
+          const positive = Number.isFinite(numericPnl) && numericPnl > 0;
+          const negative = Number.isFinite(numericPnl) && numericPnl < 0;
+          const pnlTone = positive ? 'text-[#42d8a5]' : negative ? 'text-[#ff6d79]' : 'text-[#a7b2bc]';
+          const pnlPercentText = formatPercent(summary.pnlPercent);
+          const riskPrimary = summary.riskStatus === 'UNPROTECTED'
+            ? 'UNPROTECTED'
+            : summary.riskStatus === 'PROTECTED'
+              ? 'Protected'
+              : money(summary.riskAmount, position.pnlCurrency || currency);
+          const riskSecondary = summary.riskStatus === 'UNPROTECTED'
+            ? 'Set SL'
+            : summary.riskStatus === 'PROTECTED'
+              ? '$0 downside'
+              : `${formatPercent(summary.riskPercent)} risk`;
+          const riskTone = summary.riskStatus === 'UNPROTECTED'
+            ? 'text-[#ff8a72]'
+            : summary.riskStatus === 'PROTECTED'
+              ? 'text-[#43d9a6]'
+              : 'text-[#f1f5f8]';
           return (
             <article key={position.id} className="overflow-hidden border-b border-white/[0.08] bg-black last:border-b-0">
-              <button type="button" onClick={() => openPositionDetails(position)} className={`w-full text-left ${embedded ? 'px-2.5 py-2' : 'px-3.5 py-3'}`}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className={`flex items-center ${embedded ? 'gap-1.5' : 'gap-2'}`}><InstrumentAvatar instrument={live} size={embedded ? 21 : 24}/><strong className={`${embedded ? 'text-[11.5px]' : 'text-[13px]'} font-black text-[#f1f5f8]`}>{symbolLabel(position.symbol)}</strong><span className={`rounded-md font-black ${embedded ? 'px-1.5 py-0.5 text-[6.5px]' : 'px-1.5 py-1 text-[7px]'} ${sideTone(position.side)}`}>{String(position.side).toUpperCase()} · {Number(position.volume).toFixed(2)}</span></div>
-                    <div className={`${embedded ? 'mt-1' : 'mt-2'} flex items-center gap-2 font-mono text-[8px] text-[#72869a]`}><span>{price(position.entry, position.symbol)}</span><span className="text-[#354c60]">→</span><span className="text-[#afbdc9]">{price(current, position.symbol)}</span></div>
-                  </div>
-                  <div className="flex items-start gap-1.5"><div className="text-right"><b className={`block ${embedded ? 'text-[13px]' : 'text-[15px]'} font-black ${positive ? 'text-[#42d8a5]' : 'text-[#ff6d79]'}`}>{money(position.pnl, position.pnlCurrency || currency, true)}</b>{!embedded && <span className="mt-1 block text-[8px] text-[#5d7286]">P&amp;L</span>}</div>{expanded ? <ChevronUp size={14} className="mt-0.5 text-[#6e8498]"/> : <ChevronDown size={14} className="mt-0.5 text-[#6e8498]"/>}</div>
-                </div>
-                {!expanded && (embedded
-                  ? <div className="mt-1.5 flex items-center gap-3 font-mono text-[7px] text-[#60758a]"><span>SL <b className="text-[#9cacb9]">{price(position.sl, position.symbol)}</b></span><span>TP <b className="text-[#9cacb9]">{price(position.tp, position.symbol)}</b></span></div>
-                  : <div className="mt-3 grid grid-cols-2 gap-2"><MiniMetric label="SL" value={price(position.sl, position.symbol)} /><MiniMetric label="TP" value={price(position.tp, position.symbol)} /></div>
+              <button type="button" onClick={() => openPositionDetails(position)} className={`w-full text-left ${mobilePositionLayout ? 'px-2.5 pb-2 pt-2.5' : embedded ? 'px-2.5 py-2' : 'px-3.5 py-3'}`}>
+                {mobilePositionLayout ? (
+                  <>
+                    <div className="flex items-start justify-between gap-2.5">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <InstrumentAvatar instrument={live} size={22}/>
+                        <strong className="truncate text-[12px] font-black text-[#f1f5f8]">{symbolLabel(position.symbol)}</strong>
+                        <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[7px] font-black ${sideTone(position.side)}`}>{String(position.side).toUpperCase()}</span>
+                        <span className="shrink-0 font-mono text-[8px] font-bold tabular-nums text-[#9aabb9]">{Number(position.volume).toFixed(2)} lots</span>
+                      </div>
+                      <div className="flex shrink-0 items-start gap-1">
+                        <div className="text-right">
+                          <b className={`block text-[14px] font-black tabular-nums ${pnlTone}`}>{money(position.pnl, position.pnlCurrency || currency, true)}</b>
+                          <span className={`mt-0.5 block font-mono text-[7.5px] font-bold tabular-nums ${pnlTone}`}>{pnlPercentText}</span>
+                        </div>
+                        {expanded ? <ChevronUp size={14} className="mt-0.5 text-[#6e8498]"/> : <ChevronDown size={14} className="mt-0.5 text-[#6e8498]"/>}
+                      </div>
+                    </div>
+
+                    <div className="mt-2 grid grid-cols-3 overflow-hidden rounded-md border border-white/[0.06] bg-[#0b0b0d]">
+                      <MobilePositionMetric label="Entry" value={price(position.entry, position.symbol)} sub="price" />
+                      <MobilePositionMetric label="Current" value={price(current, position.symbol)} sub={position.valuationStatus === 'LIVE' ? 'executable' : 'valued'} />
+                      <MobilePositionMetric label="Margin" value={money(summary.margin, currency)} sub="position" />
+                    </div>
+
+                    <div className="mt-1 grid grid-cols-3 overflow-hidden rounded-md border border-white/[0.06] bg-[#0b0b0d]">
+                      <MobilePositionMetric label="Risk" value={riskPrimary} sub={riskSecondary} valueClassName={riskTone} />
+                      <MobilePositionMetric
+                        label="SL"
+                        value={summary.sl ? price(summary.sl.price, position.symbol) : '—'}
+                        sub={summary.sl?.pips != null ? `${summary.sl.pips.toFixed(1)}p` : 'No protection'}
+                        valueClassName={summary.sl ? 'text-[#f1f5f8]' : 'text-[#ff8a72]'}
+                      />
+                      <MobilePositionMetric
+                        label="TP"
+                        value={summary.tp ? price(summary.tp.price, position.symbol) : '—'}
+                        sub={summary.tp?.pips != null ? `${summary.tp.pips.toFixed(1)}p` : 'No target'}
+                        valueClassName={summary.tp ? 'text-[#f1f5f8]' : 'text-[#71859a]'}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className={`flex items-center ${embedded ? 'gap-1.5' : 'gap-2'}`}><InstrumentAvatar instrument={live} size={embedded ? 21 : 24}/><strong className={`${embedded ? 'text-[11.5px]' : 'text-[13px]'} font-black text-[#f1f5f8]`}>{symbolLabel(position.symbol)}</strong><span className={`rounded-md font-black ${embedded ? 'px-1.5 py-0.5 text-[6.5px]' : 'px-1.5 py-1 text-[7px]'} ${sideTone(position.side)}`}>{String(position.side).toUpperCase()} · {Number(position.volume).toFixed(2)}</span></div>
+                        <div className={`${embedded ? 'mt-1' : 'mt-2'} flex items-center gap-2 font-mono text-[8px] text-[#72869a]`}><span>{price(position.entry, position.symbol)}</span><span className="text-[#354c60]">→</span><span className="text-[#afbdc9]">{price(current, position.symbol)}</span></div>
+                      </div>
+                      <div className="flex items-start gap-1.5"><div className="text-right"><b className={`block ${embedded ? 'text-[13px]' : 'text-[15px]'} font-black ${pnlTone}`}>{money(position.pnl, position.pnlCurrency || currency, true)}</b>{!embedded && <span className="mt-1 block text-[8px] text-[#5d7286]">P&amp;L</span>}</div>{expanded ? <ChevronUp size={14} className="mt-0.5 text-[#6e8498]"/> : <ChevronDown size={14} className="mt-0.5 text-[#6e8498]"/>}</div>
+                    </div>
+                    {!expanded && (embedded
+                      ? <div className="mt-1.5 flex items-center gap-3 font-mono text-[7px] text-[#60758a]"><span>SL <b className="text-[#9cacb9]">{price(position.sl, position.symbol)}</b></span><span>TP <b className="text-[#9cacb9]">{price(position.tp, position.symbol)}</b></span></div>
+                      : <div className="mt-3 grid grid-cols-2 gap-2"><MiniMetric label="SL" value={price(position.sl, position.symbol)} /><MiniMetric label="TP" value={price(position.tp, position.symbol)} /></div>
+                    )}
+                  </>
                 )}
               </button>
 
-              {expanded && <div className="border-t border-white/[0.08] bg-[#080808] px-3.5 pb-3.5 pt-3">
-                <div className="mb-3 flex items-center justify-between">
+              {expanded && <div className={`border-t border-white/[0.08] bg-[#080808] ${mobilePositionLayout ? 'px-2.5 pb-3 pt-2.5' : 'px-3.5 pb-3.5 pt-3'}`}>
+                <div className={`${mobilePositionLayout ? 'mb-2' : 'mb-3'} flex items-center justify-between`}>
                   <div>
                     <b className="text-[10px] font-black text-[#dce6ee]">Protection</b>
-                    <p className="mt-0.5 text-[8px] text-[#60758a]">Set or remove stop loss and take profit.</p>
+                    {!mobilePositionLayout && <p className="mt-0.5 text-[8px] text-[#60758a]">Set or remove stop loss and take profit.</p>}
                   </div>
                   <span className="font-mono text-[8px] text-[#71859a]">Now {price(current, position.symbol)}</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-1.5">
                   <ProtectionField
+                    compact={mobilePositionLayout}
                     label="SL"
                     value={protectionDraft.sl}
                     projection={projectedProtection(position, protectionDraft.sl, live, currency)}
@@ -265,6 +332,7 @@ export default function TradeSection({
                     onClear={() => { setProtectionDraft(currentDraft => ({ ...currentDraft, sl: '' })); setProtectionError(''); }}
                   />
                   <ProtectionField
+                    compact={mobilePositionLayout}
                     label="TP"
                     value={protectionDraft.tp}
                     projection={projectedProtection(position, protectionDraft.tp, live, currency)}
@@ -279,7 +347,7 @@ export default function TradeSection({
                   type="button"
                   onClick={() => void saveProtection(position)}
                   disabled={protectionSaving}
-                  className="mt-2 flex h-10 w-full items-center justify-center rounded-md border border-white/[0.10] bg-[#15151a] text-[9px] font-black text-[#67ccff] disabled:cursor-wait disabled:opacity-55"
+                  className={`mt-2 flex ${mobilePositionLayout ? 'h-9' : 'h-10'} w-full items-center justify-center rounded-md border border-white/[0.10] bg-[#15151a] text-[9px] font-black text-[#67ccff] disabled:cursor-wait disabled:opacity-55`}
                 >
                   {protectionSaving ? 'Saving protection…' : 'Save protection'}
                 </button>
@@ -393,7 +461,7 @@ export default function TradeSection({
                   })()}
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-3"><Metric label="Opened" value={position.openedAt || '—'} /><Metric label="Ticket" value={`#${String(position.id).slice(-8)}`} /><Metric label="Swap" value={money(position.swap || 0, position.pnlCurrency || currency)} /><Metric label="Source" value={String(position.source || 'market').replace('-', ' ')} /></div>
+                <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-3"><Metric label="Opened" value={position.openedAt || '—'} /><Metric label="Ticket" value={`#${String(position.id).slice(-8)}`} /><Metric label="Swap" value={money(position.swap || 0, position.pnlCurrency || currency)} /><Metric label="Commission" value={money(position.commission || 0, position.pnlCurrency || currency)} /></div>
               </div>}
             </article>
           );
@@ -440,6 +508,25 @@ export default function TradeSection({
   );
 }
 
+
+function formatPercent(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '—';
+  const digits = Math.abs(numeric) < 0.1 ? 3 : 2;
+  const sign = numeric > 0 ? '+' : '';
+  return `${sign}${numeric.toFixed(digits)}%`;
+}
+
+function MobilePositionMetric({ label, value, sub, valueClassName = 'text-[#f1f5f8]' }) {
+  return (
+    <div className="min-w-0 border-r border-white/[0.05] px-2 py-1.5 last:border-r-0">
+      <span className="block text-[6.5px] font-bold uppercase tracking-[0.09em] text-[#60758a]">{label}</span>
+      <b className={`mt-0.5 block truncate font-mono text-[9.5px] font-black tabular-nums ${valueClassName}`}>{value}</b>
+      <span className="mt-0.5 block truncate text-[6.5px] font-semibold text-[#596d80]">{sub}</span>
+    </div>
+  );
+}
+
 function Metric({ label, value }) {
   return <div className="min-w-0"><span className="block text-[7px] font-bold uppercase tracking-[0.1em] text-[#5d7287]">{label}</span><b className="mt-1 block truncate text-[10px] font-semibold capitalize text-[#cbd6df]">{value}</b></div>;
 }
@@ -448,7 +535,7 @@ function MiniMetric({ label, value }) {
   return <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-[#080808] px-2.5 py-2"><span className="text-[7px] font-bold text-[#5e7488]">{label}</span><b className="font-mono text-[9px] text-[#b9c6d1]">{value}</b></div>;
 }
 
-function ProtectionField({ label, value, projection, onChange, onClear }) {
+function ProtectionField({ label, value, projection, onChange, onClear, compact = false }) {
   const pnl = Number(projection?.pnl);
   const hasPnl = Number.isFinite(pnl);
   const pips = Number(projection?.pips);
@@ -458,10 +545,10 @@ function ProtectionField({ label, value, projection, onChange, onClear }) {
   const pnlTone = !hasPnl ? 'text-[#60758a]' : pnl < 0 ? 'text-[#ff6f7a]' : pnl > 0 ? 'text-[#43d9a6]' : 'text-[#9aabba]';
 
   return (
-    <div className="block rounded-md border border-white/[0.08] bg-black px-2.5 py-2">
+    <div className={`block rounded-md border border-white/[0.08] bg-black ${compact ? 'px-2 py-1.5' : 'px-2.5 py-2'}`}>
       <div className="flex items-center justify-between text-[7px] font-black uppercase tracking-[0.1em] text-[#61768a]">
         <label>{label}</label>
-        <button type="button" onClick={onClear} className="text-[7px] font-bold normal-case tracking-normal text-[#70869a]">Clear</button>
+        <button type="button" onClick={onClear} className={`${compact ? 'min-h-6 px-1' : ''} text-[7px] font-bold normal-case tracking-normal text-[#70869a]`}>Clear</button>
       </div>
       <input
         aria-label={label}
@@ -471,11 +558,11 @@ function ProtectionField({ label, value, projection, onChange, onClear }) {
         value={value}
         onChange={event => onChange(event.target.value)}
         placeholder="No protection"
-        className="mt-1.5 w-full bg-transparent font-mono text-[11px] font-bold tabular-nums text-[#eef4f8] outline-none placeholder:text-[#405364]"
+        className={`${compact ? 'mt-0.5 text-[10.5px]' : 'mt-1.5 text-[11px]'} w-full bg-transparent font-mono font-bold tabular-nums text-[#eef4f8] outline-none placeholder:text-[#405364]`}
       />
-      <div className="mt-2 flex items-center justify-between border-t border-white/[0.06] pt-2">
-        <span className={`font-mono text-[9px] font-black tabular-nums ${pnlTone}`}>{pnlText}</span>
-        <span className="text-[7px] font-semibold tabular-nums text-[#60758a]">{distanceText}</span>
+      <div className={`${compact ? 'mt-1 pt-1' : 'mt-2 pt-2'} flex items-center justify-between border-t border-white/[0.06]`}>
+        <span className={`font-mono ${compact ? 'text-[7.5px]' : 'text-[9px]'} font-black tabular-nums ${pnlTone}`}>{pnlText}</span>
+        <span className={`${compact ? 'text-[7px]' : 'text-[7px]'} font-semibold tabular-nums text-[#60758a]`}>{distanceText}</span>
       </div>
     </div>
   );

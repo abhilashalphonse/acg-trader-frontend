@@ -90,6 +90,7 @@ export default function MobileTradesSheet({
           {tab === 'open' && (
             <TradeSection
               embedded
+              mobilePositionLayout
               view="open"
               account={account}
               positions={positions}
