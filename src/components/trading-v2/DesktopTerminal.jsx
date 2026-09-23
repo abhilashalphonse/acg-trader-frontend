@@ -224,6 +224,18 @@ function formatPnl(value, currency = 'USD') {
   const absolute = money(Math.abs(number), currency);
   return (number >= 0 ? '+' : '-') + absolute;
 }
+function marketLabel(item) {
+  return item?.name || item?.displaySymbol || displaySymbol(item?.symbol);
+}
+
+function executableMarket(market) {
+  const bid = Number(market?.bid);
+  const ask = Number(market?.ask);
+  return Number.isFinite(bid) && bid > 0 && Number.isFinite(ask) && ask > 0
+    && market?.sessionOpen !== false
+    && market?.isStale !== true
+    && !['WAITING', 'DISCONNECTED', 'ERROR', 'DISABLED'].includes(String(market?.marketState || '').toUpperCase());
+}
 export default function DesktopTerminal({
   market,
   tick,
