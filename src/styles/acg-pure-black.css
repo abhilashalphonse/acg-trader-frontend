@@ -1729,3 +1729,107 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
     background-color:#09090b!important;
   }
 }
+
+
+/* Reference details: short header dividers, exact action colors, blue selected underline.
+   Phone-only visual treatment; no behavior/state changes. */
+@media (max-width:430px){
+  /* Header: use short centered dividers instead of full-height borders */
+  .acg-mobile-header-divider{
+    position:relative!important;
+    border-left:0!important;
+  }
+
+  .acg-mobile-header-star::before{
+    content:none!important;
+  }
+
+  .acg-mobile-header-star::after,
+  .acg-mobile-account-selector::before{
+    content:""!important;
+    position:absolute!important;
+    top:50%!important;
+    width:1px!important;
+    height:24px!important;
+    transform:translateY(-50%)!important;
+    background:rgba(255,255,255,.10)!important;
+    pointer-events:none!important;
+  }
+
+  .acg-mobile-header-star::after{
+    right:0!important;
+    left:auto!important;
+  }
+
+  .acg-mobile-account-selector::before{
+    left:0!important;
+    right:auto!important;
+  }
+
+  /* BUY / SELL colors sampled from supplied reference */
+  .acg-mobile-sell-action{
+    background:#cf3545!important;
+    background-image:none!important;
+    border-color:transparent!important;
+    box-shadow:none!important;
+  }
+
+  .acg-mobile-buy-action{
+    background:#008f72!important;
+    background-image:none!important;
+    border-color:transparent!important;
+    box-shadow:none!important;
+  }
+
+  .acg-mobile-sell-action:active{
+    background:#bd3040!important;
+  }
+
+  .acg-mobile-buy-action:active{
+    background:#007f66!important;
+  }
+
+  /* Selected state: reference blue underline, no glow */
+  .acg-mobile-timeframes button[class*="text-[#36dcec]"]{
+    color:#f2f2f2!important;
+  }
+
+  .acg-mobile-timeframes button > span{
+    background:#195be1!important;
+    box-shadow:none!important;
+    height:2px!important;
+    left:18%!important;
+    right:18%!important;
+  }
+
+  .acg-mobile-chart-tools button[aria-pressed="true"],
+  .acg-mobile-chart-tools button[class*="text-[#32d9ed]"]{
+    color:#f2f2f2!important;
+    text-shadow:none!important;
+  }
+
+  .acg-mobile-chart-tools button > span{
+    background:#195be1!important;
+    box-shadow:none!important;
+    height:2px!important;
+  }
+
+  .acg-mobile-reference-drawing-rail .acg-mobile-drawing-tool-selected{
+    position:relative!important;
+    color:#f2f2f2!important;
+    background:#0e0f14!important;
+    outline:0!important;
+    box-shadow:none!important;
+  }
+
+  .acg-mobile-reference-drawing-rail .acg-mobile-drawing-tool-selected::after{
+    content:""!important;
+    position:absolute!important;
+    left:6px!important;
+    right:6px!important;
+    bottom:0!important;
+    height:2px!important;
+    border-radius:999px!important;
+    background:#195be1!important;
+  }
+}
