@@ -1086,3 +1086,225 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
     background:#071019!important;
   }
 }
+
+
+/* Match the supplied compact mobile order-panel reference exactly.
+   Presentation-only: existing order type, sizing, margin and execution state remain authoritative. */
+@media (max-width:430px){
+  .acg-mobile-reference-order-wrap{
+    margin-top:6px!important;
+  }
+
+  .acg-mobile-reference-execution.acg-mobile-execution-surface{
+    padding:6px 0 7px!important;
+    border:0!important;
+    border-radius:0!important;
+    background:#040b11!important;
+    background-image:linear-gradient(180deg,#050d14 0%,#03090e 100%)!important;
+    box-shadow:none!important;
+  }
+
+  .acg-mobile-order-controls-row{
+    height:35px!important;
+    grid-template-columns:minmax(100px,1.8fr) repeat(3,minmax(54px,1fr)) 32px!important;
+    gap:4px!important;
+  }
+
+  .acg-mobile-order-control{
+    height:35px!important;
+    min-height:35px!important;
+    border-radius:7px!important;
+    border:1px solid rgba(111,143,174,.14)!important;
+    background:linear-gradient(180deg,#0d1823 0%,#09121a 100%)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.018)!important;
+  }
+
+  .acg-mobile-order-controls-row .acg-mobile-order-control{
+    gap:4px!important;
+    padding-inline:7px!important;
+    font-size:9.5px!important;
+    line-height:1!important;
+    font-weight:700!important;
+    letter-spacing:.01em!important;
+  }
+
+  .acg-mobile-order-controls-row > button:first-child{
+    padding-inline:10px!important;
+    font-size:10.5px!important;
+    font-weight:900!important;
+  }
+
+  .acg-mobile-order-controls-row .acg-mobile-order-control svg{
+    width:13px!important;
+    height:13px!important;
+    stroke-width:1.8!important;
+  }
+
+  .acg-mobile-order-controls-row > button:last-child{
+    padding:0!important;
+  }
+
+  .acg-mobile-order-controls-row > button:last-child svg{
+    width:14px!important;
+    height:14px!important;
+  }
+
+  .acg-mobile-protection-control{
+    color:#8c98a5!important;
+  }
+
+  .acg-mobile-order-control:disabled,
+  .acg-mobile-protection-control:disabled{
+    opacity:.55!important;
+    color:#77838f!important;
+  }
+
+  .acg-mobile-reference-execution > .my-2{
+    margin:4px 0 0!important;
+    height:1px!important;
+    background:rgba(255,255,255,.055)!important;
+  }
+
+  .acg-mobile-sizing-summary{
+    height:24px!important;
+    min-height:24px!important;
+    padding:0 5px!important;
+    gap:5px!important;
+    border-top:0!important;
+    border-bottom:1px solid rgba(255,255,255,.045)!important;
+    font-size:9px!important;
+    line-height:1!important;
+  }
+
+  .acg-mobile-sizing-summary svg{
+    width:12px!important;
+    height:12px!important;
+  }
+
+  .acg-mobile-sizing-summary b{
+    font-size:9.5px!important;
+    font-weight:900!important;
+  }
+
+  .acg-mobile-sizing-summary > span > span{
+    color:#7a8794!important;
+    font-size:8.8px!important;
+  }
+
+  .acg-mobile-action-row{
+    height:54px!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:6px!important;
+    margin-top:6px!important;
+  }
+
+  .acg-mobile-sell-action,
+  .acg-mobile-buy-action,
+  .acg-mobile-lot-control{
+    height:54px!important;
+    min-height:54px!important;
+    border-radius:8px!important;
+  }
+
+  .acg-mobile-sell-action{
+    border:1px solid rgba(255,80,98,.66)!important;
+    background:linear-gradient(135deg,#e9334b 0%,#d42b43 57%,#c0223a 100%)!important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.10),
+      inset 0 -9px 18px rgba(92,0,18,.10)!important;
+  }
+
+  .acg-mobile-buy-action{
+    border:1px solid rgba(31,220,192,.68)!important;
+    background:linear-gradient(135deg,#10cdb1 0%,#08baa2 56%,#079c8d 100%)!important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.10),
+      inset 0 -9px 18px rgba(0,69,61,.09)!important;
+  }
+
+  .acg-mobile-sell-action > strong,
+  .acg-mobile-buy-action > strong{
+    font-size:17.5px!important;
+    line-height:1!important;
+    font-weight:900!important;
+    letter-spacing:-.025em!important;
+  }
+
+  .acg-mobile-sell-action > span,
+  .acg-mobile-buy-action > span{
+    margin-top:5px!important;
+    font-size:11.5px!important;
+    line-height:1!important;
+    font-weight:900!important;
+    letter-spacing:.005em!important;
+  }
+
+  .acg-mobile-lot-control{
+    grid-template-columns:30px minmax(0,1fr) 30px!important;
+    padding:0 3px!important;
+    border:1px solid rgba(104,135,164,.11)!important;
+    background:linear-gradient(180deg,#0b151f 0%,#08111a 100%)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.012)!important;
+  }
+
+  .acg-mobile-lot-control > button{
+    width:30px!important;
+    height:52px!important;
+    min-width:30px!important;
+    min-height:52px!important;
+    border-radius:6px!important;
+  }
+
+  .acg-mobile-lot-control > button svg{
+    width:16px!important;
+    height:16px!important;
+  }
+
+  .acg-mobile-sizing-center{
+    min-height:52px!important;
+    height:52px!important;
+    justify-content:center!important;
+    overflow:hidden!important;
+  }
+
+  .acg-mobile-lot-value,
+  .acg-mobile-risk-value{
+    display:block!important;
+    width:100%!important;
+    min-width:0!important;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    font-size:17.5px!important;
+    line-height:1!important;
+    font-weight:900!important;
+    letter-spacing:-.02em!important;
+    text-align:center!important;
+    text-decoration:none!important;
+    text-shadow:none!important;
+  }
+
+  .acg-mobile-risk-value::before,
+  .acg-mobile-risk-value::after,
+  .acg-mobile-lot-value::before,
+  .acg-mobile-lot-value::after{
+    content:none!important;
+    display:none!important;
+  }
+
+  .acg-mobile-sizing-label{
+    margin-top:5px!important;
+    padding:0!important;
+    border:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    font-size:7.5px!important;
+    line-height:1!important;
+    font-weight:600!important;
+    letter-spacing:.025em!important;
+    color:#8995a1!important;
+    text-decoration:none!important;
+  }
+}
