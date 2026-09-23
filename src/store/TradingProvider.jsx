@@ -21,14 +21,33 @@ export function TradingProvider({ children }) {
   const [state, dispatch] = useReducer(tradingReducer, initialTradingState);
   const socketRef = useRef(null);
   const refreshSessionRef = useRef(auth.refreshSession);
+  const refreshAccountGrantsRef = useRef(auth.refreshAccountGrants);
+  const grantRefreshTimerRef = useRef(null);
+  const socketContextRef = useRef({ token: null, grantKey: '' });
   const ensureFreshAccessToken = auth.ensureFreshAccessToken;
   const refreshSession = auth.refreshSession;
 
   useEffect(() => { refreshSessionRef.current = refreshSession; }, [refreshSession]);
+  useEffect(() => { refreshAccountGrantsRef.current = auth.refreshAccountGrants; }, [auth.refreshAccountGrants]);
 
   useEffect(() => {
+    const scheduleGrantRefresh = (delayMs = 0) => {
+      if (grantRefreshTimerRef.current) window.clearTimeout(grantRefreshTimerRef.current);
+      grantRefreshTimerRef.current = window.setTimeout(() => {
+        grantRefreshTimerRef.current = null;
+        void refreshAccountGrantsRef.current?.().catch(() => {});
+      }, Math.max(0, delayMs));
+    };
+
     const socket = new TraderSocket({
-      onEnvelope: envelope => dispatch({ type: 'socket/envelope', payload: envelope }),
+      onEnvelope: envelope => {
+        dispatch({ type: 'socket/envelope', payload: envelope });
+        if (envelope?.type === 'trading.account.grants') scheduleGrantRefresh(0);
+        if (envelope?.type === 'trading.account.control') {
+          const event = String(envelope?.data?.event || '').toLowerCase();
+          if (['disabled', 'closed', 'breached'].includes(event)) scheduleGrantRefresh(1500);
+        }
+      },
       onStatus: payload => dispatch({ type: 'connection/status', payload }),
       onSessionInvalid: () => {
         void refreshSessionRef.current?.().catch(() => {});
@@ -36,19 +55,36 @@ export function TradingProvider({ children }) {
     });
     socketRef.current = socket;
     return () => {
+      if (grantRefreshTimerRef.current) window.clearTimeout(grantRefreshTimerRef.current);
+      grantRefreshTimerRef.current = null;
       socket.destroy();
       socketRef.current = null;
     };
   }, []);
 
   useEffect(() => {
-    if (auth.accessToken) {
-      socketRef.current?.connect(auth.accessToken);
+    const token = auth.accessToken || null;
+    const grantKey = [...new Set((auth.principal?.accountIds || []).map(String).filter(Boolean))].sort().join(',');
+    const previous = socketContextRef.current;
+
+    if (!token) {
+      socketContextRef.current = { token: null, grantKey: '' };
+      socketRef.current?.disconnect();
+      dispatch({ type: 'connection/reset' });
       return;
     }
-    socketRef.current?.disconnect();
-    dispatch({ type: 'connection/reset' });
-  }, [auth.accessToken]);
+
+    if (previous.token !== token) {
+      socketContextRef.current = { token, grantKey };
+      socketRef.current?.connect(token);
+      return;
+    }
+
+    if (previous.grantKey !== grantKey) {
+      socketContextRef.current = { token, grantKey };
+      socketRef.current?.refreshSessionContext(token);
+    }
+  }, [auth.accessToken, auth.principal?.accountIds]);
 
   const subscribeMarket = useCallback(subscription => socketRef.current?.subscribe(subscription) || (() => {}), []);
   const requestSnapshot = useCallback(accountIds => socketRef.current?.requestSnapshot(accountIds) || false, []);
