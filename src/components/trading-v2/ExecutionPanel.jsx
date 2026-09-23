@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, Minus, Plus, X, Check, SlidersHorizontal, Clock3 } from 'lucide-react';
+import { Calculator, ChevronDown, CircleMinus, Info, Minus, Plus, Shield, Target, X, Check, SlidersHorizontal, Clock3 } from 'lucide-react';
 import { decimalPlaces, normalizeVolumeToStep } from '../../utils/tradingCommandNormalization.js';
 import { calculateRiskOrderSizing, effectiveLeverage, estimateRequiredMargin, estimateStopRisk, riskSizingSupported } from '../../utils/tradingRisk.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
@@ -580,51 +580,166 @@ export default function ExecutionPanel({
 
   if (mobileDocked && !tradePlan) {
     const mobileSizingLabel = sizingMode === 'risk' ? `${Number(riskPercent).toFixed(2)}%` : formatLots(normalizedLots);
+    const referencePrice = finiteQuote(market?.ask)
+      ? Number(market.ask)
+      : finiteQuote(market?.bid)
+        ? Number(market.bid)
+        : null;
+    const mobileMargin = referencePrice == null
+      ? null
+      : estimateRequiredMargin(referencePrice, normalizedLots, market, account);
+    const mobileMarginPercent = Number.isFinite(Number(mobileMargin)) && Number(account?.equity) > 0
+      ? (Number(mobileMargin) / Number(account.equity)) * 100
+      : null;
 
     return (
       <>
-        <section className="acg-mobile-execution-surface relative shrink-0 overflow-visible bg-[#0b0b0d]">
+        <section className="acg-mobile-reference-execution acg-mobile-execution-surface relative shrink-0 overflow-visible rounded-t-[14px] border border-white/[0.09] bg-[#081019] px-2 pb-2 pt-2">
           {orderPicker}
 
-          <button
-            type="button"
-            onClick={() => setOrderPickerOpen(value => !value)}
-            className="flex h-[24px] w-full items-center justify-between px-2 text-left text-[8px] font-extrabold text-[#aab6c0]"
-            aria-label="Select order type"
-          >
-            <span>{orderTypes.find(([id]) => id === orderType)?.[1]}</span>
-            <ChevronDown size={10} className="text-[#677a8b]"/>
-          </button>
-
-          <div className="grid h-[53px] grid-cols-[36fr_28fr_36fr]">
+          <div className="grid h-[39px] grid-cols-[1.65fr_repeat(3,1fr)_38px] gap-1.5">
             <button
               type="button"
-              disabled={!canSubmitExposure}
-              onClick={() => clickSide('sell')}
-              className="acg-mobile-metal-action flex min-w-0 flex-col items-start justify-center px-2.5 text-left text-[#ff5f6d] disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={() => setOrderPickerOpen(value => !value)}
+              className="acg-mobile-order-control flex min-w-0 items-center justify-between rounded-[7px] px-3 text-left text-[11px] font-black uppercase tracking-[0.01em] text-[#eef2f7]"
+              aria-label="Select order type"
             >
-              <span className="text-[8px] font-black tracking-[0.05em]">SELL</span>
-              <strong className="mt-1 max-w-full whitespace-nowrap text-[clamp(18px,5.2vw,22px)] font-black tabular-nums leading-none tracking-[-0.04em] text-[#f9f3f4]">{market?.bid || '—'}</strong>
+              <span className="truncate">{orderTypes.find(([id]) => id === orderType)?.[1] || 'Market'}</span>
+              <ChevronDown size={14} className="shrink-0 text-[#c3ccd8]"/>
             </button>
 
             <button
               type="button"
               onClick={() => setMobileAdvancedOpen(true)}
-              className="acg-mobile-metal-action flex min-w-0 flex-col items-center justify-center px-1"
-              aria-label="Open position size and risk controls"
+              className={`acg-mobile-order-control flex min-w-0 items-center justify-center gap-1 rounded-[7px] px-1 text-[10px] font-bold ${sizingMode === 'risk' ? 'text-[#31d9ec]' : 'text-[#b6c0cd]'}`}
+              aria-label="Open risk controls"
             >
-              <span className="flex items-center gap-0.5 font-mono text-[13px] font-black tabular-nums text-[#f4f7fb]">{mobileSizingLabel}<ChevronDown size={10} className="text-[#718398]"/></span>
-              <span className="mt-1 text-[7px] font-semibold text-[#687783]">{sizingMode === 'risk' ? 'Risk' : 'Lots'}</span>
+              <Shield size={15} strokeWidth={1.8}/>
+              <span>RISK</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setMobileAdvancedOpen(true)}
+              className="acg-mobile-order-control flex min-w-0 items-center justify-center gap-1 rounded-[7px] px-1 text-[10px] font-bold text-[#b6c0cd]"
+              aria-label="Open stop-loss controls"
+            >
+              <CircleMinus size={15} strokeWidth={1.8}/>
+              <span>SL</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMobileAdvancedOpen(true)}
+              className="acg-mobile-order-control flex min-w-0 items-center justify-center gap-1 rounded-[7px] px-1 text-[10px] font-bold text-[#b6c0cd]"
+              aria-label="Open take-profit controls"
+            >
+              <Target size={15} strokeWidth={1.8}/>
+              <span>TP</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMobileAdvancedOpen(true)}
+              className="acg-mobile-order-control grid place-items-center rounded-[7px] text-[#c9d2dc]"
+              aria-label="Open position sizing calculator"
+            >
+              <Calculator size={17} strokeWidth={1.8}/>
+            </button>
+          </div>
+
+          <div className="my-2 h-px bg-white/[0.08]" aria-hidden="true"/>
+
+          <div className="flex h-[20px] items-center gap-1.5 px-1 text-[10px] font-medium text-[#a9b3c1]">
+            <Info size={13} className="shrink-0 text-[#c3ccd7]" strokeWidth={1.9}/>
+            <span className="truncate">
+              <b className="font-black text-[#eef2f7]">{formatLots(normalizedLots)} lots</b>
+              <span className="text-[#9aa6b5]">
+                {' '}(≈ {mobileMargin == null ? '—' : formatMoney(mobileMargin, account?.currency)}
+                {mobileMarginPercent == null ? '' : `, ${mobileMarginPercent.toFixed(2)}%`})
+              </span>
+            </span>
+          </div>
+
+          <div className="mt-1.5 grid h-[64px] grid-cols-[1fr_1.02fr_1fr] gap-2">
+            <button
+              type="button"
+              disabled={!canSubmitExposure}
+              onClick={() => clickSide('sell')}
+              className="acg-mobile-sell-action flex min-w-0 flex-col items-center justify-center rounded-[9px] px-2 text-center disabled:cursor-not-allowed disabled:opacity-40 active:scale-[0.99]"
+            >
+              <strong className="max-w-full whitespace-nowrap text-[clamp(20px,5.4vw,24px)] font-black tabular-nums leading-none tracking-[-0.045em] text-white">{market?.bid || '—'}</strong>
+              <span className="mt-2 text-[14px] font-black leading-none text-white">SELL</span>
+            </button>
+
+            <div className="acg-mobile-lot-control grid min-w-0 grid-cols-[34px_minmax(0,1fr)_34px] items-center rounded-[9px] px-1">
+              <button
+                type="button"
+                onClick={() => sizingMode === 'lots' ? decrease() : onRiskPercentChange(Math.max(0.1, +(riskPercent - 0.1).toFixed(2)))}
+                className="grid size-[32px] place-items-center rounded-[7px] text-[#aeb9c6] active:bg-white/[0.06]"
+                aria-label={sizingMode === 'lots' ? 'Decrease lot size' : 'Decrease risk'}
+              >
+                <Minus size={20} strokeWidth={1.8}/>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMobileAdvancedOpen(true)}
+                className="flex min-w-0 flex-col items-center justify-center"
+                aria-label="Open position size controls"
+              >
+                {sizingMode === 'lots' ? (
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    enterKeyHint="done"
+                    aria-label="Lot size"
+                    value={lotInput}
+                    onFocus={event => {
+                      event.stopPropagation();
+                      setLotInputFocused(true);
+                      requestAnimationFrame(() => event.currentTarget.select());
+                    }}
+                    onClick={event => event.stopPropagation()}
+                    onChange={event => updateLotInput(event.target.value)}
+                    onBlur={commitLotInput}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        event.currentTarget.blur();
+                      }
+                      if (event.key === 'Escape') {
+                        event.preventDefault();
+                        setLotInput(formatLots(normalizedLots));
+                        event.currentTarget.blur();
+                      }
+                    }}
+                    className="w-full min-w-0 bg-transparent p-0 text-center font-mono text-[18px] font-black leading-none tabular-nums text-[#f5f7fa] outline-none"
+                  />
+                ) : (
+                  <span className="font-mono text-[18px] font-black leading-none tabular-nums text-[#f5f7fa]">{mobileSizingLabel}</span>
+                )}
+                <span className="mt-2 text-[9px] font-semibold uppercase tracking-[0.03em] text-[#a1adbb]">{sizingMode === 'risk' ? 'Risk' : 'Lots'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => sizingMode === 'lots' ? increase() : onRiskPercentChange(Math.min(5, +(riskPercent + 0.1).toFixed(2)))}
+                className="grid size-[32px] place-items-center rounded-[7px] text-[#eef2f7] active:bg-white/[0.06]"
+                aria-label={sizingMode === 'lots' ? 'Increase lot size' : 'Increase risk'}
+              >
+                <Plus size={20} strokeWidth={1.8}/>
+              </button>
+            </div>
 
             <button
               type="button"
               disabled={!canSubmitExposure}
               onClick={() => clickSide('buy')}
-              className="acg-mobile-metal-action flex min-w-0 flex-col items-end justify-center px-2.5 text-right text-[#2ddb9f] disabled:cursor-not-allowed disabled:opacity-40"
+              className="acg-mobile-buy-action flex min-w-0 flex-col items-center justify-center rounded-[9px] px-2 text-center disabled:cursor-not-allowed disabled:opacity-40 active:scale-[0.99]"
             >
-              <span className="text-[8px] font-black tracking-[0.05em]">BUY</span>
-              <strong className="mt-1 max-w-full whitespace-nowrap text-[clamp(18px,5.2vw,22px)] font-black tabular-nums leading-none tracking-[-0.04em] text-[#f3fbf8]">{market?.ask || '—'}</strong>
+              <strong className="max-w-full whitespace-nowrap text-[clamp(20px,5.4vw,24px)] font-black tabular-nums leading-none tracking-[-0.045em] text-white">{market?.ask || '—'}</strong>
+              <span className="mt-2 text-[14px] font-black leading-none text-white">BUY</span>
             </button>
           </div>
         </section>
