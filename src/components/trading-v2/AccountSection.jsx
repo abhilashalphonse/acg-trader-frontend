@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronRight, CircleHelp, Gauge, ShieldCheck } from 'lucide-react';
 import { calculateAccountRiskSummary } from '../../utils/accountRisk.js';
-import { accountLimitsUnavailableCopy, accountRiskDescription, accountRiskTitle, accountStatusLabel, accountTypeLabel, isMasterAccount } from '../../utils/accountPresentation.js';
+import { accountLimitsUnavailableCopy, accountRiskDescription, accountRiskTitle, accountStatusLabel, accountStatusToneClass, accountTypeLabel, isMasterAccount } from '../../utils/accountPresentation.js';
 
 function money(value, currency = 'USD') {
   if (value === null || value === undefined || value === '') return '—';
@@ -17,13 +17,6 @@ function money(value, currency = 'USD') {
 function progress(value, total) {
   if (!Number(total)) return 0;
   return Math.max(0, Math.min(100, (Number(value) / Number(total)) * 100));
-}
-
-function statusClass(status) {
-  const value = String(status || '').toUpperCase();
-  if (value === 'ACTIVE') return 'border-[#176247] bg-[#0c2d23] text-[#45dda9]';
-  if (value === 'PAUSED') return 'border-[#655126] bg-[#2a220f] text-[#e7c76b]';
-  return 'border-[#63313b] bg-[#2a151a] text-[#ff8994]';
 }
 
 export default function AccountSection({ account = {}, onOpenSheet = () => {} }) {
@@ -48,7 +41,7 @@ export default function AccountSection({ account = {}, onOpenSheet = () => {} })
       <header className="pb-4"><p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#5f7488]">ACG Trader</p><h1 className="mt-1 text-[26px] font-black tracking-[-0.045em] text-[#f5f8fb]">Account</h1><p className="mt-1 text-[10px] text-[#718397]">{`Balance, equity, margin and ${accountRiskTitle(account).toLowerCase()}.`}</p></header>
 
       <div className="border-y border-white/[0.08] bg-black py-3">
-        <div className="flex items-start justify-between gap-3"><div><span className="text-[8px] font-bold uppercase tracking-[0.12em] text-[#60768a]">{typeLabel}</span><strong className="mt-1.5 block text-[20px] font-black tracking-[-0.04em] text-[#f0f5f8]">{account.accountCode || '—'}</strong><p className="mt-1 text-[9px] text-[#71869a]">{currency}{account.leverage ? ` • 1:${account.leverage}` : ''}</p></div><span className={`rounded-full border px-2.5 py-1.5 text-[8px] font-black ${statusClass(status)}`}>{accountStatusLabel(status)}</span></div>
+        <div className="flex items-start justify-between gap-3"><div><span className="text-[8px] font-bold uppercase tracking-[0.12em] text-[#60768a]">{typeLabel}</span><strong className="mt-1.5 block text-[20px] font-black tracking-[-0.04em] text-[#f0f5f8]">{account.accountCode || '—'}</strong><p className="mt-1 text-[9px] text-[#71869a]">{currency}{account.leverage ? ` • 1:${account.leverage}` : ''}</p></div><span className={`rounded-full border px-2.5 py-1.5 text-[8px] font-black ${accountStatusToneClass(status)}`}>{accountStatusLabel(status)}</span></div>
         <div className="mt-4 grid grid-cols-2 gap-2"><Stat label="Balance" value={money(balance, currency)}/><Stat label="Equity" value={money(equity, currency)}/><Stat label="Free margin" value={money(account.freeMargin, currency)}/><Stat label="Used margin" value={money(account.usedMargin, currency)}/></div>
         <div className="mt-2 flex items-center justify-between rounded-md border border-white/[0.08] bg-[#101010] px-3 py-2.5"><span className="text-[8px] font-bold uppercase tracking-[0.09em] text-[#5d7287]">Valuation</span><span className={`text-[9px] font-black ${valuation === 'LIVE' ? 'text-[#45dda9]' : valuation === 'STALE' ? 'text-[#e8c35f]' : 'text-[#90a2b4]'}`}>{valuation}</span></div>
       </div>
