@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Bell,
   BookOpen,
+  Check,
   CandlestickChart,
   ChartNoAxesCombined,
   ChevronDown,
@@ -11,6 +12,7 @@ import {
   Link2,
   Link2Off,
   List,
+  Loader2,
   Layers3,
   Maximize2,
   MoreHorizontal,
@@ -244,6 +246,11 @@ export default function DesktopTerminal({
   onToggleIndicatorFavorite = () => {},
   onIndicatorsChange = () => {},
   account = {},
+  accounts = [],
+  activeAccountId = null,
+  accountSwitching = false,
+  accountSwitchError = null,
+  onSelectAccount = () => false,
   plannedRisk = 0,
   hotkeysEnabled = true,
   timeframe = '1m',
@@ -277,6 +284,7 @@ export default function DesktopTerminal({
   const searchRef = useRef(null);
   const [activeNav, setActiveNav] = useState('trade');
   const [notice, setNotice] = useState('');
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [selectedPositionId, setSelectedPositionId] = useState(null);
   const [requestedDockTab, setRequestedDockTab] = useState(null);
@@ -615,10 +623,71 @@ export default function DesktopTerminal({
           
           <button type="button" onClick={() => searchRef.current?.focus()} className="grid size-8 place-items-center rounded-md text-[#A1AFBC] hover:bg-white/[0.035] hover:text-white" aria-label="Search"><Search size={16}/></button>
           <button type="button" onClick={() => setNotice('Notification delivery is not connected to a backend event inbox yet.')} className="grid size-8 place-items-center rounded-md border border-white/[0.06] bg-black/20 text-[#A1AFBC]" aria-label="Notifications"><Bell size={15}/></button>
-          <button type="button" onClick={() => setNotice(`${account?.accountCode || 'Trading account'} • ${accountTypeLabel(account)} • ${accountStatusLabel(accountStatus)} • ${valuationStatus}`)} className="flex h-8 items-center gap-2 rounded-md border border-white/[0.06] bg-black/20 px-2.5 text-left">
-            <span className={`size-1.5 rounded-full ${canOpen ? 'bg-[#2fd9a0]' : valuationStatus === 'STALE' ? 'bg-[#e8bd55]' : 'bg-[#343434]'}`}/>
-            <div className="leading-none"><strong className="block text-[9px]">{money(account?.equity, currency)}</strong><span className="mt-1 block text-[8px] text-[#6F8191]">{account?.accountCode || accountStatus} · {accountTypeBadge(account)}</span></div>
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setAccountMenuOpen(value => !value)}
+              className="flex h-8 min-w-[172px] items-center gap-2 rounded-md border border-white/[0.06] bg-black/20 px-2.5 text-left hover:bg-white/[0.025]"
+              aria-label="Switch trading account"
+              aria-expanded={accountMenuOpen}
+            >
+              {accountSwitching ? <Loader2 size={11} className="shrink-0 animate-spin text-[#59C7FF]"/> : <span className={`size-1.5 shrink-0 rounded-full ${canOpen ? 'bg-[#2fd9a0]' : valuationStatus === 'STALE' ? 'bg-[#e8bd55]' : 'bg-[#343434]'}`}/>}
+              <div className="min-w-0 flex-1 leading-none">
+                <strong className="block truncate text-[9px]">{account?.accountCode || accountStatus}</strong>
+                <span className="mt-1 block truncate text-[8px] text-[#6F8191]">{accountTypeBadge(account)} · {accountSwitching ? 'SWITCHING' : money(account?.equity, currency)}</span>
+              </div>
+              <ChevronDown size={11} className={`shrink-0 text-[#6F8191] transition ${accountMenuOpen ? 'rotate-180' : ''}`}/>
+            </button>
+
+            {accountMenuOpen && (
+              <div className="absolute right-0 top-10 z-[140] w-[330px] overflow-hidden rounded-md border border-white/[0.10] bg-[#0C1013] shadow-[0_20px_60px_rgba(0,0,0,.65)]">
+                <div className="border-b border-white/[0.07] px-3 py-2.5">
+                  <strong className="block text-[10px] text-[#E6EDF3]">Trading accounts</strong>
+                  <span className="mt-0.5 block text-[8px] leading-4 text-[#6F8191]">Execution stays locked until the selected account has a fresh snapshot and history.</span>
+                </div>
+                {accountSwitchError && <div className="border-b border-[#553038] bg-[#190d10] px-3 py-2 text-[8px] font-semibold text-[#e99aa3]">{accountSwitchError} · Select the account again to retry.</div>}
+                <div className="max-h-[420px] overflow-y-auto [scrollbar-width:thin]">
+                  {accounts.map(item => {
+                    const id = String(item.id);
+                    const selected = id === String(activeAccountId || '');
+                    const itemStatus = String(item.status || 'UNKNOWN').toUpperCase();
+                    const phase = item?.challenge?.phase ? `Phase ${item.challenge.phase}` : null;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        disabled={accountSwitching && !selected}
+                        onClick={() => {
+                          try {
+                            const changed = onSelectAccount(id);
+                            if (changed !== false) setAccountMenuOpen(false);
+                          } catch (error) {
+                            setNotice(error?.message || 'Unable to switch account');
+                          }
+                        }}
+                        className={`flex w-full items-center gap-3 border-b border-white/[0.06] px-3 py-3 text-left last:border-b-0 disabled:cursor-wait disabled:opacity-45 ${selected ? 'bg-white/[0.045]' : 'hover:bg-white/[0.025]'}`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <strong className="truncate text-[10px] text-[#E6EDF3]">{item.accountCode || 'Trading account'}</strong>
+                            <span className="rounded bg-white/[0.07] px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.06em] text-[#9fb0bd]">{accountTypeBadge(item)}</span>
+                          </div>
+                          <div className="mt-1 flex items-center gap-1.5 text-[8px] text-[#6F8191]">
+                            <span>{money(item.balance, item.currency || 'USD')}</span>
+                            {phase && <><span>·</span><span>{phase}</span></>}
+                            <span>·</span>
+                            <span>{accountStatusLabel(itemStatus)}</span>
+                          </div>
+                        </div>
+                        {selected && (accountSwitching ? <Loader2 size={13} className="shrink-0 animate-spin text-[#59C7FF]"/> : <Check size={13} className="shrink-0 text-[#59C7FF]"/>)}
+                      </button>
+                    );
+                  })}
+                  {!accounts.length && <div className="px-3 py-4 text-center text-[8px] text-[#6F8191]">No trading accounts are available.</div>}
+                </div>
+              </div>
+            )}
+          </div>
           <button type="button" onClick={() => setNotice(`${accountTypeLabel(account)} • ${accountStatusLabel(accountStatus)} • valuation ${valuationStatus.toLowerCase()}`)} className="grid size-8 place-items-center rounded-full border border-white/[0.06] bg-black/20 text-[#A1AFBC]" aria-label="Profile"><UserRound size={15}/></button>
         </div>
       </header>
@@ -858,7 +927,7 @@ export default function DesktopTerminal({
 
           <aside className={`min-h-0 overflow-hidden border-l border-white/[0.06] bg-[#07090B] ${desktopLayout.sidebarCollapsed ? 'hidden' : 'flex flex-col'}`} style={{ gridColumn: '3', gridRow: '1' }}>
             <div className="min-h-0 flex-1">
-              <DesktopOrderTicket market={market} markets={markets} account={account} positions={positions} positionHistory={positionHistory} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} riskGuardSettings={riskGuardSettings} onRiskGuardSettingsChange={onRiskGuardSettingsChange}/>
+              <DesktopOrderTicket key={`order-ticket-${account?.id || 'none'}`} market={market} markets={markets} account={account} positions={positions} positionHistory={positionHistory} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} riskGuardSettings={riskGuardSettings} onRiskGuardSettingsChange={onRiskGuardSettingsChange}/>
             </div>
             {selectedPosition && (
               <div className="max-h-[46%] shrink-0 overflow-y-auto [scrollbar-width:thin]">
