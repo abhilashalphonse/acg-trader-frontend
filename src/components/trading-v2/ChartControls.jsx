@@ -133,21 +133,22 @@ export default function ChartControls({
             type="button"
             disabled={disabled}
             onClick={() => onTimeframe(tf)}
-            className={`${focusMode ? 'h-7 min-w-[25px] px-1 text-[9px]' : 'h-8 min-w-[27px] px-1 text-[10px]'} shrink-0 rounded font-bold transition ${
-              timeframe === tf ? 'bg-[#101010] text-[#f4f8fc] ' : 'text-[#788aa0] hover:text-[#dce7f3]'
+            className={`${focusMode ? 'relative h-7 min-w-[25px] px-1 text-[9px]' : 'h-8 min-w-[27px] px-1 text-[10px]'} shrink-0 rounded font-bold transition ${
+              timeframe === tf ? 'bg-[#101010] text-[#f4f8fc]' : 'text-[#788aa0] hover:text-[#dce7f3]'
             }`}
           >
             {tf}
+            {focusMode && timeframe === tf && <span className="absolute bottom-0 left-[18%] right-[18%] h-[2px] rounded-full bg-[#195be1]" aria-hidden="true"/>}
           </button>
         ))}
       </div>
 
       <div className={actionsClass}>
-        <button type="button" disabled={disabled} aria-label="Candlestick chart" onClick={() => onChartMode('candles')} className={`grid h-full ${focusMode ? 'w-8' : 'w-9'} place-items-center ${focusMode ? '' : 'border-r border-white/[0.08]'} ${chartMode === 'candles' ? 'bg-[#101010] text-[#5bc8ff]' : 'text-[#75879b]'}`}>
-          <CandlestickChart size={focusMode ? 16 : 18} />
+        <button type="button" disabled={disabled} aria-label="Candlestick chart" onClick={() => onChartMode('candles')} className={`relative grid h-full ${focusMode ? 'w-8' : 'w-9'} place-items-center ${focusMode ? '' : 'border-r border-white/[0.08]'} ${chartMode === 'candles' ? 'bg-[#101010] text-[#f2f2f2]' : 'text-[#75879b]'}`}>
+          <CandlestickChart size={focusMode ? 16 : 18} />{focusMode && chartMode === 'candles' && <span className="absolute bottom-0 left-[18%] right-[18%] h-[2px] rounded-full bg-[#195be1]" aria-hidden="true"/>}
         </button>
-        <button type="button" disabled={disabled} aria-label="Line chart" onClick={() => onChartMode('line')} className={`grid h-full ${focusMode ? 'w-8' : 'w-9'} place-items-center ${focusMode ? '' : 'border-r border-white/[0.08]'} ${chartMode === 'line' ? 'bg-[#101010] text-[#5bc8ff]' : 'text-[#75879b]'}`}>
-          <ChartNoAxesCombined size={focusMode ? 16 : 18} />
+        <button type="button" disabled={disabled} aria-label="Line chart" onClick={() => onChartMode('line')} className={`relative grid h-full ${focusMode ? 'w-8' : 'w-9'} place-items-center ${focusMode ? '' : 'border-r border-white/[0.08]'} ${chartMode === 'line' ? 'bg-[#101010] text-[#f2f2f2]' : 'text-[#75879b]'}`}>
+          <ChartNoAxesCombined size={focusMode ? 16 : 18} />{focusMode && chartMode === 'line' && <span className="absolute bottom-0 left-[18%] right-[18%] h-[2px] rounded-full bg-[#195be1]" aria-hidden="true"/>}
         </button>
         <button type="button" disabled={disabled} onClick={onIndicators} aria-label="Indicators" className={`grid h-full ${focusMode ? 'w-8 text-[15px]' : 'w-9 text-[17px]'} place-items-center font-medium italic text-[#8799ad] active:bg-[#101010] active:text-[#5bc8ff]`}>
           ƒx
@@ -159,9 +160,9 @@ export default function ChartControls({
             onClick={onToggleDrawings}
             aria-label={drawingsOpen ? 'Hide drawing tools' : 'Show drawing tools'}
             aria-pressed={drawingsOpen}
-            className={`grid h-full w-9 place-items-center ${drawingsOpen ? 'bg-[#101010] text-[#5bc8ff]' : 'text-[#75879b]'}`}
+            className={`relative grid h-full w-9 place-items-center ${drawingsOpen ? 'bg-[#101010] text-[#f2f2f2]' : 'text-[#75879b]'}`}
           >
-            <Pencil size={16}/>
+            <Pencil size={16}/>{focusMode && drawingsOpen && <span className="absolute bottom-0 left-[18%] right-[18%] h-[2px] rounded-full bg-[#195be1]" aria-hidden="true"/>}
           </button>
         )}
       </div>
