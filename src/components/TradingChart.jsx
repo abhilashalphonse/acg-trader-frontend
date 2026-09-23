@@ -472,7 +472,7 @@ export default function TradingChart({
         renderIndicators(chart, bars);
         chart.timeScale().setVisibleLogicalRange({
           from: Math.max(0, bars.length - DEFAULT_BARS_BACK - 1),
-          to: bars.length - 1 + DEFAULT_RIGHT_BARS,
+          to: bars.length - 1 + chartRightBars,
         });
         setRealtimeTracking(true);
         initialLoadCompleteRef.current = true;
