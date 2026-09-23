@@ -750,7 +750,7 @@ export default function ChartArea({
                   onClick={() => !tradePlan && onSelectTool(id)}
                   aria-label={label}
                   disabled={Boolean(tradePlan)}
-                  className={`relative grid ${focusMode ? 'size-[34px]' : 'size-[32px]'} shrink-0 place-items-center rounded-md transition ${selectedTool === id ? 'bg-white/[0.08] text-[#59c8ff] ring-1 ring-inset ring-white/[0.04]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:cursor-not-allowed disabled:opacity-30`}
+                  className={`acg-mobile-drawing-tool relative grid ${focusMode ? 'size-[34px]' : 'size-[32px]'} shrink-0 place-items-center rounded-md transition ${selectedTool === id ? 'acg-mobile-drawing-tool-selected bg-white/[0.08] text-[#59c8ff] ring-1 ring-inset ring-white/[0.04]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:cursor-not-allowed disabled:opacity-30`}
                 >
                   <Icon size={focusMode ? 17 : 16} strokeWidth={1.75} />
                 </button>
