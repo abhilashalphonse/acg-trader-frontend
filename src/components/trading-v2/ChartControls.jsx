@@ -42,10 +42,10 @@ export default function ChartControls({
               type="button"
               disabled={disabled}
               onClick={() => onTimeframe(tf)}
-              className={`relative grid h-full min-w-0 flex-1 place-items-center text-[11px] font-bold transition ${timeframe === tf ? 'text-[#36dcec]' : 'text-[#a8b1c0] active:text-[#e9edf3]'}`}
+              className={`relative grid h-full min-w-0 flex-1 place-items-center text-[11px] font-bold transition ${timeframe === tf ? 'text-[#f2f2f2]' : 'text-[#a8b1c0] active:text-[#e9edf3]'}`}
             >
               {tf}
-              {timeframe === tf && <span className="absolute bottom-0 left-[18%] right-[18%] h-[2px] rounded-full bg-[#32d9ed]" aria-hidden="true"/>}
+              {timeframe === tf && <span className="absolute bottom-0 left-[18%] right-[18%] h-[2px] rounded-full bg-[#195be1]" aria-hidden="true"/>}
             </button>
           ))}
         </div>
@@ -58,20 +58,20 @@ export default function ChartControls({
             disabled={disabled}
             aria-label="Candlestick chart"
             onClick={() => onChartMode('candles')}
-            className={`relative grid h-full w-[34px] place-items-center ${chartMode === 'candles' ? 'text-[#32d9ed]' : 'text-[#d6dce5]'}`}
+            className={`relative grid h-full w-[34px] place-items-center ${chartMode === 'candles' ? 'text-[#f2f2f2]' : 'text-[#d6dce5]'}`}
           >
             <CandlestickChart size={19} strokeWidth={1.9}/>
-            {chartMode === 'candles' && <span className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full bg-[#32d9ed]" aria-hidden="true"/>}
+            {chartMode === 'candles' && <span className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full bg-[#195be1]" aria-hidden="true"/>}
           </button>
           <button
             type="button"
             disabled={disabled}
             aria-label="Line chart"
             onClick={() => onChartMode('line')}
-            className={`relative grid h-full w-[34px] place-items-center ${chartMode === 'line' ? 'text-[#32d9ed]' : 'text-[#d6dce5]'}`}
+            className={`relative grid h-full w-[34px] place-items-center ${chartMode === 'line' ? 'text-[#f2f2f2]' : 'text-[#d6dce5]'}`}
           >
             <ChartNoAxesCombined size={19} strokeWidth={1.9}/>
-            {chartMode === 'line' && <span className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full bg-[#32d9ed]" aria-hidden="true"/>}
+            {chartMode === 'line' && <span className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full bg-[#195be1]" aria-hidden="true"/>}
           </button>
           <button
             type="button"
@@ -88,10 +88,10 @@ export default function ChartControls({
             onClick={onToggleDrawings}
             aria-label={drawingsOpen ? 'Hide drawing tools' : 'Show drawing tools'}
             aria-pressed={drawingsOpen}
-            className={`relative grid h-full w-[34px] place-items-center ${drawingsOpen ? 'text-[#32d9ed]' : 'text-[#d6dce5]'}`}
+            className={`relative grid h-full w-[34px] place-items-center ${drawingsOpen ? 'text-[#f2f2f2]' : 'text-[#d6dce5]'}`}
           >
             <Pencil size={19} strokeWidth={1.8}/>
-            {drawingsOpen && <span className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full bg-[#32d9ed]" aria-hidden="true"/>}
+            {drawingsOpen && <span className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full bg-[#195be1]" aria-hidden="true"/>}
           </button>
           <div className="acg-mobile-toolbar-separator mx-1 h-7 w-px shrink-0 bg-white/[0.11]" aria-hidden="true"/>
           <button
