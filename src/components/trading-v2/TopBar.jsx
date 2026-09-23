@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Bell, Search, UserRound } from 'lucide-react';
 import { useTraderAuth } from '../../hooks/useTraderAuth.js';
 import { useTradingStore } from '../../hooks/useTradingStore.js';
-import { accountTypeBadge, accountTypeLabel } from '../../utils/accountPresentation.js';
+import { accountStatusLabel, accountTypeBadge, accountTypeLabel } from '../../utils/accountPresentation.js';
 
 function money(value, currency = 'USD') {
   if (value === null || value === undefined || value === '') return '—';
@@ -36,7 +36,7 @@ export default function TopBar({
   const valuationStatus = String(valuation?.valuationStatus || 'WAITING').toUpperCase();
   const accountStatus = String(account?.status || 'UNKNOWN').toUpperCase();
   const live = connection.status === 'ready' && valuationStatus === 'LIVE' && accountStatus === 'ACTIVE' && account?.tradingEnabled === true;
-  const stateLabel = live ? 'Live' : connection.status !== 'ready' ? 'Reconnecting' : valuationStatus !== 'LIVE' ? valuationStatus : accountStatus;
+  const stateLabel = live ? 'Live' : connection.status !== 'ready' ? 'Reconnecting' : valuationStatus !== 'LIVE' ? valuationStatus : accountStatusLabel(accountStatus);
 
   return (
     <header className="flex h-[60px] items-center justify-between gap-1.5 px-2.5 sm:gap-2 sm:px-3">
