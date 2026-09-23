@@ -222,7 +222,7 @@ export function useTradingTerminal(markets = []) {
       .sort((a, b) => new Date(b.closedAtIso || 0) - new Date(a.closedAtIso || 0));
   }, [account.currency, accountId, history.accountId, history.deals, history.loaded, history.positions, trading.fills, trading.positionsById]);
 
-  useEffect(() => { if (!accountId || connection.status !== 'ready') return; requestSnapshot([accountId]); }, [accountId, connection.status, requestSnapshot]);
+  useEffect(() => { if (!accountId || connection.status !== 'ready') return; requestSnapshot([accountId]); }, [accountId, connection.status, requestSnapshot, switchContext?.startedAt]);
   useEffect(() => {
     setHistory({ accountId, orders: [], deals: [], positions: [], loaded: false, error: null });
     if (!accountId || connection.status !== 'ready') return undefined;
