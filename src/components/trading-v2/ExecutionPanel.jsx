@@ -682,12 +682,7 @@ export default function ExecutionPanel({
                 <Minus size={20} strokeWidth={1.8}/>
               </button>
 
-              <button
-                type="button"
-                onClick={() => setMobileAdvancedOpen(true)}
-                className="flex min-w-0 flex-col items-center justify-center"
-                aria-label="Open position size controls"
-              >
+              <div className="flex min-w-0 flex-col items-center justify-center">
                 {sizingMode === 'lots' ? (
                   <input
                     type="text"
@@ -719,8 +714,15 @@ export default function ExecutionPanel({
                 ) : (
                   <span className="font-mono text-[18px] font-black leading-none tabular-nums text-[#f5f7fa]">{mobileSizingLabel}</span>
                 )}
-                <span className="mt-2 text-[9px] font-semibold uppercase tracking-[0.03em] text-[#a1adbb]">{sizingMode === 'risk' ? 'Risk' : 'Lots'}</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setMobileAdvancedOpen(true)}
+                  className="mt-2 text-[9px] font-semibold uppercase tracking-[0.03em] text-[#a1adbb] active:text-[#31d9ec]"
+                  aria-label="Open position size controls"
+                >
+                  {sizingMode === 'risk' ? 'Risk' : 'Lots'}
+                </button>
+              </div>
 
               <button
                 type="button"
