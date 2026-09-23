@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Calculator, ChevronDown, CircleMinus, Info, Minus, Plus, Shield, Target, X, Check, SlidersHorizontal, Clock3 } from 'lucide-react';
 import { decimalPlaces, normalizeVolumeToStep } from '../../utils/tradingCommandNormalization.js';
 import { calculateRiskOrderSizing, effectiveLeverage, estimateRequiredMargin, estimateStopRisk, riskSizingSupported } from '../../utils/tradingRisk.js';
@@ -107,6 +107,12 @@ export default function ExecutionPanel({
   const [slDisplayMode, setSlDisplayMode] = useState('pips');
   const [tpDisplayMode, setTpDisplayMode] = useState('pips');
   const [mobileAdvancedOpen, setMobileAdvancedOpen] = useState(false);
+  const [bidTickDirection, setBidTickDirection] = useState(null);
+  const [askTickDirection, setAskTickDirection] = useState(null);
+  const previousBidRef = useRef(null);
+  const previousAskRef = useRef(null);
+  const bidFlashTimerRef = useRef(null);
+  const askFlashTimerRef = useRef(null);
   const lots = controlledLots ?? internalLots;
   const setLots = onLotsChange ?? setInternalLots;
   const volumeStep = Math.max(Number(market?.volumeStep) || 0.01, 0.00000001);
@@ -119,6 +125,35 @@ export default function ExecutionPanel({
   useEffect(() => {
     if (!lotInputFocused) setLotInput(formatLots(normalizedLots));
   }, [lotInputFocused, normalizedLots, volumeDecimals]);
+
+  useEffect(() => {
+    const nextBid = Number(market?.bid);
+    const previousBid = previousBidRef.current;
+    if (Number.isFinite(nextBid) && Number.isFinite(previousBid) && nextBid !== previousBid) {
+      setBidTickDirection(nextBid > previousBid ? 'up' : 'down');
+      if (bidFlashTimerRef.current) window.clearTimeout(bidFlashTimerRef.current);
+      bidFlashTimerRef.current = window.setTimeout(() => setBidTickDirection(null), 180);
+    }
+    if (Number.isFinite(nextBid)) previousBidRef.current = nextBid;
+    return undefined;
+  }, [market?.bid]);
+
+  useEffect(() => {
+    const nextAsk = Number(market?.ask);
+    const previousAsk = previousAskRef.current;
+    if (Number.isFinite(nextAsk) && Number.isFinite(previousAsk) && nextAsk !== previousAsk) {
+      setAskTickDirection(nextAsk > previousAsk ? 'up' : 'down');
+      if (askFlashTimerRef.current) window.clearTimeout(askFlashTimerRef.current);
+      askFlashTimerRef.current = window.setTimeout(() => setAskTickDirection(null), 180);
+    }
+    if (Number.isFinite(nextAsk)) previousAskRef.current = nextAsk;
+    return undefined;
+  }, [market?.ask]);
+
+  useEffect(() => () => {
+    if (bidFlashTimerRef.current) window.clearTimeout(bidFlashTimerRef.current);
+    if (askFlashTimerRef.current) window.clearTimeout(askFlashTimerRef.current);
+  }, []);
 
   const commitLotInput = () => {
     const text = String(lotInput || '').trim();
@@ -591,6 +626,9 @@ export default function ExecutionPanel({
     const mobileMarginPercent = Number.isFinite(Number(mobileMargin)) && Number(account?.equity) > 0
       ? (Number(mobileMargin) / Number(account.equity)) * 100
       : null;
+    const mobileRiskAmount = Number(account?.equity) > 0
+      ? Number(account.equity) * (Number(riskPercent) / 100)
+      : null;
 
     return (
       <>
@@ -652,13 +690,22 @@ export default function ExecutionPanel({
 
           <div className="acg-mobile-sizing-summary flex h-[20px] items-center gap-1.5 px-1 text-[10px] font-medium text-[#a9b3c1]">
             <Info size={13} className="shrink-0 text-[#c3ccd7]" strokeWidth={1.9}/>
-            <span className="truncate">
-              <b className="font-black text-[#eef2f7]">{formatLots(normalizedLots)} lots</b>
-              <span className="text-[#9aa6b5]">
-                {' '}(≈ {mobileMargin == null ? '—' : formatMoney(mobileMargin, account?.currency)}
-                {mobileMarginPercent == null ? '' : `, ${mobileMarginPercent.toFixed(2)}%`})
+            {sizingMode === 'risk' ? (
+              <span className="truncate">
+                <b className="font-black text-[#eef2f7]">{Number(riskPercent).toFixed(2)}% risk</b>
+                <span className="text-[#9aa6b5]">
+                  {' '}(≈ {mobileRiskAmount == null ? '—' : formatMoney(mobileRiskAmount, account?.currency)})
+                </span>
               </span>
-            </span>
+            ) : (
+              <span className="truncate">
+                <b className="font-black text-[#eef2f7]">{formatLots(normalizedLots)} lots</b>
+                <span className="text-[#9aa6b5]">
+                  {' '}(≈ {mobileMargin == null ? '—' : formatMoney(mobileMargin, account?.currency)}
+                  {mobileMarginPercent == null ? '' : `, ${mobileMarginPercent.toFixed(2)}%`})
+                </span>
+              </span>
+            )}
           </div>
 
           <div className="acg-mobile-action-row mt-1.5 grid h-[64px] grid-cols-[1fr_1.02fr_1fr] gap-2">
@@ -668,7 +715,7 @@ export default function ExecutionPanel({
               onClick={() => clickSide('sell')}
               className="acg-mobile-sell-action flex min-w-0 flex-col items-center justify-center rounded-[9px] px-2 text-center disabled:cursor-not-allowed disabled:opacity-40 active:scale-[0.99]"
             >
-              <strong className="max-w-full whitespace-nowrap text-[clamp(20px,5.4vw,24px)] font-black tabular-nums leading-none tracking-[-0.045em] text-white">{market?.bid || '—'}</strong>
+              <strong className={`acg-mobile-quote-price max-w-full whitespace-nowrap text-[clamp(20px,5.4vw,24px)] font-black tabular-nums leading-none tracking-[-0.045em] ${bidTickDirection === 'up' ? 'acg-mobile-quote-up' : bidTickDirection === 'down' ? 'acg-mobile-quote-down' : 'text-white'}`}>{market?.bid || '—'}</strong>
               <span className="mt-2 text-[14px] font-black leading-none text-white">SELL</span>
             </button>
 
@@ -740,7 +787,7 @@ export default function ExecutionPanel({
               onClick={() => clickSide('buy')}
               className="acg-mobile-buy-action flex min-w-0 flex-col items-center justify-center rounded-[9px] px-2 text-center disabled:cursor-not-allowed disabled:opacity-40 active:scale-[0.99]"
             >
-              <strong className="max-w-full whitespace-nowrap text-[clamp(20px,5.4vw,24px)] font-black tabular-nums leading-none tracking-[-0.045em] text-white">{market?.ask || '—'}</strong>
+              <strong className={`acg-mobile-quote-price max-w-full whitespace-nowrap text-[clamp(20px,5.4vw,24px)] font-black tabular-nums leading-none tracking-[-0.045em] ${askTickDirection === 'up' ? 'acg-mobile-quote-up' : askTickDirection === 'down' ? 'acg-mobile-quote-down' : 'text-white'}`}>{market?.ask || '—'}</strong>
               <span className="mt-2 text-[14px] font-black leading-none text-white">BUY</span>
             </button>
           </div>
