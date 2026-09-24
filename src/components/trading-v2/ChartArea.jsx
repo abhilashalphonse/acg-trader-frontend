@@ -11,23 +11,23 @@ const toolGroups = DRAWING_TOOL_GROUPS.map(group =>
   group.map(id => [id, DRAWING_TOOL_ICONS[id], DRAWING_TOOL_LABELS[id]])
 );
 
-const secondsByTimeframe = { M1: 60, M5: 300, M15: 900, M30: 1800, H1: 3600, H4: 14400, D1: 86400, W1: 604800 };
 const oscillatorIds = new Set(['rsi', 'macd', 'atr', 'stochastic']);
 
-function formatCountdown(totalSeconds) {
-  const safe = Math.max(0, totalSeconds);
-  const minutes = Math.floor(safe / 60);
-  const seconds = safe % 60;
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-}
-
-function localUtcLabel() {
-  const offsetMinutes = -new Date().getTimezoneOffset();
+function localUtcLabel(date = new Date()) {
+  const offsetMinutes = -date.getTimezoneOffset();
   const sign = offsetMinutes >= 0 ? '+' : '-';
   const absolute = Math.abs(offsetMinutes);
   const hours = Math.floor(absolute / 60);
   const minutes = absolute % 60;
   return `UTC${sign}${hours}${minutes ? `:${String(minutes).padStart(2, '0')}` : ''}`;
+}
+
+function localClockLabel(date = new Date()) {
+  return [
+    date.getHours(),
+    date.getMinutes(),
+    date.getSeconds(),
+  ].map(value => String(value).padStart(2, '0')).join(':');
 }
 
 function validPlanPrice(value) {
@@ -610,8 +610,7 @@ export default function ChartArea({
   drawingToolbarOverlay = false,
   fillAvailableHeight = false,
 }) {
-  const timeframeSeconds = secondsByTimeframe[chartTimeframe] || 60;
-  const [remaining, setRemaining] = useState(() => timeframeSeconds - (Math.floor(Date.now() / 1000) % timeframeSeconds));
+  const [clockNow, setClockNow] = useState(() => new Date());
   const [coordinateApi, setCoordinateApi] = useState(null);
   const [showDrawings, setShowDrawings] = useState(true);
   const [drawingSnap, setDrawingSnap] = useState('off');
@@ -698,15 +697,11 @@ export default function ChartArea({
   }, [ask, desktopEnhanced, instrument, mobileReference, pendingOrders, positions, price, symbol, tradePlan]);
 
   useEffect(() => {
-    const update = () => {
-      const now = Math.floor(Date.now() / 1000);
-      const mod = now % timeframeSeconds;
-      setRemaining(mod === 0 ? timeframeSeconds : timeframeSeconds - mod);
-    };
-    update();
-    const timer = window.setInterval(update, 1000);
+    const updateClock = () => setClockNow(new Date());
+    updateClock();
+    const timer = window.setInterval(updateClock, 1000);
     return () => window.clearInterval(timer);
-  }, [timeframeSeconds]);
+  }, []);
 
   const heightClass = oscillatorCount ? (oscillatorCount > 1 ? 'h-[500px] md:h-[580px]' : 'h-[430px] md:h-[520px]') : 'h-[360px] md:h-[460px]';
   const toolbarVisible = !hideToolbar && drawingToolbarOpen;
@@ -822,8 +817,8 @@ export default function ChartArea({
 
         {!drawingToolbarOverlay && !tradePlan && (!embedded || desktopEnhanced) && (
           <div className="absolute bottom-1 right-[74px] z-30 flex h-7 items-center overflow-hidden rounded-md border border-white/[0.06] bg-black/86 text-[9px] font-medium text-[#7E8994] shadow-[0_4px_16px_rgba(0,0,0,.24)] backdrop-blur-sm">
-            <span className="border-r border-white/[0.06] px-2.5">{localUtcLabel()}</span>
-            <span className="border-r border-white/[0.06] px-2.5 font-mono font-semibold tabular-nums text-[#B9C2CA]" title="Time remaining in candle">{formatCountdown(remaining)}</span>
+            <span className="border-r border-white/[0.06] px-2.5">{localUtcLabel(clockNow)}</span>
+            <span className="border-r border-white/[0.06] px-2.5 font-mono font-semibold tabular-nums text-[#B9C2CA]" title="Current local chart time">{localClockLabel(clockNow)}</span>
             <button type="button" onClick={() => coordinateApi?.resetView?.()} className="h-full px-2.5 font-semibold text-[#929DA7] transition hover:bg-white/[0.05] hover:text-[#F1F4F6]" title="Return to live chart and restore the default view">Auto</button>
           </div>
         )}
@@ -831,8 +826,8 @@ export default function ChartArea({
 
         {drawingToolbarOverlay && !tradePlan && (
           <div className="pointer-events-auto absolute bottom-0 right-0 z-30 flex h-5 items-center overflow-hidden rounded-tl-[4px] border-l border-t border-white/[0.08] bg-black/88 text-[7px] font-medium text-[#7E8994] shadow-[-4px_-2px_10px_rgba(0,0,0,.22)] backdrop-blur-sm">
-            <span className="border-r border-white/[0.07] px-1.5">{localUtcLabel()}</span>
-            <span className="border-r border-white/[0.07] px-1.5 font-mono font-semibold tabular-nums text-[#B9C2CA]" title="Time remaining in candle">{formatCountdown(remaining)}</span>
+            <span className="border-r border-white/[0.07] px-1.5">{localUtcLabel(clockNow)}</span>
+            <span className="border-r border-white/[0.07] px-1.5 font-mono font-semibold tabular-nums text-[#B9C2CA]" title="Current local chart time">{localClockLabel(clockNow)}</span>
             <button type="button" onClick={() => coordinateApi?.resetView?.()} className="h-full px-1.5 font-semibold text-[#929DA7] transition active:bg-white/[0.05] active:text-[#F1F4F6]" title="Return to live chart and restore the default view">Auto</button>
           </div>
         )}
