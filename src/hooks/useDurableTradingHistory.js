@@ -2,19 +2,24 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTraderAuth } from './useTraderAuth.js';
 import { useTradingStore } from './useTradingStore.js';
 
-export function useDurableTradingHistory() {
+export function useDurableTradingHistory(preferredAccountId = null) {
   const auth = useTraderAuth();
   const { trading, connection, commands } = useTradingStore();
   const [state, setState] = useState({ orders: [], deals: [], positions: [], loaded: false, error: null });
   const accountId = useMemo(() => {
     const granted = auth.principal?.accountIds?.map(String) || [];
     const loaded = Object.keys(trading.accountsById);
+    const preferred = preferredAccountId ? String(preferredAccountId) : null;
+    const sessionSelected = auth.principal?.selectedAccountId ? String(auth.principal.selectedAccountId) : null;
+    if (preferred && granted.includes(preferred)) return preferred;
+    if (sessionSelected && granted.includes(sessionSelected)) return sessionSelected;
     return granted.find(id => loaded.includes(id)) || granted[0] || loaded[0] || null;
-  }, [auth.principal?.accountIds, trading.accountsById]);
+  }, [auth.principal?.accountIds, auth.principal?.selectedAccountId, preferredAccountId, trading.accountsById]);
 
   useEffect(() => {
     if (!accountId || connection.status !== 'ready') return undefined;
     const controller = new AbortController();
+    setState({ orders: [], deals: [], positions: [], loaded: false, error: null });
     Promise.all([
       commands.historyOrders(accountId, { limit: 200 }, controller.signal),
       commands.historyDeals(accountId, { limit: 200 }, controller.signal),
