@@ -111,7 +111,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const prefsRef = useRef(loadTerminalPrefs());
   const trading = useTradingTerminal(markets);
   const { account, positions, pendingOrders, positionHistory } = trading;
-  const readOnly = String(account?.status || '').toUpperCase() === 'BREACHED' || account?.tradingEnabled === false;
+  const readOnly = String(account?.status || '').toUpperCase() === 'BREACHED';
 
   const [timeframe, setTimeframe] = useState(prefsRef.current.timeframe || '1m');
   const [chartMode, setChartMode] = useState(prefsRef.current.chartMode || 'candles');
