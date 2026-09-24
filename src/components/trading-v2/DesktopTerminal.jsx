@@ -35,6 +35,7 @@ import InstrumentAvatar from './InstrumentAvatar.jsx';
 import IndicatorManager from './IndicatorManager.jsx';
 import { accountStatusLabel, accountTypeBadge, accountTypeLabel } from '../../utils/accountPresentation.js';
 import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
+import { marketApi } from '../../api/market.js';
 
 const timeframes = [['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], ['1H', '1H'], ['4H', '4H'], ['1D', '1D'], ['1W', '1W']];
 const DESKTOP_LAYOUT_KEY = 'acg-trader-desktop-layout-v1';
@@ -308,6 +309,7 @@ export default function DesktopTerminal({
   const [desktopLayout, setDesktopLayout] = useState(loadDesktopLayout);
   const [viewportHeight, setViewportHeight] = useState(() => typeof window !== 'undefined' ? window.innerHeight : 900);
   const [viewportWidth, setViewportWidth] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1440);
+  const [market24hStats, setMarket24hStats] = useState({ symbol: null, high: null, low: null, volume: null });
   const [chartMenuOpen, setChartMenuOpen] = useState(false);
   const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
   const [indicatorPanelOpen, setIndicatorPanelOpen] = useState(false);
@@ -354,6 +356,68 @@ export default function DesktopTerminal({
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  useEffect(() => {
+    if (!activeSymbol) {
+      setMarket24hStats({ symbol: null, high: null, low: null, volume: null });
+      return undefined;
+    }
+
+    let disposed = false;
+    let controller = new AbortController();
+    let timer = null;
+
+    const refresh = async () => {
+      try {
+        const response = await marketApi.candles({
+          symbol: activeSymbol,
+          timeframe: '1h',
+          limit: 30,
+        }, controller.signal);
+        if (disposed || controller.signal.aborted) return;
+
+        const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+        const candles = (response?.candles || []).filter(candle => {
+          const time = Number(candle?.openTimeMs);
+          return Number.isFinite(time) && time >= cutoff;
+        });
+        const highs = candles.map(candle => Number(candle?.high)).filter(value => Number.isFinite(value) && value > 0);
+        const lows = candles.map(candle => Number(candle?.low)).filter(value => Number.isFinite(value) && value > 0);
+        const providerVolumes = candles.map(candle => Number(candle?.providerVolume)).filter(value => Number.isFinite(value) && value > 0);
+        const currentPrice = Number(tick?.price ?? tick?.last ?? market?.last ?? market?.bid);
+
+        if (Number.isFinite(currentPrice) && currentPrice > 0 && highs.length && lows.length) {
+          highs.push(currentPrice);
+          lows.push(currentPrice);
+        }
+
+        setMarket24hStats({
+          symbol: activeSymbol,
+          high: highs.length ? Math.max(...highs) : null,
+          low: lows.length ? Math.min(...lows) : null,
+          volume: providerVolumes.length ? providerVolumes.reduce((sum, value) => sum + value, 0) : null,
+        });
+      } catch (error) {
+        if (!disposed && error?.name !== 'AbortError') {
+          setMarket24hStats({ symbol: activeSymbol, high: null, low: null, volume: null });
+        }
+      } finally {
+        if (!disposed) {
+          timer = window.setTimeout(() => {
+            controller = new AbortController();
+            void refresh();
+          }, 60000);
+        }
+      }
+    };
+
+    void refresh();
+    return () => {
+      disposed = true;
+      controller.abort();
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [activeSymbol]);
 
   useEffect(() => {
     setDesktopLayout(current => {
@@ -581,9 +645,10 @@ export default function DesktopTerminal({
     }
     return null;
   };
-  const marketHigh = firstPositive(tick?.dayHigh, tick?.high24h, tick?.sessionHigh, market?.dayHigh, market?.high24h, market?.sessionHigh);
-  const marketLow = firstPositive(tick?.dayLow, tick?.low24h, tick?.sessionLow, market?.dayLow, market?.low24h, market?.sessionLow);
-  const marketVolume = firstPositive(tick?.dayVolume, tick?.volume24h, tick?.sessionVolume, market?.dayVolume, market?.volume24h, market?.sessionVolume);
+  const resolved24hStats = market24hStats.symbol === activeSymbol ? market24hStats : { high: null, low: null, volume: null };
+  const marketHigh = firstPositive(tick?.dayHigh, tick?.high24h, tick?.sessionHigh, market?.dayHigh, market?.high24h, market?.sessionHigh, resolved24hStats.high);
+  const marketLow = firstPositive(tick?.dayLow, tick?.low24h, tick?.sessionLow, market?.dayLow, market?.low24h, market?.sessionLow, resolved24hStats.low);
+  const marketVolume = firstPositive(tick?.dayVolume, tick?.volume24h, tick?.sessionVolume, market?.dayVolume, market?.volume24h, market?.sessionVolume, resolved24hStats.volume);
   const rawMarketChange = Number(market?.change ?? tick?.change);
   const rawMarketChangePercent = Number(market?.changePercent ?? tick?.changePercent);
   const formatMarketVolume = value => {
