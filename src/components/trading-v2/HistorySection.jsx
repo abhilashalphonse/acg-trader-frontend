@@ -48,8 +48,8 @@ function normalizeDeal(deal) {
   };
 }
 
-export default function HistorySection({ positionHistory = [], journal = [], markets = [], accountCurrency = 'USD', onOpenChart = () => {}, onNotice = () => {}, embedded = false }) {
-  const durable = useDurableTradingHistory();
+export default function HistorySection({ accountId = null, positionHistory = [], journal = [], markets = [], accountCurrency = 'USD', onOpenChart = () => {}, onNotice = () => {}, embedded = false }) {
+  const durable = useDurableTradingHistory(accountId);
   const [tab, setTab] = useState('deals');
   const [period, setPeriod] = useState('Recent');
   const [periodOpen, setPeriodOpen] = useState(false);
