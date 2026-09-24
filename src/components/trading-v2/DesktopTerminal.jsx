@@ -620,45 +620,35 @@ export default function DesktopTerminal({
     <div ref={shellRef} className="acg-terminal relative h-dvh min-h-0 overflow-hidden bg-black text-[#E6EDF3]">
       {notice && <div className="absolute right-3 top-[60px] z-[120] flex max-w-[390px] items-center gap-3 rounded-md border border-white/[0.06] bg-[#101010]/95 px-3 py-2.5 text-[10px] font-semibold text-[#E6EDF3] shadow-[0_16px_48px_rgba(0,0,0,.45)]"><span>{notice}</span><button type="button" onClick={() => setNotice('')} className="grid size-6 place-items-center rounded-md text-[#8094a7]"><X size={13}/></button></div>}
 
-      <header className="flex h-[52px] items-center border-b border-white/[0.06] bg-[#07090B] px-3 shadow-[0_1px_0_rgba(255,255,255,0.015)]">
-        <div className="flex min-w-[178px] items-center gap-2">
-          <span className="text-[16px] font-extrabold tracking-[-0.03em]">ACG Trader</span>
+      <header className="acg-desktop-header flex h-[52px] items-center border-b border-white/[0.06] bg-[#080a0c] px-3">
+        <div className="flex min-w-[170px] items-center gap-2">
+          <span className="text-[17px] font-extrabold tracking-[-0.035em] text-[#f4f6f8]">ACG Trader</span>
         </div>
-
-        <div className="ml-2 hidden items-stretch divide-x divide-white/[0.07] rounded-md border border-white/[0.06] bg-black/25 xl:flex">
+        <div className="acg-desktop-account-metrics ml-1 hidden h-full items-stretch xl:flex">
           {[
             ['Balance', money(account?.balance, currency)],
             ['Equity', money(account?.equity, currency)],
             ['Floating P/L', formatPnl(accountPnl, currency)],
-            ['Free margin', money(account?.freeMargin, currency)],
+            ['Free Margin', money(account?.freeMargin, currency)],
           ].map(([label, value]) => (
-            <div key={label} className="min-w-[102px] px-3 py-1.5">
-              <span className="block text-[8px] font-semibold uppercase tracking-[0.07em] text-[#6F8191]">{label}</span>
-              <strong className={`mt-0.5 block text-[11px] font-bold ${label === 'Floating P/L' ? (accountPnl >= 0 ? 'text-[#42D7A1]' : 'text-[#FF6F7A]') : 'text-[#E6EDF3]'}`}>{value}</strong>
+            <div key={label} className="flex min-w-[118px] flex-col justify-center border-l border-white/[0.06] px-4">
+              <span className="text-[8px] font-semibold uppercase tracking-[0.08em] text-[#71808f]">{label}</span>
+              <strong className={label === 'Floating P/L' ? (accountPnl >= 0 ? "mt-0.5 text-[11px] font-extrabold text-[#42D7A1]" : "mt-0.5 text-[11px] font-extrabold text-[#FF5968]") : "mt-0.5 text-[11px] font-extrabold text-[#f2f5f7]"}>{value}</strong>
             </div>
           ))}
         </div>
-
         <div className="ml-auto flex items-center gap-1.5">
-          
           <button type="button" onClick={() => searchRef.current?.focus()} className="grid size-8 place-items-center rounded-md text-[#A1AFBC] hover:bg-white/[0.035] hover:text-white" aria-label="Search"><Search size={16}/></button>
           <button type="button" onClick={() => setNotice('Notification delivery is not connected to a backend event inbox yet.')} className="grid size-8 place-items-center rounded-md border border-white/[0.06] bg-black/20 text-[#A1AFBC]" aria-label="Notifications"><Bell size={15}/></button>
           <div className="relative">
-            <button
-              type="button"
-              onClick={() => setAccountMenuOpen(value => !value)}
-              className="flex h-8 min-w-[172px] items-center gap-2 rounded-md border border-white/[0.06] bg-black/20 px-2.5 text-left hover:bg-white/[0.025]"
-              aria-label="Switch trading account"
-              aria-expanded={accountMenuOpen}
-            >
-              {accountSwitching ? <Loader2 size={11} className="shrink-0 animate-spin text-[#195be1]"/> : <span className={`size-1.5 shrink-0 rounded-full ${canOpen ? 'bg-[#2fd9a0]' : valuationStatus === 'STALE' ? 'bg-[#e8bd55]' : 'bg-[#343434]'}`}/>}
+            <button type="button" onClick={() => setAccountMenuOpen(value => !value)} className="flex h-8 min-w-[190px] items-center gap-2 rounded-md border border-white/[0.07] bg-black/20 px-2.5 text-left hover:bg-white/[0.025]" aria-label="Switch trading account" aria-expanded={accountMenuOpen}>
+              {accountSwitching ? <Loader2 size={11} className="shrink-0 animate-spin text-[#195be1]"/> : <span className={canOpen ? "size-1.5 shrink-0 rounded-full bg-[#2fd9a0]" : valuationStatus === 'STALE' ? "size-1.5 shrink-0 rounded-full bg-[#e8bd55]" : "size-1.5 shrink-0 rounded-full bg-[#343434]"}/>}
               <div className="min-w-0 flex-1 leading-none">
                 <strong className="block truncate text-[9px]">{account?.accountCode || accountStatus}</strong>
-                <span className="mt-1 block truncate text-[8px] text-[#6F8191]">{accountTypeBadge(account)} · {accountSwitching ? 'SWITCHING' : money(account?.equity, currency)}</span>
+                <span className="mt-1 block truncate text-[8px] text-[#6F8191]">{accountTypeBadge(account)} · {currency} · 1:100</span>
               </div>
-              <ChevronDown size={11} className={`shrink-0 text-[#6F8191] transition ${accountMenuOpen ? 'rotate-180' : ''}`}/>
+              <ChevronDown size={11} className={accountMenuOpen ? "shrink-0 rotate-180 text-[#6F8191] transition" : "shrink-0 text-[#6F8191] transition"}/>
             </button>
-
             {accountMenuOpen && (
               <div className="absolute right-0 top-10 z-[140] w-[330px] overflow-hidden rounded-md border border-white/[0.10] bg-[#0C1013] shadow-[0_20px_60px_rgba(0,0,0,.65)]">
                 <div className="border-b border-white/[0.07] px-3 py-2.5">
@@ -674,22 +664,16 @@ export default function DesktopTerminal({
                         const id = String(item.id);
                         const selected = id === String(activeAccountId || '');
                         const itemStatus = String(item.status || 'UNKNOWN').toUpperCase();
-                        const phase = item?.challenge?.phase ? `Phase ${item.challenge.phase}` : null;
+                        const phase = item?.challenge?.phase ? 'Phase ' + item.challenge.phase : null;
                         return (
-                          <button
-                            key={id}
-                            type="button"
-                            disabled={accountSwitching && !selected}
-                            onClick={() => {
-                              try {
-                                const changed = onSelectAccount(id);
-                                if (changed !== false) setAccountMenuOpen(false);
-                              } catch (error) {
-                                setNotice(error?.message || 'Unable to switch account');
-                              }
-                            }}
-                            className={`flex w-full items-center gap-3 border-b border-white/[0.06] px-3 py-3 text-left disabled:cursor-wait disabled:opacity-45 ${selected ? 'bg-white/[0.045]' : 'hover:bg-white/[0.025]'}`}
-                          >
+                          <button key={id} type="button" disabled={accountSwitching && !selected} onClick={() => {
+                            try {
+                              const changed = onSelectAccount(id);
+                              if (changed !== false) setAccountMenuOpen(false);
+                            } catch (error) {
+                              setNotice(error?.message || 'Unable to switch account');
+                            }
+                          }} className={selected ? "flex w-full items-center gap-3 border-b border-white/[0.06] bg-white/[0.045] px-3 py-3 text-left disabled:cursor-wait disabled:opacity-45" : "flex w-full items-center gap-3 border-b border-white/[0.06] px-3 py-3 text-left hover:bg-white/[0.025] disabled:cursor-wait disabled:opacity-45"}>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
                                 <strong className="truncate text-[10px] text-[#E6EDF3]">{item.accountCode || 'Trading account'}</strong>
@@ -697,9 +681,7 @@ export default function DesktopTerminal({
                               </div>
                               <div className="mt-1 flex items-center gap-1.5 text-[8px] text-[#6F8191]">
                                 <span className="font-bold text-[#A1AFBC]">{accountSize(item.initialBalance, item.currency || 'USD')}</span>
-                                {phase && <><span>·</span><span>{phase}</span></>}
-                                <span>·</span>
-                                <span>{accountStatusLabel(itemStatus)}</span>
+                                {phase && <><span>·</span><span>{phase}</span></>}<span>·</span><span>{accountStatusLabel(itemStatus)}</span>
                               </div>
                               <span className="mt-0.5 block text-[7px] text-[#556572]">Equity {money(item.equity, item.currency || 'USD')}</span>
                             </div>
@@ -714,7 +696,7 @@ export default function DesktopTerminal({
               </div>
             )}
           </div>
-          <button type="button" onClick={() => setNotice(`${accountTypeLabel(account)} • ${accountStatusLabel(accountStatus)} • valuation ${valuationStatus.toLowerCase()}`)} className="grid size-8 place-items-center rounded-full border border-white/[0.06] bg-black/20 text-[#A1AFBC]" aria-label="Profile"><UserRound size={15}/></button>
+          <button type="button" onClick={() => setNotice(accountTypeLabel(account) + ' • ' + accountStatusLabel(accountStatus) + ' • valuation ' + valuationStatus.toLowerCase())} className="grid size-8 place-items-center rounded-full border border-white/[0.07] bg-black/20 text-[#A1AFBC]" aria-label="Profile"><UserRound size={15}/></button>
         </div>
       </header>
 
