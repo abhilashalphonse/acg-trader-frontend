@@ -111,6 +111,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const prefsRef = useRef(loadTerminalPrefs());
   const trading = useTradingTerminal(markets);
   const { account, positions, pendingOrders, positionHistory } = trading;
+  const readOnly = String(account?.status || '').toUpperCase() === 'BREACHED' || account?.tradingEnabled === false;
 
   const [timeframe, setTimeframe] = useState(prefsRef.current.timeframe || '1m');
   const [chartMode, setChartMode] = useState(prefsRef.current.chartMode || 'candles');
@@ -209,6 +210,14 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
     noticeTimerRef.current = window.setTimeout(() => setNotice(''), 2600);
   };
+
+  useEffect(() => {
+    if (!readOnly || !trading.accountId) return;
+    setChartFocus(false);
+    setTradePlan(null);
+    setOverlay('trades');
+    showNotice('This account is breached and read-only. Trading history remains available.');
+  }, [readOnly, trading.accountId]);
 
   const logEvent = (type, message, details = {}) => {
     const item = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, time: stamp(), type, message, ...details };
@@ -791,6 +800,8 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
             onUpdatePosition={updatePosition}
             onBreakEven={movePositionToBreakEven}
             onNotice={showNotice}
+            initialTab={readOnly ? 'history' : 'open'}
+            readOnly={readOnly}
           />
         )}
 
