@@ -23,6 +23,7 @@ import { useTraderAuth } from '../hooks/useTraderAuth.js';
 import { useTradingStore } from '../hooks/useTradingStore.js';
 import { calculateIndicatorData, indicatorVisibleOnTimeframe, requiredIndicatorHistory } from '../utils/indicators.js';
 import { instrumentDigits, instrumentTickSize } from '../utils/instrumentFormatting.js';
+import { drawingTimeToLogical, logicalToDrawingTime } from '../utils/drawingCoordinates.js';
 import { ArrowRight, Eye, EyeOff, Settings2, X } from 'lucide-react';
 
 const chartTokens = {
@@ -361,15 +362,36 @@ export default function TradingChart({
     const coordinateApi = {
       toData(point) {
         if (!point) return null;
-        const time = timeScale.coordinateToTime(Number(point.x));
-        const price = series.coordinateToPrice(Number(point.y));
-        return time == null || price == null || !Number.isFinite(Number(price)) ? null : { time, price: Number(price) };
+        const x = Number(point.x);
+        const y = Number(point.y);
+        const price = series.coordinateToPrice(y);
+        if (price == null || !Number.isFinite(Number(price))) return null;
+
+        const nativeTime = timeScale.coordinateToTime(x);
+        let time = nativeTime == null ? null : Number(nativeTime);
+        if (!Number.isFinite(time)) {
+          const logical = timeScale.coordinateToLogical(x);
+          time = logicalToDrawingTime(logical, barsRef.current, timeframe);
+        }
+
+        return Number.isFinite(Number(time)) ? { time: Number(time), price: Number(price) } : null;
       },
       toScreen(point) {
         if (!point || point.time == null || point.price == null) return null;
-        const x = timeScale.timeToCoordinate(point.time);
-        const y = series.priceToCoordinate(Number(point.price));
-        return x == null || y == null ? null : { x: Number(x), y: Number(y) };
+        const time = Number(point.time);
+        const price = Number(point.price);
+        if (!Number.isFinite(time) || !Number.isFinite(price)) return null;
+
+        let x = timeScale.timeToCoordinate(time);
+        if (x == null || !Number.isFinite(Number(x))) {
+          const logical = drawingTimeToLogical(time, barsRef.current, timeframe);
+          x = logical == null ? null : timeScale.logicalToCoordinate(logical);
+        }
+
+        const y = series.priceToCoordinate(price);
+        return x == null || y == null || !Number.isFinite(Number(x)) || !Number.isFinite(Number(y))
+          ? null
+          : { x: Number(x), y: Number(y) };
       },
       priceToY(price) {
         const y = series.priceToCoordinate(Number(price));
@@ -404,10 +426,13 @@ export default function TradingChart({
       fitContent() { timeScale.fitContent(); },
       focusTime(time) {
         const numeric = Number(time);
-        const index = barsRef.current.findIndex(bar => Number(bar.time) === numeric);
-        if (index < 0) return;
+        const logical = drawingTimeToLogical(numeric, barsRef.current, timeframe);
+        if (logical == null || !Number.isFinite(Number(logical))) return;
         const halfWindow = 22;
-        timeScale.setVisibleLogicalRange({ from: Math.max(0, index - halfWindow), to: Math.min(barsRef.current.length - 1 + chartRightBars, index + halfWindow) });
+        timeScale.setVisibleLogicalRange({
+          from: logical - halfWindow,
+          to: logical + halfWindow + chartRightBars,
+        });
       },
       resetView() {
         const lastIndex = barsRef.current.length - 1;

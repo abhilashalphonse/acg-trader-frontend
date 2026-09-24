@@ -13,7 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { evaluateRiskToolSetup } from '../../utils/tradingRisk.js';
-import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
+import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 import {
   cloneDrawings,
   commitDrawings,
@@ -29,15 +29,20 @@ import {
 } from '../../utils/drawingStore.js';
 
 const DEFAULT_STYLE = {
-  color: '#53c7ff',
-  width: 1.4,
+  color: '#195be1',
+  width: 1.5,
   dash: 'solid',
   fillOpacity: 0.07,
 };
 
 const TOOL_DEFAULTS = {
+  trendline: { color: '#195be1', width: 1.5 },
+  ray: { color: '#195be1', width: 1.5 },
+  'extended-line': { color: '#195be1', width: 1.5 },
   hline: { color: '#f0c35c' },
+  'horizontal-ray': { color: '#f0c35c' },
   vline: { color: '#f0c35c' },
+  ruler: { color: '#195be1', width: 1.5, dash: 'dashed' },
   fibonacci: { color: '#b78cff' },
   text: { color: '#d8e4ee', width: 1, fontSize: 10 },
   'long-position': { color: '#35d79d' },
@@ -46,8 +51,12 @@ const TOOL_DEFAULTS = {
 
 const DRAWING_LABELS = {
   trendline: 'Trend line',
+  ray: 'Ray',
+  'extended-line': 'Extended line',
   hline: 'Horizontal line',
+  'horizontal-ray': 'Horizontal ray',
   vline: 'Vertical line',
+  ruler: 'Measure',
   rectangle: 'Rectangle',
   fibonacci: 'Fib retracement',
   text: 'Text',
@@ -71,10 +80,66 @@ function lineStyle(drawing, selected) {
   const style = drawing.style || DEFAULT_STYLE;
   return {
     stroke: selected ? '#ffffff' : style.color,
-    strokeWidth: selected ? Math.max(2, Number(style.width) || 1.4) : Number(style.width) || 1.4,
+    strokeWidth: selected ? Math.max(2, Number(style.width) || 1.5) : Number(style.width) || 1.5,
     strokeDasharray: dashArray(style),
     vectorEffect: 'non-scaling-stroke',
   };
+}
+
+function extendedSegment(a, b, size, mode = 'both') {
+  const dx = Number(b?.x) - Number(a?.x);
+  const dy = Number(b?.y) - Number(a?.y);
+  const width = Math.max(1, Number(size?.width) || 1);
+  const height = Math.max(1, Number(size?.height) || 1);
+  if (![dx, dy, a?.x, a?.y].every(Number.isFinite) || Math.hypot(dx, dy) < 0.001) return { start: a, end: b };
+
+  const candidates = [];
+  const push = t => {
+    if (!Number.isFinite(t)) return;
+    const x = Number(a.x) + dx * t;
+    const y = Number(a.y) + dy * t;
+    if (x >= -0.5 && x <= width + 0.5 && y >= -0.5 && y <= height + 0.5) candidates.push({ t, x, y });
+  };
+
+  if (Math.abs(dx) > 1e-9) {
+    push((0 - Number(a.x)) / dx);
+    push((width - Number(a.x)) / dx);
+  }
+  if (Math.abs(dy) > 1e-9) {
+    push((0 - Number(a.y)) / dy);
+    push((height - Number(a.y)) / dy);
+  }
+
+  if (!candidates.length) return { start: a, end: b };
+  candidates.sort((left, right) => left.t - right.t);
+
+  if (mode === 'ray') {
+    const forward = candidates.filter(point => point.t >= 0);
+    return { start: a, end: forward[forward.length - 1] || b };
+  }
+  return { start: candidates[0], end: candidates[candidates.length - 1] };
+}
+
+function rulerLabel(drawing, instrument, timeframe) {
+  const startPrice = Number(drawing?.a?.price);
+  const endPrice = Number(drawing?.b?.price);
+  const startTime = Number(drawing?.a?.time);
+  const endTime = Number(drawing?.b?.time);
+  if (![startPrice, endPrice, startTime, endTime].every(Number.isFinite)) return 'Measure';
+
+  const delta = endPrice - startPrice;
+  const pipSize = Number(instrumentPipSize(instrument));
+  const pips = Number.isFinite(pipSize) && pipSize > 0 ? delta / pipSize : null;
+  const percent = startPrice !== 0 ? (delta / startPrice) * 100 : null;
+  const seconds = { S1:1,S5:5,S15:15,S30:30,M1:60,M5:300,M15:900,M30:1800,H1:3600,H4:14400,D1:86400,W1:604800 }[String(timeframe || '').toUpperCase()] || 60;
+  const bars = Math.abs(endTime - startTime) / seconds;
+  const signed = value => value > 0 ? `+${value.toFixed(1)}` : value.toFixed(1);
+  const parts = [];
+  if (Number.isFinite(pips)) parts.push(`${signed(pips)} pips`);
+  else parts.push(`${delta > 0 ? '+' : ''}${formatInstrumentPrice(delta, instrument)}`);
+  if (Number.isFinite(percent)) parts.push(`${percent > 0 ? '+' : ''}${percent.toFixed(2)}%`);
+  parts.push(`${bars.toFixed(bars < 10 ? 1 : 0)} bars`);
+  return parts.join(' · ');
 }
 
 function Handle({ point, onPointerDown }) {
@@ -94,7 +159,7 @@ function Handle({ point, onPointerDown }) {
         cy={point.y}
         r="5"
         fill="#000000"
-        stroke="#7bd4ff"
+        stroke="#195be1"
         strokeWidth="2"
         vectorEffect="non-scaling-stroke"
         className="pointer-events-none"
@@ -115,16 +180,20 @@ function DrawingShape({
   riskMetrics = null,
   instrument = null,
   accountCurrency = 'USD',
+  timeframe = 'M1',
+  interactive = true,
 }) {
   const a = resolvePoint(drawing.a);
   const b = resolvePoint(drawing.b || drawing.a);
   if (!a || !b || drawing.hidden) return null;
 
-  const common = {
+  const common = interactive ? {
     className: drawing.locked ? 'pointer-events-auto cursor-default' : 'pointer-events-auto cursor-move',
     onPointerDown: event => onSelect(event, drawing.id),
     onContextMenu: event => onContextMenu(event, drawing.id),
     onDoubleClick: event => onDoubleClick(event, drawing.id),
+  } : {
+    className: 'pointer-events-none',
   };
 
   if (drawing.type === 'long-position' || drawing.type === 'short-position') {

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Crosshair, TrendingUp, TrendingDown, SlidersHorizontal, Square, Type, Shapes, Ruler, Eye, EyeOff, RotateCcw, ScanLine, Magnet, Lock, Unlock, Pin } from 'lucide-react';
+import { ArrowUpRight, Crosshair, MoveDiagonal2, MoveHorizontal, MoveVertical, TrendingUp, TrendingDown, SlidersHorizontal, Square, Type, Shapes, Ruler, Eye, EyeOff, RotateCcw, ScanLine, Magnet, Lock, Unlock, Pin } from 'lucide-react';
 import TradingChart from '../TradingChart.jsx';
 import DrawingLayer from './DrawingLayer.jsx';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
@@ -9,8 +9,12 @@ const toolGroups = [
   [['cursor', Crosshair, 'Select / move']],
   [
     ['trendline', TrendingUp, 'Trend line'],
+    ['ray', ArrowUpRight, 'Ray'],
+    ['extended-line', MoveDiagonal2, 'Extended line'],
     ['hline', SlidersHorizontal, 'Horizontal line'],
-    ['vline', Ruler, 'Vertical line'],
+    ['horizontal-ray', MoveHorizontal, 'Horizontal ray'],
+    ['vline', MoveVertical, 'Vertical line'],
+    ['ruler', Ruler, 'Measure / ruler'],
   ],
   [
     ['rectangle', Square, 'Rectangle'],
