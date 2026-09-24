@@ -296,6 +296,7 @@ export default function DesktopTerminal({
   exposureBlockReason = 'New exposure is temporarily unavailable',
   riskGuardSettings = null,
   onRiskGuardSettingsChange = () => {},
+  readOnly = false,
 }) {
   const shellRef = useRef(null);
   const searchRef = useRef(null);
@@ -318,6 +319,13 @@ export default function DesktopTerminal({
   const [multiChart, setMultiChart] = useState(() => loadMultiChart(activeSymbol, timeframe, indicators));
   const selectedPosition = positions.find(position => String(position?.id) === String(selectedPositionId)) || null;
   const groupedAccounts = accountGroups(accounts);
+
+  useEffect(() => {
+    if (!readOnly) return;
+    setRequestedDockTab('history');
+    setDesktopLayout(current => ({ ...current, dockCollapsed: false }));
+    setNotice('Read-only account: trading is disabled. Review your executed deals and orders in History.');
+  }, [activeAccountId, readOnly]);
 
   useEffect(() => {
     if (selectedPositionId == null) return;
@@ -710,6 +718,7 @@ export default function DesktopTerminal({
       <header className="acg-desktop-header flex h-[52px] items-center border-b border-white/[0.06] bg-[#080a0c] px-3">
         <div className="flex min-w-[170px] items-center gap-2">
           <span className="text-[17px] font-extrabold tracking-[-0.035em] text-[#f4f6f8]">ACG Trader</span>
+          {readOnly && <span className="rounded-md border border-rose-400/20 bg-rose-400/[0.08] px-2 py-1 text-[7px] font-black uppercase tracking-[0.09em] text-rose-300">Read-only · Breached</span>}
         </div>
         <div className="acg-desktop-account-metrics ml-1 hidden h-full items-stretch xl:flex">
           {[
