@@ -384,12 +384,6 @@ export default function DesktopTerminal({
         const highs = candles.map(candle => Number(candle?.high)).filter(value => Number.isFinite(value) && value > 0);
         const lows = candles.map(candle => Number(candle?.low)).filter(value => Number.isFinite(value) && value > 0);
         const providerVolumes = candles.map(candle => Number(candle?.providerVolume)).filter(value => Number.isFinite(value) && value > 0);
-        const currentPrice = Number(tick?.price ?? tick?.last ?? market?.last ?? market?.bid);
-
-        if (Number.isFinite(currentPrice) && currentPrice > 0 && highs.length && lows.length) {
-          highs.push(currentPrice);
-          lows.push(currentPrice);
-        }
 
         setMarket24hStats({
           symbol: activeSymbol,
