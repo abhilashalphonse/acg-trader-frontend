@@ -141,6 +141,7 @@ export default function TradingTerminalV2({
   const isDesktop = useDesktopLayout();
   const trading = useTradingTerminal(markets);
   const { account, positions, pendingOrders, positionHistory } = trading;
+  const readOnly = String(account?.status || '').toUpperCase() === 'BREACHED' || account?.tradingEnabled === false;
   const executionCommandState = {
     ...trading.commandState,
     accountSwitching: trading.accountSwitching || trading.accountGrantMissing,
@@ -970,6 +971,7 @@ export default function TradingTerminalV2({
           exposureBlockReason={exposure.reason}
           riskGuardSettings={riskGuardSettings}
           onRiskGuardSettingsChange={setRiskGuardSettings}
+          readOnly={readOnly}
         />
         <ExecutionStatus event={executionEvent} instrument={market} onDismiss={() => setExecutionEvent(null)} />
         {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} watchlists={watchlists} onSelectSymbol={symbol => { selectSymbol(symbol); setOverlay(null); }} {...indicatorSheetProps} />}
