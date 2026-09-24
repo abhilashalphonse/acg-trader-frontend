@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronUp, GripVertical, ListFilter, Plus, Search, Settings2, Star } from 'lucide-react';
+import { ChevronDown, ChevronUp, GripVertical, ListFilter, Plus, Search, Settings2, Star, X } from 'lucide-react';
 import InstrumentAvatar from '../InstrumentAvatar.jsx';
 import { instrumentPipSize } from '../../../utils/instrumentFormatting.js';
 
@@ -163,6 +163,8 @@ export default function DesktopWatchlist({
   onSelectSymbol = () => {},
   watchlists = null,
   mode = 'watchlist',
+  onModeChange = () => {},
+  onClose = () => {},
   searchRef,
   onNotice = () => {},
 }) {
@@ -295,6 +297,10 @@ export default function DesktopWatchlist({
 
   return (
     <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden" onKeyDown={onKeyDown}>
+      <div className="grid h-8 shrink-0 grid-cols-2 border-b border-white/[0.06] bg-[#080a0c] p-0.5">
+        <button type="button" onClick={() => onModeChange('watchlist')} className={mode === 'watchlist' ? "relative rounded text-[8px] font-bold text-[#f0f4f7]" : "rounded text-[8px] font-semibold text-[#687988] hover:text-white"}>Watchlist{mode === 'watchlist' && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#195be1]"/>}</button>
+        <button type="button" onClick={() => onModeChange('markets')} className={mode === 'markets' ? "relative rounded text-[8px] font-bold text-[#f0f4f7]" : "rounded text-[8px] font-semibold text-[#687988] hover:text-white"}>Markets{mode === 'markets' && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#195be1]"/>}</button>
+      </div>
       <div className="relative flex h-10 shrink-0 items-center justify-between border-b border-white/[0.06] px-2.5">
         <div className="min-w-0">
           {mode === 'markets' ? (
@@ -316,6 +322,7 @@ export default function DesktopWatchlist({
         <div className="flex items-center gap-1">
           {mode !== 'markets' && <button type="button" onClick={() => setColumnsOpen(value => !value)} className="grid size-6 place-items-center rounded text-[#6F8191] hover:bg-white/[0.03] hover:text-white" title="Watchlist columns"><Settings2 size={12}/></button>}
           <button type="button" onClick={() => searchRef?.current?.focus()} className="grid size-6 place-items-center rounded text-[#6F8191] hover:bg-white/[0.03] hover:text-white" title="Search markets"><Search size={13}/></button>
+          <button type="button" onClick={onClose} className="grid size-6 place-items-center rounded text-[#6F8191] hover:bg-white/[0.03] hover:text-white" title="Close markets panel"><X size={13}/></button>
         </div>
 
         {listMenuOpen && mode !== 'markets' && (

@@ -46,6 +46,7 @@ export default function DesktopPositionManager({
   position,
   instrument,
   account = {},
+  editRequest = null,
   onClose = () => {},
   onBreakEven = () => {},
   onUpdate = () => {},
@@ -76,6 +77,11 @@ export default function DesktopPositionManager({
     setTrailOpen(false);
     setReduceOpen(false);
   }, [position?.id, position?.sl, position?.tp, instrument]);
+
+  useEffect(() => {
+    if (String(editRequest?.positionId || '') !== String(position?.id || '')) return;
+    if (editRequest?.field === 'sl' || editRequest?.field === 'tp') setEditing(editRequest.field);
+  }, [editRequest?.field, editRequest?.nonce, editRequest?.positionId, position?.id]);
 
   const currentReturn = Number.isFinite(entry) && entry > 0 && Number.isFinite(current)
     ? ((String(position?.side).toUpperCase() === 'SELL' ? entry - current : current - entry) / entry) * 100

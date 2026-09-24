@@ -34,6 +34,7 @@ import PositionsPanel from './PositionsPanel.jsx';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import IndicatorManager from './IndicatorManager.jsx';
 import { accountStatusLabel, accountTypeBadge, accountTypeLabel } from '../../utils/accountPresentation.js';
+import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
 
 const timeframes = [['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], ['1H', '1H'], ['4H', '4H'], ['1D', '1D'], ['1W', '1W']];
 const DESKTOP_LAYOUT_KEY = 'acg-trader-desktop-layout-v1';
@@ -268,8 +269,6 @@ export default function DesktopTerminal({
   accountSwitching = false,
   accountSwitchError = null,
   onSelectAccount = () => false,
-  plannedRisk = 0,
-  hotkeysEnabled = true,
   timeframe = '1m',
   onTimeframeChange = () => {},
   chartMode = 'candles',
@@ -304,6 +303,7 @@ export default function DesktopTerminal({
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [selectedPositionId, setSelectedPositionId] = useState(null);
+  const [positionEditRequest, setPositionEditRequest] = useState(null);
   const [requestedDockTab, setRequestedDockTab] = useState(null);
   const [desktopLayout, setDesktopLayout] = useState(loadDesktopLayout);
   const [viewportHeight, setViewportHeight] = useState(() => typeof window !== 'undefined' ? window.innerHeight : 900);
@@ -326,11 +326,13 @@ export default function DesktopTerminal({
     const id = typeof positionOrId === 'object' ? positionOrId?.id : positionOrId;
     if (id === null || id === undefined) {
       setSelectedPositionId(null);
+      setPositionEditRequest(null);
       return;
     }
     const position = positions.find(item => String(item?.id) === String(id));
     if (!position) return;
     setSelectedPositionId(position.id);
+    setPositionEditRequest(null);
     if (position.symbol && position.symbol !== activeSymbol) onSelectSymbol(position.symbol);
   };
 
@@ -456,8 +458,10 @@ export default function DesktopTerminal({
   const widthBounds = desktopWidthBounds(viewportWidth);
   const sidebarWidth = desktopLayout.sidebarCollapsed ? 0 : desktopLayout.sidebarWidth;
   const marketPanelOpen = activeNav === 'watchlist' || activeNav === 'markets';
+  const marketPanelOverlay = marketPanelOpen && viewportWidth < 1360;
   const marketBounds = desktopMarketPanelBounds(viewportWidth, sidebarWidth);
   const marketPanelWidth = marketPanelOpen ? clamp(desktopLayout.marketPanelWidth || marketBounds.defaultPanel, marketBounds.panelMin, marketBounds.panelMax) : 0;
+  const marketPanelGridWidth = marketPanelOpen && !marketPanelOverlay ? marketPanelWidth : 0;
   const dockHeight = desktopLayout.dockCollapsed ? 0 : desktopLayout.dockHeight;
   const updateSidebarWidth = value => setDesktopLayout(current => {
     const nextSidebar = clamp(value, widthBounds.sidebarMin, widthBounds.sidebarMax);
@@ -570,14 +574,25 @@ export default function DesktopTerminal({
   const accountStatus = String(account?.status || 'UNKNOWN').toUpperCase();
   const canOpen = exposureAllowed && executableMarket(market) && accountStatus === 'ACTIVE' && account?.tradingEnabled === true && valuationStatus === 'LIVE';
   const liveMarketPrice = [market?.last, market?.bid].find(value => value && value !== '—') || '—';
-  const marketHigh = market?.dayHigh ?? market?.high24h ?? market?.high ?? null;
-  const marketLow = market?.dayLow ?? market?.low24h ?? market?.low ?? null;
-  const marketVolume = market?.dayVolume ?? market?.volume24h ?? market?.volume ?? null;
+  const firstPositive = (...values) => {
+    for (const value of values) {
+      const numeric = Number(value);
+      if (Number.isFinite(numeric) && numeric > 0) return numeric;
+    }
+    return null;
+  };
+  const marketHigh = firstPositive(tick?.dayHigh, tick?.high24h, tick?.sessionHigh, market?.dayHigh, market?.high24h, market?.sessionHigh);
+  const marketLow = firstPositive(tick?.dayLow, tick?.low24h, tick?.sessionLow, market?.dayLow, market?.low24h, market?.sessionLow);
+  const marketVolume = firstPositive(tick?.dayVolume, tick?.volume24h, tick?.sessionVolume, market?.dayVolume, market?.volume24h, market?.sessionVolume);
   const rawMarketChange = Number(market?.change ?? tick?.change);
   const rawMarketChangePercent = Number(market?.changePercent ?? tick?.changePercent);
-  const formatMarketStat = value => {
+  const formatMarketVolume = value => {
     const numeric = Number(value);
-    return Number.isFinite(numeric) ? numeric.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—';
+    if (!Number.isFinite(numeric) || numeric <= 0) return null;
+    return new Intl.NumberFormat('en-US', {
+      notation: numeric >= 10000 ? 'compact' : 'standard',
+      maximumFractionDigits: 2,
+    }).format(numeric);
   };
 
   const toggleFullscreen = async () => {
@@ -597,6 +612,11 @@ export default function DesktopTerminal({
     onManualOrder(order);
   };
 
+  const openMarketPanel = (mode = 'markets', focusSearch = false) => {
+    setActiveNav(mode === 'watchlist' ? 'watchlist' : 'markets');
+    if (focusSearch) window.setTimeout(() => searchRef.current?.focus(), 0);
+  };
+
   const handleNav = id => {
     if (id === 'more') {
       onOpenSettings();
@@ -610,10 +630,18 @@ export default function DesktopTerminal({
     }
     if (id === 'watchlist' || id === 'markets') {
       setActiveNav(current => current === id ? 'trade' : id);
-      window.setTimeout(() => searchRef.current?.focus(), 0);
       return;
     }
     setActiveNav('trade');
+  };
+
+  const editPositionProtection = (positionId, field) => {
+    selectPosition(positionId);
+    setPositionEditRequest(current => ({
+      positionId: String(positionId),
+      field,
+      nonce: Number(current?.nonce || 0) + 1,
+    }));
   };
 
   return (
@@ -638,14 +666,14 @@ export default function DesktopTerminal({
           ))}
         </div>
         <div className="ml-auto flex items-center gap-1.5">
-          <button type="button" onClick={() => searchRef.current?.focus()} className="grid size-8 place-items-center rounded-md text-[#A1AFBC] hover:bg-white/[0.035] hover:text-white" aria-label="Search"><Search size={16}/></button>
+          <button type="button" onClick={() => openMarketPanel('markets', true)} className="grid size-8 place-items-center rounded-md text-[#A1AFBC] hover:bg-white/[0.035] hover:text-white" aria-label="Search"><Search size={16}/></button>
           <button type="button" onClick={() => setNotice('Notification delivery is not connected to a backend event inbox yet.')} className="grid size-8 place-items-center rounded-md border border-white/[0.06] bg-black/20 text-[#A1AFBC]" aria-label="Notifications"><Bell size={15}/></button>
           <div className="relative">
             <button type="button" onClick={() => setAccountMenuOpen(value => !value)} className="flex h-8 min-w-[190px] items-center gap-2 rounded-md border border-white/[0.07] bg-black/20 px-2.5 text-left hover:bg-white/[0.025]" aria-label="Switch trading account" aria-expanded={accountMenuOpen}>
               {accountSwitching ? <Loader2 size={11} className="shrink-0 animate-spin text-[#195be1]"/> : <span className={canOpen ? "size-1.5 shrink-0 rounded-full bg-[#2fd9a0]" : valuationStatus === 'STALE' ? "size-1.5 shrink-0 rounded-full bg-[#e8bd55]" : "size-1.5 shrink-0 rounded-full bg-[#343434]"}/>}
               <div className="min-w-0 flex-1 leading-none">
                 <strong className="block truncate text-[9px]">{account?.accountCode || accountStatus}</strong>
-                <span className="mt-1 block truncate text-[8px] text-[#6F8191]">{accountTypeBadge(account)} · {currency} · 1:100</span>
+                <span className="mt-1 block truncate text-[8px] text-[#6F8191]">{accountTypeBadge(account)} · {currency}{Number(account?.leverage) > 0 ? ` · 1:${Number(account.leverage)}` : ''}</span>
               </div>
               <ChevronDown size={11} className={accountMenuOpen ? "shrink-0 rotate-180 text-[#6F8191] transition" : "shrink-0 text-[#6F8191] transition"}/>
             </button>
@@ -704,18 +732,27 @@ export default function DesktopTerminal({
         <div
           className="relative grid h-full min-h-0 min-w-0 bg-[#050607]"
           style={{
-            gridTemplateColumns: `${marketPanelWidth}px minmax(0, 1fr) ${sidebarWidth}px`,
+            gridTemplateColumns: `${marketPanelGridWidth}px minmax(0, 1fr) ${sidebarWidth}px`,
             gridTemplateRows: `minmax(0, 1fr) ${dockHeight}px`,
           }}
         >
           {marketPanelOpen && (
-            <aside className="flex h-full min-h-0 overflow-hidden border-r border-white/[0.06] bg-[#07090B]" style={{ gridColumn: '1', gridRow: '1' }}>
+            <aside
+              className={marketPanelOverlay
+                ? "absolute left-0 top-0 z-[90] flex min-h-0 overflow-hidden border-r border-white/[0.08] bg-[#07090B] shadow-[18px_0_44px_rgba(0,0,0,.48)]"
+                : "flex h-full min-h-0 overflow-hidden border-r border-white/[0.06] bg-[#07090B]"}
+              style={marketPanelOverlay
+                ? { width: marketPanelWidth, bottom: dockHeight }
+                : { gridColumn: '1', gridRow: '1' }}
+            >
               <DesktopWatchlist
                 markets={markets}
                 activeSymbol={activeSymbol}
                 onSelectSymbol={onSelectSymbol}
                 watchlists={watchlists}
                 mode={activeNav === 'markets' ? 'markets' : 'watchlist'}
+                onModeChange={mode => openMarketPanel(mode, false)}
+                onClose={() => setActiveNav('trade')}
                 searchRef={searchRef}
                 onNotice={setNotice}
               />
@@ -724,7 +761,7 @@ export default function DesktopTerminal({
 
           <section className="grid min-h-0 min-w-0 grid-rows-[58px_42px_minmax(0,1fr)]" style={{ gridColumn: '2', gridRow: '1' }}>
             <div className="acg-desktop-market-strip flex min-w-0 items-center border-b border-white/[0.055] bg-[#080a0c] px-3">
-              <button type="button" onClick={() => searchRef.current?.focus()} className="flex min-w-[210px] items-center gap-2.5 text-left">
+              <button type="button" onClick={() => openMarketPanel('markets', false)} className="flex min-w-[178px] items-center gap-2.5 text-left 2xl:min-w-[210px]" title="Open markets and watchlist">
                 <InstrumentAvatar instrument={market} size={30}/>
                 <div className="min-w-0">
                   <strong className="flex items-center gap-1 text-[14px] font-extrabold tracking-[-0.025em] text-[#f3f6f8]">{market?.displaySymbol || displaySymbol(market?.symbol)}<ChevronDown size={12}/></strong>
@@ -746,14 +783,24 @@ export default function DesktopTerminal({
                   <span className="mt-0.5 block text-[7px] uppercase tracking-[0.06em] text-[#5f6d79]">{market?.assetClass || 'ACG pricing'}</span>
                 </div>
               </div>
-              <div className="ml-2 hidden h-full items-center xl:flex">
-                {[['24h High', marketHigh], ['24h Low', marketLow], ['24h Volume', marketVolume]].map(([label, value]) => (
-                  <div key={label} className="min-w-[92px] border-l border-white/[0.055] px-3">
-                    <span className="block text-[7px] uppercase tracking-[0.07em] text-[#637484]">{label}</span>
-                    <strong className="mt-1 block font-mono text-[9px] font-bold text-[#cdd7df]">{formatMarketStat(value)}</strong>
+              {viewportWidth >= 1500 && !marketPanelOpen && (
+                <div className="ml-2 flex h-full items-center">
+                  <div className="min-w-[92px] border-l border-white/[0.055] px-3">
+                    <span className="block text-[7px] uppercase tracking-[0.07em] text-[#637484]">24h High</span>
+                    <strong className="mt-1 block font-mono text-[9px] font-bold text-[#cdd7df]">{marketHigh == null ? '—' : formatInstrumentPrice(marketHigh, market)}</strong>
                   </div>
-                ))}
-              </div>
+                  <div className="min-w-[92px] border-l border-white/[0.055] px-3">
+                    <span className="block text-[7px] uppercase tracking-[0.07em] text-[#637484]">24h Low</span>
+                    <strong className="mt-1 block font-mono text-[9px] font-bold text-[#cdd7df]">{marketLow == null ? '—' : formatInstrumentPrice(marketLow, market)}</strong>
+                  </div>
+                  {marketVolume != null && (
+                    <div className="min-w-[92px] border-l border-white/[0.055] px-3">
+                      <span className="block text-[7px] uppercase tracking-[0.07em] text-[#637484]">24h Volume</span>
+                      <strong className="mt-1 block font-mono text-[9px] font-bold text-[#cdd7df]">{formatMarketVolume(marketVolume)}</strong>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="ml-auto flex items-center gap-3">
                 <div className="hidden text-right 2xl:block">
                   <span className="block text-[7px] uppercase tracking-[0.08em] text-[#637484]">Valuation</span>
@@ -763,12 +810,12 @@ export default function DesktopTerminal({
               </div>
             </div>
             <div className="acg-desktop-chart-toolbar flex min-w-0 items-center border-b border-white/[0.055] bg-[#090b0d] px-2.5">
-              <div className="terminal-toolbar-group flex h-full items-center gap-0.5">
+              <div className="terminal-toolbar-group flex h-full min-w-0 flex-1 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {timeframes.map(([label, value]) => (
                   <button key={value} type="button" onClick={() => setDesktopTimeframe(value)} disabled={Boolean(tradePlan && !tradePlan.open)} className={activeChartTimeframe === value ? "relative h-full min-w-9 px-2 text-[9px] font-semibold text-[#f2f5f7]" : "relative h-full min-w-9 px-2 text-[9px] font-semibold text-[#7e8b96] hover:text-[#E6EDF3]"}>{label}{activeChartTimeframe === value && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#195be1]"/>}</button>
                 ))}
               </div>
-              <div className="ml-auto flex h-full items-center gap-1.5">
+              <div className="ml-auto flex h-full shrink-0 items-center gap-1.5">
                 <button type="button" onClick={() => watchlists?.toggleSymbol?.(activeSymbol)} className={favorite ? "grid size-7 place-items-center rounded-md border border-white/[0.06] text-[#f6c95d]" : "grid size-7 place-items-center rounded-md border border-white/[0.06] text-[#71808e] hover:text-white"} title="Favorite"><Star size={13} fill={favorite ? 'currentColor' : 'none'}/></button>
                 <div className="relative">
                   <button type="button" onClick={() => setChartMenuOpen(value => !value)} className={chartMenuOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#195be1]/60 bg-[#14171b] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title="Chart settings"><CandlestickChart size={12}/><span>Charts</span><ChevronDown size={10}/></button>
@@ -873,21 +920,22 @@ export default function DesktopTerminal({
                   position={selectedPosition}
                   instrument={markets.find(item => item.symbol === selectedPosition.symbol) || market}
                   account={account}
+                  editRequest={positionEditRequest && String(positionEditRequest.positionId) === String(selectedPosition.id) ? positionEditRequest : null}
                   onClose={onClosePosition}
                   onBreakEven={onBreakEven}
                   onUpdate={onUpdatePosition}
                   onSetTrailing={onSetTrailing}
-                  onDismiss={() => setSelectedPositionId(null)}
+                  onDismiss={() => { setSelectedPositionId(null); setPositionEditRequest(null); }}
                 />
               </div>
             )}
           </aside>
 
           <div className={`min-h-0 overflow-auto border-t border-white/[0.06] bg-[#07090B] ${desktopLayout.dockCollapsed ? 'hidden' : ''}`} style={{ gridColumn: '1 / 4', gridRow: '2' }}>
-            <PositionsPanel desktopDense requestedTab={requestedDockTab} activeSymbol={activeSymbol} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition}/>
+            <PositionsPanel desktopDense requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition} onEditProtection={editPositionProtection}/>
           </div>
 
-          {marketPanelOpen && (
+          {marketPanelOpen && !marketPanelOverlay && (
             <ResizeHandle
               axis="x"
               value={marketPanelWidth}

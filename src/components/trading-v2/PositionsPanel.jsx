@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { formatInstrumentPrice, instrumentForSymbol, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 import { estimatePositionPnlAtPrice, positionDistancePips } from '../../utils/tradingRisk.js';
+import { buildOpenPositionSummary } from '../../utils/openPositionPresentation.js';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import SharePositionSheet from './SharePositionSheet.jsx';
 
@@ -45,6 +46,7 @@ function formatPnl(value, currency = 'USD') {
 export default function PositionsPanel({
   positions = [],
   markets = [],
+  account = {},
   positionHistory = [],
   pendingOrders = [],
   journal = [],
@@ -65,6 +67,7 @@ export default function PositionsPanel({
   requestedTab = null,
   selectedPositionId = null,
   onSelectPosition = () => {},
+  onEditProtection = () => {},
 }) {
   const [tab, setTab] = useState('positions');
 
@@ -251,15 +254,30 @@ export default function PositionsPanel({
 
       {tab === 'positions' && desktopDense && (
         <div className="min-w-[1120px]">
+          {positionGroups.length > 0 && (
+            <div className="flex h-8 items-center gap-1.5 overflow-x-auto border-b border-white/[0.055] px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <span className="mr-1 shrink-0 text-[7px] font-black uppercase tracking-[0.08em] text-[#53677a]">Exposure</span>
+              {positionGroups.map(group => (
+                <button key={group.symbol} type="button" onClick={() => onSelectPosition(positions.find(item => item.symbol === group.symbol)?.id)} className="flex shrink-0 items-center gap-1 rounded border border-white/[0.06] bg-black/25 px-2 py-1 text-[7px] text-[#8597a7] hover:bg-white/[0.025]">
+                  <b className="text-[#c8d4de]">{formatSymbol(group.symbol)}</b>
+                  <span>{group.count}</span>
+                  <span>{group.volume.toFixed(2)}L</span>
+                  <span className={group.pnl >= 0 ? "text-[#42dba6]" : "text-[#ff727d]"}>{formatPnl(group.pnl)}</span>
+                </button>
+              ))}
+            </div>
+          )}
           <div className="grid grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-white/[0.06] px-3 py-1.5 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#647586]">
             <span>Symbol</span><span>Side</span><span>Size</span><span>Entry</span><span>Current</span><span>S/L</span><span>T/P</span><span className="text-right">P&amp;L</span><span className="text-right">P&amp;L %</span><span className="text-right">Actions</span>
           </div>
           {!positions.length && <div className="grid h-[110px] place-items-center text-center text-[10px] text-[#6F8191]"><div><b className="block text-[#A1AFBC]">No open positions</b><span className="mt-1 block">Market executions will appear here</span></div></div>}
           {positions.map(position => {
             const instrument = instrumentForSymbol(markets, position.symbol);
+            const summary = buildOpenPositionSummary(position, account, instrument);
             const positive = Number(position.pnl) >= 0;
             const sideBuy = String(position.side).toUpperCase() === 'BUY';
-            const pnlPercent = Number.isFinite(Number(position.entry)) && Number(position.entry) > 0 && Number.isFinite(Number(position.closePrice)) ? ((sideBuy ? Number(position.closePrice) - Number(position.entry) : Number(position.entry) - Number(position.closePrice)) / Number(position.entry) * 100) : null;
+            const pnlPercent = summary.pnlPercent;
+            const currentPrice = summary.currentPrice;
             return (
               <div key={position.id} onClick={() => onSelectPosition(position.id)} className={String(selectedPositionId) === String(position.id) ? "relative grid cursor-pointer grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-[#195be1]/45 bg-[#12151a] px-3 py-2 text-[9px] transition" : "relative grid cursor-pointer grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-white/[0.055] px-3 py-2 text-[9px] transition hover:bg-white/[0.018]"}>
                 {String(selectedPositionId) === String(position.id) && <span className="absolute inset-y-1 left-0 w-0.5 rounded-r bg-[#195be1]" />}
@@ -267,9 +285,9 @@ export default function PositionsPanel({
                 <span className={sideBuy ? "w-fit rounded bg-[#0c3b2e] px-1.5 py-0.5 text-[7px] font-black text-[#38dba4]" : "w-fit rounded bg-[#3b1820] px-1.5 py-0.5 text-[7px] font-black text-[#ff707a]"}>{String(position.side).toUpperCase()}</span>
                 <span className="font-mono text-[9px] text-[#c4ced6]">{Number(position.volume).toFixed(2)} lots</span>
                 <span className="font-mono text-[9px] text-[#aebbc5]">{formatInstrumentPrice(position.entry, instrument)}</span>
-                <span className="font-mono text-[9px] text-[#d3dbe2]">{formatInstrumentPrice(position.closePrice, instrument)}</span>
-                <button type="button" onClick={event => { event.stopPropagation(); startProtectionEdit(position, 'sl'); }} className={position.sl == null ? "justify-self-start rounded border border-white/[0.06] px-2 py-1 font-mono text-[8px] font-bold text-[#8295A7] hover:text-white" : "justify-self-start rounded border border-[#5e2932] px-2 py-1 font-mono text-[8px] font-bold text-[#FF6F7A]"}>{position.sl == null ? '+ SL' : formatInstrumentPrice(position.sl, instrument)}</button>
-                <button type="button" onClick={event => { event.stopPropagation(); startProtectionEdit(position, 'tp'); }} className={position.tp == null ? "justify-self-start rounded border border-white/[0.06] px-2 py-1 font-mono text-[8px] font-bold text-[#8295A7] hover:text-white" : "justify-self-start rounded border border-[#245b48] px-2 py-1 font-mono text-[8px] font-bold text-[#42D7A1]"}>{position.tp == null ? '+ TP' : formatInstrumentPrice(position.tp, instrument)}</button>
+                <span className="font-mono text-[9px] text-[#d3dbe2]">{currentPrice == null ? '—' : formatInstrumentPrice(currentPrice, instrument)}</span>
+                <button type="button" onClick={event => { event.stopPropagation(); onEditProtection(position.id, 'sl'); }} className={position.sl == null ? "justify-self-start rounded border border-white/[0.06] px-2 py-1 font-mono text-[8px] font-bold text-[#8295A7] hover:text-white" : "justify-self-start rounded border border-[#5e2932] px-2 py-1 font-mono text-[8px] font-bold text-[#FF6F7A]"}>{position.sl == null ? '+ SL' : formatInstrumentPrice(position.sl, instrument)}</button>
+                <button type="button" onClick={event => { event.stopPropagation(); onEditProtection(position.id, 'tp'); }} className={position.tp == null ? "justify-self-start rounded border border-white/[0.06] px-2 py-1 font-mono text-[8px] font-bold text-[#8295A7] hover:text-white" : "justify-self-start rounded border border-[#245b48] px-2 py-1 font-mono text-[8px] font-bold text-[#42D7A1]"}>{position.tp == null ? '+ TP' : formatInstrumentPrice(position.tp, instrument)}</button>
                 <strong className={positive ? "text-right font-mono text-[10px] text-[#42D7A1]" : "text-right font-mono text-[10px] text-[#FF5968]"}>{formatPnl(position.pnl, position.pnlCurrency)}</strong>
                 <span className={positive ? "text-right font-mono text-[8px] text-[#35b788]" : "text-right font-mono text-[8px] text-[#d84d5d]"}>{Number.isFinite(pnlPercent) ? <>{pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%</> : '—'}</span>
                 <div className="relative flex items-center justify-end gap-1">

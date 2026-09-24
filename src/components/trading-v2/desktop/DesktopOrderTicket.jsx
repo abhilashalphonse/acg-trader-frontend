@@ -784,19 +784,23 @@ export default function DesktopOrderTicket({
       </div>
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-2.5 py-2.5 [scrollbar-width:thin]">
         <div className="acg-order-type-block">
-          <div className="mb-1.5 px-0.5"><strong className="text-[8px] font-bold uppercase tracking-[0.08em] text-[#82909d]">Order Type</strong></div>
-          <div className="grid grid-cols-2 rounded-md border border-white/[0.07] bg-black p-0.5">
-            <button type="button" onClick={() => { chooseOrderFamily('market'); setActiveTool(null); }} className={orderFamily === 'market' ? "h-9 rounded bg-[#195be1] text-[9px] font-bold text-white" : "h-9 rounded text-[9px] font-bold text-[#82909d] hover:text-white"}>Market</button>
-            <button type="button" onClick={() => { chooseOrderFamily('pending'); setActiveTool(null); }} className={orderFamily === 'pending' ? "h-9 rounded bg-[#195be1] text-[9px] font-bold text-white" : "h-9 rounded text-[9px] font-bold text-[#82909d] hover:text-white"}>Pending</button>
+          <div className="mb-1.5 flex items-center justify-between px-0.5">
+            <strong className="text-[8px] font-bold uppercase tracking-[0.08em] text-[#82909d]">Order Type</strong>
+            <span className="text-[7px] font-semibold text-[#607181]">{orderFamily === 'market' ? 'Immediate execution' : 'Pending execution'}</span>
           </div>
+          {orderFamily === 'market' ? (
+            <div className="flex h-9 items-center justify-between rounded-md border border-[#195be1]/55 bg-[#10151f] px-3">
+              <strong className="text-[9px] font-bold text-[#f2f5f7]">Market</strong>
+              <span className="text-[7px] font-semibold text-[#6f8293]">Bid / Ask</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-1">
+              {ORDER_TYPES.filter(([id]) => id !== 'market').map(([id, label]) => (
+                <button key={id} type="button" onClick={() => changePendingType(id)} className={orderType === id ? "h-8 rounded border border-[#195be1]/70 bg-[#10151f] text-[8px] font-bold text-[#e8eef4]" : "h-8 rounded border border-white/[0.06] bg-black text-[8px] font-semibold text-[#6F8191] hover:text-white"}>{label}</button>
+              ))}
+            </div>
+          )}
         </div>
-        {orderFamily === 'pending' && (
-          <div className="grid grid-cols-3 gap-1">
-            {ORDER_TYPES.filter(([id]) => id !== 'market').map(([id, label]) => (
-              <button key={id} type="button" onClick={() => changePendingType(id)} className={`h-7 rounded border text-[9px] font-semibold ${orderType === id ? 'border-[#6d5830] bg-[#171208] text-[#E7BD58]' : 'border-white/[0.06] bg-black text-[#6F8191] hover:text-white'}`}>{label}</button>
-            ))}
-          </div>
-        )}
 
         {orderFamily === 'pending' && pendingPlan && (
           <div className="rounded-md border border-white/[0.06] bg-[#0C1013] p-2">
@@ -1000,7 +1004,7 @@ export default function DesktopOrderTicket({
           </div>
 
           <div className="acg-protection-grid grid grid-cols-2 gap-2">
-            <div className={`rounded-md border ${hasStopLoss ? 'border-[#5e2932]' : 'border-white/[0.05]'} bg-black/40 px-2 py-1.5`}>
+            <div className={`rounded-md border ${activeTool === 'sl' ? 'col-span-2 ' : ''}${hasStopLoss ? 'border-[#5e2932]' : 'border-white/[0.05]'} bg-black/40 px-2 py-1.5`}>
               <div className="flex h-7 items-center justify-between">
                 <button type="button" onClick={() => enableProtection('sl')} className="flex min-w-0 flex-1 items-center gap-2 text-left">
                   <span className={`grid size-3.5 place-items-center rounded border text-[8px] ${hasStopLoss ? 'border-[#8e3b49] bg-[#331017] text-[#FF6F7A]' : 'border-white/[0.12] text-transparent'}`}>✓</span>
@@ -1018,7 +1022,7 @@ export default function DesktopOrderTicket({
               {activeTool === 'sl' && tradePlan && renderProtectionEditor('sl')}
             </div>
 
-            <div className={`rounded-md border ${hasTakeProfit ? 'border-[#245b48]' : 'border-white/[0.05]'} bg-black/40 px-2 py-1.5`}>
+            <div className={`rounded-md border ${activeTool === 'tp' ? 'col-span-2 ' : ''}${hasTakeProfit ? 'border-[#245b48]' : 'border-white/[0.05]'} bg-black/40 px-2 py-1.5`}>
               <div className="flex h-7 items-center justify-between">
                 <button type="button" onClick={() => enableProtection('tp')} className="flex min-w-0 flex-1 items-center gap-2 text-left">
                   <span className={`grid size-3.5 place-items-center rounded border text-[8px] ${hasTakeProfit ? 'border-[#286b52] bg-[#0a281d] text-[#42D7A1]' : 'border-white/[0.12] text-transparent'}`}>✓</span>
@@ -1074,6 +1078,21 @@ export default function DesktopOrderTicket({
             </div>
           )}
         </div>
+
+        {(challenge.dailyLossLimit > 0 || challenge.maxLossLimit > 0 || challenge.profitTarget > 0) && (
+          <div className="rounded-md border border-white/[0.06] bg-black/35 px-2 py-2">
+            <div className="mb-2 flex items-center justify-between">
+              <strong className="text-[8px] font-black uppercase tracking-[0.08em] text-[#A1AFBC]">Challenge Risk</strong>
+              <span className={challenge.riskAvailabilityLive ? "text-[7px] font-bold text-[#42D7A1]" : "text-[7px] font-bold text-[#E7BD58]"}>{challenge.riskAvailabilityLive ? 'LIVE' : 'SYNCING'}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+              <FieldMetric label="Daily room" value={challenge.dailyLossLimit > 0 && challenge.riskAvailabilityLive ? money(challenge.remainingDaily, currency) : '—'} />
+              <FieldMetric label="Max room" value={challenge.maxLossLimit > 0 && challenge.riskAvailabilityLive ? money(challenge.remainingMax, currency) : '—'} />
+              <FieldMetric label="Target left" value={challenge.profitTarget > 0 ? money(Math.max(0, challenge.profitTarget - challenge.profit), currency) : '—'} />
+              <FieldMetric label="After SL" value={challenge.dailyLossLimit > 0 && challenge.riskAvailabilityLive && Number.isFinite(planMetrics?.riskAmount) ? money(challenge.postTradeDaily, currency) : '—'} tone={challenge.dailyLossLimit > 0 && challenge.riskAvailabilityLive && Number.isFinite(planMetrics?.riskAmount) && challenge.postTradeDaily < challenge.remainingDaily * 0.25 ? 'danger' : 'default'} />
+            </div>
+          </div>
+        )}
 
         <div className="rounded-md border border-white/[0.06] bg-black/35 px-2 py-2">
           <div className="grid grid-cols-2 gap-x-4 gap-y-2">
