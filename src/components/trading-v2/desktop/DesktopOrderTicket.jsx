@@ -10,7 +10,7 @@ import {
   estimateStopRisk,
   riskSizingSupported,
 } from '../../../utils/tradingRisk.js';
-import { formatInstrumentPrice, instrumentPipSize } from '../../../utils/instrumentFormatting.js';
+import { formatInstrumentPrice, formatSpreadDisplay, instrumentPipSize } from '../../../utils/instrumentFormatting.js';
 import { effectiveTradePlan, validateTradePlanForExecution } from '../../../utils/tradePlanExecution.js';
 import { estimateExecutionPrice, resolveExecutionPreview } from '../../../utils/executionPricing.js';
 
@@ -251,14 +251,10 @@ export default function DesktopOrderTicket({
     && planValidation.valid
     && riskGuard.allowed;
 
-  const spreadPips = useMemo(() => {
-    const pip = Number(market?.pipSize);
-    const bid = Number(market?.bid);
-    const ask = Number(market?.ask);
-    return Number.isFinite(pip) && pip > 0 && Number.isFinite(bid) && Number.isFinite(ask)
-      ? Math.abs(ask - bid) / pip
-      : null;
-  }, [market]);
+  const spreadDisplay = useMemo(
+    () => formatSpreadDisplay(market?.bid, market?.ask, market),
+    [market],
+  );
 
   const riskBufferUsage = challenge.remainingDaily > 0 && Number.isFinite(planMetrics?.riskAmount)
     ? (planMetrics.riskAmount / challenge.remainingDaily) * 100
@@ -1094,7 +1090,7 @@ export default function DesktopOrderTicket({
             />
           </div>
           <div className="mt-2 grid grid-cols-4 gap-2 border-t border-white/[0.05] pt-2">
-            <FieldMetric label="Spread" value={Number.isFinite(spreadPips) ? `${spreadPips.toFixed(1)}p` : '—'} />
+            <FieldMetric label="Spread" value={spreadDisplay} />
             <FieldMetric label="Commission" value={formatCommission(market?.commissionPerLotPerSide ?? market?.commissionPerLot, market?.commissionRate)} />
             <FieldMetric label="Leverage" value={effectiveLeverage(account, market) ? `1:${effectiveLeverage(account, market)}` : '—'} />
             <FieldMetric label="Pricing" value={market?.pricingModel === 'ACG_DYNAMIC' ? 'Dynamic' : market?.pricingModel || '—'} tone={market?.pricingModel === 'ACG_DYNAMIC' ? 'accent' : 'default'} />
