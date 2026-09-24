@@ -132,6 +132,7 @@ export default function MobileTradesSheet({
           {tab === 'history' && (
             <HistorySection
               embedded
+              accountId={account?.id || null}
               positionHistory={positionHistory}
               journal={journal}
               markets={markets}
