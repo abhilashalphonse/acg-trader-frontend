@@ -141,7 +141,7 @@ export default function TradingTerminalV2({
   const isDesktop = useDesktopLayout();
   const trading = useTradingTerminal(markets);
   const { account, positions, pendingOrders, positionHistory } = trading;
-  const readOnly = String(account?.status || '').toUpperCase() === 'BREACHED' || account?.tradingEnabled === false;
+  const readOnly = String(account?.status || '').toUpperCase() === 'BREACHED';
   const executionCommandState = {
     ...trading.commandState,
     accountSwitching: trading.accountSwitching || trading.accountGrantMissing,
