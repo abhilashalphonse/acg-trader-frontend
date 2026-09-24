@@ -76,13 +76,13 @@ export default function DesktopWorkspaceMenu({ snapshot, onApply = () => {} }) {
 
   return (
     <div className="relative">
-      <button type="button" onClick={() => setOpen(value => !value)} className="flex h-8 items-center gap-1 rounded-md border border-white/[0.06] bg-black/20 px-2 text-[9px] font-semibold text-[#6F8191] hover:text-white" title="Workspaces">
-        <LayoutDashboard size={12}/>Workspace<ChevronDown size={10}/>
+      <button type="button" onClick={() => setOpen(value => !value)} className="flex h-8 items-center gap-1 rounded-md border border-white/[0.06] bg-black/20 px-2 text-[9px] font-semibold text-[#6F8191] hover:text-white" title="Layouts">
+        <LayoutDashboard size={12}/>Layout<ChevronDown size={10}/>
       </button>
 
       {open && (
         <div className="absolute right-0 top-9 z-[90] w-[230px] overflow-hidden rounded-md border border-white/[0.10] bg-[#0C1013] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
-          <div className="px-1 pb-1 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#6F8191]">Workspace presets</div>
+          <div className="px-1 pb-1 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#6F8191]">Layout presets</div>
           {workspaces.map(item => (
             <div key={item.id} className="group flex items-center gap-1 rounded hover:bg-white/[0.025]">
               <button type="button" onClick={() => { onApply(item); setOpen(false); }} className="flex min-w-0 flex-1 items-center gap-2 px-2 py-2 text-left">

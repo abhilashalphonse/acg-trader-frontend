@@ -773,22 +773,23 @@ export default function DesktopOrderTicket({
   };
 
   return (
-    <section className="flex h-full min-h-0 flex-col bg-[#07090B]">
-      <div className="flex h-10 shrink-0 items-center justify-between border-b border-white/[0.06] px-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <strong className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#E6EDF3]">Order</strong>
-          <span className="truncate text-[9px] font-semibold text-[#A1AFBC]">{market?.displaySymbol || market?.symbol || '—'}</span>
-          <span className={`text-[8px] font-bold ${market?.live ? 'text-[#42D7A1]' : market?.isStale ? 'text-[#E7BD58]' : 'text-[#6F8191]'}`}>● {liveLabel}</span>
-        </div>
-        <span className="text-[8px] font-semibold text-[#6F8191]">{orderFamily === 'market' ? '1-click' : String(orderType).replace('-', ' ')}</span>
+    <section className="acg-desktop-order flex h-full min-h-0 flex-col bg-[#07090B]">
+      <div className="acg-order-top-tabs grid h-11 shrink-0 grid-cols-2 border-b border-white/[0.06] bg-[#090b0d]">
+        <button type="button" onClick={() => { chooseOrderFamily('market'); setActiveTool(null); }} className={orderFamily === 'market' ? "relative text-[9px] font-bold text-[#f3f5f7]" : "relative text-[9px] font-bold text-[#778591] hover:text-white"}>Trade{orderFamily === 'market' && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-[#195be1]"/>}</button>
+        <button type="button" onClick={() => { chooseOrderFamily('pending'); setActiveTool(null); }} className={orderFamily === 'pending' ? "relative text-[9px] font-bold text-[#f3f5f7]" : "relative text-[9px] font-bold text-[#778591] hover:text-white"}>Pending{orderFamily === 'pending' && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-[#195be1]"/>}</button>
       </div>
-
+      <div className="flex h-9 shrink-0 items-center justify-between border-b border-white/[0.05] px-3">
+        <div className="flex min-w-0 items-center gap-2"><strong className="text-[9px] font-black uppercase tracking-[0.08em] text-[#E6EDF3]">Order</strong><span className="truncate text-[8px] font-semibold text-[#A1AFBC]">{market?.displaySymbol || market?.symbol || '—'}</span><span className={market?.live ? "text-[7px] font-bold text-[#42D7A1]" : market?.isStale ? "text-[7px] font-bold text-[#E7BD58]" : "text-[7px] font-bold text-[#6F8191]"}>● {liveLabel}</span></div>
+        <span className="text-[7px] font-semibold text-[#6F8191]">{orderFamily === 'market' ? '1-click' : String(orderType).replace('-', ' ')}</span>
+      </div>
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-2.5 py-2.5 [scrollbar-width:thin]">
-        <div className="grid grid-cols-2 rounded-md border border-white/[0.07] bg-black p-0.5">
-          <button type="button" onClick={() => { chooseOrderFamily('market'); setActiveTool(null); }} className={`h-8 rounded text-[9px] font-bold ${orderFamily === 'market' ? 'bg-white/[0.065] text-[#E6EDF3]' : 'text-[#66798b] hover:text-[#cbd6df]'}`}>Market</button>
-          <button type="button" onClick={() => { chooseOrderFamily('pending'); setActiveTool(null); }} className={`h-8 rounded text-[9px] font-bold ${orderFamily === 'pending' ? 'bg-[#171208] text-[#E7BD58]' : 'text-[#66798b] hover:text-[#cbd6df]'}`}>Pending</button>
+        <div className="acg-order-type-block">
+          <div className="mb-1.5 px-0.5"><strong className="text-[8px] font-bold uppercase tracking-[0.08em] text-[#82909d]">Order Type</strong></div>
+          <div className="grid grid-cols-2 rounded-md border border-white/[0.07] bg-black p-0.5">
+            <button type="button" onClick={() => { chooseOrderFamily('market'); setActiveTool(null); }} className={orderFamily === 'market' ? "h-9 rounded bg-[#195be1] text-[9px] font-bold text-white" : "h-9 rounded text-[9px] font-bold text-[#82909d] hover:text-white"}>Market</button>
+            <button type="button" onClick={() => { chooseOrderFamily('pending'); setActiveTool(null); }} className={orderFamily === 'pending' ? "h-9 rounded bg-[#195be1] text-[9px] font-bold text-white" : "h-9 rounded text-[9px] font-bold text-[#82909d] hover:text-white"}>Pending</button>
+          </div>
         </div>
-
         {orderFamily === 'pending' && (
           <div className="grid grid-cols-3 gap-1">
             {ORDER_TYPES.filter(([id]) => id !== 'market').map(([id, label]) => (
@@ -998,7 +999,7 @@ export default function DesktopOrderTicket({
             {pendingPlan && <div className="flex items-center gap-1.5"><span className={`text-[8px] font-black ${selectedSide === 'buy' ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{selectedSide === 'buy' ? 'LONG' : 'SHORT'}</span><button type="button" onClick={onCancelPlan} className="grid size-5 place-items-center rounded text-[#6F8191] hover:bg-white/[0.04] hover:text-white" aria-label="Cancel trade plan"><X size={10}/></button></div>}
           </div>
 
-          <div className="space-y-1">
+          <div className="acg-protection-grid grid grid-cols-2 gap-2">
             <div className={`rounded-md border ${hasStopLoss ? 'border-[#5e2932]' : 'border-white/[0.05]'} bg-black/40 px-2 py-1.5`}>
               <div className="flex h-7 items-center justify-between">
                 <button type="button" onClick={() => enableProtection('sl')} className="flex min-w-0 flex-1 items-center gap-2 text-left">

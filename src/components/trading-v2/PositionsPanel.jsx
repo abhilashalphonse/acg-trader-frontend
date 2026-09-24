@@ -216,14 +216,14 @@ export default function PositionsPanel({
   };
 
   return (
-    <section className={`${desktopDense ? 'h-full overflow-auto' : 'mt-3 overflow-visible'} border-y border-white/[0.06] bg-black`}>
+    <section className={`${desktopDense ? 'acg-desktop-positions h-full overflow-auto' : 'mt-3 overflow-visible'} border-y border-white/[0.06] bg-black`}>
       <div className={`flex items-center justify-between gap-2 border-b border-white/[0.06] px-3 ${desktopDense ? 'h-[38px]' : 'h-[50px]'}`}>
         <div className="flex h-full min-w-0 items-stretch gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {tabs.map(item => (
             <button key={item.id} type="button" onClick={() => setTab(item.id)} className={`relative flex h-full shrink-0 items-center gap-1 px-1.5 text-[9px] font-semibold ${tab === item.id ? 'text-[#f5f5f5]' : 'text-[#6F8191]'}`}>
               <span>{item.label}</span>
               <span className="rounded-full bg-[#0C1013] px-1.5 py-0.5 text-[8px] font-extrabold text-[#A1AFBC]">{counts[item.id]}</span>
-              {tab === item.id && <span className="absolute bottom-0 left-1.5 right-1.5 h-0.5 rounded-full bg-[#101010]" />}
+              {tab === item.id && <span className="absolute bottom-0 left-1.5 right-1.5 h-0.5 rounded-full bg-[#195be1]" />}
             </button>
           ))}
         </div>
@@ -250,77 +250,38 @@ export default function PositionsPanel({
       </div>
 
       {tab === 'positions' && desktopDense && (
-        <div className="min-w-[860px]">
-          {positionGroups.length > 1 && (
-            <div className="flex h-8 items-center gap-1.5 overflow-x-auto border-b border-white/[0.06] px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <span className="mr-1 shrink-0 text-[8px] font-black uppercase tracking-[0.08em] text-[#53677a]">Exposure</span>
-              {positionGroups.map(group => <div key={group.symbol} title={`${group.count} open ${group.symbol} position${group.count === 1 ? '' : 's'}`} className="flex shrink-0 items-center gap-1 rounded border border-white/[0.06] bg-black px-2 py-1 text-[8px] text-[#8597a7]"><b className="text-[#c8d4de]">{formatSymbol(group.symbol)}</b><span>{group.count}</span><span>{group.volume.toFixed(2)}L</span><span className={group.pnl >= 0 ? 'text-[#42dba6]' : 'text-[#ff727d]'}>{formatPnl(group.pnl)}</span></div>)}
-            </div>
-          )}
-          <div className="grid grid-cols-[1.45fr_1.55fr_1.15fr_1fr_170px] items-center border-b border-white/[0.06] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-[#5c6f82]">
-            <span>Position</span>
-            <span>Market</span>
-            <span>Protection</span>
-            <span className="text-right">P&amp;L</span>
-            <span className="text-right">Actions</span>
+        <div className="min-w-[1120px]">
+          <div className="grid grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-white/[0.06] px-3 py-1.5 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#647586]">
+            <span>Symbol</span><span>Side</span><span>Size</span><span>Entry</span><span>Current</span><span>S/L</span><span>T/P</span><span className="text-right">P&amp;L</span><span className="text-right">P&amp;L %</span><span className="text-right">Actions</span>
           </div>
           {!positions.length && <div className="grid h-[110px] place-items-center text-center text-[10px] text-[#6F8191]"><div><b className="block text-[#A1AFBC]">No open positions</b><span className="mt-1 block">Market executions will appear here</span></div></div>}
           {positions.map(position => {
             const instrument = instrumentForSymbol(markets, position.symbol);
             const positive = Number(position.pnl) >= 0;
-            const sideBuy = position.side === 'BUY';
+            const sideBuy = String(position.side).toUpperCase() === 'BUY';
+            const pnlPercent = Number.isFinite(Number(position.entry)) && Number(position.entry) > 0 && Number.isFinite(Number(position.closePrice)) ? ((sideBuy ? Number(position.closePrice) - Number(position.entry) : Number(position.entry) - Number(position.closePrice)) / Number(position.entry) * 100) : null;
             return (
-              <div
-                key={position.id}
-                onClick={() => onSelectPosition(position.id)}
-                className={`relative grid cursor-pointer grid-cols-[1.45fr_1.55fr_1.15fr_1fr_170px] items-center border-b px-3 py-2 text-[9px] transition ${String(selectedPositionId) === String(position.id) ? 'border-[#195be1] bg-[#0b141a]' : 'border-white/[0.06] hover:bg-white/[0.015]'}`}
-              >
+              <div key={position.id} onClick={() => onSelectPosition(position.id)} className={String(selectedPositionId) === String(position.id) ? "relative grid cursor-pointer grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-[#195be1]/45 bg-[#12151a] px-3 py-2 text-[9px] transition" : "relative grid cursor-pointer grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-white/[0.055] px-3 py-2 text-[9px] transition hover:bg-white/[0.018]"}>
                 {String(selectedPositionId) === String(position.id) && <span className="absolute inset-y-1 left-0 w-0.5 rounded-r bg-[#195be1]" />}
-
-                <div className="flex min-w-0 items-center gap-2">
-                  <InstrumentAvatar instrument={instrument} size={20}/>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <strong className="truncate text-[10px] text-[#f2f5f7]">{formatSymbol(position.symbol)}</strong>
-                      <span className={`w-fit rounded px-1.5 py-0.5 text-[8px] font-black ${sideBuy ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{position.side}</span>
-                    </div>
-                    <span className="mt-0.5 block font-mono text-[8px] text-[#7f8f9e]">{Number(position.volume).toFixed(2)} lots</span>
-                  </div>
-                </div>
-
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 font-mono text-[9px]">
-                    <span className="text-[#b9c3cc]">{formatInstrumentPrice(position.entry, instrument)}</span>
-                    <span className="text-[#44515D]">→</span>
-                    <span className="text-[#d3dbe2]">{formatInstrumentPrice(position.closePrice, instrument)}</span>
-                  </div>
-                  <div className="mt-0.5 flex items-center gap-3 text-[8px] uppercase tracking-[0.06em] text-[#53677a]">
-                    <span>Entry</span>
-                    <span>Current</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <button type="button" onClick={event => { event.stopPropagation(); startProtectionEdit(position, 'sl'); }} className={`h-7 rounded border px-2 font-mono text-[8px] font-bold ${position.sl == null ? 'border-white/[0.06] text-[#8295A7] hover:text-white' : 'border-[#5e2932] text-[#FF6F7A]'}`}>{position.sl == null ? '+ SL' : `SL ${formatInstrumentPrice(position.sl, instrument)}`}</button>
-                  <button type="button" onClick={event => { event.stopPropagation(); startProtectionEdit(position, 'tp'); }} className={`h-7 rounded border px-2 font-mono text-[8px] font-bold ${position.tp == null ? 'border-white/[0.06] text-[#8295A7] hover:text-white' : 'border-[#245b48] text-[#42D7A1]'}`}>{position.tp == null ? '+ TP' : `TP ${formatInstrumentPrice(position.tp, instrument)}`}</button>
-                </div>
-
-                <div className="text-right">
-                  <strong className={`block font-mono text-[11px] ${positive ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{formatPnl(position.pnl, position.pnlCurrency)}</strong>
-                  <span className={`mt-0.5 block font-mono text-[8px] ${positive ? 'text-[#2f9e79]' : 'text-[#a24b55]'}`}>
-                    {Number.isFinite(Number(position.entry)) && Number(position.entry) > 0 && Number.isFinite(Number(position.closePrice))
-                      ? `${((sideBuy ? Number(position.closePrice) - Number(position.entry) : Number(position.entry) - Number(position.closePrice)) / Number(position.entry) * 100).toFixed(2)}%`
-                      : '—'}
-                  </span>
-                </div>
-
+                <div className="flex min-w-0 items-center gap-2"><InstrumentAvatar instrument={instrument} size={20}/><strong className="truncate text-[10px] text-[#f2f5f7]">{formatSymbol(position.symbol)}</strong></div>
+                <span className={sideBuy ? "w-fit rounded bg-[#0c3b2e] px-1.5 py-0.5 text-[7px] font-black text-[#38dba4]" : "w-fit rounded bg-[#3b1820] px-1.5 py-0.5 text-[7px] font-black text-[#ff707a]"}>{String(position.side).toUpperCase()}</span>
+                <span className="font-mono text-[9px] text-[#c4ced6]">{Number(position.volume).toFixed(2)} lots</span>
+                <span className="font-mono text-[9px] text-[#aebbc5]">{formatInstrumentPrice(position.entry, instrument)}</span>
+                <span className="font-mono text-[9px] text-[#d3dbe2]">{formatInstrumentPrice(position.closePrice, instrument)}</span>
+                <button type="button" onClick={event => { event.stopPropagation(); startProtectionEdit(position, 'sl'); }} className={position.sl == null ? "justify-self-start rounded border border-white/[0.06] px-2 py-1 font-mono text-[8px] font-bold text-[#8295A7] hover:text-white" : "justify-self-start rounded border border-[#5e2932] px-2 py-1 font-mono text-[8px] font-bold text-[#FF6F7A]"}>{position.sl == null ? '+ SL' : formatInstrumentPrice(position.sl, instrument)}</button>
+                <button type="button" onClick={event => { event.stopPropagation(); startProtectionEdit(position, 'tp'); }} className={position.tp == null ? "justify-self-start rounded border border-white/[0.06] px-2 py-1 font-mono text-[8px] font-bold text-[#8295A7] hover:text-white" : "justify-self-start rounded border border-[#245b48] px-2 py-1 font-mono text-[8px] font-bold text-[#42D7A1]"}>{position.tp == null ? '+ TP' : formatInstrumentPrice(position.tp, instrument)}</button>
+                <strong className={positive ? "text-right font-mono text-[10px] text-[#42D7A1]" : "text-right font-mono text-[10px] text-[#FF5968]"}>{formatPnl(position.pnl, position.pnlCurrency)}</strong>
+                <span className={positive ? "text-right font-mono text-[8px] text-[#35b788]" : "text-right font-mono text-[8px] text-[#d84d5d]"}>{Number.isFinite(pnlPercent) ? <>{pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%</> : '—'}</span>
                 <div className="relative flex items-center justify-end gap-1">
-                  <button type="button" onClick={event => { event.stopPropagation(); onBreakEven(position.id); }} className="h-7 rounded border border-white/[0.06] px-2 text-[8px] font-bold text-[#48d8a4] hover:bg-white/[0.025]">BE</button>
-                  <button type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, 50); }} className="h-7 rounded border border-white/[0.06] px-2 text-[8px] font-bold text-[#aeb8c1] hover:bg-white/[0.025]">Reduce</button>
-                  <button type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, 100); }} className="h-7 rounded border border-[#51242c] px-2 text-[8px] font-bold text-[#ff727d] hover:bg-[#241015]">Close</button>
+                  <button type="button" onClick={event => { event.stopPropagation(); startProtectionEdit(position, 'tp'); }} className="h-7 rounded border border-[#245b48] px-2 text-[8px] font-bold text-[#42D7A1] hover:bg-[#071710]">TP</button>
+                  <button type="button" onClick={event => { event.stopPropagation(); startProtectionEdit(position, 'sl'); }} className="h-7 rounded border border-[#51242c] px-2 text-[8px] font-bold text-[#ff727d] hover:bg-[#241015]">SL</button>
                   <button type="button" onClick={event => { event.stopPropagation(); setRowActionsId(rowActionsId === position.id ? null : position.id); }} className="grid size-7 place-items-center rounded border border-white/[0.06] text-[#8092a2] hover:text-white"><MoreHorizontal size={11}/></button>
                   {rowActionsId === position.id && (
-                    <div className="absolute right-0 top-8 z-50 w-[154px] rounded-md border border-white/[0.10] bg-[#0a0a0a] p-1 shadow-xl">
+                    <div className="absolute right-0 top-8 z-50 w-[164px] rounded-md border border-white/[0.10] bg-[#0a0a0a] p-1 shadow-xl">
+                      <button type="button" onClick={event => { event.stopPropagation(); onBreakEven(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#48d8a4] hover:bg-white/[0.03]">Break even</button>
+                      <button type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, 50); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#b6c3ce] hover:bg-white/[0.03]">Reduce 50%</button>
+                      <button type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, 100); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#ff727d] hover:bg-[#241015]">Close position</button>
+                      <div className="my-1 border-t border-white/[0.06]"/>
                       <button type="button" onClick={event => { event.stopPropagation(); onDuplicate(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#b6c3ce] hover:bg-white/[0.03]">Duplicate position</button>
                       <button type="button" onClick={event => { event.stopPropagation(); onReverse(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#b6c3ce] hover:bg-white/[0.03]">Reverse position</button>
                       <button type="button" onClick={event => { event.stopPropagation(); moveBreakEvenOffset(position, 1); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#48d8a4] hover:bg-white/[0.03]">BE + 1 pip</button>

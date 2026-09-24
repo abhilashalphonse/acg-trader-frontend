@@ -1950,338 +1950,44 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
 [class*="accent-[#53c7ff]"]{accent-color:#195be1!important}
 
 
-/* Desktop / large-screen visual parity with the finished mobile terminal.
-   Visual-only: scoped to DesktopTerminal's .acg-terminal root and >=1024px.
-   No trading, chart, risk, account, execution, or mobile behavior is changed. */
+/* Desktop / large-screen redesign.
+   Scoped to DesktopTerminal only. Mobile and small-device rules remain locked. */
 @media (min-width:1024px){
-  .acg-terminal{
-    --acg-d-canvas:#050505;
-    --acg-d-panel:#0b0d10;
-    --acg-d-panel-2:#0f1115;
-    --acg-d-control:#13161b;
-    --acg-d-raised:#171a20;
-    --acg-d-border:rgba(255,255,255,.075);
-    --acg-d-border-strong:rgba(255,255,255,.115);
-    --acg-d-text:#f2f2f3;
-    --acg-d-text-2:#a9b0b8;
-    --acg-d-muted:#747d87;
-    --acg-d-accent:#195be1;
-    --acg-d-buy:#008f72;
-    --acg-d-sell:#cf3545;
-    background:var(--acg-d-canvas)!important;
-    color:var(--acg-d-text)!important;
-    font-size:12px;
-  }
-
-  /* Terminal chrome: keep the chart darkest and lift functional regions one level. */
-  .acg-terminal > header{
-    background:var(--acg-d-panel)!important;
-    border-bottom-color:var(--acg-d-border)!important;
-    box-shadow:0 1px 0 rgba(255,255,255,.015),0 8px 22px rgba(0,0,0,.16)!important;
-  }
-  .acg-terminal > div > aside,
-  .acg-terminal > div > div > aside,
-  .acg-terminal > div > div > div[style*="grid-row: 2"]{
-    background:var(--acg-d-panel)!important;
-  }
-  .acg-terminal > div > div,
-  .acg-terminal section{
-    background:var(--acg-d-canvas)!important;
-  }
-  .acg-terminal section > div:first-child,
-  .acg-terminal section > div:nth-child(2){
-    background:var(--acg-d-panel)!important;
-    border-color:var(--acg-d-border)!important;
-  }
-  .acg-terminal section > div:first-child{
-    box-shadow:inset 0 -1px 0 rgba(255,255,255,.015);
-  }
-
-  /* Normalize old black/navy utility surfaces inside desktop only. */
-  .acg-terminal [class*="bg-[#07090B]"],
-  .acg-terminal [class*="bg-[#080A0C]"],
-  .acg-terminal [class*="bg-[#090B0D]"],
-  .acg-terminal [class*="bg-[#0B0D0F]"],
-  .acg-terminal [class*="bg-[#0C1013]"]{
-    background-color:var(--acg-d-panel)!important;
-    background-image:none!important;
-  }
-  .acg-terminal [class*="bg-[#0d1a22]"],
-  .acg-terminal [class*="bg-[#0b141a]"],
-  .acg-terminal [class*="bg-[#08131a]"]{
-    background-color:var(--acg-d-raised)!important;
-    background-image:none!important;
-  }
-  .acg-terminal [class*="border-white"]{
-    border-color:var(--acg-d-border)!important;
-  }
-
-  /* Header account metrics and global controls. */
-  .acg-terminal > header > div:nth-child(2){
-    border-color:var(--acg-d-border)!important;
-    background:var(--acg-d-control)!important;
-    border-radius:7px!important;
-    overflow:hidden;
-  }
-  .acg-terminal > header > div:nth-child(2) > div{
-    border-color:var(--acg-d-border)!important;
-    padding-top:7px!important;
-    padding-bottom:7px!important;
-  }
-  .acg-terminal > header button{
-    transition:background-color .14s ease,border-color .14s ease,color .14s ease;
-  }
-  .acg-terminal > header button[class*="border"]{
-    background:var(--acg-d-control)!important;
-    border-color:var(--acg-d-border)!important;
-  }
-  .acg-terminal > header button:hover:not(:disabled){
-    background:var(--acg-d-raised)!important;
-  }
-
-  /* Left navigation: flatter, clearer selected state, same handlers. */
-  .acg-terminal > div > aside{
-    background:var(--acg-d-panel)!important;
-    border-right-color:var(--acg-d-border)!important;
-    padding-top:7px!important;
-  }
-  .acg-terminal > div > aside button{
-    border-radius:6px!important;
-    color:var(--acg-d-muted);
-  }
-  .acg-terminal > div > aside button:hover:not(:disabled){
-    background:var(--acg-d-control)!important;
-    color:var(--acg-d-text)!important;
-  }
-  .acg-terminal > div > aside button[class*="text-[#195be1]"]{
-    background:var(--acg-d-raised)!important;
-    color:var(--acg-d-accent)!important;
-    border-left-color:var(--acg-d-accent)!important;
-  }
-
-  /* Instrument identity / quote row. */
-  .acg-terminal section > div:first-child{
-    min-height:50px;
-    padding-left:12px!important;
-    padding-right:12px!important;
-  }
-  .acg-terminal section > div:first-child button[class*="text-[14px]"]{
-    color:var(--acg-d-text)!important;
-  }
-  .acg-terminal section > div:first-child strong[class*="font-mono"]{
-    color:#f4f5f6!important;
-    font-variant-numeric:tabular-nums;
-  }
-  .acg-terminal section > div:first-child button[class*="border"]{
-    background:var(--acg-d-control)!important;
-    border-color:var(--acg-d-border)!important;
-  }
-  .acg-terminal section > div:first-child button[class*="border-[#195be1]"]{
-    border-color:rgba(25,91,225,.65)!important;
-    background:var(--acg-d-raised)!important;
-  }
-
-  /* Chart toolbar: mobile-style active underline, no glowing blue cards. */
-  .acg-terminal section > div:nth-child(2){
-    min-height:40px;
-    padding-left:8px!important;
-    padding-right:8px!important;
-  }
-  .acg-terminal .terminal-toolbar-group{
-    height:100%;
-    gap:2px!important;
-  }
-  .acg-terminal .terminal-toolbar-group button{
-    position:relative;
-    border-radius:5px!important;
-    color:#858e98!important;
-  }
-  .acg-terminal .terminal-toolbar-group button:hover:not(:disabled){
-    background:var(--acg-d-control)!important;
-    color:var(--acg-d-text)!important;
-  }
-  .acg-terminal .terminal-toolbar-group button[class*="bg-white/[0.07]"],
-  .acg-terminal .terminal-toolbar-group button[class*="text-[#195be1]"]{
-    background:var(--acg-d-raised)!important;
-    color:var(--acg-d-text)!important;
-    box-shadow:inset 0 -2px 0 var(--acg-d-accent)!important;
-  }
-  .acg-terminal .terminal-toolbar-group button[class*="text-[#195be1]"] svg{
-    color:var(--acg-d-accent)!important;
-  }
-  .acg-terminal .terminal-toolbar-group [class*="bg-[#151515]"]{
-    background:var(--acg-d-control)!important;
-  }
-
-  /* Chart remains the darkest and most visually dominant area. */
-  .acg-terminal .v2-lightweight-chart,
-  .acg-terminal .v2-chart-error,
-  .acg-terminal section > div:last-child,
-  .acg-terminal section > div:last-child > div{
-    background-color:var(--acg-d-canvas)!important;
-  }
-
-  /* Watchlist / markets. */
-  .acg-terminal aside[style*="grid-column: 1"]{
-    background:var(--acg-d-panel)!important;
-    border-right-color:var(--acg-d-border)!important;
-  }
-  .acg-terminal aside[style*="grid-column: 1"] [class*="h-10"][class*="border-b"]{
-    background:var(--acg-d-panel-2)!important;
-  }
-  .acg-terminal aside[style*="grid-column: 1"] input{
-    background:transparent!important;
-    color:var(--acg-d-text)!important;
-  }
-  .acg-terminal aside[style*="grid-column: 1"] [class*="bg-black/20"]{
-    background:var(--acg-d-control)!important;
-    border-color:var(--acg-d-border)!important;
-  }
-  .acg-terminal aside[style*="grid-column: 1"] [class*="border-l-[3px]"][class*="border-[#53c7ff]"]{
-    background:var(--acg-d-raised)!important;
-    border-left-color:var(--acg-d-accent)!important;
-  }
-  .acg-terminal aside[style*="grid-column: 1"] [class*="hover:bg-white"]:hover{
-    background:var(--acg-d-control)!important;
-  }
-
-  /* Right order rail. */
-  .acg-terminal aside[style*="grid-column: 3"]{
-    background:var(--acg-d-panel)!important;
-    border-left-color:var(--acg-d-border)!important;
-  }
-  .acg-terminal aside[style*="grid-column: 3"] > div:first-child > div{
-    background:var(--acg-d-panel)!important;
-  }
-  .acg-terminal aside[style*="grid-column: 3"] [class*="rounded-md"][class*="border"][class*="p-2"],
-  .acg-terminal aside[style*="grid-column: 3"] [class*="rounded-md"][class*="border"][class*="px-2"]{
-    background:var(--acg-d-panel-2)!important;
-    border-color:var(--acg-d-border)!important;
-  }
-  .acg-terminal aside[style*="grid-column: 3"] input,
-  .acg-terminal aside[style*="grid-column: 3"] select{
-    background:var(--acg-d-control)!important;
-    border-color:var(--acg-d-border)!important;
-    color:var(--acg-d-text)!important;
-    border-radius:6px!important;
-    box-shadow:none!important;
-  }
-  .acg-terminal aside[style*="grid-column: 3"] input:focus,
-  .acg-terminal aside[style*="grid-column: 3"] select:focus{
-    border-color:rgba(25,91,225,.72)!important;
-    box-shadow:0 0 0 2px rgba(25,91,225,.09)!important;
-  }
-
-  /* Position-size and segmented controls feel like one coherent metallic control. */
-  .acg-terminal aside[style*="grid-column: 3"] [class*="grid-cols-[34px_minmax(0,1fr)_34px]"]{
-    background:var(--acg-d-control)!important;
-    border-color:var(--acg-d-border)!important;
-  }
-  .acg-terminal aside[style*="grid-column: 3"] [class*="grid-cols-[34px_minmax(0,1fr)_34px]"] button{
-    background:transparent!important;
-  }
-
-  /* Buy / Sell: same flat semantic language as the finished phone UI. */
-  .acg-terminal aside[style*="grid-column: 3"] button[class*="border-[#6d2d37]"]{
-    background:var(--acg-d-sell)!important;
-    border-color:transparent!important;
-    box-shadow:none!important;
-  }
-  .acg-terminal aside[style*="grid-column: 3"] button[class*="border-[#35D79D]"]{
-    background:var(--acg-d-buy)!important;
-    border-color:transparent!important;
-    box-shadow:none!important;
-  }
-  .acg-terminal aside[style*="grid-column: 3"] button[class*="border-[#6d2d37]"]:hover:not(:disabled){
-    background:#bd3040!important;
-  }
-  .acg-terminal aside[style*="grid-column: 3"] button[class*="border-[#35D79D]"]:hover:not(:disabled){
-    background:#007f66!important;
-  }
-  .acg-terminal aside[style*="grid-column: 3"] button[class*="border-[#6d2d37]"] strong,
-  .acg-terminal aside[style*="grid-column: 3"] button[class*="border-[#35D79D]"] strong,
-  .acg-terminal aside[style*="grid-column: 3"] button[class*="border-[#6d2d37]"] span,
-  .acg-terminal aside[style*="grid-column: 3"] button[class*="border-[#35D79D]"] span{
-    color:#fff!important;
-  }
-
-  /* Selected order modes use blue as an interaction marker, not a blue panel. */
-  .acg-terminal aside[style*="grid-column: 3"] button[class*="border-[#195be1]"]{
-    background:var(--acg-d-raised)!important;
-    border-color:rgba(25,91,225,.62)!important;
-    color:var(--acg-d-accent)!important;
-    box-shadow:inset 0 -2px 0 var(--acg-d-accent)!important;
-  }
-
-  /* Positions / Orders / History dock: denser but clearer. */
-  .acg-terminal div[style*="grid-row: 2"]{
-    background:var(--acg-d-panel)!important;
-    border-top-color:var(--acg-d-border)!important;
-  }
-  .acg-terminal div[style*="grid-row: 2"] > div{
-    background:var(--acg-d-panel)!important;
-  }
-  .acg-terminal div[style*="grid-row: 2"] [class*="border-b"]{
-    border-color:var(--acg-d-border)!important;
-  }
-  .acg-terminal div[style*="grid-row: 2"] [class*="bg-[#0b141a]"]{
-    background:var(--acg-d-raised)!important;
-    border-color:rgba(25,91,225,.42)!important;
-  }
-  .acg-terminal div[style*="grid-row: 2"] [class*="bg-[#195be1]"]{
-    background:var(--acg-d-accent)!important;
-  }
-  .acg-terminal div[style*="grid-row: 2"] [class*="rounded-full"]{
-    border-radius:5px!important;
-  }
-
-  /* Popovers, menus and desktop overlays share one surface system. */
-  .acg-terminal [class*="absolute"][class*="z-"][class*="bg-[#0C1013]"],
-  .acg-terminal [class*="absolute"][class*="z-"][class*="bg-[#0B0D0F]"],
-  .acg-terminal [class*="absolute"][class*="z-"][class*="bg-[#0a0a0a]"],
-  .acg-terminal [class*="absolute"][class*="z-"][class*="bg-[#090B0D]"]{
-    background:rgba(15,17,21,.98)!important;
-    border-color:var(--acg-d-border-strong)!important;
-    box-shadow:0 18px 48px rgba(0,0,0,.48)!important;
-    backdrop-filter:blur(12px);
-  }
-
-  /* Typography: retain terminal density while improving scan hierarchy. */
-  .acg-terminal [class*="text-[7px]"]{
-    letter-spacing:.035em;
-  }
-  .acg-terminal [class*="text-[8px]"]{
-    line-height:1.25;
-  }
-  .acg-terminal [class*="font-mono"]{
-    font-variant-numeric:tabular-nums;
-  }
-
-  /* Resize affordances remain functional but visually disappear until hover/focus. */
-  .acg-terminal [role="separator"]{
-    opacity:.08;
-    transition:opacity .14s ease,background-color .14s ease;
-  }
-  .acg-terminal [role="separator"]:hover,
-  .acg-terminal [role="separator"]:focus-visible{
-    opacity:1;
-    background:rgba(25,91,225,.28)!important;
-  }
-
-  /* Unified scrollbars for dense desktop panes. */
-  .acg-terminal *{
-    scrollbar-width:thin;
-    scrollbar-color:#2a2e34 transparent;
-  }
-  .acg-terminal *::-webkit-scrollbar{width:7px;height:7px}
-  .acg-terminal *::-webkit-scrollbar-track{background:transparent}
-  .acg-terminal *::-webkit-scrollbar-thumb{background:#2a2e34;border-radius:8px}
-  .acg-terminal *::-webkit-scrollbar-thumb:hover{background:#3a3f47}
-
-  /* Large screens give extra space to the chart, not to oversized chrome. */
-  @media (min-width:1536px){
-    .acg-terminal > header{padding-left:14px!important;padding-right:14px!important}
-    .acg-terminal section > div:first-child{min-height:52px}
-    .acg-terminal section > div:nth-child(2){min-height:40px}
-  }
+  .acg-terminal{--acg-d-canvas:#050607;--acg-d-panel:#090b0d;--acg-d-panel-2:#0d1013;--acg-d-control:#11151a;--acg-d-raised:#15191e;--acg-d-border:rgba(151,175,197,.11);--acg-d-border-soft:rgba(151,175,197,.065);--acg-d-text:#f2f5f7;--acg-d-muted:#71808e;--acg-d-accent:#195be1;--acg-d-buy:#008f72;--acg-d-sell:#cf3545;background:var(--acg-d-canvas)!important;color:var(--acg-d-text)!important}
+  .acg-terminal .acg-desktop-header{background:#080a0c!important;border-bottom-color:var(--acg-d-border)!important;box-shadow:0 1px 0 rgba(255,255,255,.012)!important}
+  .acg-terminal .acg-desktop-header button[class*="border"]{background:#0c0f12!important;border-color:var(--acg-d-border)!important}
+  .acg-terminal .acg-desktop-header button:hover:not(:disabled){background:var(--acg-d-raised)!important}
+  .acg-terminal .acg-desktop-market-strip{background:#080a0c!important;border-color:var(--acg-d-border-soft)!important}
+  .acg-terminal .acg-desktop-market-strip button{background:transparent!important}
+  .acg-terminal .acg-desktop-chart-toolbar{background:#090b0e!important;border-color:var(--acg-d-border)!important}
+  .acg-terminal .acg-desktop-chart-toolbar button[class*="border"]{background:#0b0e11!important;border-color:var(--acg-d-border)!important}
+  .acg-terminal .acg-desktop-chart-toolbar button:hover:not(:disabled){background:#12161a!important}
+  .acg-terminal section[style*="grid-column: 2"]>div:last-child,.acg-terminal .v2-lightweight-chart,.acg-terminal .v2-chart-error{background:var(--acg-d-canvas)!important}
+  .acg-terminal aside[aria-label="Drawing tools"]{width:42px;margin:4px 0 4px 4px;padding:4px 3px!important;gap:1px!important;border:1px solid var(--acg-d-border-soft);border-radius:7px;background:#080a0d!important}
+  .acg-terminal aside[aria-label="Drawing tools"] .acg-mobile-drawing-tool,.acg-terminal aside[aria-label="Drawing tools"]>button{width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important;border-radius:5px!important;color:#7b8995!important;box-shadow:none!important}
+  .acg-terminal aside[aria-label="Drawing tools"] .acg-mobile-drawing-tool:hover,.acg-terminal aside[aria-label="Drawing tools"]>button:hover{background:#11151a!important;color:#eef3f6!important}
+  .acg-terminal aside[aria-label="Drawing tools"] .acg-mobile-drawing-tool-selected{position:relative;background:#11151a!important;color:#f4f6f8!important;outline:1px solid rgba(25,91,225,.35)!important;box-shadow:none!important}
+  .acg-terminal aside[aria-label="Drawing tools"] .acg-mobile-drawing-tool-selected::after{content:"";position:absolute;left:6px;right:6px;bottom:0;height:2px;border-radius:999px;background:var(--acg-d-accent)}
+  .acg-terminal aside[style*="grid-column: 1"]{background:#080a0c!important;border-right-color:var(--acg-d-border)!important}
+  .acg-terminal aside[style*="grid-column: 1"] [class*="bg-black/20"]{background:var(--acg-d-control)!important;border-color:var(--acg-d-border)!important}
+  .acg-terminal aside[style*="grid-column: 1"] [class*="border-l-[3px]"][class*="border-[#53c7ff]"]{background:var(--acg-d-raised)!important;border-left-color:var(--acg-d-accent)!important}
+  .acg-terminal aside[style*="grid-column: 3"]{background:#080a0c!important;border-left-color:var(--acg-d-border)!important}
+  .acg-terminal .acg-desktop-order{background:#080a0c!important}
+  .acg-terminal .acg-order-top-tabs{background:#090b0e!important;border-color:var(--acg-d-border)!important}
+  .acg-terminal .acg-desktop-order [class*="bg-[#0C1013]"],.acg-terminal .acg-desktop-order [class*="bg-black/35"],.acg-terminal .acg-desktop-order [class*="bg-black/40"],.acg-terminal .acg-desktop-order [class*="bg-black/45"]{background:#0b0e11!important}
+  .acg-terminal .acg-desktop-order input,.acg-terminal .acg-desktop-order select{background:#090b0e!important;border-color:var(--acg-d-border)!important;color:var(--acg-d-text)!important;box-shadow:none!important}
+  .acg-terminal .acg-desktop-order input:focus,.acg-terminal .acg-desktop-order select:focus{border-color:rgba(25,91,225,.72)!important;box-shadow:0 0 0 2px rgba(25,91,225,.08)!important}
+  .acg-terminal .acg-order-type-block{margin-bottom:8px}.acg-terminal .acg-protection-grid{align-items:start}
+  .acg-terminal .acg-desktop-order button[class*="border-[#6d2d37]"]{background:var(--acg-d-sell)!important;border-color:transparent!important;box-shadow:none!important}
+  .acg-terminal .acg-desktop-order button[class*="border-[#35D79D]"]{background:var(--acg-d-buy)!important;border-color:transparent!important;box-shadow:none!important}
+  .acg-terminal .acg-desktop-order button[class*="border-[#6d2d37]"]:hover:not(:disabled){background:#bd3040!important}.acg-terminal .acg-desktop-order button[class*="border-[#35D79D]"]:hover:not(:disabled){background:#007f66!important}
+  .acg-terminal .acg-desktop-order button[class*="border-[#6d2d37]"] strong,.acg-terminal .acg-desktop-order button[class*="border-[#35D79D]"] strong,.acg-terminal .acg-desktop-order button[class*="border-[#6d2d37]"] span,.acg-terminal .acg-desktop-order button[class*="border-[#35D79D]"] span{color:#fff!important}
+  .acg-terminal .acg-desktop-order>div:last-child{background:#080a0c!important;border-color:var(--acg-d-border)!important;box-shadow:0 -8px 24px rgba(0,0,0,.20)!important;backdrop-filter:none!important}
+  .acg-terminal .acg-desktop-positions{background:#080a0c!important;border-color:var(--acg-d-border)!important}
+  .acg-terminal .acg-desktop-positions>div:first-child{background:#090b0e!important;border-color:var(--acg-d-border)!important}
+  .acg-terminal .acg-desktop-positions [class*="border-b"]{border-color:var(--acg-d-border-soft)!important}.acg-terminal .acg-desktop-positions button{box-shadow:none!important}.acg-terminal .acg-desktop-positions [class*="rounded-full"]{border-radius:5px!important}
+  .acg-terminal [class*="absolute"][class*="z-"][class*="bg-[#0C1013]"],.acg-terminal [class*="absolute"][class*="z-"][class*="bg-[#0B0D0F]"],.acg-terminal [class*="absolute"][class*="z-"][class*="bg-[#0a0a0a]"],.acg-terminal [class*="absolute"][class*="z-"][class*="bg-[#090B0D]"]{background:rgba(12,15,18,.985)!important;border-color:var(--acg-d-border)!important;box-shadow:0 18px 46px rgba(0,0,0,.50)!important}
+  .acg-terminal [class*="font-mono"]{font-variant-numeric:tabular-nums}
+  .acg-terminal [role="separator"]{opacity:.03!important;transition:opacity .14s ease,background-color .14s ease}.acg-terminal [role="separator"]:hover,.acg-terminal [role="separator"]:focus-visible{opacity:1!important;background:rgba(25,91,225,.22)!important}
+  .acg-terminal *{scrollbar-width:thin;scrollbar-color:#282d33 transparent}.acg-terminal *::-webkit-scrollbar{width:7px;height:7px}.acg-terminal *::-webkit-scrollbar-track{background:transparent}.acg-terminal *::-webkit-scrollbar-thumb{background:#282d33;border-radius:8px}.acg-terminal *::-webkit-scrollbar-thumb:hover{background:#3a4149}
 }
