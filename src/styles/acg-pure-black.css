@@ -793,10 +793,15 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
   }
 
   .acg-mobile-reference-chart-area.acg-mobile-chart-surface{
-    grid-template-columns:48px minmax(0,1fr)!important;
-    column-gap:3px!important;
+    grid-template-columns:minmax(0,1fr)!important;
+    column-gap:0!important;
     background:#061019!important;
     border-top:1px solid rgba(117,147,175,.11)!important;
+  }
+
+  .acg-mobile-reference-chart-area.acg-mobile-chart-surface.acg-mobile-reference-chart-area--with-drawing-rail{
+    grid-template-columns:48px minmax(0,1fr)!important;
+    column-gap:3px!important;
   }
 
   .acg-mobile-reference-drawing-rail{

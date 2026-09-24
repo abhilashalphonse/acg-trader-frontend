@@ -728,7 +728,7 @@ export default function ChartArea({
   const toolbarVisible = !hideToolbar && drawingToolbarOpen;
   const mobileHeightClass = fillAvailableHeight ? 'h-full min-h-0 flex-1' : heightClass;
   const areaClass = drawingToolbarOverlay
-    ? `acg-mobile-reference-chart-area acg-mobile-chart-surface grid ${mobileHeightClass} ${toolbarVisible ? 'grid-cols-[36px_minmax(0,1fr)] gap-1.5' : 'grid-cols-[minmax(0,1fr)]'} bg-[#081019]`
+    ? `acg-mobile-reference-chart-area acg-mobile-chart-surface ${toolbarVisible ? 'acg-mobile-reference-chart-area--with-drawing-rail' : 'acg-mobile-reference-chart-area--chart-only'} grid ${mobileHeightClass} ${toolbarVisible ? 'grid-cols-[36px_minmax(0,1fr)] gap-1.5' : 'grid-cols-[minmax(0,1fr)]'} bg-[#081019]`
     : embedded
       ? `grid h-full min-h-0 grid-rows-[minmax(0,1fr)] ${!toolbarVisible ? 'grid-cols-[minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} gap-1.5`
       : focusMode
