@@ -19,6 +19,7 @@ import {
   drawingToolLabel as catalogDrawingToolLabel,
   isDrawingCreateTool,
   isRiskDrawingTool,
+  isTwoPointDrawingTool,
   riskDrawingGeometry,
 } from '../../utils/drawingTools.js';
 import {
@@ -157,6 +158,41 @@ function Handle({ point, onPointerDown }) {
         vectorEffect="non-scaling-stroke"
         className="pointer-events-none"
       />
+    </g>
+  );
+}
+
+function DraftPointMarker({ point, secondary = false }) {
+  if (!point || !Number.isFinite(Number(point.x)) || !Number.isFinite(Number(point.y))) return null;
+  return (
+    <g className="pointer-events-none" aria-hidden="true">
+      <circle
+        cx={point.x}
+        cy={point.y}
+        r={secondary ? 5.5 : 7}
+        fill="rgba(9,9,11,0.92)"
+        stroke="rgba(25,91,225,0.28)"
+        strokeWidth="3"
+        vectorEffect="non-scaling-stroke"
+      />
+      <circle
+        cx={point.x}
+        cy={point.y}
+        r={secondary ? 3 : 4}
+        fill="#09090b"
+        stroke="#195be1"
+        strokeWidth="2"
+        vectorEffect="non-scaling-stroke"
+      />
+      {!secondary && (
+        <circle
+          cx={point.x}
+          cy={point.y}
+          r="1.35"
+          fill="#195be1"
+          stroke="none"
+        />
+      )}
     </g>
   );
 }
@@ -676,7 +712,7 @@ export default function DrawingLayer({
       return;
     }
 
-    if (tool === 'hline' || tool === 'horizontal-ray' || tool === 'vline') {
+    if (!isTwoPointDrawingTool(tool)) {
       const created = makeDrawing(tool, point);
       commit(current => [...current, created]);
       setSelectedId(created.id);
@@ -897,6 +933,11 @@ export default function DrawingLayer({
   const canUndo = history.past.length > 0;
   const canRedo = history.future.length > 0;
   const visibleDrawings = drawings.filter(item => visibleDrawingOnTimeframe(item, timeframe));
+  const draftStartScreen = draft ? resolvePoint(draft.a) : null;
+  const draftEndScreen = draft ? resolvePoint(draft.b || draft.a) : null;
+  const draftHasVisibleExtent = draftStartScreen && draftEndScreen
+    ? Math.hypot(draftEndScreen.x - draftStartScreen.x, draftEndScreen.y - draftStartScreen.y) > 2
+    : false;
   const compactDrawingUi = size.width < 560;
 
   const selectedAnchor = useMemo(() => {
@@ -995,22 +1036,26 @@ export default function DrawingLayer({
           />
         ))}
         {draft && (
-          <DrawingShape
-            drawing={draft}
-            selected
-            resolvePoint={resolvePoint}
-            size={size}
-            onSelect={() => {}}
-            onStartHandle={() => {}}
-            onContextMenu={() => {}}
-            onDoubleClick={() => {}}
-            riskMetrics={riskMetricsFor(draft)}
-            instrument={instrument}
-            accountCurrency={accountCurrency}
-            timeframe={timeframe}
-            barsBetween={coordinateApi?.barsBetween}
-            interactive={false}
-          />
+          <>
+            <DrawingShape
+              drawing={draft}
+              selected
+              resolvePoint={resolvePoint}
+              size={size}
+              onSelect={() => {}}
+              onStartHandle={() => {}}
+              onContextMenu={() => {}}
+              onDoubleClick={() => {}}
+              riskMetrics={riskMetricsFor(draft)}
+              instrument={instrument}
+              accountCurrency={accountCurrency}
+              timeframe={timeframe}
+              barsBetween={coordinateApi?.barsBetween}
+              interactive={false}
+            />
+            <DraftPointMarker point={draftStartScreen} />
+            {draftHasVisibleExtent && <DraftPointMarker point={draftEndScreen} secondary />}
+          </>
         )}
       </svg>
 

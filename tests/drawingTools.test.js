@@ -4,10 +4,12 @@ import {
   DRAWING_CREATE_TOOL_IDS,
   DRAWING_TOOL_GROUPS,
   DRAWING_TOOL_LABELS,
+  DRAWING_TWO_POINT_TOOL_IDS,
   canonicalDrawingTimeframe,
   canonicalTimeframeVisibility,
   clampDrawingRiskPercent,
   isDrawingCreateTool,
+  isTwoPointDrawingTool,
   riskDrawingGeometry,
 } from '../src/utils/drawingTools.js';
 
@@ -43,4 +45,20 @@ test('long and short risk tools keep stop and target on the valid side', () => {
   const short=riskDrawingGeometry('short-position',entry,pointer,0.1);
   assert.equal(short.b.price,105);
   assert.equal(short.riskTarget.price,90);
+});
+
+
+test('two-point drawing catalog covers every tool that must expose a first anchor before completion', () => {
+  assert.deepEqual(DRAWING_TWO_POINT_TOOL_IDS, [
+    'trendline',
+    'ray',
+    'extended-line',
+    'ruler',
+    'rectangle',
+    'fibonacci',
+    'long-position',
+    'short-position',
+  ]);
+  for (const id of DRAWING_TWO_POINT_TOOL_IDS) assert.equal(isTwoPointDrawingTool(id), true);
+  for (const id of ['hline', 'horizontal-ray', 'vline', 'text']) assert.equal(isTwoPointDrawingTool(id), false);
 });

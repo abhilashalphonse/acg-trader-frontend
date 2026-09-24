@@ -25,7 +25,19 @@ export const DRAWING_CREATE_TOOL_IDS = Object.freeze(
   DRAWING_TOOL_GROUPS.flat().filter(id => id !== 'cursor'),
 );
 
+export const DRAWING_SINGLE_POINT_TOOL_IDS = Object.freeze([
+  'hline',
+  'horizontal-ray',
+  'vline',
+  'text',
+]);
+
+export const DRAWING_TWO_POINT_TOOL_IDS = Object.freeze(
+  DRAWING_CREATE_TOOL_IDS.filter(id => !DRAWING_SINGLE_POINT_TOOL_IDS.includes(id)),
+);
+
 const DRAWING_CREATE_TOOL_SET = new Set(DRAWING_CREATE_TOOL_IDS);
+const DRAWING_TWO_POINT_TOOL_SET = new Set(DRAWING_TWO_POINT_TOOL_IDS);
 const RISK_DRAWING_TOOL_SET = new Set(['long-position', 'short-position']);
 
 const TIMEFRAME_ALIASES = Object.freeze({
@@ -42,6 +54,7 @@ export function drawingToolLabel(type) {
   return DRAWING_TOOL_LABELS[type] || String(type || 'Drawing').replaceAll('-', ' ');
 }
 export function isDrawingCreateTool(type) { return DRAWING_CREATE_TOOL_SET.has(type); }
+export function isTwoPointDrawingTool(type) { return DRAWING_TWO_POINT_TOOL_SET.has(type); }
 export function isRiskDrawingTool(type) { return RISK_DRAWING_TOOL_SET.has(type); }
 
 export function clampDrawingRiskPercent(value, fallback = 0.5) {
