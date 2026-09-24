@@ -1,31 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowUpRight, Crosshair, MoveDiagonal2, MoveHorizontal, MoveVertical, TrendingUp, TrendingDown, SlidersHorizontal, Square, Type, Shapes, Ruler, Eye, EyeOff, RotateCcw, ScanLine, Magnet, Lock, Unlock, Pin } from 'lucide-react';
+import { Eye, EyeOff, RotateCcw, ScanLine, Magnet, Lock, Unlock, Pin } from 'lucide-react';
 import TradingChart from '../TradingChart.jsx';
 import DrawingLayer from './DrawingLayer.jsx';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 import { calculateRiskOrderSizing, estimatePositionPnlAtPrice, estimateStopRisk, positionDistancePips } from '../../utils/tradingRisk.js';
+import { DRAWING_TOOL_GROUPS, DRAWING_TOOL_LABELS } from '../../utils/drawingTools.js';
+import { DRAWING_TOOL_ICONS } from './DrawingToolIcons.jsx';
 
-const toolGroups = [
-  [['cursor', Crosshair, 'Select / move']],
-  [
-    ['trendline', TrendingUp, 'Trend line'],
-    ['ray', ArrowUpRight, 'Ray'],
-    ['extended-line', MoveDiagonal2, 'Extended line'],
-    ['hline', SlidersHorizontal, 'Horizontal line'],
-    ['horizontal-ray', MoveHorizontal, 'Horizontal ray'],
-    ['vline', MoveVertical, 'Vertical line'],
-    ['ruler', Ruler, 'Measure / ruler'],
-  ],
-  [
-    ['rectangle', Square, 'Rectangle'],
-    ['fibonacci', Shapes, 'Fibonacci retracement'],
-    ['text', Type, 'Text'],
-  ],
-  [
-    ['long-position', TrendingUp, 'Long position risk tool'],
-    ['short-position', TrendingDown, 'Short position risk tool'],
-  ],
-];
+const toolGroups = DRAWING_TOOL_GROUPS.map(group =>
+  group.map(id => [id, DRAWING_TOOL_ICONS[id], DRAWING_TOOL_LABELS[id]])
+);
 
 const secondsByTimeframe = { M1: 60, M5: 300, M15: 900, M30: 1800, H1: 3600, H4: 14400, D1: 86400, W1: 604800 };
 const oscillatorIds = new Set(['rsi', 'macd', 'atr', 'stochastic']);
@@ -759,6 +743,7 @@ export default function ChartArea({
                     onSelectTool(id);
                   }}
                   aria-label={label}
+                  title={label}
                   disabled={Boolean(tradePlan)}
                   className={`acg-mobile-drawing-tool relative grid ${focusMode ? 'size-[34px]' : 'size-[32px]'} shrink-0 place-items-center rounded-md transition ${selectedTool === id ? 'acg-mobile-drawing-tool-selected bg-[#10202a] text-[#195be1] ring-1 ring-inset ring-[#195be1]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:cursor-not-allowed disabled:opacity-30`}
                 >

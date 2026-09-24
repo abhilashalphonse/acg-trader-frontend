@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { indicatorVisibleOnTimeframe } from '../../../utils/indicators.js';
+import { drawingToolLabel } from '../../../utils/drawingTools.js';
 import {
   getDrawingSnapshot,
   patchDrawing,
@@ -37,16 +38,7 @@ function indicatorLabel(indicator) {
 function drawingLabel(drawing) {
   if (!drawing) return 'Drawing';
   if (drawing.type === 'text') return drawing.text?.trim() || 'Text';
-  const labels = {
-    trendline: 'Trend line',
-    hline: 'Horizontal line',
-    vline: 'Vertical line',
-    rectangle: 'Rectangle',
-    fibonacci: 'Fibonacci retracement',
-    'long-position': 'Long position',
-    'short-position': 'Short position',
-  };
-  return labels[drawing.type] || drawing.type || 'Drawing';
+  return drawingToolLabel(drawing.type);
 }
 
 function drawingUiCommand(symbol, chartInstanceId, id, action) {

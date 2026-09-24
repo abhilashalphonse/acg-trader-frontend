@@ -23,7 +23,7 @@ import { useTraderAuth } from '../hooks/useTraderAuth.js';
 import { useTradingStore } from '../hooks/useTradingStore.js';
 import { calculateIndicatorData, indicatorVisibleOnTimeframe, requiredIndicatorHistory } from '../utils/indicators.js';
 import { instrumentDigits, instrumentTickSize } from '../utils/instrumentFormatting.js';
-import { drawingTimeToLogical, logicalToDrawingTime } from '../utils/drawingCoordinates.js';
+import { drawingBarsBetween, drawingTimeToLogical, logicalToDrawingTime } from '../utils/drawingCoordinates.js';
 import { ArrowRight, Eye, EyeOff, Settings2, X } from 'lucide-react';
 
 const chartTokens = {
@@ -418,23 +418,32 @@ export default function TradingChart({
         if (!point) return null;
         const logical = timeScale.coordinateToLogical(Number(point.x));
         if (logical == null || !Number.isFinite(Number(logical))) return null;
-        const bar = barsRef.current[Math.round(Number(logical))];
-        if (!bar) return null;
-        const candleX = timeScale.timeToCoordinate(bar.time);
-        if (candleX == null || !Number.isFinite(Number(candleX))) return null;
 
+        const center = Math.round(Number(logical));
+        const candidateIndexes = [...new Set([center - 1, center, center + 1])]
+          .filter(index => index >= 0 && index < barsRef.current.length);
         let best = null;
-        for (const source of ['open', 'high', 'low', 'close']) {
-          const price = Number(bar[source]);
-          if (!Number.isFinite(price)) continue;
-          const candleY = series.priceToCoordinate(price);
-          if (candleY == null || !Number.isFinite(Number(candleY))) continue;
-          const distance = Math.hypot(Number(candleX) - Number(point.x), Number(candleY) - Number(point.y));
-          if (!best || distance < best.distance) best = { time: bar.time, price, source, distance };
+
+        for (const index of candidateIndexes) {
+          const bar = barsRef.current[index];
+          if (!bar) continue;
+          const candleX = timeScale.timeToCoordinate(bar.time);
+          if (candleX == null || !Number.isFinite(Number(candleX))) continue;
+          for (const source of ['open', 'high', 'low', 'close']) {
+            const price = Number(bar[source]);
+            if (!Number.isFinite(price)) continue;
+            const candleY = series.priceToCoordinate(price);
+            if (candleY == null || !Number.isFinite(Number(candleY))) continue;
+            const distance = Math.hypot(Number(candleX) - Number(point.x), Number(candleY) - Number(point.y));
+            if (!best || distance < best.distance) best = { time: bar.time, price, source, distance };
+          }
         }
 
         const threshold = Math.max(0, Number(maxDistancePx) || 0);
         return best && best.distance <= threshold ? best : null;
+      },
+      barsBetween(startTime, endTime) {
+        return drawingBarsBetween(startTime, endTime, barsRef.current, timeframe);
       },
       fitContent() { timeScale.fitContent(); },
       focusTime(time) {

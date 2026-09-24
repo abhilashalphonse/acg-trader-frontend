@@ -15,6 +15,13 @@ import {
 import { evaluateRiskToolSetup } from '../../utils/tradingRisk.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 import {
+  clampDrawingRiskPercent,
+  drawingToolLabel as catalogDrawingToolLabel,
+  isDrawingCreateTool,
+  isRiskDrawingTool,
+  riskDrawingGeometry,
+} from '../../utils/drawingTools.js';
+import {
   cloneDrawings,
   commitDrawings,
   commitLiveDrawingTransaction,
@@ -49,25 +56,10 @@ const TOOL_DEFAULTS = {
   'short-position': { color: '#ff6673' },
 };
 
-const DRAWING_LABELS = {
-  trendline: 'Trend line',
-  ray: 'Ray',
-  'extended-line': 'Extended line',
-  hline: 'Horizontal line',
-  'horizontal-ray': 'Horizontal ray',
-  vline: 'Vertical line',
-  ruler: 'Measure',
-  rectangle: 'Rectangle',
-  fibonacci: 'Fib retracement',
-  text: 'Text',
-  'long-position': 'Long position',
-  'short-position': 'Short position',
-};
-
 function drawingLabel(drawing) {
   if (!drawing) return 'Drawing';
   if (drawing.type === 'text') return drawing.text?.trim() || 'Text';
-  return DRAWING_LABELS[drawing.type] || drawing.type || 'Drawing';
+  return catalogDrawingToolLabel(drawing.type);
 }
 
 function dashArray(style) {
@@ -79,8 +71,8 @@ function dashArray(style) {
 function lineStyle(drawing, selected) {
   const style = drawing.style || DEFAULT_STYLE;
   return {
-    stroke: selected ? '#ffffff' : style.color,
-    strokeWidth: selected ? Math.max(2, Number(style.width) || 1.5) : Number(style.width) || 1.5,
+    stroke: style.color,
+    strokeWidth: selected ? Math.max(2, (Number(style.width) || 1.5) + 0.35) : Number(style.width) || 1.5,
     strokeDasharray: dashArray(style),
     vectorEffect: 'non-scaling-stroke',
   };
@@ -120,7 +112,7 @@ function extendedSegment(a, b, size, mode = 'both') {
   return { start: candidates[0], end: candidates[candidates.length - 1] };
 }
 
-function rulerLabel(drawing, instrument, timeframe) {
+function rulerLabel(drawing, instrument, timeframe, barsBetween = null) {
   const startPrice = Number(drawing?.a?.price);
   const endPrice = Number(drawing?.b?.price);
   const startTime = Number(drawing?.a?.time);
@@ -132,7 +124,8 @@ function rulerLabel(drawing, instrument, timeframe) {
   const pips = Number.isFinite(pipSize) && pipSize > 0 ? delta / pipSize : null;
   const percent = startPrice !== 0 ? (delta / startPrice) * 100 : null;
   const seconds = { S1:1,S5:5,S15:15,S30:30,M1:60,M5:300,M15:900,M30:1800,H1:3600,H4:14400,D1:86400,W1:604800 }[String(timeframe || '').toUpperCase()] || 60;
-  const bars = Math.abs(endTime - startTime) / seconds;
+  const chartBars = typeof barsBetween === 'function' ? Number(barsBetween(startTime, endTime)) : Number.NaN;
+  const bars = Number.isFinite(chartBars) ? chartBars : Math.abs(endTime - startTime) / seconds;
   const signed = value => value > 0 ? `+${value.toFixed(1)}` : value.toFixed(1);
   const parts = [];
   if (Number.isFinite(pips)) parts.push(`${signed(pips)} pips`);
@@ -181,14 +174,17 @@ function DrawingShape({
   instrument = null,
   accountCurrency = 'USD',
   timeframe = 'M1',
+  barsBetween = null,
   interactive = true,
+  globallyLocked = false,
 }) {
   const a = resolvePoint(drawing.a);
   const b = resolvePoint(drawing.b || drawing.a);
   if (!a || !b || drawing.hidden) return null;
 
+  const effectiveLocked = drawing.locked || globallyLocked;
   const common = interactive ? {
-    className: drawing.locked ? 'pointer-events-auto cursor-default' : 'pointer-events-auto cursor-move',
+    className: effectiveLocked ? 'pointer-events-auto cursor-default' : 'pointer-events-auto cursor-move',
     onPointerDown: event => onSelect(event, drawing.id),
     onContextMenu: event => onContextMenu(event, drawing.id),
     onDoubleClick: event => onDoubleClick(event, drawing.id),
@@ -219,6 +215,9 @@ function DrawingShape({
     const statusText = riskMetrics?.message || 'Risk sizing unavailable';
     const currency = accountCurrency || 'USD';
     const money = value => Number.isFinite(value) ? new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 2 }).format(value) : '—';
+    const infoWidth = Math.min(206, Math.max(120, size.width - 8));
+    const infoX = Math.max(4, Math.min(Math.max(4, size.width - infoWidth - 4), left + 4));
+    const infoY = Math.max(4, Math.min(Math.max(4, size.height - 62), entryY + 5));
     return (
       <g>
         <rect x={left} y={rewardTop} width={width} height={Math.max(1, rewardHeight)} fill="rgba(53,215,157,0.13)" stroke="rgba(53,215,157,0.55)" strokeWidth="1" {...common}/>
@@ -226,14 +225,14 @@ function DrawingShape({
         <line x1={left} y1={entryY} x2={boxRight} y2={entryY} stroke="#195be1" strokeWidth={selected ? 2 : 1.2} vectorEffect="non-scaling-stroke" {...common}/>
         <line x1={left} y1={stopY} x2={boxRight} y2={stopY} stroke="#ff6673" strokeWidth="1.2" vectorEffect="non-scaling-stroke" {...common}/>
         <line x1={left} y1={targetY} x2={boxRight} y2={targetY} stroke="#35d79d" strokeWidth="1.2" vectorEffect="non-scaling-stroke" {...common}/>
-        <rect x={left + 4} y={Math.min(entryY + 5, size.height - 65)} rx="4" width="206" height="58" fill="rgba(6,9,11,0.94)" stroke={ready ? 'rgba(53,215,157,0.28)' : 'rgba(255,102,115,0.32)'} strokeWidth="1" className="pointer-events-none"/>
-        <text x={left + 10} y={Math.min(entryY + 18, size.height - 52)} fill="#dce7ef" fontSize="8" fontWeight="700" className="pointer-events-none">{isLong ? 'LONG' : 'SHORT'} · {Number.isFinite(rr) ? `R:R ${rr.toFixed(2)}` : 'R:R —'}</text>
-        <text x={left + 10} y={Math.min(entryY + 31, size.height - 39)} fill="#8296a7" fontSize="7" className="pointer-events-none">Risk {Number.isFinite(riskPct) ? `${riskPct.toFixed(2)}%` : '—'} · {money(riskMoney)} · {Number.isFinite(lots) ? `${lots.toFixed(2)} lot` : '— lot'}</text>
-        <text x={left + 10} y={Math.min(entryY + 45, size.height - 25)} fill={ready ? '#35d79d' : '#ff7b86'} fontSize="7" fontWeight="700" className="pointer-events-none">{statusText.length > 40 ? `${statusText.slice(0, 39)}…` : statusText}</text>
+        <rect x={infoX} y={infoY} rx="4" width={infoWidth} height="58" fill="rgba(6,9,11,0.94)" stroke={ready ? 'rgba(53,215,157,0.28)' : 'rgba(255,102,115,0.32)'} strokeWidth="1" className="pointer-events-none"/>
+        <text x={infoX + 6} y={infoY + 13} fill="#dce7ef" fontSize="8" fontWeight="700" className="pointer-events-none">{isLong ? 'LONG' : 'SHORT'} · {Number.isFinite(rr) ? `R:R ${rr.toFixed(2)}` : 'R:R —'}</text>
+        <text x={infoX + 6} y={infoY + 27} fill="#8296a7" fontSize="7" className="pointer-events-none">Risk {Number.isFinite(riskPct) ? `${riskPct.toFixed(2)}%` : '—'} · {money(riskMoney)} · {Number.isFinite(lots) ? `${lots.toFixed(2)} lot` : '— lot'}</text>
+        <text x={infoX + 6} y={infoY + 42} fill={ready ? '#35d79d' : '#ff7b86'} fontSize="7" fontWeight="700" className="pointer-events-none">{statusText.length > 40 ? `${statusText.slice(0, 39)}…` : statusText}</text>
         <text x={boxRight - 4} y={entryY - 4} textAnchor="end" fill="#195be1" fontSize="7" fontWeight="700" className="pointer-events-none">ENTRY {formatInstrumentPrice(drawing.a?.price, instrument)}</text>
         <text x={boxRight - 4} y={stopY - 4} textAnchor="end" fill="#ff6673" fontSize="7" fontWeight="700" className="pointer-events-none">SL {formatInstrumentPrice(drawing.b?.price, instrument)}</text>
         <text x={boxRight - 4} y={targetY - 4} textAnchor="end" fill="#35d79d" fontSize="7" fontWeight="700" className="pointer-events-none">TP {formatInstrumentPrice(drawing.riskTarget?.price, instrument)}</text>
-        {selected && !drawing.locked && (
+        {interactive && selected && !effectiveLocked && (
           <>
             <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />
             <Handle point={b} onPointerDown={event => onStartHandle(event, drawing.id, 'b')} />
@@ -249,7 +248,7 @@ function DrawingShape({
       <g>
         <line x1="0" y1={a.y} x2={size.width} y2={a.y} stroke="transparent" strokeWidth="16" {...common} />
         <line x1="0" y1={a.y} x2={size.width} y2={a.y} {...lineStyle(drawing, selected)} className="pointer-events-none" />
-        {selected && !drawing.locked && <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />}
+        {interactive && selected && !effectiveLocked && <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />}
       </g>
     );
   }
@@ -258,7 +257,7 @@ function DrawingShape({
       <g>
         <line x1={a.x} y1="0" x2={a.x} y2={size.height} stroke="transparent" strokeWidth="16" {...common} />
         <line x1={a.x} y1="0" x2={a.x} y2={size.height} {...lineStyle(drawing, selected)} className="pointer-events-none" />
-        {selected && !drawing.locked && <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />}
+        {interactive && selected && !effectiveLocked && <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />}
       </g>
     );
   }
@@ -268,7 +267,7 @@ function DrawingShape({
       <g>
         <line x1={a.x} y1={a.y} x2={size.width} y2={a.y} stroke="transparent" strokeWidth="16" {...common} />
         <line x1={a.x} y1={a.y} x2={size.width} y2={a.y} {...lineStyle(drawing, selected)} className="pointer-events-none" />
-        {selected && !drawing.locked && <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />}
+        {interactive && selected && !effectiveLocked && <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />}
       </g>
     );
   }
@@ -279,7 +278,7 @@ function DrawingShape({
       <g>
         <line x1={segment.start.x} y1={segment.start.y} x2={segment.end.x} y2={segment.end.y} stroke="transparent" strokeWidth="16" {...common} />
         <line x1={segment.start.x} y1={segment.start.y} x2={segment.end.x} y2={segment.end.y} {...lineStyle(drawing, selected)} className="pointer-events-none" />
-        {selected && !drawing.locked && (
+        {interactive && selected && !effectiveLocked && (
           <>
             <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />
             <Handle point={b} onPointerDown={event => onStartHandle(event, drawing.id, 'b')} />
@@ -290,10 +289,10 @@ function DrawingShape({
   }
 
   if (drawing.type === 'ruler') {
-    const label = rulerLabel(drawing, instrument, timeframe);
-    const midX = Math.max(68, Math.min(size.width - 68, (a.x + b.x) / 2));
+    const label = rulerLabel(drawing, instrument, timeframe, barsBetween);
+    const labelWidth = Math.min(Math.max(84, size.width - 12), Math.max(104, Math.min(238, label.length * 5.2 + 16)));
+    const midX = Math.max(labelWidth / 2 + 4, Math.min(size.width - labelWidth / 2 - 4, (a.x + b.x) / 2));
     const midY = Math.max(18, Math.min(size.height - 18, (a.y + b.y) / 2 - 14));
-    const labelWidth = Math.max(126, Math.min(238, label.length * 5.2 + 16));
     return (
       <g>
         <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent" strokeWidth="18" {...common} />
@@ -304,7 +303,7 @@ function DrawingShape({
           <rect x={midX - labelWidth / 2} y={midY - 11} width={labelWidth} height="22" rx="5" fill="rgba(5,8,12,0.94)" stroke="rgba(25,91,225,0.55)" />
           <text x={midX} y={midY + 3} textAnchor="middle" fill="#e8eef7" fontSize="9" fontWeight="700">{label}</text>
         </g>
-        {selected && !drawing.locked && (
+        {interactive && selected && !effectiveLocked && (
           <>
             <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />
             <Handle point={b} onPointerDown={event => onStartHandle(event, drawing.id, 'b')} />
@@ -331,7 +330,7 @@ function DrawingShape({
           {...lineStyle(drawing, selected)}
           {...common}
         />
-        {selected && !drawing.locked && (
+        {interactive && selected && !effectiveLocked && (
           <>
             <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />
             <Handle point={b} onPointerDown={event => onStartHandle(event, drawing.id, 'b')} />
@@ -357,19 +356,19 @@ function DrawingShape({
                 y1={y}
                 x2={right}
                 y2={y}
-                stroke={selected ? '#ffffff' : style.color}
-                strokeWidth={level === 0.5 ? Math.max(1.5, Number(style.width) || 1) : Number(style.width) || 1}
+                stroke={style.color}
+                strokeWidth={selected ? Math.max(1.8, (Number(style.width) || 1) + 0.35) : (level === 0.5 ? Math.max(1.5, Number(style.width) || 1) : Number(style.width) || 1)}
                 strokeDasharray={level === 0.5 ? undefined : dashArray(style) || '3 3'}
                 vectorEffect="non-scaling-stroke"
                 {...common}
               />
               <text x={left + 5} y={y - 4} fill="#9caec0" fontSize="8" className="pointer-events-none">
-                {Math.round(level * 1000) / 10}%
+                {Math.round(level * 1000) / 10}% · {formatInstrumentPrice(Number(drawing.a?.price) + (Number(drawing.b?.price) - Number(drawing.a?.price)) * level, instrument)}
               </text>
             </g>
           );
         })}
-        {selected && !drawing.locked && (
+        {interactive && selected && !effectiveLocked && (
           <>
             <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />
             <Handle point={b} onPointerDown={event => onStartHandle(event, drawing.id, 'b')} />
@@ -393,7 +392,7 @@ function DrawingShape({
         >
           {drawing.text || 'Text'}
         </text>
-        {selected && !drawing.locked && <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />}
+        {interactive && selected && !effectiveLocked && <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />}
       </g>
     );
   }
@@ -402,7 +401,7 @@ function DrawingShape({
     <g>
       <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent" strokeWidth="16" {...common} />
       <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} {...lineStyle(drawing, selected)} className="pointer-events-none" />
-      {selected && !drawing.locked && (
+      {interactive && selected && !effectiveLocked && (
         <>
           <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />
           <Handle point={b} onPointerDown={event => onStartHandle(event, drawing.id, 'b')} />
@@ -540,8 +539,9 @@ export default function DrawingLayer({
   useEffect(() => {
     if (!interactionEnabled) return undefined;
     const onKey = event => {
-      const tag = document.activeElement?.tagName;
-      const editingText = ['INPUT', 'TEXTAREA'].includes(tag);
+      const activeElement = document.activeElement;
+      const tag = activeElement?.tagName;
+      const editingText = ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag) || activeElement?.isContentEditable === true;
       const command = event.ctrlKey || event.metaKey;
 
       if (!editingText && command && event.key.toLowerCase() === 'z') {
@@ -580,7 +580,15 @@ export default function DrawingLayer({
   }, [interactionEnabled, onToolChange, selectedId, symbol, tool]);
 
   const selected = useMemo(() => drawings.find(item => item.id === selectedId), [drawings, selectedId]);
-  const drawingTool = interactionEnabled && !disabled && ['trendline', 'ray', 'extended-line', 'hline', 'horizontal-ray', 'vline', 'ruler', 'rectangle', 'fibonacci', 'text', 'long-position', 'short-position'].includes(tool);
+  useEffect(() => {
+    if (!selectedId) return;
+    if (!selected || !visibleDrawingOnTimeframe(selected, timeframe)) {
+      setSelectedId(null);
+      setSettingsOpen(false);
+      setContextMenu(null);
+    }
+  }, [selected, selectedId, timeframe]);
+  const drawingTool = interactionEnabled && !disabled && isDrawingCreateTool(tool);
   const resolvePoint = point => coordinateApi?.toScreen?.(point) || null;
 
   const eventScreenPoint = event => {
@@ -615,7 +623,7 @@ export default function DrawingLayer({
     b,
     text,
     riskTarget: null,
-    riskPercent: ['long-position', 'short-position'].includes(type) ? Number(riskPercent) || 0.5 : null,
+    riskPercent: isRiskDrawingTool(type) ? clampDrawingRiskPercent(riskPercent) : null,
     locked: false,
     hidden: false,
     timeframeVisibility: 'all',
@@ -630,20 +638,8 @@ export default function DrawingLayer({
     if (!draft || !endPoint) return false;
     let created = { ...draft, b: endPoint };
 
-    if (created.type === 'long-position' || created.type === 'short-position') {
-      const entry = Number(created.a?.price);
-      const pointerStop = Number(endPoint?.price);
-      const distance = Math.abs(pointerStop - entry);
-      const pipFallback = Number(snapStep) > 0 ? Number(snapStep) * 10 : Math.max(Math.abs(entry) * 0.001, 0.0001);
-      const riskDistance = Number.isFinite(distance) && distance > 0 ? distance : pipFallback;
-      const isLong = created.type === 'long-position';
-      const sl = isLong ? entry - riskDistance : entry + riskDistance;
-      const tp = isLong ? entry + riskDistance * 2 : entry - riskDistance * 2;
-      created = {
-        ...created,
-        b: { ...endPoint, price: sl },
-        riskTarget: { ...endPoint, price: tp },
-      };
+    if (isRiskDrawingTool(created.type)) {
+      created = { ...created, ...riskDrawingGeometry(created.type, created.a, endPoint, snapStep) };
     }
 
     const a = coordinateApi?.toScreen?.(created.a);
@@ -689,6 +685,7 @@ export default function DrawingLayer({
     }
 
     const startScreen = eventScreenPoint(event);
+    event.currentTarget.setPointerCapture?.(event.pointerId);
     creationGestureRef.current = { pointerId: event.pointerId, startScreen };
     setDraft(makeDrawing(tool, point, point));
   };
@@ -703,16 +700,8 @@ export default function DrawingLayer({
     if (draft) {
       setDraft(current => {
         if (!current) return current;
-        if (current.type === 'long-position' || current.type === 'short-position') {
-          const entry = Number(current.a?.price);
-          const pointer = Number(data.price);
-          const distance = Math.abs(pointer - entry);
-          const fallback = Number(snapStep) > 0 ? Number(snapStep) * 10 : Math.max(Math.abs(entry) * 0.001, 0.0001);
-          const riskDistance = Number.isFinite(distance) && distance > 0 ? distance : fallback;
-          const isLong = current.type === 'long-position';
-          const sl = isLong ? entry - riskDistance : entry + riskDistance;
-          const tp = isLong ? entry + riskDistance * 2 : entry - riskDistance * 2;
-          return { ...current, b: { ...data, price: sl }, riskTarget: { ...data, price: tp } };
+        if (isRiskDrawingTool(current.type)) {
+          return { ...current, ...riskDrawingGeometry(current.type, current.a, data, snapStep) };
         }
         return { ...current, b: data };
       });
@@ -725,7 +714,7 @@ export default function DrawingLayer({
     replaceDrawingsLive(symbol, drawings.map(item => {
         if (item.id !== drag.id || item.locked || lockAll) return item;
         if (drag.mode === 'a' || drag.mode === 'b') {
-          if (item.type === 'long-position' || item.type === 'short-position') {
+          if (isRiskDrawingTool(item.type)) {
             const next = { ...item, [drag.mode]: data };
             const isLong = item.type === 'long-position';
             if (drag.mode === 'a') {
@@ -742,7 +731,7 @@ export default function DrawingLayer({
           return { ...item, [drag.mode]: data };
         }
         if (drag.mode === 'riskTarget') {
-          if (item.type === 'long-position' || item.type === 'short-position') {
+          if (isRiskDrawingTool(item.type)) {
             const entry = Number(item.a.price);
             const distance = Math.max(Number(snapStep) || 0.00000001, Math.abs(Number(data.price) - entry));
             return { ...item, riskTarget: { ...data, price: item.type === 'long-position' ? entry + distance : entry - distance } };
@@ -772,17 +761,19 @@ export default function DrawingLayer({
       const endScreen = eventScreenPoint(event);
       const startScreen = creationGestureRef.current.startScreen;
       const moved = startScreen && endScreen ? Math.hypot(endScreen.x - startScreen.x, endScreen.y - startScreen.y) : 0;
-      if (moved > 5) {
-        completeDraft(eventDataPoint(event) || draft.b);
-      } else {
-        // TradingView-style click → move → click stays armed after the first click.
-        creationGestureRef.current = null;
-      }
+      if (moved > 5) completeDraft(eventDataPoint(event) || draft.b);
+      else creationGestureRef.current = null;
     }
+    if (drag?.before) commitLiveDrawingTransaction(symbol, drag.before);
+    setDrag(null);
+  };
 
-    if (drag?.before) {
-      commitLiveDrawingTransaction(symbol, drag.before);
+  const cancelPointer = event => {
+    if (draft && creationGestureRef.current?.pointerId === event.pointerId) {
+      setDraft(null);
+      creationGestureRef.current = null;
     }
+    if (drag?.before) replaceDrawingsLive(symbol, drag.before);
     setDrag(null);
   };
 
@@ -866,7 +857,7 @@ export default function DrawingLayer({
   };
 
   const riskMetricsFor = drawing => {
-    if (!drawing || !['long-position', 'short-position'].includes(drawing.type)) return null;
+    if (!drawing || !isRiskDrawingTool(drawing.type)) return null;
     const entry = Number(drawing.a?.price);
     const sl = Number(drawing.b?.price);
     const tp = Number(drawing.riskTarget?.price);
@@ -887,7 +878,7 @@ export default function DrawingLayer({
   };
 
   const createOrderFromSelectedRisk = () => {
-    if (!selected || !['long-position', 'short-position'].includes(selected.type)) return;
+    if (!selected || !isRiskDrawingTool(selected.type)) return;
     const metrics = riskMetricsFor(selected);
     if (!metrics?.canCreateOrder) return;
     onCreateRiskOrder({
@@ -974,7 +965,7 @@ export default function DrawingLayer({
         className="size-full touch-none"
         onPointerMove={pointerMove}
         onPointerUp={finishPointer}
-        onPointerCancel={finishPointer}
+        onPointerCancel={cancelPointer}
         onPointerDown={() => setContextMenu(null)}
       >
         <rect
@@ -999,6 +990,8 @@ export default function DrawingLayer({
             instrument={instrument}
             accountCurrency={accountCurrency}
             timeframe={timeframe}
+            barsBetween={coordinateApi?.barsBetween}
+            globallyLocked={lockAll}
           />
         ))}
         {draft && (
@@ -1015,6 +1008,7 @@ export default function DrawingLayer({
             instrument={instrument}
             accountCurrency={accountCurrency}
             timeframe={timeframe}
+            barsBetween={coordinateApi?.barsBetween}
             interactive={false}
           />
         )}
@@ -1033,28 +1027,24 @@ export default function DrawingLayer({
           style={selectedToolbarStyle}
         >
           <span className="hidden max-w-[96px] truncate border-r border-white/[0.07] px-2 text-[8px] font-bold uppercase tracking-[0.08em] text-[#7e91a3] sm:block">{drawingLabel(selected)}</span>
-          <label className="relative grid size-7 shrink-0 cursor-pointer place-items-center rounded-md hover:bg-white/[0.05]" title="Drawing color">
-            <span className="size-3.5 rounded-full border border-white/20" style={{ backgroundColor: selected.style?.color || DEFAULT_STYLE.color }} />
-            <input
-              type="color"
-              value={selected.style?.color || DEFAULT_STYLE.color}
-              onChange={event => patchSelected({ style: { color: event.target.value } })}
-              className="absolute inset-0 cursor-pointer opacity-0"
-              aria-label="Drawing color"
-            />
-          </label>
-          {!['text', 'long-position', 'short-position'].includes(selected.type) && (
+          {!isRiskDrawingTool(selected.type) && (
+            <label className="relative grid size-7 shrink-0 cursor-pointer place-items-center rounded-md hover:bg-white/[0.05]" title="Drawing color">
+              <span className="size-3.5 rounded-full border border-white/20" style={{ backgroundColor: selected.style?.color || DEFAULT_STYLE.color }} />
+              <input type="color" value={selected.style?.color || DEFAULT_STYLE.color} onChange={event => patchSelected({ style: { color: event.target.value } })} className="absolute inset-0 cursor-pointer opacity-0" aria-label="Drawing color" />
+            </label>
+          )}
+          {selected.type !== 'text' && !isRiskDrawingTool(selected.type) && (
             <>
               <button type="button" onClick={cycleSelectedWidth} className="h-7 min-w-7 rounded-md px-1.5 font-mono text-[8px] font-bold text-[#8fa0ae] hover:bg-white/[0.05] hover:text-white" title="Cycle line width">{Number(selected.style?.width || 1.4).toFixed(Number(selected.style?.width || 1.4) % 1 ? 1 : 0)}</button>
               <button type="button" onClick={cycleSelectedDash} className="grid size-7 place-items-center rounded-md text-[#8194a7] hover:bg-white/[0.05] hover:text-white" title={`Line style: ${selected.style?.dash || 'solid'}`}><MoreHorizontal size={14}/></button>
             </>
           )}
-          {['long-position', 'short-position'].includes(selected.type) && (() => {
+          {isRiskDrawingTool(selected.type) && (() => {
             const metrics = riskMetricsFor(selected);
             return <button type="button" disabled={!metrics?.canCreateOrder} onClick={createOrderFromSelectedRisk} className="h-7 shrink-0 rounded-md border border-[#195be1] bg-[#0d1a22] px-2 text-[8px] font-black text-[#195be1] hover:bg-[#102431] disabled:cursor-not-allowed disabled:border-white/[0.07] disabled:bg-[#0a0a0a] disabled:text-[#52616e]" title={metrics?.canCreateOrder ? 'Load this risk setup into the order planner' : (metrics?.message || 'Risk setup cannot create an order')}>Create order</button>;
           })()}
           <button type="button" onClick={() => patchSelected({ hidden: true })} className="grid size-7 shrink-0 place-items-center rounded-md text-[#8194a7] hover:bg-white/[0.05] hover:text-white" title="Hide drawing"><EyeOff size={13}/></button>
-          <button type="button" onClick={() => patchSelected({ locked: !selected.locked })} className={`grid size-7 shrink-0 place-items-center rounded-md ${selected.locked ? 'bg-[#10202a] text-[#195be1]' : 'text-[#8194a7] hover:bg-white/[0.05]'}`} title={selected.locked ? 'Unlock drawing' : 'Lock drawing'}>{selected.locked ? <Lock size={13}/> : <LockOpen size={13}/>}</button>
+          <button type="button" disabled={lockAll} onClick={() => patchSelected({ locked: !selected.locked })} className={`grid size-7 shrink-0 place-items-center rounded-md ${selected.locked || lockAll ? 'bg-[#10202a] text-[#195be1]' : 'text-[#8194a7] hover:bg-white/[0.05]'} disabled:cursor-not-allowed disabled:opacity-50`} title={lockAll ? 'All drawings are locked' : selected.locked ? 'Unlock drawing' : 'Lock drawing'}>{selected.locked || lockAll ? <Lock size={13}/> : <LockOpen size={13}/>}</button>
           <button type="button" onClick={duplicateSelected} className="grid size-7 shrink-0 place-items-center rounded-md text-[#8194a7] hover:bg-white/[0.05] hover:text-white" title="Duplicate drawing"><Copy size={13}/></button>
           <button type="button" onClick={() => setSettingsOpen(value => !value)} className={`grid size-7 shrink-0 place-items-center rounded-md ${settingsOpen ? 'bg-[#10202a] text-[#195be1]' : 'text-[#8194a7] hover:bg-white/[0.05]'}`} title="Drawing properties"><Settings2 size={13}/></button>
           <button type="button" onClick={deleteSelected} className="grid size-7 shrink-0 place-items-center rounded-md text-[#d76d77] hover:bg-[#35151d] hover:text-[#ff7b86]" title="Delete drawing"><Trash2 size={13}/></button>
@@ -1069,12 +1059,12 @@ export default function DrawingLayer({
             <button type="button" onClick={() => setSettingsOpen(false)} className="grid size-6 place-items-center rounded text-[#71869a] hover:bg-white/[0.04]"><X size={12}/></button>
           </div>
 
-          {['long-position', 'short-position'].includes(selected.type) && (() => {
+          {isRiskDrawingTool(selected.type) && (() => {
             const metrics = riskMetricsFor(selected);
             return <>
               <label className="mt-3 block">
                 <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Risk %</span>
-                <input type="number" min="0.01" max="100" step="0.05" value={selected.riskPercent ?? riskPercent} onChange={event => patchSelected({ riskPercent: Math.min(100, Math.max(0.01, Number(event.target.value) || 0.01)) })} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] text-[#dbe5ed] outline-none focus:border-[#195be1]" />
+                <input type="number" min="0.1" max="5" step="0.1" value={selected.riskPercent ?? clampDrawingRiskPercent(riskPercent)} onChange={event => patchSelected({ riskPercent: clampDrawingRiskPercent(event.target.value, riskPercent) })} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] text-[#dbe5ed] outline-none focus:border-[#195be1]" />
               </label>
               <div className={`mt-2 rounded-md border px-2.5 py-2 text-[8px] leading-[1.45] ${metrics?.canCreateOrder ? 'border-[#1f4b3d] bg-[#0d1915] text-[#74d9b5]' : 'border-[#4a2026] bg-[#180d10] text-[#e9858d]'}`}>
                 {metrics?.message || 'Risk sizing unavailable'}
@@ -1097,29 +1087,33 @@ export default function DrawingLayer({
             </div>
           )}
 
-          <div className="mt-3">
-            <span className="mb-1.5 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Color</span>
-            <div className="flex gap-1.5">
-              {['#53c7ff','#f0c35c','#b78cff','#35d79d','#ff5968','#d8e4ee'].map(color => (
-                <button key={color} type="button" onClick={() => patchSelected({ style: { color } })} className={`size-6 rounded-full border-2 ${selected.style?.color === color ? 'border-white' : 'border-transparent'}`} style={{ backgroundColor: color }} aria-label={`Set color ${color}`} />
-              ))}
+          {!isRiskDrawingTool(selected.type) && (
+            <div className="mt-3">
+              <span className="mb-1.5 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Color</span>
+              <div className="flex gap-1.5">
+                {['#195be1','#f0c35c','#b78cff','#35d79d','#ff5968','#d8e4ee'].map(color => (
+                  <button key={color} type="button" onClick={() => patchSelected({ style: { color } })} className={`size-6 rounded-full border-2 ${selected.style?.color === color ? 'border-white' : 'border-transparent'}`} style={{ backgroundColor: color }} aria-label={`Set color ${color}`} />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <label>
-              <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Width</span>
-              <select value={selected.style?.width || 1.4} onChange={event => patchSelected({ style: { width: Number(event.target.value) } })} className="h-8 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2 text-[9px] text-[#dbe5ed] outline-none">
-                <option value="1">1 px</option><option value="1.4">1.4 px</option><option value="2">2 px</option><option value="3">3 px</option>
-              </select>
-            </label>
-            <label>
-              <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Style</span>
-              <select value={selected.style?.dash || 'solid'} onChange={event => patchSelected({ style: { dash: event.target.value } })} className="h-8 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2 text-[9px] text-[#dbe5ed] outline-none">
-                <option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option>
-              </select>
-            </label>
-          </div>
+          {selected.type !== 'text' && !isRiskDrawingTool(selected.type) && (
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <label>
+                <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Width</span>
+                <select value={selected.style?.width || 1.4} onChange={event => patchSelected({ style: { width: Number(event.target.value) } })} className="h-8 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2 text-[9px] text-[#dbe5ed] outline-none">
+                  <option value="1">1 px</option><option value="1.4">1.4 px</option><option value="2">2 px</option><option value="3">3 px</option>
+                </select>
+              </label>
+              <label>
+                <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Style</span>
+                <select value={selected.style?.dash || 'solid'} onChange={event => patchSelected({ style: { dash: event.target.value } })} className="h-8 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2 text-[9px] text-[#dbe5ed] outline-none">
+                  <option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option>
+                </select>
+              </label>
+            </div>
+          )}
 
           {selected.type === 'rectangle' && (
             <label className="mt-3 block">
