@@ -80,6 +80,18 @@ function stamp() {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 }
 
+function settleChartLayout() {
+  if (typeof window === 'undefined') return;
+  const notify = () => window.dispatchEvent(new Event('resize'));
+  window.requestAnimationFrame(() => {
+    notify();
+    window.requestAnimationFrame(notify);
+  });
+  window.setTimeout(notify, 80);
+  window.setTimeout(notify, 220);
+  window.setTimeout(notify, 420);
+}
+
 function fillEvent(result, fallback) {
   const deal = result?.deal;
   return {
@@ -139,10 +151,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
         setChartFocus(false);
       }
 
-      window.requestAnimationFrame(() => {
-        window.dispatchEvent(new Event('resize'));
-        window.requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
-      });
+      settleChartLayout();
     };
 
     document.addEventListener('fullscreenchange', syncFullscreenState);
@@ -649,10 +658,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       // Native fullscreen is optional; keep the in-app focus layout available.
     }
 
-    window.requestAnimationFrame(() => {
-      window.dispatchEvent(new Event('resize'));
-      window.requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
-    });
+    settleChartLayout();
   };
 
   const exitChartFocus = async () => {
@@ -663,10 +669,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     } finally {
       nativeFullscreenRef.current = false;
       setChartFocus(false);
-      window.requestAnimationFrame(() => {
-        window.dispatchEvent(new Event('resize'));
-        window.requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
-      });
+      settleChartLayout();
     }
   };
 
@@ -753,7 +756,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
   return (
     <div className="min-h-dvh bg-black font-sans text-[#f5f8fb] antialiased">
-      <main ref={shellRef} className="relative mx-auto h-dvh w-full max-w-[460px] overflow-hidden overscroll-none bg-black">
+      <main ref={shellRef} className={`relative mx-auto h-dvh w-full overflow-hidden overscroll-none bg-black ${chartFocus ? 'max-w-none' : 'max-w-[460px]'}`}>
         {chartFocus ? (
           <MobileScalperMode market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} lots={lots} setLots={setLots} sizingMode={sizingMode} setSizingMode={setSizingMode} riskPercent={riskPercent} setRiskPercent={setRiskPercent} orderType={orderType} setOrderType={setOrderType} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} onCreateRiskOrder={createPlanFromRiskTool} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onClosePosition={closePosition} onIndicators={() => setOverlay('indicators')} indicators={indicators} account={account} plannedRisk={plannedRisk} exposureAllowed={exposure.allowed} exposureBlockReason={exposure.reason} onExit={exitChartFocus} />
         ) : chartContent}
