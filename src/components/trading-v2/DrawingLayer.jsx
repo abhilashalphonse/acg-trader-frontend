@@ -263,6 +263,57 @@ function DrawingShape({
     );
   }
 
+  if (drawing.type === 'horizontal-ray') {
+    return (
+      <g>
+        <line x1={a.x} y1={a.y} x2={size.width} y2={a.y} stroke="transparent" strokeWidth="16" {...common} />
+        <line x1={a.x} y1={a.y} x2={size.width} y2={a.y} {...lineStyle(drawing, selected)} className="pointer-events-none" />
+        {selected && !drawing.locked && <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />}
+      </g>
+    );
+  }
+
+  if (drawing.type === 'ray' || drawing.type === 'extended-line') {
+    const segment = extendedSegment(a, b, size, drawing.type === 'ray' ? 'ray' : 'both');
+    return (
+      <g>
+        <line x1={segment.start.x} y1={segment.start.y} x2={segment.end.x} y2={segment.end.y} stroke="transparent" strokeWidth="16" {...common} />
+        <line x1={segment.start.x} y1={segment.start.y} x2={segment.end.x} y2={segment.end.y} {...lineStyle(drawing, selected)} className="pointer-events-none" />
+        {selected && !drawing.locked && (
+          <>
+            <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />
+            <Handle point={b} onPointerDown={event => onStartHandle(event, drawing.id, 'b')} />
+          </>
+        )}
+      </g>
+    );
+  }
+
+  if (drawing.type === 'ruler') {
+    const label = rulerLabel(drawing, instrument, timeframe);
+    const midX = Math.max(68, Math.min(size.width - 68, (a.x + b.x) / 2));
+    const midY = Math.max(18, Math.min(size.height - 18, (a.y + b.y) / 2 - 14));
+    const labelWidth = Math.max(126, Math.min(238, label.length * 5.2 + 16));
+    return (
+      <g>
+        <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent" strokeWidth="18" {...common} />
+        <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} {...lineStyle(drawing, selected)} className="pointer-events-none" />
+        <line x1={a.x} y1={a.y - 6} x2={a.x} y2={a.y + 6} {...lineStyle(drawing, selected)} className="pointer-events-none" />
+        <line x1={b.x} y1={b.y - 6} x2={b.x} y2={b.y + 6} {...lineStyle(drawing, selected)} className="pointer-events-none" />
+        <g className="pointer-events-none">
+          <rect x={midX - labelWidth / 2} y={midY - 11} width={labelWidth} height="22" rx="5" fill="rgba(5,8,12,0.94)" stroke="rgba(25,91,225,0.55)" />
+          <text x={midX} y={midY + 3} textAnchor="middle" fill="#e8eef7" fontSize="9" fontWeight="700">{label}</text>
+        </g>
+        {selected && !drawing.locked && (
+          <>
+            <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />
+            <Handle point={b} onPointerDown={event => onStartHandle(event, drawing.id, 'b')} />
+          </>
+        )}
+      </g>
+    );
+  }
+
   if (drawing.type === 'rectangle') {
     const x = Math.min(a.x, b.x);
     const y = Math.min(a.y, b.y);
@@ -387,6 +438,7 @@ export default function DrawingLayer({
   showHistoryControls = true,
 }) {
   const svgRef = useRef(null);
+  const creationGestureRef = useRef(null);
   const history = useSyncExternalStore(
     listener => subscribeDrawings(symbol, listener),
     () => getDrawingSnapshot(symbol),
@@ -507,6 +559,7 @@ export default function DrawingLayer({
 
       if (!editingText && event.key === 'Escape') {
         setDraft(null);
+        creationGestureRef.current = null;
         setDrag(null);
         setSelectedId(null);
         setSettingsOpen(false);
@@ -527,7 +580,7 @@ export default function DrawingLayer({
   }, [interactionEnabled, onToolChange, selectedId, symbol, tool]);
 
   const selected = useMemo(() => drawings.find(item => item.id === selectedId), [drawings, selectedId]);
-  const drawingTool = interactionEnabled && !disabled && ['trendline', 'hline', 'vline', 'rectangle', 'fibonacci', 'text', 'long-position', 'short-position'].includes(tool);
+  const drawingTool = interactionEnabled && !disabled && ['trendline', 'ray', 'extended-line', 'hline', 'horizontal-ray', 'vline', 'ruler', 'rectangle', 'fibonacci', 'text', 'long-position', 'short-position'].includes(tool);
   const resolvePoint = point => coordinateApi?.toScreen?.(point) || null;
 
   const eventScreenPoint = event => {
@@ -573,6 +626,38 @@ export default function DrawingLayer({
     if (!keepToolActive) onToolChange('cursor');
   };
 
+  const completeDraft = endPoint => {
+    if (!draft || !endPoint) return false;
+    let created = { ...draft, b: endPoint };
+
+    if (created.type === 'long-position' || created.type === 'short-position') {
+      const entry = Number(created.a?.price);
+      const pointerStop = Number(endPoint?.price);
+      const distance = Math.abs(pointerStop - entry);
+      const pipFallback = Number(snapStep) > 0 ? Number(snapStep) * 10 : Math.max(Math.abs(entry) * 0.001, 0.0001);
+      const riskDistance = Number.isFinite(distance) && distance > 0 ? distance : pipFallback;
+      const isLong = created.type === 'long-position';
+      const sl = isLong ? entry - riskDistance : entry + riskDistance;
+      const tp = isLong ? entry + riskDistance * 2 : entry - riskDistance * 2;
+      created = {
+        ...created,
+        b: { ...endPoint, price: sl },
+        riskTarget: { ...endPoint, price: tp },
+      };
+    }
+
+    const a = coordinateApi?.toScreen?.(created.a);
+    const b = coordinateApi?.toScreen?.(created.b);
+    if (!a || !b || Math.hypot(b.x - a.x, b.y - a.y) <= 5) return false;
+
+    commit(current => [...current, created]);
+    setSelectedId(created.id);
+    setDraft(null);
+    creationGestureRef.current = null;
+    finishTool();
+    return true;
+  };
+
   const startCreate = event => {
     if (!drawingTool || !coordinateApi) return;
     const point = eventDataPoint(event);
@@ -580,7 +665,11 @@ export default function DrawingLayer({
     event.preventDefault();
     event.stopPropagation();
     setContextMenu(null);
-    event.currentTarget.setPointerCapture?.(event.pointerId);
+
+    if (draft) {
+      completeDraft(point);
+      return;
+    }
 
     if (tool === 'text') {
       const created = makeDrawing('text', point, point, 'Text');
@@ -591,7 +680,7 @@ export default function DrawingLayer({
       return;
     }
 
-    if (tool === 'hline' || tool === 'vline') {
+    if (tool === 'hline' || tool === 'horizontal-ray' || tool === 'vline') {
       const created = makeDrawing(tool, point);
       commit(current => [...current, created]);
       setSelectedId(created.id);
@@ -599,6 +688,8 @@ export default function DrawingLayer({
       return;
     }
 
+    const startScreen = eventScreenPoint(event);
+    creationGestureRef.current = { pointerId: event.pointerId, startScreen };
     setDraft(makeDrawing(tool, point, point));
   };
 
@@ -677,32 +768,16 @@ export default function DrawingLayer({
   };
 
   const finishPointer = event => {
-    if (draft) {
-      const end = eventDataPoint(event) || draft.b;
-      let created = { ...draft, b: end };
-      if (created.type === 'long-position' || created.type === 'short-position') {
-        const entry = Number(created.a?.price);
-        const pointerStop = Number(end?.price);
-        const distance = Math.abs(pointerStop - entry);
-        const pipFallback = Number(snapStep) > 0 ? Number(snapStep) * 10 : Math.max(Math.abs(entry) * 0.001, 0.0001);
-        const riskDistance = Number.isFinite(distance) && distance > 0 ? distance : pipFallback;
-        const isLong = created.type === 'long-position';
-        const sl = isLong ? entry - riskDistance : entry + riskDistance;
-        const tp = isLong ? entry + riskDistance * 2 : entry - riskDistance * 2;
-        created = {
-          ...created,
-          b: { ...end, price: sl },
-          riskTarget: { ...end, price: tp },
-        };
+    if (draft && creationGestureRef.current?.pointerId === event.pointerId) {
+      const endScreen = eventScreenPoint(event);
+      const startScreen = creationGestureRef.current.startScreen;
+      const moved = startScreen && endScreen ? Math.hypot(endScreen.x - startScreen.x, endScreen.y - startScreen.y) : 0;
+      if (moved > 5) {
+        completeDraft(eventDataPoint(event) || draft.b);
+      } else {
+        // TradingView-style click → move → click stays armed after the first click.
+        creationGestureRef.current = null;
       }
-      const a = coordinateApi?.toScreen?.(created.a);
-      const b = coordinateApi?.toScreen?.(created.b);
-      if (a && b && Math.hypot(b.x - a.x, b.y - a.y) > 8) {
-        commit(current => [...current, created]);
-        setSelectedId(created.id);
-      }
-      setDraft(null);
-      finishTool();
     }
 
     if (drag?.before) {
@@ -923,6 +998,7 @@ export default function DrawingLayer({
             riskMetrics={riskMetricsFor(drawing)}
             instrument={instrument}
             accountCurrency={accountCurrency}
+            timeframe={timeframe}
           />
         ))}
         {draft && (
@@ -938,6 +1014,8 @@ export default function DrawingLayer({
             riskMetrics={riskMetricsFor(draft)}
             instrument={instrument}
             accountCurrency={accountCurrency}
+            timeframe={timeframe}
+            interactive={false}
           />
         )}
       </svg>
