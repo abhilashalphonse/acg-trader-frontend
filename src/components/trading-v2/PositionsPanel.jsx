@@ -291,8 +291,8 @@ export default function PositionsPanel({
                 <strong className={positive ? "text-right font-mono text-[10px] text-[#42D7A1]" : "text-right font-mono text-[10px] text-[#FF5968]"}>{formatPnl(position.pnl, position.pnlCurrency)}</strong>
                 <span className={positive ? "text-right font-mono text-[8px] text-[#35b788]" : "text-right font-mono text-[8px] text-[#d84d5d]"}>{Number.isFinite(pnlPercent) ? <>{pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%</> : '—'}</span>
                 <div className="relative flex items-center justify-end gap-1">
-                  <button type="button" onClick={event => { event.stopPropagation(); startProtectionEdit(position, 'tp'); }} className="h-7 rounded border border-[#245b48] px-2 text-[8px] font-bold text-[#42D7A1] hover:bg-[#071710]">TP</button>
-                  <button type="button" onClick={event => { event.stopPropagation(); startProtectionEdit(position, 'sl'); }} className="h-7 rounded border border-[#51242c] px-2 text-[8px] font-bold text-[#ff727d] hover:bg-[#241015]">SL</button>
+                  <button type="button" onClick={event => { event.stopPropagation(); onEditProtection(position.id, 'tp'); }} className="h-7 rounded border border-[#245b48] px-2 text-[8px] font-bold text-[#42D7A1] hover:bg-[#071710]">TP</button>
+                  <button type="button" onClick={event => { event.stopPropagation(); onEditProtection(position.id, 'sl'); }} className="h-7 rounded border border-[#51242c] px-2 text-[8px] font-bold text-[#ff727d] hover:bg-[#241015]">SL</button>
                   <button type="button" onClick={event => { event.stopPropagation(); setRowActionsId(rowActionsId === position.id ? null : position.id); }} className="grid size-7 place-items-center rounded border border-white/[0.06] text-[#8092a2] hover:text-white"><MoreHorizontal size={11}/></button>
                   {rowActionsId === position.id && (
                     <div className="absolute right-0 top-8 z-50 w-[164px] rounded-md border border-white/[0.10] bg-[#0a0a0a] p-1 shadow-xl">

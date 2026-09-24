@@ -640,9 +640,9 @@ export default function DesktopTerminal({
     return null;
   };
   const resolved24hStats = market24hStats.symbol === activeSymbol ? market24hStats : { high: null, low: null, volume: null };
-  const marketHigh = firstPositive(tick?.dayHigh, tick?.high24h, tick?.sessionHigh, market?.dayHigh, market?.high24h, market?.sessionHigh, resolved24hStats.high);
-  const marketLow = firstPositive(tick?.dayLow, tick?.low24h, tick?.sessionLow, market?.dayLow, market?.low24h, market?.sessionLow, resolved24hStats.low);
-  const marketVolume = firstPositive(tick?.dayVolume, tick?.volume24h, tick?.sessionVolume, market?.dayVolume, market?.volume24h, market?.sessionVolume, resolved24hStats.volume);
+  const marketHigh = firstPositive(resolved24hStats.high, tick?.dayHigh, tick?.high24h, tick?.sessionHigh, market?.dayHigh, market?.high24h, market?.sessionHigh);
+  const marketLow = firstPositive(resolved24hStats.low, tick?.dayLow, tick?.low24h, tick?.sessionLow, market?.dayLow, market?.low24h, market?.sessionLow);
+  const marketVolume = firstPositive(resolved24hStats.volume, tick?.dayVolume, tick?.volume24h, tick?.sessionVolume, market?.dayVolume, market?.volume24h, market?.sessionVolume);
   const rawMarketChange = Number(market?.change ?? tick?.change);
   const rawMarketChangePercent = Number(market?.changePercent ?? tick?.changePercent);
   const formatMarketVolume = value => {
