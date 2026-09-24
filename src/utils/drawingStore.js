@@ -3,15 +3,20 @@ const LEGACY_STORAGE_PREFIX = 'acg-trader-drawings-v2';
 const KNOWN_TIMEFRAMES = ['S1','S5','S15','S30','M1','M5','M15','M30','H1','H4','D1','W1','1s','5s','15s','30s','1m','5m','15m','30m','1H','4H','1D','1W'];
 
 const DEFAULT_STYLE = {
-  color: '#53c7ff',
+  color: '#195be1',
   width: 1.4,
   dash: 'solid',
   fillOpacity: 0.07,
 };
 
 const TOOL_DEFAULTS = {
+  trendline: { color: '#195be1', width: 1.5 },
+  ray: { color: '#195be1', width: 1.5 },
+  'extended-line': { color: '#195be1', width: 1.5 },
   hline: { color: '#f0c35c' },
+  'horizontal-ray': { color: '#f0c35c' },
   vline: { color: '#f0c35c' },
+  ruler: { color: '#195be1', width: 1.5, dash: 'dashed' },
   fibonacci: { color: '#b78cff' },
   text: { color: '#d8e4ee', width: 1 },
   'long-position': { color: '#35d79d' },

@@ -223,14 +223,14 @@ function DrawingShape({
       <g>
         <rect x={left} y={rewardTop} width={width} height={Math.max(1, rewardHeight)} fill="rgba(53,215,157,0.13)" stroke="rgba(53,215,157,0.55)" strokeWidth="1" {...common}/>
         <rect x={left} y={riskTop} width={width} height={Math.max(1, riskHeight)} fill="rgba(255,102,115,0.13)" stroke="rgba(255,102,115,0.55)" strokeWidth="1" {...common}/>
-        <line x1={left} y1={entryY} x2={boxRight} y2={entryY} stroke="#59c7ff" strokeWidth={selected ? 2 : 1.2} vectorEffect="non-scaling-stroke" {...common}/>
+        <line x1={left} y1={entryY} x2={boxRight} y2={entryY} stroke="#195be1" strokeWidth={selected ? 2 : 1.2} vectorEffect="non-scaling-stroke" {...common}/>
         <line x1={left} y1={stopY} x2={boxRight} y2={stopY} stroke="#ff6673" strokeWidth="1.2" vectorEffect="non-scaling-stroke" {...common}/>
         <line x1={left} y1={targetY} x2={boxRight} y2={targetY} stroke="#35d79d" strokeWidth="1.2" vectorEffect="non-scaling-stroke" {...common}/>
         <rect x={left + 4} y={Math.min(entryY + 5, size.height - 65)} rx="4" width="206" height="58" fill="rgba(6,9,11,0.94)" stroke={ready ? 'rgba(53,215,157,0.28)' : 'rgba(255,102,115,0.32)'} strokeWidth="1" className="pointer-events-none"/>
         <text x={left + 10} y={Math.min(entryY + 18, size.height - 52)} fill="#dce7ef" fontSize="8" fontWeight="700" className="pointer-events-none">{isLong ? 'LONG' : 'SHORT'} · {Number.isFinite(rr) ? `R:R ${rr.toFixed(2)}` : 'R:R —'}</text>
         <text x={left + 10} y={Math.min(entryY + 31, size.height - 39)} fill="#8296a7" fontSize="7" className="pointer-events-none">Risk {Number.isFinite(riskPct) ? `${riskPct.toFixed(2)}%` : '—'} · {money(riskMoney)} · {Number.isFinite(lots) ? `${lots.toFixed(2)} lot` : '— lot'}</text>
         <text x={left + 10} y={Math.min(entryY + 45, size.height - 25)} fill={ready ? '#35d79d' : '#ff7b86'} fontSize="7" fontWeight="700" className="pointer-events-none">{statusText.length > 40 ? `${statusText.slice(0, 39)}…` : statusText}</text>
-        <text x={boxRight - 4} y={entryY - 4} textAnchor="end" fill="#59c7ff" fontSize="7" fontWeight="700" className="pointer-events-none">ENTRY {formatInstrumentPrice(drawing.a?.price, instrument)}</text>
+        <text x={boxRight - 4} y={entryY - 4} textAnchor="end" fill="#195be1" fontSize="7" fontWeight="700" className="pointer-events-none">ENTRY {formatInstrumentPrice(drawing.a?.price, instrument)}</text>
         <text x={boxRight - 4} y={stopY - 4} textAnchor="end" fill="#ff6673" fontSize="7" fontWeight="700" className="pointer-events-none">SL {formatInstrumentPrice(drawing.b?.price, instrument)}</text>
         <text x={boxRight - 4} y={targetY - 4} textAnchor="end" fill="#35d79d" fontSize="7" fontWeight="700" className="pointer-events-none">TP {formatInstrumentPrice(drawing.riskTarget?.price, instrument)}</text>
         {selected && !drawing.locked && (
