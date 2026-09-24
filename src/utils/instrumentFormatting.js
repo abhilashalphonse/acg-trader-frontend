@@ -46,3 +46,48 @@ export function instrumentForSymbol(markets, symbol) {
   const key = String(symbol || '').toUpperCase();
   return (Array.isArray(markets) ? markets : []).find(item => String(item?.symbol || '').toUpperCase() === key) || null;
 }
+
+function instrumentQuoteCurrency(instrument) {
+  const explicit = String(instrument?.quoteCurrency || instrument?.quoteAsset || '').trim().toUpperCase();
+  if (/^[A-Z]{3}$/.test(explicit)) return explicit;
+
+  const symbol = String(instrument?.symbol || '').trim().toUpperCase();
+  const separated = symbol.split(/[\/_-]/).filter(Boolean);
+  const candidate = separated.length >= 2 ? separated[separated.length - 1] : symbol.match(/(USD|EUR|GBP|JPY|CHF|AUD|CAD|NZD)$/)?.[1];
+  return /^[A-Z]{3}$/.test(candidate || '') ? candidate : null;
+}
+
+export function formatSpreadDisplay(bidValue, askValue, instrument, fallback = '—') {
+  const bid = Number(bidValue);
+  const ask = Number(askValue);
+  if (!Number.isFinite(bid) || !Number.isFinite(ask) || ask < bid) return fallback;
+
+  const spread = Math.abs(ask - bid);
+  const assetClass = String(instrument?.assetClass || '').trim().toUpperCase();
+
+  if (assetClass === 'CRYPTO') {
+    const quoteCurrency = instrumentQuoteCurrency(instrument);
+    const digits = Math.min(8, Math.max(2, instrumentDigits(instrument, 2)));
+
+    if (quoteCurrency) {
+      try {
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: quoteCurrency,
+          minimumFractionDigits: Math.min(2, digits),
+          maximumFractionDigits: digits,
+        }).format(spread);
+      } catch {
+        // Fall through to a plain price-distance representation.
+      }
+    }
+
+    return spread.toFixed(digits);
+  }
+
+  const pip = instrumentPipSize(instrument);
+  return Number.isFinite(pip) && pip > 0
+    ? `${(spread / pip).toFixed(1)}p`
+    : fallback;
+}
+
