@@ -317,13 +317,45 @@ export default function TradingChart({
       grid: { vertLines: { visible: true, color: chartTokens.gridline, style: LineStyle.Dotted }, horzLines: { visible: true, color: chartTokens.gridline, style: LineStyle.Dotted } },
       crosshair: { mode: CrosshairMode.Normal, vertLine: { visible: true, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: true, labelBackgroundColor: chartTokens.crosshairLabel }, horzLine: { visible: true, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: true, labelBackgroundColor: chartTokens.crosshairLabel } },
       rightPriceScale: { visible: true, borderVisible: true, borderColor: '#242424', ticksVisible: true, scaleMargins: { top: 0.045, bottom: 0.07 } },
-      timeScale: { visible: true, borderVisible: true, borderColor: '#242424', ticksVisible: true, timeVisible: true, secondsVisible: ['S1', 'S5', 'S15', 'S30'].includes(timeframe), rightOffset: chartRightBars, barSpacing: 9, minBarSpacing: 3, fixLeftEdge: false, lockVisibleTimeRangeOnResize: true },
+      timeScale: { visible: true, borderVisible: true, borderColor: '#242424', ticksVisible: true, timeVisible: true, secondsVisible: ['S1', 'S5', 'S15', 'S30'].includes(timeframe), rightOffset: chartRightBars, barSpacing: 9, minBarSpacing: 3, fixLeftEdge: false, lockVisibleTimeRangeOnResize: !mobileReference },
       handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true }, handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
     });
     chartRef.current = chart;
 
     let resizeFrame = null;
     let resizeSettleTimers = [];
+    let mobileRealtimeTimers = [];
+
+    const restoreMobileRealtimeViewport = () => {
+      if (
+        !mobileReference
+        || chartRef.current !== chart
+        || !initialLoadCompleteRef.current
+        || !autoFollowRef.current
+        || !barsRef.current.length
+      ) return;
+
+      const timeScale = chart.timeScale();
+      try {
+        timeScale.applyOptions({ rightOffset: chartRightBars });
+        timeScale.scrollToRealTime();
+      } catch {
+        const lastIndex = barsRef.current.length - 1;
+        timeScale.setVisibleLogicalRange?.({
+          from: Math.max(0, lastIndex - DEFAULT_BARS_BACK),
+          to: lastIndex + chartRightBars,
+        });
+      }
+    };
+
+    const settleMobileRealtimeViewport = () => {
+      if (!mobileReference) return;
+      mobileRealtimeTimers.forEach(timer => window.clearTimeout(timer));
+      mobileRealtimeTimers = [0, 80, 220, 420].map(delay =>
+        window.setTimeout(restoreMobileRealtimeViewport, delay)
+      );
+    };
+
     const resizeChart = () => {
       resizeFrame = null;
       if (!host.isConnected || chartRef.current !== chart) return;
@@ -336,6 +368,9 @@ export default function TradingChart({
       // for one or more frames. Always remeasure the live host and force a
       // repaint so the chart canvas cannot retain fullscreen dimensions.
       chart.resize(width, height, true);
+      if (mobileReference && initialLoadCompleteRef.current && autoFollowRef.current) {
+        settleMobileRealtimeViewport();
+      }
     };
     const scheduleResize = () => {
       if (resizeFrame != null) window.cancelAnimationFrame(resizeFrame);
@@ -588,6 +623,11 @@ export default function TradingChart({
         });
         setRealtimeTracking(true);
         initialLoadCompleteRef.current = true;
+        // Mobile layout height/width can settle after the first candle render
+        // (browser chrome, drawing rail, execution panel). Re-anchor only while
+        // still in live-follow mode so a late resize cannot strand the latest
+        // candles outside the visible viewport. Desktop behavior is untouched.
+        settleMobileRealtimeViewport();
       } catch (e) {
         if (e?.name === 'AbortError' || disposed) return;
         console.error('Trading chart data failed', e);
@@ -615,6 +655,8 @@ export default function TradingChart({
       window.visualViewport?.removeEventListener('resize', settleResize);
       resizeSettleTimers.forEach(timer => window.clearTimeout(timer));
       resizeSettleTimers = [];
+      mobileRealtimeTimers.forEach(timer => window.clearTimeout(timer));
+      mobileRealtimeTimers = [];
       if (resizeFrame != null) window.cancelAnimationFrame(resizeFrame);
       resizeFrame = null;
       chartRef.current = null;
