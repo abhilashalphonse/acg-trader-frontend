@@ -7,6 +7,14 @@ import { calculateRiskOrderSizing, estimatePositionPnlAtPrice, estimateStopRisk,
 import { DRAWING_TOOL_GROUPS, DRAWING_TOOL_LABELS } from '../../utils/drawingTools.js';
 import { DRAWING_TOOL_ICONS } from './DrawingToolIcons.jsx';
 
+const MOBILE_HIDDEN_DRAWING_TOOLS = new Set([
+  'ray',
+  'extended-line',
+  'hline',
+  'horizontal-ray',
+  'vline',
+]);
+
 const toolGroups = DRAWING_TOOL_GROUPS.map(group =>
   group.map(id => [id, DRAWING_TOOL_ICONS[id], DRAWING_TOOL_LABELS[id]])
 );
@@ -633,6 +641,20 @@ export default function ChartArea({
   const cycleDrawingSnap = () => setDrawingSnap(current => current === 'off' ? 'weak' : current === 'weak' ? 'strong' : 'off');
 
   const mobileReference = drawingToolbarOverlay && narrowMobile;
+  const visibleToolGroups = useMemo(
+    () => (mobileReference
+      ? toolGroups
+          .map(group => group.filter(([id]) => !MOBILE_HIDDEN_DRAWING_TOOLS.has(id)))
+          .filter(group => group.length)
+      : toolGroups),
+    [mobileReference],
+  );
+
+  useEffect(() => {
+    if (!mobileReference || !MOBILE_HIDDEN_DRAWING_TOOLS.has(selectedTool)) return;
+    onSelectTool('cursor');
+  }, [mobileReference, onSelectTool, selectedTool]);
+
   const oscillatorCount = indicators.filter(item => item.visible !== false && oscillatorIds.has(item.id)).length;
   const priceScaleAnchors = useMemo(() => {
     const passive = [];
@@ -724,7 +746,7 @@ export default function ChartArea({
     <div className={areaClass}>
       {toolbarVisible && (
         <aside className={toolbarClass} aria-label="Drawing tools">
-          {toolGroups.map((group, groupIndex) => (
+          {visibleToolGroups.map((group, groupIndex) => (
             <React.Fragment key={groupIndex}>
               {groupIndex > 0 && <div className="my-1 h-px w-5 shrink-0 bg-white/[0.07]" />}
               {group.map(([id, Icon, label]) => (
