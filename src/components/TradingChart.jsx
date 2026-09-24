@@ -323,25 +323,38 @@ export default function TradingChart({
     chartRef.current = chart;
 
     let resizeFrame = null;
+    let resizeSettleTimers = [];
     const resizeChart = () => {
       resizeFrame = null;
       if (!host.isConnected || chartRef.current !== chart) return;
       const rect = host.getBoundingClientRect();
-      const width = Math.floor(rect.width || host.clientWidth || 0);
-      const height = Math.floor(rect.height || host.clientHeight || 0);
-      if (width <= 0 || height <= 0) return;
-      chart.resize(width, height);
+      const width = Math.max(1, Math.floor(rect.width || host.clientWidth || 0));
+      const height = Math.max(1, Math.floor(rect.height || host.clientHeight || 0));
+      if (width <= 1 || height <= 1) return;
+
+      // Fullscreen transitions on mobile browsers can report the old viewport
+      // for one or more frames. Always remeasure the live host and force a
+      // repaint so the chart canvas cannot retain fullscreen dimensions.
+      chart.resize(width, height, true);
     };
     const scheduleResize = () => {
       if (resizeFrame != null) window.cancelAnimationFrame(resizeFrame);
       resizeFrame = window.requestAnimationFrame(resizeChart);
     };
+    const settleResize = () => {
+      scheduleResize();
+      resizeSettleTimers.forEach(timer => window.clearTimeout(timer));
+      resizeSettleTimers = [60, 180, 360].map(delay => window.setTimeout(scheduleResize, delay));
+    };
     const resizeObserver = typeof ResizeObserver === 'function'
-      ? new ResizeObserver(scheduleResize)
+      ? new ResizeObserver(settleResize)
       : null;
     resizeObserver?.observe(host);
-    window.addEventListener('resize', scheduleResize);
-    scheduleResize();
+    window.addEventListener('resize', settleResize);
+    window.addEventListener('orientationchange', settleResize);
+    document.addEventListener('fullscreenchange', settleResize);
+    window.visualViewport?.addEventListener('resize', settleResize);
+    settleResize();
 
     const priceFormat = { type: 'price', precision: decimals, minMove };
     const series = chartMode === 'line' ? chart.addSeries(LineSeries, { color: chartTokens.blue, lineWidth: 2, priceFormat, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: true }) : chart.addSeries(CandlestickSeries, { upColor: chartTokens.buy, downColor: chartTokens.sell, wickUpColor: chartTokens.buyWick, wickDownColor: chartTokens.sellWick, borderVisible: false, priceFormat, priceLineVisible: false, lastValueVisible: false });
@@ -587,7 +600,12 @@ export default function TradingChart({
       indicatorBindingsRef.current = [];
       indicatorPanesRef.current = 0;
       resizeObserver?.disconnect();
-      window.removeEventListener('resize', scheduleResize);
+      window.removeEventListener('resize', settleResize);
+      window.removeEventListener('orientationchange', settleResize);
+      document.removeEventListener('fullscreenchange', settleResize);
+      window.visualViewport?.removeEventListener('resize', settleResize);
+      resizeSettleTimers.forEach(timer => window.clearTimeout(timer));
+      resizeSettleTimers = [];
       if (resizeFrame != null) window.cancelAnimationFrame(resizeFrame);
       resizeFrame = null;
       chartRef.current = null;
