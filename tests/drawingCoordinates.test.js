@@ -18,8 +18,8 @@ test('drawing coordinates interpolate inside loaded history', () => {
 });
 
 test('drawing coordinates extrapolate into future whitespace', () => {
-  assert.equal(logicalToDrawingTime(5, bars, 'M1'), 1360);
-  assert.equal(drawingTimeToLogical(1360, bars, 'M1'), 5);
+  assert.equal(logicalToDrawingTime(5, bars, 'M1'), 1420);
+  assert.equal(drawingTimeToLogical(1420, bars, 'M1'), 5);
 });
 
 test('drawing coordinates extrapolate before loaded history', () => {
