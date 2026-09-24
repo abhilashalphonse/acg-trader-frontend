@@ -1,3 +1,5 @@
+import { canonicalDrawingTimeframe, canonicalTimeframeVisibility } from './drawingTools.js';
+
 const STORAGE_PREFIX = 'acg-trader-drawings-v3';
 const LEGACY_STORAGE_PREFIX = 'acg-trader-drawings-v2';
 const KNOWN_TIMEFRAMES = ['S1','S5','S15','S30','M1','M5','M15','M30','H1','H4','D1','W1','1s','5s','15s','30s','1m','5m','15m','30m','1H','4H','1D','1W'];
@@ -38,7 +40,7 @@ export function normalizeDrawing(raw) {
     text: raw.text || '',
     locked: raw.locked === true,
     hidden: raw.hidden === true,
-    timeframeVisibility: raw.timeframeVisibility || 'all',
+    timeframeVisibility: canonicalTimeframeVisibility(raw.timeframeVisibility),
     riskTarget: raw.riskTarget ? { ...raw.riskTarget } : null,
     riskPercent: Number.isFinite(Number(raw.riskPercent)) ? Number(raw.riskPercent) : null,
     style: {
@@ -170,12 +172,16 @@ export function replaceDrawingsLive(symbol, nextPresent) {
 
 export function commitLiveDrawingTransaction(symbol, before) {
   const current = ensure(symbol);
+  const baseline = dedupeDrawings(Array.isArray(before) ? before : []);
+  const present = cloneDrawings(current.present);
+  if (JSON.stringify(baseline) === JSON.stringify(present)) return false;
   replaceState(symbol, {
-    past: [...current.past.slice(-99), cloneDrawings(before || [])],
-    present: cloneDrawings(current.present),
+    past: [...current.past.slice(-99), cloneDrawings(baseline)],
+    present,
     future: [],
     revision: current.revision,
   });
+  return true;
 }
 
 export function undoDrawings(symbol) {
@@ -218,8 +224,9 @@ export function removeDrawing(symbol, id) {
 
 export function visibleDrawingOnTimeframe(drawing, timeframe) {
   if (!drawing || drawing.hidden) return false;
-  const visibility = drawing.timeframeVisibility || 'all';
+  const visibility = canonicalTimeframeVisibility(drawing.timeframeVisibility);
+  const active = canonicalDrawingTimeframe(timeframe);
   if (visibility === 'all') return true;
-  if (Array.isArray(visibility)) return visibility.includes(timeframe);
-  return visibility === timeframe;
+  if (Array.isArray(visibility)) return visibility.includes(active);
+  return canonicalDrawingTimeframe(visibility) === active;
 }

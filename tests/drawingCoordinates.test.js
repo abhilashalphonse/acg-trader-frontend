@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  drawingBarsBetween,
   drawingTimeToLogical,
   logicalToDrawingTime,
 } from '../src/utils/drawingCoordinates.js';
@@ -25,4 +26,10 @@ test('drawing coordinates extrapolate into future whitespace', () => {
 test('drawing coordinates extrapolate before loaded history', () => {
   assert.equal(logicalToDrawingTime(-2, bars, 'M1'), 880);
   assert.equal(drawingTimeToLogical(880, bars, 'M1'), -2);
+});
+
+
+test('drawing bar distance follows logical candles instead of wall-clock gaps', () => {
+  assert.equal(drawingBarsBetween(1000, 1300, bars, 'M1'), 3);
+  assert.equal(drawingBarsBetween(1060, 1300, bars, 'M1'), 2);
 });

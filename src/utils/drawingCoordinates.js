@@ -72,3 +72,11 @@ export function drawingTimeToLogical(time, bars = [], timeframe = 'M1') {
   if (right <= left) return leftIndex;
   return leftIndex + (target - left) / (right - left);
 }
+
+
+export function drawingBarsBetween(startTime, endTime, bars = [], timeframe = 'M1') {
+  const start = drawingTimeToLogical(startTime, bars, timeframe);
+  const end = drawingTimeToLogical(endTime, bars, timeframe);
+  if (![start, end].every(Number.isFinite)) return null;
+  return Math.abs(end - start);
+}

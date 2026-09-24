@@ -56,6 +56,8 @@ test('drawing timeframe visibility respects scalar and array rules', () => {
   assert.equal(visibleDrawingOnTimeframe({ ...base, timeframeVisibility: ['M1', 'H1'] }, 'M5'), false);
   assert.equal(visibleDrawingOnTimeframe({ ...base, timeframeVisibility: ['M1', 'H1'] }, 'H1'), true);
   assert.equal(visibleDrawingOnTimeframe({ ...base, hidden: true }, 'M1'), false);
+  assert.equal(visibleDrawingOnTimeframe({ ...base, timeframeVisibility: '5m' }, 'M5'), true);
+  assert.equal(visibleDrawingOnTimeframe({ ...base, timeframeVisibility: ['1m', '1H'] }, 'H1'), true);
 });
 
 
@@ -89,4 +91,15 @@ test('live drag stays transient until the drawing transaction commits', () => {
     if (previousWindow === undefined) delete globalThis.window;
     else globalThis.window = previousWindow;
   }
+});
+
+
+test('no-op live drawing transaction does not create an undo history entry', () => {
+  const symbol = 'STORE_NOOP_TRANSACTION_TEST';
+  commitDrawings(symbol, [line('same', 2)]);
+  const before = cloneDrawings(getDrawingSnapshot(symbol).present);
+  const pastBefore = getDrawingSnapshot(symbol).past.length;
+  replaceDrawingsLive(symbol, cloneDrawings(before));
+  assert.equal(commitLiveDrawingTransaction(symbol, before), false);
+  assert.equal(getDrawingSnapshot(symbol).past.length, pastBefore);
 });
