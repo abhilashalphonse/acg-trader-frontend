@@ -36,8 +36,10 @@ export default function MobileTradesSheet({
   onUpdatePosition = async () => false,
   onBreakEven = async () => false,
   onNotice = () => {},
+  initialTab = 'open',
+  readOnly = false,
 }) {
-  const [tab, setTab] = useState('open');
+  const [tab, setTab] = useState(initialTab);
   const pnl = Number(account?.floatingPnl);
   const pnlTone = pnl > 0 ? 'text-[#31d79b]' : pnl < 0 ? 'text-[#ff6975]' : 'text-[#a7b2bc]';
 
@@ -55,8 +57,11 @@ export default function MobileTradesSheet({
         <header className="shrink-0 border-b border-white/[0.06] bg-[#080808] px-3 pt-3">
           <div className="flex items-start justify-between gap-3 pb-2.5">
             <div>
-              <h2 className="text-[17px] font-black tracking-[-0.035em] text-[#f3f7fb]">Trades</h2>
-              <p className="mt-0.5 text-[9px] text-[#667b8e]">Positions, pending orders and executed history.</p>
+              <div className="flex items-center gap-2">
+                <h2 className="text-[17px] font-black tracking-[-0.035em] text-[#f3f7fb]">{readOnly ? 'Trade history' : 'Trades'}</h2>
+                {readOnly && <span className="rounded-md border border-rose-400/20 bg-rose-400/[0.08] px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-rose-300">Read-only</span>}
+              </div>
+              <p className="mt-0.5 text-[9px] text-[#667b8e]">{readOnly ? 'This account is breached. Executed records remain available for review.' : 'Positions, pending orders and executed history.'}</p>
             </div>
             <div className="flex items-center gap-2">
               <div className="text-right">
@@ -67,12 +72,12 @@ export default function MobileTradesSheet({
             </div>
           </div>
 
-          <div className="grid grid-cols-3">
-            {[
+          <div className={readOnly ? "grid grid-cols-1" : "grid grid-cols-3"}>
+            {(readOnly ? [['history', 'History']] : [
               ['open', `Open ${positions.length}`],
               ['pending', `Pending ${pendingOrders.length}`],
               ['history', 'History'],
-            ].map(([id, label]) => (
+            ]).map(([id, label]) => (
               <button
                 key={id}
                 type="button"
