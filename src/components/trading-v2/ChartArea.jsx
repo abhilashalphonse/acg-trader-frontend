@@ -733,7 +733,7 @@ export default function ChartArea({
   const compactTool = visibleToolGroups.flat().find(([id]) => id === selectedTool) || visibleToolGroups.flat()[0] || null;
   const mobileHeightClass = fillAvailableHeight ? 'h-full min-h-0 flex-1' : heightClass;
   const areaClass = drawingToolbarOverlay
-    ? `acg-mobile-reference-chart-area acg-mobile-chart-surface ${toolbarVisible ? 'acg-mobile-reference-chart-area--with-drawing-rail' : 'acg-mobile-reference-chart-area--chart-only'} grid ${mobileHeightClass} ${toolbarVisible ? 'grid-cols-[36px_minmax(0,1fr)] gap-1.5' : 'grid-cols-[minmax(0,1fr)]'} bg-[#081019]`
+    ? `acg-mobile-reference-chart-area acg-mobile-chart-surface relative grid ${mobileHeightClass} grid-cols-[minmax(0,1fr)] bg-[#081019]`
     : embedded
       ? `grid h-full min-h-0 grid-rows-[minmax(0,1fr)] ${!toolbarVisible ? 'grid-cols-[minmax(0,1fr)]' : desktopEnhanced ? 'grid-cols-[50px_minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} ${desktopEnhanced ? 'gap-2 bg-black' : 'gap-1.5'}`
       : focusMode
@@ -741,7 +741,7 @@ export default function ChartArea({
         : `grid ${heightClass} grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2`;
 
   const toolbarClass = drawingToolbarOverlay
-    ? 'acg-mobile-reference-drawing-rail mx-0.5 my-1 flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto rounded-[8px] border border-white/[0.08] bg-[#071019] py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+    ? 'acg-mobile-reference-drawing-rail absolute bottom-1 left-1 top-1 z-40 flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto rounded-[8px] border border-white/[0.08] bg-[#071019]/98 py-1 shadow-[6px_0_18px_rgba(0,0,0,.28)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
     : focusMode || embedded
       ? desktopEnhanced
         ? compactContext
