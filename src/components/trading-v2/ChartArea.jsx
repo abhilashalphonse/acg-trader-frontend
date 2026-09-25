@@ -733,7 +733,7 @@ export default function ChartArea({
   const areaClass = drawingToolbarOverlay
     ? `acg-mobile-reference-chart-area acg-mobile-chart-surface ${toolbarVisible ? 'acg-mobile-reference-chart-area--with-drawing-rail' : 'acg-mobile-reference-chart-area--chart-only'} grid ${mobileHeightClass} ${toolbarVisible ? 'grid-cols-[36px_minmax(0,1fr)] gap-1.5' : 'grid-cols-[minmax(0,1fr)]'} bg-[#081019]`
     : embedded
-      ? `grid h-full min-h-0 grid-rows-[minmax(0,1fr)] ${!toolbarVisible ? 'grid-cols-[minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} gap-1.5`
+      ? `grid h-full min-h-0 grid-rows-[minmax(0,1fr)] ${!toolbarVisible ? 'grid-cols-[minmax(0,1fr)]' : desktopEnhanced ? 'grid-cols-[50px_minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} ${desktopEnhanced ? 'gap-1' : 'gap-1.5'}`
       : focusMode
         ? 'grid h-full min-h-0 grid-cols-[36px_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] gap-1.5 px-1.5 pb-1.5'
         : `grid ${heightClass} grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2`;
@@ -741,7 +741,9 @@ export default function ChartArea({
   const toolbarClass = drawingToolbarOverlay
     ? 'acg-mobile-reference-drawing-rail mx-0.5 my-1 flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto rounded-[8px] border border-white/[0.08] bg-[#071019] py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
     : focusMode || embedded
-      ? 'flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto bg-transparent py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+      ? desktopEnhanced
+        ? 'flex min-h-0 flex-col items-center gap-1 overflow-y-auto border-r border-white/[0.05] bg-[#070809] py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+        : 'flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto bg-transparent py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
       : 'flex min-h-0 flex-col items-center gap-0.5 bg-transparent py-1';
 
   return (
@@ -750,7 +752,7 @@ export default function ChartArea({
         <aside className={toolbarClass} aria-label="Drawing tools">
           {visibleToolGroups.map((group, groupIndex) => (
             <React.Fragment key={groupIndex}>
-              {groupIndex > 0 && <div className="my-1 h-px w-5 shrink-0 bg-white/[0.07]" />}
+              {groupIndex > 0 && <div className={`${desktopEnhanced ? 'my-1.5 w-6' : 'my-1 w-5'} h-px shrink-0 bg-white/[0.07]`} />}
               {group.map(([id, Icon, label]) => (
                 <button
                   key={id}
@@ -764,18 +766,18 @@ export default function ChartArea({
                   aria-label={label}
                   title={label}
                   disabled={Boolean(tradePlan)}
-                  className={`acg-mobile-drawing-tool relative grid ${focusMode ? 'size-[34px]' : 'size-[32px]'} shrink-0 place-items-center rounded-md transition ${selectedTool === id ? 'acg-mobile-drawing-tool-selected bg-[#10202a] text-[#195be1] ring-1 ring-inset ring-[#195be1]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:cursor-not-allowed disabled:opacity-30`}
+                  className={`acg-mobile-drawing-tool relative grid ${desktopEnhanced ? 'size-[40px]' : focusMode ? 'size-[34px]' : 'size-[32px]'} shrink-0 place-items-center rounded-md transition ${selectedTool === id ? 'acg-mobile-drawing-tool-selected bg-[#10202a] text-[#195be1] ring-1 ring-inset ring-[#195be1]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:cursor-not-allowed disabled:opacity-30`}
                 >
-                  <Icon size={focusMode ? 17 : 16} strokeWidth={1.75} />
+                  <Icon size={desktopEnhanced ? 19 : focusMode ? 17 : 16} strokeWidth={desktopEnhanced ? 1.8 : 1.75} />
                 </button>
               ))}
             </React.Fragment>
           ))}
-          <div className="my-1 h-px w-5 shrink-0 bg-white/[0.07]" />
-          <button type="button" onClick={() => setShowDrawings(value => !value)} className={`relative grid ${focusMode ? 'size-[34px]' : 'size-[32px]'} shrink-0 place-items-center rounded-md transition ${showDrawings ? 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]' : 'bg-[#10202a] text-[#195be1]'}`} title={showDrawings ? 'Hide all drawings' : 'Show all drawings'}>{showDrawings ? <Eye size={14}/> : <EyeOff size={14}/>}<span className="absolute bottom-0.5 right-0.5 min-w-3 rounded bg-black/75 px-0.5 text-center text-[6px] font-black leading-3 text-[#72879a]">{drawingCount}</span></button>
-          <button type="button" onClick={cycleDrawingSnap} disabled={Boolean(tradePlan)} className={`relative grid ${focusMode ? 'size-[34px]' : 'size-[32px]'} shrink-0 place-items-center rounded-md transition ${drawingSnap !== 'off' ? 'bg-[#10202a] text-[#195be1]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:opacity-30`} title={drawingSnap === 'off' ? 'Magnet off — click for weak OHLC snapping' : drawingSnap === 'weak' ? 'Weak OHLC magnet — click for strong' : 'Strong OHLC magnet — click to turn off'}><Magnet size={15}/>{drawingSnap !== 'off' && <span className="absolute bottom-0.5 right-1 text-[6px] font-black leading-none text-[#195be1]">{drawingSnap === 'strong' ? 'S' : 'W'}</span>}</button>
-          <button type="button" onClick={() => setLockAllDrawings(value => !value)} disabled={Boolean(tradePlan)} className={`grid ${focusMode ? 'size-[34px]' : 'size-[32px]'} shrink-0 place-items-center rounded-md transition ${lockAllDrawings ? 'bg-[#10202a] text-[#195be1]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:opacity-30`} title={lockAllDrawings ? 'Unlock drawing movement' : 'Lock all drawing movement'}>{lockAllDrawings ? <Lock size={14}/> : <Unlock size={14}/>}</button>
-          <button type="button" onClick={() => setKeepDrawingTool(value => !value)} disabled={Boolean(tradePlan) || selectedTool === 'cursor'} className={`relative grid ${focusMode ? 'size-[34px]' : 'size-[32px]'} shrink-0 place-items-center rounded-md transition ${keepDrawingTool ? 'bg-[#10202a] text-[#195be1]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:opacity-25`} title="Keep selected drawing tool active"><Pin size={14}/>{keepDrawingTool && <span className="absolute bottom-1 right-1 size-1 rounded-full bg-[#195be1]"/>}</button>
+          <div className={`${desktopEnhanced ? 'my-1.5 w-6' : 'my-1 w-5'} h-px shrink-0 bg-white/[0.07]`} />
+          <button type="button" onClick={() => setShowDrawings(value => !value)} className={`relative grid ${desktopEnhanced ? 'size-[40px]' : focusMode ? 'size-[34px]' : 'size-[32px]'} shrink-0 place-items-center rounded-md transition ${showDrawings ? 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]' : 'bg-[#10202a] text-[#195be1]'}`} title={showDrawings ? 'Hide all drawings' : 'Show all drawings'}>{showDrawings ? <Eye size={desktopEnhanced ? 18 : 14}/> : <EyeOff size={desktopEnhanced ? 18 : 14}/>}<span className="absolute bottom-0.5 right-0.5 min-w-3 rounded bg-black/75 px-0.5 text-center text-[6px] font-black leading-3 text-[#72879a]">{drawingCount}</span></button>
+          <button type="button" onClick={cycleDrawingSnap} disabled={Boolean(tradePlan)} className={`relative grid ${desktopEnhanced ? 'size-[40px]' : focusMode ? 'size-[34px]' : 'size-[32px]'} shrink-0 place-items-center rounded-md transition ${drawingSnap !== 'off' ? 'bg-[#10202a] text-[#195be1]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:opacity-30`} title={drawingSnap === 'off' ? 'Magnet off — click for weak OHLC snapping' : drawingSnap === 'weak' ? 'Weak OHLC magnet — click for strong' : 'Strong OHLC magnet — click to turn off'}><Magnet size={desktopEnhanced ? 18 : 15}/>{drawingSnap !== 'off' && <span className="absolute bottom-0.5 right-1 text-[6px] font-black leading-none text-[#195be1]">{drawingSnap === 'strong' ? 'S' : 'W'}</span>}</button>
+          <button type="button" onClick={() => setLockAllDrawings(value => !value)} disabled={Boolean(tradePlan)} className={`grid ${desktopEnhanced ? 'size-[40px]' : focusMode ? 'size-[34px]' : 'size-[32px]'} shrink-0 place-items-center rounded-md transition ${lockAllDrawings ? 'bg-[#10202a] text-[#195be1]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:opacity-30`} title={lockAllDrawings ? 'Unlock drawing movement' : 'Lock all drawing movement'}>{lockAllDrawings ? <Lock size={desktopEnhanced ? 18 : 14}/> : <Unlock size={desktopEnhanced ? 18 : 14}/>}</button>
+          <button type="button" onClick={() => setKeepDrawingTool(value => !value)} disabled={Boolean(tradePlan) || selectedTool === 'cursor'} className={`relative grid ${desktopEnhanced ? 'size-[40px]' : focusMode ? 'size-[34px]' : 'size-[32px]'} shrink-0 place-items-center rounded-md transition ${keepDrawingTool ? 'bg-[#10202a] text-[#195be1]' : 'text-[#77838f] hover:bg-white/[0.055] hover:text-[#eef3f7]'} disabled:opacity-25`} title="Keep selected drawing tool active"><Pin size={desktopEnhanced ? 18 : 14}/>{keepDrawingTool && <span className="absolute bottom-1 right-1 size-1 rounded-full bg-[#195be1]"/>}</button>
         </aside>
       )}
 
