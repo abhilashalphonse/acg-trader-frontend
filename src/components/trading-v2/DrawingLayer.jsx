@@ -1060,7 +1060,7 @@ export default function DrawingLayer({
       </svg>
 
       {showHistoryControls && (
-        <div className="acg-mobile-history-controls pointer-events-auto absolute bottom-9 left-2 z-20 flex h-8 items-center overflow-hidden rounded-md border border-white/[0.08] bg-[#080808]/94 shadow-xl backdrop-blur-sm">
+        <div className="acg-mobile-history-controls pointer-events-auto absolute bottom-9 left-2 z-20 flex h-8 items-center overflow-hidden rounded-md border border-white/[0.08] bg-[#080808]/94 shadow-xl backdrop-blur-sm lg:bottom-8 lg:left-auto lg:right-[124px]">
           <button type="button" disabled={!canUndo} onClick={undo} className="grid size-8 place-items-center text-[#8194a7] hover:bg-white/[0.04] hover:text-white disabled:opacity-25" title="Undo (Ctrl/Cmd+Z)"><RotateCcw size={13}/></button>
           <button type="button" disabled={!canRedo} onClick={redo} className="grid size-8 place-items-center border-l border-white/[0.07] text-[#8194a7] hover:bg-white/[0.04] hover:text-white disabled:opacity-25" title="Redo (Ctrl/Cmd+Shift+Z)"><RotateCw size={13}/></button>
         </div>
@@ -1200,7 +1200,7 @@ export default function DrawingLayer({
         <button
           type="button"
           onClick={() => commit(current => current.map(item => ({ ...item, hidden: false })))}
-          className="pointer-events-auto absolute bottom-9 left-[78px] z-20 flex h-8 items-center gap-1.5 rounded-md border border-white/[0.08] bg-[#080808]/94 px-2.5 text-[8px] font-semibold text-[#8194a7] shadow-xl hover:text-white"
+          className="pointer-events-auto absolute bottom-9 left-[78px] z-20 flex h-8 items-center gap-1.5 rounded-md border border-white/[0.08] bg-[#080808]/94 px-2.5 text-[8px] font-semibold text-[#8194a7] shadow-xl hover:text-white lg:bottom-8 lg:left-auto lg:right-[196px]"
           title="Show hidden drawings"
         >
           <Eye size={12}/>Show hidden
