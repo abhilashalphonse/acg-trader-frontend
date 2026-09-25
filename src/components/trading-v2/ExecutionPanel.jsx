@@ -97,6 +97,13 @@ export default function ExecutionPanel({
   account = {},
   mobileDocked = false,
   riskContent = null,
+  selectedPosition = null,
+  positionProtectionAvailable = false,
+  positionProtectionDraft = null,
+  onBeginPositionProtection = () => {},
+  onApplyPositionProtection = () => {},
+  onCancelPositionProtection = () => {},
+  positionProtectionSaving = false,
 }) {
   const [internalLots, setInternalLots] = useState(0.10);
   const [lotInput, setLotInput] = useState('0.10');
@@ -212,6 +219,18 @@ export default function ExecutionPanel({
         ? `Minimum ${Number(market?.minVolume || 0).toFixed(2)} lots exceeds the selected risk`
         : null;
   const marketHint = !exposureAllowed ? exposureBlockReason : !riskModeSupported ? 'Risk % sizing requires the instrument P&L currency to match the account currency' : riskConstraintHint || (!planValidation.valid ? planValidation.message : (market?.sessionOpen === false ? 'Session closed' : market?.isStale ? 'Quote stale' : !executableQuote ? 'Waiting for quote' : orderType === 'market' ? (sizingMode === 'risk' ? 'Tap Buy/Sell' : `${spreadPips?.toFixed(1) ?? '—'} pips`) : 'Tap side to place on chart'));
+
+  const protectionTargetSymbol = String(positionProtectionDraft?.symbol || selectedPosition?.symbol || market?.symbol || '').toUpperCase();
+  const protectionTargetSide = String(positionProtectionDraft?.side || selectedPosition?.side || '').toUpperCase();
+  const protectionTargetLots = Number(positionProtectionDraft?.manualLots ?? selectedPosition?.volume ?? selectedPosition?.lots);
+  const hasDraftStopLoss = Number.isFinite(Number(positionProtectionDraft?.sl)) && Number(positionProtectionDraft?.sl) > 0;
+  const hasDraftTakeProfit = Number.isFinite(Number(positionProtectionDraft?.tp)) && Number(positionProtectionDraft?.tp) > 0;
+  const protectionActiveField = positionProtectionDraft?.activeField || null;
+  const protectionTargetText = [
+    protectionTargetSymbol,
+    protectionTargetSide,
+    Number.isFinite(protectionTargetLots) && protectionTargetLots > 0 ? `${formatLots(protectionTargetLots)} lot` : null,
+  ].filter(Boolean).join(' · ');
 
   const clickSide = side => {
     if (!canSubmitExposure || !market?.symbol) return;
@@ -563,6 +582,31 @@ export default function ExecutionPanel({
   const compactControls = (
     <>
       {sizingPicker}{orderPicker}
+      {!desktopSidebar && !tradePlan && positionProtectionAvailable && (
+        <div className="mb-1.5 flex min-h-8 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => onBeginPositionProtection('sl')}
+            className={`flex h-8 min-w-[62px] items-center justify-center gap-1 rounded-md border px-2 text-[8px] font-bold ${protectionActiveField === 'sl' || hasDraftStopLoss ? 'border-[#5b252e] bg-[#160b0e] text-[#ff6f7a]' : 'border-white/[0.08] bg-black text-[#8f9aa5]'}`}
+          >
+            <CircleMinus size={12}/>SL
+          </button>
+          <button
+            type="button"
+            onClick={() => onBeginPositionProtection('tp')}
+            className={`flex h-8 min-w-[62px] items-center justify-center gap-1 rounded-md border px-2 text-[8px] font-bold ${protectionActiveField === 'tp' || hasDraftTakeProfit ? 'border-[#245b48] bg-[#071710] text-[#42d7a2]' : 'border-white/[0.08] bg-black text-[#8f9aa5]'}`}
+          >
+            <Target size={12}/>TP
+          </button>
+          <span className="min-w-0 flex-1 truncate font-mono text-[7px] text-[#6f7d88]">{protectionTargetText || 'Select a position on the chart'}</span>
+          {positionProtectionDraft && (
+            <>
+              <button type="button" disabled={positionProtectionSaving} onClick={onCancelPositionProtection} className="h-8 shrink-0 rounded-md px-2 text-[8px] font-bold text-[#8f9aa5] disabled:opacity-40">Cancel</button>
+              <button type="button" disabled={positionProtectionSaving} onClick={() => void onApplyPositionProtection()} className="flex h-8 shrink-0 items-center gap-1 rounded-md border border-[#245f4a] bg-[#071710] px-2 text-[8px] font-black text-[#42d7a2] disabled:opacity-45"><Check size={11}/>{positionProtectionSaving ? 'Saving' : 'Apply'}</button>
+            </>
+          )}
+        </div>
+      )}
       <div className="mb-1.5 flex items-center gap-1.5">
         <button type="button" onClick={() => setOrderPickerOpen(v => !v)} className="flex h-7 items-center gap-1 rounded-lg border border-white/[0.08] bg-black px-2.5 text-[8px] font-extrabold text-[#9cb0c3]">{orderTypes.find(([id]) => id === orderType)?.[1]} <ChevronDown size={10}/></button>
         <span className="text-[8px] text-[#60758a]">{orderType === 'market' ? 'Server market execution' : 'Server pending order'}</span>
@@ -658,10 +702,11 @@ export default function ExecutionPanel({
 
             <button
               type="button"
-              disabled
-              className="acg-mobile-order-control acg-mobile-protection-control flex min-w-0 items-center justify-center gap-1 rounded-[7px] px-1 text-[10px] font-bold text-[#77838f]"
-              aria-label="Stop loss becomes available after choosing Buy or Sell"
-              title="Choose Buy or Sell to set stop loss"
+              disabled={!positionProtectionAvailable}
+              onClick={() => onBeginPositionProtection('sl')}
+              className={`acg-mobile-order-control acg-mobile-protection-control flex min-w-0 items-center justify-center gap-1 rounded-[7px] px-1 text-[10px] font-bold ${protectionActiveField === 'sl' || hasDraftStopLoss ? 'text-[#ff6f7a]' : positionProtectionAvailable ? 'text-[#b6c0cd]' : 'text-[#77838f]'} disabled:cursor-not-allowed disabled:opacity-45`}
+              aria-label="Add or edit stop loss for the selected open position"
+              title={positionProtectionAvailable ? 'Add or edit stop loss on the chart' : 'No open position on this chart'}
             >
               <CircleMinus size={15} strokeWidth={1.8}/>
               <span>SL</span>
@@ -669,10 +714,11 @@ export default function ExecutionPanel({
 
             <button
               type="button"
-              disabled
-              className="acg-mobile-order-control acg-mobile-protection-control flex min-w-0 items-center justify-center gap-1 rounded-[7px] px-1 text-[10px] font-bold text-[#77838f]"
-              aria-label="Take profit becomes available after choosing Buy or Sell"
-              title="Choose Buy or Sell to set take profit"
+              disabled={!positionProtectionAvailable}
+              onClick={() => onBeginPositionProtection('tp')}
+              className={`acg-mobile-order-control acg-mobile-protection-control flex min-w-0 items-center justify-center gap-1 rounded-[7px] px-1 text-[10px] font-bold ${protectionActiveField === 'tp' || hasDraftTakeProfit ? 'text-[#42d7a2]' : positionProtectionAvailable ? 'text-[#b6c0cd]' : 'text-[#77838f]'} disabled:cursor-not-allowed disabled:opacity-45`}
+              aria-label="Add or edit take profit for the selected open position"
+              title={positionProtectionAvailable ? 'Add or edit take profit on the chart' : 'No open position on this chart'}
             >
               <Target size={15} strokeWidth={1.8}/>
               <span>TP</span>
@@ -687,6 +733,19 @@ export default function ExecutionPanel({
               <Calculator size={17} strokeWidth={1.8}/>
             </button>
           </div>
+
+          {positionProtectionDraft && (
+            <div className="mt-1.5 flex min-h-8 items-center gap-2 rounded-[7px] border border-white/[0.08] bg-black/35 px-2">
+              <div className="min-w-0 flex-1">
+                <b className="block truncate text-[8px] font-bold text-[#dce4eb]">{protectionTargetText || 'Open position'}</b>
+                <span className="block truncate text-[7px] text-[#71808e]">Drag the draft {protectionActiveField === 'tp' ? 'TP' : protectionActiveField === 'sl' ? 'SL' : 'SL / TP'} line on the chart, then apply.</span>
+              </div>
+              <button type="button" disabled={positionProtectionSaving} onClick={onCancelPositionProtection} className="h-7 shrink-0 rounded px-2 text-[8px] font-bold text-[#8f9aa5] disabled:opacity-40">Cancel</button>
+              <button type="button" disabled={positionProtectionSaving} onClick={() => void onApplyPositionProtection()} className="flex h-7 shrink-0 items-center gap-1 rounded border border-[#245f4a] bg-[#071710] px-2 text-[8px] font-black text-[#42d7a2] disabled:opacity-45">
+                <Check size={11}/>{positionProtectionSaving ? 'Saving' : 'Apply'}
+              </button>
+            </div>
+          )}
 
           <div className="my-2 h-px bg-white/[0.08]" aria-hidden="true"/>
 
