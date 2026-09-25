@@ -1651,7 +1651,7 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
 
   .acg-mobile-reference-drawing-rail{
     background:#08090b!important;
-    border-color:var(--acg-mobile-border-soft)!important;
+    border-color:rgba(255,255,255,.03)!important;
   }
 
   .acg-mobile-reference-drawing-rail .acg-mobile-drawing-tool-selected{
