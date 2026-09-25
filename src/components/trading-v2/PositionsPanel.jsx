@@ -3,6 +3,8 @@ import {
   Check,
   Copy,
   MoreHorizontal,
+  MoreVertical,
+  Maximize2,
   Minus,
   Plus,
   ShieldCheck,
@@ -239,6 +241,31 @@ export default function PositionsPanel({
     setDesktopActionsOpen(false);
   };
 
+  const cancelAllPendingOrders = async () => {
+    if (!pendingOrders.length) return;
+    await Promise.allSettled(
+      pendingOrders.map(order => Promise.resolve(onCancelPending(order.id))),
+    );
+  };
+
+  const closeEverything = async () => {
+    await Promise.resolve(onCloseAll());
+    await cancelAllPendingOrders();
+  };
+
+  const togglePositionsFullscreen = async event => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen?.();
+        return;
+      }
+      const panel = event.currentTarget.closest('section');
+      await panel?.requestFullscreen?.();
+    } catch {
+      // Fullscreen is a convenience control; leave the dock usable if the browser blocks it.
+    }
+  };
+
   return (
     <section className={`${desktopDense ? 'acg-desktop-positions h-full overflow-auto' : 'mt-3 overflow-visible'} border-y border-white/[0.06] bg-black`}>
       {desktopDense ? (
@@ -246,7 +273,7 @@ export default function PositionsPanel({
           <div className="flex h-full min-w-0 items-stretch gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {tabs.map(item => (
               <button key={item.id} type="button" onClick={() => setTab(item.id)} className={`relative flex h-full shrink-0 items-center gap-1.5 px-2 text-[10px] font-bold ${tab === item.id ? 'text-[#F4F6F8]' : 'text-[#7B8792] hover:text-[#C7D0D8]'}`}>
-                <span>{item.label}</span>
+                <span>{item.id === 'orders' ? 'Pending' : item.label}</span>
                 <span className="grid min-w-5 place-items-center rounded-md bg-[#14171B] px-1.5 py-0.5 text-[9px] font-black text-[#C2CBD3]">{counts[item.id]}</span>
                 {tab === item.id && <span className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-[#195be1]" />}
               </button>
@@ -273,19 +300,59 @@ export default function PositionsPanel({
               </div>
             </div>
 
-            {tab === 'positions' && (
-              <div className="relative flex shrink-0 items-center gap-1">
-                <button type="button" onClick={() => setDesktopActionsOpen(value => !value)} disabled={!positions.length} className="flex h-8 items-center gap-1.5 rounded-md border border-white/[0.09] bg-[#0B0D10] px-2.5 text-[9px] font-semibold text-[#B3BEC8] hover:bg-white/[0.03] disabled:opacity-35"><MoreHorizontal size={12}/>Manage</button>
+            <div className="flex shrink-0 items-center gap-1">
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setDesktopActionsOpen(value => !value)}
+                  className="grid size-8 place-items-center rounded-md border border-white/[0.09] bg-[#0B0D10] text-[#8C99A5] hover:bg-white/[0.03] hover:text-white"
+                  title="Position actions"
+                  aria-label="Position actions"
+                >
+                  <MoreVertical size={15}/>
+                </button>
                 {desktopActionsOpen && (
-                  <div className="absolute right-0 top-10 z-50 w-[190px] rounded-md border border-white/[0.10] bg-[#0a0a0a] p-1 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
-                    <button type="button" onClick={() => confirmDesktopBulk('Close all winning positions?', onCloseWinners)} className="w-full rounded px-2 py-2 text-left text-[8px] font-bold text-[#46d9a6] hover:bg-white/[0.03]">Close winners</button>
-                    <button type="button" onClick={() => confirmDesktopBulk('Close all losing positions?', onCloseLosers)} className="w-full rounded px-2 py-2 text-left text-[8px] font-bold text-[#ff747f] hover:bg-white/[0.03]">Close losers</button>
-                    {activeSymbol && <button type="button" onClick={() => confirmDesktopBulk(`Close every open ${formatSymbol(activeSymbol)} position?`, () => onCloseSymbol(activeSymbol))} className="w-full rounded px-2 py-2 text-left text-[8px] font-bold text-[#9fb1c1] hover:bg-white/[0.03]">Close all {formatSymbol(activeSymbol)}</button>}
-                    <div className="my-1 border-t border-white/[0.06]"/>
-                    <button type="button" onClick={() => confirmDesktopBulk('Close every open position?', onCloseAll)} className="flex w-full items-center gap-1.5 rounded px-2 py-2 text-left text-[8px] font-black text-[#ff747f] hover:bg-[#18090d]"><Trash2 size={11}/>Close all positions</button>
+                  <div className="absolute right-0 top-10 z-50 w-[210px] rounded-lg border border-white/[0.10] bg-[#0A0C0F] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+                    <button
+                      type="button"
+                      disabled={!positions.length && !pendingOrders.length}
+                      onClick={() => confirmDesktopBulk('Close all open positions and pending orders?', () => { void closeEverything(); })}
+                      className="flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-[9px] font-bold text-[#E6EDF3] hover:bg-white/[0.04] disabled:opacity-35"
+                    >
+                      <span>Close all</span>
+                      <span className="text-[8px] font-semibold text-[#687784]">{positions.length + pendingOrders.length}</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!positions.length}
+                      onClick={() => confirmDesktopBulk('Close every open position?', onCloseAll)}
+                      className="flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-[9px] font-semibold text-[#AEB8C1] hover:bg-white/[0.04] disabled:opacity-35"
+                    >
+                      <span>Open positions · Close</span>
+                      <span className="text-[8px] font-semibold text-[#687784]">{positions.length}</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!pendingOrders.length}
+                      onClick={() => confirmDesktopBulk('Cancel every pending order?', () => { void cancelAllPendingOrders(); })}
+                      className="flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-[9px] font-semibold text-[#AEB8C1] hover:bg-white/[0.04] disabled:opacity-35"
+                    >
+                      <span>Pending orders · Close</span>
+                      <span className="text-[8px] font-semibold text-[#687784]">{pendingOrders.length}</span>
+                    </button>
                   </div>
                 )}
               </div>
+              <button
+                type="button"
+                onClick={togglePositionsFullscreen}
+                className="grid size-8 place-items-center rounded-md border border-white/[0.09] bg-[#0B0D10] text-[#8C99A5] hover:bg-white/[0.03] hover:text-white"
+                title="Fullscreen positions"
+                aria-label="Fullscreen positions"
+              >
+                <Maximize2 size={14}/>
+              </button>
+            </div>
             )}
           </div>
         </div>
