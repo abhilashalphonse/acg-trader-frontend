@@ -25,6 +25,7 @@ import { calculateIndicatorData, indicatorVisibleOnTimeframe, requiredIndicatorH
 import { instrumentDigits, instrumentTickSize } from '../utils/instrumentFormatting.js';
 import { drawingBarsBetween, drawingTimeToLogical, logicalToDrawingTime } from '../utils/drawingCoordinates.js';
 import { ArrowRight, Eye, EyeOff, Settings2, X } from 'lucide-react';
+import ACGStartupLoader from './ACGStartupLoader.jsx';
 
 const chartTokens = {
   background: '#09090b',
@@ -134,6 +135,8 @@ export default function TradingChart({
   const historyRecoveryRevision = Number(market?.historyRecoveryRevision || 0);
   const previousHistoryRecoveryRevisionRef = useRef(historyRecoveryRevision);
   const [error, setError] = useState('');
+  const chartRequestKey = `${String(symbol || '').toUpperCase()}:${timeframe}:${chartMode}`;
+  const [readyKey, setReadyKey] = useState(null);
   const [displayBar, setDisplayBar] = useState(null);
   const [paneLayout, setPaneLayout] = useState([]);
   const [isAtRealtime, setIsAtRealtime] = useState(true);
@@ -305,6 +308,7 @@ export default function TradingChart({
 
   useEffect(() => {
     if (!hostRef.current) return undefined;
+    setReadyKey(null);
     const host = hostRef.current;
     const initialRect = host.getBoundingClientRect();
     const initialWidth = Math.max(1, Math.floor(initialRect.width || host.clientWidth || 1));
@@ -323,6 +327,7 @@ export default function TradingChart({
     chartRef.current = chart;
 
     let resizeFrame = null;
+    let revealFrame = null;
     let resizeSettleTimers = [];
     let mobileRealtimeTimers = [];
 
@@ -628,9 +633,13 @@ export default function TradingChart({
         // still in live-follow mode so a late resize cannot strand the latest
         // candles outside the visible viewport. Desktop behavior is untouched.
         settleMobileRealtimeViewport();
+        revealFrame = window.requestAnimationFrame(() => {
+          if (!disposed && chartRef.current === chart) setReadyKey(chartRequestKey);
+        });
       } catch (e) {
         if (e?.name === 'AbortError' || disposed) return;
         console.error('Trading chart data failed', e);
+        setReadyKey(null);
         setError(e?.message || 'Unable to load market data');
       }
     })();
@@ -658,7 +667,9 @@ export default function TradingChart({
       mobileRealtimeTimers.forEach(timer => window.clearTimeout(timer));
       mobileRealtimeTimers = [];
       if (resizeFrame != null) window.cancelAnimationFrame(resizeFrame);
+      if (revealFrame != null) window.cancelAnimationFrame(revealFrame);
       resizeFrame = null;
+      revealFrame = null;
       chartRef.current = null;
       seriesRef.current = null;
       volumeRef.current = null;
@@ -1003,6 +1014,7 @@ export default function TradingChart({
 
   return <div className="relative size-full min-h-0 min-w-0 overflow-hidden bg-black">
     <div ref={hostRef} className="absolute inset-0" />
+    {readyKey !== chartRequestKey && !error && <ACGStartupLoader canvas />}
     <div className={mobileReference
       ? "acg-mobile-chart-info pointer-events-none absolute left-3 top-3 z-20 max-w-[78%] text-[#9ba8b6] [text-shadow:0_1px_2px_#000,0_0_8px_#000]"
       : "pointer-events-none absolute left-2.5 top-2.5 z-20 max-w-[72%] px-1 text-[11px] leading-[1.45] text-[#8E99A5] [text-shadow:0_1px_2px_#000,0_0_6px_#000]"
