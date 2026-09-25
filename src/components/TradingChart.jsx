@@ -104,6 +104,7 @@ export default function TradingChart({
   showAttributionLogo = true,
   desktopEnhanced = false,
   compactContext = false,
+  layoutRevision = '',
   onToggleIndicator = () => {},
   onOpenIndicatorSettings = () => {},
   onRemoveIndicator = () => {},
@@ -689,6 +690,34 @@ export default function TradingChart({
       chart.remove();
     };
   }, [symbol, timeframe, chartMode, renderIndicators, decimals, minMove, historyLimit, historyProfile.max, historyProfile.page, setRealtimeTracking, chartRightBars, mobileReference, showAttributionLogo, compactContext]);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    const host = hostRef.current;
+    if (!chart || !host || typeof window === 'undefined') return undefined;
+
+    let frame = null;
+    const timers = [];
+    const remeasure = () => {
+      if (!host.isConnected || chartRef.current !== chart) return;
+      const rect = host.getBoundingClientRect();
+      const width = Math.max(1, Math.floor(rect.width || host.clientWidth || 0));
+      const height = Math.max(1, Math.floor(rect.height || host.clientHeight || 0));
+      if (width <= 1 || height <= 1) return;
+      chart.resize(width, height, true);
+    };
+    const schedule = () => {
+      if (frame != null) window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(remeasure);
+    };
+
+    schedule();
+    [50, 140, 280].forEach(delay => timers.push(window.setTimeout(schedule, delay)));
+    return () => {
+      if (frame != null) window.cancelAnimationFrame(frame);
+      timers.forEach(timer => window.clearTimeout(timer));
+    };
+  }, [layoutRevision]);
 
   useEffect(() => { indicatorsRef.current = indicators; if (chartRef.current && barsRef.current.length) renderIndicators(chartRef.current, barsRef.current); }, [indicators, renderIndicators]);
 
