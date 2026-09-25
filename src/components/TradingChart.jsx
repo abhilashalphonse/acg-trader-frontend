@@ -1109,7 +1109,7 @@ export default function TradingChart({
         </div>
       )}
     </div>
-    {!isAtRealtime && !error && (
+    {!desktopEnhanced && !isAtRealtime && !error && (
       <button
         type="button"
         onClick={returnToLive}
