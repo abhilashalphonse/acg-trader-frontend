@@ -1523,6 +1523,11 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
     column-gap:0!important;
   }
 
+  .acg-mobile-reference-chart-area.acg-mobile-chart-surface.acg-mobile-reference-chart-area--with-drawing-rail{
+    grid-template-columns:34px minmax(0,1fr)!important;
+    column-gap:0!important;
+  }
+
   .acg-mobile-reference-drawing-rail{
     width:34px!important;
     margin:4px 0!important;
