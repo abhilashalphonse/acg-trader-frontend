@@ -794,13 +794,14 @@ export default function TradingChart({
     };
   }, [showIndicatorControls]);
   useEffect(() => {
-    volumeRef.current?.applyOptions({ visible: showVolume });
+    const effectiveShowVolume = !compactContext && showVolume;
+    volumeRef.current?.applyOptions({ visible: effectiveShowVolume });
     chartRef.current?.priceScale('right').applyOptions({
       scaleMargins: mobileReference
-        ? { top: 0.085, bottom: showVolume ? 0.16 : 0.09 }
-        : { top: 0.045, bottom: showVolume ? 0.205 : 0.07 },
+        ? { top: 0.085, bottom: effectiveShowVolume ? 0.16 : 0.09 }
+        : { top: 0.045, bottom: effectiveShowVolume ? 0.205 : 0.07 },
     });
-  }, [chartMode, mobileReference, showVolume, symbol, timeframe]);
+  }, [chartMode, compactContext, mobileReference, showVolume, symbol, timeframe]);
   useEffect(() => {
     const series = seriesRef.current;
     if (!series) return;
