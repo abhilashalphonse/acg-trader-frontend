@@ -1,174 +1,90 @@
-import React, { useMemo, useState } from 'react';
-import { Check, ChevronDown, ChevronUp, Search, Settings2, Star, Trash2 } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, Check, Eye, EyeOff, Plus, Search, Settings2, SlidersHorizontal, Star, Trash2, X } from 'lucide-react';
 import { INDICATOR_LIBRARY } from '../../utils/indicators.js';
+import { INDICATOR_DETAILS, searchIndicators, settingsForSave, validateIndicatorSettings } from '../../utils/chartToolSettings.js';
+import { LineStyleEditor, TimeframeEditor, ToolField, ToolTabs } from './ChartToolControls.jsx';
 
 const categories = ['All', 'Favorites', 'Trend', 'Momentum', 'Volatility', 'Volume'];
-
-function summary(indicator) {
-  const s = indicator.settings || {};
-  if (indicator.id === 'ema' || indicator.id === 'sma') return `${s.period || 20}`;
-  if (indicator.id === 'rsi' || indicator.id === 'atr') return `${s.period || 14}`;
-  if (indicator.id === 'bollinger') return `${s.period || 20}, ${s.deviation || 2}`;
-  if (indicator.id === 'macd') return `${s.fast || 12}, ${s.slow || 26}, ${s.signal || 9}`;
-  if (indicator.id === 'stochastic') return `${s.kPeriod || 14}, ${s.dPeriod || 3}`;
-  return '';
+const sources = [['close', 'Close'], ['open', 'Open'], ['high', 'High'], ['low', 'Low'], ['hl2', 'HL2 · (high + low) / 2'], ['hlc3', 'HLC3 · typical price'], ['ohlc4', 'OHLC4 · average price']];
+function summary({ id, settings: s = {} }) {
+  if (id === 'macd') return `${s.fast} / ${s.slow} / ${s.signal}`;
+  if (id === 'stochastic') return `${s.kPeriod} / ${s.dPeriod}`;
+  if (id === 'bollinger') return `${s.period} / ${s.deviation}`;
+  return s.period ? `${s.period} · ${s.source || 'bars'}` : id === 'vwap' ? s.sessionReset : 'Data feed volume';
 }
 
-export default function IndicatorManager({
-  applied = [],
-  favorites = [],
-  onAdd = () => {},
-  onRemove = () => {},
-  onToggleVisible = () => {},
-  onUpdate = () => {},
-  onToggleFavorite = () => {},
-  focusInstanceId = null,
-  desktop = false,
-}) {
+export default function IndicatorManager({ applied = [], favorites = [], onAdd = () => {}, onRemove = () => {}, onToggleVisible = () => {}, onUpdate = () => {}, onToggleFavorite = () => {}, focusInstanceId = null, onClearFocus = () => {} }) {
   const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('Favorites');
-  const [editingId, setEditingId] = useState(null);
-
-  React.useEffect(() => {
-    if (focusInstanceId && applied.some(item => item.instanceId === focusInstanceId)) {
-      setEditingId(focusInstanceId);
-    }
-  }, [applied, focusInstanceId]);
-
-  const available = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return INDICATOR_LIBRARY.filter(item => {
-      if (category === 'Favorites' && !favorites.includes(item.id)) return false;
-      if (!['All', 'Favorites'].includes(category) && item.category !== category) return false;
-      return !q || item.name.toLowerCase().includes(q) || item.id.toLowerCase().includes(q) || item.category.toLowerCase().includes(q);
-    });
-  }, [query, category, favorites]);
-
-  return (
-    <div className={desktop ? 'min-w-0' : ''}>
-      <div className="flex h-11 items-center gap-2 rounded-md border border-white/[0.08] bg-[#080808] px-3">
-        <Search size={15} className="text-[#6f8295]" />
-        <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search indicators" className="min-w-0 flex-1 bg-transparent text-[11px] text-[#eef4f8] outline-none placeholder:text-[#53677b]" />
-      </div>
-
-      {applied.length > 0 && (
-        <section className="mt-3">
-          <div className="mb-2 flex items-center justify-between px-1"><strong className="text-[9px] uppercase tracking-[0.12em] text-[#71869a]">Applied</strong><span className="text-[8px] text-[#52687b]">{applied.length}</span></div>
-          <div className="space-y-1.5">
-            {applied.map(indicator => {
-              const editing = editingId === indicator.instanceId;
-              return (
-                <div key={indicator.instanceId} className="overflow-hidden rounded-md border border-white/[0.08] bg-[#080808]">
-                  <div className="flex items-center gap-2 px-3 py-2.5">
-                    <button type="button" onClick={() => onToggleVisible(indicator.instanceId)} className={`grid size-6 shrink-0 place-items-center rounded-md border text-[10px] ${indicator.visible !== false ? 'border-white/[0.13] bg-[#101010] text-[#65cfff]' : 'border-white/[0.08] bg-[#101010] text-[#526779]'}`} aria-label="Toggle indicator visibility">{indicator.visible !== false ? <Check size={12}/> : '—'}</button>
-                    <button type="button" onClick={() => setEditingId(editing ? null : indicator.instanceId)} className="min-w-0 flex-1 text-left"><b className="block truncate text-[11px] text-[#eaf1f6]">{indicator.name}</b><span className="mt-0.5 block text-[8px] text-[#6c8094]">{summary(indicator) || 'No parameters'}</span></button>
-                    <button type="button" onClick={() => setEditingId(editing ? null : indicator.instanceId)} className="grid size-7 place-items-center rounded-lg text-[#71869a] hover:bg-white/[0.04]" aria-label="Indicator settings"><Settings2 size={14}/></button>
-                    <button type="button" onClick={() => onRemove(indicator.instanceId)} className="grid size-7 place-items-center rounded-lg text-[#8a6670] hover:bg-[#2b151b] hover:text-[#ff7280]" aria-label="Remove indicator"><Trash2 size={13}/></button>
-                    {editing ? <ChevronUp size={13} className="text-[#526a7d]"/> : <ChevronDown size={13} className="text-[#526a7d]"/>}
-                  </div>
-                  {editing && <SettingsPanel indicator={indicator} onUpdate={patch => onUpdate(indicator.instanceId, patch)} />}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      <div className={`${desktop ? 'mt-3' : 'mt-4'} flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
-        {categories.map(item => <button key={item} type="button" onClick={() => setCategory(item)} className={`h-8 shrink-0 rounded-lg px-3 text-[9px] font-bold ${category === item ? 'border border-white/[0.13] bg-[#101010] text-[#61caff]' : 'border border-white/[0.08] bg-[#080808] text-[#71869a]'}`}>{item}</button>)}
-      </div>
-
-      <section className="mt-2 space-y-1.5">
+  const [category, setCategory] = useState('All');
+  const [view, setView] = useState('Library');
+  const [editingId, setEditingId] = useState(focusInstanceId);
+  const [notice, setNotice] = useState('');
+  const searchRef = useRef(null);
+  useEffect(() => { if (focusInstanceId) setEditingId(focusInstanceId); }, [focusInstanceId]);
+  const editing = applied.find(item => item.instanceId === editingId);
+  const available = useMemo(() => searchIndicators(INDICATOR_LIBRARY, query, category, favorites), [query, category, favorites]);
+  const closeEditor = () => { setEditingId(null); setView('On chart'); onClearFocus(); };
+  return <div className="acg-chart-tools acg-indicators">
+    {editing ? <IndicatorSettings key={editing.instanceId} indicator={editing} onCancel={closeEditor} onApply={settings => { onUpdate(editing.instanceId, settings); setNotice(`${editing.name} settings applied.`); closeEditor(); }} /> : <>
+      <div className="acg-tool-search"><Search size={17} aria-hidden="true" /><input ref={searchRef} aria-label="Search indicators" placeholder="Search indicators…" value={query} onChange={event => { setQuery(event.target.value); setView('Library'); setCategory('All'); }} />{query && <button type="button" className="acg-tool-icon" aria-label="Clear search" onClick={() => { setQuery(''); searchRef.current?.focus(); }}><X size={15} /></button>}</div>
+      <div className="acg-tool-section-heading"><ToolTabs label="Indicator view" options={['Library', 'On chart']} value={view} onChange={setView} /><span className="acg-tool-count">{applied.length} on chart</span></div>
+      {view === 'Library' ? <>
+        <div className="acg-tool-categories" role="group" aria-label="Indicator category">{categories.map(item => <button type="button" key={item} aria-pressed={category === item} onClick={() => setCategory(item)}>{item === 'Favorites' && <Star size={12} />}{item}</button>)}</div>
         {available.map(definition => {
-          const appliedCount = applied.filter(item => item.id === definition.id).length;
+          const count = applied.filter(item => item.id === definition.id).length;
           const favorite = favorites.includes(definition.id);
-          return (
-            <div key={definition.id} className="flex items-center gap-2 rounded-md border border-white/[0.08] bg-[#080808] px-3 py-2.5">
-              <button type="button" onClick={() => onToggleFavorite(definition.id)} className={`grid size-7 shrink-0 place-items-center rounded-lg ${favorite ? 'text-[#ffc95b]' : 'text-[#536a7e]'}`} aria-label={favorite ? 'Remove favorite' : 'Add favorite'}><Star size={14} fill={favorite ? 'currentColor' : 'none'}/></button>
-              <div className="min-w-0 flex-1"><b className="block truncate text-[11px] text-[#eaf1f6]">{definition.name}</b><span className="mt-0.5 block text-[8px] text-[#667b8e]">{definition.category}{appliedCount ? ` · ${appliedCount} applied` : ''}</span></div>
-              <button type="button" onClick={() => onAdd(definition.id)} className="h-8 rounded-md border border-[#245070] bg-[#101010] px-3 text-[9px] font-black text-[#62caff]">ADD</button>
-            </div>
-          );
+          const [name, description] = INDICATOR_DETAILS[definition.id];
+          return <div key={definition.id} className="acg-indicator-row">
+            <button type="button" className="acg-tool-icon acg-favorite" aria-label={`${favorite ? 'Unfavorite' : 'Favorite'} ${name}`} aria-pressed={favorite} onClick={() => onToggleFavorite(definition.id)}><Star size={16} fill={favorite ? 'currentColor' : 'none'} /></button>
+            <div className="acg-indicator-description"><strong>{name}</strong><span>{description}</span><small>{definition.id.toUpperCase()} · {definition.category}{count > 0 ? ` · ${count} on chart` : ''}</small></div>
+            <button type="button" className="acg-tool-add" aria-label={`Add ${name}`} onClick={() => { onAdd(definition.id); setNotice(`${definition.name} added to the chart.`); }}><Plus size={15} /><span>Add</span></button>
+          </div>;
         })}
-        {!available.length && <div className="grid h-24 place-items-center text-[9px] text-[#5d7286]">No indicators match this filter</div>}
-      </section>
+        {!available.length && <div className="acg-tool-empty"><Search size={24} /><strong>{category === 'Favorites' && !query ? 'Your favorites live here' : 'No matching indicators'}</strong><span>{category === 'Favorites' && !query ? 'Star an indicator to keep it close at hand.' : 'Try a name, abbreviation, or category.'}</span><button type="button" className="acg-tool-button" onClick={() => { setCategory('All'); setQuery(''); }}>Browse all indicators</button></div>}
+      </> : <>
+        <p className="acg-tool-help">Manage visibility and fine-tune each indicator independently.</p>
+        {applied.map(indicator => <div key={indicator.instanceId} className="acg-indicator-row" data-hidden={indicator.visible === false}>
+          <span className="acg-indicator-swatch" style={{ background: indicator.settings?.style?.color || '#8996a8' }} />
+          <button type="button" className="acg-indicator-edit" onClick={() => setEditingId(indicator.instanceId)}><strong>{indicator.name}</strong><span>{summary(indicator)}{indicator.visible === false ? ' · Hidden' : ''}</span></button>
+          <div className="acg-tool-actions"><button type="button" className="acg-tool-icon" aria-label={`${indicator.visible === false ? 'Show' : 'Hide'} ${indicator.name}`} onClick={() => onToggleVisible(indicator.instanceId)}>{indicator.visible === false ? <EyeOff size={16} /> : <Eye size={16} />}</button><button type="button" className="acg-tool-icon" aria-label={`Edit ${indicator.name}`} onClick={() => setEditingId(indicator.instanceId)}><Settings2 size={16} /></button><button type="button" className="acg-tool-icon acg-tool-danger" aria-label={`Remove ${indicator.name}`} onClick={() => { onRemove(indicator.instanceId); setNotice(`${indicator.name} removed.`); }}><Trash2 size={16} /></button></div>
+        </div>)}
+        {!applied.length && <div className="acg-tool-empty"><SlidersHorizontal size={24} /><strong>A clear chart, ready for your setup</strong><span>Add an indicator from the library to get started.</span><button type="button" className="acg-tool-button" onClick={() => setView('Library')}>Explore indicators</button></div>}
+      </>}
+    </>}
+    <div className="acg-tool-notice" role="status">{notice && <><Check size={14} />{notice}</>}</div>
+  </div>;
+}
+
+function IndicatorSettings({ indicator, onCancel, onApply }) {
+  const [settings, setSettings] = useState(() => structuredClone(indicator.settings));
+  const [tab, setTab] = useState('Inputs');
+  const [attempted, setAttempted] = useState(false);
+  const error = validateIndicatorSettings(indicator.id, settings);
+  const patch = value => setSettings(current => ({ ...current, ...value }));
+  const numeric = (key, label, min, max, step = 1) => <ToolField key={key} type="number" label={label} value={settings[key] ?? ''} min={min} max={max} step={step} onChange={value => patch({ [key]: value })} />;
+  const id = indicator.id;
+  return <form className="acg-tool-editor" noValidate onSubmit={event => { event.preventDefault(); setAttempted(true); if (!error) onApply(settingsForSave(settings)); }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); onCancel(); } }}>
+    <div className="acg-tool-editor-heading"><button type="button" className="acg-tool-icon" aria-label="Cancel indicator settings" onClick={onCancel}><ArrowLeft size={18} /></button><div><strong>{INDICATOR_DETAILS[id][0]}</strong><span>Indicator settings</span></div></div>
+    <ToolTabs label="Settings section" options={['Inputs', 'Style', 'Visibility']} value={tab} onChange={setTab} />
+    <div className="acg-tool-editor-body">
+      {tab === 'Inputs' && <><p className="acg-tool-help">{INDICATOR_DETAILS[id][1]}</p><div className="acg-tool-grid">
+        {['ema', 'sma'].includes(id) && numeric('period', 'Length', 1, 500)}
+        {['rsi', 'atr', 'bollinger'].includes(id) && numeric('period', 'Length', 2, 200)}
+        {id === 'bollinger' && numeric('deviation', 'Standard deviations', 0.1, 10, 0.1)}
+        {id === 'macd' && <>{numeric('fast', 'Fast length', 1, 100)}{numeric('slow', 'Slow length', 2, 200)}{numeric('signal', 'Signal smoothing', 1, 100)}</>}
+        {id === 'stochastic' && <>{numeric('kPeriod', '%K length', 2, 100)}{numeric('dPeriod', '%D smoothing', 1, 50)}</>}
+        {['ema', 'sma', 'vwap', 'bollinger', 'rsi', 'macd'].includes(id) && <ToolField label="Source" value={settings.source} onChange={source => patch({ source })} options={sources} />}
+        {id === 'vwap' && <ToolField label="Anchor / reset" value={settings.sessionReset} onChange={sessionReset => patch({ sessionReset })} options={[[ 'session', 'Instrument session'], ['utc-day', 'UTC day'], ['utc-week', 'UTC week'], ['none', 'Continuous']]} />}
+        {['rsi', 'stochastic'].includes(id) && <>{numeric('lowerGuide', 'Lower guide', 0, 100)}{numeric('upperGuide', 'Upper guide', 0, 100)}</>}
+      </div>{id === 'volume' && <p className="acg-tool-help">Volume uses the available data feed. No calculation inputs are required.</p>}</>}
+      {tab === 'Style' && <>
+        {id === 'volume' ? <p className="acg-tool-help">Volume bars follow the chart’s up and down candle colors.</p> : <LineStyleEditor label={id === 'bollinger' ? 'Outer bands' : id === 'macd' ? 'MACD' : id === 'stochastic' ? '%K' : 'Line'} value={settings.style} onChange={style => patch({ style })} />}
+        {id === 'bollinger' && <LineStyleEditor label="Basis" value={settings.midStyle} onChange={midStyle => patch({ midStyle })} />}
+        {['macd', 'stochastic'].includes(id) && <LineStyleEditor label={id === 'macd' ? 'Signal' : '%D'} value={settings.signalStyle} onChange={signalStyle => patch({ signalStyle })} />}
+      </>}
+      {tab === 'Visibility' && <TimeframeEditor value={settings.timeframeVisibility} onChange={timeframeVisibility => patch({ timeframeVisibility })} />}
     </div>
-  );
-}
-
-function NumberField({ label, value, min = 1, max = 500, step = 1, onChange }) {
-  return <label className="block"><span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">{label}</span><input type="number" min={min} max={max} step={step} value={value} onChange={event => onChange(Number(event.target.value))} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] font-semibold text-[#dbe5ed] outline-none focus:border-[#53c7ff]" /></label>;
-}
-
-function SelectField({ label, value, onChange, options }) {
-  return <label className="block"><span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">{label}</span><select value={value} onChange={event => onChange(event.target.value)} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] font-semibold text-[#dbe5ed] outline-none focus:border-[#53c7ff]">{options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
-}
-
-function StyleFields({ label = 'Line', style = {}, onChange }) {
-  const palette = ['#54c8ff', '#f0c35c', '#b38cff', '#35d79d', '#ff6673', '#d8e4ee'];
-  return (
-    <div className="rounded-md border border-white/[0.07] bg-[#0a0a0a] p-2.5">
-      <span className="mb-2 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">{label}</span>
-      <div className="flex items-center gap-1.5">
-        {palette.map(color => <button key={color} type="button" onClick={() => onChange({ ...style, color })} className={`size-5 rounded-full border-2 ${style.color === color ? 'border-white' : 'border-transparent'}`} style={{ backgroundColor: color }} aria-label={`Set ${label} color ${color}`} />)}
-      </div>
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        <SelectField label="Width" value={String(style.width || 2)} onChange={width => onChange({ ...style, width: Number(width) })} options={[1,2,3,4].map(value => ({ value: String(value), label: `${value} px` }))}/>
-        <SelectField label="Style" value={style.lineStyle || 'solid'} onChange={lineStyle => onChange({ ...style, lineStyle })} options={[{value:'solid',label:'Solid'},{value:'dashed',label:'Dashed'},{value:'dotted',label:'Dotted'}]}/>
-      </div>
-    </div>
-  );
-}
-
-const SOURCE_OPTIONS = [
-  { value: 'close', label: 'Close' },
-  { value: 'open', label: 'Open' },
-  { value: 'high', label: 'High' },
-  { value: 'low', label: 'Low' },
-  { value: 'hl2', label: 'HL2' },
-  { value: 'hlc3', label: 'HLC3' },
-  { value: 'ohlc4', label: 'OHLC4' },
-];
-
-const TIMEFRAME_OPTIONS = [
-  { value: 'all', label: 'All timeframes' },
-  { value: 'M1', label: '1 minute' },
-  { value: 'M5', label: '5 minutes' },
-  { value: 'M15', label: '15 minutes' },
-  { value: 'M30', label: '30 minutes' },
-  { value: 'H1', label: '1 hour' },
-  { value: 'H4', label: '4 hours' },
-  { value: 'D1', label: '1 day' },
-  { value: 'W1', label: '1 week' },
-];
-
-function SettingsPanel({ indicator, onUpdate }) {
-  const s = indicator.settings || {};
-  const patchStyle = (key, value) => onUpdate({ [key]: value });
-  const supportsSource = ['ema', 'sma', 'vwap', 'bollinger', 'rsi', 'macd'].includes(indicator.id);
-
-  return (
-    <div className="border-t border-white/[0.08] bg-[#080808]/70 px-3 py-3">
-      <div className="space-y-3">
-        {supportsSource && <SelectField label="Source" value={s.source || (indicator.id === 'vwap' ? 'hlc3' : 'close')} onChange={source => onUpdate({ source })} options={SOURCE_OPTIONS} />}
-
-        {['ema', 'sma'].includes(indicator.id) && <NumberField label="Period" value={s.period || 20} min={1} max={500} onChange={period => onUpdate({ period })}/>}
-        {['rsi', 'atr'].includes(indicator.id) && <NumberField label="Period" value={s.period || 14} min={2} max={200} onChange={period => onUpdate({ period })}/>}
-        {indicator.id === 'bollinger' && <div className="grid grid-cols-2 gap-2"><NumberField label="Period" value={s.period || 20} min={2} max={200} onChange={period => onUpdate({ period })}/><NumberField label="Deviation" value={s.deviation || 2} min={0.1} max={10} step={0.1} onChange={deviation => onUpdate({ deviation })}/></div>}
-        {indicator.id === 'macd' && <div className="grid grid-cols-3 gap-2"><NumberField label="Fast" value={s.fast || 12} min={1} max={100} onChange={fast => onUpdate({ fast })}/><NumberField label="Slow" value={s.slow || 26} min={2} max={200} onChange={slow => onUpdate({ slow })}/><NumberField label="Signal" value={s.signal || 9} min={1} max={100} onChange={signal => onUpdate({ signal })}/></div>}
-        {indicator.id === 'stochastic' && <div className="grid grid-cols-2 gap-2"><NumberField label="%K" value={s.kPeriod || 14} min={2} max={100} onChange={kPeriod => onUpdate({ kPeriod })}/><NumberField label="%D" value={s.dPeriod || 3} min={1} max={50} onChange={dPeriod => onUpdate({ dPeriod })}/></div>}
-
-        {indicator.id === 'vwap' && <SelectField label="Session reset" value={s.sessionReset || 'session'} onChange={sessionReset => onUpdate({ sessionReset })} options={[{value:'session',label:'Instrument session'},{value:'utc-day',label:'UTC day'},{value:'utc-week',label:'UTC week'},{value:'none',label:'Continuous'}]} />}
-
-        {indicator.id === 'rsi' && <div className="grid grid-cols-2 gap-2"><NumberField label="Lower guide" value={s.lowerGuide ?? 30} min={0} max={100} onChange={lowerGuide => onUpdate({ lowerGuide })}/><NumberField label="Upper guide" value={s.upperGuide ?? 70} min={0} max={100} onChange={upperGuide => onUpdate({ upperGuide })}/></div>}
-        {indicator.id === 'stochastic' && <div className="grid grid-cols-2 gap-2"><NumberField label="Lower guide" value={s.lowerGuide ?? 20} min={0} max={100} onChange={lowerGuide => onUpdate({ lowerGuide })}/><NumberField label="Upper guide" value={s.upperGuide ?? 80} min={0} max={100} onChange={upperGuide => onUpdate({ upperGuide })}/></div>}
-
-        {indicator.id !== 'volume' && <StyleFields label={indicator.id === 'bollinger' ? 'Outer bands' : indicator.id === 'macd' ? 'MACD line' : indicator.id === 'stochastic' ? '%K line' : 'Line'} style={s.style || {}} onChange={style => patchStyle('style', style)} />}
-        {indicator.id === 'bollinger' && <StyleFields label="Middle band" style={s.midStyle || {}} onChange={style => patchStyle('midStyle', style)} />}
-        {['macd', 'stochastic'].includes(indicator.id) && <StyleFields label={indicator.id === 'macd' ? 'Signal line' : '%D line'} style={s.signalStyle || {}} onChange={style => patchStyle('signalStyle', style)} />}
-
-        <SelectField label="Visible on" value={Array.isArray(s.timeframeVisibility) ? 'all' : (s.timeframeVisibility || 'all')} onChange={timeframeVisibility => onUpdate({ timeframeVisibility })} options={TIMEFRAME_OPTIONS} />
-      </div>
-    </div>
-  );
+    {attempted && error && <p className="acg-tool-error" role="alert">{error}</p>}
+    <div className="acg-tool-footer"><button type="button" className="acg-tool-button acg-tool-reset" onClick={() => { setSettings(structuredClone(INDICATOR_LIBRARY.find(item => item.id === id).defaults)); setAttempted(false); }}>Reset defaults</button><button type="button" className="acg-tool-button" onClick={onCancel}>Cancel</button><button type="submit" className="acg-tool-button acg-tool-primary">Apply</button></div>
+  </form>;
 }

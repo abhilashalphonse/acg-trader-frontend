@@ -1,3 +1,5 @@
+import { canonicalDrawingTimeframe, canonicalTimeframeVisibility } from './drawingTools.js';
+
 const BASE_STYLE = { color: '#53c7ff', width: 2, lineStyle: 'solid' };
 
 export const INDICATOR_LIBRARY = [
@@ -49,10 +51,11 @@ export function normalizeIndicator(indicator) {
 
 export function indicatorVisibleOnTimeframe(indicator, timeframe) {
   if (!indicator || indicator.visible === false) return false;
-  const visibility = indicator.settings?.timeframeVisibility ?? 'all';
+  const visibility = canonicalTimeframeVisibility(indicator.settings?.timeframeVisibility);
+  const active = canonicalDrawingTimeframe(timeframe);
   if (visibility === 'all' || visibility == null) return true;
-  if (Array.isArray(visibility)) return visibility.includes(timeframe);
-  return visibility === timeframe;
+  if (Array.isArray(visibility)) return visibility.includes(active);
+  return visibility === active;
 }
 
 function indicatorWarmupBars(rawIndicator) {
