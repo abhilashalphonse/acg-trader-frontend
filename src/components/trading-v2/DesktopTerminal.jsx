@@ -718,7 +718,12 @@ export default function DesktopTerminal({
           <InstrumentAvatar instrument={market} size={30}/>
           <div className="min-w-0">
             <strong className="flex items-center gap-1 text-[14px] font-extrabold tracking-[-0.025em] text-[#f3f6f8]">{market?.displaySymbol || displaySymbol(market?.symbol)}<ChevronDown size={12}/></strong>
-            <span className="mt-0.5 block truncate text-[8px] text-[#697988]">{marketLabel(market)}</span>
+            <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[8px] font-bold text-[#697988]">
+              <span className="truncate">{marketLabel(market)}</span>
+              <span className="shrink-0 text-[#697988]">
+                {market?.sessionOpen === false || String(market?.marketState || '').toUpperCase() === 'CLOSED' ? 'MARKET CLOSED' : 'MARKET OPEN'}
+              </span>
+            </span>
           </div>
         </button>
         <div className="acg-desktop-chart-toolbar flex min-w-0 shrink-0 items-center border-l border-white/[0.06] bg-transparent px-2.5">
