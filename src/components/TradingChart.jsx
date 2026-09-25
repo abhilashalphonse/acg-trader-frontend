@@ -1005,11 +1005,50 @@ export default function TradingChart({
   const overlayIndicators = visibleIndicators.filter(indicator => ['ema', 'sma', 'vwap', 'bollinger', 'volume'].includes(indicator.id));
   const paneIndicators = visibleIndicators.filter(indicator => !['ema', 'sma', 'vwap', 'bollinger', 'volume'].includes(indicator.id));
 
+  const stopIndicatorPointer = event => {
+    // Keep chart-cell activation, drawing gestures and Lightweight Charts pointer
+    // handlers from stealing indicator-toolbar interactions on desktop.
+    event.stopPropagation();
+  };
+  const runIndicatorAction = (event, action) => {
+    event.preventDefault();
+    event.stopPropagation();
+    action();
+  };
   const IndicatorActions = ({ indicator, compact = false }) => (
-    <span className="pointer-events-auto ml-1 inline-flex items-center gap-0.5 rounded bg-black/70 opacity-0 transition group-hover:opacity-100">
-      <button type="button" onClick={event => { event.stopPropagation(); onToggleIndicator(indicator.instanceId); }} className={`grid ${compact ? 'size-5' : 'size-6'} place-items-center rounded text-[#71879a] hover:bg-white/[0.06] hover:text-[#dfe9f0]`} title={indicator.visible === false ? 'Show indicator' : 'Hide indicator'}>{indicator.visible === false ? <EyeOff size={10}/> : <Eye size={10}/>}</button>
-      <button type="button" onClick={event => { event.stopPropagation(); onOpenIndicatorSettings(indicator.instanceId); }} className={`grid ${compact ? 'size-5' : 'size-6'} place-items-center rounded text-[#71879a] hover:bg-white/[0.06] hover:text-[#59c8ff]`} title="Indicator settings"><Settings2 size={10}/></button>
-      <button type="button" onClick={event => { event.stopPropagation(); onRemoveIndicator(indicator.instanceId); }} className={`grid ${compact ? 'size-5' : 'size-6'} place-items-center rounded text-[#815f68] hover:bg-[#35151d] hover:text-[#ff7380]`} title="Remove indicator"><X size={10}/></button>
+    <span
+      className="pointer-events-auto relative z-[80] ml-1 inline-flex items-center gap-0.5 rounded bg-black/80 opacity-0 transition group-hover:opacity-100"
+      onPointerDown={stopIndicatorPointer}
+      onMouseDown={stopIndicatorPointer}
+      onDoubleClick={stopIndicatorPointer}
+    >
+      <button
+        type="button"
+        onClick={event => runIndicatorAction(event, () => onToggleIndicator(indicator.instanceId))}
+        className={`grid ${compact ? 'size-5' : 'size-6'} place-items-center rounded text-[#71879a] hover:bg-white/[0.06] hover:text-[#dfe9f0] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#195be1]`}
+        title={indicator.visible === false ? 'Show indicator' : 'Hide indicator'}
+        aria-label={indicator.visible === false ? 'Show indicator' : 'Hide indicator'}
+      >
+        {indicator.visible === false ? <EyeOff size={10}/> : <Eye size={10}/>}
+      </button>
+      <button
+        type="button"
+        onClick={event => runIndicatorAction(event, () => onOpenIndicatorSettings(indicator.instanceId))}
+        className={`grid ${compact ? 'size-5' : 'size-6'} place-items-center rounded text-[#71879a] hover:bg-white/[0.06] hover:text-[#59c8ff] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#195be1]`}
+        title="Indicator settings"
+        aria-label="Indicator settings"
+      >
+        <Settings2 size={10}/>
+      </button>
+      <button
+        type="button"
+        onClick={event => runIndicatorAction(event, () => onRemoveIndicator(indicator.instanceId))}
+        className={`grid ${compact ? 'size-5' : 'size-6'} place-items-center rounded text-[#815f68] hover:bg-[#35151d] hover:text-[#ff7380] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#ff7380]`}
+        title="Remove indicator"
+        aria-label="Remove indicator"
+      >
+        <X size={10}/>
+      </button>
     </span>
   );
 
@@ -1018,7 +1057,7 @@ export default function TradingChart({
     {readyKey !== chartRequestKey && !error && <ACGStartupLoader canvas />}
     <div className={mobileReference
       ? "acg-mobile-chart-info pointer-events-none absolute left-3 top-3 z-20 max-w-[78%] text-[#9ba8b6] [text-shadow:0_1px_2px_#000,0_0_8px_#000]"
-      : "pointer-events-none absolute left-2.5 top-2.5 z-20 max-w-[72%] px-1 text-[11px] leading-[1.45] text-[#8E99A5] [text-shadow:0_1px_2px_#000,0_0_6px_#000]"
+      : "pointer-events-none absolute left-2.5 top-2.5 z-[70] max-w-[72%] px-1 text-[11px] leading-[1.45] text-[#8E99A5] [text-shadow:0_1px_2px_#000,0_0_6px_#000]"
     }>
       {mobileReference ? (
         <>
@@ -1076,7 +1115,7 @@ export default function TradingChart({
       const pane = paneLayout[index + 1];
       if (!pane || pane.height <= 0) return null;
       return (
-        <div key={indicator.instanceId} className="group pointer-events-auto absolute left-2.5 z-30 flex h-6 items-center rounded-md bg-black/72 px-1.5 text-[9px] font-semibold text-[#8fa1b1] shadow-[0_2px_10px_rgba(0,0,0,.28)] backdrop-blur-sm" style={{ top: Math.max(4, pane.top + 5) }}>
+        <div key={indicator.instanceId} className="group pointer-events-auto absolute left-2.5 z-[70] flex h-6 items-center rounded-md bg-black/72 px-1.5 text-[9px] font-semibold text-[#8fa1b1] shadow-[0_2px_10px_rgba(0,0,0,.28)] backdrop-blur-sm" style={{ top: Math.max(4, pane.top + 5) }}>
           <span>{indicatorLabel(indicator)}</span>
           <IndicatorActions indicator={indicator} compact />
         </div>
