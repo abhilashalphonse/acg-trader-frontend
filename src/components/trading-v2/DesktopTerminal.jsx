@@ -530,7 +530,7 @@ export default function DesktopTerminal({
   const marketPanelOpen = activeNav === 'watchlist' || activeNav === 'markets';
   const marketBounds = desktopMarketPanelBounds(viewportWidth, sidebarContentWidth);
   const collapsedDockHeight = 52;
-  const expandedChartStripHeight = 118;
+  const expandedChartStripHeight = 150;
   const expandedDockHeight = Math.max(260, viewportHeight - 56 - 24 - expandedChartStripHeight);
   const dockHeight = positionsExpanded
     ? expandedDockHeight
