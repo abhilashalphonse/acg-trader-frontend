@@ -922,6 +922,7 @@ export default function DesktopTerminal({
           <section className="grid min-h-0 min-w-0 overflow-hidden rounded-[16px] border border-white/[0.06] bg-[#080A0C] shadow-[inset_0_1px_0_rgba(255,255,255,0.015),0_12px_30px_rgba(0,0,0,.22)] grid-rows-[minmax(0,1fr)]" style={{ gridColumn: '1', gridRow: '1' }}>
             <div className="min-h-0 min-w-0 bg-[#080A0C] p-1.5">
               <DesktopMultiChart
+                compactContext={positionsExpanded}
                 config={multiChart}
                 onChange={setMultiChart}
                 markets={markets}
