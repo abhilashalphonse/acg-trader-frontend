@@ -14,7 +14,7 @@ import useTradingHotkeys from '../hooks/useTradingHotkeys.js';
 import { useTradingTerminal } from '../hooks/useTradingTerminal.js';
 import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
 import { normalizePriceToTick, normalizeProtectionPrice, normalizeVolumeToStep, pendingPriceDirection } from '../utils/tradingCommandNormalization.js';
-import { estimateOpeningRequirement, estimateStopRisk, evaluateRiskToolSetup } from '../utils/tradingRisk.js';
+import { defaultPlannerStopDistance, estimateOpeningRequirement, estimateStopRisk, evaluateRiskToolSetup } from '../utils/tradingRisk.js';
 import { exposureAvailability } from '../utils/exposureAvailability.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../utils/instrumentFormatting.js';
 import { normalizeTradePlanPatch } from '../utils/tradePlanNormalization.js';
@@ -161,6 +161,9 @@ export default function TradingTerminalV2({
   const [orderType, setOrderType] = useState(prefsRef.current.orderType || 'market');
   const [hotkeysEnabled, setHotkeysEnabled] = useState(prefsRef.current.hotkeysEnabled === true);
   const [tradePlan, setTradePlan] = useState(null);
+  const [selectedOpenPositionId, setSelectedOpenPositionId] = useState(null);
+  const [positionProtectionDraft, setPositionProtectionDraft] = useState(null);
+  const [positionProtectionSaving, setPositionProtectionSaving] = useState(false);
   const [journal, setJournal] = useState([]);
   const [executionEvent, setExecutionEvent] = useState(null);
   const [indicators, setIndicators] = useState(loadIndicators);
@@ -232,6 +235,8 @@ export default function TradingTerminalV2({
     if (!target) return false;
     try {
       if (tradePlan) setTradePlan(null);
+      setSelectedOpenPositionId(null);
+      setPositionProtectionDraft(null);
       setExecutionEvent(null);
       trading.selectAccount(target);
       showNotice('Switching account — synchronizing trading state…');
@@ -249,6 +254,9 @@ export default function TradingTerminalV2({
       setTradePlan(null);
       showNotice('Trade plan cancelled because the active symbol changed');
     }
+    if (positionProtectionDraft?.symbol && positionProtectionDraft.symbol !== normalized) {
+      setPositionProtectionDraft(null);
+    }
     onSelectSymbol(normalized);
   };
 
@@ -256,6 +264,31 @@ export default function TradingTerminalV2({
     if (!tradePlan?.symbol || !activeSymbol || tradePlan.symbol === activeSymbol) return;
     setTradePlan(null);
   }, [activeSymbol, tradePlan?.symbol]);
+
+  useEffect(() => {
+    if (isDesktop) return;
+    const activePositions = positions.filter(position =>
+      String(position?.symbol || '').toUpperCase() === String(activeSymbol || '').toUpperCase()
+    );
+    const explicitlySelected = positions.find(position => String(position?.id) === String(selectedOpenPositionId));
+    const selectedStillValid = explicitlySelected
+      && String(explicitlySelected?.symbol || '').toUpperCase() === String(activeSymbol || '').toUpperCase();
+    const nextSelectedId = selectedStillValid
+      ? explicitlySelected.id
+      : activePositions.length === 1
+        ? activePositions[0].id
+        : null;
+
+    if (String(nextSelectedId ?? '') !== String(selectedOpenPositionId ?? '')) {
+      setSelectedOpenPositionId(nextSelectedId);
+    }
+
+    if (positionProtectionDraft) {
+      const draftPositionExists = positions.some(position => String(position?.id) === String(positionProtectionDraft.positionId));
+      const draftMatchesSymbol = String(positionProtectionDraft.symbol || '').toUpperCase() === String(activeSymbol || '').toUpperCase();
+      if (!draftPositionExists || !draftMatchesSymbol) setPositionProtectionDraft(null);
+    }
+  }, [activeSymbol, isDesktop, positionProtectionDraft, positions, selectedOpenPositionId]);
 
   const logEvent = (type, message, details = {}) => {
     const now = new Date();
@@ -461,6 +494,155 @@ export default function TradingTerminalV2({
     } catch (error) {
       handleTradingError(error, `Modify ${position.symbol}`);
       return false;
+    }
+  };
+
+  const selectOpenPosition = positionOrId => {
+    const id = typeof positionOrId === 'object' ? positionOrId?.id : positionOrId;
+    const position = positions.find(item => String(item?.id) === String(id));
+    if (!position) return false;
+    setSelectedOpenPositionId(position.id);
+    if (positionProtectionDraft && String(positionProtectionDraft.positionId) !== String(position.id)) {
+      setPositionProtectionDraft(null);
+    }
+    if (position.symbol && position.symbol !== activeSymbol) selectSymbol(position.symbol);
+    return true;
+  };
+
+  const beginPositionProtection = field => {
+    if (!['sl', 'tp'].includes(field)) return false;
+    if (tradePlan) {
+      showNotice('Finish or cancel the current order plan before editing an open position');
+      return false;
+    }
+
+    const candidates = positions.filter(position =>
+      String(position?.symbol || '').toUpperCase() === String(activeSymbol || '').toUpperCase()
+    );
+    let position = candidates.find(item => String(item?.id) === String(selectedOpenPositionId));
+    if (!position && candidates.length === 1) position = candidates[0];
+
+    if (!position) {
+      showNotice(candidates.length > 1
+        ? 'Select the position badge on the chart, then choose SL or TP'
+        : 'There is no open position on this chart to protect');
+      return false;
+    }
+
+    const instrument = markets.find(item => item.symbol === position.symbol) || market;
+    const side = String(position.side || '').toUpperCase();
+    const entry = Number(position.entry ?? position.entryPrice);
+    if (!['BUY', 'SELL'].includes(side) || !Number.isFinite(entry) || entry <= 0) {
+      showNotice('This position does not have a valid entry price');
+      return false;
+    }
+
+    const existingPrice = value => {
+      if (value === null || value === undefined || value === '') return null;
+      const numeric = Number(value);
+      return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+    };
+    const stopDistance = defaultPlannerStopDistance(instrument, entry)
+      || Math.max(Number(instrumentPipSize(instrument)) || 0, Number(instrument?.tickSize) || 0) * 10
+      || entry * 0.005;
+
+    setSelectedOpenPositionId(position.id);
+    setPositionProtectionDraft(current => {
+      const samePosition = current && String(current.positionId) === String(position.id);
+      const draft = samePosition ? { ...current } : {
+        positionId: position.id,
+        symbol: position.symbol,
+        side: side.toLowerCase(),
+        entry,
+        sl: existingPrice(position.sl),
+        tp: existingPrice(position.tp),
+        manualLots: Number(position.volume ?? position.lots) || lots,
+        sizingMode: 'lots',
+        pending: false,
+        open: false,
+        source: 'open-position',
+      };
+
+      if (existingPrice(draft[field]) == null) {
+        const multiplier = field === 'tp' ? 2 : 1;
+        const direction = field === 'sl'
+          ? (side === 'BUY' ? -1 : 1)
+          : (side === 'BUY' ? 1 : -1);
+        const proposed = entry + direction * stopDistance * multiplier;
+        draft[field] = normalizeProtectionPrice(proposed, instrument, side, field);
+      }
+
+      return { ...draft, activeField: field, stage: 'draft' };
+    });
+    setSelectedTool('cursor');
+    return true;
+  };
+
+  const updatePositionProtectionDraft = patch => {
+    if (!patch || typeof patch !== 'object') return;
+    setPositionProtectionDraft(current => {
+      if (!current) return current;
+      const instrument = markets.find(item => item.symbol === current.symbol) || market;
+      const side = String(current.side || '').toUpperCase();
+      const next = { ...current, ...patch };
+      for (const field of ['sl', 'tp']) {
+        if (!Object.prototype.hasOwnProperty.call(patch, field)) continue;
+        const raw = patch[field];
+        next[field] = raw === null || raw === undefined || raw === ''
+          ? null
+          : normalizeProtectionPrice(raw, instrument, side, field);
+      }
+      return next;
+    });
+  };
+
+  const cancelPositionProtection = () => {
+    if (positionProtectionSaving) return;
+    setPositionProtectionDraft(null);
+  };
+
+  const applyPositionProtection = async () => {
+    const draft = positionProtectionDraft;
+    if (!draft || positionProtectionSaving) return false;
+    const position = positions.find(item => String(item?.id) === String(draft.positionId));
+    if (!position) {
+      setPositionProtectionDraft(null);
+      showNotice('That position is no longer open');
+      return false;
+    }
+
+    const entry = Number(position.entry ?? position.entryPrice ?? draft.entry);
+    const side = String(position.side || draft.side || '').toUpperCase();
+    const sl = draft.sl == null ? null : Number(draft.sl);
+    const tp = draft.tp == null ? null : Number(draft.tp);
+    if (!Number.isFinite(entry) || entry <= 0) {
+      showNotice('Position entry price is unavailable');
+      return false;
+    }
+    if (sl != null && (!Number.isFinite(sl) || sl <= 0)) {
+      showNotice('Enter a valid stop-loss price');
+      return false;
+    }
+    if (tp != null && (!Number.isFinite(tp) || tp <= 0)) {
+      showNotice('Enter a valid take-profit price');
+      return false;
+    }
+    if (side === 'BUY' && ((sl != null && sl >= entry) || (tp != null && tp <= entry))) {
+      showNotice('For a BUY position, SL must be below entry and TP above entry');
+      return false;
+    }
+    if (side === 'SELL' && ((sl != null && sl <= entry) || (tp != null && tp >= entry))) {
+      showNotice('For a SELL position, SL must be above entry and TP below entry');
+      return false;
+    }
+
+    setPositionProtectionSaving(true);
+    try {
+      const saved = await updatePosition(position.id, { sl, tp });
+      if (saved) setPositionProtectionDraft(null);
+      return Boolean(saved);
+    } finally {
+      setPositionProtectionSaving(false);
     }
   };
 
@@ -902,6 +1084,15 @@ export default function TradingTerminalV2({
   const plannedRiskPlan = effectiveTradePlan(tradePlan, plannedRiskInstrument);
   const plannedRisk = estimatedRisk(plannedRiskPlan, riskPercent, lots, account, plannedRiskInstrument);
 
+  const activeOpenPositions = positions.filter(position =>
+    String(position?.symbol || '').toUpperCase() === String(activeSymbol || '').toUpperCase()
+  );
+  const selectedOpenPosition = positions.find(position =>
+    String(position?.id) === String(selectedOpenPositionId)
+    && String(position?.symbol || '').toUpperCase() === String(activeSymbol || '').toUpperCase()
+  ) || (activeOpenPositions.length === 1 ? activeOpenPositions[0] : null);
+  const positionProtectionAvailable = activeOpenPositions.length > 0;
+
   if (isDesktop) {
     return (
       <>
@@ -1012,6 +1203,17 @@ export default function TradingTerminalV2({
             onModifyPending={modifyPendingOrder}
             onCancelPending={cancelPendingOrder}
             onUpdatePosition={updatePosition}
+            onClosePosition={closePosition}
+            selectedPositionId={selectedOpenPositionId}
+            onSelectPosition={selectOpenPosition}
+            positionProtectionDraft={positionProtectionDraft}
+            onPositionProtectionDraftChange={updatePositionProtectionDraft}
+            selectedPosition={selectedOpenPosition}
+            positionProtectionAvailable={positionProtectionAvailable}
+            onBeginPositionProtection={beginPositionProtection}
+            onApplyPositionProtection={applyPositionProtection}
+            onCancelPositionProtection={cancelPositionProtection}
+            positionProtectionSaving={positionProtectionSaving}
             onIndicators={() => setOverlay('indicators')}
             indicators={indicators}
             account={account}
@@ -1028,10 +1230,10 @@ export default function TradingTerminalV2({
               <>
                 <TopBar account={account} accounts={trading.accounts} activeAccountId={trading.activeAccountId} connectionStatus={trading.connection.status} accountSwitching={trading.accountSwitching} accountSwitchError={trading.accountSwitchError} onSelectAccount={selectTradingAccount} onSearch={() => setOverlay('search')} onNotifications={() => setOverlay('notifications')} onProfile={() => setOverlay('profile')} />
                 <div className="px-2">
-                  <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={tradePlan} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onSelectInstrument={() => setOverlay('instruments')} onIndicators={() => setOverlay('indicators')} indicators={indicators} />
+                  <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={tradePlan} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onClosePosition={closePosition} selectedPositionId={selectedOpenPositionId} onSelectPosition={selectOpenPosition} positionProtectionDraft={positionProtectionDraft} onPositionProtectionDraftChange={updatePositionProtectionDraft} onSelectInstrument={() => setOverlay('instruments')} onIndicators={() => setOverlay('indicators')} indicators={indicators} />
                   <PropRiskStrip account={account} plannedRisk={plannedRisk} />
-                  <ExecutionPanel key={`execution-${trading.accountId || 'none'}`} market={market} account={account} exposureAllowed={exposure.allowed} exposureBlockReason={exposure.reason} lots={lots} onLotsChange={setLots} sizingMode={sizingMode} onSizingModeChange={setSizingMode} riskPercent={riskPercent} onRiskPercentChange={setRiskPercent} orderType={orderType} onOrderTypeChange={setOrderType} tradePlan={tradePlan} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} />
-                  <PositionsPanel key={`positions-${trading.accountId || 'none'}`} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={closePosition} onCloseAll={closeAllPositions} onBreakEven={movePositionToBreakEven} onReverse={reversePosition} onUpdatePosition={updatePosition} onSetTrailing={setPositionTrailing} onDuplicate={duplicatePosition} onCancelPending={cancelPendingOrder} onModifyPending={modifyPendingOrder} />
+                  <ExecutionPanel key={`execution-${trading.accountId || 'none'}`} market={market} account={account} exposureAllowed={exposure.allowed} exposureBlockReason={exposure.reason} lots={lots} onLotsChange={setLots} sizingMode={sizingMode} onSizingModeChange={setSizingMode} riskPercent={riskPercent} onRiskPercentChange={setRiskPercent} orderType={orderType} onOrderTypeChange={setOrderType} tradePlan={tradePlan} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} selectedPosition={selectedOpenPosition} positionProtectionAvailable={positionProtectionAvailable} positionProtectionDraft={positionProtectionDraft} onBeginPositionProtection={beginPositionProtection} onApplyPositionProtection={applyPositionProtection} onCancelPositionProtection={cancelPositionProtection} positionProtectionSaving={positionProtectionSaving} />
+                  <PositionsPanel key={`positions-${trading.accountId || 'none'}`} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={closePosition} onCloseAll={closeAllPositions} onBreakEven={movePositionToBreakEven} onReverse={reversePosition} onUpdatePosition={updatePosition} onSetTrailing={setPositionTrailing} onDuplicate={duplicatePosition} onCancelPending={cancelPendingOrder} onModifyPending={modifyPendingOrder} selectedPositionId={selectedOpenPositionId} onSelectPosition={selectOpenPosition} />
                 </div>
               </>
             )}
