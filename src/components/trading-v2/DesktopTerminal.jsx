@@ -308,6 +308,7 @@ export default function DesktopTerminal({
   const [selectedPositionId, setSelectedPositionId] = useState(null);
   const [positionEditRequest, setPositionEditRequest] = useState(null);
   const [requestedDockTab, setRequestedDockTab] = useState(null);
+  const [positionsExpanded, setPositionsExpanded] = useState(false);
   const [desktopLayout, setDesktopLayout] = useState(loadDesktopLayout);
   const [viewportHeight, setViewportHeight] = useState(() => typeof window !== 'undefined' ? window.innerHeight : 900);
   const [viewportWidth, setViewportWidth] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1440);
@@ -524,11 +525,13 @@ export default function DesktopTerminal({
   const heightBounds = desktopHeightBounds(viewportHeight, desktopLayout.dockCollapsed, desktopLayout.dockHeight);
   const widthBounds = desktopWidthBounds(viewportWidth);
   const sidebarRailWidth = 48;
-  const sidebarContentWidth = desktopLayout.sidebarCollapsed ? 0 : desktopLayout.sidebarWidth;
+  const sidebarContentWidth = positionsExpanded || desktopLayout.sidebarCollapsed ? 0 : desktopLayout.sidebarWidth;
   const sidebarWidth = sidebarContentWidth + sidebarRailWidth;
   const marketPanelOpen = activeNav === 'watchlist' || activeNav === 'markets';
   const marketBounds = desktopMarketPanelBounds(viewportWidth, sidebarContentWidth);
-  const dockHeight = desktopLayout.dockCollapsed ? 0 : desktopLayout.dockHeight;
+  const expandedChartStripHeight = 118;
+  const expandedDockHeight = Math.max(260, viewportHeight - 56 - 24 - expandedChartStripHeight);
+  const dockHeight = desktopLayout.dockCollapsed ? 0 : positionsExpanded ? expandedDockHeight : desktopLayout.dockHeight;
   const updateSidebarWidth = value => setDesktopLayout(current => {
     const nextSidebar = clamp(value, widthBounds.sidebarMin, widthBounds.sidebarMax);
     const nextMarketBounds = desktopMarketPanelBounds(viewportWidth, nextSidebar);
@@ -551,7 +554,14 @@ export default function DesktopTerminal({
     setPositionEditRequest(null);
     setActiveNav(view === 'markets' || view === 'watchlist' ? view : 'trade');
   };
-  const toggleDock = () => setDesktopLayout(current => ({ ...current, dockCollapsed: !current.dockCollapsed }));
+  const toggleDock = () => {
+    if (positionsExpanded) setPositionsExpanded(false);
+    setDesktopLayout(current => ({ ...current, dockCollapsed: !current.dockCollapsed }));
+  };
+  const togglePositionsExpanded = () => {
+    setDesktopLayout(current => ({ ...current, dockCollapsed: false }));
+    setPositionsExpanded(value => !value);
+  };
   const resetDesktopLayout = () => {
     const bounds = desktopHeightBounds(window.innerHeight);
     setDesktopLayout({
@@ -898,7 +908,7 @@ export default function DesktopTerminal({
 
       <div className="min-h-0 flex-1">
         <div
-          className="relative grid h-full min-h-0 min-w-0 gap-x-2 gap-y-2 bg-black"
+          className="relative grid h-full min-h-0 min-w-0 gap-x-2 gap-y-2 bg-black transition-[grid-template-columns,grid-template-rows] duration-300 ease-out"
           style={{
             gridTemplateColumns: `minmax(0, 1fr) ${sidebarContentWidth}px ${sidebarRailWidth}px`,
             gridTemplateRows: `minmax(0, 1fr) ${dockHeight}px`,
@@ -946,7 +956,7 @@ export default function DesktopTerminal({
             </div>
           </section>
 
-          {!desktopLayout.sidebarCollapsed && (
+          {!desktopLayout.sidebarCollapsed && !positionsExpanded && (
             <aside className="relative flex min-h-0 flex-col overflow-hidden rounded-[16px] border border-white/[0.07] bg-[#0A0C0F] shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_12px_30px_rgba(0,0,0,.22)]" style={{ gridColumn: '2', gridRow: '1' }}>
               {marketPanelOpen ? (
                 <div className="min-h-0 flex-1">
@@ -1029,11 +1039,11 @@ export default function DesktopTerminal({
             </button>
           </aside>
 
-          <div className={`min-h-0 overflow-auto rounded-[16px] border border-white/[0.07] bg-[#0A0C0F] shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_12px_30px_rgba(0,0,0,.22)] ${desktopLayout.dockCollapsed ? 'hidden' : ''}`} style={{ gridColumn: '1 / 4', gridRow: '2' }}>
-            <PositionsPanel desktopDense requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition} onEditProtection={editPositionProtection}/>
+          <div className={`min-h-0 overflow-auto rounded-[16px] border border-white/[0.07] bg-[#0A0C0F] shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_12px_30px_rgba(0,0,0,.22)] transition-[height,transform,opacity] duration-300 ease-out ${desktopLayout.dockCollapsed ? 'hidden' : ''}`} style={{ gridColumn: '1 / 4', gridRow: '2' }}>
+            <PositionsPanel desktopDense expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition} onEditProtection={editPositionProtection}/>
           </div>
 
-          {!desktopLayout.sidebarCollapsed && (
+          {!desktopLayout.sidebarCollapsed && !positionsExpanded && (
             <ResizeHandle
               axis="x"
               value={desktopLayout.sidebarWidth}
@@ -1047,7 +1057,7 @@ export default function DesktopTerminal({
             />
           )}
 
-          {!desktopLayout.dockCollapsed && (
+          {!desktopLayout.dockCollapsed && !positionsExpanded && (
             <ResizeHandle
               axis="y"
               value={desktopLayout.dockHeight}
