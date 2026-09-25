@@ -713,11 +713,11 @@ export default function DesktopTerminal({
   };
 
   return (
-    <div ref={shellRef} className="acg-terminal relative h-dvh min-h-0 overflow-hidden bg-black text-[#E6EDF3]">
+    <div ref={shellRef} className="acg-terminal relative flex h-dvh min-h-0 flex-col gap-2 overflow-hidden bg-black p-2 text-[#E6EDF3]">
       {notice && <div className="absolute right-3 top-[66px] z-[120] flex max-w-[390px] items-center gap-3 rounded-md border border-white/[0.06] bg-[#101010]/95 px-3 py-2.5 text-[10px] font-semibold text-[#E6EDF3] shadow-[0_16px_48px_rgba(0,0,0,.45)]"><span>{notice}</span><button type="button" onClick={() => setNotice('')} className="grid size-6 place-items-center rounded-md text-[#8094a7]"><X size={13}/></button></div>}
 
 
-      <header className="acg-desktop-market-strip flex h-[58px] w-full min-w-0 items-center border-b border-white/[0.055] bg-[#080a0c] px-3">
+      <header className="acg-desktop-market-strip flex h-[56px] w-full min-w-0 shrink-0 items-center overflow-visible rounded-[14px] border border-white/[0.07] bg-[#0A0C0F] px-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_8px_24px_rgba(0,0,0,.24)]">
         <div className="flex min-w-[178px] items-center gap-2.5 text-left 2xl:min-w-[210px]">
           <button type="button" onClick={() => openMarketPanel('markets', false)} className="shrink-0" title="Open markets and watchlist" aria-label="Open markets and watchlist">
             <InstrumentAvatar instrument={market} size={30}/>
@@ -896,16 +896,16 @@ export default function DesktopTerminal({
       </header>
 
 
-      <div className="h-[calc(100dvh-58px)] min-h-0">
+      <div className="min-h-0 flex-1">
         <div
-          className="relative grid h-full min-h-0 min-w-0 bg-[#050607]"
+          className="relative grid h-full min-h-0 min-w-0 gap-x-2 gap-y-2 bg-black"
           style={{
             gridTemplateColumns: `minmax(0, 1fr) ${sidebarContentWidth}px ${sidebarRailWidth}px`,
             gridTemplateRows: `minmax(0, 1fr) ${dockHeight}px`,
           }}
         >
-          <section className="grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)]" style={{ gridColumn: '1', gridRow: '1' }}>
-            <div className="min-h-0 min-w-0 bg-[#050607]">
+          <section className="grid min-h-0 min-w-0 overflow-hidden rounded-[16px] border border-white/[0.06] bg-[#080A0C] shadow-[inset_0_1px_0_rgba(255,255,255,0.015),0_12px_30px_rgba(0,0,0,.22)] grid-rows-[minmax(0,1fr)]" style={{ gridColumn: '1', gridRow: '1' }}>
+            <div className="min-h-0 min-w-0 bg-[#080A0C] p-1.5">
               <DesktopMultiChart
                 config={multiChart}
                 onChange={setMultiChart}
@@ -947,7 +947,7 @@ export default function DesktopTerminal({
           </section>
 
           {!desktopLayout.sidebarCollapsed && (
-            <aside className="relative flex min-h-0 flex-col overflow-hidden border-l border-white/[0.06] bg-[#07090B]" style={{ gridColumn: '2', gridRow: '1' }}>
+            <aside className="relative flex min-h-0 flex-col overflow-hidden rounded-[16px] border border-white/[0.07] bg-[#0A0C0F] shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_12px_30px_rgba(0,0,0,.22)]" style={{ gridColumn: '2', gridRow: '1' }}>
               {marketPanelOpen ? (
                 <div className="min-h-0 flex-1">
                   <DesktopWatchlist
@@ -987,7 +987,7 @@ export default function DesktopTerminal({
             </aside>
           )}
 
-          <aside className="flex min-h-0 flex-col items-center border-l border-white/[0.06] bg-[#080A0C] py-2" style={{ gridColumn: '3', gridRow: '1' }} aria-label="Desktop panel dock">
+          <aside className="flex min-h-0 flex-col items-center overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0A0C0F] py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_12px_30px_rgba(0,0,0,.22)]" style={{ gridColumn: '3', gridRow: '1' }} aria-label="Desktop panel dock">
             <button
               type="button"
               onClick={() => {
@@ -1032,7 +1032,7 @@ export default function DesktopTerminal({
             </button>
           </aside>
 
-          <div className={`min-h-0 overflow-auto border-t border-white/[0.06] bg-[#07090B] ${desktopLayout.dockCollapsed ? 'hidden' : ''}`} style={{ gridColumn: '1 / 4', gridRow: '2' }}>
+          <div className={`min-h-0 overflow-auto rounded-[16px] border border-white/[0.07] bg-[#0A0C0F] shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_12px_30px_rgba(0,0,0,.22)] ${desktopLayout.dockCollapsed ? 'hidden' : ''}`} style={{ gridColumn: '1 / 4', gridRow: '2' }}>
             <PositionsPanel desktopDense requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition} onEditProtection={editPositionProtection}/>
           </div>
 
@@ -1046,7 +1046,7 @@ export default function DesktopTerminal({
               onChange={updateSidebarWidth}
               ariaLabel="Resize trade dock"
               className="absolute bottom-0 top-0"
-              style={{ right: sidebarContentWidth + sidebarRailWidth - 2 }}
+              style={{ right: sidebarContentWidth + sidebarRailWidth + 10 }}
             />
           )}
 
@@ -1061,7 +1061,7 @@ export default function DesktopTerminal({
               onDoubleClick={() => updateDockHeight(heightBounds.defaultDock)}
               ariaLabel="Resize chart and positions dock"
               className="absolute left-0 right-0"
-              style={{ bottom: dockHeight - 4 }}
+              style={{ bottom: dockHeight + 4 }}
             />
           )}
         </div>
