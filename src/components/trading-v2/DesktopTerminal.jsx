@@ -722,9 +722,9 @@ export default function DesktopTerminal({
           </div>
         </button>
         <div className="acg-desktop-chart-toolbar flex min-w-0 shrink-0 items-center border-l border-white/[0.06] bg-transparent px-2.5">
-          <div className="terminal-toolbar-group flex h-full min-w-0 shrink-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="terminal-toolbar-group flex h-9 min-w-0 shrink-0 items-center overflow-x-auto rounded-[12px] border border-white/[0.09] bg-[#080808] px-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.015)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {timeframes.map(([label, value]) => (
-              <button key={value} type="button" onClick={() => setDesktopTimeframe(value)} disabled={Boolean(tradePlan && !tradePlan.open)} className={activeChartTimeframe === value ? "relative h-full min-w-9 px-2 text-[9px] font-semibold text-[#f2f5f7]" : "relative h-full min-w-9 px-2 text-[9px] font-semibold text-[#7e8b96] hover:text-[#E6EDF3]"}>{label}{activeChartTimeframe === value && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#195be1]"/>}</button>
+              <button key={value} type="button" onClick={() => setDesktopTimeframe(value)} disabled={Boolean(tradePlan && !tradePlan.open)} className={activeChartTimeframe === value ? "relative grid h-full min-w-9 place-items-center px-2 text-[10px] font-bold text-[#f2f2f2] transition" : "relative grid h-full min-w-9 place-items-center px-2 text-[10px] font-bold text-[#8f9aa8] transition hover:text-[#e9edf3]"}>{label}{activeChartTimeframe === value && <span className="absolute bottom-0 left-[18%] right-[18%] h-[2px] rounded-full bg-[#195be1]" aria-hidden="true"/>}</button>
             ))}
           </div>
           <div className="ml-1.5 flex h-full shrink-0 items-center gap-1.5">
