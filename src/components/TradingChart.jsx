@@ -102,6 +102,7 @@ export default function TradingChart({
   priceScaleAnchors = [],
   showIndicatorControls = false,
   showAttributionLogo = true,
+  desktopEnhanced = false,
   onToggleIndicator = () => {},
   onOpenIndicatorSettings = () => {},
   onRemoveIndicator = () => {},
