@@ -1024,7 +1024,8 @@ export default function TradingChart({
     >
       <button
         type="button"
-        onClick={event => runIndicatorAction(event, () => onToggleIndicator(indicator.instanceId))}
+        onPointerDown={event => runIndicatorAction(event, () => onToggleIndicator(indicator.instanceId))}
+        onClick={stopIndicatorPointer}
         className={`grid ${compact ? 'size-5' : 'size-6'} place-items-center rounded text-[#71879a] hover:bg-white/[0.06] hover:text-[#dfe9f0] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#195be1]`}
         title={indicator.visible === false ? 'Show indicator' : 'Hide indicator'}
         aria-label={indicator.visible === false ? 'Show indicator' : 'Hide indicator'}
@@ -1033,7 +1034,8 @@ export default function TradingChart({
       </button>
       <button
         type="button"
-        onClick={event => runIndicatorAction(event, () => onOpenIndicatorSettings(indicator.instanceId))}
+        onPointerDown={event => runIndicatorAction(event, () => onOpenIndicatorSettings(indicator.instanceId))}
+        onClick={stopIndicatorPointer}
         className={`grid ${compact ? 'size-5' : 'size-6'} place-items-center rounded text-[#71879a] hover:bg-white/[0.06] hover:text-[#59c8ff] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#195be1]`}
         title="Indicator settings"
         aria-label="Indicator settings"
@@ -1042,7 +1044,8 @@ export default function TradingChart({
       </button>
       <button
         type="button"
-        onClick={event => runIndicatorAction(event, () => onRemoveIndicator(indicator.instanceId))}
+        onPointerDown={event => runIndicatorAction(event, () => onRemoveIndicator(indicator.instanceId))}
+        onClick={stopIndicatorPointer}
         className={`grid ${compact ? 'size-5' : 'size-6'} place-items-center rounded text-[#815f68] hover:bg-[#35151d] hover:text-[#ff7380] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#ff7380]`}
         title="Remove indicator"
         aria-label="Remove indicator"
