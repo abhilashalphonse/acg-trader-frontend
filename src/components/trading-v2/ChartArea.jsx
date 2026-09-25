@@ -733,7 +733,7 @@ export default function ChartArea({
   const compactTool = visibleToolGroups.flat().find(([id]) => id === selectedTool) || visibleToolGroups.flat()[0] || null;
   const mobileHeightClass = fillAvailableHeight ? 'h-full min-h-0 flex-1' : heightClass;
   const areaClass = drawingToolbarOverlay
-    ? `acg-mobile-reference-chart-area acg-mobile-chart-surface relative grid ${mobileHeightClass} grid-cols-[minmax(0,1fr)] bg-[#081019]`
+    ? `acg-mobile-reference-chart-area acg-mobile-chart-surface acg-mobile-reference-chart-area--overlay-rail relative grid ${mobileHeightClass} grid-cols-[minmax(0,1fr)] bg-[#081019]`
     : embedded
       ? `grid h-full min-h-0 grid-rows-[minmax(0,1fr)] ${!toolbarVisible ? 'grid-cols-[minmax(0,1fr)]' : desktopEnhanced ? 'grid-cols-[50px_minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} ${desktopEnhanced ? 'gap-2 bg-black' : 'gap-1.5'}`
       : focusMode
