@@ -32,6 +32,10 @@ export default function MarketPanel({
   onCancelPending = () => {},
   onUpdatePosition = () => {},
   onClosePosition = () => {},
+  selectedPositionId = null,
+  onSelectPosition = () => {},
+  positionProtectionDraft = null,
+  onPositionProtectionDraftChange = () => {},
   showInstrumentHeader = true,
   compactMobileToolbar = false,
   fillAvailableHeight = false,
@@ -72,6 +76,10 @@ export default function MarketPanel({
         onTradePlanChange={onTradePlanChange}
         onUpdatePosition={onUpdatePosition}
         onClosePosition={onClosePosition}
+        selectedPositionId={selectedPositionId}
+        onSelectPosition={onSelectPosition}
+        positionProtectionDraft={positionProtectionDraft}
+        onPositionProtectionDraftChange={onPositionProtectionDraftChange}
         indicators={indicators}
         positions={positions}
         pendingOrders={pendingOrders}
