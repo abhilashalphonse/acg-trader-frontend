@@ -103,6 +103,7 @@ export default function TradingChart({
   showIndicatorControls = false,
   showAttributionLogo = true,
   desktopEnhanced = false,
+  compactContext = false,
   onToggleIndicator = () => {},
   onOpenIndicatorSettings = () => {},
   onRemoveIndicator = () => {},
@@ -320,11 +321,11 @@ export default function TradingChart({
       width: initialWidth,
       height: initialHeight,
       layout: { background: { type: ColorType.Solid, color: chartTokens.background }, textColor: chartTokens.text, attributionLogo: showAttributionLogo, fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif', fontSize: mobileReference ? 10 : 11, panes: { separatorColor: '#1b1b1b', separatorHoverColor: 'rgba(83,199,255,0.18)', enableResize: true } },
-      grid: { vertLines: { visible: true, color: chartTokens.gridline, style: LineStyle.Dotted }, horzLines: { visible: true, color: chartTokens.gridline, style: LineStyle.Dotted } },
-      crosshair: { mode: CrosshairMode.Normal, vertLine: { visible: true, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: true, labelBackgroundColor: chartTokens.crosshairLabel }, horzLine: { visible: true, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: true, labelBackgroundColor: chartTokens.crosshairLabel } },
+      grid: { vertLines: { visible: !compactContext, color: chartTokens.gridline, style: LineStyle.Dotted }, horzLines: { visible: !compactContext, color: chartTokens.gridline, style: LineStyle.Dotted } },
+      crosshair: { mode: CrosshairMode.Normal, vertLine: { visible: !compactContext, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: !compactContext, labelBackgroundColor: chartTokens.crosshairLabel }, horzLine: { visible: !compactContext, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: !compactContext, labelBackgroundColor: chartTokens.crosshairLabel } },
       rightPriceScale: { visible: true, borderVisible: true, borderColor: '#242424', ticksVisible: true, scaleMargins: { top: 0.045, bottom: 0.07 } },
       timeScale: { visible: true, borderVisible: true, borderColor: '#242424', ticksVisible: true, timeVisible: true, secondsVisible: ['S1', 'S5', 'S15', 'S30'].includes(timeframe), rightOffset: chartRightBars, barSpacing: 9, minBarSpacing: 3, fixLeftEdge: false, lockVisibleTimeRangeOnResize: !mobileReference },
-      handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true }, handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
+      handleScroll: compactContext ? false : { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true }, handleScale: compactContext ? false : { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
     });
     chartRef.current = chart;
 
@@ -399,8 +400,10 @@ export default function TradingChart({
     settleResize();
 
     const priceFormat = { type: 'price', precision: decimals, minMove };
-    const series = chartMode === 'line' ? chart.addSeries(LineSeries, { color: chartTokens.blue, lineWidth: 2, priceFormat, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: true }) : chart.addSeries(CandlestickSeries, { upColor: chartTokens.buy, downColor: chartTokens.sell, wickUpColor: chartTokens.buyWick, wickDownColor: chartTokens.sellWick, borderVisible: false, priceFormat, priceLineVisible: false, lastValueVisible: false });
-    const volume = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: 'volume', lastValueVisible: false, priceLineVisible: false });
+    const series = chartMode === 'line'
+      ? chart.addSeries(LineSeries, { color: compactContext ? 'rgba(0,0,0,0)' : chartTokens.blue, lineWidth: 2, priceFormat, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: !compactContext })
+      : chart.addSeries(CandlestickSeries, { upColor: compactContext ? 'rgba(0,0,0,0)' : chartTokens.buy, downColor: compactContext ? 'rgba(0,0,0,0)' : chartTokens.sell, wickUpColor: compactContext ? 'rgba(0,0,0,0)' : chartTokens.buyWick, wickDownColor: compactContext ? 'rgba(0,0,0,0)' : chartTokens.sellWick, borderVisible: false, priceFormat, priceLineVisible: false, lastValueVisible: false });
+    const volume = chart.addSeries(HistogramSeries, { visible: !compactContext, priceFormat: { type: 'volume' }, priceScaleId: 'volume', lastValueVisible: false, priceLineVisible: false });
     chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.80, bottom: 0 } });
     seriesRef.current = series; volumeRef.current = volume; marketLineRef.current = null; askLineRef.current = null; midLineRef.current = null; positionLinesRef.current = []; scaleAnchorLinesRef.current = []; setError('');
     const timeScale = chart.timeScale();
@@ -685,7 +688,7 @@ export default function TradingChart({
       barsByTimeRef.current = new Map();
       chart.remove();
     };
-  }, [symbol, timeframe, chartMode, renderIndicators, decimals, minMove, historyLimit, historyProfile.max, historyProfile.page, setRealtimeTracking, chartRightBars, mobileReference, showAttributionLogo]);
+  }, [symbol, timeframe, chartMode, renderIndicators, decimals, minMove, historyLimit, historyProfile.max, historyProfile.page, setRealtimeTracking, chartRightBars, mobileReference, showAttributionLogo, compactContext]);
 
   useEffect(() => { indicatorsRef.current = indicators; if (chartRef.current && barsRef.current.length) renderIndicators(chartRef.current, barsRef.current); }, [indicators, renderIndicators]);
 
@@ -1058,6 +1061,7 @@ export default function TradingChart({
 
   return <div className="relative size-full min-h-0 min-w-0 overflow-hidden bg-black">
     <div ref={hostRef} className="absolute inset-0" />
+    {compactContext && <div className="pointer-events-none absolute bottom-4 left-4 z-20 text-[15px] font-black italic tracking-[-0.04em] text-white/90">ACG Trader</div>}
     {readyKey !== chartRequestKey && !error && <ACGStartupLoader canvas />}
     <div className={mobileReference
       ? "acg-mobile-chart-info pointer-events-none absolute left-3 top-3 z-20 max-w-[78%] text-[#9ba8b6] [text-shadow:0_1px_2px_#000,0_0_8px_#000]"
@@ -1096,10 +1100,10 @@ export default function TradingChart({
             <span className="text-[#AAB5BF]">ACG</span>
             <span className={`ml-0.5 size-1.5 rounded-full ${mobileQuoteLive ? 'bg-[#24d7b7]' : 'bg-[#697785]'}`} aria-label={mobileQuoteLive ? 'Live quotes' : 'Quotes unavailable'} />
           </div>
-          <div className="mt-1 flex flex-wrap gap-x-2 whitespace-nowrap font-medium"><span>O <b className="text-[#aab9c8]">{format(ohlc?.open)}</b></span><span>H <b className="text-[#aab9c8]">{format(ohlc?.high)}</b></span><span>L <b className="text-[#aab9c8]">{format(ohlc?.low)}</b></span><span>C <b className="text-[#aab9c8]">{format(ohlc?.close)}</b></span>{candleChange != null && <span className={`font-semibold ${candleChangeTone}`}>{signed(candleChange, value => value.toFixed(decimals))}{candleChangePercent != null ? ` (${signed(candleChangePercent, value => value.toFixed(2))}%)` : ''}</span>}</div>
+          {!compactContext && <div className="mt-1 flex flex-wrap gap-x-2 whitespace-nowrap font-medium"><span>O <b className="text-[#aab9c8]">{format(ohlc?.open)}</b></span><span>H <b className="text-[#aab9c8]">{format(ohlc?.high)}</b></span><span>L <b className="text-[#aab9c8]">{format(ohlc?.low)}</b></span><span>C <b className="text-[#aab9c8]">{format(ohlc?.close)}</b></span>{candleChange != null && <span className={`font-semibold ${candleChangeTone}`}>{signed(candleChange, value => value.toFixed(decimals))}{candleChangePercent != null ? ` (${signed(candleChangePercent, value => value.toFixed(2))}%)` : ''}</span>}</div>}
         </>
       )}
-      {overlayIndicators.length > 0 && (
+      {!compactContext && overlayIndicators.length > 0 && (
         <div className="mt-1.5 flex flex-wrap gap-x-1.5 gap-y-1 text-[9px] font-medium text-[#7F8A95]">
           {overlayIndicators.map(indicator => (
             <span key={indicator.instanceId} className="group pointer-events-auto inline-flex h-6 items-center rounded px-1 hover:bg-black/72">
