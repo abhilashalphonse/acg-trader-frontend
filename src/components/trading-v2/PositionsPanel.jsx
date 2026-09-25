@@ -272,20 +272,20 @@ export default function PositionsPanel({
           </div>
 
           <div className="flex shrink-0 items-center gap-5">
-            <div className="hidden items-center gap-5 xl:flex">
-              <div className="min-w-[86px]">
+            <div className="flex items-center gap-3 lg:gap-4">
+              <div className="min-w-[72px]">
                 <span className="block text-[8px] font-semibold text-[#727D88]">Balance</span>
                 <strong className="mt-0.5 block font-mono text-[11px] font-bold text-[#E7EDF2]">{formatMoney(accountBalance, accountCurrency)}</strong>
               </div>
-              <div className="min-w-[86px]">
+              <div className="min-w-[72px]">
                 <span className="block text-[8px] font-semibold text-[#727D88]">P&amp;L</span>
                 <strong className={`mt-0.5 block font-mono text-[11px] font-bold ${Number(accountPnl) > 0 ? 'text-[#42D7A1]' : Number(accountPnl) < 0 ? 'text-[#FF6F7A]' : 'text-[#E7EDF2]'}`}>{Number.isFinite(Number(accountPnl)) ? formatPnl(accountPnl, accountCurrency) : '—'}</strong>
               </div>
-              <div className="min-w-[86px]">
+              <div className="min-w-[72px]">
                 <span className="block text-[8px] font-semibold text-[#727D88]">Equity</span>
                 <strong className="mt-0.5 block font-mono text-[11px] font-bold text-[#E7EDF2]">{formatMoney(accountEquity, accountCurrency)}</strong>
               </div>
-              <div className="min-w-[100px]">
+              <div className="min-w-[94px]">
                 <span className="block text-[8px] font-semibold text-[#727D88]">Available Margin</span>
                 <strong className="mt-0.5 block font-mono text-[11px] font-bold text-[#E7EDF2]">{formatMoney(availableMargin, accountCurrency)}</strong>
               </div>
