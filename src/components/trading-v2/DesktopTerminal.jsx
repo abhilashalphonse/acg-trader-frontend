@@ -524,10 +524,7 @@ export default function DesktopTerminal({
   const widthBounds = desktopWidthBounds(viewportWidth);
   const sidebarWidth = desktopLayout.sidebarCollapsed ? 0 : desktopLayout.sidebarWidth;
   const marketPanelOpen = activeNav === 'watchlist' || activeNav === 'markets';
-  const marketPanelOverlay = marketPanelOpen && viewportWidth < 1360;
   const marketBounds = desktopMarketPanelBounds(viewportWidth, sidebarWidth);
-  const marketPanelWidth = marketPanelOpen ? clamp(desktopLayout.marketPanelWidth || marketBounds.defaultPanel, marketBounds.panelMin, marketBounds.panelMax) : 0;
-  const marketPanelGridWidth = marketPanelOpen && !marketPanelOverlay ? marketPanelWidth : 0;
   const dockHeight = desktopLayout.dockCollapsed ? 0 : desktopLayout.dockHeight;
   const updateSidebarWidth = value => setDesktopLayout(current => {
     const nextSidebar = clamp(value, widthBounds.sidebarMin, widthBounds.sidebarMax);
@@ -539,10 +536,6 @@ export default function DesktopTerminal({
       marketPanelWidth: clamp(current.marketPanelWidth || nextMarketBounds.defaultPanel, nextMarketBounds.panelMin, nextMarketBounds.panelMax),
     };
   });
-  const updateMarketPanelWidth = value => setDesktopLayout(current => ({
-    ...current,
-    marketPanelWidth: clamp(value, marketBounds.panelMin, marketBounds.panelMax),
-  }));
   const updateDockHeight = value => setDesktopLayout(current => {
     const bounds = desktopHeightBounds(viewportHeight, false, value);
     const nextDock = clamp(value, bounds.dockMin, bounds.dockMax);
@@ -677,6 +670,9 @@ export default function DesktopTerminal({
   };
 
   const openMarketPanel = (mode = 'markets', focusSearch = false) => {
+    setDesktopLayout(current => ({ ...current, sidebarCollapsed: false }));
+    setSelectedPositionId(null);
+    setPositionEditRequest(null);
     setActiveNav(mode === 'watchlist' ? 'watchlist' : 'markets');
     if (focusSearch) window.setTimeout(() => searchRef.current?.focus(), 0);
   };
@@ -782,7 +778,7 @@ export default function DesktopTerminal({
           </div>
         </div>
 
-        {viewportWidth >= 1500 && !marketPanelOpen && (
+        {viewportWidth >= 1500 && (
           <div className="ml-2 flex h-full items-center">
             <div className="min-w-[92px] border-l border-white/[0.055] px-3">
               <span className="block text-[7px] uppercase tracking-[0.07em] text-[#637484]">24h High</span>
@@ -896,34 +892,11 @@ export default function DesktopTerminal({
         <div
           className="relative grid h-full min-h-0 min-w-0 bg-[#050607]"
           style={{
-            gridTemplateColumns: `${marketPanelGridWidth}px minmax(0, 1fr) ${sidebarWidth}px`,
+            gridTemplateColumns: `minmax(0, 1fr) ${sidebarWidth}px`,
             gridTemplateRows: `minmax(0, 1fr) ${dockHeight}px`,
           }}
         >
-          {marketPanelOpen && (
-            <aside
-              className={marketPanelOverlay
-                ? "absolute left-0 top-0 z-[90] flex min-h-0 overflow-hidden border-r border-white/[0.08] bg-[#07090B] shadow-[18px_0_44px_rgba(0,0,0,.48)]"
-                : "flex h-full min-h-0 overflow-hidden border-r border-white/[0.06] bg-[#07090B]"}
-              style={marketPanelOverlay
-                ? { width: marketPanelWidth, bottom: dockHeight }
-                : { gridColumn: '1', gridRow: '1' }}
-            >
-              <DesktopWatchlist
-                markets={markets}
-                activeSymbol={activeSymbol}
-                onSelectSymbol={onSelectSymbol}
-                watchlists={watchlists}
-                mode={activeNav === 'markets' ? 'markets' : 'watchlist'}
-                onModeChange={mode => openMarketPanel(mode, false)}
-                onClose={() => setActiveNav('trade')}
-                searchRef={searchRef}
-                onNotice={setNotice}
-              />
-            </aside>
-          )}
-
-          <section className="grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)]" style={{ gridColumn: '2', gridRow: '1' }}>
+          <section className="grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)]" style={{ gridColumn: '1', gridRow: '1' }}>
             <div className="min-h-0 min-w-0 bg-[#050607]">
               <DesktopMultiChart
                 config={multiChart}
@@ -965,43 +938,51 @@ export default function DesktopTerminal({
             </div>
           </section>
 
-          <aside className={`min-h-0 overflow-hidden border-l border-white/[0.06] bg-[#07090B] ${desktopLayout.sidebarCollapsed ? 'hidden' : 'flex flex-col'}`} style={{ gridColumn: '3', gridRow: '1' }}>
-            <div className="min-h-0 flex-1">
-              <DesktopOrderTicket key={`order-ticket-${account?.id || 'none'}`} market={market} markets={markets} account={account} positions={positions} positionHistory={positionHistory} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} riskGuardSettings={riskGuardSettings} onRiskGuardSettingsChange={onRiskGuardSettingsChange}/>
-            </div>
-            {selectedPosition && (
-              <div className="max-h-[46%] shrink-0 overflow-y-auto [scrollbar-width:thin]">
-                <DesktopPositionManager
-                  position={selectedPosition}
-                  instrument={markets.find(item => item.symbol === selectedPosition.symbol) || market}
-                  account={account}
-                  editRequest={positionEditRequest && String(positionEditRequest.positionId) === String(selectedPosition.id) ? positionEditRequest : null}
-                  onClose={onClosePosition}
-                  onBreakEven={onBreakEven}
-                  onUpdate={onUpdatePosition}
-                  onSetTrailing={onSetTrailing}
-                  onDismiss={() => { setSelectedPositionId(null); setPositionEditRequest(null); }}
+          <aside className={`min-h-0 overflow-hidden border-l border-white/[0.06] bg-[#07090B] ${desktopLayout.sidebarCollapsed ? 'hidden' : 'flex flex-col'}`} style={{ gridColumn: '2', gridRow: '1' }}>
+            {marketPanelOpen ? (
+              <div className="min-h-0 flex-1">
+                <DesktopWatchlist
+                  markets={markets}
+                  activeSymbol={activeSymbol}
+                  onSelectSymbol={symbol => {
+                    onSelectSymbol(symbol);
+                    setActiveNav('trade');
+                  }}
+                  watchlists={watchlists}
+                  mode={activeNav === 'markets' ? 'markets' : 'watchlist'}
+                  onModeChange={mode => openMarketPanel(mode, false)}
+                  onClose={() => setActiveNav('trade')}
+                  searchRef={searchRef}
+                  onNotice={setNotice}
                 />
               </div>
+            ) : (
+              <>
+                <div className="min-h-0 flex-1">
+                  <DesktopOrderTicket key={`order-ticket-${account?.id || 'none'}`} market={market} markets={markets} account={account} positions={positions} positionHistory={positionHistory} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} riskGuardSettings={riskGuardSettings} onRiskGuardSettingsChange={onRiskGuardSettingsChange}/>
+                </div>
+                {selectedPosition && (
+                  <div className="max-h-[46%] shrink-0 overflow-y-auto [scrollbar-width:thin]">
+                    <DesktopPositionManager
+                      position={selectedPosition}
+                      instrument={markets.find(item => item.symbol === selectedPosition.symbol) || market}
+                      account={account}
+                      editRequest={positionEditRequest && String(positionEditRequest.positionId) === String(selectedPosition.id) ? positionEditRequest : null}
+                      onClose={onClosePosition}
+                      onBreakEven={onBreakEven}
+                      onUpdate={onUpdatePosition}
+                      onSetTrailing={onSetTrailing}
+                      onDismiss={() => { setSelectedPositionId(null); setPositionEditRequest(null); }}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </aside>
 
-          <div className={`min-h-0 overflow-auto border-t border-white/[0.06] bg-[#07090B] ${desktopLayout.dockCollapsed ? 'hidden' : ''}`} style={{ gridColumn: '1 / 4', gridRow: '2' }}>
+          <div className={`min-h-0 overflow-auto border-t border-white/[0.06] bg-[#07090B] ${desktopLayout.dockCollapsed ? 'hidden' : ''}`} style={{ gridColumn: '1 / 3', gridRow: '2' }}>
             <PositionsPanel desktopDense requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition} onEditProtection={editPositionProtection}/>
           </div>
-
-          {marketPanelOpen && !marketPanelOverlay && (
-            <ResizeHandle
-              axis="x"
-              value={marketPanelWidth}
-              min={marketBounds.panelMin}
-              max={marketBounds.panelMax}
-              onChange={updateMarketPanelWidth}
-              ariaLabel="Resize market panel"
-              className="absolute bottom-0 top-0"
-              style={{ left: marketPanelWidth - 2 }}
-            />
-          )}
 
           {!desktopLayout.sidebarCollapsed && (
             <ResizeHandle
