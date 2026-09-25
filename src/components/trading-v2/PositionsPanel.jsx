@@ -5,6 +5,7 @@ import {
   MoreHorizontal,
   MoreVertical,
   Maximize2,
+  Minimize2,
   Minus,
   Plus,
   ShieldCheck,
@@ -76,6 +77,8 @@ export default function PositionsPanel({
   onCancelPending = () => {},
   onModifyPending = () => {},
   desktopDense = false,
+  expanded = false,
+  onToggleExpanded = () => {},
   activeSymbol = null,
   requestedTab = null,
   selectedPositionId = null,
@@ -253,19 +256,6 @@ export default function PositionsPanel({
     await cancelAllPendingOrders();
   };
 
-  const togglePositionsFullscreen = async event => {
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen?.();
-        return;
-      }
-      const panel = event.currentTarget.closest('section');
-      await panel?.requestFullscreen?.();
-    } catch {
-      // Fullscreen is a convenience control; leave the dock usable if the browser blocks it.
-    }
-  };
-
   return (
     <section className={`${desktopDense ? 'acg-desktop-positions h-full overflow-auto' : 'mt-3 overflow-visible'} border-y border-white/[0.06] bg-black`}>
       {desktopDense ? (
@@ -345,12 +335,12 @@ export default function PositionsPanel({
               </div>
               <button
                 type="button"
-                onClick={togglePositionsFullscreen}
-                className="grid size-8 place-items-center rounded-md border border-white/[0.09] bg-[#0B0D10] text-[#8C99A5] hover:bg-white/[0.03] hover:text-white"
-                title="Fullscreen positions"
-                aria-label="Fullscreen positions"
+                onClick={onToggleExpanded}
+                className={`grid size-8 place-items-center rounded-md border bg-[#0B0D10] transition ${expanded ? 'border-[#195be1]/60 text-[#195be1]' : 'border-white/[0.09] text-[#8C99A5] hover:bg-white/[0.03] hover:text-white'}`}
+                title={expanded ? "Restore workspace" : "Expand positions workspace"}
+                aria-label={expanded ? "Restore workspace" : "Expand positions workspace"}
               >
-                <Maximize2 size={14}/>
+                {expanded ? <Minimize2 size={14}/> : <Maximize2 size={14}/>} 
               </button>
             </div>
           </div>
