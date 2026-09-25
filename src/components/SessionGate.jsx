@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Loader2, LockKeyhole } from 'lucide-react';
 import { useTraderAuth } from '../hooks/useTraderAuth.js';
+import ACGStartupLoader from './ACGStartupLoader.jsx';
 
 export default function SessionGate({ children }) {
   const auth = useTraderAuth();
@@ -11,7 +12,7 @@ export default function SessionGate({ children }) {
   const [error, setError] = useState('');
 
   if (auth.status === 'bootstrapping' || auth.status === 'authenticating') {
-    return <div className="grid min-h-dvh place-items-center bg-[#050b12] text-[#7f93a6]"><div className="flex items-center gap-2 text-sm font-semibold"><Loader2 size={16} className="animate-spin"/>Preparing ACG Trader…</div></div>;
+    return <ACGStartupLoader />;
   }
 
   if (auth.authenticated) return children;
