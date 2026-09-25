@@ -1082,38 +1082,37 @@ export default function DesktopOrderTicket({
         {(challenge.dailyLossLimit > 0 || challenge.maxLossLimit > 0 || challenge.profitTarget > 0) && (
           <div className="rounded-md border border-white/[0.06] bg-black/35 px-2 py-2">
             <div className="mb-2 flex items-center justify-between">
-              <strong className="text-[8px] font-black uppercase tracking-[0.08em] text-[#A1AFBC]">Challenge Risk</strong>
+              <strong className="text-[8px] font-black uppercase tracking-[0.08em] text-[#A1AFBC]">Account Limits</strong>
               <span className={challenge.riskAvailabilityLive ? "text-[7px] font-bold text-[#42D7A1]" : "text-[7px] font-bold text-[#E7BD58]"}>{challenge.riskAvailabilityLive ? 'LIVE' : 'SYNCING'}</span>
             </div>
             <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-              <FieldMetric label="Daily room" value={challenge.dailyLossLimit > 0 && challenge.riskAvailabilityLive ? money(challenge.remainingDaily, currency) : '—'} />
-              <FieldMetric label="Max room" value={challenge.maxLossLimit > 0 && challenge.riskAvailabilityLive ? money(challenge.remainingMax, currency) : '—'} />
-              <FieldMetric label="Target left" value={challenge.profitTarget > 0 ? money(Math.max(0, challenge.profitTarget - challenge.profit), currency) : '—'} />
-              <FieldMetric label="After SL" value={challenge.dailyLossLimit > 0 && challenge.riskAvailabilityLive && Number.isFinite(planMetrics?.riskAmount) ? money(challenge.postTradeDaily, currency) : '—'} tone={challenge.dailyLossLimit > 0 && challenge.riskAvailabilityLive && Number.isFinite(planMetrics?.riskAmount) && challenge.postTradeDaily < challenge.remainingDaily * 0.25 ? 'danger' : 'default'} />
+              <FieldMetric label="Daily Loss Remaining" value={challenge.dailyLossLimit > 0 && challenge.riskAvailabilityLive ? money(challenge.remainingDaily, currency) : '—'} />
+              <FieldMetric label="Max Loss Remaining" value={challenge.maxLossLimit > 0 && challenge.riskAvailabilityLive ? money(challenge.remainingMax, currency) : '—'} />
+              <FieldMetric label="Profit Target Remaining" value={challenge.profitTarget > 0 ? money(Math.max(0, challenge.profitTarget - challenge.profit), currency) : '—'} />
+              <FieldMetric label="Daily Loss After SL" value={challenge.dailyLossLimit > 0 && challenge.riskAvailabilityLive && Number.isFinite(planMetrics?.riskAmount) ? money(challenge.postTradeDaily, currency) : '—'} tone={challenge.dailyLossLimit > 0 && challenge.riskAvailabilityLive && Number.isFinite(planMetrics?.riskAmount) && challenge.postTradeDaily < challenge.remainingDaily * 0.25 ? 'danger' : 'default'} />
             </div>
           </div>
         )}
 
         <div className="rounded-md border border-white/[0.06] bg-black/35 px-2 py-2">
           <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-            <FieldMetric label="Margin" value={money(previewMargin, currency)} />
-            <FieldMetric label="Free after" value={money(freeAfter, currency)} tone={Number.isFinite(freeAfter) && freeAfter < 0 ? 'danger' : 'default'} />
+            <FieldMetric label="Required Margin" value={money(previewMargin, currency)} />
+            <FieldMetric label="Free Margin After" value={money(freeAfter, currency)} tone={Number.isFinite(freeAfter) && freeAfter < 0 ? 'danger' : 'default'} />
             <FieldMetric
-              label="Risk at SL"
+              label="Loss at SL"
               value={Number.isFinite(planMetrics?.riskAmount) ? money(planMetrics.riskAmount, currency) : '—'}
               tone={activeTool === 'sl' ? 'danger' : Number.isFinite(riskBufferUsage) && riskBufferUsage >= 50 ? 'danger' : 'default'}
             />
             <FieldMetric
-              label="R:R"
+              label="Risk / Reward"
               value={Number.isFinite(planMetrics?.rr) ? `1:${planMetrics.rr.toFixed(2)}` : '—'}
               tone={activeTool === 'sl' || activeTool === 'tp' ? 'accent' : 'default'}
             />
           </div>
-          <div className="mt-2 grid grid-cols-4 gap-2 border-t border-white/[0.05] pt-2">
+          <div className="mt-2 grid grid-cols-3 gap-2 border-t border-white/[0.05] pt-2">
             <FieldMetric label="Spread" value={spreadDisplay} />
             <FieldMetric label="Commission" value={formatCommission(market?.commissionPerLotPerSide ?? market?.commissionPerLot, market?.commissionRate)} />
             <FieldMetric label="Leverage" value={effectiveLeverage(account, market) ? `1:${effectiveLeverage(account, market)}` : '—'} />
-            <FieldMetric label="Pricing" value={market?.pricingModel === 'ACG_DYNAMIC' ? 'Dynamic' : market?.pricingModel || '—'} tone={market?.pricingModel === 'ACG_DYNAMIC' ? 'accent' : 'default'} />
           </div>
         </div>
 
