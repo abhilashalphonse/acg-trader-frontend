@@ -608,6 +608,7 @@ export default function ChartArea({
   onModifyPending = () => {},
   onCancelPending = () => {},
   desktopEnhanced = false,
+  compactContext = false,
   onToggleIndicator = () => {},
   onOpenIndicatorSettings = () => {},
   onRemoveIndicator = () => {},
@@ -728,7 +729,7 @@ export default function ChartArea({
   }, []);
 
   const heightClass = oscillatorCount ? (oscillatorCount > 1 ? 'h-[500px] md:h-[580px]' : 'h-[430px] md:h-[520px]') : 'h-[360px] md:h-[460px]';
-  const toolbarVisible = !hideToolbar && drawingToolbarOpen;
+  const toolbarVisible = !compactContext && !hideToolbar && drawingToolbarOpen;
   const mobileHeightClass = fillAvailableHeight ? 'h-full min-h-0 flex-1' : heightClass;
   const areaClass = drawingToolbarOverlay
     ? `acg-mobile-reference-chart-area acg-mobile-chart-surface ${toolbarVisible ? 'acg-mobile-reference-chart-area--with-drawing-rail' : 'acg-mobile-reference-chart-area--chart-only'} grid ${mobileHeightClass} ${toolbarVisible ? 'grid-cols-[36px_minmax(0,1fr)] gap-1.5' : 'grid-cols-[minmax(0,1fr)]'} bg-[#081019]`
@@ -794,19 +795,20 @@ export default function ChartArea({
           positions={positions}
           indicators={indicators}
           onCoordinateApi={setCoordinateApi}
-          showBidAskLines={desktopEnhanced}
+          showBidAskLines={desktopEnhanced && !compactContext}
           showMobileQuoteMarkers={mobileReference}
           mobileReference={mobileReference}
           showPositionPriceLines={false}
           priceScaleAnchors={priceScaleAnchors}
-          showIndicatorControls={desktopEnhanced}
+          showIndicatorControls={desktopEnhanced && !compactContext}
           showAttributionLogo={!desktopEnhanced}
           desktopEnhanced={desktopEnhanced}
+          compactContext={compactContext}
           onToggleIndicator={onToggleIndicator}
           onOpenIndicatorSettings={onOpenIndicatorSettings}
           onRemoveIndicator={onRemoveIndicator}
         />
-        {showDrawings && <DrawingLayer
+        {!compactContext && showDrawings && <DrawingLayer
           symbol={symbol}
           timeframe={chartTimeframe}
           tool={selectedTool}
@@ -856,7 +858,7 @@ export default function ChartArea({
           onSelectPosition={onSelectPosition}
         />
 
-        {desktopEnhanced && (
+        {desktopEnhanced && !compactContext && (
           <div className="absolute right-[74px] top-2 z-30 flex items-center gap-1">
             <div className="pointer-events-none mr-1 flex h-7 items-center rounded-md border border-white/[0.06] bg-black/86 px-2.5 text-[9px] font-medium tabular-nums text-[#7E8994] backdrop-blur-sm">
               <span>Spread&nbsp;<b className="font-mono font-semibold text-[#B9C2CA]">{formatSpreadDisplay(price, ask, instrument)}</b></span>
@@ -867,7 +869,7 @@ export default function ChartArea({
           </div>
         )}
 
-        {!drawingToolbarOverlay && !tradePlan && (!embedded || desktopEnhanced) && (
+        {!compactContext && !drawingToolbarOverlay && !tradePlan && (!embedded || desktopEnhanced) && (
           <div className="pointer-events-auto absolute bottom-2 right-[64px] z-30 flex items-center gap-2 font-mono text-[8px] font-medium tabular-nums text-[#737D87]">
             <span>{localUtcLabel(clockNow)}</span>
             <span className="text-[#9AA4AE]" title="Current local chart time">{localClockLabel(clockNow)}</span>
