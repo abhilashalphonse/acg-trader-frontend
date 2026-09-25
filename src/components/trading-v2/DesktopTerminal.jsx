@@ -522,10 +522,11 @@ export default function DesktopTerminal({
 
   const heightBounds = desktopHeightBounds(viewportHeight, desktopLayout.dockCollapsed, desktopLayout.dockHeight);
   const widthBounds = desktopWidthBounds(viewportWidth);
-  const collapsedSidebarWidth = 48;
-  const sidebarWidth = desktopLayout.sidebarCollapsed ? collapsedSidebarWidth : desktopLayout.sidebarWidth;
+  const sidebarRailWidth = 48;
+  const sidebarContentWidth = desktopLayout.sidebarCollapsed ? 0 : desktopLayout.sidebarWidth;
+  const sidebarWidth = sidebarContentWidth + sidebarRailWidth;
   const marketPanelOpen = activeNav === 'watchlist' || activeNav === 'markets';
-  const marketBounds = desktopMarketPanelBounds(viewportWidth, sidebarWidth);
+  const marketBounds = desktopMarketPanelBounds(viewportWidth, sidebarContentWidth);
   const dockHeight = desktopLayout.dockCollapsed ? 0 : desktopLayout.dockHeight;
   const updateSidebarWidth = value => setDesktopLayout(current => {
     const nextSidebar = clamp(value, widthBounds.sidebarMin, widthBounds.sidebarMax);
@@ -815,7 +816,7 @@ export default function DesktopTerminal({
                 <button type="button" onClick={() => { setIndicatorPanelOpen(false); setObjectManagerOpen(value => !value); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Layers3 size={12}/>Chart manager</button>
                 <button type="button" onClick={() => { void toggleFullscreen(); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Maximize2 size={12}/>Fullscreen</button>
                 <div className="my-1 border-t border-white/[0.06]"/>
-                <button type="button" onClick={() => { toggleSidebar(); setToolsMenuOpen(false); }} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Trade dock</span><span className="text-[#6F8191]">{desktopLayout.sidebarCollapsed ? 'Collapsed' : 'Docked'}</span></button>
+                <button type="button" onClick={() => { toggleSidebar(); setToolsMenuOpen(false); }} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Side panel</span><span className="text-[#6F8191]">{desktopLayout.sidebarCollapsed ? 'Closed' : 'Open'}</span></button>
                 <button type="button" onClick={() => { toggleDock(); setToolsMenuOpen(false); }} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Positions dock</span><span className="text-[#6F8191]">{desktopLayout.dockCollapsed ? 'Hidden' : 'Shown'}</span></button>
                 <button type="button" onClick={() => { resetDesktopLayout(); setToolsMenuOpen(false); }} className="w-full rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]">Reset desktop layout</button>
                 <div className="my-1 border-t border-white/[0.06]"/>
@@ -899,7 +900,7 @@ export default function DesktopTerminal({
         <div
           className="relative grid h-full min-h-0 min-w-0 bg-[#050607]"
           style={{
-            gridTemplateColumns: `minmax(0, 1fr) ${sidebarWidth}px`,
+            gridTemplateColumns: `minmax(0, 1fr) ${sidebarContentWidth}px ${sidebarRailWidth}px`,
             gridTemplateRows: `minmax(0, 1fr) ${dockHeight}px`,
           }}
         >
@@ -945,106 +946,93 @@ export default function DesktopTerminal({
             </div>
           </section>
 
-          <aside className="relative flex min-h-0 flex-col overflow-hidden border-l border-white/[0.06] bg-[#07090B]" style={{ gridColumn: '2', gridRow: '1' }}>
-            {desktopLayout.sidebarCollapsed ? (
-              <div className="flex h-full min-h-0 w-full flex-col items-center bg-[#080A0C] py-2">
-                <button
-                  type="button"
-                  onClick={() => openSidebarView('trade')}
-                  className={activeNav === 'trade'
-                    ? "mb-1 grid size-9 place-items-center rounded-md bg-[#111820] text-[#195be1] ring-1 ring-inset ring-[#195be1]/70"
-                    : "mb-1 grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"}
-                  title="Open Trade"
-                  aria-label="Open Trade"
-                >
-                  <ChartNoAxesCombined size={17}/>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openSidebarView('markets')}
-                  className={activeNav === 'markets'
-                    ? "mb-1 grid size-9 place-items-center rounded-md bg-[#111820] text-[#195be1] ring-1 ring-inset ring-[#195be1]/70"
-                    : "mb-1 grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"}
-                  title="Open Markets"
-                  aria-label="Open Markets"
-                >
-                  <List size={17}/>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openSidebarView('watchlist')}
-                  className={activeNav === 'watchlist'
-                    ? "mb-1 grid size-9 place-items-center rounded-md bg-[#111820] text-[#195be1] ring-1 ring-inset ring-[#195be1]/70"
-                    : "mb-1 grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"}
-                  title="Open Watchlist"
-                  aria-label="Open Watchlist"
-                >
-                  <Star size={17}/>
-                </button>
-                <div className="mt-1 h-px w-6 bg-white/[0.06]"/>
-                <button
-                  type="button"
-                  onClick={toggleSidebar}
-                  className="mt-auto grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"
-                  title="Expand trade dock"
-                  aria-label="Expand trade dock"
-                >
-                  <Columns2 size={17}/>
-                </button>
-              </div>
-            ) : marketPanelOpen ? (
-              <div className="min-h-0 flex-1">
-                <DesktopWatchlist
-                  markets={markets}
-                  activeSymbol={activeSymbol}
-                  onSelectSymbol={symbol => {
-                    onSelectSymbol(symbol);
-                    setActiveNav('trade');
-                  }}
-                  watchlists={watchlists}
-                  mode={activeNav === 'markets' ? 'markets' : 'watchlist'}
-                  onModeChange={mode => openMarketPanel(mode, false)}
-                  onClose={() => setActiveNav('trade')}
-                  searchRef={searchRef}
-                  onNotice={setNotice}
-                />
-              </div>
-            ) : (
-              <>
+          {!desktopLayout.sidebarCollapsed && (
+            <aside className="relative flex min-h-0 flex-col overflow-hidden border-l border-white/[0.06] bg-[#07090B]" style={{ gridColumn: '2', gridRow: '1' }}>
+              {marketPanelOpen ? (
                 <div className="min-h-0 flex-1">
-                  <DesktopOrderTicket key={`order-ticket-${account?.id || 'none'}`} market={market} markets={markets} account={account} positions={positions} positionHistory={positionHistory} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} riskGuardSettings={riskGuardSettings} onRiskGuardSettingsChange={onRiskGuardSettingsChange}/>
+                  <DesktopWatchlist
+                    markets={markets}
+                    activeSymbol={activeSymbol}
+                    onSelectSymbol={onSelectSymbol}
+                    watchlists={watchlists}
+                    mode={activeNav === 'markets' ? 'markets' : 'watchlist'}
+                    onModeChange={mode => openMarketPanel(mode, false)}
+                    onClose={() => setDesktopLayout(current => ({ ...current, sidebarCollapsed: true }))}
+                    searchRef={searchRef}
+                    onNotice={setNotice}
+                  />
                 </div>
-                {selectedPosition && (
-                  <div className="max-h-[46%] shrink-0 overflow-y-auto [scrollbar-width:thin]">
-                    <DesktopPositionManager
-                      position={selectedPosition}
-                      instrument={markets.find(item => item.symbol === selectedPosition.symbol) || market}
-                      account={account}
-                      editRequest={positionEditRequest && String(positionEditRequest.positionId) === String(selectedPosition.id) ? positionEditRequest : null}
-                      onClose={onClosePosition}
-                      onBreakEven={onBreakEven}
-                      onUpdate={onUpdatePosition}
-                      onSetTrailing={onSetTrailing}
-                      onDismiss={() => { setSelectedPositionId(null); setPositionEditRequest(null); }}
-                    />
+              ) : (
+                <>
+                  <div className="min-h-0 flex-1">
+                    <DesktopOrderTicket key={`order-ticket-${account?.id || 'none'}`} market={market} markets={markets} account={account} positions={positions} positionHistory={positionHistory} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} riskGuardSettings={riskGuardSettings} onRiskGuardSettingsChange={onRiskGuardSettingsChange}/>
                   </div>
-                )}
-              </>
-            )}
-            {!desktopLayout.sidebarCollapsed && (
-              <button
-                type="button"
-                onClick={toggleSidebar}
-                className="absolute right-1 top-[62px] z-[25] grid size-6 place-items-center rounded-md border border-white/[0.06] bg-[#0B0D0F]/92 text-[#748491] shadow-sm hover:bg-[#11161B] hover:text-white"
-                title="Collapse trade dock"
-                aria-label="Collapse trade dock"
-              >
-                <Columns2 size={12}/>
-              </button>
-            )}
+                  {selectedPosition && (
+                    <div className="max-h-[46%] shrink-0 overflow-y-auto [scrollbar-width:thin]">
+                      <DesktopPositionManager
+                        position={selectedPosition}
+                        instrument={markets.find(item => item.symbol === selectedPosition.symbol) || market}
+                        account={account}
+                        editRequest={positionEditRequest && String(positionEditRequest.positionId) === String(selectedPosition.id) ? positionEditRequest : null}
+                        onClose={onClosePosition}
+                        onBreakEven={onBreakEven}
+                        onUpdate={onUpdatePosition}
+                        onSetTrailing={onSetTrailing}
+                        onDismiss={() => { setSelectedPositionId(null); setPositionEditRequest(null); }}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </aside>
+          )}
+
+          <aside className="flex min-h-0 flex-col items-center border-l border-white/[0.06] bg-[#080A0C] py-2" style={{ gridColumn: '3', gridRow: '1' }} aria-label="Desktop panel dock">
+            <button
+              type="button"
+              onClick={() => {
+                if (!desktopLayout.sidebarCollapsed && activeNav === 'trade') toggleSidebar();
+                else openSidebarView('trade');
+              }}
+              className={!desktopLayout.sidebarCollapsed && activeNav === 'trade'
+                ? "mb-1 grid size-9 place-items-center rounded-md bg-[#111820] text-[#195be1] ring-1 ring-inset ring-[#195be1]/70"
+                : "mb-1 grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"}
+              title="Trade"
+              aria-label="Trade"
+            >
+              <ChartNoAxesCombined size={17}/>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!desktopLayout.sidebarCollapsed && activeNav === 'markets') toggleSidebar();
+                else openSidebarView('markets');
+              }}
+              className={!desktopLayout.sidebarCollapsed && activeNav === 'markets'
+                ? "mb-1 grid size-9 place-items-center rounded-md bg-[#111820] text-[#195be1] ring-1 ring-inset ring-[#195be1]/70"
+                : "mb-1 grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"}
+              title="Markets"
+              aria-label="Markets"
+            >
+              <List size={17}/>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!desktopLayout.sidebarCollapsed && activeNav === 'watchlist') toggleSidebar();
+                else openSidebarView('watchlist');
+              }}
+              className={!desktopLayout.sidebarCollapsed && activeNav === 'watchlist'
+                ? "mb-1 grid size-9 place-items-center rounded-md bg-[#111820] text-[#195be1] ring-1 ring-inset ring-[#195be1]/70"
+                : "mb-1 grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"}
+              title="Watchlist"
+              aria-label="Watchlist"
+            >
+              <Star size={17}/>
+            </button>
           </aside>
 
-          <div className={`min-h-0 overflow-auto border-t border-white/[0.06] bg-[#07090B] ${desktopLayout.dockCollapsed ? 'hidden' : ''}`} style={{ gridColumn: '1 / 3', gridRow: '2' }}>
+          <div className={`min-h-0 overflow-auto border-t border-white/[0.06] bg-[#07090B] ${desktopLayout.dockCollapsed ? 'hidden' : ''}`} style={{ gridColumn: '1 / 4', gridRow: '2' }}>
             <PositionsPanel desktopDense requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition} onEditProtection={editPositionProtection}/>
           </div>
 
@@ -1058,7 +1046,7 @@ export default function DesktopTerminal({
               onChange={updateSidebarWidth}
               ariaLabel="Resize trade dock"
               className="absolute bottom-0 top-0"
-              style={{ right: sidebarWidth - 2 }}
+              style={{ right: sidebarContentWidth + sidebarRailWidth - 2 }}
             />
           )}
 
