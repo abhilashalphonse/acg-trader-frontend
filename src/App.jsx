@@ -1,5 +1,6 @@
 import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import TerminalStatusBanner from './components/TerminalStatusBanner.jsx';
+import ACGStartupLoader from './components/ACGStartupLoader.jsx';
 import { useInstrumentCatalog } from './hooks/useInstrumentCatalog.js';
 import { useMarketData } from './hooks/useMarketData.js';
 import { useTraderAuth } from './hooks/useTraderAuth.js';
@@ -149,7 +150,7 @@ export default function App() {
   });
 
   if (instrumentsLoading && !market) {
-    return <div className="grid min-h-dvh place-items-center bg-[#050b12] text-sm font-semibold text-[#7e93a7]">Loading ACG markets…</div>;
+    return <ACGStartupLoader />;
   }
 
   if ((instrumentsError || marketError) && !market) {
@@ -175,7 +176,7 @@ export default function App() {
         actionBusy={auth.refreshing}
         onAction={auth.status === 'reauth-required' ? () => { void auth.refreshSession().catch(() => {}); } : null}
       />
-      <Suspense fallback={<div className="grid min-h-dvh place-items-center bg-[#050b12] text-sm font-semibold text-[#7e93a7]">Loading trading terminal…</div>}>
+      <Suspense fallback={<ACGStartupLoader />}>
         {isDesktop
           ? <TradingTerminalV2 {...sharedProps} />
           : <MobileTraderShell {...sharedProps} />}
