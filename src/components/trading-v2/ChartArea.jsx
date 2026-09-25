@@ -291,7 +291,7 @@ function PendingOrderOverlay({
   );
 }
 
-function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.1, accountCurrency = 'USD', account = null, riskPercent = 0.5 }) {
+function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.1, accountCurrency = 'USD', account = null, riskPercent = 0.5, showEntry = true }) {
   const layerRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [preview, setPreview] = useState({});
@@ -435,8 +435,8 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
       {rewardTop != null && <div className="pointer-events-none absolute left-[42%] right-0" style={{ top: rewardTop, height: rewardHeight, background: 'linear-gradient(90deg, rgba(22,134,95,0.10), rgba(34,167,125,0.20))' }} />}
       {riskTop != null && <div className="pointer-events-none absolute left-[42%] right-0" style={{ top: riskTop, height: riskHeight, background: 'linear-gradient(90deg, rgba(138,43,57,0.10), rgba(255,68,91,0.17))' }} />}
       {line('tp', 'tp', '#35d79d', 'TP', `TP ${formatInstrumentPrice(liveTp, instrument)}`, true)}
-      {line('entry', 'entry', '#42a5ff', entryLabel, formatInstrumentPrice(sourcePrice('entry'), instrument), Boolean(plan.pending))}
-      {plan.pending && plan.orderType === 'stop-limit' && line('limit', 'limitPrice', '#b58cff', 'LIMIT', formatInstrumentPrice(sourcePrice('limitPrice'), instrument), true)}
+      {showEntry && line('entry', 'entry', '#42a5ff', entryLabel, formatInstrumentPrice(sourcePrice('entry'), instrument), Boolean(plan.pending))}
+      {showEntry && plan.pending && plan.orderType === 'stop-limit' && line('limit', 'limitPrice', '#b58cff', 'LIMIT', formatInstrumentPrice(sourcePrice('limitPrice'), instrument), true)}
       {line('sl', 'sl', '#ff5968', 'SL', `SL ${formatInstrumentPrice(liveSl, instrument)}`, true)}
       {dragging && (
         <div className="pointer-events-none absolute right-[64px] top-3 z-40 rounded-lg border border-white/10 bg-[#080808]/95 px-2.5 py-1.5 text-right shadow-xl lg:right-[86px]">
@@ -600,6 +600,8 @@ export default function ChartArea({
   selectedPositionId = null,
   onSelectPosition = () => {},
   onClosePosition = () => {},
+  positionProtectionDraft = null,
+  onPositionProtectionDraftChange = () => {},
   indicators = [],
   positions = [],
   pendingOrders = [],
@@ -823,9 +825,33 @@ export default function ChartArea({
           showHistoryControls={!drawingToolbarOverlay || toolbarVisible}
         />}
         <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} coordinateApi={coordinateApi} instrument={instrument} lots={tradePlanLots} accountCurrency={accountCurrency} account={account} riskPercent={riskPercent} />
+        {positionProtectionDraft && (
+          <TradePlanOverlay
+            plan={positionProtectionDraft}
+            onChange={onPositionProtectionDraftChange}
+            coordinateApi={coordinateApi}
+            instrument={instrument}
+            lots={Number(positionProtectionDraft.manualLots) || tradePlanLots}
+            accountCurrency={accountCurrency}
+            account={account}
+            riskPercent={riskPercent}
+            showEntry={false}
+          />
+        )}
         {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} />}
         <OpenPositionEntryOverlay symbol={symbol} positions={positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} />
-        <OpenPositionProtectionOverlay symbol={symbol} positions={positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} onUpdatePosition={onUpdatePosition} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} />
+        <OpenPositionProtectionOverlay
+          symbol={symbol}
+          positions={positions.filter(position =>
+            !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id))
+            && !(positionProtectionDraft && String(positionProtectionDraft.positionId) === String(position?.id))
+          )}
+          coordinateApi={coordinateApi}
+          instrument={instrument}
+          onUpdatePosition={onUpdatePosition}
+          selectedPositionId={selectedPositionId}
+          onSelectPosition={onSelectPosition}
+        />
 
         {desktopEnhanced && (
           <div className="absolute right-[74px] top-2 z-30 flex items-center gap-1">
