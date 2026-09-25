@@ -1999,4 +1999,13 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
     grid-template-columns:minmax(0,1fr)!important;
     column-gap:0!important;
   }
+
+  .acg-mobile-reference-drawing-rail.acg-mobile-reference-drawing-rail--overlay,
+  .acg-mobile-reference-drawing-rail--overlay{
+    top:8px!important;
+    bottom:52px!important;
+    left:6px!important;
+    height:auto!important;
+    margin:0!important;
+  }
 }
