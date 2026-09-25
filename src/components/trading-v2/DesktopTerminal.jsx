@@ -639,7 +639,6 @@ export default function DesktopTerminal({
   const valuationStatus = String(account?.valuationStatus || 'WAITING').toUpperCase();
   const accountStatus = String(account?.status || 'UNKNOWN').toUpperCase();
   const canOpen = exposureAllowed && executableMarket(market) && accountStatus === 'ACTIVE' && account?.tradingEnabled === true && valuationStatus === 'LIVE';
-  const liveMarketPrice = [market?.last, market?.bid].find(value => value && value !== '—') || '—';
   const firstPositive = (...values) => {
     for (const value of values) {
       const numeric = Number(value);
@@ -651,8 +650,6 @@ export default function DesktopTerminal({
   const marketHigh = firstPositive(resolved24hStats.high, tick?.dayHigh, tick?.high24h, tick?.sessionHigh, market?.dayHigh, market?.high24h, market?.sessionHigh);
   const marketLow = firstPositive(resolved24hStats.low, tick?.dayLow, tick?.low24h, tick?.sessionLow, market?.dayLow, market?.low24h, market?.sessionLow);
   const marketVolume = firstPositive(resolved24hStats.volume, tick?.dayVolume, tick?.volume24h, tick?.sessionVolume, market?.dayVolume, market?.volume24h, market?.sessionVolume);
-  const rawMarketChange = Number(market?.change ?? tick?.change);
-  const rawMarketChangePercent = Number(market?.changePercent ?? tick?.changePercent);
   const formatMarketVolume = value => {
     const numeric = Number(value);
     if (!Number.isFinite(numeric) || numeric <= 0) return null;
@@ -724,21 +721,67 @@ export default function DesktopTerminal({
             <span className="mt-0.5 block truncate text-[8px] text-[#697988]">{marketLabel(market)}</span>
           </div>
         </button>
-        <div className="h-8 w-px bg-white/[0.06]" />
-        <div className="min-w-[122px] px-4">
-          <strong className="block font-mono text-[16px] font-black tracking-[-0.03em] text-[#eef3f6]">{liveMarketPrice}</strong>
-          <span className={Number.isFinite(rawMarketChange) && rawMarketChange < 0 ? "mt-0.5 block text-[8px] font-bold text-[#ff5968]" : "mt-0.5 block text-[8px] font-bold text-[#31d39d]"}>
-            {Number.isFinite(rawMarketChange) ? <>{rawMarketChange >= 0 ? '+' : ''}{rawMarketChange.toFixed(2)}{Number.isFinite(rawMarketChangePercent) ? <> ({rawMarketChangePercent >= 0 ? '+' : ''}{rawMarketChangePercent.toFixed(2)}%)</> : null}</> : market?.live ? 'LIVE PRICE' : '—'}
-          </span>
-        </div>
-        <div className="h-8 w-px bg-white/[0.06]" />
-        <div className="flex min-w-[118px] items-center gap-2 px-4">
-          <span className={market?.live ? "size-2 rounded-full bg-[#20c99a]" : market?.isStale ? "size-2 rounded-full bg-[#e7bd58]" : "size-2 rounded-full bg-[#4a5967]"}/>
-          <div>
-            <strong className={market?.live ? "block text-[9px] font-bold text-[#dce7e3]" : "block text-[9px] font-bold text-[#A1AFBC]"}>{market?.sessionOpen === false ? 'Market Closed' : market?.live ? 'Market Live' : market?.isStale ? 'Market Stale' : market?.marketState || 'Waiting'}</strong>
-            <span className="mt-0.5 block text-[7px] uppercase tracking-[0.06em] text-[#5f6d79]">{market?.assetClass || 'ACG pricing'}</span>
+        <div className="acg-desktop-chart-toolbar flex min-w-0 flex-1 items-center border-l border-white/[0.06] bg-transparent px-2.5">
+          <div className="terminal-toolbar-group flex h-full min-w-0 flex-1 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {timeframes.map(([label, value]) => (
+              <button key={value} type="button" onClick={() => setDesktopTimeframe(value)} disabled={Boolean(tradePlan && !tradePlan.open)} className={activeChartTimeframe === value ? "relative h-full min-w-9 px-2 text-[9px] font-semibold text-[#f2f5f7]" : "relative h-full min-w-9 px-2 text-[9px] font-semibold text-[#7e8b96] hover:text-[#E6EDF3]"}>{label}{activeChartTimeframe === value && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#195be1]"/>}</button>
+            ))}
+          </div>
+          <div className="ml-auto flex h-full shrink-0 items-center gap-1.5">
+            <button type="button" onClick={() => watchlists?.toggleSymbol?.(activeSymbol)} className={favorite ? "grid size-7 place-items-center rounded-md border border-white/[0.06] text-[#f6c95d]" : "grid size-7 place-items-center rounded-md border border-white/[0.06] text-[#71808e] hover:text-white"} title="Favorite"><Star size={13} fill={favorite ? 'currentColor' : 'none'}/></button>
+            <div className="relative">
+              <button type="button" onClick={() => setChartMenuOpen(value => !value)} className={chartMenuOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#195be1]/60 bg-[#14171b] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title="Chart settings"><CandlestickChart size={12}/><span>Charts</span><ChevronDown size={10}/></button>
+              {chartMenuOpen && (
+                <div className="absolute right-0 top-8 z-[100] w-[205px] rounded-md border border-white/[0.10] bg-[#0C1013] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+                  <div className="px-2 pb-1 pt-0.5 text-[7px] font-bold uppercase tracking-[0.08em] text-[#5f6d79]">Chart type</div>
+                  <button type="button" onClick={() => { onChartModeChange('candles'); setChartMenuOpen(false); }} className={chartMode === 'candles' ? "flex w-full items-center gap-2 rounded bg-[#15181d] px-2 py-2 text-left text-[8px] font-semibold text-[#195be1]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><CandlestickChart size={12}/>Candlesticks</button>
+                  <button type="button" onClick={() => { onChartModeChange('line'); setChartMenuOpen(false); }} className={chartMode === 'line' ? "flex w-full items-center gap-2 rounded bg-[#15181d] px-2 py-2 text-left text-[8px] font-semibold text-[#195be1]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><ChartNoAxesCombined size={12}/>Line</button>
+                  <div className="my-1 border-t border-white/[0.06]"/>
+                  <div className="px-2 pb-1 pt-0.5 text-[7px] font-bold uppercase tracking-[0.08em] text-[#5f6d79]">Chart grid</div>
+                  {[[1, Square, 'Single chart'], [2, Columns2, 'Two charts'], [4, Grid2X2, 'Four charts']].map(([value, Icon, label]) => (
+                    <button key={value} type="button" onClick={() => setChartLayout(value)} className={chartLayout === value ? "flex w-full items-center gap-2 rounded bg-[#15181d] px-2 py-2 text-left text-[8px] font-semibold text-[#195be1]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><Icon size={12}/>{label}</button>
+                  ))}
+                  {chartLayout > 1 && <>
+                    <div className="my-1 border-t border-white/[0.06]"/>
+                    <button type="button" onClick={toggleChartLink} className={chartLinked ? "flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#195be1] hover:bg-white/[0.03]" : "flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><span className="flex items-center gap-2">{chartLinked ? <Link2 size={12}/> : <Link2Off size={12}/>}Link symbols</span><span className="text-[#6F8191]">{chartLinked ? 'On' : 'Off'}</span></button>
+                    <button type="button" onClick={applyActiveIndicatorsToAllCharts} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Copy indicators to all</span><span className="text-[#6F8191]">ƒx {indicators.length}</span></button>
+                  </>}
+                </div>
+              )}
+            </div>
+            <div className="relative">
+              <button type="button" onClick={() => { setIndicatorFocusId(null); setObjectManagerOpen(false); setIndicatorPanelOpen(value => !value); }} className={indicatorPanelOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#195be1]/60 bg-[#14171b] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title="Indicators"><span className="text-[11px] font-black">ƒx</span><span>Indicators</span>{indicators.length > 0 && <span className="grid min-w-3 place-items-center rounded bg-[#181b20] px-1 text-[6px] text-[#aab5bf]">{indicators.length}</span>}<ChevronDown size={10}/></button>
+              {indicatorPanelOpen && (
+                <div className="absolute right-0 top-8 z-[110] w-[390px] max-h-[min(680px,calc(100dvh-150px))] overflow-y-auto rounded-lg border border-white/[0.10] bg-[#0B0D0F]/98 p-3 shadow-[0_24px_70px_rgba(0,0,0,.68)] backdrop-blur-xl [scrollbar-width:thin]">
+                  <div className="mb-3 flex items-center justify-between border-b border-white/[0.07] pb-2.5"><div><strong className="block text-[11px] text-[#EDF3F7]">Indicators</strong><span className="mt-0.5 block text-[8px] text-[#687D91]">Active chart · {activeSymbol} · {activeChartTimeframe}</span></div><button type="button" onClick={() => setIndicatorPanelOpen(false)} className="grid size-7 place-items-center rounded text-[#7D91A4] hover:bg-white/[0.04] hover:text-white"><X size={13}/></button></div>
+                  <IndicatorManager desktop applied={indicators} favorites={indicatorFavorites} onAdd={onAddIndicator} onRemove={onRemoveIndicator} onToggleVisible={onToggleIndicator} onUpdate={onUpdateIndicator} onToggleFavorite={onToggleIndicatorFavorite} focusInstanceId={indicatorFocusId}/>
+                </div>
+              )}
+            </div>
+            <DesktopWorkspaceMenu snapshot={workspaceSnapshot} onApply={applyWorkspace}/>
+            <div className="relative">
+              <button type="button" onClick={() => setToolsMenuOpen(value => !value)} className={toolsMenuOpen ? "grid size-7 place-items-center rounded-md border border-[#195be1]/60 bg-[#14171b] text-[#f1f4f6]" : "grid size-7 place-items-center rounded-md border border-white/[0.06] text-[#8996a1] hover:text-white"} title="Terminal tools"><Settings size={13}/></button>
+              {toolsMenuOpen && (
+                <div className="absolute right-0 top-8 z-[105] w-[230px] rounded-md border border-white/[0.10] bg-[#0C1013] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+                  <button type="button" onClick={() => { handleNav('watchlist'); setToolsMenuOpen(false); }} className={activeNav === 'watchlist' ? "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#195be1]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><Star size={12}/>Watchlist</button>
+                  <button type="button" onClick={() => { handleNav('markets'); setToolsMenuOpen(false); }} className={activeNav === 'markets' ? "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#195be1]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><List size={12}/>Markets</button>
+                  <button type="button" onClick={() => { handleNav('history'); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><History size={12}/>History</button>
+                  <button type="button" onClick={() => { setReviewOpen(true); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><BookOpen size={12}/>Trade review</button>
+                  <button type="button" onClick={() => { setIndicatorPanelOpen(false); setObjectManagerOpen(value => !value); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Layers3 size={12}/>Chart manager</button>
+                  <button type="button" onClick={() => { void toggleFullscreen(); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Maximize2 size={12}/>Fullscreen</button>
+                  <div className="my-1 border-t border-white/[0.06]"/>
+                  <button type="button" onClick={() => { toggleSidebar(); setToolsMenuOpen(false); }} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Order panel</span><span className="text-[#6F8191]">{desktopLayout.sidebarCollapsed ? 'Hidden' : 'Shown'}</span></button>
+                  <button type="button" onClick={() => { toggleDock(); setToolsMenuOpen(false); }} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Positions dock</span><span className="text-[#6F8191]">{desktopLayout.dockCollapsed ? 'Hidden' : 'Shown'}</span></button>
+                  <button type="button" onClick={() => { resetDesktopLayout(); setToolsMenuOpen(false); }} className="w-full rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]">Reset desktop layout</button>
+                  <div className="my-1 border-t border-white/[0.06]"/>
+                  <button type="button" onClick={() => { onOpenSettings(); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Settings size={12}/>Settings</button>
+                </div>
+              )}
+              {objectManagerOpen && <div className="absolute right-0 top-8 z-[115]"><ChartObjectManager symbol={activeSymbol} timeframe={activeChartTimeframe === '1m' ? 'M1' : activeChartTimeframe === '5m' ? 'M5' : activeChartTimeframe === '15m' ? 'M15' : activeChartTimeframe === '30m' ? 'M30' : activeChartTimeframe === '1H' ? 'H1' : activeChartTimeframe === '4H' ? 'H4' : activeChartTimeframe === '1D' ? 'D1' : activeChartTimeframe === '1W' ? 'W1' : activeChartTimeframe} indicators={indicators} chartInstanceId={'desktop-chart-' + Math.min(Math.max(0, Number(multiChart?.activeCell) || 0), chartLayout - 1)} onToggleIndicator={onToggleIndicator} onRemoveIndicator={onRemoveIndicator} onOpenIndicatorSettings={instanceId => { setObjectManagerOpen(false); setIndicatorFocusId(instanceId); setIndicatorPanelOpen(true); }} onClose={() => setObjectManagerOpen(false)}/></div>}
+            </div>
           </div>
         </div>
+
         {viewportWidth >= 1500 && !marketPanelOpen && (
           <div className="ml-2 flex h-full items-center">
             <div className="min-w-[92px] border-l border-white/[0.055] px-3">
@@ -825,7 +868,6 @@ export default function DesktopTerminal({
               </div>
             )}
           </div>
-          <button type="button" onClick={() => watchlists?.toggleSymbol?.(activeSymbol)} className={favorite ? "grid size-8 place-items-center rounded-md text-[#f6c95d] hover:bg-white/[0.035]" : "grid size-8 place-items-center rounded-md text-[#73808b] hover:bg-white/[0.035]"} aria-label="Favorite instrument"><Star size={15} fill={favorite ? 'currentColor' : 'none'}/></button>
         </div>
       </header>
 
@@ -861,67 +903,7 @@ export default function DesktopTerminal({
             </aside>
           )}
 
-          <section className="grid min-h-0 min-w-0 grid-rows-[42px_minmax(0,1fr)]" style={{ gridColumn: '2', gridRow: '1' }}>
-            <div className="acg-desktop-chart-toolbar flex min-w-0 items-center border-b border-white/[0.055] bg-[#090b0d] px-2.5">
-              <div className="terminal-toolbar-group flex h-full min-w-0 flex-1 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {timeframes.map(([label, value]) => (
-                  <button key={value} type="button" onClick={() => setDesktopTimeframe(value)} disabled={Boolean(tradePlan && !tradePlan.open)} className={activeChartTimeframe === value ? "relative h-full min-w-9 px-2 text-[9px] font-semibold text-[#f2f5f7]" : "relative h-full min-w-9 px-2 text-[9px] font-semibold text-[#7e8b96] hover:text-[#E6EDF3]"}>{label}{activeChartTimeframe === value && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#195be1]"/>}</button>
-                ))}
-              </div>
-              <div className="ml-auto flex h-full shrink-0 items-center gap-1.5">
-                <button type="button" onClick={() => watchlists?.toggleSymbol?.(activeSymbol)} className={favorite ? "grid size-7 place-items-center rounded-md border border-white/[0.06] text-[#f6c95d]" : "grid size-7 place-items-center rounded-md border border-white/[0.06] text-[#71808e] hover:text-white"} title="Favorite"><Star size={13} fill={favorite ? 'currentColor' : 'none'}/></button>
-                <div className="relative">
-                  <button type="button" onClick={() => setChartMenuOpen(value => !value)} className={chartMenuOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#195be1]/60 bg-[#14171b] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title="Chart settings"><CandlestickChart size={12}/><span>Charts</span><ChevronDown size={10}/></button>
-                  {chartMenuOpen && (
-                    <div className="absolute right-0 top-8 z-[100] w-[205px] rounded-md border border-white/[0.10] bg-[#0C1013] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
-                      <div className="px-2 pb-1 pt-0.5 text-[7px] font-bold uppercase tracking-[0.08em] text-[#5f6d79]">Chart type</div>
-                      <button type="button" onClick={() => { onChartModeChange('candles'); setChartMenuOpen(false); }} className={chartMode === 'candles' ? "flex w-full items-center gap-2 rounded bg-[#15181d] px-2 py-2 text-left text-[8px] font-semibold text-[#195be1]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><CandlestickChart size={12}/>Candlesticks</button>
-                      <button type="button" onClick={() => { onChartModeChange('line'); setChartMenuOpen(false); }} className={chartMode === 'line' ? "flex w-full items-center gap-2 rounded bg-[#15181d] px-2 py-2 text-left text-[8px] font-semibold text-[#195be1]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><ChartNoAxesCombined size={12}/>Line</button>
-                      <div className="my-1 border-t border-white/[0.06]"/>
-                      <div className="px-2 pb-1 pt-0.5 text-[7px] font-bold uppercase tracking-[0.08em] text-[#5f6d79]">Chart grid</div>
-                      {[[1, Square, 'Single chart'], [2, Columns2, 'Two charts'], [4, Grid2X2, 'Four charts']].map(([value, Icon, label]) => (
-                        <button key={value} type="button" onClick={() => setChartLayout(value)} className={chartLayout === value ? "flex w-full items-center gap-2 rounded bg-[#15181d] px-2 py-2 text-left text-[8px] font-semibold text-[#195be1]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><Icon size={12}/>{label}</button>
-                      ))}
-                      {chartLayout > 1 && <>
-                        <div className="my-1 border-t border-white/[0.06]"/>
-                        <button type="button" onClick={toggleChartLink} className={chartLinked ? "flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#195be1] hover:bg-white/[0.03]" : "flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><span className="flex items-center gap-2">{chartLinked ? <Link2 size={12}/> : <Link2Off size={12}/>}Link symbols</span><span className="text-[#6F8191]">{chartLinked ? 'On' : 'Off'}</span></button>
-                        <button type="button" onClick={applyActiveIndicatorsToAllCharts} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Copy indicators to all</span><span className="text-[#6F8191]">ƒx {indicators.length}</span></button>
-                      </>}
-                    </div>
-                  )}
-                </div>
-                <div className="relative">
-                  <button type="button" onClick={() => { setIndicatorFocusId(null); setObjectManagerOpen(false); setIndicatorPanelOpen(value => !value); }} className={indicatorPanelOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#195be1]/60 bg-[#14171b] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title="Indicators"><span className="text-[11px] font-black">ƒx</span><span>Indicators</span>{indicators.length > 0 && <span className="grid min-w-3 place-items-center rounded bg-[#181b20] px-1 text-[6px] text-[#aab5bf]">{indicators.length}</span>}<ChevronDown size={10}/></button>
-                  {indicatorPanelOpen && (
-                    <div className="absolute right-0 top-8 z-[110] w-[390px] max-h-[min(680px,calc(100dvh-150px))] overflow-y-auto rounded-lg border border-white/[0.10] bg-[#0B0D0F]/98 p-3 shadow-[0_24px_70px_rgba(0,0,0,.68)] backdrop-blur-xl [scrollbar-width:thin]">
-                      <div className="mb-3 flex items-center justify-between border-b border-white/[0.07] pb-2.5"><div><strong className="block text-[11px] text-[#EDF3F7]">Indicators</strong><span className="mt-0.5 block text-[8px] text-[#687D91]">Active chart · {activeSymbol} · {activeChartTimeframe}</span></div><button type="button" onClick={() => setIndicatorPanelOpen(false)} className="grid size-7 place-items-center rounded text-[#7D91A4] hover:bg-white/[0.04] hover:text-white"><X size={13}/></button></div>
-                      <IndicatorManager desktop applied={indicators} favorites={indicatorFavorites} onAdd={onAddIndicator} onRemove={onRemoveIndicator} onToggleVisible={onToggleIndicator} onUpdate={onUpdateIndicator} onToggleFavorite={onToggleIndicatorFavorite} focusInstanceId={indicatorFocusId}/>
-                    </div>
-                  )}
-                </div>
-                <DesktopWorkspaceMenu snapshot={workspaceSnapshot} onApply={applyWorkspace}/>
-                <div className="relative">
-                  <button type="button" onClick={() => setToolsMenuOpen(value => !value)} className={toolsMenuOpen ? "grid size-7 place-items-center rounded-md border border-[#195be1]/60 bg-[#14171b] text-[#f1f4f6]" : "grid size-7 place-items-center rounded-md border border-white/[0.06] text-[#8996a1] hover:text-white"} title="Terminal tools"><Settings size={13}/></button>
-                  {toolsMenuOpen && (
-                    <div className="absolute right-0 top-8 z-[105] w-[230px] rounded-md border border-white/[0.10] bg-[#0C1013] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
-                      <button type="button" onClick={() => { handleNav('watchlist'); setToolsMenuOpen(false); }} className={activeNav === 'watchlist' ? "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#195be1]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><Star size={12}/>Watchlist</button>
-                      <button type="button" onClick={() => { handleNav('markets'); setToolsMenuOpen(false); }} className={activeNav === 'markets' ? "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#195be1]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><List size={12}/>Markets</button>
-                      <button type="button" onClick={() => { handleNav('history'); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><History size={12}/>History</button>
-                      <button type="button" onClick={() => { setReviewOpen(true); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><BookOpen size={12}/>Trade review</button>
-                      <button type="button" onClick={() => { setIndicatorPanelOpen(false); setObjectManagerOpen(value => !value); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Layers3 size={12}/>Chart manager</button>
-                      <button type="button" onClick={() => { void toggleFullscreen(); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Maximize2 size={12}/>Fullscreen</button>
-                      <div className="my-1 border-t border-white/[0.06]"/>
-                      <button type="button" onClick={() => { toggleSidebar(); setToolsMenuOpen(false); }} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Order panel</span><span className="text-[#6F8191]">{desktopLayout.sidebarCollapsed ? 'Hidden' : 'Shown'}</span></button>
-                      <button type="button" onClick={() => { toggleDock(); setToolsMenuOpen(false); }} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Positions dock</span><span className="text-[#6F8191]">{desktopLayout.dockCollapsed ? 'Hidden' : 'Shown'}</span></button>
-                      <button type="button" onClick={() => { resetDesktopLayout(); setToolsMenuOpen(false); }} className="w-full rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]">Reset desktop layout</button>
-                      <div className="my-1 border-t border-white/[0.06]"/>
-                      <button type="button" onClick={() => { onOpenSettings(); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Settings size={12}/>Settings</button>
-                    </div>
-                  )}
-                  {objectManagerOpen && <div className="absolute right-0 top-8 z-[115]"><ChartObjectManager symbol={activeSymbol} timeframe={activeChartTimeframe === '1m' ? 'M1' : activeChartTimeframe === '5m' ? 'M5' : activeChartTimeframe === '15m' ? 'M15' : activeChartTimeframe === '30m' ? 'M30' : activeChartTimeframe === '1H' ? 'H1' : activeChartTimeframe === '4H' ? 'H4' : activeChartTimeframe === '1D' ? 'D1' : activeChartTimeframe === '1W' ? 'W1' : activeChartTimeframe} indicators={indicators} chartInstanceId={'desktop-chart-' + Math.min(Math.max(0, Number(multiChart?.activeCell) || 0), chartLayout - 1)} onToggleIndicator={onToggleIndicator} onRemoveIndicator={onRemoveIndicator} onOpenIndicatorSettings={instanceId => { setObjectManagerOpen(false); setIndicatorFocusId(instanceId); setIndicatorPanelOpen(true); }} onClose={() => setObjectManagerOpen(false)}/></div>}
-                </div>
-              </div>
-            </div>
+          <section className="grid min-h-0 min-w-0 grid-rows-[minmax(0,1fr)]" style={{ gridColumn: '2', gridRow: '1' }}>
             <div className="min-h-0 min-w-0 bg-[#050607]">
               <DesktopMultiChart
                 config={multiChart}
