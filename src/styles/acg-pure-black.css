@@ -1992,20 +1992,3 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
   .acg-terminal *{scrollbar-width:thin;scrollbar-color:#282d33 transparent}.acg-terminal *::-webkit-scrollbar{width:7px;height:7px}.acg-terminal *::-webkit-scrollbar-track{background:transparent}.acg-terminal *::-webkit-scrollbar-thumb{background:#282d33;border-radius:8px}.acg-terminal *::-webkit-scrollbar-thumb:hover{background:#3a4149}
 }
 
-
-/* Mobile drawing rail must overlay the chart without becoming a grid column. */
-@media (max-width:430px){
-  .acg-mobile-reference-chart-area.acg-mobile-chart-surface.acg-mobile-reference-chart-area--overlay-rail{
-    grid-template-columns:minmax(0,1fr)!important;
-    column-gap:0!important;
-  }
-
-  .acg-mobile-reference-drawing-rail.acg-mobile-reference-drawing-rail--overlay,
-  .acg-mobile-reference-drawing-rail--overlay{
-    top:8px!important;
-    bottom:52px!important;
-    left:6px!important;
-    height:auto!important;
-    margin:0!important;
-  }
-}
