@@ -559,11 +559,10 @@ export default function PositionsPanel({
                     {!journal.length ? <div className="grid h-[122px] place-items-center text-center text-[10px] text-[#6F8191]"><div><b className="block text-[#A1AFBC]">Journal is ready</b><span className="mt-1 block">Orders, fills and management actions will be recorded here.</span></div></div> : journal.map(item => <div key={item.id} className="grid grid-cols-[58px_1fr] gap-2 border-b border-white/[0.06] px-2 py-2.5 last:border-b-0"><span className="font-mono text-[8px] text-[#6F8191]">{item.time}</span><div><div className="flex items-center gap-1.5"><span className={`size-1.5 rounded-full ${item.type === 'fill' ? 'bg-[#3ad7a1]' : item.type === 'order' ? 'bg-[#101010]' : item.type === 'modify' ? 'bg-[#f0c35c]' : 'bg-[#101010]'}`} /><b className="text-[9px] font-semibold text-[#A1AFBC]">{item.message}</b></div>{item.latencyMs != null && <span className="mt-1 block text-[8px] text-[#6F8191]">Execution {item.latencyMs}ms</span>}</div></div>)}
                   </div>
                 )}
-                {sharePosition && (
-          
         </>
       )}
 
+      {sharePosition && (
         <SharePositionSheet
           position={sharePosition}
           instrument={instrumentForSymbol(markets, sharePosition.symbol)}
