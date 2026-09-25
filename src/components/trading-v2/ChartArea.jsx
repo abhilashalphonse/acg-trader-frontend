@@ -801,6 +801,7 @@ export default function ChartArea({
           priceScaleAnchors={priceScaleAnchors}
           showIndicatorControls={desktopEnhanced}
           showAttributionLogo={!desktopEnhanced}
+          desktopEnhanced={desktopEnhanced}
           onToggleIndicator={onToggleIndicator}
           onOpenIndicatorSettings={onOpenIndicatorSettings}
           onRemoveIndicator={onRemoveIndicator}
