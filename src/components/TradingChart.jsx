@@ -805,6 +805,22 @@ export default function TradingChart({
     const series = seriesRef.current;
     if (!series) return;
 
+    if (compactContext) {
+      if (marketLineRef.current) {
+        try { series.removePriceLine(marketLineRef.current); } catch { /* disposed */ }
+        marketLineRef.current = null;
+      }
+      if (askLineRef.current) {
+        try { series.removePriceLine(askLineRef.current); } catch { /* disposed */ }
+        askLineRef.current = null;
+      }
+      if (midLineRef.current) {
+        try { series.removePriceLine(midLineRef.current); } catch { /* disposed */ }
+        midLineRef.current = null;
+      }
+      return;
+    }
+
     const liveBid = Number(tick?.bid ?? tick?.price ?? bidPrice);
     const liveAsk = Number(tick?.ask ?? askPrice);
     const mobileQuotes = showMobileQuoteMarkers === true;
@@ -884,7 +900,7 @@ export default function TradingChart({
       try { series.removePriceLine(midLineRef.current); } catch { /* disposed */ }
       midLineRef.current = null;
     }
-  }, [askPrice, bidPrice, chartMode, showBidAskLines, showMobileQuoteMarkers, symbol, tick?.ask, tick?.bid, tick?.price, timeframe]);
+  }, [askPrice, bidPrice, chartMode, compactContext, showBidAskLines, showMobileQuoteMarkers, symbol, tick?.ask, tick?.bid, tick?.price, timeframe]);
 
   useEffect(() => {
     const series = seriesRef.current;
@@ -1061,7 +1077,6 @@ export default function TradingChart({
 
   return <div className="relative size-full min-h-0 min-w-0 overflow-hidden bg-black">
     <div ref={hostRef} className="absolute inset-0" />
-    {compactContext && <div className="pointer-events-none absolute bottom-4 left-4 z-20 text-[15px] font-black italic tracking-[-0.04em] text-white/90">ACG Trader</div>}
     {readyKey !== chartRequestKey && !error && <ACGStartupLoader canvas />}
     <div className={mobileReference
       ? "acg-mobile-chart-info pointer-events-none absolute left-3 top-3 z-20 max-w-[78%] text-[#9ba8b6] [text-shadow:0_1px_2px_#000,0_0_8px_#000]"
