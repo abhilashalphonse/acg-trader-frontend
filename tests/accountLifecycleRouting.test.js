@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  resolveActiveAccountId,
   resolveCommandAccountId,
   resolveLifecycleReplacement,
 } from '../src/utils/accountLifecycleRouting.js';
@@ -164,4 +165,37 @@ test('lifecycle replacement never crosses funded lifecycle identities', () => {
     activeAccountId: 'challenge-9-p1',
     lifecycleId: 'challenge-9',
   }), null);
+});
+
+
+test('global terminal status follows the selected active trial instead of an older breached snapshot', () => {
+  const selected = resolveActiveAccountId({
+    selectedAccountId: 'trial-new',
+    grantedAccountIds: ['trial-old-breached', 'trial-new'],
+    snapshotAccountIds: ['trial-old-breached', 'trial-new'],
+  });
+
+  assert.equal(selected, 'trial-new');
+});
+
+test('selected account stays authoritative while its first snapshot is still loading', () => {
+  const selected = resolveActiveAccountId({
+    selectedAccountId: 'trial-new',
+    grantedAccountIds: ['trial-old-breached', 'trial-new'],
+    snapshotAccountIds: ['trial-old-breached'],
+  });
+
+  assert.equal(selected, 'trial-new');
+});
+
+test('active-account resolver falls back predictably when no selected account is available', () => {
+  assert.equal(resolveActiveAccountId({
+    grantedAccountIds: ['trial-a', 'trial-b'],
+    snapshotAccountIds: ['old-snapshot'],
+  }), 'trial-a');
+
+  assert.equal(resolveActiveAccountId({
+    grantedAccountIds: [],
+    snapshotAccountIds: ['snapshot-only'],
+  }), 'snapshot-only');
 });

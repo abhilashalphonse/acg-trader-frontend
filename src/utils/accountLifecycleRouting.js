@@ -1,3 +1,23 @@
+export function resolveActiveAccountId({
+  selectedAccountId = null,
+  grantedAccountIds = [],
+  snapshotAccountIds = [],
+} = {}) {
+  const grants = [...new Set((grantedAccountIds || []).map(String).map(value => value.trim()).filter(Boolean))];
+  const selected = String(selectedAccountId || '').trim();
+
+  // The selected account remains authoritative even before its first realtime
+  // snapshot arrives. Falling back to an older loaded account here can surface
+  // stale lifecycle state (for example a previous breached trial).
+  if (selected && grants.includes(selected)) return selected;
+  if (grants.length) return grants[0];
+
+  return (snapshotAccountIds || [])
+    .map(String)
+    .map(value => value.trim())
+    .find(Boolean) || null;
+}
+
 export function resolveCommandAccountId({
   activeAccountId,
   grantedAccountIds = [],

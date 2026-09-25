@@ -10,7 +10,7 @@ import {
   pendingPriceDirection,
 } from '../utils/tradingCommandNormalization.js';
 import { executeWithOrderReconciliation } from '../utils/executionReconciliation.js';
-import { resolveCommandAccountId, resolveLifecycleReplacement } from '../utils/accountLifecycleRouting.js';
+import { resolveActiveAccountId, resolveCommandAccountId, resolveLifecycleReplacement } from '../utils/accountLifecycleRouting.js';
 import {
   calculateLocalPositionValuation,
   canUseLocalPositionValuation,
@@ -218,9 +218,10 @@ export function useTradingTerminal(markets = []) {
     setHistory({ accountId: target, orders: [], deals: [], positions: [], loaded: false, error: null });
     setSwitchContext({ targetId: target, baselineRevision, startedAt: Date.now(), reason });
     setSwitchRequestVersion(version => version + 1);
+    auth.setSelectedAccountId?.(target);
     setActiveAccountId(target);
     return target;
-  }, [trading.snapshotRevisionByAccountId]);
+  }, [auth.setSelectedAccountId, trading.snapshotRevisionByAccountId]);
 
   const selectAccount = useCallback(nextAccountId => {
     const target = String(nextAccountId || '').trim();
@@ -244,9 +245,10 @@ export function useTradingTerminal(markets = []) {
     if (commandState.pending || commandState.uncertain) return;
 
     if (!activeAccountId) {
-      const initialTarget = preferredAccountId && grantedAccountIds.includes(preferredAccountId)
-        ? preferredAccountId
-        : grantedAccountIds[0] || null;
+      const initialTarget = resolveActiveAccountId({
+        selectedAccountId: preferredAccountId,
+        grantedAccountIds,
+      });
       if (initialTarget) beginAccountSwitch(initialTarget, 'initial');
       return;
     }
@@ -277,9 +279,10 @@ export function useTradingTerminal(markets = []) {
     }
 
     if (!lifecycleId) {
-      const fallback = preferredAccountId && grantedAccountIds.includes(preferredAccountId)
-        ? preferredAccountId
-        : grantedAccountIds[0] || null;
+      const fallback = resolveActiveAccountId({
+        selectedAccountId: preferredAccountId,
+        grantedAccountIds,
+      });
       if (fallback) beginAccountSwitch(fallback, 'grant-fallback');
     }
   }, [accountGrants, activeAccountId, beginAccountSwitch, commandState.pending, commandState.uncertain, grantedAccountIds, preferredAccountId]);
