@@ -43,6 +43,16 @@ export default function MobileScalperMode({
   onCancelPending = () => {},
   onUpdatePosition = () => {},
   onClosePosition = () => {},
+  selectedPositionId = null,
+  onSelectPosition = () => {},
+  positionProtectionDraft = null,
+  onPositionProtectionDraftChange = () => {},
+  selectedPosition = null,
+  positionProtectionAvailable = false,
+  onBeginPositionProtection = () => {},
+  onApplyPositionProtection = () => {},
+  onCancelPositionProtection = () => {},
+  positionProtectionSaving = false,
   onIndicators = () => {},
   indicators = [],
   account,
@@ -84,11 +94,11 @@ export default function MobileScalperMode({
       </div>
 
       <div className="acg-mobile-chart-surface min-h-0 flex-1 bg-[#0b0b0d]">
-        <ChartArea symbol={market?.symbol} instrument={market} chartTimeframe={mapTimeframe(timeframe)} tick={tick} price={market?.bid} ask={market?.ask} chartMode={chartMode} selectedTool={selectedTool} onSelectTool={tradePlan && !tradePlan.open ? () => {} : setSelectedTool} focusMode tradePlan={tradePlan} tradePlanLots={tradePlanLots} accountCurrency={account?.currency || 'USD'} account={account} riskPercent={riskPercent} onCreateRiskOrder={onCreateRiskOrder} onTradePlanChange={onTradePlanChange} indicators={indicators} positions={positions} pendingOrders={pendingOrders} onModifyPending={onModifyPending} onCancelPending={onCancelPending} onUpdatePosition={onUpdatePosition} onClosePosition={onClosePosition} drawingToolbarOpen={drawingToolbarOpen} />
+        <ChartArea symbol={market?.symbol} instrument={market} chartTimeframe={mapTimeframe(timeframe)} tick={tick} price={market?.bid} ask={market?.ask} chartMode={chartMode} selectedTool={selectedTool} onSelectTool={tradePlan && !tradePlan.open ? () => {} : setSelectedTool} focusMode tradePlan={tradePlan} tradePlanLots={tradePlanLots} accountCurrency={account?.currency || 'USD'} account={account} riskPercent={riskPercent} onCreateRiskOrder={onCreateRiskOrder} onTradePlanChange={onTradePlanChange} indicators={indicators} positions={positions} pendingOrders={pendingOrders} onModifyPending={onModifyPending} onCancelPending={onCancelPending} onUpdatePosition={onUpdatePosition} onClosePosition={onClosePosition} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} positionProtectionDraft={positionProtectionDraft} onPositionProtectionDraftChange={onPositionProtectionDraftChange} drawingToolbarOpen={drawingToolbarOpen} />
       </div>
 
       <div className="shrink-0"><PropRiskStrip account={account} plannedRisk={plannedRisk} compact /></div>
-      <ExecutionPanel market={market} account={account} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={setLots} focusMode sizingMode={sizingMode} onSizingModeChange={setSizingMode} riskPercent={riskPercent} onRiskPercentChange={setRiskPercent} orderType={orderType} onOrderTypeChange={setOrderType} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={onManualOrder} onTradePlanChange={onTradePlanChange} />
+      <ExecutionPanel market={market} account={account} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={setLots} focusMode sizingMode={sizingMode} onSizingModeChange={setSizingMode} riskPercent={riskPercent} onRiskPercentChange={setRiskPercent} orderType={orderType} onOrderTypeChange={setOrderType} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={onManualOrder} onTradePlanChange={onTradePlanChange} selectedPosition={selectedPosition} positionProtectionAvailable={positionProtectionAvailable} positionProtectionDraft={positionProtectionDraft} onBeginPositionProtection={onBeginPositionProtection} onApplyPositionProtection={onApplyPositionProtection} onCancelPositionProtection={onCancelPositionProtection} positionProtectionSaving={positionProtectionSaving} />
     </div>
   );
 }
