@@ -16,6 +16,7 @@ function cellGrid(layout) {
 }
 
 export default function DesktopMultiChart({
+  compactContext = false,
   config,
   onChange = () => {},
   markets = [],
@@ -125,6 +126,7 @@ export default function DesktopMultiChart({
               <div className="h-full min-h-0 min-w-0 overflow-hidden">
                 <ChartArea
                   desktopEnhanced
+                  compactContext={compactContext}
                   symbol={symbol}
                   instrument={instrument}
                   chartTimeframe={TF_MAP[timeframe] || 'M1'}
