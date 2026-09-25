@@ -353,7 +353,6 @@ export default function PositionsPanel({
                 <Maximize2 size={14}/>
               </button>
             </div>
-            )}
           </div>
         </div>
       ) : (
