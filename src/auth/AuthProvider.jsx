@@ -150,6 +150,11 @@ export function AuthProvider({ children }) {
 
       const current = sessionRef.current;
       const next = sessionFromAuthResponse(response);
+      const currentSelected = current?.principal?.selectedAccountId ? String(current.principal.selectedAccountId) : null;
+      const refreshedAccountIds = Array.isArray(next?.principal?.accountIds) ? next.principal.accountIds.map(String) : [];
+      if (currentSelected && refreshedAccountIds.includes(currentSelected)) {
+        next.principal.selectedAccountId = currentSelected;
+      }
       if (current?.principal?.accountGrants && next?.principal?.authMethod === 'FEDERATED') {
         next.principal.accountGrants = current.principal.accountGrants;
         next.principal.grantsRefreshedAt = current.principal.grantsRefreshedAt || null;
@@ -291,8 +296,13 @@ export function AuthProvider({ children }) {
       const principal = response?.principal;
       if (!principal) throw new ApiError('Session response is missing principal data', { code: 'INVALID_AUTH_RESPONSE' });
       const current = sessionRef.current;
+      const currentSelected = current?.principal?.selectedAccountId ? String(current.principal.selectedAccountId) : null;
+      const refreshedAccountIds = Array.isArray(principal.accountIds) ? principal.accountIds.map(String) : [];
       const mergedPrincipal = {
         ...principal,
+        selectedAccountId: currentSelected && refreshedAccountIds.includes(currentSelected)
+          ? currentSelected
+          : principal.selectedAccountId || null,
         accountGrants: current?.principal?.accountGrants || principal.accountGrants || [],
         grantsRefreshedAt: current?.principal?.grantsRefreshedAt || principal.grantsRefreshedAt || null,
       };
@@ -313,6 +323,29 @@ export function AuthProvider({ children }) {
       throw nextError;
     }
   }, [commitSession, refreshSession]);
+
+  const setSelectedAccountId = useCallback(nextAccountId => {
+    const target = String(nextAccountId || '').trim();
+    const current = sessionRef.current;
+    if (!current?.principal || !target) return null;
+
+    const accountIds = (current.principal.accountIds || []).map(String);
+    if (!accountIds.includes(target)) {
+      throw new ApiError('Trading session does not grant access to this account', {
+        status: 403,
+        code: 'ACCOUNT_ACCESS_FORBIDDEN',
+      });
+    }
+    if (String(current.principal.selectedAccountId || '') === target) return target;
+
+    const next = {
+      ...current,
+      principal: { ...current.principal, selectedAccountId: target },
+    };
+    sessionRef.current = next;
+    setSession(next);
+    return target;
+  }, []);
 
   const invalidateSession = useCallback((reason = null) => {
     markReauthRequired(reason || new Error('Trading session needs authentication'));
@@ -448,6 +481,7 @@ export function AuthProvider({ children }) {
     refreshAccountGrants,
     refreshSession,
     ensureFreshAccessToken,
+    setSelectedAccountId,
     invalidateSession,
   }), [
     error,
@@ -459,6 +493,7 @@ export function AuthProvider({ children }) {
     refreshAccountGrants,
     refreshSession,
     ensureFreshAccessToken,
+    setSelectedAccountId,
     refreshing,
     session,
     status,

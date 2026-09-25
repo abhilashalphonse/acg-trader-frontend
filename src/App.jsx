@@ -7,6 +7,7 @@ import { useTradingStore } from './hooks/useTradingStore.js';
 import { useWatchlists } from './hooks/useWatchlists.js';
 import { deriveTerminalStatus } from './utils/terminalStatus.js';
 import { formatInstrumentPrice } from './utils/instrumentFormatting.js';
+import { resolveActiveAccountId } from './utils/accountLifecycleRouting.js';
 
 const TradingTerminalV2 = lazy(() => import('./pages/TradingTerminalV2.jsx'));
 const MobileTraderShell = lazy(() => import('./pages/MobileTraderShell.jsx'));
@@ -120,7 +121,11 @@ export default function App() {
 
   const primaryAccount = useMemo(() => {
     const granted = auth.principal?.accountIds?.map(String) || [];
-    const id = granted.find(accountId => trading.accountsById[accountId]) || granted[0] || Object.keys(trading.accountsById)[0];
+    const id = resolveActiveAccountId({
+      selectedAccountId: auth.principal?.selectedAccountId,
+      grantedAccountIds: granted,
+      snapshotAccountIds: Object.keys(trading.accountsById),
+    });
     if (!id) return null;
     const account = trading.accountsById[id] || null;
     const valuation = trading.valuationsByAccountId[id] || null;
@@ -131,7 +136,7 @@ export default function App() {
       valuationStatus: valuation?.valuationStatus || null,
       staleSymbols: valuation?.staleSymbols || [],
     };
-  }, [auth.principal?.accountIds, trading.accountsById, trading.valuationsByAccountId]);
+  }, [auth.principal?.accountIds, auth.principal?.selectedAccountId, trading.accountsById, trading.valuationsByAccountId]);
 
   const terminalStatus = deriveTerminalStatus({
     authStatus: auth.status,
