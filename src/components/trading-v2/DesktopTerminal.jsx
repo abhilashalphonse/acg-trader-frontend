@@ -529,9 +529,14 @@ export default function DesktopTerminal({
   const sidebarWidth = sidebarContentWidth + sidebarRailWidth;
   const marketPanelOpen = activeNav === 'watchlist' || activeNav === 'markets';
   const marketBounds = desktopMarketPanelBounds(viewportWidth, sidebarContentWidth);
+  const collapsedDockHeight = 52;
   const expandedChartStripHeight = 118;
   const expandedDockHeight = Math.max(260, viewportHeight - 56 - 24 - expandedChartStripHeight);
-  const dockHeight = desktopLayout.dockCollapsed ? 0 : positionsExpanded ? expandedDockHeight : desktopLayout.dockHeight;
+  const dockHeight = positionsExpanded
+    ? expandedDockHeight
+    : desktopLayout.dockCollapsed
+      ? collapsedDockHeight
+      : desktopLayout.dockHeight;
   const updateSidebarWidth = value => setDesktopLayout(current => {
     const nextSidebar = clamp(value, widthBounds.sidebarMin, widthBounds.sidebarMax);
     const nextMarketBounds = desktopMarketPanelBounds(viewportWidth, nextSidebar);
@@ -1039,8 +1044,8 @@ export default function DesktopTerminal({
             </button>
           </aside>
 
-          <div className={`min-h-0 overflow-auto rounded-[16px] border border-white/[0.07] bg-[#0A0C0F] shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_12px_30px_rgba(0,0,0,.22)] transition-[height,transform,opacity] duration-300 ease-out ${desktopLayout.dockCollapsed ? 'hidden' : ''}`} style={{ gridColumn: '1 / 4', gridRow: '2' }}>
-            <PositionsPanel desktopDense expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition} onEditProtection={editPositionProtection}/>
+          <div className="min-h-0 overflow-hidden rounded-[16px] border border-white/[0.07] bg-[#0A0C0F] shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_12px_30px_rgba(0,0,0,.22)] transition-[height,transform,opacity] duration-300 ease-out" style={{ gridColumn: '1 / 4', gridRow: '2' }}>
+            <PositionsPanel desktopDense collapsed={desktopLayout.dockCollapsed} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition} onEditProtection={editPositionProtection}/>
           </div>
 
           {!desktopLayout.sidebarCollapsed && !positionsExpanded && (
