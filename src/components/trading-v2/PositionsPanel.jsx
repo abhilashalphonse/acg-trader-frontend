@@ -77,6 +77,7 @@ export default function PositionsPanel({
   onCancelPending = () => {},
   onModifyPending = () => {},
   desktopDense = false,
+  collapsed = false,
   expanded = false,
   onToggleExpanded = () => {},
   activeSymbol = null,
@@ -257,7 +258,7 @@ export default function PositionsPanel({
   };
 
   return (
-    <section className={`${desktopDense ? 'acg-desktop-positions h-full overflow-auto' : 'mt-3 overflow-visible'} border-y border-white/[0.06] bg-black`}>
+    <section className={`${desktopDense ? `acg-desktop-positions h-full ${collapsed ? 'overflow-hidden' : 'overflow-auto'}` : 'mt-3 overflow-visible'} border-y border-white/[0.06] bg-black`}>
       {desktopDense ? (
         <div className="flex h-[52px] items-center justify-between gap-4 border-b border-white/[0.06] px-3">
           <div className="flex h-full min-w-0 items-stretch gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -362,201 +363,207 @@ export default function PositionsPanel({
         </div>
       )}
 
-      {tab === 'positions' && desktopDense && (
-        <div className="min-w-[1120px]">
-          {positionGroups.length > 0 && (
-            <div className="flex h-8 items-center gap-1.5 overflow-x-auto border-b border-white/[0.055] px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <span className="mr-1 shrink-0 text-[7px] font-black uppercase tracking-[0.08em] text-[#53677a]">Exposure</span>
-              {positionGroups.map(group => (
-                <button key={group.symbol} type="button" onClick={() => onSelectPosition(positions.find(item => item.symbol === group.symbol)?.id)} className="flex shrink-0 items-center gap-1 rounded border border-white/[0.06] bg-black/25 px-2 py-1 text-[7px] text-[#8597a7] hover:bg-white/[0.025]">
-                  <b className="text-[#c8d4de]">{formatSymbol(group.symbol)}</b>
-                  <span>{group.count}</span>
-                  <span>{group.volume.toFixed(2)}L</span>
-                  <span className={group.pnl >= 0 ? "text-[#42dba6]" : "text-[#ff727d]"}>{formatPnl(group.pnl)}</span>
-                </button>
-              ))}
-            </div>
-          )}
-          <div className="grid grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-white/[0.06] px-3 py-1.5 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#647586]">
-            <span>Symbol</span><span>Side</span><span>Size</span><span>Entry</span><span>Current</span><span>S/L</span><span>T/P</span><span className="text-right">P&amp;L</span><span className="text-right">P&amp;L %</span><span className="text-right">Actions</span>
-          </div>
-          {!positions.length && <div className="grid h-[110px] place-items-center text-center text-[10px] text-[#6F8191]"><div><b className="block text-[#A1AFBC]">No open positions</b><span className="mt-1 block">Market executions will appear here</span></div></div>}
-          {positions.map(position => {
-            const instrument = instrumentForSymbol(markets, position.symbol);
-            const summary = buildOpenPositionSummary(position, account, instrument);
-            const positive = Number(position.pnl) >= 0;
-            const sideBuy = String(position.side).toUpperCase() === 'BUY';
-            const pnlPercent = summary.pnlPercent;
-            const currentPrice = summary.currentPrice;
-            return (
-              <div key={position.id} onClick={() => onSelectPosition(position.id)} className={String(selectedPositionId) === String(position.id) ? "relative grid cursor-pointer grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-[#195be1]/45 bg-[#12151a] px-3 py-2 text-[9px] transition" : "relative grid cursor-pointer grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-white/[0.055] px-3 py-2 text-[9px] transition hover:bg-white/[0.018]"}>
-                {String(selectedPositionId) === String(position.id) && <span className="absolute inset-y-1 left-0 w-0.5 rounded-r bg-[#195be1]" />}
-                <div className="flex min-w-0 items-center gap-2"><InstrumentAvatar instrument={instrument} size={20}/><strong className="truncate text-[10px] text-[#f2f5f7]">{formatSymbol(position.symbol)}</strong></div>
-                <span className={sideBuy ? "w-fit rounded bg-[#0c3b2e] px-1.5 py-0.5 text-[7px] font-black text-[#38dba4]" : "w-fit rounded bg-[#3b1820] px-1.5 py-0.5 text-[7px] font-black text-[#ff707a]"}>{String(position.side).toUpperCase()}</span>
-                <span className="font-mono text-[9px] text-[#c4ced6]">{Number(position.volume).toFixed(2)} lots</span>
-                <span className="font-mono text-[9px] text-[#aebbc5]">{formatInstrumentPrice(position.entry, instrument)}</span>
-                <span className="font-mono text-[9px] text-[#d3dbe2]">{currentPrice == null ? '—' : formatInstrumentPrice(currentPrice, instrument)}</span>
-                <button type="button" onClick={event => { event.stopPropagation(); onEditProtection(position.id, 'sl'); }} className={position.sl == null ? "justify-self-start rounded border border-white/[0.06] px-2 py-1 font-mono text-[8px] font-bold text-[#8295A7] hover:text-white" : "justify-self-start rounded border border-[#5e2932] px-2 py-1 font-mono text-[8px] font-bold text-[#FF6F7A]"}>{position.sl == null ? '+ SL' : formatInstrumentPrice(position.sl, instrument)}</button>
-                <button type="button" onClick={event => { event.stopPropagation(); onEditProtection(position.id, 'tp'); }} className={position.tp == null ? "justify-self-start rounded border border-white/[0.06] px-2 py-1 font-mono text-[8px] font-bold text-[#8295A7] hover:text-white" : "justify-self-start rounded border border-[#245b48] px-2 py-1 font-mono text-[8px] font-bold text-[#42D7A1]"}>{position.tp == null ? '+ TP' : formatInstrumentPrice(position.tp, instrument)}</button>
-                <strong className={positive ? "text-right font-mono text-[10px] text-[#42D7A1]" : "text-right font-mono text-[10px] text-[#FF5968]"}>{formatPnl(position.pnl, position.pnlCurrency)}</strong>
-                <span className={positive ? "text-right font-mono text-[8px] text-[#35b788]" : "text-right font-mono text-[8px] text-[#d84d5d]"}>{Number.isFinite(pnlPercent) ? <>{pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%</> : '—'}</span>
-                <div className="relative flex items-center justify-end gap-1">
-                  <button type="button" onClick={event => { event.stopPropagation(); onEditProtection(position.id, 'tp'); }} className="h-7 rounded border border-[#245b48] px-2 text-[8px] font-bold text-[#42D7A1] hover:bg-[#071710]">TP</button>
-                  <button type="button" onClick={event => { event.stopPropagation(); onEditProtection(position.id, 'sl'); }} className="h-7 rounded border border-[#51242c] px-2 text-[8px] font-bold text-[#ff727d] hover:bg-[#241015]">SL</button>
-                  <button type="button" onClick={event => { event.stopPropagation(); setRowActionsId(rowActionsId === position.id ? null : position.id); }} className="grid size-7 place-items-center rounded border border-white/[0.06] text-[#8092a2] hover:text-white"><MoreHorizontal size={11}/></button>
-                  {rowActionsId === position.id && (
-                    <div className="absolute right-0 top-8 z-50 w-[164px] rounded-md border border-white/[0.10] bg-[#0a0a0a] p-1 shadow-xl">
-                      <button type="button" onClick={event => { event.stopPropagation(); onBreakEven(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#48d8a4] hover:bg-white/[0.03]">Break even</button>
-                      <button type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, 50); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#b6c3ce] hover:bg-white/[0.03]">Reduce 50%</button>
-                      <button type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, 100); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#ff727d] hover:bg-[#241015]">Close position</button>
-                      <div className="my-1 border-t border-white/[0.06]"/>
-                      <button type="button" onClick={event => { event.stopPropagation(); onDuplicate(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#b6c3ce] hover:bg-white/[0.03]">Duplicate position</button>
-                      <button type="button" onClick={event => { event.stopPropagation(); onReverse(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#b6c3ce] hover:bg-white/[0.03]">Reverse position</button>
-                      <button type="button" onClick={event => { event.stopPropagation(); moveBreakEvenOffset(position, 1); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#48d8a4] hover:bg-white/[0.03]">BE + 1 pip</button>
-                      {[5,10,20].map(pips => <button key={pips} type="button" onClick={event => { event.stopPropagation(); onSetTrailing(position.id, true, pips); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#7fcfff] hover:bg-white/[0.03]">Trailing {pips} pips</button>)}
-                      <div className="my-1 border-t border-white/[0.06]"/>
-                      {[25,75].map(percent => <button key={percent} type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, percent); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#b6c3ce] hover:bg-white/[0.03]">Close {percent}%</button>)}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {tab === 'positions' && !desktopDense && (
-        <div className="space-y-2 p-2">
-          {!positions.length && <div className="grid h-[118px] place-items-center text-center text-[10px] font-medium text-[#6F8191]"><div><b className="block text-[#A1AFBC]">No open positions</b><span className="mt-1 block">Market executions will appear here</span></div></div>}
-
-          {positions.map(position => {
-            const expanded = expandedId === position.id;
-            const editing = editingId === position.id;
-            const positive = Number(position.pnl) >= 0;
-            const sideBuy = position.side === 'BUY';
-
-            return (
-              <article key={position.id} className="overflow-hidden border-b border-white/[0.06] bg-black last:border-b-0">
-                <div className="px-3 pb-2.5 pt-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <InstrumentAvatar instrument={instrumentForSymbol(markets, position.symbol)} size={24}/>
-                        <strong className="truncate text-[13px] font-black tracking-[-0.025em] text-[#f5f5f5]">{formatSymbol(position.symbol)}</strong>
-                        <span className={`rounded-md px-1.5 py-1 text-[8px] font-black leading-none ${sideBuy ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{position.side}</span>
-                        {position.trailingEnabled && <span className="rounded-md border border-white/[0.10] bg-black px-1.5 py-1 text-[8px] font-bold text-[#195be1]">TRAIL {position.trailingPips}p</span>}
+      {!collapsed && (
+        <>
+                {tab === 'positions' && desktopDense && (
+                  <div className="min-w-[1120px]">
+                    {positionGroups.length > 0 && (
+                      <div className="flex h-8 items-center gap-1.5 overflow-x-auto border-b border-white/[0.055] px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        <span className="mr-1 shrink-0 text-[7px] font-black uppercase tracking-[0.08em] text-[#53677a]">Exposure</span>
+                        {positionGroups.map(group => (
+                          <button key={group.symbol} type="button" onClick={() => onSelectPosition(positions.find(item => item.symbol === group.symbol)?.id)} className="flex shrink-0 items-center gap-1 rounded border border-white/[0.06] bg-black/25 px-2 py-1 text-[7px] text-[#8597a7] hover:bg-white/[0.025]">
+                            <b className="text-[#c8d4de]">{formatSymbol(group.symbol)}</b>
+                            <span>{group.count}</span>
+                            <span>{group.volume.toFixed(2)}L</span>
+                            <span className={group.pnl >= 0 ? "text-[#42dba6]" : "text-[#ff727d]"}>{formatPnl(group.pnl)}</span>
+                          </button>
+                        ))}
                       </div>
-                      <p className="mt-1.5 text-[9px] text-[#6F8191]"><b className="text-[#A1AFBC]">{Number(position.volume).toFixed(2)} lots</b><span className="mx-1.5 text-[#44515D]">•</span>Entry {formatInstrumentPrice(position.entry, instrumentForSymbol(markets, position.symbol))}</p>
+                    )}
+                    <div className="grid grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-white/[0.06] px-3 py-1.5 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#647586]">
+                      <span>Symbol</span><span>Side</span><span>Size</span><span>Entry</span><span>Current</span><span>S/L</span><span>T/P</span><span className="text-right">P&amp;L</span><span className="text-right">P&amp;L %</span><span className="text-right">Actions</span>
                     </div>
-                    <div className="flex shrink-0 items-start gap-2">
-                      <div className="text-right"><span className="block text-[8px] font-semibold uppercase tracking-[0.08em] text-[#6F8191]">P&amp;L</span><b className={`mt-1 block text-[14px] font-black ${positive ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{formatPnl(position.pnl, position.pnlCurrency)}</b></div>
-                      <button type="button" onClick={() => setExpandedId(expanded ? null : position.id)} aria-label="More position controls" className={`grid size-8 place-items-center rounded-lg border transition ${expanded ? 'border-white/[0.13] bg-[#0C1013] text-[#195be1]' : 'border-white/[0.06] bg-black text-[#6F8191]'}`}><MoreHorizontal size={16}/></button>
-                    </div>
-                  </div>
-
-                  <div className="mt-2.5 grid grid-cols-2 gap-1.5">
-                    <button type="button" onClick={() => startProtectionEdit(position, 'sl')} className="flex items-center justify-between rounded-md border border-white/[0.06] bg-[#0C1013] px-2.5 py-2 text-left transition hover:border-white/[0.14]"><span className="text-[8px] font-semibold text-[#6F8191]">SL</span><b className="text-[9px] font-semibold text-[#A1AFBC]">{position.sl == null ? '+ Add SL' : formatInstrumentPrice(position.sl, instrumentForSymbol(markets, position.symbol))}</b></button>
-                    <button type="button" onClick={() => startProtectionEdit(position, 'tp')} className="flex items-center justify-between rounded-md border border-white/[0.06] bg-[#0C1013] px-2.5 py-2 text-left transition hover:border-white/[0.14]"><span className="text-[8px] font-semibold text-[#6F8191]">TP</span><b className="text-[9px] font-semibold text-[#A1AFBC]">{position.tp == null ? '+ Add TP' : formatInstrumentPrice(position.tp, instrumentForSymbol(markets, position.symbol))}</b></button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-4 gap-px border-t border-white/[0.06] bg-white/[0.07]">
-                  <QuickAction label="CLOSE" tone="danger" onClick={() => onClosePosition(position.id, 100)} />
-                  <QuickAction label="50%" onClick={() => onClosePosition(position.id, 50)} />
-                  <QuickAction label="BE" tone="success" onClick={() => onBreakEven(position.id)} />
-                  <QuickAction label="REVERSE" tone="accent" onClick={() => onReverse(position.id)} />
-                </div>
-
-                {expanded && (
-                  <div className="space-y-2 border-t border-white/[0.06] bg-black p-2.5">
-                    <div className="grid grid-cols-3 gap-2">
-                      <button type="button" onClick={() => editing ? cancelProtectionEdit() : startProtectionEdit(position)} className={`flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md border text-[9px] font-bold ${editing ? 'border-white/[0.13] bg-[#0C1013] text-[#195be1]' : 'border-white/[0.06] bg-black text-[#A1AFBC]'}`}><SlidersHorizontal size={13}/><span className="truncate">{editing ? 'Editing' : 'SL / TP'}</span></button>
-                      <button type="button" onClick={() => onDuplicate(position.id)} className="flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md border border-white/[0.06] bg-black text-[9px] font-bold text-[#A1AFBC]"><Copy size={13}/><span className="truncate">Duplicate</span></button>
-                      <button type="button" onClick={() => setSharePosition(position)} className="flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md border border-white/[0.06] bg-black text-[9px] font-bold text-[#E6EDF3]"><Share2 size={13}/><span className="truncate">Share P&amp;L</span></button>
-                    </div>
-
-                    {editing && (() => {
-                      const draft = protectionDrafts[position.id] || buildProtectionDraft(position);
+                    {!positions.length && <div className="grid h-[110px] place-items-center text-center text-[10px] text-[#6F8191]"><div><b className="block text-[#A1AFBC]">No open positions</b><span className="mt-1 block">Market executions will appear here</span></div></div>}
+                    {positions.map(position => {
                       const instrument = instrumentForSymbol(markets, position.symbol);
-                      return <div className="space-y-2 border border-white/[0.06] bg-black p-2">
-                        <ProtectionEditor
-                          label="SL"
-                          position={position}
-                          instrument={instrument}
-                          value={draft.sl}
-                          inputValue={draft.slInput}
-                          autoFocus={editingField === 'sl'}
-                          onInput={value => updateProtectionInput(position, 'sl', value)}
-                          onMinus={() => nudge(position, 'sl', -1)}
-                          onPlus={() => nudge(position, 'sl', 1)}
-                        />
-                        <ProtectionEditor
-                          label="TP"
-                          position={position}
-                          instrument={instrument}
-                          value={draft.tp}
-                          inputValue={draft.tpInput}
-                          autoFocus={editingField === 'tp'}
-                          onInput={value => updateProtectionInput(position, 'tp', value)}
-                          onMinus={() => nudge(position, 'tp', -1)}
-                          onPlus={() => nudge(position, 'tp', 1)}
-                        />
-                        <div className="flex items-center justify-end gap-2 border-t border-white/[0.06] pt-2">
-                          <button type="button" onClick={cancelProtectionEdit} className="h-8 rounded-md border border-white/[0.06] px-3 text-[9px] font-bold text-[#A1AFBC]">Cancel</button>
-                          <button type="button" onClick={() => applyProtectionDraft(position)} className="flex h-8 items-center gap-1.5 rounded-md border border-[#23664f] bg-[rgb(4,20,14)] px-3 text-[9px] font-black text-[#44dda9]"><Check size={12}/>Apply</button>
+                      const summary = buildOpenPositionSummary(position, account, instrument);
+                      const positive = Number(position.pnl) >= 0;
+                      const sideBuy = String(position.side).toUpperCase() === 'BUY';
+                      const pnlPercent = summary.pnlPercent;
+                      const currentPrice = summary.currentPrice;
+                      return (
+                        <div key={position.id} onClick={() => onSelectPosition(position.id)} className={String(selectedPositionId) === String(position.id) ? "relative grid cursor-pointer grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-[#195be1]/45 bg-[#12151a] px-3 py-2 text-[9px] transition" : "relative grid cursor-pointer grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-white/[0.055] px-3 py-2 text-[9px] transition hover:bg-white/[0.018]"}>
+                          {String(selectedPositionId) === String(position.id) && <span className="absolute inset-y-1 left-0 w-0.5 rounded-r bg-[#195be1]" />}
+                          <div className="flex min-w-0 items-center gap-2"><InstrumentAvatar instrument={instrument} size={20}/><strong className="truncate text-[10px] text-[#f2f5f7]">{formatSymbol(position.symbol)}</strong></div>
+                          <span className={sideBuy ? "w-fit rounded bg-[#0c3b2e] px-1.5 py-0.5 text-[7px] font-black text-[#38dba4]" : "w-fit rounded bg-[#3b1820] px-1.5 py-0.5 text-[7px] font-black text-[#ff707a]"}>{String(position.side).toUpperCase()}</span>
+                          <span className="font-mono text-[9px] text-[#c4ced6]">{Number(position.volume).toFixed(2)} lots</span>
+                          <span className="font-mono text-[9px] text-[#aebbc5]">{formatInstrumentPrice(position.entry, instrument)}</span>
+                          <span className="font-mono text-[9px] text-[#d3dbe2]">{currentPrice == null ? '—' : formatInstrumentPrice(currentPrice, instrument)}</span>
+                          <button type="button" onClick={event => { event.stopPropagation(); onEditProtection(position.id, 'sl'); }} className={position.sl == null ? "justify-self-start rounded border border-white/[0.06] px-2 py-1 font-mono text-[8px] font-bold text-[#8295A7] hover:text-white" : "justify-self-start rounded border border-[#5e2932] px-2 py-1 font-mono text-[8px] font-bold text-[#FF6F7A]"}>{position.sl == null ? '+ SL' : formatInstrumentPrice(position.sl, instrument)}</button>
+                          <button type="button" onClick={event => { event.stopPropagation(); onEditProtection(position.id, 'tp'); }} className={position.tp == null ? "justify-self-start rounded border border-white/[0.06] px-2 py-1 font-mono text-[8px] font-bold text-[#8295A7] hover:text-white" : "justify-self-start rounded border border-[#245b48] px-2 py-1 font-mono text-[8px] font-bold text-[#42D7A1]"}>{position.tp == null ? '+ TP' : formatInstrumentPrice(position.tp, instrument)}</button>
+                          <strong className={positive ? "text-right font-mono text-[10px] text-[#42D7A1]" : "text-right font-mono text-[10px] text-[#FF5968]"}>{formatPnl(position.pnl, position.pnlCurrency)}</strong>
+                          <span className={positive ? "text-right font-mono text-[8px] text-[#35b788]" : "text-right font-mono text-[8px] text-[#d84d5d]"}>{Number.isFinite(pnlPercent) ? <>{pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%</> : '—'}</span>
+                          <div className="relative flex items-center justify-end gap-1">
+                            <button type="button" onClick={event => { event.stopPropagation(); onEditProtection(position.id, 'tp'); }} className="h-7 rounded border border-[#245b48] px-2 text-[8px] font-bold text-[#42D7A1] hover:bg-[#071710]">TP</button>
+                            <button type="button" onClick={event => { event.stopPropagation(); onEditProtection(position.id, 'sl'); }} className="h-7 rounded border border-[#51242c] px-2 text-[8px] font-bold text-[#ff727d] hover:bg-[#241015]">SL</button>
+                            <button type="button" onClick={event => { event.stopPropagation(); setRowActionsId(rowActionsId === position.id ? null : position.id); }} className="grid size-7 place-items-center rounded border border-white/[0.06] text-[#8092a2] hover:text-white"><MoreHorizontal size={11}/></button>
+                            {rowActionsId === position.id && (
+                              <div className="absolute right-0 top-8 z-50 w-[164px] rounded-md border border-white/[0.10] bg-[#0a0a0a] p-1 shadow-xl">
+                                <button type="button" onClick={event => { event.stopPropagation(); onBreakEven(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#48d8a4] hover:bg-white/[0.03]">Break even</button>
+                                <button type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, 50); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#b6c3ce] hover:bg-white/[0.03]">Reduce 50%</button>
+                                <button type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, 100); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#ff727d] hover:bg-[#241015]">Close position</button>
+                                <div className="my-1 border-t border-white/[0.06]"/>
+                                <button type="button" onClick={event => { event.stopPropagation(); onDuplicate(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#b6c3ce] hover:bg-white/[0.03]">Duplicate position</button>
+                                <button type="button" onClick={event => { event.stopPropagation(); onReverse(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#b6c3ce] hover:bg-white/[0.03]">Reverse position</button>
+                                <button type="button" onClick={event => { event.stopPropagation(); moveBreakEvenOffset(position, 1); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#48d8a4] hover:bg-white/[0.03]">BE + 1 pip</button>
+                                {[5,10,20].map(pips => <button key={pips} type="button" onClick={event => { event.stopPropagation(); onSetTrailing(position.id, true, pips); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#7fcfff] hover:bg-white/[0.03]">Trailing {pips} pips</button>)}
+                                <div className="my-1 border-t border-white/[0.06]"/>
+                                {[25,75].map(percent => <button key={percent} type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, percent); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#b6c3ce] hover:bg-white/[0.03]">Close {percent}%</button>)}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>;
-                    })()}
-
-                    <div className="border-t border-white/[0.06] bg-black p-2.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2"><ShieldCheck size={15} className={position.trailingEnabled ? 'text-[#195be1]' : 'text-[#6F8191]'}/><div><b className="block text-[10px] text-[#E6EDF3]">Trailing Stop</b><span className="mt-0.5 block text-[9px] text-[#6F8191]">Automatically moves the stop as price advances</span></div></div>
-                        <button type="button" onClick={() => onSetTrailing(position.id, !position.trailingEnabled, position.trailingPips)} className={`relative h-6 w-11 rounded-full transition ${position.trailingEnabled ? 'bg-[#101010]' : 'bg-[#101010]'}`} aria-label="Toggle trailing stop"><span className={`absolute top-1 size-4 rounded-full bg-white transition ${position.trailingEnabled ? 'left-6' : 'left-1'}`} /></button>
-                      </div>
-                      <div className="mt-2 flex items-center gap-2"><span className="text-[8px] font-semibold text-[#6F8191]">Distance</span><button type="button" onClick={() => onSetTrailing(position.id, true, Math.max(1, Number(position.trailingPips) - 1))} className="grid size-7 place-items-center rounded-lg border border-white/[0.06] bg-[#0C1013] text-[#A1AFBC]"><Minus size={12}/></button><b className="min-w-[54px] rounded-lg border border-white/[0.06] bg-black px-2 py-1.5 text-center text-[10px] text-[#E6EDF3]">{position.trailingPips || 5} pips</b><button type="button" onClick={() => onSetTrailing(position.id, true, Number(position.trailingPips || 5) + 1)} className="grid size-7 place-items-center rounded-lg border border-white/[0.06] bg-[#0C1013] text-[#A1AFBC]"><Plus size={12}/></button></div>
-                    </div>
-
-                    <div className="border-t border-white/[0.06] bg-black p-2.5">
-                      <div className="flex items-center gap-2 text-[#A1AFBC]"><TrendingDown size={14}/><b className="text-[10px]">Partial close</b></div>
-                      <div className="mt-2 grid grid-cols-4 gap-1.5">{[25, 50, 75, 100].map(percent => <button key={percent} type="button" onClick={() => onClosePosition(position.id, percent)} className="h-8 rounded-lg border border-white/[0.06] bg-black text-[9px] font-bold text-[#A1AFBC] active:bg-[#0C1013]">{percent === 100 ? 'ALL' : `${percent}%`}</button>)}</div>
-                      <div className="mt-2 flex items-center gap-2"><input inputMode="numeric" value={customClose[position.id] ?? ''} onChange={event => setCustomClose(current => ({ ...current, [position.id]: event.target.value.replace(/[^0-9]/g, '').slice(0, 3) }))} placeholder="Custom %" className="h-9 min-w-0 flex-1 rounded-lg border border-white/[0.06] bg-black px-3 text-[9px] font-semibold text-[#e5e5e5] outline-none placeholder:text-[#44515D]"/><button type="button" onClick={() => applyCustomClose(position)} className="h-9 rounded-lg border border-[#642832] bg-black px-3 text-[9px] font-bold text-[#ff7a86]">Close</button></div>
-                    </div>
+                      );
+                    })}
                   </div>
                 )}
-              </article>
-            );
-          })}
-        </div>
+          
+                {tab === 'positions' && !desktopDense && (
+                  <div className="space-y-2 p-2">
+                    {!positions.length && <div className="grid h-[118px] place-items-center text-center text-[10px] font-medium text-[#6F8191]"><div><b className="block text-[#A1AFBC]">No open positions</b><span className="mt-1 block">Market executions will appear here</span></div></div>}
+          
+                    {positions.map(position => {
+                      const expanded = expandedId === position.id;
+                      const editing = editingId === position.id;
+                      const positive = Number(position.pnl) >= 0;
+                      const sideBuy = position.side === 'BUY';
+          
+                      return (
+                        <article key={position.id} className="overflow-hidden border-b border-white/[0.06] bg-black last:border-b-0">
+                          <div className="px-3 pb-2.5 pt-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <InstrumentAvatar instrument={instrumentForSymbol(markets, position.symbol)} size={24}/>
+                                  <strong className="truncate text-[13px] font-black tracking-[-0.025em] text-[#f5f5f5]">{formatSymbol(position.symbol)}</strong>
+                                  <span className={`rounded-md px-1.5 py-1 text-[8px] font-black leading-none ${sideBuy ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{position.side}</span>
+                                  {position.trailingEnabled && <span className="rounded-md border border-white/[0.10] bg-black px-1.5 py-1 text-[8px] font-bold text-[#195be1]">TRAIL {position.trailingPips}p</span>}
+                                </div>
+                                <p className="mt-1.5 text-[9px] text-[#6F8191]"><b className="text-[#A1AFBC]">{Number(position.volume).toFixed(2)} lots</b><span className="mx-1.5 text-[#44515D]">•</span>Entry {formatInstrumentPrice(position.entry, instrumentForSymbol(markets, position.symbol))}</p>
+                              </div>
+                              <div className="flex shrink-0 items-start gap-2">
+                                <div className="text-right"><span className="block text-[8px] font-semibold uppercase tracking-[0.08em] text-[#6F8191]">P&amp;L</span><b className={`mt-1 block text-[14px] font-black ${positive ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{formatPnl(position.pnl, position.pnlCurrency)}</b></div>
+                                <button type="button" onClick={() => setExpandedId(expanded ? null : position.id)} aria-label="More position controls" className={`grid size-8 place-items-center rounded-lg border transition ${expanded ? 'border-white/[0.13] bg-[#0C1013] text-[#195be1]' : 'border-white/[0.06] bg-black text-[#6F8191]'}`}><MoreHorizontal size={16}/></button>
+                              </div>
+                            </div>
+          
+                            <div className="mt-2.5 grid grid-cols-2 gap-1.5">
+                              <button type="button" onClick={() => startProtectionEdit(position, 'sl')} className="flex items-center justify-between rounded-md border border-white/[0.06] bg-[#0C1013] px-2.5 py-2 text-left transition hover:border-white/[0.14]"><span className="text-[8px] font-semibold text-[#6F8191]">SL</span><b className="text-[9px] font-semibold text-[#A1AFBC]">{position.sl == null ? '+ Add SL' : formatInstrumentPrice(position.sl, instrumentForSymbol(markets, position.symbol))}</b></button>
+                              <button type="button" onClick={() => startProtectionEdit(position, 'tp')} className="flex items-center justify-between rounded-md border border-white/[0.06] bg-[#0C1013] px-2.5 py-2 text-left transition hover:border-white/[0.14]"><span className="text-[8px] font-semibold text-[#6F8191]">TP</span><b className="text-[9px] font-semibold text-[#A1AFBC]">{position.tp == null ? '+ Add TP' : formatInstrumentPrice(position.tp, instrumentForSymbol(markets, position.symbol))}</b></button>
+                            </div>
+                          </div>
+          
+                          <div className="grid grid-cols-4 gap-px border-t border-white/[0.06] bg-white/[0.07]">
+                            <QuickAction label="CLOSE" tone="danger" onClick={() => onClosePosition(position.id, 100)} />
+                            <QuickAction label="50%" onClick={() => onClosePosition(position.id, 50)} />
+                            <QuickAction label="BE" tone="success" onClick={() => onBreakEven(position.id)} />
+                            <QuickAction label="REVERSE" tone="accent" onClick={() => onReverse(position.id)} />
+                          </div>
+          
+                          {expanded && (
+                            <div className="space-y-2 border-t border-white/[0.06] bg-black p-2.5">
+                              <div className="grid grid-cols-3 gap-2">
+                                <button type="button" onClick={() => editing ? cancelProtectionEdit() : startProtectionEdit(position)} className={`flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md border text-[9px] font-bold ${editing ? 'border-white/[0.13] bg-[#0C1013] text-[#195be1]' : 'border-white/[0.06] bg-black text-[#A1AFBC]'}`}><SlidersHorizontal size={13}/><span className="truncate">{editing ? 'Editing' : 'SL / TP'}</span></button>
+                                <button type="button" onClick={() => onDuplicate(position.id)} className="flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md border border-white/[0.06] bg-black text-[9px] font-bold text-[#A1AFBC]"><Copy size={13}/><span className="truncate">Duplicate</span></button>
+                                <button type="button" onClick={() => setSharePosition(position)} className="flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md border border-white/[0.06] bg-black text-[9px] font-bold text-[#E6EDF3]"><Share2 size={13}/><span className="truncate">Share P&amp;L</span></button>
+                              </div>
+          
+                              {editing && (() => {
+                                const draft = protectionDrafts[position.id] || buildProtectionDraft(position);
+                                const instrument = instrumentForSymbol(markets, position.symbol);
+                                return <div className="space-y-2 border border-white/[0.06] bg-black p-2">
+                                  <ProtectionEditor
+                                    label="SL"
+                                    position={position}
+                                    instrument={instrument}
+                                    value={draft.sl}
+                                    inputValue={draft.slInput}
+                                    autoFocus={editingField === 'sl'}
+                                    onInput={value => updateProtectionInput(position, 'sl', value)}
+                                    onMinus={() => nudge(position, 'sl', -1)}
+                                    onPlus={() => nudge(position, 'sl', 1)}
+                                  />
+                                  <ProtectionEditor
+                                    label="TP"
+                                    position={position}
+                                    instrument={instrument}
+                                    value={draft.tp}
+                                    inputValue={draft.tpInput}
+                                    autoFocus={editingField === 'tp'}
+                                    onInput={value => updateProtectionInput(position, 'tp', value)}
+                                    onMinus={() => nudge(position, 'tp', -1)}
+                                    onPlus={() => nudge(position, 'tp', 1)}
+                                  />
+                                  <div className="flex items-center justify-end gap-2 border-t border-white/[0.06] pt-2">
+                                    <button type="button" onClick={cancelProtectionEdit} className="h-8 rounded-md border border-white/[0.06] px-3 text-[9px] font-bold text-[#A1AFBC]">Cancel</button>
+                                    <button type="button" onClick={() => applyProtectionDraft(position)} className="flex h-8 items-center gap-1.5 rounded-md border border-[#23664f] bg-[rgb(4,20,14)] px-3 text-[9px] font-black text-[#44dda9]"><Check size={12}/>Apply</button>
+                                  </div>
+                                </div>;
+                              })()}
+          
+                              <div className="border-t border-white/[0.06] bg-black p-2.5">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2"><ShieldCheck size={15} className={position.trailingEnabled ? 'text-[#195be1]' : 'text-[#6F8191]'}/><div><b className="block text-[10px] text-[#E6EDF3]">Trailing Stop</b><span className="mt-0.5 block text-[9px] text-[#6F8191]">Automatically moves the stop as price advances</span></div></div>
+                                  <button type="button" onClick={() => onSetTrailing(position.id, !position.trailingEnabled, position.trailingPips)} className={`relative h-6 w-11 rounded-full transition ${position.trailingEnabled ? 'bg-[#101010]' : 'bg-[#101010]'}`} aria-label="Toggle trailing stop"><span className={`absolute top-1 size-4 rounded-full bg-white transition ${position.trailingEnabled ? 'left-6' : 'left-1'}`} /></button>
+                                </div>
+                                <div className="mt-2 flex items-center gap-2"><span className="text-[8px] font-semibold text-[#6F8191]">Distance</span><button type="button" onClick={() => onSetTrailing(position.id, true, Math.max(1, Number(position.trailingPips) - 1))} className="grid size-7 place-items-center rounded-lg border border-white/[0.06] bg-[#0C1013] text-[#A1AFBC]"><Minus size={12}/></button><b className="min-w-[54px] rounded-lg border border-white/[0.06] bg-black px-2 py-1.5 text-center text-[10px] text-[#E6EDF3]">{position.trailingPips || 5} pips</b><button type="button" onClick={() => onSetTrailing(position.id, true, Number(position.trailingPips || 5) + 1)} className="grid size-7 place-items-center rounded-lg border border-white/[0.06] bg-[#0C1013] text-[#A1AFBC]"><Plus size={12}/></button></div>
+                              </div>
+          
+                              <div className="border-t border-white/[0.06] bg-black p-2.5">
+                                <div className="flex items-center gap-2 text-[#A1AFBC]"><TrendingDown size={14}/><b className="text-[10px]">Partial close</b></div>
+                                <div className="mt-2 grid grid-cols-4 gap-1.5">{[25, 50, 75, 100].map(percent => <button key={percent} type="button" onClick={() => onClosePosition(position.id, percent)} className="h-8 rounded-lg border border-white/[0.06] bg-black text-[9px] font-bold text-[#A1AFBC] active:bg-[#0C1013]">{percent === 100 ? 'ALL' : `${percent}%`}</button>)}</div>
+                                <div className="mt-2 flex items-center gap-2"><input inputMode="numeric" value={customClose[position.id] ?? ''} onChange={event => setCustomClose(current => ({ ...current, [position.id]: event.target.value.replace(/[^0-9]/g, '').slice(0, 3) }))} placeholder="Custom %" className="h-9 min-w-0 flex-1 rounded-lg border border-white/[0.06] bg-black px-3 text-[9px] font-semibold text-[#e5e5e5] outline-none placeholder:text-[#44515D]"/><button type="button" onClick={() => applyCustomClose(position)} className="h-9 rounded-lg border border-[#642832] bg-black px-3 text-[9px] font-bold text-[#ff7a86]">Close</button></div>
+                              </div>
+                            </div>
+                          )}
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+          
+                {tab === 'orders' && (
+                  <div className="space-y-1.5 p-2">
+                    {!pendingOrders.length && <div className="grid h-[138px] place-items-center text-center text-[10px] font-medium text-[#6F8191]"><div><b className="block text-[#A1AFBC]">No pending orders</b><span className="mt-1 block">Choose Limit, Stop, or Stop Limit above</span></div></div>}
+                    {pendingOrders.map(order => (
+                      <div key={order.id} className="border-b border-white/[0.06] bg-black px-3 py-3 last:border-b-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0"><div className="flex items-center gap-1.5"><InstrumentAvatar instrument={instrumentForSymbol(markets, order.symbol)} size={22}/><strong className="truncate text-[11px] font-semibold text-[#E6EDF3]">{formatSymbol(order.symbol || 'Current symbol')}</strong><span className={`rounded-md px-1.5 py-1 text-[8px] font-black ${order.side === 'buy' ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{String(order.side).toUpperCase()} {String(order.orderType).toUpperCase()}</span></div><p className="mt-1 text-[8px] text-[#6F8191]">{Number(order.lots || 0).toFixed(2)} lots · Entry {formatInstrumentPrice(order.entry, instrumentForSymbol(markets, order.symbol))} · {order.expiration}</p></div>
+                          <div className="flex shrink-0 items-center gap-1"><button type="button" onClick={() => onModifyPending(order.id)} className="grid size-8 place-items-center rounded-lg border border-white/[0.06] bg-black text-[#A1AFBC]" aria-label="Modify pending order"><SlidersHorizontal size={13}/></button><button type="button" onClick={() => onCancelPending(order.id)} className="grid size-8 place-items-center rounded-lg border border-[#642832] bg-black text-[#ff7480]" aria-label="Cancel pending order"><X size={13}/></button></div>
+                        </div>
+                        <div className="mt-2 grid grid-cols-3 gap-1.5 text-[8px]"><div className="rounded-lg bg-black px-2 py-1.5 text-[#6F8191]">SL <b className="ml-1 text-[#A1AFBC]">{formatInstrumentPrice(order.sl, instrumentForSymbol(markets, order.symbol))}</b></div><div className="rounded-lg bg-black px-2 py-1.5 text-[#6F8191]">TP <b className="ml-1 text-[#A1AFBC]">{formatInstrumentPrice(order.tp, instrumentForSymbol(markets, order.symbol))}</b></div><div className="rounded-lg bg-black px-2 py-1.5 text-[#6F8191]">Status <b className="ml-1 text-[#195be1]">Pending</b></div></div>
+                        {order.orderType === 'stop-limit' && <div className="mt-1.5 rounded-lg border border-white/[0.06] bg-black px-2 py-1.5 text-[8px] text-[#6F8191]">Limit price <b className="ml-1 text-[#195be1]">{formatInstrumentPrice(order.limitPrice, instrumentForSymbol(markets, order.symbol))}</b></div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+          
+                {tab === 'history' && (
+                  <div className="space-y-1.5 p-2">
+                    {!positionHistory.length ? <div className="grid h-[122px] place-items-center text-[10px] font-medium text-[#6F8191]">Closed positions will appear here</div> : positionHistory.map((item, index) => <div key={`${item.id}-${index}`} className="flex items-center justify-between border-b border-white/[0.06] bg-black px-3 py-2.5 last:border-b-0"><div><div className="flex items-center gap-1.5"><InstrumentAvatar instrument={instrumentForSymbol(markets, item.symbol)} size={22}/><strong className="text-[11px] text-[#f5f5f5]">{formatSymbol(item.symbol)}</strong><span className="rounded-md bg-[#0C1013] px-1.5 py-1 text-[8px] font-bold text-[#A1AFBC]">{item.closeType || 'Closed'}</span></div><p className="mt-1 text-[8px] text-[#6F8191]">{item.side} · {Number(item.volume).toFixed(2)} lots · {item.closedAt}</p></div><b className={`text-[11px] font-semibold ${Number(item.pnl) >= 0 ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{formatPnl(item.pnl)}</b></div>)}
+                  </div>
+                )}
+          
+                {tab === 'journal' && (
+                  <div className="max-h-[340px] overflow-y-auto p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {!journal.length ? <div className="grid h-[122px] place-items-center text-center text-[10px] text-[#6F8191]"><div><b className="block text-[#A1AFBC]">Journal is ready</b><span className="mt-1 block">Orders, fills and management actions will be recorded here.</span></div></div> : journal.map(item => <div key={item.id} className="grid grid-cols-[58px_1fr] gap-2 border-b border-white/[0.06] px-2 py-2.5 last:border-b-0"><span className="font-mono text-[8px] text-[#6F8191]">{item.time}</span><div><div className="flex items-center gap-1.5"><span className={`size-1.5 rounded-full ${item.type === 'fill' ? 'bg-[#3ad7a1]' : item.type === 'order' ? 'bg-[#101010]' : item.type === 'modify' ? 'bg-[#f0c35c]' : 'bg-[#101010]'}`} /><b className="text-[9px] font-semibold text-[#A1AFBC]">{item.message}</b></div>{item.latencyMs != null && <span className="mt-1 block text-[8px] text-[#6F8191]">Execution {item.latencyMs}ms</span>}</div></div>)}
+                  </div>
+                )}
+                {sharePosition && (
+          
+        </>
       )}
 
-      {tab === 'orders' && (
-        <div className="space-y-1.5 p-2">
-          {!pendingOrders.length && <div className="grid h-[138px] place-items-center text-center text-[10px] font-medium text-[#6F8191]"><div><b className="block text-[#A1AFBC]">No pending orders</b><span className="mt-1 block">Choose Limit, Stop, or Stop Limit above</span></div></div>}
-          {pendingOrders.map(order => (
-            <div key={order.id} className="border-b border-white/[0.06] bg-black px-3 py-3 last:border-b-0">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0"><div className="flex items-center gap-1.5"><InstrumentAvatar instrument={instrumentForSymbol(markets, order.symbol)} size={22}/><strong className="truncate text-[11px] font-semibold text-[#E6EDF3]">{formatSymbol(order.symbol || 'Current symbol')}</strong><span className={`rounded-md px-1.5 py-1 text-[8px] font-black ${order.side === 'buy' ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{String(order.side).toUpperCase()} {String(order.orderType).toUpperCase()}</span></div><p className="mt-1 text-[8px] text-[#6F8191]">{Number(order.lots || 0).toFixed(2)} lots · Entry {formatInstrumentPrice(order.entry, instrumentForSymbol(markets, order.symbol))} · {order.expiration}</p></div>
-                <div className="flex shrink-0 items-center gap-1"><button type="button" onClick={() => onModifyPending(order.id)} className="grid size-8 place-items-center rounded-lg border border-white/[0.06] bg-black text-[#A1AFBC]" aria-label="Modify pending order"><SlidersHorizontal size={13}/></button><button type="button" onClick={() => onCancelPending(order.id)} className="grid size-8 place-items-center rounded-lg border border-[#642832] bg-black text-[#ff7480]" aria-label="Cancel pending order"><X size={13}/></button></div>
-              </div>
-              <div className="mt-2 grid grid-cols-3 gap-1.5 text-[8px]"><div className="rounded-lg bg-black px-2 py-1.5 text-[#6F8191]">SL <b className="ml-1 text-[#A1AFBC]">{formatInstrumentPrice(order.sl, instrumentForSymbol(markets, order.symbol))}</b></div><div className="rounded-lg bg-black px-2 py-1.5 text-[#6F8191]">TP <b className="ml-1 text-[#A1AFBC]">{formatInstrumentPrice(order.tp, instrumentForSymbol(markets, order.symbol))}</b></div><div className="rounded-lg bg-black px-2 py-1.5 text-[#6F8191]">Status <b className="ml-1 text-[#195be1]">Pending</b></div></div>
-              {order.orderType === 'stop-limit' && <div className="mt-1.5 rounded-lg border border-white/[0.06] bg-black px-2 py-1.5 text-[8px] text-[#6F8191]">Limit price <b className="ml-1 text-[#195be1]">{formatInstrumentPrice(order.limitPrice, instrumentForSymbol(markets, order.symbol))}</b></div>}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {tab === 'history' && (
-        <div className="space-y-1.5 p-2">
-          {!positionHistory.length ? <div className="grid h-[122px] place-items-center text-[10px] font-medium text-[#6F8191]">Closed positions will appear here</div> : positionHistory.map((item, index) => <div key={`${item.id}-${index}`} className="flex items-center justify-between border-b border-white/[0.06] bg-black px-3 py-2.5 last:border-b-0"><div><div className="flex items-center gap-1.5"><InstrumentAvatar instrument={instrumentForSymbol(markets, item.symbol)} size={22}/><strong className="text-[11px] text-[#f5f5f5]">{formatSymbol(item.symbol)}</strong><span className="rounded-md bg-[#0C1013] px-1.5 py-1 text-[8px] font-bold text-[#A1AFBC]">{item.closeType || 'Closed'}</span></div><p className="mt-1 text-[8px] text-[#6F8191]">{item.side} · {Number(item.volume).toFixed(2)} lots · {item.closedAt}</p></div><b className={`text-[11px] font-semibold ${Number(item.pnl) >= 0 ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{formatPnl(item.pnl)}</b></div>)}
-        </div>
-      )}
-
-      {tab === 'journal' && (
-        <div className="max-h-[340px] overflow-y-auto p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {!journal.length ? <div className="grid h-[122px] place-items-center text-center text-[10px] text-[#6F8191]"><div><b className="block text-[#A1AFBC]">Journal is ready</b><span className="mt-1 block">Orders, fills and management actions will be recorded here.</span></div></div> : journal.map(item => <div key={item.id} className="grid grid-cols-[58px_1fr] gap-2 border-b border-white/[0.06] px-2 py-2.5 last:border-b-0"><span className="font-mono text-[8px] text-[#6F8191]">{item.time}</span><div><div className="flex items-center gap-1.5"><span className={`size-1.5 rounded-full ${item.type === 'fill' ? 'bg-[#3ad7a1]' : item.type === 'order' ? 'bg-[#101010]' : item.type === 'modify' ? 'bg-[#f0c35c]' : 'bg-[#101010]'}`} /><b className="text-[9px] font-semibold text-[#A1AFBC]">{item.message}</b></div>{item.latencyMs != null && <span className="mt-1 block text-[8px] text-[#6F8191]">Execution {item.latencyMs}ms</span>}</div></div>)}
-        </div>
-      )}
-      {sharePosition && (
         <SharePositionSheet
           position={sharePosition}
           instrument={instrumentForSymbol(markets, sharePosition.symbol)}
