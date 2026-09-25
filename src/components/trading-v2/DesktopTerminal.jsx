@@ -714,18 +714,34 @@ export default function DesktopTerminal({
 
 
       <header className="acg-desktop-market-strip flex h-[58px] w-full min-w-0 items-center border-b border-white/[0.055] bg-[#080a0c] px-3">
-        <button type="button" onClick={() => openMarketPanel('markets', false)} className="flex min-w-[178px] items-center gap-2.5 text-left 2xl:min-w-[210px]" title="Open markets and watchlist">
-          <InstrumentAvatar instrument={market} size={30}/>
+        <div className="flex min-w-[178px] items-center gap-2.5 text-left 2xl:min-w-[210px]">
+          <button type="button" onClick={() => openMarketPanel('markets', false)} className="shrink-0" title="Open markets and watchlist" aria-label="Open markets and watchlist">
+            <InstrumentAvatar instrument={market} size={30}/>
+          </button>
           <div className="min-w-0">
-            <strong className="flex items-center gap-1 text-[14px] font-extrabold tracking-[-0.025em] text-[#f3f6f8]">{market?.displaySymbol || displaySymbol(market?.symbol)}<ChevronDown size={12}/></strong>
-            <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[8px] font-bold text-[#697988]">
+            <div className="flex min-w-0 items-center gap-1">
+              <button type="button" onClick={() => openMarketPanel('markets', false)} className="flex min-w-0 items-center gap-1 text-left" title="Open markets and watchlist">
+                <strong className="truncate text-[14px] font-extrabold tracking-[-0.025em] text-[#f3f6f8]">{market?.displaySymbol || displaySymbol(market?.symbol)}</strong>
+                <ChevronDown size={12} className="shrink-0 text-[#f3f6f8]"/>
+              </button>
+              <button
+                type="button"
+                onClick={() => watchlists?.toggleSymbol?.(activeSymbol)}
+                className={favorite ? "grid size-5 shrink-0 place-items-center rounded text-[#f6c95d] hover:bg-white/[0.05]" : "grid size-5 shrink-0 place-items-center rounded text-[#71808e] hover:bg-white/[0.05] hover:text-white"}
+                title={favorite ? "Remove from favorites" : "Add to favorites"}
+                aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
+              >
+                <Star size={12} fill={favorite ? 'currentColor' : 'none'}/>
+              </button>
+            </div>
+            <button type="button" onClick={() => openMarketPanel('markets', false)} className="mt-0.5 flex min-w-0 items-center gap-1.5 text-left text-[8px] font-bold text-[#697988]" title="Open markets and watchlist">
               <span className="truncate">{marketLabel(market)}</span>
               <span className="shrink-0 text-[#697988]">
                 {market?.sessionOpen === false || String(market?.marketState || '').toUpperCase() === 'CLOSED' ? 'MARKET CLOSED' : 'MARKET OPEN'}
               </span>
-            </span>
+            </button>
           </div>
-        </button>
+        </div>
         <div className="acg-desktop-chart-toolbar flex min-w-0 shrink-0 items-center border-l border-white/[0.06] bg-transparent px-2.5">
           <div className="terminal-toolbar-group flex h-9 min-w-0 shrink-0 items-center overflow-x-auto rounded-[12px] border border-white/[0.09] bg-[#080808] px-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.015)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {timeframes.map(([label, value]) => (
@@ -733,7 +749,6 @@ export default function DesktopTerminal({
             ))}
           </div>
           <div className="ml-1.5 flex h-full shrink-0 items-center gap-1.5">
-            <button type="button" onClick={() => watchlists?.toggleSymbol?.(activeSymbol)} className={favorite ? "grid size-7 place-items-center rounded-md border border-white/[0.06] text-[#f6c95d]" : "grid size-7 place-items-center rounded-md border border-white/[0.06] text-[#71808e] hover:text-white"} title="Favorite"><Star size={13} fill={favorite ? 'currentColor' : 'none'}/></button>
             <div className="relative">
               <button type="button" onClick={() => setChartMenuOpen(value => !value)} className={chartMenuOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#195be1]/60 bg-[#14171b] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title="Chart settings"><CandlestickChart size={12}/><span>Charts</span><ChevronDown size={10}/></button>
               {chartMenuOpen && (
