@@ -70,7 +70,7 @@ export default function DesktopMultiChart({
   };
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-black">
+    <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-black">
       <div className={`grid h-full min-h-0 flex-1 gap-px overflow-hidden bg-white/[0.08] ${cellGrid(layout)}`}>
         {Array.from({ length: layout }, (_, index) => {
           const cell = cells[index] || {};
@@ -162,6 +162,21 @@ export default function DesktopMultiChart({
             </section>
           );
         })}
+      </div>
+
+      <div
+        className="pointer-events-none absolute bottom-[42px] left-3 z-[45] hidden select-none items-center gap-1.5 lg:flex"
+        aria-hidden="true"
+      >
+        <img
+          src="/acg-logo.png"
+          alt=""
+          draggable={false}
+          className="h-[22px] w-auto shrink-0 object-contain opacity-95"
+        />
+        <span className="text-[19px] font-extrabold tracking-[-0.035em] text-white/95">
+          Trader
+        </span>
       </div>
     </div>
   );
