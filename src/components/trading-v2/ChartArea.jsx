@@ -743,14 +743,14 @@ export default function ChartArea({
         : `grid ${heightClass} grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2`;
 
   const toolbarClass = drawingToolbarOverlay
-    ? 'acg-mobile-reference-drawing-rail absolute bottom-1 left-1 top-1 z-40 flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto rounded-[8px] border border-white/[0.08] bg-[#071019]/98 py-1 shadow-[6px_0_18px_rgba(0,0,0,.28)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+    ? 'acg-mobile-reference-drawing-rail acg-mobile-reference-drawing-rail--overlay absolute z-40 flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto rounded-[8px] border border-white/[0.08] bg-[#071019]/98 py-1 shadow-[6px_0_18px_rgba(0,0,0,.28)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
     : focusMode || embedded
       ? desktopEnhanced
         ? compactContext
           ? 'flex min-h-0 flex-col items-center overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0A0C0F] py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]'
           : 'flex min-h-0 flex-col items-center gap-1 overflow-y-auto rounded-[14px] border border-white/[0.07] bg-[#0A0C0F] py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
         : focusMode && narrowMobile
-          ? 'absolute bottom-1 left-1 top-1 z-40 flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto rounded-[8px] border border-white/[0.08] bg-[#08090b]/98 py-1 shadow-[6px_0_18px_rgba(0,0,0,.28)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+          ? 'acg-mobile-reference-drawing-rail--overlay absolute z-40 flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto rounded-[8px] border border-white/[0.08] bg-[#08090b]/98 py-1 shadow-[6px_0_18px_rgba(0,0,0,.28)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
           : 'flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto bg-transparent py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
       : 'flex min-h-0 flex-col items-center gap-0.5 bg-transparent py-1';
 
