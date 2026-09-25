@@ -808,6 +808,11 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
         {overlay === 'account' && (
           <MobileAccountSheet
             account={account}
+            accounts={trading.accounts}
+            activeAccountId={trading.activeAccountId}
+            accountSwitching={trading.accountSwitching}
+            accountSwitchError={trading.accountSwitchError}
+            onSelectAccount={trading.selectAccount}
             onClose={() => setOverlay(null)}
             onPlatformSettings={() => setOverlay('platform')}
             onHelp={() => setOverlay('help')}
