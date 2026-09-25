@@ -733,25 +733,21 @@ export default function ChartArea({
   const compactTool = visibleToolGroups.flat().find(([id]) => id === selectedTool) || visibleToolGroups.flat()[0] || null;
   const mobileHeightClass = fillAvailableHeight ? 'h-full min-h-0 flex-1' : heightClass;
   const areaClass = drawingToolbarOverlay
-    ? `acg-mobile-reference-chart-area acg-mobile-chart-surface acg-mobile-reference-chart-area--overlay-rail relative grid ${mobileHeightClass} grid-cols-[minmax(0,1fr)] bg-[#081019]`
+    ? `acg-mobile-reference-chart-area acg-mobile-chart-surface ${toolbarVisible ? 'acg-mobile-reference-chart-area--with-drawing-rail' : 'acg-mobile-reference-chart-area--chart-only'} grid ${mobileHeightClass} ${toolbarVisible ? 'grid-cols-[36px_minmax(0,1fr)] gap-1.5' : 'grid-cols-[minmax(0,1fr)]'} bg-[#081019]`
     : embedded
       ? `grid h-full min-h-0 grid-rows-[minmax(0,1fr)] ${!toolbarVisible ? 'grid-cols-[minmax(0,1fr)]' : desktopEnhanced ? 'grid-cols-[50px_minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} ${desktopEnhanced ? 'gap-2 bg-black' : 'gap-1.5'}`
       : focusMode
-        ? narrowMobile
-          ? 'relative grid h-full min-h-0 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] px-1.5 pb-1.5'
-          : 'grid h-full min-h-0 grid-cols-[36px_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] gap-1.5 px-1.5 pb-1.5'
+        ? `grid h-full min-h-0 ${toolbarVisible ? 'grid-cols-[36px_minmax(0,1fr)] gap-1.5' : 'grid-cols-[minmax(0,1fr)]'} grid-rows-[minmax(0,1fr)] px-1.5 pb-1.5`
         : `grid ${heightClass} grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2`;
 
   const toolbarClass = drawingToolbarOverlay
-    ? 'acg-mobile-reference-drawing-rail acg-mobile-reference-drawing-rail--overlay absolute z-40 flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto rounded-[8px] border border-white/[0.08] bg-[#071019]/98 py-1 shadow-[6px_0_18px_rgba(0,0,0,.28)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+    ? 'acg-mobile-reference-drawing-rail mx-0.5 my-1 flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto rounded-[8px] border border-white/[0.08] bg-[#071019] py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
     : focusMode || embedded
       ? desktopEnhanced
         ? compactContext
           ? 'flex min-h-0 flex-col items-center overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0A0C0F] py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]'
           : 'flex min-h-0 flex-col items-center gap-1 overflow-y-auto rounded-[14px] border border-white/[0.07] bg-[#0A0C0F] py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
-        : focusMode && narrowMobile
-          ? 'acg-mobile-reference-drawing-rail--overlay absolute z-40 flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto rounded-[8px] border border-white/[0.08] bg-[#08090b]/98 py-1 shadow-[6px_0_18px_rgba(0,0,0,.28)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
-          : 'flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto bg-transparent py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+        : 'flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto bg-transparent py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
       : 'flex min-h-0 flex-col items-center gap-0.5 bg-transparent py-1';
 
   return (
@@ -831,6 +827,7 @@ export default function ChartArea({
           showAttributionLogo={false}
           desktopEnhanced={desktopEnhanced}
           compactContext={compactContext}
+          layoutRevision={`${toolbarVisible ? 'rail-open' : 'rail-closed'}:${focusMode ? 'focus' : 'normal'}`}
           onToggleIndicator={onToggleIndicator}
           onOpenIndicatorSettings={onOpenIndicatorSettings}
           onRemoveIndicator={onRemoveIndicator}
