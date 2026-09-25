@@ -839,10 +839,17 @@ export default function ChartArea({
         )}
 
         {!drawingToolbarOverlay && !tradePlan && (!embedded || desktopEnhanced) && (
-          <div className="absolute bottom-1 right-[74px] z-30 flex h-7 items-center overflow-hidden rounded-md border border-white/[0.06] bg-black/86 text-[9px] font-medium text-[#7E8994] shadow-[0_4px_16px_rgba(0,0,0,.24)] backdrop-blur-sm">
-            <span className="border-r border-white/[0.06] px-2.5">{localUtcLabel(clockNow)}</span>
-            <span className="border-r border-white/[0.06] px-2.5 font-mono font-semibold tabular-nums text-[#B9C2CA]" title="Current local chart time">{localClockLabel(clockNow)}</span>
-            <button type="button" onClick={() => coordinateApi?.resetView?.()} className="h-full px-2.5 font-semibold text-[#929DA7] transition hover:bg-white/[0.05] hover:text-[#F1F4F6]" title="Return to live chart and restore the default view">Auto</button>
+          <div className="pointer-events-auto absolute bottom-2 right-[64px] z-30 flex items-center gap-2 font-mono text-[8px] font-medium tabular-nums text-[#737D87]">
+            <span>{localUtcLabel(clockNow)}</span>
+            <span className="text-[#9AA4AE]" title="Current local chart time">{localClockLabel(clockNow)}</span>
+            <button
+              type="button"
+              onClick={() => coordinateApi?.resetView?.()}
+              className="font-mono text-[8px] font-medium text-[#7F8993] transition hover:text-[#D9E0E6]"
+              title="Return to live chart and restore the default view"
+            >
+              Auto
+            </button>
           </div>
         )}
         </div>
