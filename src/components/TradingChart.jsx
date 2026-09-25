@@ -1078,8 +1078,11 @@ export default function TradingChart({
   return <div className="relative size-full min-h-0 min-w-0 overflow-hidden bg-black">
     <div ref={hostRef} className="absolute inset-0" />
     {mobileReference && (
-      <div className="pointer-events-none absolute bottom-3 left-3 z-20">
-        <img src="/acg-logo.png" alt="ACG" className="h-5 w-auto select-none opacity-90" draggable="false" />
+      <div className="pointer-events-none absolute bottom-6 left-4 z-20 select-none">
+        <div className="text-[13px] font-black italic leading-none tracking-[-0.04em] text-white/90 [text-shadow:0_1px_2px_#000,0_0_8px_#000]">
+          <span>ACG</span>
+          <span className="ml-1 font-extrabold">Trader</span>
+        </div>
       </div>
     )}
     {readyKey !== chartRequestKey && !error && <ACGStartupLoader canvas />}
