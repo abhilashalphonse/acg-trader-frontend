@@ -806,7 +806,7 @@ export default function ChartArea({
       )}
 
       <div className={`relative h-full min-h-0 min-w-0 overflow-hidden ${desktopEnhanced ? 'rounded-[14px] border border-white/[0.06] bg-[#080A0C] shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]' : 'bg-[#09090b]'}`}>
-        <div className={`relative h-full min-h-0 min-w-0 overflow-hidden ${desktopEnhanced ? 'rounded-[13px] bg-[#07090B]' : 'bg-[#09090b]'} ${drawingToolbarOverlay ? (toolbarVisible ? '' : 'pl-3') : ''}`}>
+        <div className={`relative h-full min-h-0 min-w-0 overflow-hidden ${desktopEnhanced ? 'rounded-[13px] bg-[#07090B]' : 'bg-[#09090b]'} ${drawingToolbarOverlay ? (toolbarVisible ? '' : 'pl-3') : ''} ${mobileReference ? 'pr-1' : ''}`}>
         <TradingChart
           symbol={symbol}
           instrument={instrument}
