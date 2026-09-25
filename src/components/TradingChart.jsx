@@ -1077,6 +1077,11 @@ export default function TradingChart({
 
   return <div className="relative size-full min-h-0 min-w-0 overflow-hidden bg-black">
     <div ref={hostRef} className="absolute inset-0" />
+    {mobileReference && (
+      <div className="pointer-events-none absolute bottom-3 left-3 z-20">
+        <img src="/acg-logo.png" alt="ACG" className="h-5 w-auto select-none opacity-90" draggable="false" />
+      </div>
+    )}
     {readyKey !== chartRequestKey && !error && <ACGStartupLoader canvas />}
     <div className={mobileReference
       ? "acg-mobile-chart-info pointer-events-none absolute left-3 top-3 z-20 max-w-[78%] text-[#9ba8b6] [text-shadow:0_1px_2px_#000,0_0_8px_#000]"
