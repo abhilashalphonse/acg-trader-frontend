@@ -165,14 +165,14 @@ export default function DesktopMultiChart({
       </div>
 
       <div
-        className="pointer-events-none absolute bottom-[42px] left-[54px] z-[45] hidden select-none items-center gap-[5px] lg:flex"
+        className="pointer-events-none absolute bottom-[42px] left-[54px] z-[45] hidden select-none items-center gap-px lg:flex"
         aria-hidden="true"
       >
         <img
           src="/acg-logo.png"
           alt=""
           draggable={false}
-          className="h-[22px] w-auto shrink-0 object-contain opacity-95"
+          className="h-[27px] w-auto shrink-0 object-contain opacity-95"
         />
         <span
           className="origin-left -skew-x-[8deg] scale-x-[0.94] text-[20px] font-black leading-none tracking-[-0.065em] text-white/95"
