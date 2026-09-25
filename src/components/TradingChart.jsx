@@ -1087,7 +1087,14 @@ export default function TradingChart({
         </>
       ) : (
         <>
-          <div className="text-[12px] font-semibold tracking-[-0.01em] text-[#F0F3F6]">{symbol} <span className="text-[#7F8A95]">· {timeframe}</span></div>
+          <div className="flex items-center gap-1.5 text-[12px] font-semibold tracking-[-0.01em] text-[#F0F3F6]">
+            <span>{symbol}</span>
+            <span className="text-[#7F8A95]">·</span>
+            <span className="text-[#7F8A95]">{timeframe}</span>
+            <span className="text-[#7F8A95]">·</span>
+            <span className="text-[#AAB5BF]">ACG</span>
+            <span className={`ml-0.5 size-1.5 rounded-full ${mobileQuoteLive ? 'bg-[#24d7b7]' : 'bg-[#697785]'}`} aria-label={mobileQuoteLive ? 'Live quotes' : 'Quotes unavailable'} />
+          </div>
           <div className="mt-1 flex flex-wrap gap-x-2 whitespace-nowrap font-medium"><span>O <b className="text-[#aab9c8]">{format(ohlc?.open)}</b></span><span>H <b className="text-[#aab9c8]">{format(ohlc?.high)}</b></span><span>L <b className="text-[#aab9c8]">{format(ohlc?.low)}</b></span><span>C <b className="text-[#aab9c8]">{format(ohlc?.close)}</b></span>{candleChange != null && <span className={`font-semibold ${candleChangeTone}`}>{signed(candleChange, value => value.toFixed(decimals))}{candleChangePercent != null ? ` (${signed(candleChangePercent, value => value.toFixed(2))}%)` : ''}</span>}</div>
         </>
       )}
