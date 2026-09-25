@@ -1519,13 +1519,13 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
 
   /* left drawing toolbar */
   .acg-mobile-reference-chart-area.acg-mobile-chart-surface{
-    grid-template-columns:35px minmax(0,1fr)!important;
+    grid-template-columns:34px minmax(0,1fr)!important;
     column-gap:0!important;
   }
 
   .acg-mobile-reference-drawing-rail{
     width:34px!important;
-    margin:4px 0 4px 1px!important;
+    margin:4px 0!important;
     padding-block:2px!important;
     gap:0!important;
     border-radius:7px!important;
