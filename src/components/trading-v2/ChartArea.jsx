@@ -824,7 +824,7 @@ export default function ChartArea({
           showPositionPriceLines={false}
           priceScaleAnchors={priceScaleAnchors}
           showIndicatorControls={desktopEnhanced && !compactContext}
-          showAttributionLogo={!desktopEnhanced}
+          showAttributionLogo={false}
           desktopEnhanced={desktopEnhanced}
           compactContext={compactContext}
           onToggleIndicator={onToggleIndicator}
@@ -850,7 +850,7 @@ export default function ChartArea({
           onCreateRiskOrder={onCreateRiskOrder}
           chartInstanceId={chartInstanceId}
           interactionEnabled={drawingInteractionEnabled}
-          showHistoryControls={!drawingToolbarOverlay || toolbarVisible}
+          showHistoryControls={!mobileReference && (!drawingToolbarOverlay || toolbarVisible)}
         />}
         <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} coordinateApi={coordinateApi} instrument={instrument} lots={tradePlanLots} accountCurrency={accountCurrency} account={account} riskPercent={riskPercent} />
         {positionProtectionDraft && (
