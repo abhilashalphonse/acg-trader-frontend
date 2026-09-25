@@ -66,11 +66,11 @@ function FieldMetric({ label, value, tone = 'default' }) {
       ? 'text-[#42D7A1]'
       : tone === 'accent'
         ? 'text-[#195be1]'
-        : 'text-[#E6EDF3]';
+        : 'text-[#F0F4F7]';
   return (
     <div className="min-w-0">
-      <span className="block text-[9px] font-semibold uppercase tracking-[0.07em] text-[#6F8191]">{label}</span>
-      <strong className={`mt-0.5 block truncate font-mono text-[11px] font-semibold tabular-nums ${toneClass}`}>{value}</strong>
+      <span className="block text-[9px] font-semibold uppercase tracking-[0.06em] text-[#73808B]">{label}</span>
+      <strong className={`mt-1 block truncate font-mono text-[12px] font-bold tabular-nums tracking-[-0.02em] ${toneClass}`}>{value}</strong>
     </div>
   );
 }
@@ -773,24 +773,24 @@ export default function DesktopOrderTicket({
   };
 
   return (
-    <section className="acg-desktop-order flex h-full min-h-0 flex-col bg-[#07090B]">
-      <div className="acg-order-top-tabs grid h-11 shrink-0 grid-cols-2 border-b border-white/[0.06] bg-[#090b0d]">
-        <button type="button" onClick={() => { chooseOrderFamily('market'); setActiveTool(null); }} className={orderFamily === 'market' ? "relative text-[9px] font-bold text-[#f3f5f7]" : "relative text-[9px] font-bold text-[#778591] hover:text-white"}>Trade{orderFamily === 'market' && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-[#195be1]"/>}</button>
-        <button type="button" onClick={() => { chooseOrderFamily('pending'); setActiveTool(null); }} className={orderFamily === 'pending' ? "relative text-[9px] font-bold text-[#f3f5f7]" : "relative text-[9px] font-bold text-[#778591] hover:text-white"}>Pending{orderFamily === 'pending' && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-[#195be1]"/>}</button>
+    <section className="acg-desktop-order flex h-full min-h-0 flex-col bg-[#0A0C0F]">
+      <div className="acg-order-top-tabs grid h-11 shrink-0 grid-cols-2 border-b border-white/[0.05] bg-[#0A0C0F]">
+        <button type="button" onClick={() => { chooseOrderFamily('market'); setActiveTool(null); }} className={orderFamily === 'market' ? "relative text-[11px] font-bold text-[#f3f5f7]" : "relative text-[11px] font-semibold text-[#7F8A95] hover:text-white"}>Trade{orderFamily === 'market' && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-[#195be1]"/>}</button>
+        <button type="button" onClick={() => { chooseOrderFamily('pending'); setActiveTool(null); }} className={orderFamily === 'pending' ? "relative text-[11px] font-bold text-[#f3f5f7]" : "relative text-[11px] font-semibold text-[#7F8A95] hover:text-white"}>Pending{orderFamily === 'pending' && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-[#195be1]"/>}</button>
       </div>
-      <div className="flex h-9 shrink-0 items-center justify-between border-b border-white/[0.05] px-3">
-        <div className="flex min-w-0 items-center gap-2"><strong className="text-[9px] font-black uppercase tracking-[0.08em] text-[#E6EDF3]">Order</strong><span className="truncate text-[8px] font-semibold text-[#A1AFBC]">{market?.displaySymbol || market?.symbol || '—'}</span><span className={market?.live ? "text-[7px] font-bold text-[#42D7A1]" : market?.isStale ? "text-[7px] font-bold text-[#E7BD58]" : "text-[7px] font-bold text-[#6F8191]"}>● {liveLabel}</span></div>
+      <div className="flex h-10 shrink-0 items-center justify-between border-b border-white/[0.045] px-3">
+        <div className="flex min-w-0 items-center gap-2"><strong className="text-[10px] font-black uppercase tracking-[0.08em] text-[#E6EDF3]">Order</strong><span className="truncate text-[9px] font-semibold text-[#AAB5BF]">{market?.displaySymbol || market?.symbol || '—'}</span><span className={market?.live ? "text-[7px] font-bold text-[#42D7A1]" : market?.isStale ? "text-[7px] font-bold text-[#E7BD58]" : "text-[7px] font-bold text-[#6F8191]"}>● {liveLabel}</span></div>
         <span className="text-[7px] font-semibold text-[#6F8191]">{orderFamily === 'market' ? '1-click' : String(orderType).replace('-', ' ')}</span>
       </div>
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-2.5 py-2.5 [scrollbar-width:thin]">
+      <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-3 py-3 [scrollbar-width:thin]">
         <div className="acg-order-type-block">
           <div className="mb-1.5 flex items-center justify-between px-0.5">
-            <strong className="text-[8px] font-bold uppercase tracking-[0.08em] text-[#82909d]">Order Type</strong>
+            <strong className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#94A3AF]">Order Type</strong>
             <span className="text-[7px] font-semibold text-[#607181]">{orderFamily === 'market' ? 'Immediate execution' : 'Pending execution'}</span>
           </div>
           {orderFamily === 'market' ? (
-            <div className="flex h-9 items-center justify-between rounded-md border border-[#195be1]/55 bg-[#10151f] px-3">
-              <strong className="text-[9px] font-bold text-[#f2f5f7]">Market</strong>
+            <div className="flex h-10 items-center justify-between rounded-[10px] border border-[#195be1]/45 bg-[#0E131B] px-3 shadow-[inset_0_1px_0_rgba(255,255,255,.015)]">
+              <strong className="text-[11px] font-bold text-[#f2f5f7]">Market</strong>
               <span className="text-[7px] font-semibold text-[#6f8293]">Bid / Ask</span>
             </div>
           ) : (
@@ -803,7 +803,7 @@ export default function DesktopOrderTicket({
         </div>
 
         {orderFamily === 'pending' && pendingPlan && (
-          <div className="rounded-md border border-white/[0.06] bg-[#0C1013] p-2">
+          <div className="rounded-[10px] border border-white/[0.05] bg-[#0B0D10] p-2.5">
             <div className={`grid gap-2 ${orderType === 'stop-limit' ? 'grid-cols-2' : 'grid-cols-1'}`}>
               <label className="min-w-0">
                 <span className="mb-1 block text-[9px] font-bold uppercase tracking-[0.06em] text-[#7D90A2]">{orderType === 'limit' ? 'Limit price' : 'Stop price'}</span>
@@ -890,12 +890,12 @@ export default function DesktopOrderTicket({
           </div>
         )}
 
-        <div className="rounded-md border border-white/[0.06] bg-[#0C1013] p-2">
+        <div className="rounded-[10px] border border-white/[0.05] bg-[#0B0D10] p-2.5">
           <div className="mb-1.5 flex items-center justify-between">
-            <strong className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#A1AFBC]">Position size</strong>
+            <strong className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#AAB5BF]">Position size</strong>
             <span className="text-[8px] text-[#6F8191]">{minVolume}–{maxVolume} lots</span>
           </div>
-          <div className="grid grid-cols-[34px_minmax(0,1fr)_34px] items-center rounded-md border border-white/[0.06] bg-black">
+          <div className="grid grid-cols-[38px_minmax(0,1fr)_38px] items-center rounded-[10px] border border-white/[0.05] bg-[#060708]">
             <button type="button" onClick={() => nudgeLots(-1)} className="grid h-10 place-items-center text-[#6F8191] hover:bg-white/[0.025] hover:text-white" aria-label="Decrease lot size"><Minus size={12}/></button>
             <div className="flex items-center justify-center border-x border-white/[0.05]">
               <input
@@ -911,11 +911,11 @@ export default function DesktopOrderTicket({
                   if (event.key === 'Enter') event.currentTarget.blur();
                   if (event.key === 'Escape') { setLotInput(Number(normalizedLots).toFixed(lotDecimals)); event.currentTarget.blur(); }
                 }}
-                className="h-10 w-24 bg-transparent text-center font-mono text-[15px] font-black tabular-nums text-[#E6EDF3] outline-none"
+                className="h-11 w-24 bg-transparent text-center font-mono text-[18px] font-black tabular-nums tracking-[-0.03em] text-[#F3F6F8] outline-none"
                 inputMode="decimal"
                 aria-label="Lot size"
               />
-              <span className="ml-1 text-[8px] font-semibold text-[#64788d]">lots</span>
+              <span className="ml-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-[#6F8191]">lots</span>
             </div>
             <button type="button" onClick={() => nudgeLots(1)} className="grid h-10 place-items-center text-[#6F8191] hover:bg-white/[0.025] hover:text-white" aria-label="Increase lot size"><Plus size={12}/></button>
           </div>
@@ -997,18 +997,18 @@ export default function DesktopOrderTicket({
           )}
         </div>
 
-        <div className="rounded-md border border-white/[0.06] bg-[#0C1013] p-2">
+        <div className="rounded-[10px] border border-white/[0.05] bg-[#0B0D10] p-2.5">
           <div className="mb-1.5 flex items-center justify-between">
-            <strong className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#A1AFBC]">Protection</strong>
+            <strong className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#AAB5BF]">Protection</strong>
             {pendingPlan && <div className="flex items-center gap-1.5"><span className={`text-[8px] font-black ${selectedSide === 'buy' ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{selectedSide === 'buy' ? 'LONG' : 'SHORT'}</span><button type="button" onClick={onCancelPlan} className="grid size-5 place-items-center rounded text-[#6F8191] hover:bg-white/[0.04] hover:text-white" aria-label="Cancel trade plan"><X size={10}/></button></div>}
           </div>
 
           <div className="acg-protection-grid grid grid-cols-2 gap-2">
-            <div className={`rounded-md border ${activeTool === 'sl' ? 'col-span-2 ' : ''}${hasStopLoss ? 'border-[#5e2932]' : 'border-white/[0.05]'} bg-black/40 px-2 py-1.5`}>
+            <div className={`rounded-md border ${activeTool === 'sl' ? 'col-span-2 ' : ''}${hasStopLoss ? 'border-[#5e2932]' : 'border-white/[0.05]'} bg-[#080A0C] px-2.5 py-2`}>
               <div className="flex h-7 items-center justify-between">
                 <button type="button" onClick={() => enableProtection('sl')} className="flex min-w-0 flex-1 items-center gap-2 text-left">
                   <span className={`grid size-3.5 place-items-center rounded border text-[8px] ${hasStopLoss ? 'border-[#8e3b49] bg-[#331017] text-[#FF6F7A]' : 'border-white/[0.12] text-transparent'}`}>✓</span>
-                  <span className="text-[9px] font-bold text-[#DCE6EE]">Stop Loss</span>
+                  <span className="text-[10px] font-bold text-[#E6EDF3]">Stop Loss</span>
                   {hasStopLoss && <span className="truncate font-mono text-[8px] text-[#FF6F7A]">{Number.isFinite(planMetrics?.riskAmount) ? `-${money(Math.abs(planMetrics.riskAmount),currency)}` : '—'}</span>}
                 </button>
                 <button type="button" onClick={() => enableProtection('sl')} className="text-[8px] font-bold text-[#8295A7] hover:text-white">{hasStopLoss ? 'Edit' : 'Add'}</button>
@@ -1022,11 +1022,11 @@ export default function DesktopOrderTicket({
               {activeTool === 'sl' && tradePlan && renderProtectionEditor('sl')}
             </div>
 
-            <div className={`rounded-md border ${activeTool === 'tp' ? 'col-span-2 ' : ''}${hasTakeProfit ? 'border-[#245b48]' : 'border-white/[0.05]'} bg-black/40 px-2 py-1.5`}>
+            <div className={`rounded-md border ${activeTool === 'tp' ? 'col-span-2 ' : ''}${hasTakeProfit ? 'border-[#245b48]' : 'border-white/[0.05]'} bg-[#080A0C] px-2.5 py-2`}>
               <div className="flex h-7 items-center justify-between">
                 <button type="button" onClick={() => enableProtection('tp')} className="flex min-w-0 flex-1 items-center gap-2 text-left">
                   <span className={`grid size-3.5 place-items-center rounded border text-[8px] ${hasTakeProfit ? 'border-[#286b52] bg-[#0a281d] text-[#42D7A1]' : 'border-white/[0.12] text-transparent'}`}>✓</span>
-                  <span className="text-[9px] font-bold text-[#DCE6EE]">Take Profit</span>
+                  <span className="text-[10px] font-bold text-[#E6EDF3]">Take Profit</span>
                   {hasTakeProfit && <span className="truncate font-mono text-[8px] text-[#42D7A1]">{Number.isFinite(planMetrics?.reward) ? `+${money(Math.abs(planMetrics.reward),currency)}` : '—'}</span>}
                 </button>
                 <button type="button" onClick={() => enableProtection('tp')} className="text-[8px] font-bold text-[#8295A7] hover:text-white">{hasTakeProfit ? 'Edit' : 'Add'}</button>
@@ -1057,10 +1057,10 @@ export default function DesktopOrderTicket({
         )}
 
         <div className={`rounded-md border ${riskGuard.blocks.length ? 'border-[#5e2932]' : 'border-white/[0.06]'} bg-black/35`}>
-          <div className="flex h-8 items-center gap-2 px-2">
+          <div className="flex h-9 items-center gap-2 px-2.5">
             <button type="button" onClick={() => setRiskGuardOpen(value => !value)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
               <ShieldCheck size={11} className={riskGuard.blocks.length ? 'text-[#FF6F7A]' : riskGuard.enabled ? 'text-[#195be1]' : 'text-[#6F8191]'}/>
-              <strong className="text-[8px] font-black uppercase tracking-[0.06em] text-[#A1AFBC]">Risk Guard</strong>
+              <strong className="text-[9px] font-black uppercase tracking-[0.06em] text-[#AAB5BF]">Risk Guard</strong>
               <span className="truncate text-[8px] text-[#6F8191]">{riskGuard.enabled ? (riskGuard.blocks[0]?.message || riskGuard.warnings[0]?.message || `${Number(riskGuardSettings?.maxRiskPerTrade || 1).toFixed(2)}% max trade`) : 'Off'}</span>
             </button>
             <button type="button" onClick={() => onRiskGuardSettingsChange({ ...riskGuardSettings, enabled: !riskGuardSettings?.enabled })} className={`relative h-4 w-7 rounded-full border transition ${riskGuard.enabled ? 'border-[#195be1] bg-[#0b2938]' : 'border-white/[0.06] bg-[#111]'}`} aria-label="Toggle Risk Guard">
@@ -1080,9 +1080,9 @@ export default function DesktopOrderTicket({
         </div>
 
         {(challenge.dailyLossLimit > 0 || challenge.maxLossLimit > 0 || challenge.profitTarget > 0) && (
-          <div className="rounded-md border border-white/[0.06] bg-black/35 px-2 py-2">
+          <div className="rounded-[10px] border border-white/[0.05] bg-[#0B0D10] px-2.5 py-2.5">
             <div className="mb-2 flex items-center justify-between">
-              <strong className="text-[8px] font-black uppercase tracking-[0.08em] text-[#A1AFBC]">Account Limits</strong>
+              <strong className="text-[9px] font-black uppercase tracking-[0.08em] text-[#AAB5BF]">Account Limits</strong>
               <span className={challenge.riskAvailabilityLive ? "text-[7px] font-bold text-[#42D7A1]" : "text-[7px] font-bold text-[#E7BD58]"}>{challenge.riskAvailabilityLive ? 'LIVE' : 'SYNCING'}</span>
             </div>
             <div className="grid grid-cols-2 gap-x-4 gap-y-2">
@@ -1094,7 +1094,7 @@ export default function DesktopOrderTicket({
           </div>
         )}
 
-        <div className="rounded-md border border-white/[0.06] bg-black/35 px-2 py-2">
+        <div className="rounded-[10px] border border-white/[0.05] bg-[#0B0D10] px-2.5 py-2.5">
           <div className="grid grid-cols-2 gap-x-4 gap-y-2">
             <FieldMetric label="Required Margin" value={money(previewMargin, currency)} />
             <FieldMetric label="Free Margin After" value={money(freeAfter, currency)} tone={Number.isFinite(freeAfter) && freeAfter < 0 ? 'danger' : 'default'} />
@@ -1118,7 +1118,7 @@ export default function DesktopOrderTicket({
 
       </div>
 
-      <div className="shrink-0 border-t border-white/[0.07] bg-[#080A0C]/98 px-2.5 pb-2.5 pt-2 shadow-[0_-12px_30px_rgba(0,0,0,.28)] backdrop-blur">
+      <div className="shrink-0 border-t border-white/[0.05] bg-[#0A0C0F]/98 px-3 pb-3 pt-2.5 shadow-[0_-10px_24px_rgba(0,0,0,.22)] backdrop-blur">
         {pendingPlan && (
           <div className="mb-1.5 flex items-center justify-between px-0.5 text-[8px] font-semibold text-[#6F8191]">
             <span>{tradePlan?.pending ? 'Pending order ready' : 'Protected market plan'}</span>
@@ -1131,19 +1131,19 @@ export default function DesktopOrderTicket({
             type="button"
             disabled={!canSubmit || (pendingPlan && selectedSide !== 'sell')}
             onClick={() => clickSide('sell')}
-            className="flex h-[58px] min-w-0 flex-col justify-center rounded-md border border-[#6d2d37] bg-[#18080c] px-3 text-left transition hover:bg-[#210b10] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35"
+            className="flex h-[62px] min-w-0 flex-col justify-center rounded-[10px] border border-[#8A3440] bg-[#D7384B] px-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,.08)] transition hover:bg-[#E13D51] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35"
           >
-            <strong className="truncate font-mono text-[15px] font-black tracking-[-0.03em] text-[#f7edef]">{formatInstrumentPrice(executionButtonPrice('sell'), market)}</strong>
-            <span className="mt-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#FF6F7A]">{executionButtonLabel('sell')}</span>
+            <strong className="truncate font-mono text-[15px] font-black tracking-[-0.03em] text-white">{formatInstrumentPrice(executionButtonPrice('sell'), market)}</strong>
+            <span className="mt-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-white">{executionButtonLabel('sell')}</span>
           </button>
           <button
             type="button"
             disabled={!canSubmit || (pendingPlan && selectedSide !== 'buy')}
             onClick={() => clickSide('buy')}
-            className="flex h-[58px] min-w-0 flex-col items-end justify-center rounded-md border border-[#35D79D]/55 bg-[#071710] px-3 text-right shadow-[inset_0_0_0_1px_rgba(53,215,157,0.10),0_0_14px_rgba(53,215,157,0.06)] transition hover:border-[#42E3AA]/70 hover:bg-[#092016] active:scale-[0.99] disabled:cursor-not-allowed disabled:border-[#35D79D]/35 disabled:shadow-[inset_0_0_0_1px_rgba(53,215,157,0.06)] disabled:opacity-55"
+            className="flex h-[62px] min-w-0 flex-col items-end justify-center rounded-[10px] border border-[#10A884] bg-[#0AA17C] px-3 text-right shadow-[inset_0_1px_0_rgba(255,255,255,.08)] transition hover:bg-[#0DB28A] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45"
           >
-            <strong className="truncate font-mono text-[15px] font-black tracking-[-0.03em] text-[#edf8f4]">{formatInstrumentPrice(executionButtonPrice('buy'), market)}</strong>
-            <span className="mt-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-[#42D7A1]">{executionButtonLabel('buy')}</span>
+            <strong className="truncate font-mono text-[15px] font-black tracking-[-0.03em] text-white">{formatInstrumentPrice(executionButtonPrice('buy'), market)}</strong>
+            <span className="mt-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-white">{executionButtonLabel('buy')}</span>
           </button>
         </div>
       </div>
