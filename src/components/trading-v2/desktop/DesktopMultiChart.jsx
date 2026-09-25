@@ -165,7 +165,7 @@ export default function DesktopMultiChart({
       </div>
 
       <div
-        className="pointer-events-none absolute bottom-[42px] left-3 z-[45] hidden select-none items-center gap-1.5 lg:flex"
+        className="pointer-events-none absolute bottom-[42px] left-[54px] z-[45] hidden select-none items-center gap-[5px] lg:flex"
         aria-hidden="true"
       >
         <img
@@ -174,7 +174,10 @@ export default function DesktopMultiChart({
           draggable={false}
           className="h-[22px] w-auto shrink-0 object-contain opacity-95"
         />
-        <span className="text-[19px] font-extrabold tracking-[-0.035em] text-white/95">
+        <span
+          className="origin-left -skew-x-[8deg] scale-x-[0.94] text-[20px] font-black leading-none tracking-[-0.065em] text-white/95"
+          style={{ fontFamily: '"Arial Black", Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif' }}
+        >
           Trader
         </span>
       </div>
