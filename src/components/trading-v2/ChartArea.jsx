@@ -852,6 +852,7 @@ export default function ChartArea({
           chartInstanceId={chartInstanceId}
           interactionEnabled={drawingInteractionEnabled}
           showHistoryControls={!mobileReference && (!drawingToolbarOverlay || toolbarVisible)}
+          preserveChartCrosshair={desktopEnhanced && !compactContext}
         />}
         <TradePlanOverlay plan={tradePlan} onChange={onTradePlanChange} coordinateApi={coordinateApi} instrument={instrument} lots={tradePlanLots} accountCurrency={accountCurrency} account={account} riskPercent={riskPercent} />
         {positionProtectionDraft && (
