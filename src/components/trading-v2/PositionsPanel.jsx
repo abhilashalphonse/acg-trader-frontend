@@ -78,6 +78,7 @@ export default function PositionsPanel({
   onModifyPending = () => {},
   desktopDense = false,
   collapsed = false,
+  compactDock = false,
   expanded = false,
   onToggleExpanded = () => {},
   activeSymbol = null,
@@ -258,7 +259,7 @@ export default function PositionsPanel({
   };
 
   return (
-    <section className={`${desktopDense ? `acg-desktop-positions h-full ${collapsed ? 'overflow-hidden' : 'overflow-auto'}` : 'mt-3 overflow-visible'} border-y border-white/[0.06] bg-black`}>
+    <section className={`${desktopDense ? `acg-desktop-positions h-full ${collapsed || compactDock ? 'overflow-hidden' : 'overflow-auto'}` : 'mt-3 overflow-visible'} border-y border-white/[0.06] bg-black`}>
       {desktopDense ? (
         <div className="flex h-[52px] items-center justify-between gap-4 border-b border-white/[0.06] px-3">
           <div className="flex h-full min-w-0 items-stretch gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -363,7 +364,7 @@ export default function PositionsPanel({
         </div>
       )}
 
-      {!collapsed && (
+      {!collapsed && !compactDock && (
         <>
                 {tab === 'positions' && desktopDense && (
                   <div className="min-w-[1120px]">
