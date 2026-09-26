@@ -460,6 +460,36 @@ export default function TradingChart({
         const price = series.coordinateToPrice(Number(y));
         return price == null || !Number.isFinite(Number(price)) ? null : Number(price);
       },
+      setCrosshairAt(point) {
+        if (!point || typeof chart.setCrosshairPosition !== 'function') return false;
+        const x = Number(point.x);
+        const y = Number(point.y);
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
+
+        const price = series.coordinateToPrice(y);
+        if (price == null || !Number.isFinite(Number(price))) return false;
+
+        let time = timeScale.coordinateToTime(x);
+        if (time == null) {
+          const logical = timeScale.coordinateToLogical(x);
+          time = logicalToDrawingTime(logical, barsRef.current, timeframe);
+        }
+        if (time == null || !Number.isFinite(Number(time))) return false;
+
+        try {
+          chart.setCrosshairPosition(Number(price), Number(time), series);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      clearCrosshair() {
+        try {
+          chart.clearCrosshairPosition?.();
+        } catch {
+          // Crosshair cleanup is best-effort during chart teardown.
+        }
+      },
       snapToCandle(point, maxDistancePx = 14) {
         if (!point) return null;
         const logical = timeScale.coordinateToLogical(Number(point.x));
