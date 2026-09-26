@@ -532,14 +532,20 @@ export default function DesktopTerminal({
   const collapsedDockHeight = 52;
   const compactDockThreshold = 72;
   const expandedChartStripHeight = 150;
+  const expandedDockHeight = Math.max(
+    260,
+    viewportHeight - 56 - 24 - expandedChartStripHeight,
+  );
   const visibleDockHeight = clamp(
     Math.max(180, Math.round(viewportHeight * 0.22)),
     heightBounds.dockMin,
     heightBounds.dockMax,
   );
-  const dockHeight = desktopLayout.dockCollapsed
-    ? collapsedDockHeight
-    : desktopLayout.dockHeight;
+  const dockHeight = positionsExpanded
+    ? expandedDockHeight
+    : desktopLayout.dockCollapsed
+      ? collapsedDockHeight
+      : desktopLayout.dockHeight;
   const dockBodyVisible = positionsExpanded
     || (!desktopLayout.dockCollapsed && dockHeight > compactDockThreshold);
   const updateSidebarWidth = value => setDesktopLayout(current => {
@@ -939,9 +945,7 @@ export default function DesktopTerminal({
           className="relative grid h-full min-h-0 min-w-0 gap-x-2 gap-y-2 bg-black transition-[grid-template-columns,grid-template-rows] duration-300 ease-out"
           style={{
             gridTemplateColumns: `minmax(0, 1fr) ${sidebarContentWidth}px ${sidebarRailWidth}px`,
-            gridTemplateRows: positionsExpanded
-              ? `${expandedChartStripHeight}px minmax(0, 1fr)`
-              : `minmax(0, 1fr) ${dockHeight}px`,
+            gridTemplateRows: `minmax(0, 1fr) ${dockHeight}px`,
           }}
         >
           <section className="grid min-h-0 min-w-0 overflow-hidden rounded-[16px] border border-white/[0.06] bg-[#080A0C] shadow-[inset_0_1px_0_rgba(255,255,255,0.015),0_12px_30px_rgba(0,0,0,.22)] grid-rows-[minmax(0,1fr)]" style={{ gridColumn: '1', gridRow: '1' }}>
