@@ -530,13 +530,18 @@ export default function DesktopTerminal({
   const marketPanelOpen = activeNav === 'watchlist' || activeNav === 'markets';
   const marketBounds = desktopMarketPanelBounds(viewportWidth, sidebarContentWidth);
   const collapsedDockHeight = 52;
+  const compactDockThreshold = 72;
   const expandedChartStripHeight = 150;
-  const expandedDockHeight = Math.max(260, viewportHeight - 56 - 24 - expandedChartStripHeight);
-  const dockHeight = positionsExpanded
-    ? expandedDockHeight
-    : desktopLayout.dockCollapsed
-      ? collapsedDockHeight
-      : desktopLayout.dockHeight;
+  const visibleDockHeight = clamp(
+    Math.max(180, Math.round(viewportHeight * 0.22)),
+    heightBounds.dockMin,
+    heightBounds.dockMax,
+  );
+  const dockHeight = desktopLayout.dockCollapsed
+    ? collapsedDockHeight
+    : desktopLayout.dockHeight;
+  const dockBodyVisible = positionsExpanded
+    || (!desktopLayout.dockCollapsed && dockHeight > compactDockThreshold);
   const updateSidebarWidth = value => setDesktopLayout(current => {
     const nextSidebar = clamp(value, widthBounds.sidebarMin, widthBounds.sidebarMax);
     const nextMarketBounds = desktopMarketPanelBounds(viewportWidth, nextSidebar);
@@ -560,8 +565,26 @@ export default function DesktopTerminal({
     setActiveNav(view === 'markets' || view === 'watchlist' ? view : 'trade');
   };
   const toggleDock = () => {
-    if (positionsExpanded) setPositionsExpanded(false);
-    setDesktopLayout(current => ({ ...current, dockCollapsed: !current.dockCollapsed }));
+    if (positionsExpanded) {
+      setPositionsExpanded(false);
+      setDesktopLayout(current => ({
+        ...current,
+        dockCollapsed: false,
+        dockHeight: current.dockHeight <= compactDockThreshold ? visibleDockHeight : current.dockHeight,
+      }));
+      return;
+    }
+
+    setDesktopLayout(current => {
+      if (current.dockCollapsed || current.dockHeight <= compactDockThreshold) {
+        return {
+          ...current,
+          dockCollapsed: false,
+          dockHeight: current.dockHeight <= compactDockThreshold ? visibleDockHeight : current.dockHeight,
+        };
+      }
+      return { ...current, dockCollapsed: true };
+    });
   };
   const togglePositionsExpanded = () => {
     setDesktopLayout(current => ({ ...current, dockCollapsed: false }));
@@ -899,7 +922,7 @@ export default function DesktopTerminal({
                 <button type="button" onClick={() => { void toggleFullscreen(); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Maximize2 size={12}/>Fullscreen</button>
                 <div className="my-1 border-t border-white/[0.06]"/>
                 <button type="button" onClick={() => { toggleSidebar(); setToolsMenuOpen(false); }} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Side panel</span><span className="text-[#6F8191]">{desktopLayout.sidebarCollapsed ? 'Closed' : 'Open'}</span></button>
-                <button type="button" onClick={() => { toggleDock(); setToolsMenuOpen(false); }} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Positions dock</span><span className="text-[#6F8191]">{desktopLayout.dockCollapsed ? 'Hidden' : 'Shown'}</span></button>
+                <button type="button" onClick={() => { toggleDock(); setToolsMenuOpen(false); }} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Positions dock</span><span className="text-[#6F8191]">{dockBodyVisible ? 'Shown' : 'Hidden'}</span></button>
                 <button type="button" onClick={() => { resetDesktopLayout(); setToolsMenuOpen(false); }} className="w-full rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]">Reset desktop layout</button>
                 <div className="my-1 border-t border-white/[0.06]"/>
                 <button type="button" onClick={() => { onOpenSettings(); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Settings size={12}/>Settings</button>
@@ -916,7 +939,9 @@ export default function DesktopTerminal({
           className="relative grid h-full min-h-0 min-w-0 gap-x-2 gap-y-2 bg-black transition-[grid-template-columns,grid-template-rows] duration-300 ease-out"
           style={{
             gridTemplateColumns: `minmax(0, 1fr) ${sidebarContentWidth}px ${sidebarRailWidth}px`,
-            gridTemplateRows: `minmax(0, 1fr) ${dockHeight}px`,
+            gridTemplateRows: positionsExpanded
+              ? `${expandedChartStripHeight}px minmax(0, 1fr)`
+              : `minmax(0, 1fr) ${dockHeight}px`,
           }}
         >
           <section className="grid min-h-0 min-w-0 overflow-hidden rounded-[16px] border border-white/[0.06] bg-[#080A0C] shadow-[inset_0_1px_0_rgba(255,255,255,0.015),0_12px_30px_rgba(0,0,0,.22)] grid-rows-[minmax(0,1fr)]" style={{ gridColumn: '1', gridRow: '1' }}>
@@ -1035,18 +1060,18 @@ export default function DesktopTerminal({
             <button
               type="button"
               onClick={toggleDock}
-              className={!desktopLayout.dockCollapsed
+              className={dockBodyVisible
                 ? "mb-1 grid size-9 place-items-center rounded-md bg-[#111820] text-[#195be1] ring-1 ring-inset ring-[#195be1]/70"
                 : "mb-1 grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"}
-              title={desktopLayout.dockCollapsed ? "Open positions dock" : "Close positions dock"}
-              aria-label={desktopLayout.dockCollapsed ? "Open positions dock" : "Close positions dock"}
+              title={dockBodyVisible ? "Close positions dock" : "Open positions dock"}
+              aria-label={dockBodyVisible ? "Close positions dock" : "Open positions dock"}
             >
               <Layers3 size={17}/>
             </button>
           </aside>
 
           <div className="min-h-0 overflow-hidden rounded-[16px] border border-white/[0.07] bg-[#0A0C0F] shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_12px_30px_rgba(0,0,0,.22)] transition-[height,transform,opacity] duration-300 ease-out" style={{ gridColumn: '1 / 4', gridRow: '2' }}>
-            <PositionsPanel desktopDense collapsed={desktopLayout.dockCollapsed} compactDock={dockHeight <= 72 && !positionsExpanded} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition} onEditProtection={editPositionProtection}/>
+            <PositionsPanel desktopDense collapsed={desktopLayout.dockCollapsed} compactDock={dockHeight <= compactDockThreshold && !positionsExpanded} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition} onEditProtection={editPositionProtection}/>
           </div>
 
           {!desktopLayout.sidebarCollapsed && !positionsExpanded && (
