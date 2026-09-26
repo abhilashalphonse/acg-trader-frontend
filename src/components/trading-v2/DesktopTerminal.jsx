@@ -794,7 +794,7 @@ export default function DesktopTerminal({
               {indicatorPanelOpen && (
                 <div className="acg-motion-popover absolute right-0 top-8 z-[110] w-[390px] max-h-[min(680px,calc(100dvh-150px))] overflow-y-auto rounded-lg border border-white/[0.10] bg-[#0B0D0F]/98 p-3 shadow-[0_24px_70px_rgba(0,0,0,.68)] backdrop-blur-xl [scrollbar-width:thin]">
                   <div className="mb-3 flex items-center justify-between border-b border-white/[0.07] pb-2.5"><div><strong className="block text-[11px] text-[#EDF3F7]">Indicators</strong><span className="mt-0.5 block text-[8px] text-[#687D91]">Active chart · {activeSymbol} · {activeChartTimeframe}</span></div><button type="button" onClick={() => setIndicatorPanelOpen(false)} className="grid size-7 place-items-center rounded text-[#7D91A4] hover:bg-white/[0.04] hover:text-white"><X size={13}/></button></div>
-                  <IndicatorManager desktop applied={indicators} favorites={indicatorFavorites} onAdd={onAddIndicator} onRemove={onRemoveIndicator} onToggleVisible={onToggleIndicator} onUpdate={onUpdateIndicator} onToggleFavorite={onToggleIndicatorFavorite} focusInstanceId={indicatorFocusId}/>
+                  <IndicatorManager desktop applied={indicators} favorites={indicatorFavorites} onAdd={onAddIndicator} onRemove={onRemoveIndicator} onToggleVisible={onToggleIndicator} onUpdate={onUpdateIndicator} onToggleFavorite={onToggleIndicatorFavorite} focusInstanceId={indicatorFocusId} onClearFocus={() => setIndicatorFocusId(null)}/>
                 </div>
               )}
             </div>
