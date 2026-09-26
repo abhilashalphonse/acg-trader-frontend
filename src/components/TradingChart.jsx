@@ -26,6 +26,7 @@ import { instrumentDigits, instrumentTickSize } from '../utils/instrumentFormatt
 import { drawingBarsBetween, drawingTimeToLogical, logicalToDrawingTime } from '../utils/drawingCoordinates.js';
 import { ArrowRight, Eye, EyeOff, Settings2, X } from 'lucide-react';
 import ACGStartupLoader from './ACGStartupLoader.jsx';
+import { indicatorValueAt } from '../utils/chartToolSettings.js';
 
 const chartTokens = {
   background: '#09090b',
@@ -143,6 +144,7 @@ export default function TradingChart({
   const [readyKey, setReadyKey] = useState(null);
   const [displayBar, setDisplayBar] = useState(null);
   const [paneLayout, setPaneLayout] = useState([]);
+  const [indicatorReadouts, setIndicatorReadouts] = useState([]);
   const [isAtRealtime, setIsAtRealtime] = useState(true);
   const chartRightBars = mobileReference ? 10 : DEFAULT_RIGHT_BARS;
 
@@ -245,14 +247,17 @@ export default function TradingChart({
 
   const renderIndicators = useCallback((chart, bars) => {
     if (!chart || !bars?.length) return;
+    const availableHeight = chart.panes().reduce((sum, pane) => sum + pane.getHeight(), 0);
+    const paneHeights = new Map(indicatorBindingsRef.current.filter(binding => binding.paneIndex > 0).map(binding => [binding.instanceId, chart.panes()[binding.paneIndex]?.getHeight?.()]));
     clearIndicatorSeries(chart);
     let paneIndex = 1;
-    indicatorsRef.current.filter(item => item.id !== 'volume' && indicatorVisibleOnTimeframe(item, timeframe)).forEach((indicator, indicatorIndex) => {
+    indicatorsRef.current.filter(item => item.id !== 'volume' && indicatorVisibleOnTimeframe(item, timeframe)).forEach(indicator => {
       const result = calculateIndicatorData(indicator, bars, { instrument: indicatorInstrument });
       if (!result) return;
       const colors = fallbackIndicatorColors[indicator.id] || ['#53c7ff', '#f0ad5c', '#b38cff'];
       const targetPane = result.kind === 'overlay' ? 0 : paneIndex++;
-      const binding = { instanceId: indicator.instanceId, indicator, lines: [], histogram: null };
+      const precision = targetPane === 0 || indicator.id === 'atr' ? decimals : indicator.id === 'macd' ? Math.min(8, decimals + 1) : 2;
+      const binding = { instanceId: indicator.instanceId, indicator, paneIndex: targetPane, precision, readouts: result.lines || [], lines: [], histogram: null };
       result.lines?.forEach((line, lineIndex) => {
         const visual = line.style || {};
         const series = chart.addSeries(LineSeries, {
@@ -263,22 +268,30 @@ export default function TradingChart({
           lastValueVisible: result.kind !== 'overlay',
           crosshairMarkerVisible: true,
           title: line.label,
+          priceFormat: { type: 'price', precision, minMove: targetPane === 0 ? minMove : 10 ** -precision },
+          ...(result.min != null && result.max != null ? { autoscaleInfoProvider: () => ({ priceRange: { minValue: result.min, maxValue: result.max } }) } : {}),
         }, targetPane);
         series.setData(line.data);
         indicatorSeriesRef.current.push(series);
         binding.lines.push({ key: line.key, series });
         if (lineIndex === 0 && Array.isArray(result.guides)) result.guides.forEach(guide => series.createPriceLine({ price: guide, color: 'rgba(113,131,153,0.38)', lineWidth: 1, lineStyle: LineStyle.Dashed, axisLabelVisible: true, title: '' }));
       });
-      if (result.kind === 'macd' && result.histogram?.length) {
+      if (result.kind === 'macd') {
         const histogram = chart.addSeries(HistogramSeries, { priceLineVisible: false, lastValueVisible: false, base: 0 }, targetPane);
-        histogram.setData(result.histogram.map(point => ({ ...point, color: point.value >= 0 ? 'rgba(45,211,155,0.45)' : 'rgba(255,95,105,0.45)' })));
+        histogram.setData((result.histogram || []).map(point => ({ ...point, color: point.value >= 0 ? 'rgba(45,211,155,0.45)' : 'rgba(255,95,105,0.45)' })));
         indicatorSeriesRef.current.push(histogram);
         binding.histogram = histogram;
       }
       indicatorBindingsRef.current.push(binding);
-      if (targetPane > 0) chart.panes()[targetPane]?.setHeight?.(Math.max(86, 110 - indicatorIndex * 4));
     });
+    setIndicatorReadouts(indicatorBindingsRef.current.map(({ instanceId, precision, readouts }) => ({ instanceId, precision, readouts })));
     indicatorPanesRef.current = Math.max(0, paneIndex - 1);
+    const oscillatorBindings = indicatorBindingsRef.current.filter(binding => binding.paneIndex > 0);
+    const desiredHeights = oscillatorBindings.map(binding => Math.max(90, paneHeights.get(binding.instanceId) || 130));
+    const totalDesired = desiredHeights.reduce((sum, value) => sum + value, 0);
+    const oscillatorBudget = Math.min(totalDesired, availableHeight * 0.55);
+    chart.panes()[0]?.setStretchFactor?.(Math.max(1, availableHeight - oscillatorBudget));
+    oscillatorBindings.forEach((binding, index) => chart.panes()[binding.paneIndex]?.setStretchFactor?.(Math.max(1, desiredHeights[index] * oscillatorBudget / totalDesired)));
     window.requestAnimationFrame(() => {
       try {
         let top = 0;
@@ -293,7 +306,7 @@ export default function TradingChart({
         setPaneLayout([]);
       }
     });
-  }, [clearIndicatorSeries, indicatorInstrument, timeframe]);
+  }, [clearIndicatorSeries, indicatorInstrument, timeframe, decimals, minMove]);
 
   const updateIndicatorData = useCallback(bars => {
     if (!bars?.length) return;
@@ -301,9 +314,11 @@ export default function TradingChart({
       const indicator = indicatorsRef.current.find(item => item.instanceId === binding.instanceId) || binding.indicator;
       const result = calculateIndicatorData(indicator, bars, { instrument: indicatorInstrument });
       if (!result) return;
+      binding.readouts = result.lines || [];
       binding.lines.forEach(lineBinding => { const line = result.lines?.find(item => item.key === lineBinding.key); if (line) lineBinding.series.setData(line.data); });
       if (binding.histogram && result.histogram) binding.histogram.setData(result.histogram.map(point => ({ ...point, color: point.value >= 0 ? 'rgba(45,211,155,0.45)' : 'rgba(255,95,105,0.45)' })));
     });
+    if (indicatorBindingsRef.current.length) setIndicatorReadouts(indicatorBindingsRef.current.map(({ instanceId, precision, readouts }) => ({ instanceId, precision, readouts })));
   }, [indicatorInstrument]);
   const scheduleIndicatorUpdate = useCallback(() => {
     if (indicatorFrameRef.current) return;
@@ -419,6 +434,9 @@ export default function TradingChart({
     };
     timeScale.subscribeVisibleLogicalRangeChange(visibleRangeHandler);
     const coordinateApi = {
+      plotSize() {
+        return { width: timeScale.width(), height: chart.panes()[0]?.getHeight?.() || host.clientHeight };
+      },
       toData(point) {
         if (!point) return null;
         const x = Number(point.x);
@@ -537,13 +555,29 @@ export default function TradingChart({
         if (lastIndex >= 0) timeScale.setVisibleLogicalRange({ from: Math.max(0, lastIndex - DEFAULT_BARS_BACK), to: lastIndex + chartRightBars });
       },
       subscribe(handler) {
-        const rangeHandler = () => handler?.();
-        const sizeHandler = () => handler?.();
-        timeScale.subscribeVisibleLogicalRangeChange(rangeHandler);
-        timeScale.subscribeSizeChange(sizeHandler);
+        let frame = null;
+        const schedule = () => {
+          if (frame != null) return;
+          frame = window.requestAnimationFrame(() => { frame = null; handler?.(); });
+        };
+        timeScale.subscribeVisibleLogicalRangeChange(schedule);
+        timeScale.subscribeSizeChange(schedule);
+        series.subscribeDataChanged(schedule);
+        host.addEventListener('pointermove', schedule);
+        host.addEventListener('wheel', schedule, { passive: true });
+        window.addEventListener('pointerup', schedule);
+        const observer = new ResizeObserver(schedule);
+        observer.observe(host);
+        schedule();
         return () => {
-          timeScale.unsubscribeVisibleLogicalRangeChange(rangeHandler);
-          timeScale.unsubscribeSizeChange(sizeHandler);
+          timeScale.unsubscribeVisibleLogicalRangeChange(schedule);
+          timeScale.unsubscribeSizeChange(schedule);
+          series.unsubscribeDataChanged(schedule);
+          host.removeEventListener('pointermove', schedule);
+          host.removeEventListener('wheel', schedule);
+          window.removeEventListener('pointerup', schedule);
+          observer.disconnect();
+          if (frame != null) window.cancelAnimationFrame(frame);
         };
       },
     };
@@ -1085,6 +1119,15 @@ export default function TradingChart({
   const overlayIndicators = visibleIndicators.filter(indicator => ['ema', 'sma', 'vwap', 'bollinger', 'volume'].includes(indicator.id));
   const paneIndicators = visibleIndicators.filter(indicator => !['ema', 'sma', 'vwap', 'bollinger', 'volume'].includes(indicator.id));
 
+  const indicatorReadout = indicator => {
+    const binding = indicatorReadouts.find(item => item.instanceId === indicator.instanceId);
+    if (!binding) return null;
+    return <span className="acg-indicator-values">{binding.readouts.map(line => {
+      const value = indicatorValueAt(line.data, displayBar?.time);
+      return <span key={line.key} style={{ color: line.style?.color || '#b5c3d5' }} title={line.label}>{Number.isFinite(value) ? value.toFixed(binding.precision) : '—'}</span>;
+    })}</span>;
+  };
+
   const stopIndicatorPointer = event => {
     // Keep chart-cell activation, drawing gestures and Lightweight Charts pointer
     // handlers from stealing indicator-toolbar interactions on desktop.
@@ -1097,7 +1140,7 @@ export default function TradingChart({
   };
   const IndicatorActions = ({ indicator, compact = false }) => (
     <span
-      className="pointer-events-auto relative z-[80] ml-1 inline-flex items-center gap-0.5 rounded bg-black/80 opacity-0 transition group-hover:opacity-100"
+      className="acg-indicator-actions pointer-events-auto relative z-[80] ml-1 inline-flex items-center gap-0.5 rounded bg-black/80 opacity-0 transition group-hover:opacity-100"
       onPointerDown={stopIndicatorPointer}
       onMouseDown={stopIndicatorPointer}
       onDoubleClick={stopIndicatorPointer}
@@ -1191,6 +1234,7 @@ export default function TradingChart({
           {overlayIndicators.map(indicator => (
             <span key={indicator.instanceId} className="group pointer-events-auto inline-flex h-6 items-center rounded px-1 hover:bg-black/72">
               <span>{indicatorLabel(indicator)}</span>
+              {!mobileReference && indicatorReadout(indicator)}
               {showIndicatorControls && <IndicatorActions indicator={indicator} compact />}
             </span>
           ))}
@@ -1215,6 +1259,7 @@ export default function TradingChart({
       return (
         <div key={indicator.instanceId} className="group pointer-events-auto absolute left-2.5 z-[70] flex h-6 items-center rounded-md bg-black/72 px-1.5 text-[9px] font-semibold text-[#8fa1b1] shadow-[0_2px_10px_rgba(0,0,0,.28)] backdrop-blur-sm" style={{ top: Math.max(4, pane.top + 5) }}>
           <span>{indicatorLabel(indicator)}</span>
+          {indicatorReadout(indicator)}
           <IndicatorActions indicator={indicator} compact />
         </div>
       );
