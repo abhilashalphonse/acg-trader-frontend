@@ -730,7 +730,7 @@ export default function DesktopTerminal({
 
   return (
     <div ref={shellRef} className="acg-terminal relative flex h-dvh min-h-0 flex-col gap-2 overflow-hidden bg-black p-2 text-[#E6EDF3]">
-      {notice && <div className="absolute right-3 top-[66px] z-[120] flex max-w-[390px] items-center gap-3 rounded-md border border-white/[0.06] bg-[#101010]/95 px-3 py-2.5 text-[10px] font-semibold text-[#E6EDF3] shadow-[0_16px_48px_rgba(0,0,0,.45)]"><span>{notice}</span><button type="button" onClick={() => setNotice('')} className="grid size-6 place-items-center rounded-md text-[#8094a7]"><X size={13}/></button></div>}
+      {notice && <div className="acg-motion-notice absolute right-3 top-[66px] z-[120] flex max-w-[390px] items-center gap-3 rounded-md border border-white/[0.06] bg-[#101010]/95 px-3 py-2.5 text-[10px] font-semibold text-[#E6EDF3] shadow-[0_16px_48px_rgba(0,0,0,.45)]"><span>{notice}</span><button type="button" onClick={() => setNotice('')} className="grid size-6 place-items-center rounded-md text-[#8094a7]"><X size={13}/></button></div>}
 
 
       <header className="acg-desktop-market-strip flex h-[56px] w-full min-w-0 shrink-0 items-center overflow-visible rounded-[14px] border border-white/[0.07] bg-[#0A0C0F] px-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_8px_24px_rgba(0,0,0,.24)]">
@@ -741,7 +741,7 @@ export default function DesktopTerminal({
           <div className="min-w-0">
             <div className="flex min-w-0 items-center gap-1">
               <button type="button" onClick={() => openMarketPanel('markets', false)} className="flex min-w-0 items-center gap-1 text-left" title="Open markets and watchlist">
-                <strong className="truncate text-[14px] font-extrabold tracking-[-0.025em] text-[#f3f6f8]">{market?.displaySymbol || displaySymbol(market?.symbol)}</strong>
+                <strong key={activeSymbol || 'symbol'} className="acg-motion-symbol truncate text-[14px] font-extrabold tracking-[-0.025em] text-[#f3f6f8]">{market?.displaySymbol || displaySymbol(market?.symbol)}</strong>
                 <ChevronDown size={12} className="shrink-0 text-[#f3f6f8]"/>
               </button>
               <button
@@ -751,7 +751,7 @@ export default function DesktopTerminal({
                 title={favorite ? "Remove from favorites" : "Add to favorites"}
                 aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
               >
-                <Star size={12} fill={favorite ? 'currentColor' : 'none'}/>
+                <Star key={favorite ? 'favorite-on' : 'favorite-off'} className="acg-favorite-icon" data-active={favorite ? 'true' : 'false'} size={12} fill={favorite ? 'currentColor' : 'none'}/>
               </button>
             </div>
             <button type="button" onClick={() => openMarketPanel('markets', false)} className="mt-0.5 flex min-w-0 items-center gap-1.5 text-left text-[8px] font-bold text-[#697988]" title="Open markets and watchlist">
@@ -765,14 +765,14 @@ export default function DesktopTerminal({
         <div className="acg-desktop-chart-toolbar flex min-w-0 shrink-0 items-center border-l border-white/[0.06] bg-transparent px-2.5">
           <div className="terminal-toolbar-group flex h-9 min-w-0 shrink-0 items-center overflow-x-auto rounded-[12px] border border-white/[0.09] bg-[#080808] px-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.015)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {timeframes.map(([label, value]) => (
-              <button key={value} type="button" onClick={() => setDesktopTimeframe(value)} disabled={Boolean(tradePlan && !tradePlan.open)} className={activeChartTimeframe === value ? "relative grid h-full min-w-9 place-items-center px-2 text-[10px] font-bold text-[#f2f2f2] transition" : "relative grid h-full min-w-9 place-items-center px-2 text-[10px] font-bold text-[#8f9aa8] transition hover:text-[#e9edf3]"}>{label}{activeChartTimeframe === value && <span className="absolute bottom-0 left-[18%] right-[18%] h-[2px] rounded-full bg-[#195be1]" aria-hidden="true"/>}</button>
+              <button key={value} type="button" onClick={() => setDesktopTimeframe(value)} disabled={Boolean(tradePlan && !tradePlan.open)} className={activeChartTimeframe === value ? "relative grid h-full min-w-9 place-items-center px-2 text-[10px] font-bold text-[#f2f2f2] transition" : "relative grid h-full min-w-9 place-items-center px-2 text-[10px] font-bold text-[#8f9aa8] transition hover:text-[#e9edf3]"}>{label}{activeChartTimeframe === value && <span className="acg-active-underline absolute bottom-0 left-[18%] right-[18%] h-[2px] rounded-full bg-[#195be1]" aria-hidden="true"/>}</button>
             ))}
           </div>
           <div className="ml-1.5 flex h-full shrink-0 items-center gap-1.5">
             <div className="relative">
               <button type="button" onClick={() => setChartMenuOpen(value => !value)} className={chartMenuOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#195be1]/60 bg-[#14171b] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title="Chart settings"><CandlestickChart size={12}/><span>Charts</span><ChevronDown size={10}/></button>
               {chartMenuOpen && (
-                <div className="absolute right-0 top-8 z-[100] w-[205px] rounded-md border border-white/[0.10] bg-[#0C1013] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+                <div className="acg-motion-popover absolute right-0 top-8 z-[100] w-[205px] rounded-md border border-white/[0.10] bg-[#0C1013] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
                   <div className="px-2 pb-1 pt-0.5 text-[7px] font-bold uppercase tracking-[0.08em] text-[#5f6d79]">Chart type</div>
                   <button type="button" onClick={() => { onChartModeChange('candles'); setChartMenuOpen(false); }} className={chartMode === 'candles' ? "flex w-full items-center gap-2 rounded bg-[#15181d] px-2 py-2 text-left text-[8px] font-semibold text-[#195be1]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><CandlestickChart size={12}/>Candlesticks</button>
                   <button type="button" onClick={() => { onChartModeChange('line'); setChartMenuOpen(false); }} className={chartMode === 'line' ? "flex w-full items-center gap-2 rounded bg-[#15181d] px-2 py-2 text-left text-[8px] font-semibold text-[#195be1]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><ChartNoAxesCombined size={12}/>Line</button>
@@ -792,7 +792,7 @@ export default function DesktopTerminal({
             <div className="relative">
               <button type="button" onClick={() => { setIndicatorFocusId(null); setObjectManagerOpen(false); setIndicatorPanelOpen(value => !value); }} className={indicatorPanelOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#195be1]/60 bg-[#14171b] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title="Indicators"><span className="text-[11px] font-black">ƒx</span><span>Indicators</span>{indicators.length > 0 && <span className="grid min-w-3 place-items-center rounded bg-[#181b20] px-1 text-[6px] text-[#aab5bf]">{indicators.length}</span>}<ChevronDown size={10}/></button>
               {indicatorPanelOpen && (
-                <div className="absolute right-0 top-8 z-[110] w-[390px] max-h-[min(680px,calc(100dvh-150px))] overflow-y-auto rounded-lg border border-white/[0.10] bg-[#0B0D0F]/98 p-3 shadow-[0_24px_70px_rgba(0,0,0,.68)] backdrop-blur-xl [scrollbar-width:thin]">
+                <div className="acg-motion-popover absolute right-0 top-8 z-[110] w-[390px] max-h-[min(680px,calc(100dvh-150px))] overflow-y-auto rounded-lg border border-white/[0.10] bg-[#0B0D0F]/98 p-3 shadow-[0_24px_70px_rgba(0,0,0,.68)] backdrop-blur-xl [scrollbar-width:thin]">
                   <div className="mb-3 flex items-center justify-between border-b border-white/[0.07] pb-2.5"><div><strong className="block text-[11px] text-[#EDF3F7]">Indicators</strong><span className="mt-0.5 block text-[8px] text-[#687D91]">Active chart · {activeSymbol} · {activeChartTimeframe}</span></div><button type="button" onClick={() => setIndicatorPanelOpen(false)} className="grid size-7 place-items-center rounded text-[#7D91A4] hover:bg-white/[0.04] hover:text-white"><X size={13}/></button></div>
                   <IndicatorManager desktop applied={indicators} favorites={indicatorFavorites} onAdd={onAddIndicator} onRemove={onRemoveIndicator} onToggleVisible={onToggleIndicator} onUpdate={onUpdateIndicator} onToggleFavorite={onToggleIndicatorFavorite} focusInstanceId={indicatorFocusId}/>
                 </div>
@@ -806,16 +806,16 @@ export default function DesktopTerminal({
           <div className="ml-2 flex h-full items-center">
             <div className="min-w-[92px] border-l border-white/[0.055] px-3">
               <span className="block text-[7px] uppercase tracking-[0.07em] text-[#637484]">24h High</span>
-              <strong className="mt-1 block font-mono text-[9px] font-bold text-[#cdd7df]">{marketHigh == null ? '—' : formatInstrumentPrice(marketHigh, market)}</strong>
+              <strong key={marketHigh == null ? 'high-empty' : `high-${marketHigh}`} className="acg-motion-value mt-1 block font-mono text-[9px] font-bold text-[#cdd7df]">{marketHigh == null ? '—' : formatInstrumentPrice(marketHigh, market)}</strong>
             </div>
             <div className="min-w-[92px] border-l border-white/[0.055] px-3">
               <span className="block text-[7px] uppercase tracking-[0.07em] text-[#637484]">24h Low</span>
-              <strong className="mt-1 block font-mono text-[9px] font-bold text-[#cdd7df]">{marketLow == null ? '—' : formatInstrumentPrice(marketLow, market)}</strong>
+              <strong key={marketLow == null ? 'low-empty' : `low-${marketLow}`} className="acg-motion-value mt-1 block font-mono text-[9px] font-bold text-[#cdd7df]">{marketLow == null ? '—' : formatInstrumentPrice(marketLow, market)}</strong>
             </div>
             {marketVolume != null && (
               <div className="min-w-[92px] border-l border-white/[0.055] px-3">
                 <span className="block text-[7px] uppercase tracking-[0.07em] text-[#637484]">24h Volume</span>
-                <strong className="mt-1 block font-mono text-[9px] font-bold text-[#cdd7df]">{formatMarketVolume(marketVolume)}</strong>
+                <strong key={`volume-${marketVolume}`} className="acg-motion-value mt-1 block font-mono text-[9px] font-bold text-[#cdd7df]">{formatMarketVolume(marketVolume)}</strong>
               </div>
             )}
           </div>
@@ -833,10 +833,10 @@ export default function DesktopTerminal({
                 <strong className="block truncate text-[9px]">{account?.accountCode || accountStatus}</strong>
                 <span className="mt-1 block truncate text-[8px] text-[#6F8191]">{accountTypeBadge(account)} · {currency}{Number(account?.leverage) > 0 ? ` · 1:${Number(account.leverage)}` : ''}</span>
               </div>
-              <ChevronDown size={11} className={accountMenuOpen ? "shrink-0 rotate-180 text-[#6F8191] transition" : "shrink-0 text-[#6F8191] transition"}/>
+              <ChevronDown size={11} className={accountMenuOpen ? "acg-motion-chevron shrink-0 rotate-180 text-[#6F8191]" : "acg-motion-chevron shrink-0 text-[#6F8191]"}/>
             </button>
             {accountMenuOpen && (
-              <div className="absolute right-0 top-10 z-[140] w-[330px] overflow-hidden rounded-md border border-white/[0.10] bg-[#0C1013] shadow-[0_20px_60px_rgba(0,0,0,.65)]">
+              <div className="acg-motion-popover absolute right-0 top-10 z-[140] w-[330px] overflow-hidden rounded-md border border-white/[0.10] bg-[#0C1013] shadow-[0_20px_60px_rgba(0,0,0,.65)]">
                 <div className="border-b border-white/[0.07] px-3 py-2.5">
                   <strong className="block text-[10px] text-[#E6EDF3]">Trading accounts</strong>
                   <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[8px] text-[#6F8191]">
@@ -891,7 +891,7 @@ export default function DesktopTerminal({
           <div className="relative">
             <button type="button" onClick={() => setToolsMenuOpen(value => !value)} className={toolsMenuOpen ? "grid size-8 place-items-center rounded-md border border-[#195be1]/60 bg-[#14171b] text-[#f1f4f6]" : "grid size-8 place-items-center rounded-md border border-white/[0.07] bg-black/20 text-[#8996a1] hover:bg-white/[0.025] hover:text-white"} title="More" aria-label="More terminal actions"><MoreHorizontal size={16}/></button>
             {toolsMenuOpen && (
-              <div className="absolute right-0 top-10 z-[105] w-[230px] rounded-md border border-white/[0.10] bg-[#0C1013] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+              <div className="acg-motion-popover absolute right-0 top-10 z-[105] w-[230px] rounded-md border border-white/[0.10] bg-[#0C1013] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
                 <button type="button" onClick={() => { handleNav('markets'); setToolsMenuOpen(false); }} className={activeNav === 'markets' ? "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#195be1]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><List size={12}/>Markets / Watchlist</button>
                 <button type="button" onClick={() => { handleNav('history'); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><History size={12}/>History</button>
                 <button type="button" onClick={() => { setReviewOpen(true); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><BookOpen size={12}/>Trade review</button>
@@ -905,7 +905,7 @@ export default function DesktopTerminal({
                 <button type="button" onClick={() => { onOpenSettings(); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Settings size={12}/>Settings</button>
               </div>
             )}
-            {objectManagerOpen && <div className="absolute right-0 top-10 z-[115]"><ChartObjectManager symbol={activeSymbol} timeframe={activeChartTimeframe === '1m' ? 'M1' : activeChartTimeframe === '5m' ? 'M5' : activeChartTimeframe === '15m' ? 'M15' : activeChartTimeframe === '30m' ? 'M30' : activeChartTimeframe === '1H' ? 'H1' : activeChartTimeframe === '4H' ? 'H4' : activeChartTimeframe === '1D' ? 'D1' : activeChartTimeframe === '1W' ? 'W1' : activeChartTimeframe} indicators={indicators} chartInstanceId={'desktop-chart-' + Math.min(Math.max(0, Number(multiChart?.activeCell) || 0), chartLayout - 1)} onToggleIndicator={onToggleIndicator} onRemoveIndicator={onRemoveIndicator} onOpenIndicatorSettings={instanceId => { setObjectManagerOpen(false); setIndicatorFocusId(instanceId); setIndicatorPanelOpen(true); }} onClose={() => setObjectManagerOpen(false)}/></div>}
+            {objectManagerOpen && <div className="acg-motion-popover absolute right-0 top-10 z-[115]"><ChartObjectManager symbol={activeSymbol} timeframe={activeChartTimeframe === '1m' ? 'M1' : activeChartTimeframe === '5m' ? 'M5' : activeChartTimeframe === '15m' ? 'M15' : activeChartTimeframe === '30m' ? 'M30' : activeChartTimeframe === '1H' ? 'H1' : activeChartTimeframe === '4H' ? 'H4' : activeChartTimeframe === '1D' ? 'D1' : activeChartTimeframe === '1W' ? 'W1' : activeChartTimeframe} indicators={indicators} chartInstanceId={'desktop-chart-' + Math.min(Math.max(0, Number(multiChart?.activeCell) || 0), chartLayout - 1)} onToggleIndicator={onToggleIndicator} onRemoveIndicator={onRemoveIndicator} onOpenIndicatorSettings={instanceId => { setObjectManagerOpen(false); setIndicatorFocusId(instanceId); setIndicatorPanelOpen(true); }} onClose={() => setObjectManagerOpen(false)}/></div>}
           </div>
         </div>
       </header>
@@ -963,7 +963,7 @@ export default function DesktopTerminal({
           </section>
 
           {!desktopLayout.sidebarCollapsed && !positionsExpanded && (
-            <aside className="relative flex min-h-0 flex-col overflow-hidden rounded-[16px] border border-white/[0.07] bg-[#0A0C0F] shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_12px_30px_rgba(0,0,0,.22)]" style={{ gridColumn: '2', gridRow: '1' }}>
+            <aside className="acg-motion-side-panel relative flex min-h-0 flex-col overflow-hidden rounded-[16px] border border-white/[0.07] bg-[#0A0C0F] shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_12px_30px_rgba(0,0,0,.22)]" style={{ gridColumn: '2', gridRow: '1' }}>
               {marketPanelOpen ? (
                 <div className="min-h-0 flex-1">
                   <DesktopWatchlist
@@ -984,7 +984,7 @@ export default function DesktopTerminal({
                     <DesktopOrderTicket key={`order-ticket-${account?.id || 'none'}`} market={market} markets={markets} account={account} positions={positions} positionHistory={positionHistory} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onModifyPlan={onModifyPlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} riskGuardSettings={riskGuardSettings} onRiskGuardSettingsChange={onRiskGuardSettingsChange}/>
                   </div>
                   {selectedPosition && (
-                    <div className="max-h-[46%] shrink-0 overflow-y-auto [scrollbar-width:thin]">
+                    <div className="acg-motion-panel-stack max-h-[46%] shrink-0 overflow-y-auto [scrollbar-width:thin]">
                       <DesktopPositionManager
                         position={selectedPosition}
                         instrument={markets.find(item => item.symbol === selectedPosition.symbol) || market}
