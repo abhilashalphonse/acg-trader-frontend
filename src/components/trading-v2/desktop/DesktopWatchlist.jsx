@@ -298,8 +298,8 @@ export default function DesktopWatchlist({
   return (
     <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden" onKeyDown={onKeyDown}>
       <div className="grid h-8 shrink-0 grid-cols-2 border-b border-white/[0.06] bg-[#080a0c] p-0.5">
-        <button type="button" onClick={() => onModeChange('watchlist')} className={mode === 'watchlist' ? "relative rounded text-[8px] font-bold text-[#f0f4f7]" : "rounded text-[8px] font-semibold text-[#687988] hover:text-white"}>Watchlist{mode === 'watchlist' && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#195be1]"/>}</button>
-        <button type="button" onClick={() => onModeChange('markets')} className={mode === 'markets' ? "relative rounded text-[8px] font-bold text-[#f0f4f7]" : "rounded text-[8px] font-semibold text-[#687988] hover:text-white"}>Markets{mode === 'markets' && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#195be1]"/>}</button>
+        <button type="button" onClick={() => onModeChange('watchlist')} className={mode === 'watchlist' ? "relative rounded text-[8px] font-bold text-[#f0f4f7]" : "rounded text-[8px] font-semibold text-[#687988] hover:text-white"}>Watchlist{mode === 'watchlist' && <span className="acg-active-underline absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#195be1]"/>}</button>
+        <button type="button" onClick={() => onModeChange('markets')} className={mode === 'markets' ? "relative rounded text-[8px] font-bold text-[#f0f4f7]" : "rounded text-[8px] font-semibold text-[#687988] hover:text-white"}>Markets{mode === 'markets' && <span className="acg-active-underline absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#195be1]"/>}</button>
       </div>
       <div className="relative flex h-10 shrink-0 items-center justify-between border-b border-white/[0.06] px-2.5">
         <div className="min-w-0">
@@ -326,7 +326,7 @@ export default function DesktopWatchlist({
         </div>
 
         {listMenuOpen && mode !== 'markets' && (
-          <div className="absolute left-2 top-10 z-50 w-[210px] overflow-hidden rounded-md border border-white/[0.10] bg-[#0C1013] p-1 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+          <div className="acg-motion-popover absolute left-2 top-10 z-50 w-[210px] overflow-hidden rounded-md border border-white/[0.10] bg-[#0C1013] p-1 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
             {(watchlists?.workspace?.lists || []).map(list => (
               <button key={list.id} type="button" onClick={() => { watchlists?.setActiveListId?.(list.id); setListMenuOpen(false); }} className={`flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] ${list.id === watchlists?.activeList?.id ? 'bg-[#0d1a22] text-[#63caff]' : 'text-[#aab7c3] hover:bg-white/[0.03]'}`}>
                 <span className="truncate font-bold">{list.name}</span><span className="font-mono text-[8px] text-[#6F8191]">{list.symbols.length}</span>
@@ -337,7 +337,7 @@ export default function DesktopWatchlist({
         )}
 
         {columnsOpen && mode !== 'markets' && (
-          <div className="absolute right-2 top-10 z-50 w-[176px] rounded-md border border-white/[0.10] bg-[#0C1013] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+          <div className="acg-motion-popover absolute right-2 top-10 z-50 w-[176px] rounded-md border border-white/[0.10] bg-[#0C1013] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
             <div className="mb-1 flex items-center gap-1.5 px-1 text-[8px] font-black uppercase tracking-[0.08em] text-[#6F8191]"><ListFilter size={10}/>Columns</div>
             {COLUMN_OPTIONS.map(([id, label]) => {
               const active = columns.includes(id);
@@ -392,7 +392,7 @@ export default function DesktopWatchlist({
               onDragEnd={() => setDragSymbol(null)}
               onDragOver={event => { if (dragSymbol) event.preventDefault(); }}
               onDrop={() => { if (dragSymbol && dragSymbol !== item.symbol) watchlists?.moveSymbol?.(dragSymbol, item.symbol); setDragSymbol(null); }}
-              className={`grid items-center border-b border-white/[0.06] px-2 py-0.5 transition ${selected ? 'border-l-[3px] border-[#53c7ff] bg-[#08131a]' : 'border-l-[3px] border-transparent hover:bg-white/[0.018]'} ${dragSymbol === item.symbol ? 'opacity-45' : ''}`}
+              className={`acg-motion-row grid items-center border-b border-white/[0.06] px-2 py-0.5 transition ${selected ? 'border-l-[3px] border-[#53c7ff] bg-[#08131a]' : 'border-l-[3px] border-transparent hover:bg-white/[0.018]'} ${dragSymbol === item.symbol ? 'opacity-45' : ''}`}
               style={{ gridTemplateColumns: gridTemplate }}
             >
               <button type="button" onClick={() => selectInstrument(item.symbol)} className="flex min-w-0 items-center gap-1.5 py-2 text-left">
@@ -410,14 +410,15 @@ export default function DesktopWatchlist({
 
               {columns.map(column => {
                 const change = column === 'change' ? dayChange(item) : null;
+                const value = cellValue(column, item);
                 return (
                   <button key={column} type="button" onClick={() => selectInstrument(item.symbol)} className={`truncate py-1.5 text-right font-mono text-[10px] tabular-nums ${column === 'change' && change != null ? (change >= 0 ? 'text-[#42D7A1]' : 'text-[#FF6F7A]') : column === 'bid' ? 'font-bold text-[#A1AFBC]' : 'text-[#A1AFBC]'}`}>
-                    {cellValue(column, item)}
+                    <span key={`${item.symbol}-${column}-${String(value)}`} className="acg-motion-value inline-block">{value}</span>
                   </button>
                 );
               })}
 
-              <button type="button" onClick={() => toggleWatch(item)} className={`grid size-6 place-items-center rounded ${isWatched ? 'text-[#f6c95d]' : 'text-[#6F8191] hover:bg-white/[0.04] hover:text-[#f6c95d]'}`} title={isWatched ? 'Remove from watchlist' : 'Add to watchlist'} aria-label={isWatched ? `Remove ${item.symbol} from watchlist` : `Add ${item.symbol} to watchlist`}><Star size={10} fill={isWatched ? 'currentColor' : 'none'}/></button>
+              <button type="button" onClick={() => toggleWatch(item)} className={`grid size-6 place-items-center rounded ${isWatched ? 'text-[#f6c95d]' : 'text-[#6F8191] hover:bg-white/[0.04] hover:text-[#f6c95d]'}`} title={isWatched ? 'Remove from watchlist' : 'Add to watchlist'} aria-label={isWatched ? `Remove ${item.symbol} from watchlist` : `Add ${item.symbol} to watchlist`}><Star key={isWatched ? 'watched-on' : 'watched-off'} className="acg-favorite-icon" data-active={isWatched ? 'true' : 'false'} size={10} fill={isWatched ? 'currentColor' : 'none'}/></button>
             </div>
           );
         })}
