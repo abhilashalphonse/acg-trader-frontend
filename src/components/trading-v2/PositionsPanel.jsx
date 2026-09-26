@@ -265,8 +265,8 @@ export default function PositionsPanel({
             {tabs.map(item => (
               <button key={item.id} type="button" onClick={() => setTab(item.id)} className={`relative flex h-full shrink-0 items-center gap-1.5 px-2 text-[10px] font-bold ${tab === item.id ? 'text-[#F4F6F8]' : 'text-[#7B8792] hover:text-[#C7D0D8]'}`}>
                 <span>{item.id === 'orders' ? 'Pending' : item.label}</span>
-                <span className="grid min-w-5 place-items-center rounded-md bg-[#14171B] px-1.5 py-0.5 text-[9px] font-black text-[#C2CBD3]">{counts[item.id]}</span>
-                {tab === item.id && <span className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-[#195be1]" />}
+                <span key={`${item.id}-${counts[item.id]}`} className="acg-motion-count grid min-w-5 place-items-center rounded-md bg-[#14171B] px-1.5 py-0.5 text-[9px] font-black text-[#C2CBD3]">{counts[item.id]}</span>
+                {tab === item.id && <span className="acg-active-underline absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-[#195be1]" />}
               </button>
             ))}
           </div>
@@ -275,19 +275,19 @@ export default function PositionsPanel({
             <div className="flex items-center gap-3 lg:gap-4">
               <div className="min-w-[72px]">
                 <span className="block text-[8px] font-semibold text-[#727D88]">Balance</span>
-                <strong className="mt-0.5 block font-mono text-[11px] font-bold text-[#E7EDF2]">{formatMoney(accountBalance, accountCurrency)}</strong>
+                <strong key={`balance-${accountBalance}`} className="acg-motion-value mt-0.5 block font-mono text-[11px] font-bold text-[#E7EDF2]">{formatMoney(accountBalance, accountCurrency)}</strong>
               </div>
               <div className="min-w-[72px]">
                 <span className="block text-[8px] font-semibold text-[#727D88]">P&amp;L</span>
-                <strong className={`mt-0.5 block font-mono text-[11px] font-bold ${Number(accountPnl) > 0 ? 'text-[#42D7A1]' : Number(accountPnl) < 0 ? 'text-[#FF6F7A]' : 'text-[#E7EDF2]'}`}>{Number.isFinite(Number(accountPnl)) ? formatPnl(accountPnl, accountCurrency) : '—'}</strong>
+                <strong key={`pnl-${accountPnl}`} className={`acg-motion-value mt-0.5 block font-mono text-[11px] font-bold ${Number(accountPnl) > 0 ? 'text-[#42D7A1]' : Number(accountPnl) < 0 ? 'text-[#FF6F7A]' : 'text-[#E7EDF2]'}`}>{Number.isFinite(Number(accountPnl)) ? formatPnl(accountPnl, accountCurrency) : '—'}</strong>
               </div>
               <div className="min-w-[72px]">
                 <span className="block text-[8px] font-semibold text-[#727D88]">Equity</span>
-                <strong className="mt-0.5 block font-mono text-[11px] font-bold text-[#E7EDF2]">{formatMoney(accountEquity, accountCurrency)}</strong>
+                <strong key={`equity-${accountEquity}`} className="acg-motion-value mt-0.5 block font-mono text-[11px] font-bold text-[#E7EDF2]">{formatMoney(accountEquity, accountCurrency)}</strong>
               </div>
               <div className="min-w-[94px]">
                 <span className="block text-[8px] font-semibold text-[#727D88]">Available Margin</span>
-                <strong className="mt-0.5 block font-mono text-[11px] font-bold text-[#E7EDF2]">{formatMoney(availableMargin, accountCurrency)}</strong>
+                <strong key={`margin-${availableMargin}`} className="acg-motion-value mt-0.5 block font-mono text-[11px] font-bold text-[#E7EDF2]">{formatMoney(availableMargin, accountCurrency)}</strong>
               </div>
             </div>
 
@@ -303,7 +303,7 @@ export default function PositionsPanel({
                   <MoreVertical size={15}/>
                 </button>
                 {desktopActionsOpen && (
-                  <div className="absolute right-0 top-10 z-50 w-[210px] rounded-lg border border-white/[0.10] bg-[#0A0C0F] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+                  <div className="acg-motion-popover absolute right-0 top-10 z-50 w-[210px] rounded-lg border border-white/[0.10] bg-[#0A0C0F] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
                     <button
                       type="button"
                       disabled={!positions.length && !pendingOrders.length}
@@ -392,23 +392,23 @@ export default function PositionsPanel({
                       const pnlPercent = summary.pnlPercent;
                       const currentPrice = summary.currentPrice;
                       return (
-                        <div key={position.id} onClick={() => onSelectPosition(position.id)} className={String(selectedPositionId) === String(position.id) ? "relative grid cursor-pointer grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-[#195be1]/45 bg-[#12151a] px-3 py-2 text-[9px] transition" : "relative grid cursor-pointer grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-white/[0.055] px-3 py-2 text-[9px] transition hover:bg-white/[0.018]"}>
+                        <div key={position.id} onClick={() => onSelectPosition(position.id)} className={String(selectedPositionId) === String(position.id) ? "acg-motion-row relative grid cursor-pointer grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-[#195be1]/45 bg-[#12151a] px-3 py-2 text-[9px] transition" : "acg-motion-row relative grid cursor-pointer grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-white/[0.055] px-3 py-2 text-[9px] transition hover:bg-white/[0.018]"}>
                           {String(selectedPositionId) === String(position.id) && <span className="absolute inset-y-1 left-0 w-0.5 rounded-r bg-[#195be1]" />}
                           <div className="flex min-w-0 items-center gap-2"><InstrumentAvatar instrument={instrument} size={20}/><strong className="truncate text-[10px] text-[#f2f5f7]">{formatSymbol(position.symbol)}</strong></div>
                           <span className={sideBuy ? "w-fit rounded bg-[#0c3b2e] px-1.5 py-0.5 text-[7px] font-black text-[#38dba4]" : "w-fit rounded bg-[#3b1820] px-1.5 py-0.5 text-[7px] font-black text-[#ff707a]"}>{String(position.side).toUpperCase()}</span>
                           <span className="font-mono text-[9px] text-[#c4ced6]">{Number(position.volume).toFixed(2)} lots</span>
                           <span className="font-mono text-[9px] text-[#aebbc5]">{formatInstrumentPrice(position.entry, instrument)}</span>
-                          <span className="font-mono text-[9px] text-[#d3dbe2]">{currentPrice == null ? '—' : formatInstrumentPrice(currentPrice, instrument)}</span>
+                          <span key={`current-${position.id}-${currentPrice ?? 'empty'}`} className="acg-motion-value font-mono text-[9px] text-[#d3dbe2]">{currentPrice == null ? '—' : formatInstrumentPrice(currentPrice, instrument)}</span>
                           <button type="button" onClick={event => { event.stopPropagation(); onEditProtection(position.id, 'sl'); }} className={position.sl == null ? "justify-self-start rounded border border-white/[0.06] px-2 py-1 font-mono text-[8px] font-bold text-[#8295A7] hover:text-white" : "justify-self-start rounded border border-[#5e2932] px-2 py-1 font-mono text-[8px] font-bold text-[#FF6F7A]"}>{position.sl == null ? '+ SL' : formatInstrumentPrice(position.sl, instrument)}</button>
                           <button type="button" onClick={event => { event.stopPropagation(); onEditProtection(position.id, 'tp'); }} className={position.tp == null ? "justify-self-start rounded border border-white/[0.06] px-2 py-1 font-mono text-[8px] font-bold text-[#8295A7] hover:text-white" : "justify-self-start rounded border border-[#245b48] px-2 py-1 font-mono text-[8px] font-bold text-[#42D7A1]"}>{position.tp == null ? '+ TP' : formatInstrumentPrice(position.tp, instrument)}</button>
-                          <strong className={positive ? "text-right font-mono text-[10px] text-[#42D7A1]" : "text-right font-mono text-[10px] text-[#FF5968]"}>{formatPnl(position.pnl, position.pnlCurrency)}</strong>
-                          <span className={positive ? "text-right font-mono text-[8px] text-[#35b788]" : "text-right font-mono text-[8px] text-[#d84d5d]"}>{Number.isFinite(pnlPercent) ? <>{pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%</> : '—'}</span>
+                          <strong key={`pnl-${position.id}-${position.pnl}`} className={positive ? "acg-motion-value text-right font-mono text-[10px] text-[#42D7A1]" : "acg-motion-value text-right font-mono text-[10px] text-[#FF5968]"}>{formatPnl(position.pnl, position.pnlCurrency)}</strong>
+                          <span key={`pnl-percent-${position.id}-${Number.isFinite(pnlPercent) ? pnlPercent.toFixed(2) : 'empty'}`} className={positive ? "acg-motion-value text-right font-mono text-[8px] text-[#35b788]" : "acg-motion-value text-right font-mono text-[8px] text-[#d84d5d]"}>{Number.isFinite(pnlPercent) ? <>{pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%</> : '—'}</span>
                           <div className="relative flex items-center justify-end gap-1">
                             <button type="button" onClick={event => { event.stopPropagation(); onEditProtection(position.id, 'tp'); }} className="h-7 rounded border border-[#245b48] px-2 text-[8px] font-bold text-[#42D7A1] hover:bg-[#071710]">TP</button>
                             <button type="button" onClick={event => { event.stopPropagation(); onEditProtection(position.id, 'sl'); }} className="h-7 rounded border border-[#51242c] px-2 text-[8px] font-bold text-[#ff727d] hover:bg-[#241015]">SL</button>
                             <button type="button" onClick={event => { event.stopPropagation(); setRowActionsId(rowActionsId === position.id ? null : position.id); }} className="grid size-7 place-items-center rounded border border-white/[0.06] text-[#8092a2] hover:text-white"><MoreHorizontal size={11}/></button>
                             {rowActionsId === position.id && (
-                              <div className="absolute right-0 top-8 z-50 w-[164px] rounded-md border border-white/[0.10] bg-[#0a0a0a] p-1 shadow-xl">
+                              <div className="acg-motion-popover absolute right-0 top-8 z-50 w-[164px] rounded-md border border-white/[0.10] bg-[#0a0a0a] p-1 shadow-xl">
                                 <button type="button" onClick={event => { event.stopPropagation(); onBreakEven(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#48d8a4] hover:bg-white/[0.03]">Break even</button>
                                 <button type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, 50); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#b6c3ce] hover:bg-white/[0.03]">Reduce 50%</button>
                                 <button type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, 100); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#ff727d] hover:bg-[#241015]">Close position</button>
