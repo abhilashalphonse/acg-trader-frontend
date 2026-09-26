@@ -642,9 +642,18 @@ export default function DrawingLayer({
   };
 
   useEffect(() => {
-    if (preserveChartCrosshair && drawingTool) return undefined;
-    clearDrawingCrosshair();
-    return undefined;
+    if (!preserveChartCrosshair || !drawingTool) {
+      if (drawingCrosshairVisibleRef.current) {
+        coordinateApi?.clearCrosshair?.();
+        drawingCrosshairVisibleRef.current = false;
+      }
+      return undefined;
+    }
+
+    return () => {
+      coordinateApi?.clearCrosshair?.();
+      drawingCrosshairVisibleRef.current = false;
+    };
   }, [coordinateApi, drawingTool, preserveChartCrosshair]);
 
   const eventScreenPoint = event => {
