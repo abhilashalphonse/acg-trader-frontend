@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   Copy,
   Eye,
@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { evaluateRiskToolSetup } from '../../utils/tradingRisk.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
+import DrawingProperties from './DrawingProperties.jsx';
+import { constrainDrawingPoint, drawingMagnetMode } from '../../utils/chartToolSettings.js';
 import {
   clampDrawingRiskPercent,
   drawingToolLabel as catalogDrawingToolLabel,
@@ -52,7 +54,7 @@ const TOOL_DEFAULTS = {
   vline: { color: '#f0c35c' },
   ruler: { color: '#195be1', width: 1.5, dash: 'dashed' },
   fibonacci: { color: '#b78cff' },
-  text: { color: '#d8e4ee', width: 1, fontSize: 10 },
+  text: { color: '#d8e4ee', width: 1, fontSize: 12 },
   'long-position': { color: '#35d79d' },
   'short-position': { color: '#ff6673' },
 };
@@ -398,7 +400,7 @@ function DrawingShape({
                 vectorEffect="non-scaling-stroke"
                 {...common}
               />
-              <text x={left + 5} y={y - 4} fill="#9caec0" fontSize="8" className="pointer-events-none">
+              <text x={left + 5} y={y - 4} fill="#b9c7d7" fontSize="11" className="pointer-events-none">
                 {Math.round(level * 1000) / 10}% · {formatInstrumentPrice(Number(drawing.a?.price) + (Number(drawing.b?.price) - Number(drawing.a?.price)) * level, instrument)}
               </text>
             </g>
@@ -559,19 +561,19 @@ export default function DrawingLayer({
 
   const commit = next => commitDrawings(symbol, next);
 
-  const undo = () => {
+  const undo = useCallback(() => {
     if (undoDrawings(symbol)) {
       setSelectedId(null);
       setContextMenu(null);
     }
-  };
+  }, [symbol]);
 
-  const redo = () => {
+  const redo = useCallback(() => {
     if (redoDrawings(symbol)) {
       setSelectedId(null);
       setContextMenu(null);
     }
-  };
+  }, [symbol]);
 
 
   useEffect(() => {
@@ -582,6 +584,14 @@ export default function DrawingLayer({
       const editingText = ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag) || activeElement?.isContentEditable === true;
       const command = event.ctrlKey || event.metaKey;
 
+      if (!editingText && command && event.key.toLowerCase() === 'z' && (drag || draft)) {
+        event.preventDefault();
+        if (drag?.before) replaceDrawingsLive(symbol, drag.before);
+        setDrag(null);
+        setDraft(null);
+        creationGestureRef.current = null;
+        return;
+      }
       if (!editingText && command && event.key.toLowerCase() === 'z') {
         event.preventDefault();
         if (event.shiftKey) redo();
@@ -596,6 +606,7 @@ export default function DrawingLayer({
       }
 
       if (!editingText && event.key === 'Escape') {
+        if (drag?.before) replaceDrawingsLive(symbol, drag.before);
         setDraft(null);
         creationGestureRef.current = null;
         setDrag(null);
@@ -615,7 +626,7 @@ export default function DrawingLayer({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [interactionEnabled, onToolChange, selectedId, symbol, tool]);
+  }, [interactionEnabled, onToolChange, selectedId, symbol, tool, drag, draft, undo, redo]);
 
   const selected = useMemo(() => drawings.find(item => item.id === selectedId), [drawings, selectedId]);
   useEffect(() => {
@@ -649,7 +660,6 @@ export default function DrawingLayer({
       }
       return undefined;
     }
-
     return () => {
       coordinateApi?.clearCrosshair?.();
       drawingCrosshairVisibleRef.current = false;
@@ -662,11 +672,12 @@ export default function DrawingLayer({
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
   };
 
-  const snapDataPoint = (point, screen = null) => {
-    if (!point || snapMode === 'off') return point;
+  const snapDataPoint = (point, screen = null, modifier = false) => {
+    const mode = drawingMagnetMode(snapMode, modifier);
+    if (!point || mode === 'off') return point;
 
     if (screen && coordinateApi?.snapToCandle) {
-      const candleSnap = coordinateApi.snapToCandle(screen, snapMode === 'strong' ? 28 : 12);
+      const candleSnap = coordinateApi.snapToCandle(screen, mode === 'strong' ? Infinity : 12);
       if (candleSnap) return { time: candleSnap.time, price: candleSnap.price };
     }
 
@@ -676,9 +687,11 @@ export default function DrawingLayer({
   };
 
   const eventDataPoint = event => {
-    const screen = eventScreenPoint(event);
+    const anchor = draft?.a || (drag?.mode === 'b' ? drawings.find(item => item.id === drag.id)?.a : null);
+    const activeType = draft?.type || drawings.find(item => item.id === drag?.id)?.type;
+    const screen = constrainDrawingPoint(resolvePoint(anchor), eventScreenPoint(event), event.shiftKey && ['trendline', 'ray', 'extended-line', 'ruler'].includes(activeType));
     const point = screen ? coordinateApi?.toData?.(screen) || null : null;
-    return snapDataPoint(point, screen);
+    return snapDataPoint(point, screen, event.ctrlKey || event.metaKey);
   };
 
   const makeDrawing = (type, a, b = a, text = '') => ({
@@ -720,10 +733,9 @@ export default function DrawingLayer({
   };
 
   const startCreate = event => {
-    if (!drawingTool || !coordinateApi) return;
-    const screen = eventScreenPoint(event);
-    updateDrawingCrosshair(screen);
-    const point = screen ? snapDataPoint(coordinateApi?.toData?.(screen) || null, screen) : null;
+    if (!drawingTool || !coordinateApi || event.button !== 0) return;
+    updateDrawingCrosshair(eventScreenPoint(event));
+    const point = eventDataPoint(event);
     if (!point) return;
     event.preventDefault();
     event.stopPropagation();
@@ -751,7 +763,7 @@ export default function DrawingLayer({
       return;
     }
 
-    const startScreen = screen;
+    const startScreen = eventScreenPoint(event);
     event.currentTarget.setPointerCapture?.(event.pointerId);
     creationGestureRef.current = { pointerId: event.pointerId, startScreen };
     setDraft(makeDrawing(tool, point, point));
@@ -761,8 +773,7 @@ export default function DrawingLayer({
     if (!coordinateApi) return;
     const screen = eventScreenPoint(event);
     updateDrawingCrosshair(screen);
-    const rawData = screen ? coordinateApi.toData?.(screen) : null;
-    const data = snapDataPoint(rawData, screen);
+    const data = eventDataPoint(event);
     if (!screen || !data) return;
 
     if (draft) {
@@ -813,7 +824,8 @@ export default function DrawingLayer({
           const originalScreen = coordinateApi.toScreen?.(point);
           if (!originalScreen) return point;
           const targetScreen = { x: originalScreen.x + dx, y: originalScreen.y + dy };
-          return snapDataPoint(coordinateApi.toData?.(targetScreen) || point, targetScreen);
+          // Moving an object preserves its shape; magnet applies to individual anchors.
+          return coordinateApi.toData?.(targetScreen) || point;
         };
         return {
           ...item,
@@ -846,7 +858,7 @@ export default function DrawingLayer({
   };
 
   const selectDrawing = (event, id) => {
-    if (!interactionEnabled || disabled || tool !== 'cursor' || !coordinateApi) return;
+    if (!interactionEnabled || disabled || tool !== 'cursor' || !coordinateApi || event.button !== 0) return;
     const screen = eventScreenPoint(event);
     const drawing = drawings.find(item => item.id === id);
     if (!screen || !drawing) return;
@@ -868,7 +880,7 @@ export default function DrawingLayer({
 
   const startHandle = (event, id, mode) => {
     const drawing = drawings.find(item => item.id === id);
-    if (!interactionEnabled || disabled || !coordinateApi || drawing?.locked || lockAll) return;
+    if (!interactionEnabled || disabled || !coordinateApi || drawing?.locked || lockAll || event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -972,7 +984,7 @@ export default function DrawingLayer({
     : false;
   const compactDrawingUi = size.width < 560;
 
-  const selectedAnchor = useMemo(() => {
+  const selectedAnchor = (() => {
     if (!selected || !coordinateApi?.toScreen) return null;
     const points = [selected.a, selected.b, selected.riskTarget]
       .filter(Boolean)
@@ -983,7 +995,7 @@ export default function DrawingLayer({
       x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
       y: Math.min(...points.map(point => point.y)),
     };
-  }, [coordinateApi, selected]);
+  })();
 
   const selectedToolbarStyle = compactDrawingUi
     ? { left: 8, right: 8, bottom: 46 }
@@ -995,10 +1007,10 @@ export default function DrawingLayer({
   const settingsPanelStyle = compactDrawingUi
     ? { left: 8, right: 8, bottom: 90, width: 'auto', maxHeight: '56%', overflowY: 'auto' }
     : {
-        left: Math.max(8, Math.min(size.width - 258, (selectedAnchor?.x ?? size.width / 2) - 124)),
-        top: Math.max(54, Math.min(size.height - 342, (selectedAnchor?.y ?? 54) + 8)),
-        width: 250,
-        maxHeight: Math.max(220, size.height - 80),
+        right: 12,
+        top: 12,
+        width: Math.min(360, size.width - 24),
+        maxHeight: Math.max(160, size.height - 24),
         overflowY: 'auto',
       };
 
@@ -1032,7 +1044,7 @@ export default function DrawingLayer({
   };
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-[16]">
+    <div className="pointer-events-none absolute left-0 top-0" style={{ width: coordinateApi?.plotSize?.().width || '100%', height: coordinateApi?.plotSize?.().height || '100%', zIndex: settingsOpen ? 60 : selected ? 40 : 16 }}>
       <svg
         ref={svgRef}
         className="size-full touch-none"
@@ -1099,9 +1111,9 @@ export default function DrawingLayer({
         </div>
       )}
 
-      {selected && !disabled && (
+      {selected && !disabled && !settingsOpen && (
         <div
-          className="acg-motion-drawing-toolbar pointer-events-auto absolute z-30 flex min-h-9 max-w-[calc(100%-16px)] items-center gap-0.5 overflow-hidden rounded-[7px] border border-white/[0.08] bg-[#07090b]/97 p-1 shadow-[0_12px_34px_rgba(0,0,0,.52)] backdrop-blur-md"
+          className="acg-chart-tools acg-drawing-toolbar pointer-events-auto absolute z-30 flex min-h-9 max-w-[calc(100%-16px)] items-center gap-0.5 overflow-hidden rounded-[7px] border border-white/[0.08] bg-[#07090b]/97 p-1 shadow-[0_12px_34px_rgba(0,0,0,.52)] backdrop-blur-md"
           style={selectedToolbarStyle}
         >
           <span className="hidden max-w-[96px] truncate border-r border-white/[0.07] px-2 text-[8px] font-bold uppercase tracking-[0.08em] text-[#7e91a3] sm:block">{drawingLabel(selected)}</span>
@@ -1131,92 +1143,13 @@ export default function DrawingLayer({
       )}
 
       {selected && settingsOpen && (
-        <div className="acg-motion-popover pointer-events-auto absolute z-40 rounded-[8px] border border-white/[0.10] bg-[#0b0d0f]/98 p-3 shadow-[0_18px_50px_rgba(0,0,0,.62)] backdrop-blur-md [scrollbar-width:thin]" style={settingsPanelStyle}>
-          <div className="flex items-center justify-between">
-            <strong className="text-[10px] text-[#e7eef4]">Drawing settings</strong>
-            <button type="button" onClick={() => setSettingsOpen(false)} className="grid size-6 place-items-center rounded text-[#71869a] hover:bg-white/[0.04]"><X size={12}/></button>
-          </div>
-
-          {isRiskDrawingTool(selected.type) && (() => {
-            const metrics = riskMetricsFor(selected);
-            return <>
-              <label className="mt-3 block">
-                <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Risk %</span>
-                <input type="number" min="0.1" max="5" step="0.1" value={selected.riskPercent ?? clampDrawingRiskPercent(riskPercent)} onChange={event => patchSelected({ riskPercent: clampDrawingRiskPercent(event.target.value, riskPercent) })} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] text-[#dbe5ed] outline-none focus:border-[#195be1]" />
-              </label>
-              <div className={`mt-2 rounded-md border px-2.5 py-2 text-[8px] leading-[1.45] ${metrics?.canCreateOrder ? 'border-[#1f4b3d] bg-[#0d1915] text-[#74d9b5]' : 'border-[#4a2026] bg-[#180d10] text-[#e9858d]'}`}>
-                {metrics?.message || 'Risk sizing unavailable'}
-                {Number.isFinite(metrics?.sizing?.requiredMargin) && <span className="mt-1 block text-[#72879a]">Margin {new Intl.NumberFormat('en-US', { style: 'currency', currency: accountCurrency || 'USD', maximumFractionDigits: 2 }).format(metrics.sizing.requiredMargin)} · Free {Number.isFinite(metrics?.sizing?.freeMargin) ? new Intl.NumberFormat('en-US', { style: 'currency', currency: accountCurrency || 'USD', maximumFractionDigits: 2 }).format(metrics.sizing.freeMargin) : '—'}</span>}
-              </div>
-            </>;
-          })()}
-                    {selected.type === 'text' && (
-            <div className="mt-3 grid grid-cols-[1fr_78px] gap-2">
-              <label>
-                <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Text</span>
-                <input value={selected.text || ''} onChange={event => patchSelected({ text: event.target.value })} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2.5 text-[10px] text-[#dbe5ed] outline-none focus:border-[#195be1]" />
-              </label>
-              <label>
-                <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Size</span>
-                <select value={Number(selected.style?.fontSize) || 10} onChange={event => patchSelected({ style: { fontSize: Number(event.target.value) } })} className="h-9 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2 text-[9px] text-[#dbe5ed] outline-none">
-                  <option value="9">9</option><option value="10">10</option><option value="12">12</option><option value="14">14</option><option value="16">16</option>
-                </select>
-              </label>
-            </div>
-          )}
-
-          {!isRiskDrawingTool(selected.type) && (
-            <div className="mt-3">
-              <span className="mb-1.5 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Color</span>
-              <div className="flex gap-1.5">
-                {['#195be1','#f0c35c','#b78cff','#35d79d','#ff5968','#d8e4ee'].map(color => (
-                  <button key={color} type="button" onClick={() => patchSelected({ style: { color } })} className={`size-6 rounded-full border-2 ${selected.style?.color === color ? 'border-white' : 'border-transparent'}`} style={{ backgroundColor: color }} aria-label={`Set color ${color}`} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {selected.type !== 'text' && !isRiskDrawingTool(selected.type) && (
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <label>
-                <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Width</span>
-                <select value={selected.style?.width || 1.4} onChange={event => patchSelected({ style: { width: Number(event.target.value) } })} className="h-8 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2 text-[9px] text-[#dbe5ed] outline-none">
-                  <option value="1">1 px</option><option value="1.4">1.4 px</option><option value="2">2 px</option><option value="3">3 px</option>
-                </select>
-              </label>
-              <label>
-                <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Style</span>
-                <select value={selected.style?.dash || 'solid'} onChange={event => patchSelected({ style: { dash: event.target.value } })} className="h-8 w-full rounded-md border border-white/[0.08] bg-[#080808] px-2 text-[9px] text-[#dbe5ed] outline-none">
-                  <option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option>
-                </select>
-              </label>
-            </div>
-          )}
-
-          {selected.type === 'rectangle' && (
-            <label className="mt-3 block">
-              <span className="mb-1 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Fill opacity</span>
-              <input type="range" min="0" max="0.35" step="0.01" value={Number(selected.style?.fillOpacity ?? 0.07)} onChange={event => patchSelected({ style: { fillOpacity: Number(event.target.value) } })} className="w-full accent-[#195be1]" />
-            </label>
-          )}
-
-          <div className="mt-3">
-            <span className="mb-1.5 block text-[7px] font-bold uppercase tracking-[0.08em] text-[#64798d]">Timeframe visibility</span>
-            <div className="grid grid-cols-2 gap-1.5">
-              <button type="button" onClick={() => patchSelected({ timeframeVisibility: 'all' })} className={`h-8 rounded-md border text-[8px] font-semibold ${selected.timeframeVisibility === 'all' || !selected.timeframeVisibility ? 'border-[#195be1] bg-[#10202a] text-[#195be1]' : 'border-white/[0.08] bg-[#080808] text-[#8ea0b1]'}`}>All</button>
-              <button type="button" onClick={() => patchSelected({ timeframeVisibility: [timeframe] })} className={`h-8 rounded-md border text-[8px] font-semibold ${Array.isArray(selected.timeframeVisibility) && selected.timeframeVisibility.length === 1 && selected.timeframeVisibility[0] === timeframe ? 'border-[#195be1] bg-[#10202a] text-[#195be1]' : 'border-white/[0.08] bg-[#080808] text-[#8ea0b1]'}`}>This timeframe</button>
-            </div>
-          </div>
-
-          <div className="mt-3 flex gap-2">
-            <button type="button" onClick={() => patchSelected({ hidden: true })} className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-white/[0.08] bg-[#080808] text-[8px] font-semibold text-[#8ea0b1] hover:text-white"><EyeOff size={12}/>Hide</button>
-            <button type="button" onClick={() => patchSelected({ locked: !selected.locked })} className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-white/[0.08] bg-[#080808] text-[8px] font-semibold text-[#8ea0b1] hover:text-white">{selected.locked ? <LockOpen size={12}/> : <Lock size={12}/>} {selected.locked ? 'Unlock' : 'Lock'}</button>
-          </div>
+        <div className="acg-drawing-properties pointer-events-auto absolute z-40" style={settingsPanelStyle}>
+          <DrawingProperties key={selected.id} drawing={selected} riskPercent={riskPercent} lockAll={lockAll} onApply={patchSelected} onClose={() => setSettingsOpen(false)} />
         </div>
       )}
 
       {contextMenu && selected && (
-        <div className="acg-motion-popover pointer-events-auto absolute z-40 w-[182px] rounded-md border border-white/[0.10] bg-[#0b0d0f]/98 p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.62)]" style={{ left: contextMenu.x, top: contextMenu.y }}>
+        <div className="acg-drawing-menu pointer-events-auto absolute z-40 w-[210px] rounded-md border border-white/[0.10] bg-[#0b0d0f]/98 p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.62)]" style={{ left: contextMenu.x, top: contextMenu.y }}>
           <button type="button" onClick={() => { setSettingsOpen(true); setContextMenu(null); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[9px] text-[#a9b7c4] hover:bg-white/[0.04] hover:text-white"><Settings2 size={12}/>Properties</button>
           <button type="button" onClick={duplicateSelected} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[9px] text-[#a9b7c4] hover:bg-white/[0.04] hover:text-white"><Copy size={12}/>Duplicate</button>
           <button type="button" onClick={() => { patchSelected({ locked: !selected.locked }); setContextMenu(null); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[9px] text-[#a9b7c4] hover:bg-white/[0.04] hover:text-white">{selected.locked ? <LockOpen size={12}/> : <Lock size={12}/>} {selected.locked ? 'Unlock' : 'Lock'}</button>
@@ -1228,6 +1161,8 @@ export default function DrawingLayer({
           <button type="button" onClick={deleteSelected} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[9px] text-[#ff7380] hover:bg-[#35151d]"><Trash2 size={12}/>Delete</button>
         </div>
       )}
+
+      {drawingTool && !settingsOpen && <div className="acg-drawing-hint" role="status">{catalogDrawingToolLabel(tool)} · {draft ? 'Place the second point' : 'Click or drag to draw'} · Esc to cancel{!compactDrawingUi && ' · Shift: constrain · Ctrl/⌘: magnet'}</div>}
 
       {drawings.some(item => item.hidden) && (
         <button
