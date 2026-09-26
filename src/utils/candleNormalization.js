@@ -75,7 +75,9 @@ export function normalizeCandle(candle) {
     providerVolumeBaseline,
     providerVolumeLiveAnchor,
     tickCount,
-    displayVolume,
+    // Do not invent an authoritative field on legacy bars. This object is
+    // normalized again during history paging and live reconciliation.
+    ...(hasAuthoritativeVolume ? { displayVolume } : {}),
     volumeMode,
     volume,
     volumeSource,

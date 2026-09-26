@@ -3,6 +3,49 @@ import assert from 'node:assert/strict';
 
 import { normalizeCandle, normalizeCandleSeries } from '../src/utils/candleNormalization.js';
 import { mergeLiveCandleIntoSeries } from '../src/utils/candleMerge.js';
+import { prependHistoricalCandles, reconcileLatestCandles } from '../src/utils/candleHistory.js';
+import { volumePoint, volumeLabel, volumeValue } from '../src/utils/volumePresentation.js';
+
+test('legacy volume survives the complete history normalization pipeline', () => {
+  for (const fields of [{ tickCount: 17 }, { providerVolume: 120, tickCount: 0 }]) {
+    const original = normalizeCandle(candle(fields));
+    assert.deepEqual(normalizeCandle(original), original);
+    const initial = mergeLiveCandleIntoSeries([original], null);
+    const paged = prependHistoricalCandles(initial, [candle({ ...fields, time: original.time - 60 })]).bars;
+    const refreshed = reconcileLatestCandles(paged, initial);
+    assert.ok(refreshed.every(bar => bar.volume === original.volume));
+  }
+});
+
+test('explicit unavailable volume stays unavailable after repeat normalization', () => {
+  for (const fields of [{ displayVolume: null }, { volumeMode: 'unavailable', displayVolume: null }]) {
+    const original = normalizeCandle(candle({ tickCount: 17, ...fields }));
+    assert.equal(original.volume, null);
+    assert.deepEqual(normalizeCandle(original), original);
+  }
+});
+
+test('volume presentation preserves real values and distinguishes update counts', () => {
+  const tick = normalizeCandle(candle({ volumeMode: 'tick', displayVolume: 60 }));
+  assert.equal(volumePoint(tick).value, 60);
+  assert.equal(volumeLabel(tick), 'Tick volume (price updates)');
+  assert.equal(volumeValue(tick), '60');
+  const provider = normalizeCandle(candle({ volumeMode: 'provider', displayVolume: 1200.25 }));
+  assert.equal(volumePoint(provider).value, 1200.25);
+  assert.equal(volumeLabel(provider), 'Provider volume');
+  assert.equal(volumeValue(provider), '1,200.25');
+});
+
+test('unavailable volume becomes whitespace while true zero remains a histogram value', () => {
+  const unavailable = normalizeCandle(candle({ volumeMode: 'unavailable', displayVolume: null }));
+  assert.deepEqual(volumePoint(unavailable), { time: unavailable.time });
+  assert.equal(volumeLabel(unavailable), 'Volume unavailable');
+  assert.equal(volumeValue(unavailable), '—');
+  const zero = normalizeCandle(candle({ volumeMode: 'provider', displayVolume: 0 }));
+  assert.equal(volumePoint(zero).value, 0);
+  assert.equal(volumeLabel(zero), 'Provider volume');
+  assert.equal(volumeValue(zero), '0');
+});
 
 function candle(overrides = {}) {
   return {
