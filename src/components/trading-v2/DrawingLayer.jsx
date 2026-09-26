@@ -471,6 +471,7 @@ export default function DrawingLayer({
   chartInstanceId = 'chart',
   interactionEnabled = true,
   showHistoryControls = true,
+  preserveChartCrosshair = false,
 }) {
   const svgRef = useRef(null);
   const creationGestureRef = useRef(null);
@@ -486,6 +487,7 @@ export default function DrawingLayer({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
   const [, setCoordinateRevision] = useState(0);
+  const drawingCrosshairVisibleRef = useRef(false);
 
   const drawings = history.present;
 
@@ -627,6 +629,24 @@ export default function DrawingLayer({
   const drawingTool = interactionEnabled && !disabled && isDrawingCreateTool(tool);
   const resolvePoint = point => coordinateApi?.toScreen?.(point) || null;
 
+  const updateDrawingCrosshair = screen => {
+    if (!preserveChartCrosshair || !drawingTool || !screen) return;
+    const visible = coordinateApi?.setCrosshairAt?.(screen) === true;
+    drawingCrosshairVisibleRef.current = visible;
+  };
+
+  const clearDrawingCrosshair = () => {
+    if (!drawingCrosshairVisibleRef.current) return;
+    coordinateApi?.clearCrosshair?.();
+    drawingCrosshairVisibleRef.current = false;
+  };
+
+  useEffect(() => {
+    if (preserveChartCrosshair && drawingTool) return undefined;
+    clearDrawingCrosshair();
+    return undefined;
+  }, [coordinateApi, drawingTool, preserveChartCrosshair]);
+
   const eventScreenPoint = event => {
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect) return null;
@@ -692,7 +712,9 @@ export default function DrawingLayer({
 
   const startCreate = event => {
     if (!drawingTool || !coordinateApi) return;
-    const point = eventDataPoint(event);
+    const screen = eventScreenPoint(event);
+    updateDrawingCrosshair(screen);
+    const point = screen ? snapDataPoint(coordinateApi?.toData?.(screen) || null, screen) : null;
     if (!point) return;
     event.preventDefault();
     event.stopPropagation();
@@ -720,7 +742,7 @@ export default function DrawingLayer({
       return;
     }
 
-    const startScreen = eventScreenPoint(event);
+    const startScreen = screen;
     event.currentTarget.setPointerCapture?.(event.pointerId);
     creationGestureRef.current = { pointerId: event.pointerId, startScreen };
     setDraft(makeDrawing(tool, point, point));
@@ -729,6 +751,7 @@ export default function DrawingLayer({
   const pointerMove = event => {
     if (!coordinateApi) return;
     const screen = eventScreenPoint(event);
+    updateDrawingCrosshair(screen);
     const rawData = screen ? coordinateApi.toData?.(screen) : null;
     const data = snapDataPoint(rawData, screen);
     if (!screen || !data) return;
@@ -1007,6 +1030,7 @@ export default function DrawingLayer({
         onPointerMove={pointerMove}
         onPointerUp={finishPointer}
         onPointerCancel={cancelPointer}
+        onPointerLeave={clearDrawingCrosshair}
         onPointerDown={() => setContextMenu(null)}
       >
         <rect
