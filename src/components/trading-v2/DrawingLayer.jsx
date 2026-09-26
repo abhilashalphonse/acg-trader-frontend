@@ -1068,7 +1068,7 @@ export default function DrawingLayer({
 
       {selected && !disabled && (
         <div
-          className="pointer-events-auto absolute z-30 flex min-h-9 max-w-[calc(100%-16px)] items-center gap-0.5 overflow-hidden rounded-[7px] border border-white/[0.08] bg-[#07090b]/97 p-1 shadow-[0_12px_34px_rgba(0,0,0,.52)] backdrop-blur-md"
+          className="acg-motion-drawing-toolbar pointer-events-auto absolute z-30 flex min-h-9 max-w-[calc(100%-16px)] items-center gap-0.5 overflow-hidden rounded-[7px] border border-white/[0.08] bg-[#07090b]/97 p-1 shadow-[0_12px_34px_rgba(0,0,0,.52)] backdrop-blur-md"
           style={selectedToolbarStyle}
         >
           <span className="hidden max-w-[96px] truncate border-r border-white/[0.07] px-2 text-[8px] font-bold uppercase tracking-[0.08em] text-[#7e91a3] sm:block">{drawingLabel(selected)}</span>
@@ -1098,7 +1098,7 @@ export default function DrawingLayer({
       )}
 
       {selected && settingsOpen && (
-        <div className="pointer-events-auto absolute z-40 rounded-[8px] border border-white/[0.10] bg-[#0b0d0f]/98 p-3 shadow-[0_18px_50px_rgba(0,0,0,.62)] backdrop-blur-md [scrollbar-width:thin]" style={settingsPanelStyle}>
+        <div className="acg-motion-popover pointer-events-auto absolute z-40 rounded-[8px] border border-white/[0.10] bg-[#0b0d0f]/98 p-3 shadow-[0_18px_50px_rgba(0,0,0,.62)] backdrop-blur-md [scrollbar-width:thin]" style={settingsPanelStyle}>
           <div className="flex items-center justify-between">
             <strong className="text-[10px] text-[#e7eef4]">Drawing settings</strong>
             <button type="button" onClick={() => setSettingsOpen(false)} className="grid size-6 place-items-center rounded text-[#71869a] hover:bg-white/[0.04]"><X size={12}/></button>
@@ -1183,7 +1183,7 @@ export default function DrawingLayer({
       )}
 
       {contextMenu && selected && (
-        <div className="pointer-events-auto absolute z-40 w-[182px] rounded-md border border-white/[0.10] bg-[#0b0d0f]/98 p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.62)]" style={{ left: contextMenu.x, top: contextMenu.y }}>
+        <div className="acg-motion-popover pointer-events-auto absolute z-40 w-[182px] rounded-md border border-white/[0.10] bg-[#0b0d0f]/98 p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.62)]" style={{ left: contextMenu.x, top: contextMenu.y }}>
           <button type="button" onClick={() => { setSettingsOpen(true); setContextMenu(null); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[9px] text-[#a9b7c4] hover:bg-white/[0.04] hover:text-white"><Settings2 size={12}/>Properties</button>
           <button type="button" onClick={duplicateSelected} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[9px] text-[#a9b7c4] hover:bg-white/[0.04] hover:text-white"><Copy size={12}/>Duplicate</button>
           <button type="button" onClick={() => { patchSelected({ locked: !selected.locked }); setContextMenu(null); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[9px] text-[#a9b7c4] hover:bg-white/[0.04] hover:text-white">{selected.locked ? <LockOpen size={12}/> : <Lock size={12}/>} {selected.locked ? 'Unlock' : 'Lock'}</button>

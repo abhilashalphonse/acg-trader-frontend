@@ -1997,3 +1997,182 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
   .acg-terminal *{scrollbar-width:thin;scrollbar-color:#282d33 transparent}.acg-terminal *::-webkit-scrollbar{width:7px;height:7px}.acg-terminal *::-webkit-scrollbar-track{background:transparent}.acg-terminal *::-webkit-scrollbar-thumb{background:#282d33;border-radius:8px}.acg-terminal *::-webkit-scrollbar-thumb:hover{background:#3a4149}
 }
 
+
+
+/* Desktop motion system.
+   Scoped to DesktopTerminal only so the finished mobile experience is unchanged.
+   Market/chart data stays immediate; motion is reserved for UI state changes. */
+@keyframes acgDesktopPopoverIn{
+  from{opacity:0;transform:translateY(-6px) scale(.985)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes acgDesktopSidePanelIn{
+  from{opacity:0;transform:translateX(12px)}
+  to{opacity:1;transform:translateX(0)}
+}
+@keyframes acgDesktopStackIn{
+  from{opacity:0;transform:translateY(6px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes acgDesktopValueIn{
+  0%{opacity:.58;transform:translateY(1px)}
+  100%{opacity:1;transform:translateY(0)}
+}
+@keyframes acgDesktopRowIn{
+  from{opacity:0;transform:translateY(-4px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes acgDesktopUnderlineIn{
+  from{opacity:.2;transform:scaleX(.35)}
+  to{opacity:1;transform:scaleX(1)}
+}
+@keyframes acgDesktopFavoriteIn{
+  0%{transform:scale(.88);opacity:.72}
+  55%{transform:scale(1.12);opacity:1}
+  100%{transform:scale(1);opacity:1}
+}
+@keyframes acgDesktopSymbolIn{
+  from{opacity:0;transform:translateX(4px)}
+  to{opacity:1;transform:translateX(0)}
+}
+@keyframes acgDesktopNoticeIn{
+  from{opacity:0;transform:translateY(-7px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes acgDesktopDrawingToolbarIn{
+  from{opacity:0;transform:translateY(3px) scale(.99)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+
+@media (min-width:1024px){
+  .acg-terminal{
+    --acg-motion-fast:120ms;
+    --acg-motion-ui:180ms;
+    --acg-motion-panel:240ms;
+    --acg-motion-layout:300ms;
+    --acg-motion-ease:cubic-bezier(.22,1,.36,1);
+  }
+
+  /* One consistent interaction language for the desktop terminal. */
+  .acg-terminal button:not(:disabled){
+    transition-property:background-color,border-color,color,box-shadow,opacity,transform;
+    transition-duration:var(--acg-motion-fast);
+    transition-timing-function:var(--acg-motion-ease);
+  }
+  .acg-terminal button:active:not(:disabled){
+    transform:scale(.985);
+    transition-duration:70ms;
+  }
+  .acg-terminal input,
+  .acg-terminal select,
+  .acg-terminal textarea{
+    transition:border-color var(--acg-motion-fast) var(--acg-motion-ease),
+               box-shadow var(--acg-motion-fast) var(--acg-motion-ease),
+               background-color var(--acg-motion-fast) var(--acg-motion-ease);
+  }
+
+  .acg-terminal .acg-motion-popover{
+    transform-origin:top right;
+    animation:acgDesktopPopoverIn var(--acg-motion-ui) var(--acg-motion-ease) both;
+    will-change:transform,opacity;
+  }
+  .acg-terminal .acg-motion-side-panel{
+    animation:acgDesktopSidePanelIn var(--acg-motion-panel) var(--acg-motion-ease) both;
+    will-change:transform,opacity;
+  }
+  .acg-terminal .acg-motion-panel-stack{
+    animation:acgDesktopStackIn var(--acg-motion-ui) var(--acg-motion-ease) both;
+  }
+  .acg-terminal .acg-motion-row{
+    animation:acgDesktopRowIn var(--acg-motion-ui) var(--acg-motion-ease) both;
+  }
+  .acg-terminal .acg-motion-value{
+    animation:acgDesktopValueIn 150ms var(--acg-motion-ease) both;
+    font-variant-numeric:tabular-nums;
+  }
+  .acg-terminal .acg-motion-count{
+    animation:acgDesktopValueIn var(--acg-motion-fast) var(--acg-motion-ease) both;
+    font-variant-numeric:tabular-nums;
+  }
+  .acg-terminal .acg-active-underline{
+    transform-origin:center;
+    animation:acgDesktopUnderlineIn var(--acg-motion-ui) var(--acg-motion-ease) both;
+  }
+  .acg-terminal .acg-motion-symbol{
+    animation:acgDesktopSymbolIn var(--acg-motion-ui) var(--acg-motion-ease) both;
+  }
+  .acg-terminal .acg-motion-notice{
+    animation:acgDesktopNoticeIn var(--acg-motion-ui) var(--acg-motion-ease) both;
+  }
+  .acg-terminal .acg-motion-chevron{
+    transition:transform var(--acg-motion-ui) var(--acg-motion-ease),
+               color var(--acg-motion-fast) var(--acg-motion-ease);
+  }
+  .acg-terminal .acg-favorite-icon{
+    transform-origin:center;
+  }
+  .acg-terminal .acg-favorite-icon[data-active="true"]{
+    animation:acgDesktopFavoriteIn var(--acg-motion-ui) var(--acg-motion-ease) both;
+  }
+  .acg-terminal .acg-motion-drawing-toolbar{
+    animation:acgDesktopDrawingToolbarIn var(--acg-motion-ui) var(--acg-motion-ease) both;
+    transform-origin:center bottom;
+  }
+
+  /* Drawing tools feel direct: tiny lateral response, no spring/bounce. */
+  .acg-terminal aside[aria-label="Drawing tools"] .acg-mobile-drawing-tool,
+  .acg-terminal aside[aria-label="Drawing tools"]>button{
+    transition:background-color var(--acg-motion-fast) var(--acg-motion-ease),
+               color var(--acg-motion-fast) var(--acg-motion-ease),
+               outline-color var(--acg-motion-fast) var(--acg-motion-ease),
+               transform var(--acg-motion-fast) var(--acg-motion-ease)!important;
+  }
+  .acg-terminal aside[aria-label="Drawing tools"] .acg-mobile-drawing-tool:hover,
+  .acg-terminal aside[aria-label="Drawing tools"]>button:hover{
+    transform:translateX(2px);
+  }
+  .acg-terminal aside[aria-label="Drawing tools"] .acg-mobile-drawing-tool-selected::after{
+    transform-origin:center;
+    animation:acgDesktopUnderlineIn var(--acg-motion-ui) var(--acg-motion-ease) both;
+  }
+
+  /* Layout changes stay synchronized with chart/rail resizing. */
+  .acg-terminal [class*="transition-[grid-template-columns,grid-template-rows]"]{
+    transition-duration:var(--acg-motion-layout)!important;
+    transition-timing-function:var(--acg-motion-ease)!important;
+  }
+  .acg-terminal [class*="transition-[height,transform,opacity]"]{
+    transition-duration:var(--acg-motion-panel)!important;
+    transition-timing-function:var(--acg-motion-ease)!important;
+  }
+
+  /* Keep execution controls mechanical and immediate. */
+  .acg-terminal .acg-desktop-order button[class*="border-[#6d2d37]"],
+  .acg-terminal .acg-desktop-order button[class*="border-[#35D79D]"]{
+    transform-origin:center;
+    transition-duration:var(--acg-motion-fast)!important;
+    transition-timing-function:var(--acg-motion-ease)!important;
+  }
+  .acg-terminal .acg-desktop-order button[class*="border-[#6d2d37]"]:active:not(:disabled),
+  .acg-terminal .acg-desktop-order button[class*="border-[#35D79D]"]:active:not(:disabled){
+    transform:scale(.985);
+    transition-duration:70ms!important;
+  }
+
+  /* Drag handles surface only when the pointer is close. */
+  .acg-terminal [role="separator"]{
+    transition:opacity var(--acg-motion-fast) var(--acg-motion-ease),
+               background-color var(--acg-motion-fast) var(--acg-motion-ease)!important;
+  }
+}
+
+@media (min-width:1024px) and (prefers-reduced-motion:reduce){
+  .acg-terminal *,
+  .acg-terminal *::before,
+  .acg-terminal *::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+    scroll-behavior:auto!important;
+  }
+}
