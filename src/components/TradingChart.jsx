@@ -247,10 +247,7 @@ export default function TradingChart({
     const paneHeights = new Map(indicatorBindingsRef.current.filter(binding => binding.paneIndex > 0).map(binding => [binding.instanceId, chart.panes()[binding.paneIndex]?.getHeight?.()]));
     clearIndicatorSeries(chart);
     let paneIndex = 1;
-<<<<<<< Updated upstream
-    indicatorsRef.current.filter(item => item.id !== 'volume' && indicatorVisibleOnTimeframe(item, timeframe)).forEach(indicator => {
-=======
-    indicatorsRef.current.filter(item => indicatorVisibleOnTimeframe(item, timeframe) && !(compactContext && item.id === 'volume')).forEach((indicator, indicatorIndex) => {
+    indicatorsRef.current.filter(item => indicatorVisibleOnTimeframe(item, timeframe) && !(compactContext && item.id === 'volume')).forEach(indicator => {
       if (indicator.id === 'volume') {
         const targetPane = paneIndex++;
         const volume = chart.addSeries(HistogramSeries, {
@@ -260,11 +257,19 @@ export default function TradingChart({
         volume.priceScale().applyOptions({ autoScale: true, scaleMargins: { top: 0.22, bottom: 0 } });
         volume.setData(bars.map(volumePoint));
         indicatorSeriesRef.current.push(volume);
-        indicatorBindingsRef.current.push({ instanceId: indicator.instanceId, indicator, volume });
+        indicatorBindingsRef.current.push({
+          instanceId: indicator.instanceId,
+          indicator,
+          paneIndex: targetPane,
+          precision: 0,
+          readouts: [],
+          lines: [],
+          histogram: null,
+          volume,
+        });
         chart.panes()[targetPane]?.setHeight?.(120);
         return;
       }
->>>>>>> Stashed changes
       const result = calculateIndicatorData(indicator, bars, { instrument: indicatorInstrument });
       if (!result) return;
       const colors = fallbackIndicatorColors[indicator.id] || ['#53c7ff', '#f0ad5c', '#b38cff'];
@@ -319,11 +324,7 @@ export default function TradingChart({
         setPaneLayout([]);
       }
     });
-<<<<<<< Updated upstream
-  }, [clearIndicatorSeries, indicatorInstrument, timeframe, decimals, minMove]);
-=======
-  }, [clearIndicatorSeries, compactContext, indicatorInstrument, timeframe]);
->>>>>>> Stashed changes
+  }, [clearIndicatorSeries, compactContext, indicatorInstrument, timeframe, decimals, minMove]);
 
   const updateIndicatorData = useCallback(bars => {
     if (!bars?.length) return;
@@ -1265,14 +1266,9 @@ export default function TradingChart({
       if (!pane || pane.height <= 0) return null;
       return (
         <div key={indicator.instanceId} className="group pointer-events-auto absolute left-2.5 z-[70] flex h-6 items-center rounded-md bg-black/72 px-1.5 text-[9px] font-semibold text-[#8fa1b1] shadow-[0_2px_10px_rgba(0,0,0,.28)] backdrop-blur-sm" style={{ top: Math.max(4, pane.top + 5) }}>
-<<<<<<< Updated upstream
-          <span>{indicatorLabel(indicator)}</span>
-          {indicatorReadout(indicator)}
-          <IndicatorActions indicator={indicator} compact />
-=======
           <span>{indicator.id === 'volume' ? `${volumeLabel(ohlc)} · ${volumeValue(ohlc)}` : indicatorLabel(indicator)}</span>
+          {indicator.id !== 'volume' && indicatorReadout(indicator)}
           {showIndicatorControls && <IndicatorActions indicator={indicator} compact />}
->>>>>>> Stashed changes
         </div>
       );
     })}
