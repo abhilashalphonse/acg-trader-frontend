@@ -39,7 +39,7 @@ import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
 import { marketApi } from '../../api/market.js';
 
 const timeframes = [['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], ['1H', '1H'], ['4H', '4H'], ['1D', '1D'], ['1W', '1W']];
-const DESKTOP_LAYOUT_KEY = 'acg-trader-desktop-layout-v1';
+const DESKTOP_LAYOUT_KEY = 'acg-trader-desktop-layout-v2';
 const MULTI_CHART_KEY = 'acg-trader-multi-chart-v1';
 
 function clamp(value, min, max) {
@@ -72,9 +72,9 @@ function desktopMarketPanelBounds(viewportWidth, orderPanelWidth = 380) {
 function desktopHeightBounds(viewportHeight, dockCollapsed = false, dockHeight = 0) {
   const height = Number(viewportHeight) || 900;
   const compact = height <= 900;
-  const dockMin = 110;
+  const dockMin = 64;
   const dockMax = compact ? Math.min(320, Math.floor(height * 0.44)) : height <= 1050 ? Math.min(420, Math.floor(height * 0.46)) : Math.min(520, Math.floor(height * 0.48));
-  const defaultDock = compact ? 165 : height <= 1050 ? 200 : 230;
+  const defaultDock = 64;
   const effectiveDock = dockCollapsed ? 0 : clamp(dockHeight || defaultDock, dockMin, dockMax);
   const upperWorkspaceHeight = Math.max(0, height - 58 - effectiveDock);
 
@@ -99,7 +99,7 @@ function loadDesktopLayout() {
   const fallback = {
     sidebarWidth: widthBounds.defaultSidebar,
     dockHeight: initialBounds.defaultDock,
-    sidebarCollapsed: false,
+    sidebarCollapsed: true,
     dockCollapsed: false,
     marketPanelWidth: desktopMarketPanelBounds(viewportWidth, widthBounds.defaultSidebar).defaultPanel,
     watchlistHeight: initialBounds.defaultWatchlist,
@@ -1046,7 +1046,7 @@ export default function DesktopTerminal({
           </aside>
 
           <div className="min-h-0 overflow-hidden rounded-[16px] border border-white/[0.07] bg-[#0A0C0F] shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_12px_30px_rgba(0,0,0,.22)] transition-[height,transform,opacity] duration-300 ease-out" style={{ gridColumn: '1 / 4', gridRow: '2' }}>
-            <PositionsPanel desktopDense collapsed={desktopLayout.dockCollapsed} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition} onEditProtection={editPositionProtection}/>
+            <PositionsPanel desktopDense collapsed={desktopLayout.dockCollapsed} compactDock={dockHeight <= 72 && !positionsExpanded} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition} onEditProtection={editPositionProtection}/>
           </div>
 
           {!desktopLayout.sidebarCollapsed && !positionsExpanded && (
