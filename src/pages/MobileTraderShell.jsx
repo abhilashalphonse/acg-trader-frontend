@@ -110,7 +110,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const nativeFullscreenRef = useRef(false);
   const prefsRef = useRef(loadTerminalPrefs());
   const trading = useTradingTerminal(markets);
-  const { account, positions, pendingOrders, positionHistory } = trading;
+  const { account, positions, pendingOrders, positionHistory, historyOrders, historyLoaded } = trading;
   const readOnly = String(account?.status || '').toUpperCase() === 'BREACHED';
 
   const [timeframe, setTimeframe] = useState(prefsRef.current.timeframe || '1m');
@@ -921,8 +921,6 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
         account={account}
         positionsCount={positions.length}
         pendingCount={pendingOrders.length}
-        favorite={favorite}
-        onFavorite={setFavorite}
         onSelectInstrument={() => setOverlay('markets')}
         onOpenTrades={() => setOverlay('trades')}
         onOpenAccount={() => setOverlay('account')}
@@ -995,9 +993,11 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
             positions={positions}
             pendingOrders={pendingOrders}
             positionHistory={positionHistory}
-            journal={journal}
+            historyOrders={historyOrders}
+            historyLoaded={historyLoaded}
             markets={markets}
             onOpenChart={openChart}
+            onSelectPosition={selectOpenPosition}
             onClosePosition={closePosition}
             onCloseAll={closeAllPositions}
             onCancelPending={cancelPendingOrder}
