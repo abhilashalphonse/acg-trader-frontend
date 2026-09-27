@@ -256,6 +256,7 @@ export default function DesktopTerminal({
   onDuplicatePosition = () => {},
   onCancelPending = () => {},
   onModifyPending = () => {},
+  onMovePending = () => {},
   onManualOrder = () => {},
   indicators = [],
   indicatorFavorites = [],
@@ -972,6 +973,8 @@ export default function DesktopTerminal({
                 pendingOrders={pendingOrders}
                 onModifyPending={onModifyPending}
                 onCancelPending={onCancelPending}
+                onMovePending={onMovePending}
+                onCancelTradePlan={onCancelPlan}
                 selectedTool={selectedTool}
                 onSelectedToolChange={onSelectedToolChange}
                 chartMode={chartMode}
