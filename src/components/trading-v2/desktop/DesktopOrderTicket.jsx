@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ChevronDown, Minus, Plus, X } from 'lucide-react';
+import { AlertTriangle, ChevronDown, GripVertical, Minus, Plus, X } from 'lucide-react';
 import { decimalPlaces, normalizeVolumeToStep } from '../../../utils/tradingCommandNormalization.js';
 import {
   estimateOpeningRequirement,
@@ -78,6 +78,10 @@ export default function DesktopOrderTicket({
   exposureAllowed = true,
   exposureBlockReason = 'New exposure is temporarily unavailable',
   onNotice = () => {},
+  variant = 'panel',
+  floatingCollapsed = false,
+  onFloatingDragStart = () => {},
+  onToggleFloatingCollapsed = () => {},
 }) {
   const [lotInput, setLotInput] = useState(String(lots));
   const [lotFocused, setLotFocused] = useState(false);
@@ -559,6 +563,104 @@ export default function DesktopOrderTicket({
     if (activeSizingMode === 'risk' && executionSizing?.blockReason && hasStopLoss) return true;
     return false;
   };
+
+  if (variant === 'floating') {
+    const floatingLots = Number.isFinite(Number(effectiveLots)) ? Number(effectiveLots) : normalizedLots;
+    const floatingLotText = Number.isFinite(Number(floatingLots))
+      ? Number(floatingLots).toFixed(Math.max(2, lotDecimals))
+      : '—';
+    const floatingMarginPercent = Number.isFinite(previewMargin) && Number.isFinite(equity) && equity > 0
+      ? previewMargin / equity * 100
+      : null;
+    const floatingModeLabel = orderFamily === 'market' ? 'MARKET' : 'PENDING';
+    const floatingSellLabel = orderFamily === 'market'
+      ? 'SELL'
+      : pendingProjection && selectedSide === 'sell'
+        ? `PLACE ${pendingSellType}`
+        : `SELL ${pendingSellType}`;
+    const floatingBuyLabel = orderFamily === 'market'
+      ? 'BUY'
+      : pendingProjection && selectedSide === 'buy'
+        ? `PLACE ${pendingBuyType}`
+        : `BUY ${pendingBuyType}`;
+    const floatingSellPrice = orderFamily === 'market'
+      ? marketSellPrice
+      : tradePlan?.pending
+        ? formatInstrumentPrice(tradePlan.entry, market)
+        : marketSellPrice;
+    const floatingBuyPrice = orderFamily === 'market'
+      ? marketBuyPrice
+      : tradePlan?.pending
+        ? formatInstrumentPrice(tradePlan.entry, market)
+        : marketBuyPrice;
+    const compactWarning = activeSizingMode === 'risk' && !hasStopLoss
+      ? 'Set SL to calculate size'
+      : warning;
+    const summaryText = compactWarning
+      ? compactWarning
+      : activeSizingMode === 'risk'
+        ? `${Number(riskPercent).toFixed(Number(riskPercent) % 1 === 0 ? 0 : 2)}% risk · ${riskSizingText} · Margin ${money(previewMargin, currency)}`
+        : `${floatingLotText} lots · Margin ${money(previewMargin, currency)}${Number.isFinite(floatingMarginPercent) ? ` (${floatingMarginPercent.toFixed(2)}%)` : ''} · Free ${money(freeAfter, currency)}`;
+
+    return (
+      <section className="acg-floating-order w-[344px] overflow-hidden rounded-[12px] border border-white/[0.16] bg-[#0d0f12]/[0.98] text-[#f4f6f8] shadow-[0_14px_40px_rgba(0,0,0,.52)] backdrop-blur-md">
+        <div className="flex h-[36px] items-center gap-1 border-b border-white/[0.07] px-1.5">
+          <button type="button" onPointerDown={onFloatingDragStart} className="grid h-7 w-6 shrink-0 cursor-move place-items-center rounded text-[#7c8995] hover:bg-white/[0.04] hover:text-white" aria-label="Drag execution widget" title="Drag execution widget">
+            <GripVertical size={13}/>
+          </button>
+          <span className="min-w-0 flex-1 truncate text-[10px] font-bold text-[#f1f4f6]">{market?.displaySymbol || market?.symbol || '—'}</span>
+          <button type="button" onClick={() => chooseFamily(orderFamily === 'market' ? 'pending' : 'market')} className="h-7 rounded-[5px] border border-white/[0.07] bg-[#15181d] px-2 text-[9px] font-black text-[#e9edf2] transition hover:bg-[#1a1e24]">
+            {floatingModeLabel}
+          </button>
+          <button type="button" onClick={() => setMode(activeSizingMode === 'risk' ? 'lots' : 'risk')} disabled={!riskSupported} className={activeSizingMode === 'risk' ? 'h-7 rounded-[5px] border border-[#195be1]/55 bg-[#0d1a22] px-2 text-[9px] font-black text-[#4f82ef]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#15181d] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white disabled:opacity-30'}>
+            RISK
+          </button>
+          <button type="button" onClick={() => addProtection('sl')} className={hasStopLoss || protectionIntent === 'sl' ? 'h-7 rounded-[5px] border border-[#6f3039] bg-[#180c0f] px-2 text-[9px] font-black text-[#d45a64]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#15181d] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white'}>SL</button>
+          <button type="button" onClick={() => addProtection('tp')} className={hasTakeProfit || protectionIntent === 'tp' ? 'h-7 rounded-[5px] border border-[#245b48] bg-[#081511] px-2 text-[9px] font-black text-[#2aa37f]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#15181d] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white'}>TP</button>
+          <button type="button" onClick={onToggleFloatingCollapsed} className="grid size-7 shrink-0 place-items-center rounded-[5px] border border-white/[0.06] bg-[#15181d] text-[#8d99a5] hover:text-white" aria-label={floatingCollapsed ? 'Expand execution widget' : 'Collapse execution widget'} title={floatingCollapsed ? 'Expand' : 'Collapse'}>
+            <ChevronDown size={12} className={floatingCollapsed ? '' : 'rotate-180'}/>
+          </button>
+        </div>
+
+        {!floatingCollapsed && (
+          <>
+            <div className={`flex h-[30px] items-center justify-center border-b border-white/[0.05] px-2 text-[9px] font-semibold ${compactWarning ? 'text-[#d1a0a6]' : 'text-[#aeb8c1]'}`}>
+              <span className="truncate">{summaryText}</span>
+            </div>
+            <div className="grid grid-cols-[92px_minmax(0,1fr)_92px] gap-1.5 p-2">
+              <button type="button" disabled={sideDisabled('sell')} onClick={() => handleSide('sell')} className="flex h-[48px] min-w-0 flex-col items-center justify-center rounded-[7px] border border-[#7b313b] bg-[#161012] px-1.5 transition hover:bg-[#1d1215] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35">
+                <strong className="max-w-full truncate text-[8px] font-black uppercase tracking-[0.03em] text-[#ff6975]">{floatingSellLabel}</strong>
+                <span className="mt-0.5 max-w-full truncate font-mono text-[13px] font-bold tabular-nums text-white">{floatingSellPrice}</span>
+              </button>
+              {activeSizingMode === 'lots' ? (
+                <div className="grid h-[48px] grid-cols-[30px_minmax(0,1fr)_30px] items-center overflow-hidden rounded-[7px] border border-white/[0.07] bg-[#13161a]">
+                  <button type="button" onClick={() => setLots(Math.max(minVolume, normalizedLots - volumeStep))} className="grid h-full place-items-center text-[#8d99a5] hover:bg-white/[0.03] hover:text-white" aria-label="Decrease lot size"><Minus size={12}/></button>
+                  <div className="flex h-full min-w-0 flex-col items-center justify-center border-x border-white/[0.05]">
+                    <input value={lotInput} onFocus={event => { setLotFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }} onChange={event => setLotInput(event.target.value)} onBlur={commitLot} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { setLotInput(Number(normalizedLots).toFixed(lotDecimals)); event.currentTarget.blur(); } }} inputMode="decimal" className="w-full bg-transparent text-center font-mono text-[13px] font-bold tabular-nums text-[#f4f6f8] outline-none" aria-label="Lot size"/>
+                    <span className="text-[7px] font-semibold uppercase tracking-[0.06em] text-[#677581]">lots</span>
+                  </div>
+                  <button type="button" onClick={() => setLots(Math.min(maxVolume, normalizedLots + volumeStep))} className="grid h-full place-items-center text-[#8d99a5] hover:bg-white/[0.03] hover:text-white" aria-label="Increase lot size"><Plus size={12}/></button>
+                </div>
+              ) : (
+                <div className="grid h-[48px] grid-cols-[30px_minmax(0,1fr)_30px] items-center overflow-hidden rounded-[7px] border border-[#195be1]/28 bg-[#10151d]">
+                  <button type="button" onClick={() => setRiskFromInput(Math.max(0.1, Number(riskPercent) - 0.25))} className="grid h-full place-items-center text-[#8d99a5] hover:bg-white/[0.03] hover:text-white" aria-label="Decrease risk"><Minus size={12}/></button>
+                  <div className="flex h-full min-w-0 flex-col items-center justify-center border-x border-white/[0.05]">
+                    <input value={riskInput} onFocus={event => { setRiskFocused(true); setRiskUnit('percent'); requestAnimationFrame(() => event.currentTarget.select()); }} onChange={event => setRiskInput(event.target.value)} onBlur={commitRisk} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }} inputMode="decimal" className="w-full bg-transparent text-center font-mono text-[13px] font-bold tabular-nums text-[#4f82ef] outline-none" aria-label="Risk percent"/>
+                    <span className="text-[7px] font-semibold uppercase tracking-[0.06em] text-[#677581]">% risk</span>
+                  </div>
+                  <button type="button" onClick={() => setRiskFromInput(Math.min(5, Number(riskPercent) + 0.25))} className="grid h-full place-items-center text-[#8d99a5] hover:bg-white/[0.03] hover:text-white" aria-label="Increase risk"><Plus size={12}/></button>
+                </div>
+              )}
+              <button type="button" disabled={sideDisabled('buy')} onClick={() => handleSide('buy')} className="flex h-[48px] min-w-0 flex-col items-center justify-center rounded-[7px] border border-[#195be1]/72 bg-[#0d121a] px-1.5 transition hover:bg-[#101827] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35">
+                <strong className="max-w-full truncate text-[8px] font-black uppercase tracking-[0.03em] text-[#5c8cf3]">{floatingBuyLabel}</strong>
+                <span className="mt-0.5 max-w-full truncate font-mono text-[13px] font-bold tabular-nums text-white">{floatingBuyPrice}</span>
+              </button>
+            </div>
+          </>
+        )}
+      </section>
+    );
+  }
 
   return (
     <section className="acg-desktop-order flex h-full min-h-0 flex-col bg-[#0A0C0F]">
