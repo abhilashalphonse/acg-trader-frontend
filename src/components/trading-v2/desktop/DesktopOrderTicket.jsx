@@ -277,35 +277,24 @@ export default function DesktopOrderTicket({
   const chooseFamily = family => {
     setProtectionIntent(null);
     if (family === 'market') {
-      pendingDraftStartedRef.current = false;
       onOrderTypeChange('market');
       if (tradePlan) onCancelPlan();
       return;
     }
 
-    onOrderTypeChange(orderType === 'market' ? 'limit' : orderType);
-    if (!tradePlan?.pending) {
-      pendingDraftStartedRef.current = true;
-      onStartPlan('buy', orderType === 'market' ? 'limit' : orderType, {
-        protection: 'none',
-        desktopPendingDraft: true,
-      });
-    }
-  };
-
-  useEffect(() => {
     if (orderFamily !== 'pending') {
-      pendingDraftStartedRef.current = false;
+      if (tradePlan) onCancelPlan();
+      const defaultLots = normalizeVolumeToStep(1, market, { rounding: 'nearest' });
+      onLotsChange(defaultLots);
+      onSizingModeChange('lots');
+      setLotInput(Number(defaultLots).toFixed(lotDecimals));
+      onOrderTypeChange('limit');
+      onNotice('Choose Buy or Sell to project a pending order on the chart.');
       return;
     }
-    if (!tradePlan && !pendingDraftStartedRef.current) {
-      pendingDraftStartedRef.current = true;
-      onStartPlan('buy', orderType === 'market' ? 'limit' : orderType, {
-        protection: 'none',
-        desktopPendingDraft: true,
-      });
-    }
-  }, [onStartPlan, orderFamily, orderType, tradePlan]);
+
+    onOrderTypeChange(orderType === 'market' ? 'limit' : orderType);
+  };
 
   const inferredPendingType = side => {
     if (tradePlan?.editingOrderId) return String(tradePlan.orderType || 'limit').toLowerCase();
@@ -337,7 +326,11 @@ export default function DesktopOrderTicket({
       return;
     }
 
-    if (!tradePlan || tradePlan.desktopPendingDraft) {
+    if (!tradePlan) {
+      if (orderFamily === 'pending') {
+        onNotice('Choose Buy or Sell first to create the pending projection.');
+        return;
+      }
       setProtectionIntent(field);
       onNotice(`Choose Buy or Sell to place ${field === 'sl' ? 'SL' : 'TP'} on the chart.`);
       return;
@@ -346,6 +339,7 @@ export default function DesktopOrderTicket({
     const value = defaultProtectionPrice(field);
     if (Number.isFinite(value)) {
       onTradePlanChange({ [field]: value, activeField: field, stage: 'ready' });
+      onNotice(`${field === 'sl' ? 'SL' : 'TP'} active on chart — drag to adjust.`);
     }
   };
 
@@ -359,23 +353,6 @@ export default function DesktopOrderTicket({
     const distance = Math.abs(entry - sl) * Number(ratio);
     const nextTp = selectedSide === 'sell' ? entry - distance : entry + distance;
     onTradePlanChange({ tp: nextTp, activeField: 'tp', stage: 'ready' });
-  };
-
-  const lockSideForProtection = (side, type) => {
-    const field = protectionIntent;
-    const patch = {
-      side,
-      orderType: type,
-      desktopPendingDraft: false,
-      sizingMode: activeSizingMode,
-      manualLots: normalizedLots,
-      stage: 'ready',
-    };
-    const protection = defaultProtectionPrice(field, side);
-    if (field && Number.isFinite(protection)) patch[field] = protection;
-    onTradePlanChange(patch);
-    setProtectionIntent(null);
-    onNotice(`${field === 'tp' ? 'TP' : 'SL'} active on chart — drag to adjust.`);
   };
 
   const switchPlannedMarketSide = side => {
@@ -424,29 +401,38 @@ export default function DesktopOrderTicket({
     }
 
     if (!tradePlan) {
-      onNotice('Pending price is not ready yet.');
+      onOrderTypeChange('limit');
+      onStartPlan(side, 'limit', {
+        protection: 'none',
+        desktopPendingDraft: true,
+      });
+      onNotice(`${side === 'buy' ? 'Buy' : 'Sell'} Limit projection active — drag entry, adjust lots, then press ${side === 'buy' ? 'Buy' : 'Sell'} again to place.`);
+      return;
+    }
+
+    if (tradePlan.editingOrderId && selectedSide && selectedSide !== side) return;
+
+    if (tradePlan.desktopPendingDraft && selectedSide && selectedSide !== side) {
+      onOrderTypeChange('limit');
+      onStartPlan(side, 'limit', {
+        protection: 'none',
+        desktopPendingDraft: true,
+      });
+      onNotice(`${side === 'buy' ? 'Buy' : 'Sell'} Limit projection active — drag entry or adjust lots.`);
       return;
     }
 
     const nextType = inferredPendingType(side);
 
-    if (tradePlan.editingOrderId && selectedSide && selectedSide !== side) return;
-
-    if (protectionIntent) {
-      lockSideForProtection(side, nextType);
-      return;
-    }
-
     if (activeSizingMode === 'risk' && !hasStopLoss) {
       onTradePlanChange({
         side,
         orderType: nextType,
-        desktopPendingDraft: false,
         sizingMode: 'risk',
         manualLots: normalizedLots,
         stage: 'ready',
       });
-      onNotice('Stop loss required when using risk sizing.');
+      onNotice('Set SL to calculate size before placing the pending order.');
       return;
     }
 
