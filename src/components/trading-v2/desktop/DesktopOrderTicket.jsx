@@ -308,6 +308,40 @@ export default function DesktopOrderTicket({
     return price > bid ? 'limit' : 'stop';
   };
 
+  useEffect(() => {
+    if (
+      orderFamily !== 'pending'
+      || !tradePlan?.desktopPendingDraft
+      || tradePlan?.editingOrderId
+      || tradePlan?.desktopExplicitStopLimit
+      || !['buy', 'sell'].includes(selectedSide)
+    ) return;
+
+    const price = Number(tradePlan?.entry);
+    const bid = Number(market?.bid);
+    const ask = Number(market?.ask);
+    if (![price, bid, ask].every(Number.isFinite)) return;
+    const nextType = selectedSide === 'buy'
+      ? (price < ask ? 'limit' : 'stop')
+      : (price > bid ? 'limit' : 'stop');
+    if (nextType === String(tradePlan?.orderType || '').toLowerCase()) return;
+
+    onOrderTypeChange(nextType);
+    onTradePlanChange({ orderType: nextType, stage: 'ready' });
+  }, [
+    market?.ask,
+    market?.bid,
+    onOrderTypeChange,
+    onTradePlanChange,
+    orderFamily,
+    selectedSide,
+    tradePlan?.desktopExplicitStopLimit,
+    tradePlan?.desktopPendingDraft,
+    tradePlan?.editingOrderId,
+    tradePlan?.entry,
+    tradePlan?.orderType,
+  ]);
+
   const defaultProtectionPrice = (field, sideOverride = selectedSide) => {
     const side = sideOverride === 'sell' ? 'sell' : 'buy';
     const base = finitePositive(tradePlan?.entry)
