@@ -1016,8 +1016,8 @@ export default function DesktopTerminal({
             gridTemplateRows: `minmax(0, 1fr) ${dockHeight}px`,
           }}
         >
-          <section ref={chartWorkspaceRef} className="relative grid min-h-0 min-w-0 overflow-hidden rounded-[10px] border border-white/[0.06] bg-[#080A0C] shadow-[inset_0_1px_0_rgba(255,255,255,0.015),0_8px_22px_rgba(0,0,0,.20)] grid-rows-[minmax(0,1fr)]" style={{ gridColumn: '1', gridRow: '1' }}>
-            <div className="min-h-0 min-w-0 bg-[#080A0C] p-0.5">
+          <section ref={chartWorkspaceRef} className="relative grid min-h-0 min-w-0 overflow-hidden bg-black grid-rows-[minmax(0,1fr)]" style={{ gridColumn: '1', gridRow: '1' }}>
+            <div className="min-h-0 min-w-0 bg-black p-0">
               <DesktopMultiChart
                 compactContext={positionsExpanded}
                 config={multiChart}
