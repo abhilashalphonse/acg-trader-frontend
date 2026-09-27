@@ -2176,3 +2176,317 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
     scroll-behavior:auto!important;
   }
 }
+
+/* ==========================================================================
+   Desktop readability + density pass
+   Scope: desktop/large screens only. This entire block is intentionally
+   isolated so the visual experiment can be reverted as one commit.
+   ========================================================================== */
+@media (min-width:1024px){
+  .acg-terminal{
+    --acg-desktop-canvas:#000000;
+    --acg-desktop-panel:#0d0f12;
+    --acg-desktop-panel-2:#101216;
+    --acg-desktop-control:#12151a;
+    --acg-desktop-control-hover:#171b20;
+    --acg-desktop-text:#f4f6f8;
+    --acg-desktop-text-2:#b1bac4;
+    --acg-desktop-muted:#88939e;
+    --acg-desktop-border:rgba(255,255,255,.072);
+    --acg-desktop-border-strong:rgba(255,255,255,.105);
+
+    background:var(--acg-desktop-canvas)!important;
+    color:var(--acg-desktop-text)!important;
+    gap:6px!important;
+    padding:6px!important;
+    font-feature-settings:"tnum" 1,"ss01" 1;
+  }
+
+  /* Surfaces: black canvas with visibly lighter metallic working panels. */
+  .acg-terminal .acg-desktop-market-strip,
+  .acg-terminal .acg-desktop-order,
+  .acg-terminal .acg-desktop-positions,
+  .acg-terminal aside[style*="grid-column: 1"],
+  .acg-terminal aside[style*="grid-column: 2"],
+  .acg-terminal aside[style*="grid-column: 3"]{
+    background:var(--acg-desktop-panel)!important;
+    border-color:var(--acg-desktop-border)!important;
+  }
+
+  .acg-terminal .acg-desktop-market-strip{
+    height:50px!important;
+    border-radius:10px!important;
+    padding-left:12px!important;
+    padding-right:12px!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.018),0 6px 18px rgba(0,0,0,.22)!important;
+  }
+
+  .acg-terminal [class*="rounded-[16px]"],
+  .acg-terminal [class*="rounded-[14px]"]{
+    border-radius:10px!important;
+  }
+  .acg-terminal [class*="rounded-[13px]"],
+  .acg-terminal [class*="rounded-[12px]"]{
+    border-radius:8px!important;
+  }
+
+  .acg-terminal [class*="border-white/"]{
+    border-color:var(--acg-desktop-border)!important;
+  }
+
+  /* Restore a brighter neutral type hierarchy after the pure-black guardrail. */
+  .acg-terminal [class*="text-[#53616c]" i],
+  .acg-terminal [class*="text-[#556572]" i],
+  .acg-terminal [class*="text-[#586875]" i],
+  .acg-terminal [class*="text-[#5f6d79]" i],
+  .acg-terminal [class*="text-[#637484]" i],
+  .acg-terminal [class*="text-[#647382]" i],
+  .acg-terminal [class*="text-[#687784]" i],
+  .acg-terminal [class*="text-[#697988]" i],
+  .acg-terminal [class*="text-[#6f7f8c]" i],
+  .acg-terminal [class*="text-[#6f8191]" i],
+  .acg-terminal [class*="text-[#71808e]" i],
+  .acg-terminal [class*="text-[#72808d]" i],
+  .acg-terminal [class*="text-[#74808b]" i],
+  .acg-terminal [class*="text-[#75828e]" i],
+  .acg-terminal [class*="text-[#77838f]" i],
+  .acg-terminal [class*="text-[#8094a7]" i],
+  .acg-terminal [class*="text-[#8996a1]" i],
+  .acg-terminal [class*="text-[#8b98a4]" i],
+  .acg-terminal [class*="text-[#8d98a3]" i],
+  .acg-terminal [class*="text-[#8f9aa8]" i]{
+    color:var(--acg-desktop-muted)!important;
+  }
+
+  .acg-terminal [class*="text-[#9a" i],
+  .acg-terminal [class*="text-[#a1afbc]" i],
+  .acg-terminal [class*="text-[#aab5bf]" i],
+  .acg-terminal [class*="text-[#b1" i],
+  .acg-terminal [class*="text-[#c7d1d9]" i],
+  .acg-terminal [class*="text-[#cdd7df]" i]{
+    color:var(--acg-desktop-text-2)!important;
+  }
+
+  .acg-terminal [class*="text-[#e6edf3]" i],
+  .acg-terminal [class*="text-[#e9edf3]" i],
+  .acg-terminal [class*="text-[#eef2f5]" i],
+  .acg-terminal [class*="text-[#eef3f7]" i],
+  .acg-terminal [class*="text-[#f0f3f5]" i],
+  .acg-terminal [class*="text-[#f1f4f6]" i],
+  .acg-terminal [class*="text-[#f2f2f2]" i],
+  .acg-terminal [class*="text-[#f3f6f8]" i],
+  .acg-terminal [class*="text-[#f4f6f8]" i]{
+    color:var(--acg-desktop-text)!important;
+  }
+
+  /* Header: brighter symbol/account data, less dead vertical space. */
+  .acg-terminal .acg-desktop-market-strip [class*="text-[6px]"]{font-size:8px!important}
+  .acg-terminal .acg-desktop-market-strip [class*="text-[7px]"]{font-size:9px!important}
+  .acg-terminal .acg-desktop-market-strip [class*="text-[8px]"]{font-size:10px!important}
+  .acg-terminal .acg-desktop-market-strip [class*="text-[9px]"]{font-size:10.5px!important}
+  .acg-terminal .acg-desktop-market-strip [class*="text-[10px]"]{font-size:11px!important}
+  .acg-terminal .acg-desktop-market-strip [class*="text-[14px]"]{font-size:15px!important}
+
+  .acg-terminal .acg-desktop-chart-toolbar{
+    padding-left:8px!important;
+    padding-right:8px!important;
+  }
+  .acg-terminal .terminal-toolbar-group{
+    height:34px!important;
+    border-radius:8px!important;
+    background:var(--acg-desktop-panel-2)!important;
+    border-color:var(--acg-desktop-border)!important;
+  }
+  .acg-terminal .terminal-toolbar-group button{
+    min-width:34px!important;
+    padding-left:7px!important;
+    padding-right:7px!important;
+  }
+  .acg-terminal [aria-label="Switch trading account"]{
+    height:36px!important;
+    background:var(--acg-desktop-control)!important;
+    border-color:var(--acg-desktop-border)!important;
+    border-radius:7px!important;
+  }
+
+  /* Drawing and right-dock rails: darker than controls, lighter than canvas. */
+  .acg-terminal aside[aria-label="Drawing tools"],
+  .acg-terminal aside[aria-label="Desktop panel dock"]{
+    background:var(--acg-desktop-panel)!important;
+    border-color:var(--acg-desktop-border)!important;
+  }
+  .acg-terminal aside[aria-label="Drawing tools"] button{
+    border-radius:6px!important;
+  }
+
+  /* Execution rail: TradingView-like density + readable hierarchy. */
+  .acg-terminal .acg-desktop-order{
+    color:var(--acg-desktop-text)!important;
+  }
+  .acg-terminal .acg-desktop-order>div:first-child{
+    height:40px!important;
+    background:var(--acg-desktop-panel)!important;
+    border-color:var(--acg-desktop-border)!important;
+  }
+  .acg-terminal .acg-desktop-order>div:nth-child(2){
+    padding:10px 12px!important;
+  }
+  .acg-terminal .acg-desktop-order>div:last-child{
+    background:var(--acg-desktop-panel)!important;
+    border-color:var(--acg-desktop-border)!important;
+    padding:9px 12px 11px!important;
+  }
+
+  .acg-terminal .acg-desktop-order .mb-3{margin-bottom:10px!important}
+  .acg-terminal .acg-desktop-order .mb-2{margin-bottom:7px!important}
+  .acg-terminal .acg-desktop-order .mb-1\.5{margin-bottom:5px!important}
+  .acg-terminal .acg-desktop-order .mt-2{margin-top:7px!important}
+  .acg-terminal .acg-desktop-order .mt-1\.5{margin-top:5px!important}
+
+  .acg-terminal .acg-desktop-order [class*="text-[8px]"]{font-size:10px!important;line-height:1.25!important}
+  .acg-terminal .acg-desktop-order [class*="text-[9px]"]{font-size:11px!important;line-height:1.25!important}
+  .acg-terminal .acg-desktop-order [class*="text-[10px]"]{font-size:12px!important;line-height:1.2!important}
+  .acg-terminal .acg-desktop-order [class*="text-[11px]"]{font-size:12.5px!important;line-height:1.2!important}
+  .acg-terminal .acg-desktop-order [class*="text-[12px]"]{font-size:13px!important}
+  .acg-terminal .acg-desktop-order [class*="text-[14px]"]{font-size:15px!important}
+  .acg-terminal .acg-desktop-order [class*="text-[16px]"]{font-size:16px!important}
+  .acg-terminal .acg-desktop-order [class*="text-[18px]"]{font-size:18px!important}
+
+  .acg-terminal .acg-desktop-order input,
+  .acg-terminal .acg-desktop-order select,
+  .acg-terminal .acg-desktop-order textarea{
+    background:var(--acg-desktop-control)!important;
+    border-color:var(--acg-desktop-border)!important;
+    color:var(--acg-desktop-text)!important;
+    border-radius:6px!important;
+  }
+  .acg-terminal .acg-desktop-order input[class*="h-8"],
+  .acg-terminal .acg-desktop-order select[class*="h-8"]{height:36px!important}
+  .acg-terminal .acg-desktop-order input[class*="h-11"]{height:40px!important}
+  .acg-terminal .acg-desktop-order button[class*="h-7"]{height:31px!important}
+  .acg-terminal .acg-desktop-order button[class*="h-8"]{height:34px!important}
+  .acg-terminal .acg-desktop-order button[class*="h-9"]{height:36px!important}
+
+  .acg-terminal .acg-desktop-order [class*="bg-black"],
+  .acg-terminal .acg-desktop-order [class*="bg-[#08090a]" i],
+  .acg-terminal .acg-desktop-order [class*="bg-[#0c0c0e]" i]{
+    background:var(--acg-desktop-control)!important;
+  }
+
+  .acg-terminal .acg-desktop-order .rounded-md{border-radius:6px!important}
+
+  /* Margin / free-after should be unmistakable immediately before execution. */
+  .acg-terminal .acg-desktop-order>div:last-child [class*="text-[9px]"]{
+    color:var(--acg-desktop-muted)!important;
+    font-size:10px!important;
+    font-weight:600!important;
+  }
+  .acg-terminal .acg-desktop-order>div:last-child [class*="text-[12px]"]{
+    color:var(--acg-desktop-text)!important;
+    font-size:14px!important;
+    font-weight:700!important;
+  }
+  .acg-terminal .acg-desktop-order>div:last-child>div:last-child button{
+    height:56px!important;
+    border-radius:7px!important;
+    background:#101216!important;
+  }
+  .acg-terminal .acg-desktop-order>div:last-child>div:last-child button strong{
+    font-size:12px!important;
+    letter-spacing:.035em!important;
+  }
+  .acg-terminal .acg-desktop-order>div:last-child>div:last-child button span{
+    font-size:16px!important;
+    line-height:1.05!important;
+    color:var(--acg-desktop-text)!important;
+  }
+
+  /* Keep semantic execution color on text/borders, not giant filled cards. */
+  .acg-terminal .acg-desktop-order>div:last-child>div:last-child button:first-child{
+    border-color:rgba(212,90,100,.58)!important;
+  }
+  .acg-terminal .acg-desktop-order>div:last-child>div:last-child button:last-child{
+    border-color:rgba(25,91,225,.68)!important;
+  }
+
+  /* Chart shell: preserve black chart canvas while making chrome legible. */
+  .acg-terminal .v2-lightweight-chart{
+    background:#000!important;
+  }
+  .acg-terminal .v2-chart-error{
+    color:var(--acg-desktop-text-2)!important;
+  }
+  .acg-terminal section [class*="text-[7px]"]{font-size:8.5px}
+  .acg-terminal section [class*="text-[8px]"]{font-size:9.5px}
+  .acg-terminal section [class*="text-[9px]"]{font-size:10px}
+
+  /* ASK/BID and projection labels stay compact so they do not cover candles. */
+  .acg-terminal [class*="absolute"] [class*="font-mono"][class*="text-[8px]"],
+  .acg-terminal [class*="absolute"] [class*="font-mono"][class*="text-[9px]"]{
+    font-size:9px!important;
+    line-height:1.15!important;
+  }
+
+  /* Bottom terminal: compact, bright, and information-dense. */
+  .acg-terminal .acg-desktop-positions{
+    border-radius:10px!important;
+    color:var(--acg-desktop-text)!important;
+  }
+  .acg-terminal .acg-desktop-positions>div:first-child{
+    min-height:40px!important;
+    background:var(--acg-desktop-panel)!important;
+  }
+  .acg-terminal .acg-desktop-positions [class*="text-[7px]"]{font-size:9px!important}
+  .acg-terminal .acg-desktop-positions [class*="text-[8px]"]{font-size:10px!important}
+  .acg-terminal .acg-desktop-positions [class*="text-[9px]"]{font-size:10.5px!important}
+  .acg-terminal .acg-desktop-positions [class*="text-[10px]"]{font-size:11px!important}
+  .acg-terminal .acg-desktop-positions [class*="text-[11px]"]{font-size:12px!important}
+  .acg-terminal .acg-desktop-positions [class*="border-b"]{
+    border-color:rgba(255,255,255,.05)!important;
+  }
+
+  /* Side panels / lists: readable labels, reduced card-like padding. */
+  .acg-terminal aside [class*="text-[7px]"]{font-size:8.5px!important}
+  .acg-terminal aside [class*="text-[8px]"]{font-size:10px!important}
+  .acg-terminal aside [class*="text-[9px]"]{font-size:10.5px!important}
+  .acg-terminal aside [class*="text-[10px]"]{font-size:11px!important}
+  .acg-terminal aside input,
+  .acg-terminal aside select{
+    background:var(--acg-desktop-control)!important;
+    color:var(--acg-desktop-text)!important;
+    border-color:var(--acg-desktop-border)!important;
+  }
+
+  /* Popovers: distinguish them from the pure-black workspace without a blue cast. */
+  .acg-terminal .acg-motion-popover{
+    background:#111419!important;
+    border-color:var(--acg-desktop-border-strong)!important;
+  }
+
+  /* Compact account summary: account code bright, plan details clearly secondary. */
+  .acg-terminal [aria-label="Switch trading account"] strong{
+    color:var(--acg-desktop-text)!important;
+    font-size:11px!important;
+    font-weight:700!important;
+  }
+  .acg-terminal [aria-label="Switch trading account"] span[class*="text-"]{
+    font-size:10px!important;
+    color:var(--acg-desktop-text-2)!important;
+  }
+
+  /* Keep rows and numerical updates stable while increasing readability. */
+  .acg-terminal [class*="font-mono"]{
+    font-variant-numeric:tabular-nums;
+    font-feature-settings:"tnum" 1;
+  }
+
+  /* At large desktop widths, let the extra space improve readability rather than
+     simply adding padding. */
+  @media (min-width:1440px){
+    .acg-terminal .acg-desktop-order [class*="text-[8px]"]{font-size:10.5px!important}
+    .acg-terminal .acg-desktop-order [class*="text-[9px]"]{font-size:11.5px!important}
+    .acg-terminal .acg-desktop-market-strip [class*="text-[8px]"]{font-size:10.5px!important}
+    .acg-terminal .acg-desktop-positions [class*="text-[8px]"]{font-size:10.5px!important}
+  }
+}
+
