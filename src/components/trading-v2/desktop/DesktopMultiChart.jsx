@@ -31,6 +31,8 @@ export default function DesktopMultiChart({
   pendingOrders = [],
   onModifyPending = () => {},
   onCancelPending = () => {},
+  onMovePending = () => {},
+  onCancelTradePlan = () => {},
   selectedTool = 'cursor',
   onSelectedToolChange = () => {},
   chartMode = 'candles',
@@ -168,6 +170,8 @@ export default function DesktopMultiChart({
                   pendingOrders={cellPendingOrders}
                   onModifyPending={onModifyPending}
                   onCancelPending={onCancelPending}
+                  onMovePending={onMovePending}
+                  onCancelTradePlan={onCancelTradePlan}
                 />
               </div>
             </section>
