@@ -314,6 +314,13 @@ function PendingOrderOverlay({
           ? Number(order.limitPrice)
           : null;
         const secondaryY = secondary == null ? null : coordinateApi.priceToY(secondary);
+        const beginPlacedDrag = (event, field = 'entry') => {
+          if (!desktopStyle) return;
+          event.preventDefault();
+          event.stopPropagation();
+          setDraggingOrderId(order.id);
+          setDraggingField(field);
+        };
 
         return [
           <div key={`${order.id}:entry`} className="pointer-events-none absolute left-0 right-0 z-[21]" style={{ top: y }}>
@@ -336,6 +343,13 @@ function PendingOrderOverlay({
                   <>
                     <button
                       type="button"
+                      onPointerDown={event => {
+                        if (!Number.isFinite(Number(order?.tp))) {
+                          event.stopPropagation();
+                          return;
+                        }
+                        beginPlacedDrag(event, 'tp');
+                      }}
                       onClick={event => {
                         event.preventDefault();
                         event.stopPropagation();
@@ -349,6 +363,13 @@ function PendingOrderOverlay({
                     </button>
                     <button
                       type="button"
+                      onPointerDown={event => {
+                        if (!Number.isFinite(Number(order?.sl))) {
+                          event.stopPropagation();
+                          return;
+                        }
+                        beginPlacedDrag(event, 'sl');
+                      }}
                       onClick={event => {
                         event.preventDefault();
                         event.stopPropagation();
@@ -362,16 +383,28 @@ function PendingOrderOverlay({
                     </button>
                   </>
                 )}
-                <span className="flex min-w-[42px] items-center justify-center border-r border-white/20 px-2">
+                <span
+                  onPointerDown={event => beginPlacedDrag(event, 'entry')}
+                  className={`flex min-w-[42px] items-center justify-center border-r border-white/20 px-2 ${desktopStyle ? 'cursor-ns-resize' : ''}`}
+                  title={desktopStyle ? 'Drag pending entry price' : undefined}
+                >
                   {Number.isFinite(lots)
                     ? (desktopStyle ? lots.toFixed(Math.max(2, Number(instrument?.volumeStep) < 0.01 ? 3 : 2)) : formatPositionLots(lots))
                     : '—'}
                 </span>
-                <span className={`flex min-w-[76px] items-center justify-center border-r border-white/20 px-2 ${side === 'BUY' ? 'text-[#35e0a4]' : 'text-[#ff6b77]'}`}>
+                <span
+                  onPointerDown={event => beginPlacedDrag(event, 'entry')}
+                  className={`flex min-w-[76px] items-center justify-center border-r border-white/20 px-2 ${side === 'BUY' ? 'text-[#35e0a4]' : 'text-[#ff6b77]'} ${desktopStyle ? 'cursor-ns-resize' : ''}`}
+                  title={desktopStyle ? 'Drag pending entry price' : undefined}
+                >
                   {side} {type}
                 </span>
                 <button
                   type="button"
+                  onPointerDown={event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }}
                   onClick={event => {
                     event.preventDefault();
                     event.stopPropagation();
@@ -703,12 +736,26 @@ function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, 
     onChange({ [kind]: next, activeField: kind, stage: 'ready' });
   };
 
+  const beginProjectedDrag = (event, kind = 'entry') => {
+    event.preventDefault();
+    event.stopPropagation();
+    setDragging(kind);
+    onChange({ activeField: ['sl', 'tp'].includes(kind) ? kind : plan?.activeField, stage: `dragging-${kind}` });
+  };
+
   const desktopPendingEntry = desktopPendingStyle && entryY != null ? (
     <div className="absolute left-0 right-0 z-30" style={{ top: entryY }}>
       <div className="relative border-t border-dotted border-[#3b78d8]/90">
         <div className="pointer-events-auto absolute left-3 top-1/2 z-10 flex h-7 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border border-dotted border-[#3b78d8]/80 bg-[#09090b]/96 font-mono text-[9px] font-medium tabular-nums shadow-[0_4px_14px_rgba(0,0,0,.28)]">
           <button
             type="button"
+            onPointerDown={event => {
+              if (liveTp == null) {
+                event.stopPropagation();
+                return;
+              }
+              beginProjectedDrag(event, 'tp');
+            }}
             onClick={event => {
               event.preventDefault();
               event.stopPropagation();
@@ -721,6 +768,13 @@ function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, 
           </button>
           <button
             type="button"
+            onPointerDown={event => {
+              if (liveSl == null) {
+                event.stopPropagation();
+                return;
+              }
+              beginProjectedDrag(event, 'sl');
+            }}
             onClick={event => {
               event.preventDefault();
               event.stopPropagation();
@@ -731,10 +785,26 @@ function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, 
           >
             SL
           </button>
-          <span className="flex min-w-[46px] items-center justify-center border-r border-dotted border-[#3b78d8]/55 px-2 text-[#d9e1e8]">{Number.isFinite(displayLots) ? displayLots.toFixed(Math.max(2, Number(instrument?.volumeStep) < 0.01 ? 3 : 2)) : '—'}</span>
-          <span className={`flex min-w-[84px] items-center justify-center border-r border-dotted border-[#3b78d8]/55 px-2 ${isBuy ? 'text-[#35d79d]' : 'text-[#d45a64]'}`}>{entryLabel}</span>
+          <span
+            onPointerDown={event => beginProjectedDrag(event, 'entry')}
+            className="flex min-w-[46px] cursor-ns-resize items-center justify-center border-r border-dotted border-[#3b78d8]/55 px-2 text-[#d9e1e8]"
+            title="Drag pending entry price"
+          >
+            {Number.isFinite(displayLots) ? displayLots.toFixed(Math.max(2, Number(instrument?.volumeStep) < 0.01 ? 3 : 2)) : '—'}
+          </span>
+          <span
+            onPointerDown={event => beginProjectedDrag(event, 'entry')}
+            className={`flex min-w-[84px] cursor-ns-resize items-center justify-center border-r border-dotted border-[#3b78d8]/55 px-2 ${isBuy ? 'text-[#35d79d]' : 'text-[#d45a64]'}`}
+            title="Drag pending entry price"
+          >
+            {entryLabel}
+          </span>
           <button
             type="button"
+            onPointerDown={event => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
             onClick={event => {
               event.preventDefault();
               event.stopPropagation();
@@ -753,12 +823,7 @@ function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, 
         <button
           type="button"
           aria-label="Drag pending entry"
-          onPointerDown={event => {
-            event.preventDefault();
-            event.stopPropagation();
-            setDragging('entry');
-            onChange({ stage: 'dragging-entry' });
-          }}
+          onPointerDown={event => beginProjectedDrag(event, 'entry')}
           className="pointer-events-auto absolute left-[235px] right-[56px] top-1/2 z-0 h-8 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent lg:right-2"
         />
       </div>
@@ -774,19 +839,36 @@ function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, 
       {showEntry && !desktopPendingStyle && line('entry', 'entry', '#42a5ff', entryLabel, formatInstrumentPrice(sourcePrice('entry'), instrument), Boolean(plan.pending))}
       {showEntry && plan.pending && plan.orderType === 'stop-limit' && line('limit', 'limitPrice', '#b58cff', 'LIMIT', formatInstrumentPrice(sourcePrice('limitPrice'), instrument), true)}
       {line('sl', 'sl', '#ff5968', 'SL', `SL ${formatInstrumentPrice(liveSl, instrument)}`, true)}
-      {dragging && !positionProtectionMode && (
-        <div className="pointer-events-none absolute right-[64px] top-3 z-40 rounded-lg border border-white/10 bg-[#080808]/95 px-2.5 py-1.5 text-right shadow-xl lg:right-[86px]">
-          <div className="text-[8px] uppercase tracking-[0.12em] text-[#708397]">{dragging === 'sl' ? 'Stop loss' : dragging === 'tp' ? 'Take profit' : dragging === 'limit' ? 'Limit price' : 'Entry price'}</div>
-          <strong className={`mt-0.5 block text-[11px] ${dragging === 'sl' ? 'text-[#ff6b78]' : dragging === 'tp' ? 'text-[#53e0ad]' : 'text-[#69bdff]'}`}>{formatInstrumentPrice(sourcePrice(dragging === 'limit' ? 'limitPrice' : dragging), instrument)}</strong>
-          {(dragging === 'sl' || dragging === 'tp') && (
-            <span className="mt-0.5 block font-mono text-[8px] tabular-nums text-[#8d9aa5]">
-              {lotLabel} · {dragging === 'sl'
-                ? (Number.isFinite(liveRisk) ? formatProjectedPnl(-Math.abs(liveRisk), accountCurrency) : '—')
-                : (Number.isFinite(liveReward) ? formatProjectedPnl(Math.abs(liveReward), accountCurrency) : '—')}
-            </span>
-          )}
-        </div>
-      )}
+      {dragging && !positionProtectionMode && (() => {
+        const dragField = dragging === 'limit' ? 'limitPrice' : dragging;
+        const dragPrice = sourcePrice(dragField);
+        const dragLabel = dragging === 'sl'
+          ? 'Stop loss'
+          : dragging === 'tp'
+            ? 'Take profit'
+            : dragging === 'limit'
+              ? 'Limit price'
+              : 'Entry price';
+        const dragTone = dragging === 'sl'
+          ? 'text-[#ff6b78]'
+          : dragging === 'tp'
+            ? 'text-[#53e0ad]'
+            : 'text-[#69bdff]';
+
+        return (
+          <div className="pointer-events-none absolute right-[64px] top-3 z-40 rounded-lg border border-white/10 bg-[#080808]/95 px-2.5 py-1.5 text-right shadow-xl lg:right-[86px]">
+            <div className="text-[8px] uppercase tracking-[0.12em] text-[#708397]">{dragLabel}</div>
+            <strong className={`mt-0.5 block text-[11px] ${dragTone}`}>{formatInstrumentPrice(dragPrice, instrument)}</strong>
+            {(dragging === 'sl' || dragging === 'tp') && (
+              <span className="mt-0.5 block font-mono text-[8px] tabular-nums text-[#8d9aa5]">
+                {lotLabel} · {dragging === 'sl'
+                  ? (Number.isFinite(liveRisk) ? formatProjectedPnl(-Math.abs(liveRisk), accountCurrency) : '—')
+                  : (Number.isFinite(liveReward) ? formatProjectedPnl(Math.abs(liveReward), accountCurrency) : '—')}
+              </span>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
