@@ -41,6 +41,7 @@ import { marketApi } from '../../api/market.js';
 const timeframes = [['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], ['1H', '1H'], ['4H', '4H'], ['1D', '1D'], ['1W', '1W']];
 const DESKTOP_LAYOUT_KEY = 'acg-trader-desktop-layout-v2';
 const MULTI_CHART_KEY = 'acg-trader-multi-chart-v1';
+const FLOATING_ORDER_KEY = 'acg-trader-floating-order-v1';
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, Number(value)));
@@ -132,8 +133,24 @@ function loadDesktopLayout() {
   }
 }
 
+function loadFloatingOrder() {
+  const fallback = { x: 72, y: 18, collapsed: false };
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(FLOATING_ORDER_KEY) || 'null');
+    if (!stored || typeof stored !== 'object') return fallback;
+    return {
+      x: Number.isFinite(Number(stored.x)) ? Math.max(8, Number(stored.x)) : fallback.x,
+      y: Number.isFinite(Number(stored.y)) ? Math.max(8, Number(stored.y)) : fallback.y,
+      collapsed: stored.collapsed === true,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 function cloneIndicators(items) {
-  return Array.isArray(items) ? items.map(item => ({ ...item, settings: { ...(item?.settings || {}) } })) : [];
+  return Array.isArray(items) ? items.map(item => ({ ...item, settings: { ...(item.settings || {}) } })) : [];
 }
 
 function sameIndicators(a, b) {
@@ -303,6 +320,8 @@ export default function DesktopTerminal({
   readOnly = false,
 }) {
   const shellRef = useRef(null);
+  const chartWorkspaceRef = useRef(null);
+  const floatingOrderRef = useRef(null);
   const searchRef = useRef(null);
   const [activeNav, setActiveNav] = useState('trade');
   const [notice, setNotice] = useState('');
@@ -313,6 +332,7 @@ export default function DesktopTerminal({
   const [requestedDockTab, setRequestedDockTab] = useState(null);
   const [positionsExpanded, setPositionsExpanded] = useState(false);
   const [desktopLayout, setDesktopLayout] = useState(loadDesktopLayout);
+  const [floatingOrder, setFloatingOrder] = useState(loadFloatingOrder);
   const [viewportHeight, setViewportHeight] = useState(() => typeof window !== 'undefined' ? window.innerHeight : 900);
   const [viewportWidth, setViewportWidth] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1440);
   const [market24hStats, setMarket24hStats] = useState({ symbol: null, high: null, low: null, volume: null });
@@ -360,6 +380,14 @@ export default function DesktopTerminal({
       // Layout persistence is optional.
     }
   }, [desktopLayout]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(FLOATING_ORDER_KEY, JSON.stringify(floatingOrder));
+    } catch {
+      // Floating widget persistence is optional.
+    }
+  }, [floatingOrder]);
 
   useEffect(() => {
     const onResize = () => {
@@ -551,6 +579,8 @@ export default function DesktopTerminal({
       : desktopLayout.dockHeight;
   const dockBodyVisible = positionsExpanded
     || (!desktopLayout.dockCollapsed && dockHeight > compactDockThreshold);
+  const tradeSidebarOpen = !desktopLayout.sidebarCollapsed && activeNav === 'trade' && !positionsExpanded;
+  const floatingExecutionVisible = !readOnly && !positionsExpanded && !tradeSidebarOpen;
   const updateSidebarWidth = value => setDesktopLayout(current => {
     const nextSidebar = clamp(value, widthBounds.sidebarMin, widthBounds.sidebarMax);
     const nextMarketBounds = desktopMarketPanelBounds(viewportWidth, nextSidebar);
@@ -572,6 +602,41 @@ export default function DesktopTerminal({
     setSelectedPositionId(null);
     setPositionEditRequest(null);
     setActiveNav(view === 'markets' || view === 'watchlist' ? view : 'trade');
+  };
+
+  const beginFloatingOrderDrag = event => {
+    if (event.button !== 0) return;
+    const workspace = chartWorkspaceRef.current;
+    const widget = floatingOrderRef.current;
+    if (!workspace || !widget) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const bounds = workspace.getBoundingClientRect();
+    const widgetBounds = widget.getBoundingClientRect();
+    const startX = Number(event.clientX);
+    const startY = Number(event.clientY);
+    const startLeft = Number(floatingOrder.x) || 8;
+    const startTop = Number(floatingOrder.y) || 8;
+
+    const move = moveEvent => {
+      const maxX = Math.max(8, bounds.width - widgetBounds.width - 8);
+      const maxY = Math.max(8, bounds.height - widgetBounds.height - 8);
+      const nextX = clamp(startLeft + Number(moveEvent.clientX) - startX, 8, maxX);
+      const nextY = clamp(startTop + Number(moveEvent.clientY) - startY, 8, maxY);
+      setFloatingOrder(current => ({ ...current, x: nextX, y: nextY }));
+    };
+
+    const finish = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', finish);
+      window.removeEventListener('pointercancel', finish);
+    };
+
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', finish, { once: true });
+    window.addEventListener('pointercancel', finish, { once: true });
   };
   const toggleDock = () => {
     if (positionsExpanded) {
@@ -951,7 +1016,7 @@ export default function DesktopTerminal({
             gridTemplateRows: `minmax(0, 1fr) ${dockHeight}px`,
           }}
         >
-          <section className="grid min-h-0 min-w-0 overflow-hidden rounded-[10px] border border-white/[0.06] bg-[#080A0C] shadow-[inset_0_1px_0_rgba(255,255,255,0.015),0_8px_22px_rgba(0,0,0,.20)] grid-rows-[minmax(0,1fr)]" style={{ gridColumn: '1', gridRow: '1' }}>
+          <section ref={chartWorkspaceRef} className="relative grid min-h-0 min-w-0 overflow-hidden rounded-[10px] border border-white/[0.06] bg-[#080A0C] shadow-[inset_0_1px_0_rgba(255,255,255,0.015),0_8px_22px_rgba(0,0,0,.20)] grid-rows-[minmax(0,1fr)]" style={{ gridColumn: '1', gridRow: '1' }}>
             <div className="min-h-0 min-w-0 bg-[#080A0C] p-0.5">
               <DesktopMultiChart
                 compactContext={positionsExpanded}
@@ -994,6 +1059,37 @@ export default function DesktopTerminal({
                 onClosePosition={onClosePosition}
               />
             </div>
+
+            {floatingExecutionVisible && (
+              <div ref={floatingOrderRef} className="absolute z-[90] hidden lg:block" style={{ left: floatingOrder.x, top: floatingOrder.y }}>
+                <DesktopOrderTicket
+                  key={`floating-order-${account?.id || 'none'}`}
+                  variant="floating"
+                  floatingCollapsed={floatingOrder.collapsed}
+                  onFloatingDragStart={beginFloatingOrderDrag}
+                  onToggleFloatingCollapsed={() => setFloatingOrder(current => ({ ...current, collapsed: !current.collapsed }))}
+                  market={market}
+                  account={account}
+                  exposureAllowed={exposureAllowed}
+                  exposureBlockReason={exposureBlockReason}
+                  lots={lots}
+                  onLotsChange={onLotsChange}
+                  sizingMode={sizingMode}
+                  onSizingModeChange={onSizingModeChange}
+                  riskPercent={riskPercent}
+                  onRiskPercentChange={onRiskPercentChange}
+                  orderType={orderType}
+                  onOrderTypeChange={onOrderTypeChange}
+                  tradePlan={tradePlan}
+                  onStartPlan={onStartPlan}
+                  onCancelPlan={onCancelPlan}
+                  onExecutePlan={onExecutePlan}
+                  onManualOrder={submitOneClick}
+                  onTradePlanChange={onTradePlanChange}
+                  onNotice={setNotice}
+                />
+              </div>
+            )}
           </section>
 
           {!desktopLayout.sidebarCollapsed && !positionsExpanded && (
