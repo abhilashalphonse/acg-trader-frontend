@@ -65,3 +65,22 @@ test('validation can preserve a modeled volume-adjusted market entry', () => {
   assert.equal(refreshed.code, 'INVALID_SL_GEOMETRY');
   assert.equal(modeled.valid, true);
 });
+
+
+test('risk sizing can be selected before direction and BUY/SELL seeds only the required stop', () => {
+  const plan = createDefaultTradePlan({
+    side: 'sell',
+    requestedType: 'market',
+    market: eurusd,
+    sizingMode: 'risk',
+    lots: 0.2,
+    protection: 'sl',
+  });
+
+  assert.equal(plan.sizingMode, 'risk');
+  assert.equal(plan.side, 'sell');
+  assert.ok(Number.isFinite(plan.sl));
+  assert.equal(plan.tp, null);
+  assert.ok(plan.sl > plan.entry);
+  assert.equal(validateTradePlanForExecution(plan, eurusd).valid, true);
+});
