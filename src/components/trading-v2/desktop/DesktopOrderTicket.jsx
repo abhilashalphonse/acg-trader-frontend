@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ChevronDown, Minus, Plus, X } from 'lucide-react';
 import { decimalPlaces, normalizeVolumeToStep } from '../../../utils/tradingCommandNormalization.js';
 import {
@@ -90,7 +90,7 @@ export default function DesktopOrderTicket({
   const [limitFocused, setLimitFocused] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [protectionIntent, setProtectionIntent] = useState(null);
-  const pendingDraftStartedRef = useRef(false);
+  const [marketLotsBeforePending, setMarketLotsBeforePending] = useState(null);
 
   const currency = account?.currency || 'USD';
   const equity = Number(account?.equity);
@@ -278,35 +278,31 @@ export default function DesktopOrderTicket({
   const chooseFamily = family => {
     setProtectionIntent(null);
     if (family === 'market') {
-      pendingDraftStartedRef.current = false;
       onOrderTypeChange('market');
       if (tradePlan) onCancelPlan();
+      if (Number.isFinite(Number(marketLotsBeforePending))) {
+        const restored = normalizeVolumeToStep(marketLotsBeforePending, market, { rounding: 'nearest' });
+        onLotsChange(restored);
+        setLotInput(Number(restored).toFixed(lotDecimals));
+        setMarketLotsBeforePending(null);
+      }
+      return;
+    }
+
+    if (orderFamily !== 'pending') {
+      if (tradePlan) onCancelPlan();
+      setMarketLotsBeforePending(normalizedLots);
+      const defaultLots = normalizeVolumeToStep(1, market, { rounding: 'nearest' });
+      onLotsChange(defaultLots);
+      onSizingModeChange('lots');
+      setLotInput(Number(defaultLots).toFixed(lotDecimals));
+      onOrderTypeChange('limit');
+      onNotice('Choose Buy or Sell to project a pending order on the chart.');
       return;
     }
 
     onOrderTypeChange(orderType === 'market' ? 'limit' : orderType);
-    if (!tradePlan?.pending) {
-      pendingDraftStartedRef.current = true;
-      onStartPlan('buy', orderType === 'market' ? 'limit' : orderType, {
-        protection: 'none',
-        desktopPendingDraft: true,
-      });
-    }
   };
-
-  useEffect(() => {
-    if (orderFamily !== 'pending') {
-      pendingDraftStartedRef.current = false;
-      return;
-    }
-    if (!tradePlan && !pendingDraftStartedRef.current) {
-      pendingDraftStartedRef.current = true;
-      onStartPlan('buy', orderType === 'market' ? 'limit' : orderType, {
-        protection: 'none',
-        desktopPendingDraft: true,
-      });
-    }
-  }, [onStartPlan, orderFamily, orderType, tradePlan]);
 
   const inferredPendingType = side => {
     if (tradePlan?.editingOrderId) return String(tradePlan.orderType || 'limit').toLowerCase();
@@ -319,6 +315,40 @@ export default function DesktopOrderTicket({
     if (side === 'buy') return price < ask ? 'limit' : 'stop';
     return price > bid ? 'limit' : 'stop';
   };
+
+  useEffect(() => {
+    if (
+      orderFamily !== 'pending'
+      || !tradePlan?.desktopPendingDraft
+      || tradePlan?.editingOrderId
+      || tradePlan?.desktopExplicitStopLimit
+      || !['buy', 'sell'].includes(selectedSide)
+    ) return;
+
+    const price = Number(tradePlan?.entry);
+    const bid = Number(market?.bid);
+    const ask = Number(market?.ask);
+    if (![price, bid, ask].every(Number.isFinite)) return;
+    const nextType = selectedSide === 'buy'
+      ? (price < ask ? 'limit' : 'stop')
+      : (price > bid ? 'limit' : 'stop');
+    if (nextType === String(tradePlan?.orderType || '').toLowerCase()) return;
+
+    onOrderTypeChange(nextType);
+    onTradePlanChange({ orderType: nextType, stage: 'ready' });
+  }, [
+    market?.ask,
+    market?.bid,
+    onOrderTypeChange,
+    onTradePlanChange,
+    orderFamily,
+    selectedSide,
+    tradePlan?.desktopExplicitStopLimit,
+    tradePlan?.desktopPendingDraft,
+    tradePlan?.editingOrderId,
+    tradePlan?.entry,
+    tradePlan?.orderType,
+  ]);
 
   const defaultProtectionPrice = (field, sideOverride = selectedSide) => {
     const side = sideOverride === 'sell' ? 'sell' : 'buy';
@@ -338,7 +368,11 @@ export default function DesktopOrderTicket({
       return;
     }
 
-    if (!tradePlan || tradePlan.desktopPendingDraft) {
+    if (!tradePlan) {
+      if (orderFamily === 'pending') {
+        onNotice('Choose Buy or Sell first to create the pending projection.');
+        return;
+      }
       setProtectionIntent(field);
       onNotice(`Choose Buy or Sell to place ${field === 'sl' ? 'SL' : 'TP'} on the chart.`);
       return;
@@ -347,6 +381,7 @@ export default function DesktopOrderTicket({
     const value = defaultProtectionPrice(field);
     if (Number.isFinite(value)) {
       onTradePlanChange({ [field]: value, activeField: field, stage: 'ready' });
+      onNotice(`${field === 'sl' ? 'SL' : 'TP'} active on chart — drag to adjust.`);
     }
   };
 
@@ -360,23 +395,6 @@ export default function DesktopOrderTicket({
     const distance = Math.abs(entry - sl) * Number(ratio);
     const nextTp = selectedSide === 'sell' ? entry - distance : entry + distance;
     onTradePlanChange({ tp: nextTp, activeField: 'tp', stage: 'ready' });
-  };
-
-  const lockSideForProtection = (side, type) => {
-    const field = protectionIntent;
-    const patch = {
-      side,
-      orderType: type,
-      desktopPendingDraft: false,
-      sizingMode: activeSizingMode,
-      manualLots: normalizedLots,
-      stage: 'ready',
-    };
-    const protection = defaultProtectionPrice(field, side);
-    if (field && Number.isFinite(protection)) patch[field] = protection;
-    onTradePlanChange(patch);
-    setProtectionIntent(null);
-    onNotice(`${field === 'tp' ? 'TP' : 'SL'} active on chart — drag to adjust.`);
   };
 
   const switchPlannedMarketSide = side => {
@@ -425,29 +443,38 @@ export default function DesktopOrderTicket({
     }
 
     if (!tradePlan) {
-      onNotice('Pending price is not ready yet.');
+      onOrderTypeChange('limit');
+      onStartPlan(side, 'limit', {
+        protection: 'none',
+        desktopPendingDraft: true,
+      });
+      onNotice(`${side === 'buy' ? 'Buy' : 'Sell'} Limit projection active — drag entry, adjust lots, then press ${side === 'buy' ? 'Buy' : 'Sell'} again to place.`);
+      return;
+    }
+
+    if (tradePlan.editingOrderId && selectedSide && selectedSide !== side) return;
+
+    if (tradePlan.desktopPendingDraft && selectedSide && selectedSide !== side) {
+      onOrderTypeChange('limit');
+      onStartPlan(side, 'limit', {
+        protection: 'none',
+        desktopPendingDraft: true,
+      });
+      onNotice(`${side === 'buy' ? 'Buy' : 'Sell'} Limit projection active — drag entry or adjust lots.`);
       return;
     }
 
     const nextType = inferredPendingType(side);
 
-    if (tradePlan.editingOrderId && selectedSide && selectedSide !== side) return;
-
-    if (protectionIntent) {
-      lockSideForProtection(side, nextType);
-      return;
-    }
-
     if (activeSizingMode === 'risk' && !hasStopLoss) {
       onTradePlanChange({
         side,
         orderType: nextType,
-        desktopPendingDraft: false,
         sizingMode: 'risk',
         manualLots: normalizedLots,
         stage: 'ready',
       });
-      onNotice('Stop loss required when using risk sizing.');
+      onNotice('Set SL to calculate size before placing the pending order.');
       return;
     }
 
@@ -513,6 +540,17 @@ export default function DesktopOrderTicket({
   const pendingSellType = inferredPendingType('sell').replace('-', ' ').toUpperCase();
   const pendingBuyType = inferredPendingType('buy').replace('-', ' ').toUpperCase();
   const editing = Boolean(tradePlan?.editingOrderId);
+  const pendingProjection = orderFamily === 'pending' && Boolean(tradePlan?.pending) && !editing;
+  const pendingSellLabel = editing
+    ? `Update ${pendingSellType}`
+    : pendingProjection && selectedSide === 'sell'
+      ? `Place Sell ${pendingSellType}`
+      : 'Sell';
+  const pendingBuyLabel = editing
+    ? `Update ${pendingBuyType}`
+    : pendingProjection && selectedSide === 'buy'
+      ? `Place Buy ${pendingBuyType}`
+      : 'Buy';
 
   const sideDisabled = side => {
     if (!executableQuote || !exposureAllowed) return true;
@@ -549,28 +587,34 @@ export default function DesktopOrderTicket({
         </div>
 
         {orderFamily === 'pending' && (
-          <div className="mb-3">
-            <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-[9px] font-semibold text-[#8b98a4]">Entry price</span>
-              <span className="text-[8px] text-[#586875]">synced with chart</span>
+          tradePlan?.pending ? (
+            <div className="mb-3">
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="text-[9px] font-semibold text-[#8b98a4]">Entry price</span>
+                <span className="text-[8px] text-[#586875]">chart ↔ ticket</span>
+              </div>
+              <input
+                value={entryInput}
+                onFocus={event => { setEntryFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }}
+                onChange={event => updateEntryInput(event.target.value)}
+                onBlur={commitEntry}
+                onKeyDown={event => {
+                  if (event.key === 'Enter') event.currentTarget.blur();
+                  if (event.key === 'Escape') {
+                    setEntryInput(priceInputValue(tradePlan?.entry, market));
+                    event.currentTarget.blur();
+                  }
+                }}
+                inputMode="decimal"
+                className="h-11 w-full rounded-md border border-[#195be1]/35 bg-black px-3 text-right font-mono text-[16px] font-semibold tabular-nums text-[#eef3f7] outline-none focus:border-[#195be1]"
+                aria-label="Pending entry price"
+              />
             </div>
-            <input
-              value={entryInput}
-              onFocus={event => { setEntryFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }}
-              onChange={event => updateEntryInput(event.target.value)}
-              onBlur={commitEntry}
-              onKeyDown={event => {
-                if (event.key === 'Enter') event.currentTarget.blur();
-                if (event.key === 'Escape') {
-                  setEntryInput(priceInputValue(tradePlan?.entry, market));
-                  event.currentTarget.blur();
-                }
-              }}
-              inputMode="decimal"
-              className="h-11 w-full rounded-md border border-[#195be1]/35 bg-black px-3 text-right font-mono text-[16px] font-semibold tabular-nums text-[#eef3f7] outline-none focus:border-[#195be1]"
-              aria-label="Pending entry price"
-            />
-          </div>
+          ) : (
+            <div className="mb-3 rounded-md border border-white/[0.05] bg-black/35 px-2.5 py-2 text-[9px] text-[#71808d]">
+              Choose <strong className="text-[#d45a64]">Sell</strong> or <strong className="text-[#4f82ef]">Buy</strong> to project the pending order on the chart.
+            </div>
+          )
         )}
 
         <div className="mb-3">
@@ -752,10 +796,10 @@ export default function DesktopOrderTicket({
             <strong className="text-[10px] font-bold uppercase tracking-[0.05em] text-[#d45a64]">
               {orderFamily === 'market'
                 ? (tradePlan && selectedSide === 'sell' ? 'Execute Sell' : 'Sell')
-                : (editing ? `Update ${pendingSellType}` : `Sell ${pendingSellType}`)}
+                : pendingSellLabel}
             </strong>
             <span className="mt-1 truncate font-mono text-[14px] font-semibold tabular-nums text-[#f0f3f5]">
-              {orderFamily === 'market' ? marketSellPrice : formatInstrumentPrice(tradePlan?.entry, market)}
+              {orderFamily === 'market' ? marketSellPrice : (tradePlan?.pending ? formatInstrumentPrice(tradePlan?.entry, market) : marketSellPrice)}
             </span>
           </button>
 
@@ -768,10 +812,10 @@ export default function DesktopOrderTicket({
             <strong className="text-[10px] font-bold uppercase tracking-[0.05em] text-[#4f82ef]">
               {orderFamily === 'market'
                 ? (tradePlan && selectedSide === 'buy' ? 'Execute Buy' : 'Buy')
-                : (editing ? `Update ${pendingBuyType}` : `Buy ${pendingBuyType}`)}
+                : pendingBuyLabel}
             </strong>
             <span className="mt-1 truncate font-mono text-[14px] font-semibold tabular-nums text-[#f0f3f5]">
-              {orderFamily === 'market' ? marketBuyPrice : formatInstrumentPrice(tradePlan?.entry, market)}
+              {orderFamily === 'market' ? marketBuyPrice : (tradePlan?.pending ? formatInstrumentPrice(tradePlan?.entry, market) : marketBuyPrice)}
             </span>
           </button>
         </div>
