@@ -482,7 +482,9 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
     );
   };
 
-  const entryLabel = plan.pending ? `${isBuy ? 'BUY' : 'SELL'} ${String(plan.orderType || '').toUpperCase()}` : (isBuy ? 'BUY' : 'SELL');
+  const entryLabel = plan.pending
+    ? (plan.desktopPendingDraft ? 'PENDING' : `${isBuy ? 'BUY' : 'SELL'} ${String(plan.orderType || '').toUpperCase()}`)
+    : (isBuy ? 'BUY' : 'SELL');
 
   return (
     <div ref={layerRef} className="pointer-events-none absolute inset-0 z-[40] overflow-hidden">
