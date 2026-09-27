@@ -302,18 +302,6 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
     return coordinateApi.subscribe(() => forceLayout(value => value + 1));
   }, [coordinateApi]);
 
-  const metrics = useMemo(() => {
-    const entry = validPlanPrice(plan?.entry);
-    const sl = validPlanPrice(plan?.sl);
-    const tp = validPlanPrice(plan?.tp);
-    const pip = Number(instrumentPipSize(instrument));
-    if (!Number.isFinite(entry) || !Number.isFinite(pip) || pip <= 0) return { slPips: null, tpPips: null };
-    return {
-      slPips: Number.isFinite(sl) ? Math.abs(entry - sl) / pip : null,
-      tpPips: Number.isFinite(tp) ? Math.abs(tp - entry) / pip : null,
-    };
-  }, [instrument, plan]);
-
   useEffect(() => {
     if (!dragging || !coordinateApi?.yToPrice) return undefined;
     const field = dragging === 'limit' ? 'limitPrice' : dragging;
@@ -600,7 +588,7 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
 
   if (!coordinateApi?.priceToY || !activePositions.length) return null;
 
-  const renderLine = (position, kind, color, label) => {
+  const renderLine = (position, kind, label) => {
     const key = `${position.id}:${kind}`;
     const source = Object.prototype.hasOwnProperty.call(preview, key) ? preview[key] : position[kind];
     const price = Number(source);
@@ -651,8 +639,8 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
   return (
     <div ref={layerRef} className="pointer-events-none absolute inset-0 z-[24] overflow-hidden">
       {activePositions.flatMap(position => [
-        renderLine(position, 'tp', '#2aa37f', 'TP'),
-        renderLine(position, 'sl', '#d45a64', 'SL'),
+        renderLine(position, 'tp', 'TP'),
+        renderLine(position, 'sl', 'SL'),
       ])}
     </div>
   );
