@@ -245,7 +245,7 @@ function PendingOrderOverlay({
                     onModify(order.id);
                   }
                 }}
-                className="pointer-events-auto absolute left-3 top-1/2 flex h-7 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border border-[#2459a8] bg-[#0b2f66]/95 font-mono text-[10px] font-bold tabular-nums text-[#f4f8ff] shadow-[0_5px_16px_rgba(0,0,0,.38)] backdrop-blur-sm"
+                className="pointer-events-auto absolute left-3 top-1/2 z-10 flex h-7 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border border-[#2459a8] bg-[#0b2f66]/95 font-mono text-[10px] font-bold tabular-nums text-[#f4f8ff] shadow-[0_5px_16px_rgba(0,0,0,.38)] backdrop-blur-sm"
                 aria-label={`Modify ${side} ${type} order`}
                 title={`${type} pending order`}
               >
@@ -450,7 +450,7 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
             </div>
 
             <span
-              className="absolute right-[56px] top-1/2 -translate-y-1/2 rounded-[4px] border border-dotted bg-[#09090b]/96 px-1.5 py-0.5 font-mono text-[9px] font-medium tabular-nums lg:right-2"
+              className="absolute right-[56px] top-1/2 z-10 -translate-y-1/2 rounded-[4px] border border-dotted bg-[#09090b]/96 px-1.5 py-0.5 font-mono text-[9px] font-medium tabular-nums lg:right-2"
               style={{ borderColor: `${mutedColor}b5`, color: mutedColor }}
             >
               {formatInstrumentPrice(sourcePrice(field), instrument)}
@@ -466,7 +466,7 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
                   setDragging(kind);
                   onChange({ activeField: kind, stage: `dragging-${kind}` });
                 }}
-                className="pointer-events-auto absolute left-[12px] right-[56px] top-1/2 h-8 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent lg:right-2"
+                className="pointer-events-auto absolute left-[12px] right-[56px] top-1/2 z-0 h-8 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent lg:right-2"
               />
             )}
           </div>
