@@ -210,7 +210,7 @@ function PendingOrderOverlay({
           <span className="absolute left-3 top-1/2 -translate-y-1/2 rounded-[4px] border bg-[#09090b]/94 px-1.5 py-0.5 text-[8px] font-black" style={{ borderColor: `${color}70`, color }}>
             {label}
           </span>
-          <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 font-mono text-[8px] font-bold tabular-nums" style={{ borderColor: `${color}88`, backgroundColor: kind === 'sl' ? '#5b1721' : '#0b4b37', color: '#ffffff' }}>
+          <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border border-dotted bg-[#09090b]/94 px-1.5 py-0.5 font-mono text-[8px] font-medium tabular-nums" style={{ borderColor: `${color}88`, color }}>
             {formatInstrumentPrice(price, instrument)}
           </span>
         </div>
@@ -245,7 +245,7 @@ function PendingOrderOverlay({
                     onModify(order.id);
                   }
                 }}
-                className="pointer-events-auto absolute left-3 top-1/2 flex h-7 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border border-[#2459a8] bg-[#0b2f66]/95 font-mono text-[10px] font-bold tabular-nums text-[#f4f8ff] shadow-[0_5px_16px_rgba(0,0,0,.38)] backdrop-blur-sm"
+                className="pointer-events-auto absolute left-3 top-1/2 z-10 flex h-7 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border border-[#2459a8] bg-[#0b2f66]/95 font-mono text-[10px] font-bold tabular-nums text-[#f4f8ff] shadow-[0_5px_16px_rgba(0,0,0,.38)] backdrop-blur-sm"
                 aria-label={`Modify ${side} ${type} order`}
                 title={`${type} pending order`}
               >
@@ -283,8 +283,8 @@ function PendingOrderOverlay({
               </div>
             </div>
           ) : null,
-          renderProtectionLine(order, 'sl', '#ff5968', 'SL'),
-          renderProtectionLine(order, 'tp', '#35d79d', 'TP'),
+          renderProtectionLine(order, 'sl', '#d45a64', 'SL'),
+          renderProtectionLine(order, 'tp', '#2aa37f', 'TP'),
         ].filter(Boolean);
       })}
     </div>
@@ -301,18 +301,6 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
     if (!coordinateApi?.subscribe) return undefined;
     return coordinateApi.subscribe(() => forceLayout(value => value + 1));
   }, [coordinateApi]);
-
-  const metrics = useMemo(() => {
-    const entry = validPlanPrice(plan?.entry);
-    const sl = validPlanPrice(plan?.sl);
-    const tp = validPlanPrice(plan?.tp);
-    const pip = Number(instrumentPipSize(instrument));
-    if (!Number.isFinite(entry) || !Number.isFinite(pip) || pip <= 0) return { slPips: null, tpPips: null };
-    return {
-      slPips: Number.isFinite(sl) ? Math.abs(entry - sl) / pip : null,
-      tpPips: Number.isFinite(tp) ? Math.abs(tp - entry) / pip : null,
-    };
-  }, [instrument, plan]);
 
   useEffect(() => {
     if (!dragging || !coordinateApi?.yToPrice) return undefined;
@@ -368,6 +356,10 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
 
   if (!plan || plan.open || !coordinateApi?.priceToY) return null;
   const isBuy = plan.side === 'buy';
+  const positionProtectionMode = !showEntry && plan?.source === 'open-position';
+  const activeProtectionField = positionProtectionMode && ['sl', 'tp'].includes(plan?.activeField)
+    ? plan.activeField
+    : null;
   const sourcePrice = field => {
     if (Object.prototype.hasOwnProperty.call(preview, field)) return validPlanPrice(preview[field]);
     return validPlanPrice(plan?.[field]);
@@ -400,6 +392,7 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
     ? estimateStopRisk({ ...livePlan, sl: liveTp }, displayLots, instrument, accountCurrency)
     : null;
   const lotLabel = Number.isFinite(displayLots) ? `${displayLots.toFixed(Math.max(2, Number(instrument?.volumeStep) < 0.01 ? 3 : 2))} lot` : '— lot';
+  const lotCompact = Number.isFinite(displayLots) ? formatPositionLots(displayLots) : '—';
   const rewardTop = entryY != null && tpY != null ? Math.min(entryY, tpY) : null;
   const rewardHeight = entryY != null && tpY != null ? Math.abs(entryY - tpY) : 0;
   const riskTop = entryY != null && slY != null ? Math.min(entryY, slY) : null;
@@ -408,11 +401,72 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
   const line = (kind, field, color, label, value, draggable) => {
     const top = yFor(field);
     if (top == null) return null;
+
+    if (positionProtectionMode) {
+      if (activeProtectionField && kind !== activeProtectionField) return null;
+      const projected = kind === 'sl'
+        ? (Number.isFinite(liveRisk) ? -Math.abs(liveRisk) : null)
+        : (Number.isFinite(liveReward) ? Math.abs(liveReward) : null);
+      const projectedText = Number.isFinite(projected)
+        ? formatPositionPnl(projected, accountCurrency)
+        : `— ${String(accountCurrency || 'USD').toUpperCase()}`;
+      const mutedColor = kind === 'sl' ? '#d45a64' : '#2aa37f';
+
+      return (
+        <div className="absolute left-0 right-0 z-30" style={{ top }}>
+          <div className="relative border-t border-dotted" style={{ borderColor: `${mutedColor}b5` }}>
+            <div
+              className="pointer-events-auto absolute left-3 top-1/2 flex h-7 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border border-dotted bg-[#09090b]/96 font-mono text-[10px] font-medium tabular-nums shadow-[0_4px_14px_rgba(0,0,0,.28)]"
+              style={{ borderColor: `${mutedColor}b5`, color: '#d8dee5' }}
+            >
+              <span className="flex min-w-[38px] items-center justify-center px-2">{lotCompact}</span>
+              <span className="flex min-w-[34px] items-center justify-center border-l border-dotted px-2" style={{ borderColor: `${mutedColor}80`, color: mutedColor }}>{label}</span>
+              <span className="flex min-w-[78px] items-center justify-center border-l border-dotted px-2" style={{ borderColor: `${mutedColor}80`, color: mutedColor }}>{projectedText}</span>
+              <button
+                type="button"
+                onClick={event => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onChange({ [field]: null, stage: 'ready' });
+                }}
+                className="grid w-8 place-items-center border-l border-dotted text-[13px] font-normal text-[#9aa4ae] active:bg-white/[0.04]"
+                style={{ borderColor: `${mutedColor}80` }}
+                aria-label={`Clear ${label}`}
+              >
+                ×
+              </button>
+            </div>
+
+            <span
+              className="absolute right-[56px] top-1/2 z-10 -translate-y-1/2 rounded-[4px] border border-dotted bg-[#09090b]/96 px-1.5 py-0.5 font-mono text-[9px] font-medium tabular-nums lg:right-2"
+              style={{ borderColor: `${mutedColor}b5`, color: mutedColor }}
+            >
+              {formatInstrumentPrice(sourcePrice(field), instrument)}
+            </span>
+
+            {draggable && (
+              <button
+                type="button"
+                aria-label={`Drag ${label}`}
+                onPointerDown={event => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setDragging(kind);
+                  onChange({ activeField: kind, stage: `dragging-${kind}` });
+                }}
+                className="pointer-events-auto absolute left-[12px] right-[56px] top-1/2 z-0 h-8 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent lg:right-2"
+              />
+            )}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="absolute left-0 right-0 z-30" style={{ top }}>
         <div className="relative h-px" style={{ backgroundColor: `${color}bf` }}>
           <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-md border px-1.5 py-1 text-[8px] font-black tracking-[0.03em]" style={{ borderColor: `${color}99`, backgroundColor: 'rgba(8,8,8,0.92)', color }}>{label}</span>
-          <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 whitespace-nowrap rounded-md px-2 py-1 font-mono text-[8px] font-extrabold tabular-nums" style={{ backgroundColor: color, color: kind === 'sl' ? '#2b0810' : '#032219' }}>{value}</span>
+          <span className="absolute right-[56px] top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md px-2 py-1 font-mono text-[8px] font-extrabold tabular-nums lg:right-2" style={{ backgroundColor: color, color: kind === 'sl' ? '#2b0810' : '#032219' }}>{value}</span>
           {draggable && (
             <button
               type="button"
@@ -432,13 +486,13 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
 
   return (
     <div ref={layerRef} className="pointer-events-none absolute inset-0 z-[40] overflow-hidden">
-      {rewardTop != null && <div className="pointer-events-none absolute left-[42%] right-0" style={{ top: rewardTop, height: rewardHeight, background: 'linear-gradient(90deg, rgba(22,134,95,0.10), rgba(34,167,125,0.20))' }} />}
-      {riskTop != null && <div className="pointer-events-none absolute left-[42%] right-0" style={{ top: riskTop, height: riskHeight, background: 'linear-gradient(90deg, rgba(138,43,57,0.10), rgba(255,68,91,0.17))' }} />}
+      {!positionProtectionMode && rewardTop != null && <div className="pointer-events-none absolute left-[42%] right-0" style={{ top: rewardTop, height: rewardHeight, background: 'linear-gradient(90deg, rgba(22,134,95,0.10), rgba(34,167,125,0.20))' }} />}
+      {!positionProtectionMode && riskTop != null && <div className="pointer-events-none absolute left-[42%] right-0" style={{ top: riskTop, height: riskHeight, background: 'linear-gradient(90deg, rgba(138,43,57,0.10), rgba(255,68,91,0.17))' }} />}
       {line('tp', 'tp', '#35d79d', 'TP', `TP ${formatInstrumentPrice(liveTp, instrument)}`, true)}
       {showEntry && line('entry', 'entry', '#42a5ff', entryLabel, formatInstrumentPrice(sourcePrice('entry'), instrument), Boolean(plan.pending))}
       {showEntry && plan.pending && plan.orderType === 'stop-limit' && line('limit', 'limitPrice', '#b58cff', 'LIMIT', formatInstrumentPrice(sourcePrice('limitPrice'), instrument), true)}
       {line('sl', 'sl', '#ff5968', 'SL', `SL ${formatInstrumentPrice(liveSl, instrument)}`, true)}
-      {dragging && (
+      {dragging && !positionProtectionMode && (
         <div className="pointer-events-none absolute right-[64px] top-3 z-40 rounded-lg border border-white/10 bg-[#080808]/95 px-2.5 py-1.5 text-right shadow-xl lg:right-[86px]">
           <div className="text-[8px] uppercase tracking-[0.12em] text-[#708397]">{dragging === 'sl' ? 'Stop loss' : dragging === 'tp' ? 'Take profit' : dragging === 'limit' ? 'Limit price' : 'Entry price'}</div>
           <strong className={`mt-0.5 block text-[11px] ${dragging === 'sl' ? 'text-[#ff6b78]' : dragging === 'tp' ? 'text-[#53e0ad]' : 'text-[#69bdff]'}`}>{formatInstrumentPrice(sourcePrice(dragging === 'limit' ? 'limitPrice' : dragging), instrument)}</strong>
@@ -534,35 +588,48 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
 
   if (!coordinateApi?.priceToY || !activePositions.length) return null;
 
-  const renderLine = (position, kind, color, label) => {
+  const renderLine = (position, kind, label) => {
     const key = `${position.id}:${kind}`;
     const source = Object.prototype.hasOwnProperty.call(preview, key) ? preview[key] : position[kind];
     const price = Number(source);
     if (!Number.isFinite(price)) return null;
     const y = coordinateApi.priceToY(price);
     if (!Number.isFinite(y)) return null;
-    const displayPrice = value => formatInstrumentPrice(value, instrument);
     const projectedPnl = estimatePositionPnlAtPrice(position, price, instrument);
-    const pips = positionDistancePips(position, price, instrument);
     const currency = position?.pnlCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || 'USD';
+    const lots = formatPositionLots(position?.volume ?? position?.lots);
     const selected = String(selectedPositionId) === String(position.id);
     const active = selected || (dragging?.positionId === position.id && dragging?.kind === kind);
-    const previewText = active
-      ? (projectedPnl == null
-          ? `${displayPrice(price)} · ${pips?.toFixed(1) ?? '—'}p`
-          : `${displayPrice(price)} · ${formatProjectedPnl(projectedPnl, currency)} · ${pips?.toFixed(1) ?? '—'}p`)
-      : displayPrice(price);
+    const pnlText = projectedPnl == null ? `— ${String(currency).toUpperCase()}` : formatPositionPnl(projectedPnl, currency);
+    const mutedColor = kind === 'sl' ? '#d45a64' : '#2aa37f';
 
     return (
       <div key={key} className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: y }}>
-        <div className="relative h-px" style={{ backgroundColor: color }}>
-          <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 text-[8px] font-black" style={{ borderColor: `${color}88`, backgroundColor: 'rgba(8,8,8,0.92)', color }}>{label}</span>
-          <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 text-[8px] font-bold tabular-nums text-white" style={{ borderColor: `${color}88`, backgroundColor: kind === 'sl' ? '#5b1721' : '#0b4b37' }}>{previewText}</span>
+        <div className="relative border-t border-dotted" style={{ borderColor: `${mutedColor}${active ? 'c8' : '92'}` }}>
+          <div
+            className="absolute left-3 top-1/2 flex h-7 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border border-dotted bg-[#09090b]/94 font-mono text-[9px] font-medium tabular-nums"
+            style={{ borderColor: `${mutedColor}${active ? 'c8' : '82'}`, color: '#cbd3da' }}
+          >
+            <span className="flex min-w-[34px] items-center justify-center px-2">{lots}</span>
+            <span className="flex min-w-[30px] items-center justify-center border-l border-dotted px-1.5" style={{ borderColor: `${mutedColor}70`, color: mutedColor }}>{label}</span>
+            {active && <span className="flex min-w-[74px] items-center justify-center border-l border-dotted px-2" style={{ borderColor: `${mutedColor}70`, color: mutedColor }}>{pnlText}</span>}
+          </div>
+          <span
+            className="absolute right-[56px] top-1/2 -translate-y-1/2 rounded-[4px] border border-dotted bg-[#09090b]/94 px-1.5 py-0.5 font-mono text-[8px] font-medium tabular-nums lg:right-2"
+            style={{ borderColor: `${mutedColor}${active ? 'c8' : '82'}`, color: mutedColor }}
+          >
+            {formatInstrumentPrice(price, instrument)}
+          </span>
           <button
             type="button"
             aria-label={`Drag ${label}`}
-            onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onSelectPosition(position.id); setDragging({ positionId: position.id, kind }); }}
-            className={`pointer-events-auto absolute left-[64px] right-[56px] top-1/2 h-5 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent lg:inset-x-0 ${String(selectedPositionId) === String(position.id) ? 'ring-1 ring-inset ring-white/10' : ''}`}
+            onPointerDown={event => {
+              event.preventDefault();
+              event.stopPropagation();
+              onSelectPosition(position.id);
+              setDragging({ positionId: position.id, kind });
+            }}
+            className="pointer-events-auto absolute left-[12px] right-[56px] top-1/2 h-7 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent lg:right-2"
           />
         </div>
       </div>
@@ -572,8 +639,8 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
   return (
     <div ref={layerRef} className="pointer-events-none absolute inset-0 z-[24] overflow-hidden">
       {activePositions.flatMap(position => [
-        renderLine(position, 'tp', '#35d79d', 'TP'),
-        renderLine(position, 'sl', '#ff5968', 'SL'),
+        renderLine(position, 'tp', 'TP'),
+        renderLine(position, 'sl', 'SL'),
       ])}
     </div>
   );
