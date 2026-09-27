@@ -120,3 +120,90 @@ test('provider stream recovery increments candle-history reconciliation revision
   });
   assert.equal(state.market.historyRecoveryRevision, 1);
 });
+
+
+test('market command result immediately applies authoritative post-fill account valuation', () => {
+  const seeded = {
+    ...initialTradingState,
+    trading: {
+      ...initialTradingState.trading,
+      accountsById: {
+        a1: {
+          id: 'a1',
+          status: 'ACTIVE',
+          tradingEnabled: true,
+          financialRevision: 4,
+          state: {
+            balance: '100000',
+            floatingPnl: '0',
+            equity: '100000',
+            usedMargin: '0',
+            freeMargin: '100000',
+            marginLevel: null,
+          },
+        },
+      },
+      valuationsByAccountId: {
+        a1: {
+          accountId: 'a1',
+          valuationStatus: 'LIVE',
+          complete: true,
+          financialRevision: 4,
+          balance: '100000',
+          floatingPnl: '0',
+          equity: '100000',
+          usedMargin: '0',
+          freeMargin: '100000',
+          marginLevel: null,
+        },
+      },
+    },
+  };
+
+  const state = tradingReducer(seeded, {
+    type: 'trading/command-result',
+    payload: {
+      operation: 'OPEN',
+      account: {
+        id: 'a1',
+        status: 'ACTIVE',
+        tradingEnabled: true,
+        financialRevision: 5,
+        state: {
+          balance: '99996.5',
+          floatingPnl: '-30',
+          equity: '99966.5',
+          usedMargin: '1100.3',
+          freeMargin: '98866.2',
+          marginLevel: '9085.56848132',
+        },
+      },
+      order: { id: 'o1', accountId: 'a1', status: 'FILLED' },
+      deal: { id: 'd1', accountId: 'a1', type: 'OPEN', price: '1.1003' },
+      position: { id: 'p1', accountId: 'a1', status: 'OPEN', symbol: 'EURUSD' },
+      execution: {
+        fillPrice: '1.1003',
+        commission: '3.5',
+        immediateOpeningPnl: '-30',
+        requiredMargin: '1100.3',
+        resultingAccount: {
+          balance: '99996.5',
+          floatingPnl: '-30',
+          equity: '99966.5',
+          usedMargin: '1100.3',
+          freeMargin: '98866.2',
+          marginLevel: '9085.56848132',
+          financialRevision: 5,
+        },
+      },
+    },
+  });
+
+  assert.equal(state.trading.accountsById.a1.financialRevision, 5);
+  assert.equal(state.trading.valuationsByAccountId.a1.financialRevision, 5);
+  assert.equal(state.trading.valuationsByAccountId.a1.balance, '99996.5');
+  assert.equal(state.trading.valuationsByAccountId.a1.floatingPnl, '-30');
+  assert.equal(state.trading.valuationsByAccountId.a1.usedMargin, '1100.3');
+  assert.equal(state.trading.valuationsByAccountId.a1.freeMargin, '98866.2');
+  assert.equal(state.trading.valuationsByAccountId.a1.valuationStatus, 'LIVE');
+});

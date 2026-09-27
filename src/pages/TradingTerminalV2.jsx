@@ -21,6 +21,7 @@ import { normalizeTradePlanPatch } from '../utils/tradePlanNormalization.js';
 import { DEFAULT_RISK_GUARD_SETTINGS, evaluateRiskGuard } from '../utils/riskGuard.js';
 import { createDefaultTradePlan, effectiveTradePlan, validateTradePlanForExecution } from '../utils/tradePlanExecution.js';
 import { estimateExecutionPrice, resolveExecutionPreview } from '../utils/executionPricing.js';
+import { deriveAccountCapabilities, protectionRequirement } from '../utils/accountCapabilities.js';
 
 const INDICATOR_STORAGE_KEY = 'acg-trader-indicators-v1';
 const INDICATOR_FAVORITES_KEY = 'acg-trader-indicator-favorites-v1';
@@ -171,6 +172,7 @@ export default function TradingTerminalV2({
   const [overlay, setOverlay] = useState(null);
   const [notice, setNotice] = useState('');
   const [riskGuardSettings, setRiskGuardSettings] = useState(loadRiskGuardSettings);
+  const accountCapabilities = deriveAccountCapabilities(account);
   const exposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market, commandState: executionCommandState });
 
   useEffect(() => {
@@ -317,11 +319,29 @@ export default function TradingTerminalV2({
     dismissExecutionLater();
   };
 
-  const runMarketExecution = async ({ side, executionLots, symbol, requestedPrice, stopLoss = null, takeProfit = null }) => {
+  const runMarketExecution = async ({
+    side,
+    executionLots,
+    symbol,
+    requestedPrice,
+    stopLoss = null,
+    takeProfit = null,
+    executionSizingMode = sizingMode,
+  }) => {
     if (!symbol || !trading.accountId) return null;
     const instrument = markets.find(item => item.symbol === symbol) || market;
     const executionExposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market: instrument, commandState: executionCommandState });
     if (!executionExposure.allowed) { showNotice(executionExposure.reason); return null; }
+    const protection = protectionRequirement({
+      account,
+      sizingMode: executionSizingMode,
+      stopLoss,
+    });
+    if (!protection.valid) {
+      showNotice(protection.message);
+      return null;
+    }
+
     const modeledPrice = Number(estimateExecutionPrice(instrument, side, executionLots)?.price);
     const effectiveRequestedPrice = Number.isFinite(modeledPrice) && modeledPrice > 0
       ? modeledPrice
@@ -681,6 +701,16 @@ export default function TradingTerminalV2({
       ? normalizeProtectionPrice(nextSide === 'BUY' ? requestedPrice + tpDistance : requestedPrice - tpDistance, instrument, nextSide, 'tp')
       : null;
 
+    const reverseProtection = protectionRequirement({
+      account,
+      sizingMode: 'lots',
+      stopLoss: mirroredSl,
+    });
+    if (!reverseProtection.valid) {
+      showNotice(reverseProtection.message);
+      return;
+    }
+
     const proposedRisk = mirroredSl == null
       ? null
       : estimateStopRisk({ entry: requestedPrice, sl: mirroredSl, side: nextSide.toLowerCase() }, position.volume, instrument, account.currency);
@@ -910,6 +940,12 @@ export default function TradingTerminalV2({
     const executionSizing = executionPreview.sizing;
     const planValidation = validateTradePlanForExecution(executionPlan, planMarket, { preserveEntry: true });
     if (!planValidation.valid) { showNotice(planValidation.message || 'Review the order before submitting'); return; }
+    const planProtection = protectionRequirement({
+      account,
+      sizingMode: executionPlan.sizingMode || sizingMode,
+      stopLoss: executionPlan.sl,
+    });
+    if (!planProtection.valid) { showNotice(planProtection.message); return; }
     if (!executionSizing.canExecute || !Number.isFinite(Number(executionSizing.lots))) {
       const reason = executionSizing.blockReason === 'UNSUPPORTED_RISK_CURRENCY'
         ? 'Risk % sizing is unavailable because this instrument P&L requires currency conversion. Use Lots sizing.'
@@ -986,6 +1022,7 @@ export default function TradingTerminalV2({
       requestedPrice: executionPlan.entry,
       stopLoss: executionPlan.sl,
       takeProfit: executionPlan.tp,
+      executionSizingMode: executionPlan.sizingMode || sizingMode,
     });
     if (result?.position || result?.reconciled || String(result?.order?.status || '').toUpperCase() === 'FILLED') {
       setTradePlan(null);
@@ -1011,12 +1048,22 @@ export default function TradingTerminalV2({
     if (trading.commandState.pending || !exposure.allowed) { if (!exposure.allowed) showNotice(exposure.reason); return; }
     const instrument = markets.find(item => item.symbol === order.symbol) || market;
     const executionLots = normalizeVolumeToStep(order.lots, instrument);
+
+    if (accountCapabilities.stopLossRequiredForManualLots) {
+      setLots(executionLots);
+      setSizingMode('lots');
+      startPlan(order.side, 'market', { protection: 'sl' });
+      showNotice('This account requires a stop loss for manual-lot exposure.');
+      return;
+    }
+
     const executionPrice = estimateExecutionPrice(instrument, order.side, executionLots)?.price;
     void runMarketExecution({
       side: order.side,
       executionLots,
       symbol: order.symbol,
       requestedPrice: Number.isFinite(Number(executionPrice)) ? Number(executionPrice) : order.price,
+      executionSizingMode: 'lots',
     });
   };
 

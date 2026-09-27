@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Activity, ShieldAlert, Target, TrendingDown } from 'lucide-react';
 import { calculateAccountRiskSummary } from '../../utils/accountRisk.js';
 import { accountLimitsUnavailableCopy, accountRiskTitle, isMasterAccount } from '../../utils/accountPresentation.js';
+import { deriveAccountCapabilities } from '../../utils/accountCapabilities.js';
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
@@ -46,6 +47,15 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
   const valuation = String(account?.valuationStatus || 'WAITING').toUpperCase();
   const master = isMasterAccount(account);
   const riskTitle = accountRiskTitle(account);
+  const capabilities = deriveAccountCapabilities(account);
+  const usedMargin = Number(account?.usedMargin);
+  const marginLevel = Number(account?.marginLevel);
+  const marginLevelText = Number.isFinite(usedMargin) && usedMargin <= 0
+    ? '—'
+    : Number.isFinite(marginLevel)
+      ? `${marginLevel.toFixed(1)}%`
+      : '—';
+  const stopOutText = `${Number(capabilities.marginStopOutLevelPercent || 50).toFixed(0)}%`;
 
   if (!hasChallengeRules) {
     if (compact) {
@@ -54,6 +64,7 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
           <span className="flex items-center gap-1 font-bold text-[#68686E]"><Activity size={11}/>Valuation <b className={valuation === 'LIVE' ? 'text-[#42D7A1]' : valuation === 'STALE' ? 'text-[#E7BD58]' : 'text-[#A0A0A6]'}>{valuation}</b></span>
           <span className="text-[#68686E]">Free <b className="text-[#E6EDF3]">{money(account?.freeMargin, currency)}</b></span>
           <span className="text-[#68686E]">Used <b className="text-[#E6EDF3]">{money(account?.usedMargin, currency)}</b></span>
+          <span className={capabilities.marginStopOutActive ? 'ml-auto font-bold text-[#FF6F7A]' : 'ml-auto text-[#68686E]'}>Margin <b className={capabilities.marginStopOutActive ? 'text-[#FF6F7A]' : 'text-[#E6EDF3]'}>{marginLevelText}</b>{capabilities.marginStopOutActive ? ' · STOP-OUT' : ''}</span>
         </div>
       );
     }
@@ -64,7 +75,8 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
           <div className="min-w-0"><div className="flex items-center gap-1.5"><Activity size={13} className="text-[#195be1]"/><b className="text-[12px] font-semibold text-[#E6EDF3]">Account Health</b></div><p className="mt-1 text-[9px] text-[#68686E]">Live account valuation</p></div>
           <div className="text-right"><span className="block text-[8px] uppercase tracking-[0.08em] text-[#68686E]">Valuation</span><b className={`mt-0.5 block text-[11px] ${valuation === 'LIVE' ? 'text-[#42D7A1]' : valuation === 'STALE' ? 'text-[#E7BD58]' : 'text-[#A0A0A6]'}`}>{valuation}</b></div>
         </div>
-        <div className="mt-2.5 grid grid-cols-3 gap-2"><HealthStat label="Equity" value={money(account?.equity, currency)}/><HealthStat label="Free margin" value={money(account?.freeMargin, currency)}/><HealthStat label="Floating P&L" value={money(account?.floatingPnl, currency)}/></div>
+        <div className="mt-2.5 grid grid-cols-4 gap-2"><HealthStat label="Equity" value={money(account?.equity, currency)}/><HealthStat label="Free margin" value={money(account?.freeMargin, currency)}/><HealthStat label="Margin level" value={marginLevelText}/><HealthStat label="Stop-out" value={stopOutText}/></div>
+        {capabilities.marginStopOutActive && <div className="mt-2 border-t border-[#5d2b34] pt-2 text-[8px] font-semibold text-[#FF6F7A]">Margin stop-out in progress · new exposure is disabled while risk-reducing closes remain available.</div>}
         {plannedRisk > 0 && <div className="mt-2.5 border-t border-white/[0.06] px-0 py-2 text-[8px] font-semibold text-[#A0A0A6]">Estimated ticket risk <b className="text-[#e6edf3]">{money(plannedRisk, currency)}</b>. {accountLimitsUnavailableCopy(account)}</div>}
       </section>
     );
@@ -76,7 +88,8 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
         <span className="flex items-center gap-1 font-bold text-[#68686E]"><ShieldAlert size={11}/>Daily <b className={riskWarning ? 'text-[#FF6F7A]' : 'text-[#E6EDF3]'}>{money(risk.remainingDaily, currency)}</b></span>
         <span className="text-[#68686E]">Max <b className="text-[#E6EDF3]">{money(risk.remainingMax, currency)}</b></span>
         {!master && risk.profitTarget > 0 && <span className="text-[#68686E]">Target <b className="text-[#42D7A1]">{money(risk.profit, currency)} / {money(risk.profitTarget, currency)}</b></span>}
-        {plannedRisk > 0 && <span className={`ml-auto font-bold ${riskWarning ? 'text-[#FF6F7A]' : 'text-[#195be1]'}`}>After SL {money(risk.postTradeDaily, currency)}</span>}
+        {plannedRisk > 0 && <span className={`font-bold ${riskWarning ? 'text-[#FF6F7A]' : 'text-[#195be1]'}`}>After SL {money(risk.postTradeDaily, currency)}</span>}
+        <span className={capabilities.marginStopOutActive ? 'ml-auto font-bold text-[#FF6F7A]' : 'ml-auto text-[#68686E]'}>Margin <b className={capabilities.marginStopOutActive ? 'text-[#FF6F7A]' : 'text-[#E6EDF3]'}>{marginLevelText}</b>{capabilities.marginStopOutActive ? ' · STOP-OUT' : ''}</span>
       </div>
     );
   }
@@ -131,8 +144,14 @@ export default function PropRiskStrip({ account, plannedRisk = 0, compact = fals
         )}
       </div>
 
+      <div className={`${embedded ? 'mt-2 py-1.5 text-[7px]' : 'mt-2.5 py-2 text-[8px]'} flex items-center justify-between border-t px-0 ${capabilities.marginStopOutActive ? 'border-[#5d2b34]' : 'border-white/[0.06]'}`}>
+        <span className={capabilities.marginStopOutActive ? 'font-semibold text-[#FF6F7A]' : 'text-[#68686E]'}>Margin level <b className={capabilities.marginStopOutActive ? 'text-[#FF6F7A]' : 'text-[#E6EDF3]'}>{marginLevelText}</b></span>
+        <span className="text-[#68686E]">Stop-out <b className="text-[#E6EDF3]">{stopOutText}</b></span>
+        {capabilities.marginStopOutActive && <span className="font-bold text-[#FF6F7A]">STOP-OUT ACTIVE</span>}
+      </div>
+
       {plannedRisk > 0 && (
-        <div className={`${embedded ? 'mt-2 py-1.5 text-[7px]' : 'mt-2.5 py-2 text-[8px]'} flex items-center justify-between border-t px-0 ${riskWarning ? 'border-[#5d2b34] bg-transparent' : 'border-white/[0.06] bg-transparent'}`}>
+        <div className={`${embedded ? 'mt-1 py-1.5 text-[7px]' : 'mt-1.5 py-2 text-[8px]'} flex items-center justify-between border-t px-0 ${riskWarning ? 'border-[#5d2b34] bg-transparent' : 'border-white/[0.06] bg-transparent'}`}>
           <span className={`flex items-center gap-1.5 font-semibold ${riskWarning ? 'text-[#FF6F7A]' : 'text-[#A0A0A6]'}`}><TrendingDown size={embedded ? 10 : 12}/>Risk at SL <b className="font-mono tabular-nums text-[#e6edf3]">{money(plannedRisk, currency)}</b></span>
           <span className="flex items-center gap-1 text-[#68686E]"><Target size={embedded ? 9 : 11}/>Remaining <b className={`font-mono tabular-nums ${riskWarning ? 'text-[#FF6F7A]' : 'text-[#42D7A1]'}`}>{money(risk.postTradeDaily, currency)}</b></span>
         </div>

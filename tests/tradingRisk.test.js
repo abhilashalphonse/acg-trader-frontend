@@ -190,3 +190,45 @@ test('manual execution sizing normalizes the same lot size sent by execution', (
   assert.equal(result.canExecute, true);
   assert.equal(result.lots, 0.13);
 });
+
+
+test('new exposure is blocked while durable account risk is unresolved', () => {
+  const result = exposureAvailability({
+    account: {
+      id: 'a1',
+      status: 'ACTIVE',
+      tradingEnabled: true,
+      valuationStatus: 'LIVE',
+      riskProcessingState: 'RISK_UNRESOLVED',
+    },
+    connectionStatus: 'ready',
+    market: { symbol: 'EURUSD', bid: '1.1', ask: '1.1001', sessionOpen: true, isStale: false, marketState: 'LIVE' },
+    commandState: { uncertain: false },
+  });
+  assert.equal(result.allowed, false);
+  assert.equal(result.code, 'RISK_STATE_UNRESOLVED');
+});
+
+test('new exposure is blocked during margin stop-out without marking the account breached', () => {
+  const result = exposureAvailability({
+    account: {
+      id: 'a1',
+      status: 'ACTIVE',
+      tradingEnabled: true,
+      valuationStatus: 'LIVE',
+      marginStopOut: { state: 'ACTIVE', episodeId: 'episode-1' },
+      capabilities: {
+        policyVersion: 'ACG_FUNDED_V2',
+        fundedV2Confirmed: true,
+        marginStopOutActive: true,
+        marginStopOutLevelPercent: '50',
+      },
+    },
+    connectionStatus: 'ready',
+    market: { symbol: 'EURUSD', bid: '1.1', ask: '1.1001', sessionOpen: true, isStale: false, marketState: 'LIVE' },
+    commandState: { uncertain: false },
+  });
+  assert.equal(result.allowed, false);
+  assert.equal(result.code, 'MARGIN_STOP_OUT_ACTIVE');
+  assert.match(result.reason, /above 50%/i);
+});
