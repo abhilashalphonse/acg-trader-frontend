@@ -174,7 +174,6 @@ export default function MobileTradesSheet({
   markets = [],
   onOpenChart = () => {},
   onSelectPosition = () => {},
-  onCancelPending = () => {},
   onModifyPending = () => {},
   initialTab = 'open',
   readOnly = false,
@@ -190,7 +189,6 @@ export default function MobileTradesSheet({
     if (typeof window !== 'undefined') window.localStorage.setItem(HISTORY_PERIOD_KEY, period);
   }, [period]);
 
-  const currency = account?.currency || 'USD';
   const floatingPnl = Number(account?.floatingPnl);
   const floating = Number.isFinite(floatingPnl) ? floatingPnl : 0;
 
