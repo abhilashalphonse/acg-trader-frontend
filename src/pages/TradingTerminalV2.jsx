@@ -1089,18 +1089,51 @@ export default function TradingTerminalV2({
     }
   };
 
-  const modifyPendingOrder = id => {
+  const modifyPendingOrder = (id, protectionField = null) => {
     const order = pendingOrders.find(item => String(item.id) === String(id));
     if (!order) return;
     if (order.symbol && order.symbol !== market?.symbol) selectSymbol(order.symbol);
-    setTradePlan({ ...order, ...(isDesktop ? { desktopPendingDraft: false } : {}), editingOrderId: id, stage: 'ready', open: false, pending: true });
+
+    const instrument = markets.find(item => item.symbol === order.symbol) || market;
+    const side = String(order.side || '').toLowerCase();
+    const fillReference = String(order.orderType || '').toLowerCase() === 'stop-limit'
+      ? Number(order.limitPrice)
+      : Number(order.entry);
+    const distance = defaultPlannerStopDistance(instrument, fillReference);
+    const nextPlan = {
+      ...order,
+      ...(isDesktop ? { desktopPendingDraft: false } : {}),
+      editingOrderId: id,
+      stage: 'ready',
+      open: false,
+      pending: true,
+    };
+
+    if (isDesktop && ['sl', 'tp'].includes(protectionField)) {
+      nextPlan.activeField = protectionField;
+      if (!Number.isFinite(Number(nextPlan[protectionField])) && Number.isFinite(fillReference) && Number.isFinite(distance)) {
+        const rawProtection = protectionField === 'sl'
+          ? (side === 'sell' ? fillReference + distance : fillReference - distance)
+          : (side === 'sell' ? fillReference - distance * 2 : fillReference + distance * 2);
+        nextPlan[protectionField] = normalizeProtectionPrice(rawProtection, instrument, side, protectionField);
+      }
+    }
+
+    setTradePlan(nextPlan);
     setOrderType(order.orderType);
     setSizingMode('lots');
     if (Number.isFinite(order.manualLots)) setLots(order.manualLots);
+    else if (Number.isFinite(Number(order.volume ?? order.lots))) setLots(Number(order.volume ?? order.lots));
     setActiveNav('trade');
     setOverlay(null);
     logEvent('order', `${String(order.side).toUpperCase()} ${String(order.orderType).toUpperCase()} loaded for cancel-and-replace modification`);
-    showNotice('Pending order loaded for modification');
+    showNotice(
+      isDesktop && protectionField === 'sl'
+        ? 'SL active on chart — drag to adjust, then update the pending order.'
+        : isDesktop && protectionField === 'tp'
+          ? 'TP active on chart — drag to adjust, then update the pending order.'
+          : 'Pending order loaded for modification'
+    );
   };
 
   const openTradeFromWatchlist = symbol => {

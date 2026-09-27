@@ -180,6 +180,7 @@ function PendingOrderOverlay({
   hiddenOrderId = null,
   onModify = () => {},
   onCancel = () => {},
+  desktopStyle = false,
 }) {
   const [, forceLayout] = useState(0);
 
@@ -249,11 +250,41 @@ function PendingOrderOverlay({
                 aria-label={`Modify ${side} ${type} order`}
                 title={`${type} pending order`}
               >
+                {desktopStyle && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={event => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        onModify(order.id, 'tp');
+                      }}
+                      className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[9px] transition ${Number.isFinite(Number(order?.tp)) ? 'text-[#2aa37f]' : 'text-[#72808d] hover:text-[#2aa37f]'}`}
+                      aria-label="Add or edit take profit"
+                      title="Add / edit TP"
+                    >
+                      TP
+                    </button>
+                    <button
+                      type="button"
+                      onClick={event => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        onModify(order.id, 'sl');
+                      }}
+                      className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[9px] transition ${Number.isFinite(Number(order?.sl)) ? 'text-[#d45a64]' : 'text-[#72808d] hover:text-[#d45a64]'}`}
+                      aria-label="Add or edit stop loss"
+                      title="Add / edit SL"
+                    >
+                      SL
+                    </button>
+                  </>
+                )}
                 <span className="flex min-w-[34px] items-center justify-center border-r border-white/20 px-2">
                   {Number.isFinite(lots) ? formatPositionLots(lots) : '—'}
                 </span>
-                <span className={`flex min-w-[42px] items-center justify-center border-r border-white/20 px-2 ${side === 'BUY' ? 'text-[#35e0a4]' : 'text-[#ff6b77]'}`}>
-                  {side}
+                <span className={`flex min-w-[76px] items-center justify-center border-r border-white/20 px-2 ${side === 'BUY' ? 'text-[#35e0a4]' : 'text-[#ff6b77]'}`}>
+                  {side} {type}
                 </span>
                 <button
                   type="button"
@@ -583,28 +614,32 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
     <div className="absolute left-0 right-0 z-30" style={{ top: entryY }}>
       <div className="relative border-t border-dotted border-[#3b78d8]/90">
         <div className="pointer-events-auto absolute left-3 top-1/2 z-10 flex h-7 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border border-dotted border-[#3b78d8]/80 bg-[#09090b]/96 font-mono text-[9px] font-medium tabular-nums shadow-[0_4px_14px_rgba(0,0,0,.28)]">
-          <button
-            type="button"
-            onClick={event => {
-              event.preventDefault();
-              event.stopPropagation();
-              requestDesktopProtection('tp');
-            }}
-            className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 ${liveTp != null ? 'text-[#2aa37f]' : 'text-[#6f7f8c] hover:text-[#2aa37f]'}`}
-          >
-            TP
-          </button>
-          <button
-            type="button"
-            onClick={event => {
-              event.preventDefault();
-              event.stopPropagation();
-              requestDesktopProtection('sl');
-            }}
-            className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 ${liveSl != null ? 'text-[#d45a64]' : 'text-[#6f7f8c] hover:text-[#d45a64]'}`}
-          >
-            SL
-          </button>
+          {plan?.editingOrderId && (
+            <>
+              <button
+                type="button"
+                onClick={event => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  requestDesktopProtection('tp');
+                }}
+                className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 ${liveTp != null ? 'text-[#2aa37f]' : 'text-[#6f7f8c] hover:text-[#2aa37f]'}`}
+              >
+                TP
+              </button>
+              <button
+                type="button"
+                onClick={event => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  requestDesktopProtection('sl');
+                }}
+                className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 ${liveSl != null ? 'text-[#d45a64]' : 'text-[#6f7f8c] hover:text-[#d45a64]'}`}
+              >
+                SL
+              </button>
+            </>
+          )}
           <span className="flex min-w-[42px] items-center justify-center border-r border-dotted border-[#3b78d8]/55 px-2 text-[#d9e1e8]">{lotCompact}</span>
           <span className="flex min-w-[78px] items-center justify-center px-2 text-[#6ea0ff]">{entryLabel}</span>
         </div>
@@ -1107,7 +1142,7 @@ export default function ChartArea({
             mobileStyle={mobileOverlayStyle}
           />
         )}
-        {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} />}
+        {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} desktopStyle={desktopEnhanced && !mobileOverlayStyle} />}
         <OpenPositionEntryOverlay symbol={symbol} positions={positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} />
         <OpenPositionProtectionOverlay
           symbol={symbol}
