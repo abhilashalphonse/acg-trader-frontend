@@ -4,6 +4,7 @@ import { decimalPlaces, normalizeVolumeToStep } from '../../utils/tradingCommand
 import { calculateRiskOrderSizing, effectiveLeverage, estimateRequiredMargin, estimateStopRisk, riskSizingSupported } from '../../utils/tradingRisk.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 import { effectiveTradePlan, validateTradePlanForExecution } from '../../utils/tradePlanExecution.js';
+import { deriveAccountCapabilities, protectionRequirement } from '../../utils/accountCapabilities.js';
 
 const orderTypes = [
   ['market', 'Market'],
@@ -206,7 +207,15 @@ export default function ExecutionPanel({
   const riskConstraint = effectivePlan && sizingMode === 'risk' ? metrics?.riskSizing : null;
   const riskOrderExecutable = !riskConstraint || riskConstraint.canExecute !== false;
   const planValidation = validateTradePlanForExecution(effectivePlan, market);
-  const canSubmitExposure = executableQuote && exposureAllowed && riskModeSupported && riskOrderExecutable && planValidation.valid;
+  const accountCapabilities = deriveAccountCapabilities(account);
+  const planProtection = effectivePlan
+    ? protectionRequirement({
+      account,
+      sizingMode: effectivePlan.sizingMode || sizingMode,
+      stopLoss: effectivePlan.sl,
+    })
+    : { valid: true, message: null };
+  const canSubmitExposure = executableQuote && exposureAllowed && riskModeSupported && riskOrderExecutable && planValidation.valid && planProtection.valid;
   const pipSize = Number(market?.pipSize);
   const bid = Number(market?.bid);
   const ask = Number(market?.ask);
@@ -218,7 +227,7 @@ export default function ExecutionPanel({
       : riskConstraint?.blockReason === 'MIN_VOLUME'
         ? `Minimum ${Number(market?.minVolume || 0).toFixed(2)} lots exceeds the selected risk`
         : null;
-  const marketHint = !exposureAllowed ? exposureBlockReason : !riskModeSupported ? 'Risk % sizing requires the instrument P&L currency to match the account currency' : riskConstraintHint || (!planValidation.valid ? planValidation.message : (market?.sessionOpen === false ? 'Session closed' : market?.isStale ? 'Quote stale' : !executableQuote ? 'Waiting for quote' : orderType === 'market' ? (sizingMode === 'risk' ? 'Tap Buy/Sell' : `${spreadPips?.toFixed(1) ?? '—'} pips`) : 'Tap side to place on chart'));
+  const marketHint = !exposureAllowed ? exposureBlockReason : !riskModeSupported ? 'Risk % sizing requires the instrument P&L currency to match the account currency' : riskConstraintHint || (!planValidation.valid ? planValidation.message : !planProtection.valid ? planProtection.message : (market?.sessionOpen === false ? 'Session closed' : market?.isStale ? 'Quote stale' : !executableQuote ? 'Waiting for quote' : orderType === 'market' ? (sizingMode === 'risk' ? 'Tap Buy/Sell' : accountCapabilities.manualLotWithoutStopLoss ? `${spreadPips?.toFixed(1) ?? '—'} pips · SL optional` : `${spreadPips?.toFixed(1) ?? '—'} pips · SL required`) : 'Tap side to place on chart'));
 
   const protectionTargetSymbol = String(positionProtectionDraft?.symbol || selectedPosition?.symbol || market?.symbol || '').toUpperCase();
   const protectionTargetSide = String(positionProtectionDraft?.side || selectedPosition?.side || '').toUpperCase();
@@ -235,11 +244,16 @@ export default function ExecutionPanel({
   const clickSide = side => {
     if (!canSubmitExposure || !market?.symbol) return;
     if (orderType !== 'market') {
-      onStartPlan(side, orderType);
+      onStartPlan(side, orderType, {
+        protection: sizingMode === 'risk' || accountCapabilities.stopLossRequiredForManualLots ? 'sl' : 'none',
+      });
       return;
     }
-    if (sizingMode === 'risk') onStartPlan(side, 'market');
-    else onManualOrder({ side, lots, price: side === 'buy' ? market.ask : market.bid, symbol: market.symbol });
+    if (sizingMode === 'risk' || accountCapabilities.stopLossRequiredForManualLots) {
+      onStartPlan(side, 'market', { protection: 'sl' });
+    } else {
+      onManualOrder({ side, lots, price: side === 'buy' ? market.ask : market.bid, symbol: market.symbol });
+    }
   };
 
   const plannerLots = Number(metrics?.lots ?? normalizedLots);
