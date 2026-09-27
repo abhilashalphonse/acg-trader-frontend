@@ -261,7 +261,7 @@ export default function PositionsPanel({
   return (
     <section className={`${desktopDense ? `acg-desktop-positions h-full ${collapsed || compactDock ? 'overflow-hidden' : 'overflow-auto'}` : 'mt-3 overflow-visible'} border-y border-white/[0.06] bg-black`}>
       {desktopDense ? (
-        <div className="flex h-[52px] items-center justify-between gap-4 border-b border-white/[0.06] px-3">
+        <div className="flex h-[44px] items-center justify-between gap-2 border-b border-white/[0.06] px-2">
           <div className="flex h-full min-w-0 items-stretch gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {tabs.map(item => (
               <button key={item.id} type="button" onClick={() => setTab(item.id)} className={`relative flex h-full shrink-0 items-center gap-1.5 px-2 text-[10px] font-bold ${tab === item.id ? 'text-[#F4F6F8]' : 'text-[#7B8792] hover:text-[#C7D0D8]'}`}>
@@ -272,21 +272,21 @@ export default function PositionsPanel({
             ))}
           </div>
 
-          <div className="flex shrink-0 items-center gap-5">
-            <div className="flex items-center gap-3 lg:gap-4">
-              <div className="min-w-[72px]">
+          <div className="flex shrink-0 items-center gap-3">
+            <div className="flex items-center gap-2 lg:gap-3">
+              <div className="min-w-[66px]">
                 <span className="block text-[8px] font-semibold text-[#727D88]">Balance</span>
                 <strong key={`balance-${accountBalance}`} className="acg-motion-value mt-0.5 block font-mono text-[11px] font-bold text-[#E7EDF2]">{formatMoney(accountBalance, accountCurrency)}</strong>
               </div>
-              <div className="min-w-[72px]">
+              <div className="min-w-[66px]">
                 <span className="block text-[8px] font-semibold text-[#727D88]">P&amp;L</span>
                 <strong key={`pnl-${accountPnl}`} className={`acg-motion-value mt-0.5 block font-mono text-[11px] font-bold ${Number(accountPnl) > 0 ? 'text-[#42D7A1]' : Number(accountPnl) < 0 ? 'text-[#FF6F7A]' : 'text-[#E7EDF2]'}`}>{Number.isFinite(Number(accountPnl)) ? formatPnl(accountPnl, accountCurrency) : '—'}</strong>
               </div>
-              <div className="min-w-[72px]">
+              <div className="min-w-[66px]">
                 <span className="block text-[8px] font-semibold text-[#727D88]">Equity</span>
                 <strong key={`equity-${accountEquity}`} className="acg-motion-value mt-0.5 block font-mono text-[11px] font-bold text-[#E7EDF2]">{formatMoney(accountEquity, accountCurrency)}</strong>
               </div>
-              <div className="min-w-[94px]">
+              <div className="min-w-[88px]">
                 <span className="block text-[8px] font-semibold text-[#727D88]">Available Margin</span>
                 <strong key={`margin-${availableMargin}`} className="acg-motion-value mt-0.5 block font-mono text-[11px] font-bold text-[#E7EDF2]">{formatMoney(availableMargin, accountCurrency)}</strong>
               </div>
@@ -297,7 +297,7 @@ export default function PositionsPanel({
                 <button
                   type="button"
                   onClick={() => setDesktopActionsOpen(value => !value)}
-                  className="grid size-8 place-items-center rounded-md border border-white/[0.09] bg-[#0B0D10] text-[#8C99A5] hover:bg-white/[0.03] hover:text-white"
+                  className="grid size-7 place-items-center rounded-md border border-white/[0.09] bg-[#0B0D10] text-[#8C99A5] hover:bg-white/[0.03] hover:text-white"
                   title="Position actions"
                   aria-label="Position actions"
                 >

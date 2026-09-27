@@ -1241,7 +1241,7 @@ export default function ChartArea({
   const areaClass = drawingToolbarOverlay
     ? `acg-mobile-reference-chart-area acg-mobile-chart-surface ${toolbarVisible ? 'acg-mobile-reference-chart-area--with-drawing-rail' : 'acg-mobile-reference-chart-area--chart-only'} grid ${mobileHeightClass} ${toolbarVisible ? 'grid-cols-[36px_minmax(0,1fr)] gap-1.5' : 'grid-cols-[minmax(0,1fr)]'} bg-[#081019]`
     : embedded
-      ? `grid h-full min-h-0 grid-rows-[minmax(0,1fr)] ${!toolbarVisible ? 'grid-cols-[minmax(0,1fr)]' : desktopEnhanced ? 'grid-cols-[50px_minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} ${desktopEnhanced ? 'gap-2 bg-black' : 'gap-1.5'}`
+      ? `grid h-full min-h-0 grid-rows-[minmax(0,1fr)] ${!toolbarVisible ? 'grid-cols-[minmax(0,1fr)]' : desktopEnhanced ? 'grid-cols-[42px_minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} ${desktopEnhanced ? 'gap-1 bg-black' : 'gap-1.5'}`
       : focusMode
         ? `grid h-full min-h-0 ${toolbarVisible ? 'grid-cols-[36px_minmax(0,1fr)] gap-1.5' : 'grid-cols-[minmax(0,1fr)]'} grid-rows-[minmax(0,1fr)] px-1.5 pb-1.5`
         : `grid ${heightClass} grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2`;
