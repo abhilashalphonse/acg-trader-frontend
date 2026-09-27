@@ -630,12 +630,12 @@ export default function DesktopOrderTicket({
             <span className="truncate">{summaryText}</span>
           </div>
           <div className="grid grid-cols-[92px_minmax(0,1fr)_92px] gap-1.5 p-2">
-              <button type="button" disabled={sideDisabled('sell')} onClick={() => handleSide('sell')} className="flex h-[48px] min-w-0 flex-col items-center justify-center rounded-[7px] border border-[#ff5a68] bg-[#e33d4f] px-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.10)] transition hover:bg-[#ee4858] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35">
+              <button type="button" disabled={sideDisabled('sell')} onClick={() => handleSide('sell')} className="flex h-[42px] min-w-0 flex-col items-center justify-center rounded-[7px] border border-[#ff5a68] bg-[#e33d4f] px-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.10)] transition hover:bg-[#ee4858] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35">
                 <strong className="max-w-full truncate text-[8px] font-black uppercase tracking-[0.03em] text-white">{floatingSellLabel}</strong>
                 <span className="mt-0.5 max-w-full truncate font-mono text-[13px] font-bold tabular-nums text-white">{floatingSellPrice}</span>
               </button>
               {activeSizingMode === 'lots' ? (
-                <div className="grid h-[48px] grid-cols-[30px_minmax(0,1fr)_30px] items-center overflow-hidden rounded-[7px] border border-white/[0.07] bg-[#13161a]">
+                <div className="grid h-[42px] grid-cols-[30px_minmax(0,1fr)_30px] items-center overflow-hidden rounded-[7px] border border-white/[0.07] bg-[#13161a]">
                   <button type="button" onClick={() => setLots(Math.max(minVolume, normalizedLots - volumeStep))} className="grid h-full place-items-center text-[#8d99a5] hover:bg-white/[0.03] hover:text-white" aria-label="Decrease lot size"><Minus size={12}/></button>
                   <div className="flex h-full min-w-0 flex-col items-center justify-center border-x border-white/[0.05]">
                     <input value={lotInput} onFocus={event => { setLotFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }} onChange={event => setLotInput(event.target.value)} onBlur={commitLot} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { setLotInput(Number(normalizedLots).toFixed(lotDecimals)); event.currentTarget.blur(); } }} inputMode="decimal" className="w-full bg-transparent text-center font-mono text-[13px] font-bold tabular-nums text-[#f4f6f8] outline-none" aria-label="Lot size"/>
@@ -644,7 +644,7 @@ export default function DesktopOrderTicket({
                   <button type="button" onClick={() => setLots(Math.min(maxVolume, normalizedLots + volumeStep))} className="grid h-full place-items-center text-[#8d99a5] hover:bg-white/[0.03] hover:text-white" aria-label="Increase lot size"><Plus size={12}/></button>
                 </div>
               ) : (
-                <div className="grid h-[48px] grid-cols-[30px_minmax(0,1fr)_30px] items-center overflow-hidden rounded-[7px] border border-[#195be1]/28 bg-[#10151d]">
+                <div className="grid h-[42px] grid-cols-[30px_minmax(0,1fr)_30px] items-center overflow-hidden rounded-[7px] border border-[#195be1]/28 bg-[#10151d]">
                   <button type="button" onClick={() => setRiskFromInput(Math.max(0.1, Number(riskPercent) - 0.25))} className="grid h-full place-items-center text-[#8d99a5] hover:bg-white/[0.03] hover:text-white" aria-label="Decrease risk"><Minus size={12}/></button>
                   <div className="flex h-full min-w-0 flex-col items-center justify-center border-x border-white/[0.05]">
                     <input value={riskInput} onFocus={event => { setRiskFocused(true); setRiskUnit('percent'); requestAnimationFrame(() => event.currentTarget.select()); }} onChange={event => setRiskInput(event.target.value)} onBlur={commitRisk} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }} inputMode="decimal" className="w-full bg-transparent text-center font-mono text-[13px] font-bold tabular-nums text-[#4f82ef] outline-none" aria-label="Risk percent"/>
@@ -653,7 +653,7 @@ export default function DesktopOrderTicket({
                   <button type="button" onClick={() => setRiskFromInput(Math.min(5, Number(riskPercent) + 0.25))} className="grid h-full place-items-center text-[#8d99a5] hover:bg-white/[0.03] hover:text-white" aria-label="Increase risk"><Plus size={12}/></button>
                 </div>
               )}
-              <button type="button" disabled={sideDisabled('buy')} onClick={() => handleSide('buy')} className="flex h-[48px] min-w-0 flex-col items-center justify-center rounded-[7px] border border-[#4f82ef] bg-[#195be1] px-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.10)] transition hover:bg-[#2868e8] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35">
+              <button type="button" disabled={sideDisabled('buy')} onClick={() => handleSide('buy')} className="flex h-[42px] min-w-0 flex-col items-center justify-center rounded-[7px] border border-[#4f82ef] bg-[#195be1] px-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.10)] transition hover:bg-[#2868e8] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35">
                 <strong className="max-w-full truncate text-[8px] font-black uppercase tracking-[0.03em] text-white">{floatingBuyLabel}</strong>
                 <span className="mt-0.5 max-w-full truncate font-mono text-[13px] font-bold tabular-nums text-white">{floatingBuyPrice}</span>
               </button>
