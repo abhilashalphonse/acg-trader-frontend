@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ChevronDown, GripVertical, Minus, Plus, X } from 'lucide-react';
+import { AlertTriangle, ChevronDown, GripVertical, Maximize2, Minus, Plus, X } from 'lucide-react';
 import { decimalPlaces, normalizeVolumeToStep } from '../../../utils/tradingCommandNormalization.js';
 import {
   estimateOpeningRequirement,
@@ -11,6 +11,7 @@ import { formatInstrumentPrice, instrumentPipSize } from '../../../utils/instrum
 import { effectiveTradePlan, validateTradePlanForExecution } from '../../../utils/tradePlanExecution.js';
 import { resolveExecutionPreview } from '../../../utils/executionPricing.js';
 import { deriveAccountCapabilities } from '../../../utils/accountCapabilities.js';
+import InstrumentAvatar from '../InstrumentAvatar.jsx';
 
 const RISK_PRESETS = [0.25, 0.5, 1];
 
@@ -79,9 +80,8 @@ export default function DesktopOrderTicket({
   exposureBlockReason = 'New exposure is temporarily unavailable',
   onNotice = () => {},
   variant = 'panel',
-  floatingCollapsed = false,
   onFloatingDragStart = () => {},
-  onToggleFloatingCollapsed = () => {},
+  onOpenFullTrade = () => {},
 }) {
   const [lotInput, setLotInput] = useState(String(lots));
   const [lotFocused, setLotFocused] = useState(false);
@@ -608,7 +608,10 @@ export default function DesktopOrderTicket({
           <button type="button" onPointerDown={onFloatingDragStart} className="grid h-7 w-6 shrink-0 cursor-move place-items-center rounded text-[#7c8995] hover:bg-white/[0.04] hover:text-white" aria-label="Drag execution widget" title="Drag execution widget">
             <GripVertical size={13}/>
           </button>
-          <span className="min-w-0 flex-1 truncate text-[10px] font-bold text-[#f1f4f6]">{market?.displaySymbol || market?.symbol || '—'}</span>
+          <div className="flex min-w-0 flex-1 items-center gap-1.5">
+            <InstrumentAvatar instrument={market} size={16}/>
+            <span className="min-w-0 truncate text-[10px] font-bold text-[#f1f4f6]">{market?.displaySymbol || market?.symbol || '—'}</span>
+          </div>
           <button type="button" onClick={() => chooseFamily(orderFamily === 'market' ? 'pending' : 'market')} className="h-7 rounded-[5px] border border-white/[0.07] bg-[#15181d] px-2 text-[9px] font-black text-[#e9edf2] transition hover:bg-[#1a1e24]">
             {floatingModeLabel}
           </button>
@@ -617,19 +620,18 @@ export default function DesktopOrderTicket({
           </button>
           <button type="button" onClick={() => addProtection('sl')} className={hasStopLoss || protectionIntent === 'sl' ? 'h-7 rounded-[5px] border border-[#6f3039] bg-[#180c0f] px-2 text-[9px] font-black text-[#d45a64]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#15181d] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white'}>SL</button>
           <button type="button" onClick={() => addProtection('tp')} className={hasTakeProfit || protectionIntent === 'tp' ? 'h-7 rounded-[5px] border border-[#245b48] bg-[#081511] px-2 text-[9px] font-black text-[#2aa37f]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#15181d] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white'}>TP</button>
-          <button type="button" onClick={onToggleFloatingCollapsed} className="grid size-7 shrink-0 place-items-center rounded-[5px] border border-white/[0.06] bg-[#15181d] text-[#8d99a5] hover:text-white" aria-label={floatingCollapsed ? 'Expand execution widget' : 'Collapse execution widget'} title={floatingCollapsed ? 'Expand' : 'Collapse'}>
-            <ChevronDown size={12} className={floatingCollapsed ? '' : 'rotate-180'}/>
+          <button type="button" onClick={onOpenFullTrade} className="grid size-7 shrink-0 place-items-center rounded-[5px] border border-white/[0.06] bg-[#15181d] text-[#8d99a5] hover:bg-[#1a1e24] hover:text-white" aria-label="Open full trade execution panel" title="Open full trade execution">
+            <Maximize2 size={12}/>
           </button>
         </div>
 
-        {!floatingCollapsed && (
-          <>
-            <div className={`flex h-[30px] items-center justify-center border-b border-white/[0.05] px-2 text-[9px] font-semibold ${compactWarning ? 'text-[#d1a0a6]' : 'text-[#aeb8c1]'}`}>
-              <span className="truncate">{summaryText}</span>
-            </div>
-            <div className="grid grid-cols-[92px_minmax(0,1fr)_92px] gap-1.5 p-2">
-              <button type="button" disabled={sideDisabled('sell')} onClick={() => handleSide('sell')} className="flex h-[48px] min-w-0 flex-col items-center justify-center rounded-[7px] border border-[#7b313b] bg-[#161012] px-1.5 transition hover:bg-[#1d1215] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35">
-                <strong className="max-w-full truncate text-[8px] font-black uppercase tracking-[0.03em] text-[#ff6975]">{floatingSellLabel}</strong>
+        <>
+          <div className={`flex h-[30px] items-center justify-center border-b border-white/[0.05] px-2 text-[9px] font-semibold ${compactWarning ? 'text-[#d1a0a6]' : 'text-[#aeb8c1]'}`}>
+            <span className="truncate">{summaryText}</span>
+          </div>
+          <div className="grid grid-cols-[92px_minmax(0,1fr)_92px] gap-1.5 p-2">
+              <button type="button" disabled={sideDisabled('sell')} onClick={() => handleSide('sell')} className="flex h-[48px] min-w-0 flex-col items-center justify-center rounded-[7px] border border-[#ff5a68] bg-[#e33d4f] px-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.10)] transition hover:bg-[#ee4858] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35">
+                <strong className="max-w-full truncate text-[8px] font-black uppercase tracking-[0.03em] text-white">{floatingSellLabel}</strong>
                 <span className="mt-0.5 max-w-full truncate font-mono text-[13px] font-bold tabular-nums text-white">{floatingSellPrice}</span>
               </button>
               {activeSizingMode === 'lots' ? (
@@ -651,13 +653,12 @@ export default function DesktopOrderTicket({
                   <button type="button" onClick={() => setRiskFromInput(Math.min(5, Number(riskPercent) + 0.25))} className="grid h-full place-items-center text-[#8d99a5] hover:bg-white/[0.03] hover:text-white" aria-label="Increase risk"><Plus size={12}/></button>
                 </div>
               )}
-              <button type="button" disabled={sideDisabled('buy')} onClick={() => handleSide('buy')} className="flex h-[48px] min-w-0 flex-col items-center justify-center rounded-[7px] border border-[#195be1]/72 bg-[#0d121a] px-1.5 transition hover:bg-[#101827] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35">
-                <strong className="max-w-full truncate text-[8px] font-black uppercase tracking-[0.03em] text-[#5c8cf3]">{floatingBuyLabel}</strong>
+              <button type="button" disabled={sideDisabled('buy')} onClick={() => handleSide('buy')} className="flex h-[48px] min-w-0 flex-col items-center justify-center rounded-[7px] border border-[#4f82ef] bg-[#195be1] px-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.10)] transition hover:bg-[#2868e8] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35">
+                <strong className="max-w-full truncate text-[8px] font-black uppercase tracking-[0.03em] text-white">{floatingBuyLabel}</strong>
                 <span className="mt-0.5 max-w-full truncate font-mono text-[13px] font-bold tabular-nums text-white">{floatingBuyPrice}</span>
               </button>
-            </div>
-          </>
-        )}
+          </div>
+        </>
       </section>
     );
   }
