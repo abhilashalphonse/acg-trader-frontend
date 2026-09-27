@@ -327,6 +327,7 @@ export default function TradingTerminalV2({
     stopLoss = null,
     takeProfit = null,
     executionSizingMode = sizingMode,
+    skipRiskGuard = false,
   }) => {
     if (!symbol || !trading.accountId) return null;
     const instrument = markets.find(item => item.symbol === symbol) || market;
@@ -355,19 +356,21 @@ export default function TradingTerminalV2({
     const proposedRisk = stopLoss == null
       ? null
       : estimateStopRisk({ entry: effectiveRequestedPrice, sl: stopLoss, side }, executionLots, instrument, account.currency);
-    const guard = evaluateRiskGuard({
-      account,
-      positions,
-      positionHistory,
-      markets,
-      proposedRisk,
-      settings: riskGuardSettings,
-    });
-    if (!guard.allowed) {
-      const message = guard.blocks[0]?.message || 'Risk Guard blocked this trade.';
-      logEvent('warning', `Risk Guard: ${message}`);
-      showNotice(message);
-      return null;
+    if (!skipRiskGuard) {
+      const guard = evaluateRiskGuard({
+        account,
+        positions,
+        positionHistory,
+        markets,
+        proposedRisk,
+        settings: riskGuardSettings,
+      });
+      if (!guard.allowed) {
+        const message = guard.blocks[0]?.message || 'Risk Guard blocked this trade.';
+        logEvent('warning', `Risk Guard: ${message}`);
+        showNotice(message);
+        return null;
+      }
     }
     const base = {
       side: String(side).toUpperCase(),
@@ -829,7 +832,7 @@ export default function TradingTerminalV2({
       showNotice('Executable market price is unavailable');
       return;
     }
-    setTradePlan(plan);
+    setTradePlan(options?.desktopPendingDraft ? { ...plan, desktopPendingDraft: true } : plan);
   };
 
   const createPlanFromRiskTool = setup => {
@@ -922,13 +925,16 @@ export default function TradingTerminalV2({
     setTradePlan(null);
   };
 
-  const executePlan = async () => {
+  const executePlan = async (options = {}) => {
     if (!tradePlan || trading.commandState.pending) return;
     const planSymbol = tradePlan.symbol || market?.symbol;
     const planMarket = markets.find(item => item.symbol === planSymbol) || market;
     const planExposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market: planMarket, commandState: executionCommandState });
     if (!planExposure.allowed) { showNotice(planExposure.reason); return; }
-    const baseExecutionPlan = effectiveTradePlan(tradePlan, planMarket);
+    const patchedTradePlan = options?.planPatch
+      ? { ...tradePlan, ...normalizeTradePlanPatch(tradePlan, options.planPatch, planMarket) }
+      : tradePlan;
+    const baseExecutionPlan = effectiveTradePlan(patchedTradePlan, planMarket);
     const executionPreview = resolveExecutionPreview({
       plan: baseExecutionPlan,
       riskPercent,
@@ -973,40 +979,42 @@ export default function TradingTerminalV2({
       ? { ...executionPlan, entry: executionPlan.limitPrice }
       : executionPlan;
     const proposedRisk = estimateStopRisk(riskPlan, volume, planMarket, account.currency);
-    const guard = evaluateRiskGuard({
-      account,
-      positions,
-      positionHistory,
-      markets,
-      proposedRisk,
-      settings: riskGuardSettings,
-    });
-    if (!guard.allowed) {
-      const message = guard.blocks[0]?.message || 'Risk Guard blocked this order.';
-      logEvent('warning', `Risk Guard: ${message}`);
-      showNotice(message);
-      return;
+    if (!options?.skipRiskGuard) {
+      const guard = evaluateRiskGuard({
+        account,
+        positions,
+        positionHistory,
+        markets,
+        proposedRisk,
+        settings: riskGuardSettings,
+      });
+      if (!guard.allowed) {
+        const message = guard.blocks[0]?.message || 'Risk Guard blocked this order.';
+        logEvent('warning', `Risk Guard: ${message}`);
+        showNotice(message);
+        return;
+      }
     }
-    if (tradePlan.pending) {
+    if (executionPlan.pending) {
       const request = {
         symbol: planSymbol,
-        side: tradePlan.side,
-        type: tradePlan.orderType,
+        side: executionPlan.side,
+        type: executionPlan.orderType,
         volume,
-        entry: tradePlan.entry,
-        limitPrice: tradePlan.limitPrice,
-        stopLoss: tradePlan.sl,
-        takeProfit: tradePlan.tp,
-        timeInForce: tradePlan.expiration || 'GTC',
-        expiresAt: tradePlan.expirationAt || tradePlan.expiresAt || null,
+        entry: executionPlan.entry,
+        limitPrice: executionPlan.limitPrice,
+        stopLoss: executionPlan.sl,
+        takeProfit: executionPlan.tp,
+        timeInForce: executionPlan.expiration || 'GTC',
+        expiresAt: executionPlan.expirationAt || executionPlan.expiresAt || null,
       };
-      setExecutionEvent({ side: tradePlan.side, lots: volume, symbol: planSymbol, requestedPrice: tradePlan.entry, status: 'submitting' });
+      setExecutionEvent({ side: executionPlan.side, lots: volume, symbol: planSymbol, requestedPrice: executionPlan.entry, status: 'submitting' });
       try {
-        const result = tradePlan.editingOrderId
-          ? await trading.replacePendingOrder(tradePlan.editingOrderId, request)
+        const result = patchedTradePlan.editingOrderId
+          ? await trading.replacePendingOrder(patchedTradePlan.editingOrderId, request)
           : await trading.placePendingOrder(request);
-        setExecutionEvent({ side: tradePlan.side, lots: volume, symbol: planSymbol, requestedPrice: tradePlan.entry, status: 'pending', message: `${String(tradePlan.orderType).toUpperCase()} order waiting for trigger` });
-        logEvent('order', `${String(tradePlan.side).toUpperCase()} ${String(tradePlan.orderType).toUpperCase()} ${volume.toFixed(2)} ${planSymbol} placed`, { orderId: result?.order?.id });
+        setExecutionEvent({ side: executionPlan.side, lots: volume, symbol: planSymbol, requestedPrice: executionPlan.entry, status: 'pending', message: `${String(executionPlan.orderType).toUpperCase()} order waiting for trigger` });
+        logEvent('order', `${String(executionPlan.side).toUpperCase()} ${String(executionPlan.orderType).toUpperCase()} ${volume.toFixed(2)} ${planSymbol} placed`, { orderId: result?.order?.id });
         setTradePlan(null);
         dismissExecutionLater();
       } catch (error) {
@@ -1023,6 +1031,7 @@ export default function TradingTerminalV2({
       stopLoss: executionPlan.sl,
       takeProfit: executionPlan.tp,
       executionSizingMode: executionPlan.sizingMode || sizingMode,
+      skipRiskGuard: options?.skipRiskGuard === true,
     });
     if (result?.position || result?.reconciled || String(result?.order?.status || '').toUpperCase() === 'FILLED') {
       setTradePlan(null);
@@ -1044,7 +1053,7 @@ export default function TradingTerminalV2({
     });
   };
 
-  const manualOrder = order => {
+  const manualOrder = (order, options = {}) => {
     if (trading.commandState.pending || !exposure.allowed) { if (!exposure.allowed) showNotice(exposure.reason); return; }
     const instrument = markets.find(item => item.symbol === order.symbol) || market;
     const executionLots = normalizeVolumeToStep(order.lots, instrument);
@@ -1064,6 +1073,7 @@ export default function TradingTerminalV2({
       symbol: order.symbol,
       requestedPrice: Number.isFinite(Number(executionPrice)) ? Number(executionPrice) : order.price,
       executionSizingMode: 'lots',
+      skipRiskGuard: options?.skipRiskGuard === true,
     });
   };
 
@@ -1083,7 +1093,7 @@ export default function TradingTerminalV2({
     const order = pendingOrders.find(item => String(item.id) === String(id));
     if (!order) return;
     if (order.symbol && order.symbol !== market?.symbol) selectSymbol(order.symbol);
-    setTradePlan({ ...order, editingOrderId: id, stage: 'ready', open: false, pending: true });
+    setTradePlan({ ...order, ...(isDesktop ? { desktopPendingDraft: false } : {}), editingOrderId: id, stage: 'ready', open: false, pending: true });
     setOrderType(order.orderType);
     setSizingMode('lots');
     if (Number.isFinite(order.manualLots)) setLots(order.manualLots);
