@@ -90,6 +90,7 @@ export default function DesktopOrderTicket({
   const [limitFocused, setLimitFocused] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [protectionIntent, setProtectionIntent] = useState(null);
+  const [marketLotsBeforePending, setMarketLotsBeforePending] = useState(null);
 
   const currency = account?.currency || 'USD';
   const equity = Number(account?.equity);
@@ -279,11 +280,18 @@ export default function DesktopOrderTicket({
     if (family === 'market') {
       onOrderTypeChange('market');
       if (tradePlan) onCancelPlan();
+      if (Number.isFinite(Number(marketLotsBeforePending))) {
+        const restored = normalizeVolumeToStep(marketLotsBeforePending, market, { rounding: 'nearest' });
+        onLotsChange(restored);
+        setLotInput(Number(restored).toFixed(lotDecimals));
+        setMarketLotsBeforePending(null);
+      }
       return;
     }
 
     if (orderFamily !== 'pending') {
       if (tradePlan) onCancelPlan();
+      setMarketLotsBeforePending(normalizedLots);
       const defaultLots = normalizeVolumeToStep(1, market, { rounding: 'nearest' });
       onLotsChange(defaultLots);
       onSizingModeChange('lots');
