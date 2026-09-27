@@ -714,12 +714,12 @@ export default function DesktopTerminal({
     }
   };
 
-  const submitOneClick = order => {
+  const submitOneClick = (order, options = {}) => {
     if (!canOpen) {
       setNotice(exposureBlockReason || 'New exposure is unavailable until account, valuation and market state are live.');
       return;
     }
-    onManualOrder(order);
+    onManualOrder(order, options);
   };
 
   const openMarketPanel = (mode = 'markets', focusSearch = false) => {
