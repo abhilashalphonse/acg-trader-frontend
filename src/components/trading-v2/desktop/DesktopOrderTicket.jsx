@@ -632,7 +632,7 @@ export default function DesktopOrderTicket({
                 ))}
               </div>
               <div className="mt-2 flex items-center justify-between text-[9px]">
-                <span className="text-[#697784]">SL required</span>
+                <span className="text-[#697784]">Set SL to calculate size</span>
                 <strong className={Number.isFinite(Number(effectiveLots)) ? 'font-mono text-[#eef2f5]' : 'font-normal text-[#8b98a4]'}>{riskSizingText}</strong>
               </div>
             </div>
@@ -647,7 +647,7 @@ export default function DesktopOrderTicket({
           <div className="grid grid-cols-2 gap-1.5">
             <div className="flex min-w-0">
               <button type="button" onClick={() => addProtection('sl')} className={hasStopLoss ? 'h-9 min-w-0 flex-1 rounded-l-md border border-[#7f3540] bg-[#160b0d] text-[9px] font-bold text-[#d45a64]' : protectionIntent === 'sl' ? 'h-9 min-w-0 flex-1 rounded-l-md border border-[#195be1] bg-[#0d1a22] text-[9px] font-bold text-[#195be1]' : 'h-9 min-w-0 flex-1 rounded-l-md border border-white/[0.06] bg-black text-[9px] font-semibold text-[#8b98a4] hover:text-white'}>
-                {hasStopLoss ? 'SL ACTIVE' : activeSizingMode === 'risk' ? 'SL REQUIRED' : 'SL'}
+                {hasStopLoss ? 'SL ACTIVE' : activeSizingMode === 'risk' ? 'SET SL' : 'SL'}
               </button>
               <button type="button" onClick={() => removeProtection('sl')} disabled={!hasStopLoss && protectionIntent !== 'sl'} className="grid h-9 w-8 place-items-center rounded-r-md border border-l-0 border-white/[0.06] bg-black text-[#647382] hover:text-white disabled:opacity-25" aria-label="Remove stop loss"><X size={10}/></button>
             </div>
@@ -739,7 +739,7 @@ export default function DesktopOrderTicket({
         </div>
 
         {activeSizingMode === 'risk' && !hasStopLoss && (
-          <div className="mb-1.5 text-[8px] font-semibold text-[#b9888e]">Risk sizing needs a stop loss before execution.</div>
+          <div className="mb-1.5 text-[8px] font-semibold text-[#b9888e]">Set SL to calculate size before execution.</div>
         )}
 
         <div className="grid grid-cols-2 gap-1.5">
