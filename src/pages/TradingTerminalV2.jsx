@@ -1090,14 +1090,14 @@ export default function TradingTerminalV2({
     }
   };
 
-  const movePendingOrder = async (id, nextEntry) => {
+  const movePendingOrder = async (id, nextPrice, field = 'entry') => {
     const order = pendingOrders.find(item => String(item.id) === String(id));
     if (!order) return;
-    const numericEntry = Number(nextEntry);
-    if (!Number.isFinite(numericEntry) || numericEntry <= 0) return;
+    const numericPrice = Number(nextPrice);
+    if (!Number.isFinite(numericPrice) || numericPrice <= 0) return;
 
     const replacement = {
-      entry: numericEntry,
+      entry: order.entry,
       volume: order.volume ?? order.lots,
       stopLoss: order.sl,
       takeProfit: order.tp,
@@ -1105,23 +1105,29 @@ export default function TradingTerminalV2({
       expiresAt: order.expiresAt || null,
     };
 
-    if (
-      String(order.orderType || '').toLowerCase() === 'stop-limit'
-      && Number.isFinite(Number(order.entry))
-      && Number.isFinite(Number(order.limitPrice))
-    ) {
-      replacement.limitPrice = Number(order.limitPrice) + (numericEntry - Number(order.entry));
+    if (field === 'sl') replacement.stopLoss = numericPrice;
+    else if (field === 'tp') replacement.takeProfit = numericPrice;
+    else {
+      replacement.entry = numericPrice;
+      if (
+        String(order.orderType || '').toLowerCase() === 'stop-limit'
+        && Number.isFinite(Number(order.entry))
+        && Number.isFinite(Number(order.limitPrice))
+      ) {
+        replacement.limitPrice = Number(order.limitPrice) + (numericPrice - Number(order.entry));
+      }
     }
 
     try {
       await trading.replacePendingOrder(id, replacement);
-      logEvent('order', `${String(order.side).toUpperCase()} ${String(order.orderType).toUpperCase()} ${order.symbol} price moved on chart`, {
+      logEvent('order', `${String(order.side).toUpperCase()} ${String(order.orderType).toUpperCase()} ${order.symbol} ${field} moved on chart`, {
         orderId: id,
-        entry: numericEntry,
+        field,
+        price: numericPrice,
       });
-      showNotice('Pending price updated');
+      showNotice(field === 'entry' ? 'Pending price updated' : `${field.toUpperCase()} updated`);
     } catch (error) {
-      handleTradingError(error, `Move ${order.symbol} pending price`);
+      handleTradingError(error, `Move ${order.symbol} pending ${field}`);
     }
   };
 
