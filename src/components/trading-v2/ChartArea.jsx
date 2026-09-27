@@ -331,7 +331,7 @@ function PendingOrderOverlay({
                         event.stopPropagation();
                         onModify(order.id, 'tp');
                       }}
-                      className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[9px] transition ${Number.isFinite(Number(order?.tp)) ? 'text-[#2aa37f]' : 'text-[#72808d] hover:text-[#2aa37f]'}`}
+                      className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[9px] transition ${Number.isFinite(Number(order?.tp)) ? 'text-[#2aa37f]' : 'text-[#23876b] hover:text-[#35d79d]'}`}
                       aria-label="Add or edit take profit"
                       title="Add / edit TP"
                     >
@@ -344,7 +344,7 @@ function PendingOrderOverlay({
                         event.stopPropagation();
                         onModify(order.id, 'sl');
                       }}
-                      className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[9px] transition ${Number.isFinite(Number(order?.sl)) ? 'text-[#d45a64]' : 'text-[#72808d] hover:text-[#d45a64]'}`}
+                      className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[9px] transition ${Number.isFinite(Number(order?.sl)) ? 'text-[#d45a64]' : 'text-[#b64f59] hover:text-[#e36a74]'}`}
                       aria-label="Add or edit stop loss"
                       title="Add / edit SL"
                     >
@@ -352,8 +352,10 @@ function PendingOrderOverlay({
                     </button>
                   </>
                 )}
-                <span className="flex min-w-[34px] items-center justify-center border-r border-white/20 px-2">
-                  {Number.isFinite(lots) ? formatPositionLots(lots) : '—'}
+                <span className="flex min-w-[42px] items-center justify-center border-r border-white/20 px-2">
+                  {Number.isFinite(lots)
+                    ? (desktopStyle ? lots.toFixed(Math.max(2, Number(instrument?.volumeStep) < 0.01 ? 3 : 2)) : formatPositionLots(lots))
+                    : '—'}
                 </span>
                 <span className={`flex min-w-[76px] items-center justify-center border-r border-white/20 px-2 ${side === 'BUY' ? 'text-[#35e0a4]' : 'text-[#ff6b77]'}`}>
                   {side} {type}
@@ -702,7 +704,7 @@ function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, 
               event.stopPropagation();
               requestDesktopProtection('tp');
             }}
-            className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 transition ${liveTp != null ? 'text-[#2aa37f]' : 'text-[#75828e] hover:text-[#2aa37f]'}`}
+            className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 transition ${liveTp != null ? 'text-[#2aa37f]' : 'text-[#23876b] hover:text-[#35d79d]'}`}
             title={liveTp != null ? 'Focus TP' : 'Add TP'}
           >
             TP
@@ -714,7 +716,7 @@ function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, 
               event.stopPropagation();
               requestDesktopProtection('sl');
             }}
-            className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 transition ${liveSl != null ? 'text-[#d45a64]' : 'text-[#75828e] hover:text-[#d45a64]'}`}
+            className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 transition ${liveSl != null ? 'text-[#d45a64]' : 'text-[#b64f59] hover:text-[#e36a74]'}`}
             title={liveSl != null ? 'Focus SL' : 'Add SL'}
           >
             SL
@@ -747,7 +749,7 @@ function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, 
             setDragging('entry');
             onChange({ stage: 'dragging-entry' });
           }}
-          className="pointer-events-auto absolute left-[190px] right-[56px] top-1/2 z-0 h-8 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent lg:right-2"
+          className="pointer-events-auto absolute left-[235px] right-[56px] top-1/2 z-0 h-8 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent lg:right-2"
         />
       </div>
     </div>
