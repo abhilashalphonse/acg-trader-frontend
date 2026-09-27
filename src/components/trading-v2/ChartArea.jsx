@@ -462,6 +462,66 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
       );
     }
 
+    if (!mobileStyle && showEntry && (kind === 'sl' || kind === 'tp')) {
+      const projected = kind === 'sl'
+        ? (Number.isFinite(liveRisk) ? -Math.abs(liveRisk) : null)
+        : (Number.isFinite(liveReward) ? Math.abs(liveReward) : null);
+      const projectedText = Number.isFinite(projected)
+        ? formatPositionPnl(projected, accountCurrency)
+        : `— ${String(accountCurrency || 'USD').toUpperCase()}`;
+      const mutedColor = kind === 'sl' ? '#d45a64' : '#2aa37f';
+
+      return (
+        <div className="absolute left-0 right-0 z-30" style={{ top }}>
+          <div className="relative border-t border-dotted" style={{ borderColor: `${mutedColor}b5` }}>
+            <div
+              className="pointer-events-auto absolute left-3 top-1/2 z-10 flex h-7 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border border-dotted bg-[#09090b]/96 font-mono text-[9px] font-medium tabular-nums shadow-[0_4px_14px_rgba(0,0,0,.28)]"
+              style={{ borderColor: `${mutedColor}b5`, color: '#d8dee5' }}
+            >
+              <span className="flex min-w-[34px] items-center justify-center px-2">{label}</span>
+              <span className="flex min-w-[44px] items-center justify-center border-l border-dotted px-2" style={{ borderColor: `${mutedColor}70` }}>{lotCompact}</span>
+              <span className="flex min-w-[82px] items-center justify-center border-l border-dotted px-2" style={{ borderColor: `${mutedColor}70`, color: mutedColor }}>{projectedText}</span>
+              <button
+                type="button"
+                onClick={event => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onChange({ [field]: null, activeField: null, stage: 'ready' });
+                }}
+                className="grid w-8 place-items-center border-l border-dotted text-[13px] font-normal text-[#8d98a3] transition hover:bg-white/[0.04] hover:text-white"
+                style={{ borderColor: `${mutedColor}70` }}
+                aria-label={`Clear ${label}`}
+                title={`Remove ${label}`}
+              >
+                ×
+              </button>
+            </div>
+
+            <span
+              className="absolute right-[56px] top-1/2 z-10 -translate-y-1/2 rounded-[4px] border border-dotted bg-[#09090b]/96 px-1.5 py-0.5 font-mono text-[9px] font-medium tabular-nums lg:right-2"
+              style={{ borderColor: `${mutedColor}b5`, color: mutedColor }}
+            >
+              {formatInstrumentPrice(sourcePrice(field), instrument)}
+            </span>
+
+            {draggable && (
+              <button
+                type="button"
+                aria-label={`Drag ${label}`}
+                onPointerDown={event => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setDragging(kind);
+                  onChange({ activeField: kind, stage: `dragging-${kind}` });
+                }}
+                className="pointer-events-auto absolute left-[190px] right-[56px] top-1/2 z-0 h-8 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent lg:right-2"
+              />
+            )}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="absolute left-0 right-0 z-30" style={{ top }}>
         <div className="relative h-px" style={{ backgroundColor: `${color}bf` }}>
