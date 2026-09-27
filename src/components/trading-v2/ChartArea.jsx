@@ -1241,7 +1241,7 @@ export default function ChartArea({
   const areaClass = drawingToolbarOverlay
     ? `acg-mobile-reference-chart-area acg-mobile-chart-surface ${toolbarVisible ? 'acg-mobile-reference-chart-area--with-drawing-rail' : 'acg-mobile-reference-chart-area--chart-only'} grid ${mobileHeightClass} ${toolbarVisible ? 'grid-cols-[36px_minmax(0,1fr)] gap-1.5' : 'grid-cols-[minmax(0,1fr)]'} bg-[#081019]`
     : embedded
-      ? `grid h-full min-h-0 grid-rows-[minmax(0,1fr)] ${!toolbarVisible ? 'grid-cols-[minmax(0,1fr)]' : desktopEnhanced ? 'grid-cols-[42px_minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} ${desktopEnhanced ? 'gap-[3px] bg-black' : 'gap-1.5'}`
+      ? `grid h-full min-h-0 grid-rows-[minmax(0,1fr)] ${!toolbarVisible ? 'grid-cols-[minmax(0,1fr)]' : desktopEnhanced ? 'grid-cols-[40px_minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} ${desktopEnhanced ? 'gap-1 bg-black' : 'gap-1.5'}`
       : focusMode
         ? `grid h-full min-h-0 ${toolbarVisible ? 'grid-cols-[36px_minmax(0,1fr)] gap-1.5' : 'grid-cols-[minmax(0,1fr)]'} grid-rows-[minmax(0,1fr)] px-1.5 pb-1.5`
         : `grid ${heightClass} grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2`;
@@ -1311,8 +1311,8 @@ export default function ChartArea({
         </aside>
       )}
 
-      <div className={`relative h-full min-h-0 min-w-0 overflow-hidden ${desktopEnhanced ? 'rounded-[14px] border border-white/[0.06] bg-[#080A0C] shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]' : 'bg-[#09090b]'}`}>
-        <div className={`relative h-full min-h-0 min-w-0 overflow-hidden ${desktopEnhanced ? 'rounded-[13px] bg-[#07090B]' : 'bg-[#09090b]'} ${drawingToolbarOverlay ? (toolbarVisible ? '' : 'pl-3') : ''} ${mobileReference ? 'pr-1' : ''}`}>
+      <div className={`relative h-full min-h-0 min-w-0 overflow-hidden ${desktopEnhanced ? 'rounded-[10px] border border-white/[0.06] bg-[#080A0C] shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]' : 'bg-[#09090b]'}`}>
+        <div className={`relative h-full min-h-0 min-w-0 overflow-hidden ${desktopEnhanced ? 'rounded-[9px] bg-[#07090B]' : 'bg-[#09090b]'} ${drawingToolbarOverlay ? (toolbarVisible ? '' : 'pl-3') : ''} ${mobileReference ? 'pr-1' : ''}`}>
         <TradingChart
           symbol={symbol}
           instrument={instrument}
