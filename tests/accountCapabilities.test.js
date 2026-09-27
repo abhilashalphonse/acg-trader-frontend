@@ -84,7 +84,7 @@ test('active margin stop-out blocks only new exposure state and is not treated a
   assert.equal(result.allowed, false);
   assert.equal(result.code, 'MARGIN_STOP_OUT_ACTIVE');
   assert.match(result.reason, /stop-out/i);
-  assert.match(result.reason, /> 50%/i);
+  assert.match(result.reason, /above 50%/i);
 });
 
 test('unresolved durable risk state blocks new exposure independently of policy version', () => {
