@@ -1082,10 +1082,46 @@ export default function TradingTerminalV2({
     if (!order) return;
     try {
       await trading.cancelPendingOrder(id);
+      if (String(tradePlan?.editingOrderId || '') === String(id)) setTradePlan(null);
       logEvent('order', `${String(order.side).toUpperCase()} ${String(order.orderType).toUpperCase()} ${order.symbol} cancelled`);
       showNotice('Pending order cancelled');
     } catch (error) {
       handleTradingError(error, `Cancel ${order.symbol}`);
+    }
+  };
+
+  const movePendingOrder = async (id, nextEntry) => {
+    const order = pendingOrders.find(item => String(item.id) === String(id));
+    if (!order) return;
+    const numericEntry = Number(nextEntry);
+    if (!Number.isFinite(numericEntry) || numericEntry <= 0) return;
+
+    const replacement = {
+      entry: numericEntry,
+      volume: order.volume ?? order.lots,
+      stopLoss: order.sl,
+      takeProfit: order.tp,
+      timeInForce: order.expiration || 'GTC',
+      expiresAt: order.expiresAt || null,
+    };
+
+    if (
+      String(order.orderType || '').toLowerCase() === 'stop-limit'
+      && Number.isFinite(Number(order.entry))
+      && Number.isFinite(Number(order.limitPrice))
+    ) {
+      replacement.limitPrice = Number(order.limitPrice) + (numericEntry - Number(order.entry));
+    }
+
+    try {
+      await trading.replacePendingOrder(id, replacement);
+      logEvent('order', `${String(order.side).toUpperCase()} ${String(order.orderType).toUpperCase()} ${order.symbol} price moved on chart`, {
+        orderId: id,
+        entry: numericEntry,
+      });
+      showNotice('Pending price updated');
+    } catch (error) {
+      handleTradingError(error, `Move ${order.symbol} pending price`);
     }
   };
 
@@ -1209,6 +1245,7 @@ export default function TradingTerminalV2({
           onDuplicatePosition={duplicatePosition}
           onCancelPending={cancelPendingOrder}
           onModifyPending={modifyPendingOrder}
+          onMovePending={movePendingOrder}
           onManualOrder={manualOrder}
           indicators={indicators}
           indicatorFavorites={indicatorFavorites}
