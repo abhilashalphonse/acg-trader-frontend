@@ -485,13 +485,94 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
   const entryLabel = plan.pending
     ? (plan.desktopPendingDraft ? 'PENDING' : `${isBuy ? 'BUY' : 'SELL'} ${String(plan.orderType || '').toUpperCase()}`)
     : (isBuy ? 'BUY' : 'SELL');
+  const desktopPendingStyle = Boolean(
+    plan.pending
+    && showEntry
+    && !mobileStyle
+    && Object.prototype.hasOwnProperty.call(plan, 'desktopPendingDraft')
+  );
+
+  const requestDesktopProtection = kind => {
+    if (sourcePrice(kind) != null) {
+      onChange({ activeField: kind, stage: 'ready' });
+      return;
+    }
+    if (plan.desktopPendingDraft) {
+      onChange({ desktopProtectionIntent: kind, stage: 'ready' });
+      return;
+    }
+
+    const base = Number(liveEntry);
+    if (!Number.isFinite(base) || base <= 0) return;
+    const pip = Number(instrumentPipSize(instrument)) > 0
+      ? Number(instrumentPipSize(instrument))
+      : Number(instrument?.tickSize) > 0
+        ? Number(instrument.tickSize)
+        : base * 0.0001;
+    const distance = Math.max(
+      pip * 10,
+      base * (String(instrument?.assetClass || '').toUpperCase() === 'FOREX' ? 0.0005 : 0.0025),
+    );
+    const next = kind === 'sl'
+      ? (isBuy ? base - distance : base + distance)
+      : (isBuy ? base + distance * 2 : base - distance * 2);
+    onChange({ [kind]: next, activeField: kind, stage: 'ready' });
+  };
+
+  const desktopPendingEntry = desktopPendingStyle && entryY != null ? (
+    <div className="absolute left-0 right-0 z-30" style={{ top: entryY }}>
+      <div className="relative border-t border-dotted border-[#3b78d8]/90">
+        <div className="pointer-events-auto absolute left-3 top-1/2 z-10 flex h-7 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border border-dotted border-[#3b78d8]/80 bg-[#09090b]/96 font-mono text-[9px] font-medium tabular-nums shadow-[0_4px_14px_rgba(0,0,0,.28)]">
+          <button
+            type="button"
+            onClick={event => {
+              event.preventDefault();
+              event.stopPropagation();
+              requestDesktopProtection('tp');
+            }}
+            className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 ${liveTp != null ? 'text-[#2aa37f]' : 'text-[#6f7f8c] hover:text-[#2aa37f]'}`}
+          >
+            TP
+          </button>
+          <button
+            type="button"
+            onClick={event => {
+              event.preventDefault();
+              event.stopPropagation();
+              requestDesktopProtection('sl');
+            }}
+            className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 ${liveSl != null ? 'text-[#d45a64]' : 'text-[#6f7f8c] hover:text-[#d45a64]'}`}
+          >
+            SL
+          </button>
+          <span className="flex min-w-[42px] items-center justify-center border-r border-dotted border-[#3b78d8]/55 px-2 text-[#d9e1e8]">{lotCompact}</span>
+          <span className="flex min-w-[78px] items-center justify-center px-2 text-[#6ea0ff]">{entryLabel}</span>
+        </div>
+        <span className="absolute right-[56px] top-1/2 z-10 -translate-y-1/2 rounded-[4px] border border-dotted border-[#3b78d8]/80 bg-[#113f86]/95 px-1.5 py-0.5 font-mono text-[9px] font-semibold tabular-nums text-white lg:right-2">
+          {formatInstrumentPrice(sourcePrice('entry'), instrument)}
+        </span>
+        <button
+          type="button"
+          aria-label="Drag pending entry"
+          onPointerDown={event => {
+            event.preventDefault();
+            event.stopPropagation();
+            setDragging('entry');
+            onChange({ stage: 'dragging-entry' });
+          }}
+          className="pointer-events-auto absolute left-[190px] right-[56px] top-1/2 z-0 h-8 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent lg:right-2"
+        />
+      </div>
+    </div>
+  ) : null;
 
   return (
     <div ref={layerRef} className="pointer-events-none absolute inset-0 z-[40] overflow-hidden">
       {!positionProtectionMode && rewardTop != null && <div className="pointer-events-none absolute left-[42%] right-0" style={{ top: rewardTop, height: rewardHeight, background: 'linear-gradient(90deg, rgba(22,134,95,0.10), rgba(34,167,125,0.20))' }} />}
       {!positionProtectionMode && riskTop != null && <div className="pointer-events-none absolute left-[42%] right-0" style={{ top: riskTop, height: riskHeight, background: 'linear-gradient(90deg, rgba(138,43,57,0.10), rgba(255,68,91,0.17))' }} />}
       {line('tp', 'tp', '#35d79d', 'TP', `TP ${formatInstrumentPrice(liveTp, instrument)}`, true)}
-      {showEntry && line('entry', 'entry', '#42a5ff', entryLabel, formatInstrumentPrice(sourcePrice('entry'), instrument), Boolean(plan.pending))}
+      {desktopPendingEntry}
+      {showEntry && !desktopPendingStyle && line('entry', 'entry', '#42a5ff', entryLabel, formatInstrumentPrice(sourcePrice('entry'), instrument), Boolean(plan.pending))}
       {showEntry && plan.pending && plan.orderType === 'stop-limit' && line('limit', 'limitPrice', '#b58cff', 'LIMIT', formatInstrumentPrice(sourcePrice('limitPrice'), instrument), true)}
       {line('sl', 'sl', '#ff5968', 'SL', `SL ${formatInstrumentPrice(liveSl, instrument)}`, true)}
       {dragging && !positionProtectionMode && (
