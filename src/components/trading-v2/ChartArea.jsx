@@ -184,6 +184,8 @@ function PendingOrderOverlay({
   desktopStyle = false,
 }) {
   const layerRef = useRef(null);
+  const placedDragRef = useRef({ orderId: null, field: null, startY: null, moved: false });
+  const suppressPlacedClickRef = useRef(null);
   const [draggingOrderId, setDraggingOrderId] = useState(null);
   const [draggingField, setDraggingField] = useState(null);
   const [previewPrices, setPreviewPrices] = useState({});
@@ -218,6 +220,15 @@ function PendingOrderOverlay({
     const move = event => {
       const converted = priceFromEvent(event);
       if (converted == null) return;
+      const dragMeta = placedDragRef.current;
+      if (
+        dragMeta?.orderId === draggingOrderId
+        && dragMeta?.field === draggingField
+        && Number.isFinite(Number(dragMeta?.startY))
+        && Math.abs(Number(event?.clientY) - Number(dragMeta.startY)) > 2
+      ) {
+        placedDragRef.current = { ...dragMeta, moved: true };
+      }
       event.preventDefault?.();
       setPreviewPrices(current => ({ ...current, [previewKey]: converted }));
     };
@@ -226,6 +237,10 @@ function PendingOrderOverlay({
       const orderId = draggingOrderId;
       const field = draggingField;
       const converted = commit ? priceFromEvent(event) : null;
+      const dragMeta = placedDragRef.current;
+      const moved = dragMeta?.orderId === orderId && dragMeta?.field === field && dragMeta?.moved === true;
+      if (moved) suppressPlacedClickRef.current = { orderId, field, expiresAt: Date.now() + 350 };
+      placedDragRef.current = { orderId: null, field: null, startY: null, moved: false };
       setDraggingOrderId(null);
       setDraggingField(null);
 
@@ -260,6 +275,14 @@ function PendingOrderOverlay({
   }, [coordinateApi, desktopStyle, draggingField, draggingOrderId, onMove]);
 
   if (!coordinateApi?.priceToY || !activeOrders.length) return null;
+
+  const consumeSuppressedPlacedClick = (orderId, field = null) => {
+    const suppressed = suppressPlacedClickRef.current;
+    if (!suppressed || suppressed.expiresAt < Date.now() || String(suppressed.orderId) !== String(orderId)) return false;
+    if (field && suppressed.field !== field) return false;
+    suppressPlacedClickRef.current = null;
+    return true;
+  };
 
   const renderProtectionLine = (order, kind, color, label) => {
     const previewKey = `${order.id}:${kind}`;
@@ -318,6 +341,12 @@ function PendingOrderOverlay({
           if (!desktopStyle) return;
           event.preventDefault();
           event.stopPropagation();
+          placedDragRef.current = {
+            orderId: order.id,
+            field,
+            startY: Number(event?.clientY),
+            moved: false,
+          };
           setDraggingOrderId(order.id);
           setDraggingField(field);
         };
@@ -328,7 +357,11 @@ function PendingOrderOverlay({
               <div
                 role="button"
                 tabIndex={0}
-                onClick={event => { event.stopPropagation(); onModify(order.id); }}
+                onClick={event => {
+                  event.stopPropagation();
+                  if (consumeSuppressedPlacedClick(order.id)) return;
+                  onModify(order.id);
+                }}
                 onKeyDown={event => {
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
@@ -353,6 +386,7 @@ function PendingOrderOverlay({
                       onClick={event => {
                         event.preventDefault();
                         event.stopPropagation();
+                        if (consumeSuppressedPlacedClick(order.id, 'tp')) return;
                         onModify(order.id, 'tp');
                       }}
                       className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[9px] transition ${Number.isFinite(Number(order?.tp)) ? 'text-[#2aa37f]' : 'text-[#23876b] hover:text-[#35d79d]'}`}
@@ -373,6 +407,7 @@ function PendingOrderOverlay({
                       onClick={event => {
                         event.preventDefault();
                         event.stopPropagation();
+                        if (consumeSuppressedPlacedClick(order.id, 'sl')) return;
                         onModify(order.id, 'sl');
                       }}
                       className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[9px] transition ${Number.isFinite(Number(order?.sl)) ? 'text-[#d45a64]' : 'text-[#b64f59] hover:text-[#e36a74]'}`}
