@@ -532,6 +532,17 @@ export default function DesktopOrderTicket({
   const pendingSellType = inferredPendingType('sell').replace('-', ' ').toUpperCase();
   const pendingBuyType = inferredPendingType('buy').replace('-', ' ').toUpperCase();
   const editing = Boolean(tradePlan?.editingOrderId);
+  const pendingProjection = orderFamily === 'pending' && Boolean(tradePlan?.pending) && !editing;
+  const pendingSellLabel = editing
+    ? `Update ${pendingSellType}`
+    : pendingProjection && selectedSide === 'sell'
+      ? `Place Sell ${pendingSellType}`
+      : 'Sell';
+  const pendingBuyLabel = editing
+    ? `Update ${pendingBuyType}`
+    : pendingProjection && selectedSide === 'buy'
+      ? `Place Buy ${pendingBuyType}`
+      : 'Buy';
 
   const sideDisabled = side => {
     if (!executableQuote || !exposureAllowed) return true;
@@ -568,28 +579,34 @@ export default function DesktopOrderTicket({
         </div>
 
         {orderFamily === 'pending' && (
-          <div className="mb-3">
-            <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-[9px] font-semibold text-[#8b98a4]">Entry price</span>
-              <span className="text-[8px] text-[#586875]">synced with chart</span>
+          tradePlan?.pending ? (
+            <div className="mb-3">
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="text-[9px] font-semibold text-[#8b98a4]">Entry price</span>
+                <span className="text-[8px] text-[#586875]">chart ↔ ticket</span>
+              </div>
+              <input
+                value={entryInput}
+                onFocus={event => { setEntryFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }}
+                onChange={event => updateEntryInput(event.target.value)}
+                onBlur={commitEntry}
+                onKeyDown={event => {
+                  if (event.key === 'Enter') event.currentTarget.blur();
+                  if (event.key === 'Escape') {
+                    setEntryInput(priceInputValue(tradePlan?.entry, market));
+                    event.currentTarget.blur();
+                  }
+                }}
+                inputMode="decimal"
+                className="h-11 w-full rounded-md border border-[#195be1]/35 bg-black px-3 text-right font-mono text-[16px] font-semibold tabular-nums text-[#eef3f7] outline-none focus:border-[#195be1]"
+                aria-label="Pending entry price"
+              />
             </div>
-            <input
-              value={entryInput}
-              onFocus={event => { setEntryFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }}
-              onChange={event => updateEntryInput(event.target.value)}
-              onBlur={commitEntry}
-              onKeyDown={event => {
-                if (event.key === 'Enter') event.currentTarget.blur();
-                if (event.key === 'Escape') {
-                  setEntryInput(priceInputValue(tradePlan?.entry, market));
-                  event.currentTarget.blur();
-                }
-              }}
-              inputMode="decimal"
-              className="h-11 w-full rounded-md border border-[#195be1]/35 bg-black px-3 text-right font-mono text-[16px] font-semibold tabular-nums text-[#eef3f7] outline-none focus:border-[#195be1]"
-              aria-label="Pending entry price"
-            />
-          </div>
+          ) : (
+            <div className="mb-3 rounded-md border border-white/[0.05] bg-black/35 px-2.5 py-2 text-[9px] text-[#71808d]">
+              Choose <strong className="text-[#d45a64]">Sell</strong> or <strong className="text-[#4f82ef]">Buy</strong> to project the pending order on the chart.
+            </div>
+          )
         )}
 
         <div className="mb-3">
@@ -771,10 +788,10 @@ export default function DesktopOrderTicket({
             <strong className="text-[10px] font-bold uppercase tracking-[0.05em] text-[#d45a64]">
               {orderFamily === 'market'
                 ? (tradePlan && selectedSide === 'sell' ? 'Execute Sell' : 'Sell')
-                : (editing ? `Update ${pendingSellType}` : `Sell ${pendingSellType}`)}
+                : pendingSellLabel}
             </strong>
             <span className="mt-1 truncate font-mono text-[14px] font-semibold tabular-nums text-[#f0f3f5]">
-              {orderFamily === 'market' ? marketSellPrice : formatInstrumentPrice(tradePlan?.entry, market)}
+              {orderFamily === 'market' ? marketSellPrice : (tradePlan?.pending ? formatInstrumentPrice(tradePlan?.entry, market) : marketSellPrice)}
             </span>
           </button>
 
@@ -787,10 +804,10 @@ export default function DesktopOrderTicket({
             <strong className="text-[10px] font-bold uppercase tracking-[0.05em] text-[#4f82ef]">
               {orderFamily === 'market'
                 ? (tradePlan && selectedSide === 'buy' ? 'Execute Buy' : 'Buy')
-                : (editing ? `Update ${pendingBuyType}` : `Buy ${pendingBuyType}`)}
+                : pendingBuyLabel}
             </strong>
             <span className="mt-1 truncate font-mono text-[14px] font-semibold tabular-nums text-[#f0f3f5]">
-              {orderFamily === 'market' ? marketBuyPrice : formatInstrumentPrice(tradePlan?.entry, market)}
+              {orderFamily === 'market' ? marketBuyPrice : (tradePlan?.pending ? formatInstrumentPrice(tradePlan?.entry, market) : marketBuyPrice)}
             </span>
           </button>
         </div>
