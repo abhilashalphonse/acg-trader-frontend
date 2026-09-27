@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ChevronDown, Minus, Plus, X } from 'lucide-react';
 import { decimalPlaces, normalizeVolumeToStep } from '../../../utils/tradingCommandNormalization.js';
 import {
@@ -90,7 +90,6 @@ export default function DesktopOrderTicket({
   const [limitFocused, setLimitFocused] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [protectionIntent, setProtectionIntent] = useState(null);
-  const pendingDraftStartedRef = useRef(false);
 
   const currency = account?.currency || 'USD';
   const equity = Number(account?.equity);
