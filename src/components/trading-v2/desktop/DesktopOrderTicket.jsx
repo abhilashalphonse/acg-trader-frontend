@@ -520,6 +520,7 @@ export default function DesktopOrderTicket({
 
   const removeProtection = field => {
     if (!tradePlan) return;
+    if (field === 'sl' && planProtection.required) return;
     const other = field === 'sl' ? 'tp' : 'sl';
     if (!Number.isFinite(validProtectionPrice(tradePlan?.[other]))) onCancelPlan();
     else onTradePlanChange({ [field]: null, stage: 'ready' });
@@ -779,8 +780,20 @@ export default function DesktopOrderTicket({
             </>
           )}
         </div>
-        <div className="mt-1.5 flex justify-end">
-          <button type="button" onClick={() => removeProtection(field)} className="h-6 rounded px-2 text-[8px] font-semibold text-[#6F8191] hover:bg-white/[0.03] hover:text-[#E6EDF3]">Remove</button>
+        <div className="mt-1.5 flex items-center justify-between">
+          {isSl && (
+            <span className="text-[7px] font-semibold uppercase tracking-[0.08em] text-[#6F8191]">
+              {planProtection.required ? 'Required by account / sizing' : 'Optional'}
+            </span>
+          )}
+          <button
+            type="button"
+            disabled={isSl && planProtection.required}
+            onClick={() => removeProtection(field)}
+            className="ml-auto h-6 rounded px-2 text-[8px] font-semibold text-[#6F8191] hover:bg-white/[0.03] hover:text-[#E6EDF3] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-[#6F8191]"
+          >
+            {isSl && planProtection.required ? 'Required' : 'Remove'}
+          </button>
         </div>
       </div>
     );
@@ -1023,6 +1036,7 @@ export default function DesktopOrderTicket({
                 <button type="button" onClick={() => enableProtection('sl')} className="flex min-w-0 flex-1 items-center gap-2 text-left">
                   <span className={`grid size-3.5 place-items-center rounded border text-[8px] ${hasStopLoss ? 'border-[#8e3b49] bg-[#331017] text-[#FF6F7A]' : 'border-white/[0.12] text-transparent'}`}>✓</span>
                   <span className="text-[10px] font-bold text-[#E6EDF3]">Stop Loss</span>
+                  <span className="shrink-0 text-[7px] font-semibold uppercase tracking-[0.06em] text-[#6F8191]">{planProtection.required ? 'Required' : 'Optional'}</span>
                   {hasStopLoss && <span className="truncate font-mono text-[8px] text-[#FF6F7A]">{Number.isFinite(planMetrics?.riskAmount) ? `-${money(Math.abs(planMetrics.riskAmount),currency)}` : '—'}</span>}
                 </button>
                 <button type="button" onClick={() => enableProtection('sl')} className="text-[8px] font-bold text-[#8295A7] hover:text-white">{hasStopLoss ? 'Edit' : 'Add'}</button>
