@@ -210,7 +210,7 @@ function PendingOrderOverlay({
           <span className="absolute left-3 top-1/2 -translate-y-1/2 rounded-[4px] border bg-[#09090b]/94 px-1.5 py-0.5 text-[8px] font-black" style={{ borderColor: `${color}70`, color }}>
             {label}
           </span>
-          <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border border-dotted bg-[#09090b]/94 px-1.5 py-0.5 font-mono text-[8px] font-medium tabular-nums" style={{ borderColor: `${color}88`, color }}>
+          <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 font-mono text-[8px] font-bold tabular-nums" style={{ borderColor: `${color}88`, backgroundColor: kind === 'sl' ? '#5b1721' : '#0b4b37', color: '#ffffff' }}>
             {formatInstrumentPrice(price, instrument)}
           </span>
         </div>
@@ -245,7 +245,7 @@ function PendingOrderOverlay({
                     onModify(order.id);
                   }
                 }}
-                className="pointer-events-auto absolute left-3 top-1/2 z-10 flex h-7 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border border-[#2459a8] bg-[#0b2f66]/95 font-mono text-[10px] font-bold tabular-nums text-[#f4f8ff] shadow-[0_5px_16px_rgba(0,0,0,.38)] backdrop-blur-sm"
+                className="pointer-events-auto absolute left-3 top-1/2 flex h-7 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border border-[#2459a8] bg-[#0b2f66]/95 font-mono text-[10px] font-bold tabular-nums text-[#f4f8ff] shadow-[0_5px_16px_rgba(0,0,0,.38)] backdrop-blur-sm"
                 aria-label={`Modify ${side} ${type} order`}
                 title={`${type} pending order`}
               >
@@ -283,15 +283,15 @@ function PendingOrderOverlay({
               </div>
             </div>
           ) : null,
-          renderProtectionLine(order, 'sl', '#d45a64', 'SL'),
-          renderProtectionLine(order, 'tp', '#2aa37f', 'TP'),
+          renderProtectionLine(order, 'sl', '#ff5968', 'SL'),
+          renderProtectionLine(order, 'tp', '#35d79d', 'TP'),
         ].filter(Boolean);
       })}
     </div>
   );
 }
 
-function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.1, accountCurrency = 'USD', account = null, riskPercent = 0.5, showEntry = true }) {
+function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.1, accountCurrency = 'USD', account = null, riskPercent = 0.5, showEntry = true, mobileStyle = false }) {
   const layerRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [preview, setPreview] = useState({});
@@ -356,7 +356,7 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
 
   if (!plan || plan.open || !coordinateApi?.priceToY) return null;
   const isBuy = plan.side === 'buy';
-  const positionProtectionMode = !showEntry && plan?.source === 'open-position';
+  const positionProtectionMode = mobileStyle && !showEntry && plan?.source === 'open-position';
   const activeProtectionField = positionProtectionMode && ['sl', 'tp'].includes(plan?.activeField)
     ? plan.activeField
     : null;
@@ -509,7 +509,7 @@ function TradePlanOverlay({ plan, onChange, coordinateApi, instrument, lots = 0.
   );
 }
 
-function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, instrument, onUpdatePosition = () => {}, selectedPositionId = null, onSelectPosition = () => {} }) {
+function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, instrument, onUpdatePosition = () => {}, selectedPositionId = null, onSelectPosition = () => {}, mobileStyle = false }) {
   const layerRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [preview, setPreview] = useState({});
@@ -588,18 +588,45 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
 
   if (!coordinateApi?.priceToY || !activePositions.length) return null;
 
-  const renderLine = (position, kind, label) => {
+  const renderLine = (position, kind, color, label) => {
     const key = `${position.id}:${kind}`;
     const source = Object.prototype.hasOwnProperty.call(preview, key) ? preview[key] : position[kind];
     const price = Number(source);
     if (!Number.isFinite(price)) return null;
     const y = coordinateApi.priceToY(price);
     if (!Number.isFinite(y)) return null;
+
     const projectedPnl = estimatePositionPnlAtPrice(position, price, instrument);
     const currency = position?.pnlCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || 'USD';
-    const lots = formatPositionLots(position?.volume ?? position?.lots);
     const selected = String(selectedPositionId) === String(position.id);
     const active = selected || (dragging?.positionId === position.id && dragging?.kind === kind);
+
+    if (!mobileStyle) {
+      const displayPrice = value => formatInstrumentPrice(value, instrument);
+      const pips = positionDistancePips(position, price, instrument);
+      const previewText = active
+        ? (projectedPnl == null
+            ? `${displayPrice(price)} · ${pips?.toFixed(1) ?? '—'}p`
+            : `${displayPrice(price)} · ${formatProjectedPnl(projectedPnl, currency)} · ${pips?.toFixed(1) ?? '—'}p`)
+        : displayPrice(price);
+
+      return (
+        <div key={key} className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: y }}>
+          <div className="relative h-px" style={{ backgroundColor: color }}>
+            <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 text-[8px] font-black" style={{ borderColor: `${color}88`, backgroundColor: 'rgba(8,8,8,0.92)', color }}>{label}</span>
+            <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 text-[8px] font-bold tabular-nums text-white" style={{ borderColor: `${color}88`, backgroundColor: kind === 'sl' ? '#5b1721' : '#0b4b37' }}>{previewText}</span>
+            <button
+              type="button"
+              aria-label={`Drag ${label}`}
+              onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onSelectPosition(position.id); setDragging({ positionId: position.id, kind }); }}
+              className={`pointer-events-auto absolute left-[64px] right-[56px] top-1/2 h-5 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent lg:inset-x-0 ${String(selectedPositionId) === String(position.id) ? 'ring-1 ring-inset ring-white/10' : ''}`}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    const lots = formatPositionLots(position?.volume ?? position?.lots);
     const pnlText = projectedPnl == null ? `— ${String(currency).toUpperCase()}` : formatPositionPnl(projectedPnl, currency);
     const mutedColor = kind === 'sl' ? '#d45a64' : '#2aa37f';
 
@@ -639,8 +666,8 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
   return (
     <div ref={layerRef} className="pointer-events-none absolute inset-0 z-[24] overflow-hidden">
       {activePositions.flatMap(position => [
-        renderLine(position, 'tp', 'TP'),
-        renderLine(position, 'sl', 'SL'),
+        renderLine(position, 'tp', '#35d79d', 'TP'),
+        renderLine(position, 'sl', '#ff5968', 'SL'),
       ])}
     </div>
   );
@@ -933,6 +960,7 @@ export default function ChartArea({
             account={account}
             riskPercent={riskPercent}
             showEntry={false}
+            mobileStyle={mobileReference}
           />
         )}
         {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} />}
@@ -948,6 +976,7 @@ export default function ChartArea({
           onUpdatePosition={onUpdatePosition}
           selectedPositionId={selectedPositionId}
           onSelectPosition={onSelectPosition}
+          mobileStyle={mobileReference}
         />
 
         {desktopEnhanced && !compactContext && (
