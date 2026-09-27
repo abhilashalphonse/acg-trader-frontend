@@ -72,11 +72,11 @@ function desktopMarketPanelBounds(viewportWidth, orderPanelWidth = 380) {
 function desktopHeightBounds(viewportHeight, dockCollapsed = false, dockHeight = 0) {
   const height = Number(viewportHeight) || 900;
   const compact = height <= 900;
-  const dockMin = 64;
+  const dockMin = 52;
   const dockMax = compact ? Math.min(320, Math.floor(height * 0.44)) : height <= 1050 ? Math.min(420, Math.floor(height * 0.46)) : Math.min(520, Math.floor(height * 0.48));
-  const defaultDock = 64;
+  const defaultDock = 52;
   const effectiveDock = dockCollapsed ? 0 : clamp(dockHeight || defaultDock, dockMin, dockMax);
-  const upperWorkspaceHeight = Math.max(0, height - 58 - effectiveDock);
+  const upperWorkspaceHeight = Math.max(0, height - 48 - effectiveDock);
 
   // On laptop-height screens the order ticket is independently scrollable, so
   // reserve only the execution-critical portion instead of forcing the entire
@@ -109,7 +109,11 @@ function loadDesktopLayout() {
     const stored = JSON.parse(window.localStorage.getItem(DESKTOP_LAYOUT_KEY) || 'null');
     if (!stored || typeof stored !== 'object') return fallback;
     const dockCollapsed = stored.dockCollapsed === true;
-    const dockHeight = clamp(stored.dockHeight || fallback.dockHeight, initialBounds.dockMin, initialBounds.dockMax);
+    const storedDockHeight = Number(stored.dockHeight);
+    const requestedDockHeight = Number.isFinite(storedDockHeight) && storedDockHeight > 72
+      ? storedDockHeight
+      : fallback.dockHeight;
+    const dockHeight = clamp(requestedDockHeight, initialBounds.dockMin, initialBounds.dockMax);
     const bounds = desktopHeightBounds(viewportHeight, dockCollapsed, dockHeight);
     return {
       sidebarWidth: clamp(stored.sidebarWidth || fallback.sidebarWidth, widthBounds.sidebarMin, widthBounds.sidebarMax),
@@ -523,17 +527,17 @@ export default function DesktopTerminal({
 
   const heightBounds = desktopHeightBounds(viewportHeight, desktopLayout.dockCollapsed, desktopLayout.dockHeight);
   const widthBounds = desktopWidthBounds(viewportWidth);
-  const sidebarRailWidth = 48;
+  const sidebarRailWidth = 40;
   const sidebarContentWidth = positionsExpanded || desktopLayout.sidebarCollapsed ? 0 : desktopLayout.sidebarWidth;
   const sidebarWidth = sidebarContentWidth + sidebarRailWidth;
   const marketPanelOpen = activeNav === 'watchlist' || activeNav === 'markets';
   const marketBounds = desktopMarketPanelBounds(viewportWidth, sidebarContentWidth);
-  const collapsedDockHeight = 52;
-  const compactDockThreshold = 72;
+  const collapsedDockHeight = 44;
+  const compactDockThreshold = 60;
   const expandedChartStripHeight = 150;
   const expandedDockHeight = Math.max(
     260,
-    viewportHeight - 56 - 24 - expandedChartStripHeight,
+    viewportHeight - 46 - 12 - expandedChartStripHeight,
   );
   const visibleDockHeight = clamp(
     Math.max(180, Math.round(viewportHeight * 0.22)),
@@ -757,11 +761,11 @@ export default function DesktopTerminal({
   };
 
   return (
-    <div ref={shellRef} className="acg-terminal relative flex h-dvh min-h-0 flex-col gap-2 overflow-hidden bg-black p-2 text-[#E6EDF3]">
+    <div ref={shellRef} className="acg-terminal relative flex h-dvh min-h-0 flex-col gap-1 overflow-hidden bg-black p-1 text-[#E6EDF3]">
       {notice && <div className="acg-motion-notice absolute right-3 top-[66px] z-[120] flex max-w-[390px] items-center gap-3 rounded-md border border-white/[0.06] bg-[#101010]/95 px-3 py-2.5 text-[10px] font-semibold text-[#E6EDF3] shadow-[0_16px_48px_rgba(0,0,0,.45)]"><span>{notice}</span><button type="button" onClick={() => setNotice('')} className="grid size-6 place-items-center rounded-md text-[#8094a7]"><X size={13}/></button></div>}
 
 
-      <header className="acg-desktop-market-strip flex h-[56px] w-full min-w-0 shrink-0 items-center overflow-visible rounded-[14px] border border-white/[0.07] bg-[#0A0C0F] px-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_8px_24px_rgba(0,0,0,.24)]">
+      <header className="acg-desktop-market-strip flex h-[46px] w-full min-w-0 shrink-0 items-center overflow-visible rounded-[10px] border border-white/[0.07] bg-[#0A0C0F] px-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_6px_18px_rgba(0,0,0,.22)]">
         <div className="flex min-w-[178px] items-center gap-2.5 text-left 2xl:min-w-[210px]">
           <button type="button" onClick={() => openMarketPanel('markets', false)} className="shrink-0" title="Open markets and watchlist" aria-label="Open markets and watchlist">
             <InstrumentAvatar instrument={market} size={30}/>
@@ -941,14 +945,14 @@ export default function DesktopTerminal({
 
       <div className="min-h-0 flex-1">
         <div
-          className="relative grid h-full min-h-0 min-w-0 gap-x-2 gap-y-2 bg-black transition-[grid-template-columns,grid-template-rows] duration-300 ease-out"
+          className="relative grid h-full min-h-0 min-w-0 gap-x-1 gap-y-1 bg-black transition-[grid-template-columns,grid-template-rows] duration-300 ease-out"
           style={{
             gridTemplateColumns: `minmax(0, 1fr) ${sidebarContentWidth}px ${sidebarRailWidth}px`,
             gridTemplateRows: `minmax(0, 1fr) ${dockHeight}px`,
           }}
         >
-          <section className="grid min-h-0 min-w-0 overflow-hidden rounded-[16px] border border-white/[0.06] bg-[#080A0C] shadow-[inset_0_1px_0_rgba(255,255,255,0.015),0_12px_30px_rgba(0,0,0,.22)] grid-rows-[minmax(0,1fr)]" style={{ gridColumn: '1', gridRow: '1' }}>
-            <div className="min-h-0 min-w-0 bg-[#080A0C] p-1.5">
+          <section className="grid min-h-0 min-w-0 overflow-hidden rounded-[10px] border border-white/[0.06] bg-[#080A0C] shadow-[inset_0_1px_0_rgba(255,255,255,0.015),0_8px_22px_rgba(0,0,0,.20)] grid-rows-[minmax(0,1fr)]" style={{ gridColumn: '1', gridRow: '1' }}>
+            <div className="min-h-0 min-w-0 bg-[#080A0C] p-0.5">
               <DesktopMultiChart
                 compactContext={positionsExpanded}
                 config={multiChart}
@@ -1033,7 +1037,7 @@ export default function DesktopTerminal({
             </aside>
           )}
 
-          <aside className="flex min-h-0 flex-col items-center overflow-hidden rounded-[14px] border border-white/[0.07] bg-[#0A0C0F] py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_12px_30px_rgba(0,0,0,.22)]" style={{ gridColumn: '3', gridRow: '1' }} aria-label="Desktop panel dock">
+          <aside className="flex min-h-0 flex-col items-center overflow-hidden rounded-[10px] border border-white/[0.07] bg-[#0A0C0F] py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_8px_22px_rgba(0,0,0,.20)]" style={{ gridColumn: '3', gridRow: '1' }} aria-label="Desktop panel dock">
             <button
               type="button"
               onClick={() => {
@@ -1075,7 +1079,7 @@ export default function DesktopTerminal({
             </button>
           </aside>
 
-          <div className="min-h-0 overflow-hidden rounded-[16px] border border-white/[0.07] bg-[#0A0C0F] shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_12px_30px_rgba(0,0,0,.22)] transition-[height,transform,opacity] duration-300 ease-out" style={{ gridColumn: '1 / 4', gridRow: '2' }}>
+          <div className="min-h-0 overflow-hidden rounded-[10px] border border-white/[0.07] bg-[#0A0C0F] shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_8px_22px_rgba(0,0,0,.20)] transition-[height,transform,opacity] duration-300 ease-out" style={{ gridColumn: '1 / 4', gridRow: '2' }}>
             <PositionsPanel desktopDense collapsed={desktopLayout.dockCollapsed} compactDock={dockHeight <= compactDockThreshold && !positionsExpanded} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition} onEditProtection={editPositionProtection}/>
           </div>
 

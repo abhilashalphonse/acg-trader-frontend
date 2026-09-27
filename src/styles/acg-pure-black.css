@@ -2490,3 +2490,58 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
   }
 }
 
+/* Desktop space-tightening pass.
+   Desktop-only. Keeps the readability pass while giving the chart more room. */
+@media (min-width:1024px){
+  .acg-terminal{
+    gap:3px!important;
+    padding:3px!important;
+  }
+
+  .acg-terminal .acg-desktop-market-strip{
+    height:46px!important;
+    padding-left:8px!important;
+    padding-right:8px!important;
+    border-radius:8px!important;
+  }
+
+  .acg-terminal aside[aria-label="Drawing tools"]{
+    padding-top:4px!important;
+    padding-bottom:4px!important;
+    border-radius:8px!important;
+  }
+  .acg-terminal aside[aria-label="Drawing tools"] .acg-mobile-drawing-tool,
+  .acg-terminal aside[aria-label="Drawing tools"]>button{
+    width:34px!important;
+    height:34px!important;
+    border-radius:5px!important;
+  }
+  .acg-terminal aside[aria-label="Drawing tools"] [class*="my-1.5"]{
+    margin-top:3px!important;
+    margin-bottom:3px!important;
+  }
+
+  .acg-terminal aside[aria-label="Desktop panel dock"]{
+    padding-top:4px!important;
+    padding-bottom:4px!important;
+    border-radius:8px!important;
+  }
+  .acg-terminal aside[aria-label="Desktop panel dock"]>button{
+    width:32px!important;
+    height:32px!important;
+    margin-bottom:2px!important;
+    border-radius:5px!important;
+  }
+
+  .acg-terminal .acg-desktop-positions>div:first-child{
+    height:44px!important;
+    min-height:44px!important;
+    padding-left:8px!important;
+    padding-right:8px!important;
+  }
+
+  .acg-terminal .acg-desktop-positions>div:first-child>div:first-child button{
+    padding-left:6px!important;
+    padding-right:6px!important;
+  }
+}
