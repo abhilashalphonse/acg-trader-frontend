@@ -190,14 +190,12 @@ function money(value, currency = 'USD') {
   }
 }
 
-function accountSize(value, currency = 'USD') {
+function accountSize(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric) || numeric <= 0) return '—';
-  const code = String(currency || 'USD').toUpperCase();
-  const symbol = code === 'USD' ? '$' : code + ' ';
-  if (numeric >= 1_000_000) return symbol + (numeric / 1_000_000).toFixed(numeric % 1_000_000 === 0 ? 0 : 1) + 'M';
-  if (numeric >= 1_000) return symbol + (numeric / 1_000).toFixed(numeric % 1_000 === 0 ? 0 : 1) + 'K';
-  return symbol + numeric.toLocaleString('en-US');
+  if (numeric >= 1_000_000) return (numeric / 1_000_000).toFixed(numeric % 1_000_000 === 0 ? 0 : 1) + 'M';
+  if (numeric >= 1_000) return (numeric / 1_000).toFixed(numeric % 1_000 === 0 ? 0 : 1) + 'K';
+  return numeric.toLocaleString('en-US');
 }
 
 function accountGroups(accounts = []) {
@@ -861,7 +859,7 @@ export default function DesktopTerminal({
               {accountSwitching ? <Loader2 size={11} className="shrink-0 animate-spin text-[#195be1]"/> : <span className={canOpen ? "size-1.5 shrink-0 rounded-full bg-[#2fd9a0]" : valuationStatus === 'STALE' ? "size-1.5 shrink-0 rounded-full bg-[#e8bd55]" : "size-1.5 shrink-0 rounded-full bg-[#343434]"}/>}
               <div className="min-w-0 flex-1 leading-none">
                 <strong className="block truncate text-[9px]">{account?.accountCode || accountStatus}</strong>
-                <span className="mt-1 block truncate text-[8px] text-[#6F8191]">{accountTypeBadge(account)} · {currency}{Number(account?.leverage) > 0 ? ` · 1:${Number(account.leverage)}` : ''}</span>
+                <span className="mt-1 block truncate text-[8px] text-[#6F8191]">{accountTypeBadge(account)} · {accountSize(account?.initialBalance ?? account?.startingBalance ?? account?.challenge?.accountSize ?? account?.balance)}{Number(account?.leverage) > 0 ? ` · 1:${Number(account.leverage)}` : ''}</span>
               </div>
               <ChevronDown size={11} className={accountMenuOpen ? "acg-motion-chevron shrink-0 rotate-180 text-[#6F8191]" : "acg-motion-chevron shrink-0 text-[#6F8191]"}/>
             </button>
@@ -902,7 +900,7 @@ export default function DesktopTerminal({
                                 <span className="rounded bg-white/[0.07] px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.06em] text-[#9fb0bd]">{accountTypeBadge(item)}</span>
                               </div>
                               <div className="mt-1 flex items-center gap-1.5 text-[8px] text-[#6F8191]">
-                                <span className="font-bold text-[#A1AFBC]">{accountSize(item.initialBalance, item.currency || 'USD')}</span>
+                                <span className="font-bold text-[#A1AFBC]">{accountSize(item.initialBalance ?? item.startingBalance ?? item.challenge?.accountSize ?? item.balance)}</span>
                                 {phase && <><span>·</span><span>{phase}</span></>}<span>·</span><span>{accountStatusLabel(itemStatus)}</span>
                               </div>
                               <span className="mt-0.5 block text-[7px] text-[#556572]">Equity {money(item.equity, item.currency || 'USD')}</span>
