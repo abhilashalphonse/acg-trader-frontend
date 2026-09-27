@@ -119,8 +119,8 @@ function normalizeAccount(account, valuation) {
     : nullableNumber(fallback);
   return {
     id: account?.id || null, accountCode: account?.accountCode || null, accountType: account?.accountType || null, currency: account?.currency || 'USD', status: account?.status || 'UNKNOWN', tradingEnabled: account?.tradingEnabled === true, leverage: account?.leverage || null,
-    initialBalance: nullableNumber(durable.initialBalance), balance: valuationNumber('balance', durable.balance), equity: valuationNumber('equity', durable.equity), floatingPnl: valuationNumber('floatingPnl', durable.floatingPnl), margin: valuationNumber('usedMargin', durable.usedMargin), usedMargin: valuationNumber('usedMargin', durable.usedMargin), freeMargin: valuationNumber('freeMargin', durable.freeMargin), marginLevel: hasValuation ? nullableNumber(valuation?.marginLevel) : null, dailyStartEquity: nullableNumber(durable.dailyStartEquity), realizedPnlToday: nullableNumber(durable.realizedPnlToday), valuationStatus: valuation?.valuationStatus || 'WAITING', complete: valuation?.complete !== false, staleSymbols: valuation?.staleSymbols || [],
-    dailyLossLimit: numberOr(policy?.dailyLoss?.limit), dailyLossReference: policy?.dailyLoss?.reference || 'DAILY_START_EQUITY', maxLossLimit: numberOr(policy?.maxLoss?.limit), maxLossReference: policy?.maxLoss?.reference || 'INITIAL_BALANCE', profitTarget: numberOr(policy?.profitTarget), riskPolicy: policy, challenge: account?.challenge || {}, fundedAccountId: account?.challenge?.fundedAccountId || account?.fundedAccountId || null, riskDayKey: account?.riskDayKey || null, riskTimezone: account?.riskTimezone || 'UTC',
+    initialBalance: nullableNumber(durable.initialBalance), balance: valuationNumber('balance', durable.balance), equity: valuationNumber('equity', durable.equity), floatingPnl: valuationNumber('floatingPnl', durable.floatingPnl), margin: valuationNumber('usedMargin', durable.usedMargin), usedMargin: valuationNumber('usedMargin', durable.usedMargin), freeMargin: valuationNumber('freeMargin', durable.freeMargin), marginLevel: valuationNumber('marginLevel', durable.marginLevel), dailyStartEquity: nullableNumber(durable.dailyStartEquity), realizedPnlToday: nullableNumber(durable.realizedPnlToday), valuationStatus: valuation?.valuationStatus || 'WAITING', complete: valuation?.complete !== false, staleSymbols: valuation?.staleSymbols || [],
+    dailyLossLimit: numberOr(policy?.dailyLoss?.limit), dailyLossReference: policy?.dailyLoss?.reference || 'DAILY_START_EQUITY', maxLossLimit: numberOr(policy?.maxLoss?.limit), maxLossReference: policy?.maxLoss?.reference || 'INITIAL_BALANCE', profitTarget: numberOr(policy?.profitTarget), riskPolicy: policy, challenge: account?.challenge || {}, capabilities: account?.capabilities || {}, marginStopOut: account?.marginStopOut || { state: account?.marginStopOutState || 'NONE', episodeId: account?.marginStopOutEpisodeId || null }, riskProcessingState: account?.riskProcessingState || 'RESOLVED', riskUnresolvedReason: account?.riskUnresolvedReason || null, financialRevision: Number(account?.financialRevision || 0), fundedAccountId: account?.challenge?.fundedAccountId || account?.fundedAccountId || null, riskDayKey: account?.riskDayKey || null, riskTimezone: account?.riskTimezone || 'UTC',
   };
 }
 
@@ -151,6 +151,11 @@ function normalizeGrantAccount(grant) {
     maxLossLimit: 0,
     profitTarget: 0,
     riskPolicy: {},
+    capabilities: {},
+    marginStopOut: { state: 'NONE', episodeId: null },
+    riskProcessingState: 'RESOLVED',
+    riskUnresolvedReason: null,
+    financialRevision: 0,
     challenge: {
       phase: grant.phase || null,
       status: grant.status || null,
