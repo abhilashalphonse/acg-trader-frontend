@@ -185,7 +185,8 @@ function PendingOrderOverlay({
 }) {
   const layerRef = useRef(null);
   const [draggingOrderId, setDraggingOrderId] = useState(null);
-  const [previewEntries, setPreviewEntries] = useState({});
+  const [draggingField, setDraggingField] = useState(null);
+  const [previewPrices, setPreviewPrices] = useState({});
   const [, forceLayout] = useState(0);
 
   const activeOrders = useMemo(
@@ -203,7 +204,8 @@ function PendingOrderOverlay({
   }, [coordinateApi]);
 
   useEffect(() => {
-    if (!desktopStyle || !draggingOrderId || !coordinateApi?.yToPrice) return undefined;
+    if (!desktopStyle || !draggingOrderId || !draggingField || !coordinateApi?.yToPrice) return undefined;
+    const previewKey = `${draggingOrderId}:${draggingField}`;
 
     const priceFromEvent = event => {
       const rect = layerRef.current?.getBoundingClientRect();
@@ -217,20 +219,22 @@ function PendingOrderOverlay({
       const converted = priceFromEvent(event);
       if (converted == null) return;
       event.preventDefault?.();
-      setPreviewEntries(current => ({ ...current, [draggingOrderId]: converted }));
+      setPreviewPrices(current => ({ ...current, [previewKey]: converted }));
     };
 
     const finish = (event, commit) => {
       const orderId = draggingOrderId;
+      const field = draggingField;
       const converted = commit ? priceFromEvent(event) : null;
       setDraggingOrderId(null);
-      setPreviewEntries(current => {
-        if (!Object.prototype.hasOwnProperty.call(current, orderId)) return current;
+      setDraggingField(null);
+      setPreviewPrices(current => {
+        if (!Object.prototype.hasOwnProperty.call(current, previewKey)) return current;
         const next = { ...current };
-        delete next[orderId];
+        delete next[previewKey];
         return next;
       });
-      if (converted != null) void onMove(orderId, converted);
+      if (converted != null) void onMove(orderId, converted, field);
     };
 
     const up = event => finish(event, true);
@@ -243,12 +247,16 @@ function PendingOrderOverlay({
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', cancel);
     };
-  }, [coordinateApi, desktopStyle, draggingOrderId, onMove]);
+  }, [coordinateApi, desktopStyle, draggingField, draggingOrderId, onMove]);
 
   if (!coordinateApi?.priceToY || !activeOrders.length) return null;
 
   const renderProtectionLine = (order, kind, color, label) => {
-    const price = Number(order?.[kind]);
+    const previewKey = `${order.id}:${kind}`;
+    const source = Object.prototype.hasOwnProperty.call(previewPrices, previewKey)
+      ? previewPrices[previewKey]
+      : order?.[kind];
+    const price = Number(source);
     if (!Number.isFinite(price)) return null;
     const y = coordinateApi.priceToY(price);
     if (!Number.isFinite(y)) return null;
@@ -261,6 +269,19 @@ function PendingOrderOverlay({
           <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 font-mono text-[8px] font-bold tabular-nums" style={{ borderColor: `${color}88`, backgroundColor: kind === 'sl' ? '#5b1721' : '#0b4b37', color: '#ffffff' }}>
             {formatInstrumentPrice(price, instrument)}
           </span>
+          {desktopStyle && (
+            <button
+              type="button"
+              aria-label={`Drag pending ${label}`}
+              onPointerDown={event => {
+                event.preventDefault();
+                event.stopPropagation();
+                setDraggingOrderId(order.id);
+                setDraggingField(kind);
+              }}
+              className="pointer-events-auto absolute left-[58px] right-[58px] top-1/2 h-7 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent"
+            />
+          )}
         </div>
       </div>
     );
@@ -270,8 +291,9 @@ function PendingOrderOverlay({
     <div ref={layerRef} className="pointer-events-none absolute inset-0 z-[28] overflow-hidden">
       {activeOrders.flatMap(order => {
         const rawEntry = Number(order.entry);
-        const entry = Object.prototype.hasOwnProperty.call(previewEntries, order.id)
-          ? Number(previewEntries[order.id])
+        const entryPreviewKey = `${order.id}:entry`;
+        const entry = Object.prototype.hasOwnProperty.call(previewPrices, entryPreviewKey)
+          ? Number(previewPrices[entryPreviewKey])
           : rawEntry;
         const y = coordinateApi.priceToY(entry);
         if (!Number.isFinite(y)) return [];
@@ -361,6 +383,7 @@ function PendingOrderOverlay({
                     event.preventDefault();
                     event.stopPropagation();
                     setDraggingOrderId(order.id);
+                    setDraggingField('entry');
                   }}
                   className="pointer-events-auto absolute left-[225px] right-[58px] top-1/2 z-0 h-8 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent"
                 />
