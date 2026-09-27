@@ -10,7 +10,7 @@ import {
 import { formatInstrumentPrice, instrumentPipSize } from '../../../utils/instrumentFormatting.js';
 import { effectiveTradePlan, validateTradePlanForExecution } from '../../../utils/tradePlanExecution.js';
 import { resolveExecutionPreview } from '../../../utils/executionPricing.js';
-import { deriveAccountCapabilities, protectionRequirement } from '../../../utils/accountCapabilities.js';
+import { deriveAccountCapabilities } from '../../../utils/accountCapabilities.js';
 
 const RISK_PRESETS = [0.25, 0.5, 1];
 
@@ -172,9 +172,6 @@ export default function DesktopOrderTicket({
   const planValidation = executionPlan
     ? validateTradePlanForExecution(executionPlan, market, { preserveEntry: true })
     : { valid: true, message: null };
-  const planProtection = executionPlan
-    ? protectionRequirement({ account, sizingMode: activeSizingMode, stopLoss: executionPlan.sl })
-    : { valid: activeSizingMode !== 'risk', message: activeSizingMode === 'risk' ? 'Stop loss required when using risk sizing.' : null };
   const marginBlocked = Number.isFinite(openingRequirement)
     && Number.isFinite(freeMargin)
     && openingRequirement > freeMargin + 1e-8;
