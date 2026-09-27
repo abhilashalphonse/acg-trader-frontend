@@ -87,6 +87,7 @@ export default function MarketPanel({
         onCancelPending={onCancelPending}
         drawingToolbarOpen={compactMobileToolbar ? drawingToolbarOpen : true}
         drawingToolbarOverlay={compactMobileToolbar}
+        mobileOverlayStyle={compactMobileToolbar}
         fillAvailableHeight={fillAvailableHeight}
       />
     </section>
