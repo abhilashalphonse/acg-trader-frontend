@@ -13,6 +13,7 @@ import {
 import { formatInstrumentPrice, formatSpreadDisplay, instrumentPipSize } from '../../../utils/instrumentFormatting.js';
 import { effectiveTradePlan, validateTradePlanForExecution } from '../../../utils/tradePlanExecution.js';
 import { estimateExecutionPrice, resolveExecutionPreview } from '../../../utils/executionPricing.js';
+import { deriveAccountCapabilities, protectionRequirement } from '../../../utils/accountCapabilities.js';
 
 const ORDER_TYPES = [
   ['market', 'Market'],
@@ -228,6 +229,14 @@ export default function DesktopOrderTicket({
     if (!riskInputFocused) setRiskInput(String(riskPercent));
   }, [riskInputFocused, riskPercent]);
 
+  const accountCapabilities = deriveAccountCapabilities(account);
+  const planProtection = executionPlan
+    ? protectionRequirement({
+      account,
+      sizingMode: activeSizingMode,
+      stopLoss: executionPlan.sl,
+    })
+    : { valid: true, message: null };
   const riskSizingBlocked = activeSizingMode === 'risk' && executionSizing?.canExecute === false;
   const marginBlocked = activeSizingMode === 'lots'
     && Number.isFinite(previewRequirement)
@@ -249,6 +258,7 @@ export default function DesktopOrderTicket({
     && !riskSizingBlocked
     && !marginBlocked
     && planValidation.valid
+    && planProtection.valid
     && riskGuard.allowed;
 
   const spreadDisplay = useMemo(
@@ -270,6 +280,8 @@ export default function DesktopOrderTicket({
     else warning = 'Waiting for an executable quote.';
   } else if (!planValidation.valid) {
     warning = planValidation.message || 'Review this order before submitting.';
+  } else if (!planProtection.valid) {
+    warning = planProtection.message;
   } else if (activeSizingMode === 'risk' && !riskSupported) {
     warning = 'Risk % sizing is unavailable because this instrument P&L cannot be converted safely to the account currency.';
   } else if (executionSizing?.blockReason === 'INSUFFICIENT_MARGIN') {
@@ -335,10 +347,12 @@ export default function DesktopOrderTicket({
       return;
     }
     if (orderType !== 'market') {
-      onStartPlan(side, orderType, { protection: 'none' });
+      onStartPlan(side, orderType, {
+        protection: activeSizingMode === 'risk' || accountCapabilities.stopLossRequiredForManualLots ? 'sl' : 'none',
+      });
       return;
     }
-    if (activeSizingMode === 'risk') {
+    if (activeSizingMode === 'risk' || accountCapabilities.stopLossRequiredForManualLots) {
       onStartPlan(side, 'market', { protection: 'sl' });
       return;
     }
