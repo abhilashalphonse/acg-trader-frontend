@@ -1093,7 +1093,7 @@ export default function TradingTerminalV2({
     const order = pendingOrders.find(item => String(item.id) === String(id));
     if (!order) return;
     if (order.symbol && order.symbol !== market?.symbol) selectSymbol(order.symbol);
-    setTradePlan({ ...order, editingOrderId: id, stage: 'ready', open: false, pending: true });
+    setTradePlan({ ...order, ...(isDesktop ? { desktopPendingDraft: false } : {}), editingOrderId: id, stage: 'ready', open: false, pending: true });
     setOrderType(order.orderType);
     setSizingMode('lots');
     if (Number.isFinite(order.manualLots)) setLots(order.manualLots);
