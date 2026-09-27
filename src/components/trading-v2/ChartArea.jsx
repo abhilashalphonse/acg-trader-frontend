@@ -228,13 +228,23 @@ function PendingOrderOverlay({
       const converted = commit ? priceFromEvent(event) : null;
       setDraggingOrderId(null);
       setDraggingField(null);
-      setPreviewPrices(current => {
-        if (!Object.prototype.hasOwnProperty.call(current, previewKey)) return current;
-        const next = { ...current };
-        delete next[previewKey];
-        return next;
-      });
-      if (converted != null) void onMove(orderId, converted, field);
+
+      const clearPreview = () => {
+        setPreviewPrices(current => {
+          if (!Object.prototype.hasOwnProperty.call(current, previewKey)) return current;
+          const next = { ...current };
+          delete next[previewKey];
+          return next;
+        });
+      };
+
+      if (converted == null) {
+        clearPreview();
+        return;
+      }
+
+      setPreviewPrices(current => ({ ...current, [previewKey]: converted }));
+      Promise.resolve(onMove(orderId, converted, field)).finally(clearPreview);
     };
 
     const up = event => finish(event, true);
