@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Check, ChevronLeft, Clock3 } from 'lucide-react';
+import { Check, ChevronLeft, Clock } from 'lucide-react';
 import { formatInstrumentPrice, instrumentForSymbol } from '../../utils/instrumentFormatting.js';
 
 const HISTORY_PERIOD_KEY = 'acg-mobile-history-period-v1';
@@ -299,7 +299,7 @@ export default function MobileTradesSheet({
               className="ml-auto grid size-10 place-items-center rounded-lg text-[#d8e0e7] active:bg-white/[0.05]"
               aria-label="Filter history by symbol and period"
             >
-              <Clock3 size={19} strokeWidth={1.9}/>
+              <Clock size={19} strokeWidth={1.9}/>
             </button>
           )}
         </div>
