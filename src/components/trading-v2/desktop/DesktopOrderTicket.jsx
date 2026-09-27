@@ -198,6 +198,14 @@ export default function DesktopOrderTicket({
     if (!limitFocused) setLimitInput(priceInputValue(tradePlan?.limitPrice, market));
   }, [limitFocused, market, tradePlan?.limitPrice]);
 
+  useEffect(() => {
+    const intent = tradePlan?.desktopProtectionIntent;
+    if (!['sl', 'tp'].includes(intent)) return;
+    setProtectionIntent(intent);
+    onTradePlanChange({ desktopProtectionIntent: null, stage: 'ready' });
+    onNotice(`Choose Buy or Sell to place ${intent === 'sl' ? 'SL' : 'TP'} on the chart.`);
+  }, [onNotice, onTradePlanChange, tradePlan?.desktopProtectionIntent]);
+
   const setLots = value => {
     const next = normalizeVolumeToStep(value, market, { rounding: 'nearest' });
     onLotsChange(next);
