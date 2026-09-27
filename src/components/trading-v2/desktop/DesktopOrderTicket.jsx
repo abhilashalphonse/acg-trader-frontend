@@ -107,7 +107,6 @@ export default function DesktopOrderTicket({
   const [activeTool, setActiveTool] = useState(null);
   const [protectionMode, setProtectionMode] = useState({ sl: 'price', tp: 'price' });
   const [riskGuardOpen, setRiskGuardOpen] = useState(false);
-  const [appliedRiskSizing, setAppliedRiskSizing] = useState(null);
   const [protectionDraft, setProtectionDraft] = useState(null);
   const skipProtectionCommitRef = useRef(false);
   const [pendingPriceDraft, setPendingPriceDraft] = useState(null);
@@ -296,12 +295,11 @@ export default function DesktopOrderTicket({
     warning = `Planned stop uses ${riskBufferUsage.toFixed(0)}% of the remaining daily-loss buffer.`;
   }
 
-  const setLots = (value, options = {}) => {
+  const setLots = value => {
     const next = normalizeVolumeToStep(value, market, { rounding: 'nearest' });
     onLotsChange(next);
     onSizingModeChange('lots');
     setLotInput(Number(next).toFixed(lotDecimals));
-    if (!options.preserveRiskBadge) setAppliedRiskSizing(null);
     if (tradePlan) onTradePlanChange({ manualLots: next, sizingMode: 'lots' });
   };
 
@@ -317,8 +315,26 @@ export default function DesktopOrderTicket({
   };
 
   const setMode = mode => {
-    onSizingModeChange(mode);
-    if (tradePlan) onTradePlanChange({ sizingMode: mode, manualLots: normalizedLots });
+    const nextMode = mode === 'risk' ? 'risk' : 'lots';
+    onSizingModeChange(nextMode);
+
+    if (!tradePlan) {
+      if (nextMode === 'lots') setActiveTool(current => current === 'sl' ? null : current);
+      return;
+    }
+
+    if (nextMode === 'risk') {
+      const patch = { sizingMode: 'risk', manualLots: normalizedLots };
+      if (!Number.isFinite(validProtectionPrice(tradePlan.sl))) {
+        const defaultSl = defaultProtectionPrice('sl');
+        if (Number.isFinite(defaultSl)) patch.sl = defaultSl;
+      }
+      onTradePlanChange({ ...patch, stage: 'ready' });
+      setActiveTool('sl');
+      return;
+    }
+
+    onTradePlanChange({ sizingMode: 'lots', manualLots: normalizedLots });
   };
 
   const setRisk = value => {
@@ -341,19 +357,31 @@ export default function DesktopOrderTicket({
   };
 
   const clickSide = side => {
-    if (!canSubmit || !market?.symbol) return;
+    if (!market?.symbol) return;
+
     if (pendingPlan) {
-      if (selectedSide === side) onExecutePlan();
+      if (canSubmit && selectedSide === side) onExecutePlan();
       return;
     }
+
+    if (activeSizingMode === 'risk') {
+      if (!executableQuote || !exposureAllowed || !riskSupported || !riskGuard.allowed) return;
+      onStartPlan(side, orderType === 'market' ? 'market' : orderType, { protection: 'sl' });
+      setActiveTool('sl');
+      return;
+    }
+
+    if (!canSubmit) return;
     if (orderType !== 'market') {
       onStartPlan(side, orderType, {
-        protection: activeSizingMode === 'risk' || accountCapabilities.stopLossRequiredForManualLots ? 'sl' : 'none',
+        protection: accountCapabilities.stopLossRequiredForManualLots ? 'sl' : 'none',
       });
+      if (accountCapabilities.stopLossRequiredForManualLots) setActiveTool('sl');
       return;
     }
-    if (activeSizingMode === 'risk' || accountCapabilities.stopLossRequiredForManualLots) {
+    if (accountCapabilities.stopLossRequiredForManualLots) {
       onStartPlan(side, 'market', { protection: 'sl' });
+      setActiveTool('sl');
       return;
     }
     onManualOrder({
@@ -403,9 +431,6 @@ export default function DesktopOrderTicket({
     const lots = Number(riskSizing.requestedLots);
     return Number.isFinite(lots) && lots >= minVolume ? lots : null;
   })();
-  const riskExecutableLoss = Number.isFinite(riskExecutableLots)
-    ? estimateStopRisk(executionPlan || tradePlan, riskExecutableLots, market, currency)
-    : null;
   const riskTargetLoss = Number.isFinite(Number(account?.equity))
     ? Number(account.equity) * Number(riskPercent) / 100
     : null;
@@ -463,22 +488,6 @@ export default function DesktopOrderTicket({
       tp,
       stage: 'ready',
     });
-  };
-
-  const openRiskSizing = () => {
-    setActiveTool(current => {
-      const next = current === 'risk' ? null : 'risk';
-      if (next === null && sizingMode === 'risk') setMode('lots');
-      return next;
-    });
-  };
-
-  const applyCalculatedRiskLots = () => {
-    if (!Number.isFinite(riskExecutableLots)) return;
-    setLots(riskExecutableLots, { preserveRiskBadge: true });
-    setAppliedRiskSizing({ percent: Number(riskPercent), lots: riskExecutableLots });
-    setMode('lots');
-    setActiveTool(null);
   };
 
   const distanceUnit = String(market?.assetClass || '').toUpperCase() === 'FOREX' ? 'pips' : 'pts';
@@ -679,7 +688,6 @@ export default function DesktopOrderTicket({
     const next = normalizeVolumeToStep(numeric, market, { rounding: 'nearest' });
     onLotsChange(next);
     onSizingModeChange('lots');
-    setAppliedRiskSizing(null);
     if (tradePlan) onTradePlanChange({ manualLots: next, sizingMode: 'lots' });
   };
 
@@ -690,11 +698,25 @@ export default function DesktopOrderTicket({
   };
 
   const executionButtonLabel = side => {
-    if (!pendingPlan || selectedSide !== side) return side === 'buy' ? 'Buy' : 'Sell';
+    if (!pendingPlan || selectedSide !== side) {
+      if (activeSizingMode === 'risk') return side === 'buy' ? 'Buy · Set SL' : 'Sell · Set SL';
+      return side === 'buy' ? 'Buy' : 'Sell';
+    }
     if (tradePlan?.editingOrderId) return 'Update order';
-    if (!tradePlan?.pending) return side === 'buy' ? 'Execute buy' : 'Execute sell';
+    if (!tradePlan?.pending) {
+      if (activeSizingMode === 'risk') return side === 'buy' ? 'Confirm buy' : 'Confirm sell';
+      return side === 'buy' ? 'Execute buy' : 'Execute sell';
+    }
     const typeLabel = String(tradePlan?.orderType || orderType || '').replace('-', ' ');
     return `Place ${side} ${typeLabel}`;
+  };
+
+  const sideButtonDisabled = side => {
+    if (pendingPlan) return !canSubmit || selectedSide !== side;
+    if (activeSizingMode === 'risk') {
+      return !executableQuote || !exposureAllowed || !riskSupported || !riskGuard.allowed;
+    }
+    return !canSubmit;
   };
 
   const renderProtectionEditor = field => {
@@ -918,107 +940,132 @@ export default function DesktopOrderTicket({
         )}
 
         <div className="rounded-[10px] border border-white/[0.05] bg-[#0B0D10] p-2.5">
-          <div className="mb-1.5 flex items-center justify-between">
+          <div className="mb-2 flex items-center justify-between gap-2">
             <strong className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#AAB5BF]">Position size</strong>
-            <span className="text-[8px] text-[#6F8191]">{minVolume}–{maxVolume} lots</span>
-          </div>
-          <div className="grid grid-cols-[38px_minmax(0,1fr)_38px] items-center rounded-[10px] border border-white/[0.05] bg-[#060708]">
-            <button type="button" onClick={() => nudgeLots(-1)} className="grid h-10 place-items-center text-[#6F8191] hover:bg-white/[0.025] hover:text-white" aria-label="Decrease lot size"><Minus size={12}/></button>
-            <div className="flex items-center justify-center border-x border-white/[0.05]">
-              <input
-                value={lotInput}
-                onFocus={event => { setLotFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }}
-                onChange={liveLotInput}
-                readOnly={activeSizingMode === 'risk'}
-                title={activeSizingMode === 'risk' ? 'Position size is calculated from risk and stop loss. Choose a lot preset to switch back to Lots sizing.' : 'Manual lot size'}
-                onBlur={commitLotInput}
-                onKeyDown={event => {
-                  if (event.key === 'ArrowUp') { event.preventDefault(); nudgeLots(1); }
-                  if (event.key === 'ArrowDown') { event.preventDefault(); nudgeLots(-1); }
-                  if (event.key === 'Enter') event.currentTarget.blur();
-                  if (event.key === 'Escape') { setLotInput(Number(normalizedLots).toFixed(lotDecimals)); event.currentTarget.blur(); }
-                }}
-                className="h-11 w-24 bg-transparent text-center font-mono text-[18px] font-black tabular-nums tracking-[-0.03em] text-[#F3F6F8] outline-none"
-                inputMode="decimal"
-                aria-label="Lot size"
-              />
-              <span className="ml-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-[#6F8191]">lots</span>
+            <div className="grid h-7 w-[132px] grid-cols-2 rounded-md border border-white/[0.06] bg-black p-0.5">
+              <button
+                type="button"
+                onClick={() => setMode('lots')}
+                className={`rounded text-[8px] font-black ${activeSizingMode === 'lots' ? 'bg-[#151820] text-[#E6EDF3]' : 'text-[#6F8191] hover:text-white'}`}
+              >
+                Lots
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('risk')}
+                disabled={!riskSupported}
+                className={`rounded text-[8px] font-black disabled:cursor-not-allowed disabled:opacity-35 ${activeSizingMode === 'risk' ? 'bg-[#0d1a22] text-[#195be1]' : 'text-[#6F8191] hover:text-white'}`}
+              >
+                Risk %
+              </button>
             </div>
-            <button type="button" onClick={() => nudgeLots(1)} className="grid h-10 place-items-center text-[#6F8191] hover:bg-white/[0.025] hover:text-white" aria-label="Increase lot size"><Plus size={12}/></button>
-          </div>
-          {appliedRiskSizing && Math.abs(Number(appliedRiskSizing.lots) - Number(normalizedLots)) < volumeStep / 2 && (
-            <div className="mt-1.5 flex items-center justify-between rounded border border-[#195be1]/60 bg-[#0d1a22]/55 px-2 py-1">
-              <span className="text-[8px] font-semibold text-[#195be1]">Risk-based size applied</span>
-              <strong className="font-mono text-[8px] text-[#9bdcff]">{Number(appliedRiskSizing.percent).toFixed(2)}%</strong>
-            </div>
-          )}
-          <div className="mt-1.5 grid grid-cols-5 gap-1">
-            {LOT_PRESETS.filter(value => value >= minVolume && value <= maxVolume).map(value => (
-              <button key={value} type="button" onClick={() => setLots(value)} className={`h-7 rounded border font-mono text-[8px] font-bold ${Math.abs(normalizedLots-value)<volumeStep/2 ? 'border-[#195be1] bg-[#0d1a22] text-[#195be1]' : 'border-white/[0.06] text-[#687c90] hover:text-white'}`}>{value.toFixed(Math.max(2,lotDecimals))}</button>
-            ))}
-            <button type="button" onClick={openRiskSizing} className={`h-7 rounded border text-[8px] font-black ${activeTool === 'risk' ? 'border-[#195be1] bg-[#0d1a22] text-[#195be1]' : 'border-white/[0.06] text-[#8da0b2] hover:text-white'}`}>Risk</button>
           </div>
 
-          {activeTool === 'risk' && (
-            <div className="mt-2 border-t border-white/[0.06] pt-2">
-              {!tradePlan || !hasStopLoss ? (
-                <div>
-                  <p className="text-[8px] leading-4 text-[#7f93a6]">Risk sizing needs a stop loss first.</p>
-                  <div className="mt-1.5 grid grid-cols-2 gap-1">
-                    <button type="button" onClick={() => { startProtectedPlan('sell', 'sl'); setActiveTool('sl'); }} className="h-8 rounded border border-[#5b252e] text-[8px] font-bold text-[#FF6F7A]">Plan short</button>
-                    <button type="button" onClick={() => { startProtectedPlan('buy', 'sl'); setActiveTool('sl'); }} className="h-8 rounded border border-[#1c5c47] text-[8px] font-bold text-[#42D7A1]">Plan long</button>
-                  </div>
+          {activeSizingMode === 'lots' ? (
+            <>
+              <div className="grid grid-cols-[38px_minmax(0,1fr)_38px] items-center rounded-[10px] border border-white/[0.05] bg-[#060708]">
+                <button type="button" onClick={() => nudgeLots(-1)} className="grid h-10 place-items-center text-[#6F8191] hover:bg-white/[0.025] hover:text-white" aria-label="Decrease lot size"><Minus size={12}/></button>
+                <div className="flex items-center justify-center border-x border-white/[0.05]">
+                  <input
+                    value={lotInput}
+                    onFocus={event => { setLotFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }}
+                    onChange={liveLotInput}
+                    onBlur={commitLotInput}
+                    onKeyDown={event => {
+                      if (event.key === 'ArrowUp') { event.preventDefault(); nudgeLots(1); }
+                      if (event.key === 'ArrowDown') { event.preventDefault(); nudgeLots(-1); }
+                      if (event.key === 'Enter') event.currentTarget.blur();
+                      if (event.key === 'Escape') { setLotInput(Number(normalizedLots).toFixed(lotDecimals)); event.currentTarget.blur(); }
+                    }}
+                    className="h-11 w-24 bg-transparent text-center font-mono text-[18px] font-black tabular-nums tracking-[-0.03em] text-[#F3F6F8] outline-none"
+                    inputMode="decimal"
+                    aria-label="Lot size"
+                  />
+                  <span className="ml-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-[#6F8191]">lots</span>
                 </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-4 gap-1">
-                    {RISK_PRESETS.map(value => <button key={value} type="button" onClick={() => setRisk(value)} className={`h-7 rounded border text-[8px] font-bold ${Math.abs(riskPercent-value)<0.001 ? 'border-[#195be1] bg-[#0d1a22] text-[#195be1]' : 'border-white/[0.06] text-[#7d90a2]'}`}>{value.toFixed(2)}%</button>)}
-                    <label className="flex h-7 items-center rounded border border-white/[0.06] bg-black px-1"><input type="text" inputMode="decimal" value={riskInput} onFocus={event => { skipRiskCommitRef.current = false; setRiskInputFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }} onChange={event => setRiskInput(sanitizeProtectionInput(event.target.value))} onBlur={commitRiskInput} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); } else if (event.key === 'Escape') { event.preventDefault(); skipRiskCommitRef.current = true; setRiskInput(String(riskPercent)); event.currentTarget.blur(); } }} className="w-full bg-transparent text-center font-mono text-[8px] font-bold text-[#E6EDF3] outline-none"/><span className="text-[6px] text-[#6F8191]">%</span></label>
-                  </div>
-                  <div className="mt-1.5 grid grid-cols-2 gap-1">
-                    <div className="rounded border border-white/[0.05] bg-black px-2 py-1.5">
-                      <span className="block text-[8px] text-[#6F8191]">Manual size</span>
-                      <strong className="mt-0.5 block font-mono text-[10px] text-[#E6EDF3]">{Number(normalizedLots).toFixed(Math.max(2,lotDecimals))} lots</strong>
-                    </div>
-                    <div className="rounded border border-[#195be1]/50 bg-[#0d1a22]/35 px-2 py-1.5">
-                      <span className="block text-[8px] text-[#6F8191]">{riskNeedsCap ? 'Requested size' : 'Execution size'}</span>
-                      <strong className="mt-0.5 block font-mono text-[10px] text-[#195be1]">{Number.isFinite(riskRequestedRaw) ? riskRequestedRaw.toFixed(Math.max(2,lotDecimals)) : Number.isFinite(riskCalculatedLots) ? riskCalculatedLots.toFixed(Math.max(2,lotDecimals)) : '—'} lots</strong>
-                    </div>
-                  </div>
-
-                  <div className="mt-1 grid grid-cols-2 gap-1 rounded border border-white/[0.05] bg-black px-2 py-1.5">
-                    <div>
-                      <span className="block text-[8px] text-[#6F8191]">Target SL loss</span>
-                      <strong className="mt-0.5 block font-mono text-[9px] text-[#FF6F7A]">{Number.isFinite(riskTargetLoss) ? `-${money(Math.abs(riskTargetLoss), currency)}` : '—'}</strong>
-                    </div>
-                    <div>
-                      <span className="block text-[8px] text-[#6F8191]">{riskNeedsCap ? 'Max executable' : 'After apply'}</span>
-                      <strong className="mt-0.5 block font-mono text-[9px] text-[#E6EDF3]">{Number.isFinite(riskExecutableLots) ? `${riskExecutableLots.toFixed(Math.max(2,lotDecimals))} lots` : '—'}</strong>
-                    </div>
-                  </div>
-
-                  {riskNeedsCap && (
-                    <div className="mt-1 rounded border border-[#5a4523] bg-[#171208] px-2 py-1.5 text-[8px] leading-3.5 text-[#d8b867]">
-                      {riskSizing?.blockReason === 'MAX_VOLUME'
-                        ? `Requested risk exceeds the instrument maximum. Maximum size is ${Number.isFinite(riskExecutableLots) ? riskExecutableLots.toFixed(Math.max(2,lotDecimals)) : '—'} lots.`
-                        : riskSizing?.blockReason === 'INSUFFICIENT_MARGIN'
-                          ? `Requested risk needs more margin than available. Maximum margin-supported size is ${Number.isFinite(riskExecutableLots) ? riskExecutableLots.toFixed(Math.max(2,lotDecimals)) : '—'} lots.`
-                          : `Requested risk is below the instrument minimum. Minimum size is ${Number.isFinite(riskExecutableLots) ? riskExecutableLots.toFixed(Math.max(2,lotDecimals)) : '—'} lots.`}
-                    </div>
-                  )}
-
+                <button type="button" onClick={() => nudgeLots(1)} className="grid h-10 place-items-center text-[#6F8191] hover:bg-white/[0.025] hover:text-white" aria-label="Increase lot size"><Plus size={12}/></button>
+              </div>
+              <div className="mt-1.5 grid grid-cols-4 gap-1">
+                {LOT_PRESETS.filter(value => value >= minVolume && value <= maxVolume).map(value => (
+                  <button key={value} type="button" onClick={() => setLots(value)} className={`h-7 rounded border font-mono text-[8px] font-bold ${Math.abs(normalizedLots-value)<volumeStep/2 ? 'border-[#195be1] bg-[#0d1a22] text-[#195be1]' : 'border-white/[0.06] text-[#687c90] hover:text-white'}`}>{value.toFixed(Math.max(2,lotDecimals))}</button>
+                ))}
+              </div>
+              <div className="mt-1.5 flex items-center justify-between px-0.5 text-[8px]">
+                <span className="text-[#6F8191]">Range {minVolume}–{maxVolume} lots</span>
+                <span className={accountCapabilities.manualLotWithoutStopLoss ? 'font-semibold text-[#195be1]' : 'font-semibold text-[#E7BD58]'}>
+                  {accountCapabilities.manualLotWithoutStopLoss ? 'SL optional' : 'SL required'}
+                </span>
+              </div>
+            </>
+          ) : (
+            <div className="border-t border-white/[0.06] pt-2">
+              <div className="grid grid-cols-4 gap-1">
+                {RISK_PRESETS.map(value => (
                   <button
+                    key={value}
                     type="button"
-                    onClick={applyCalculatedRiskLots}
-                    disabled={!Number.isFinite(riskExecutableLots)}
-                    className="mt-1.5 h-8 w-full rounded border border-[#195be1] bg-[#0d1a22] text-[8px] font-black text-[#195be1] disabled:opacity-30"
+                    onClick={() => setRisk(value)}
+                    className={`h-8 rounded border text-[8px] font-black ${Math.abs(riskPercent-value)<0.001 ? 'border-[#195be1] bg-[#0d1a22] text-[#195be1]' : 'border-white/[0.06] bg-black text-[#7d90a2] hover:text-white'}`}
                   >
-                    {Number.isFinite(riskExecutableLots) ? `USE ${riskExecutableLots.toFixed(Math.max(2,lotDecimals))} LOTS MANUALLY` : 'SIZE UNAVAILABLE'}
+                    {value.toFixed(2)}%
                   </button>
-                  {Number.isFinite(riskExecutableLoss) && (
-                    <p className="mt-1 text-center text-[8px] text-[#6F8191]">Estimated SL loss after apply: <span className="font-mono text-[#FF6F7A]">-{money(Math.abs(riskExecutableLoss), currency)}</span></p>
-                  )}
-                </>
+                ))}
+                <label className="flex h-8 items-center rounded border border-white/[0.06] bg-black px-1">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={riskInput}
+                    onFocus={event => { skipRiskCommitRef.current = false; setRiskInputFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }}
+                    onChange={event => setRiskInput(sanitizeProtectionInput(event.target.value))}
+                    onBlur={commitRiskInput}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); }
+                      else if (event.key === 'Escape') {
+                        event.preventDefault();
+                        skipRiskCommitRef.current = true;
+                        setRiskInput(String(riskPercent));
+                        event.currentTarget.blur();
+                      }
+                    }}
+                    className="w-full bg-transparent text-center font-mono text-[9px] font-black text-[#E6EDF3] outline-none"
+                  />
+                  <span className="text-[7px] text-[#6F8191]">%</span>
+                </label>
+              </div>
+
+              <div className="mt-2 grid grid-cols-3 gap-1">
+                <div className="rounded border border-[#195be1]/45 bg-[#0d1a22]/30 px-2 py-1.5">
+                  <span className="block text-[7px] font-semibold uppercase tracking-[0.05em] text-[#6F8191]">Risk</span>
+                  <strong className="mt-0.5 block font-mono text-[10px] text-[#195be1]">{Number(riskPercent).toFixed(2)}% · {Number.isFinite(riskTargetLoss) ? money(riskTargetLoss, currency) : '—'}</strong>
+                </div>
+                <div className="rounded border border-white/[0.05] bg-black px-2 py-1.5">
+                  <span className="block text-[7px] font-semibold uppercase tracking-[0.05em] text-[#6F8191]">Calculated size</span>
+                  <strong className="mt-0.5 block font-mono text-[10px] text-[#E6EDF3]">{Number.isFinite(riskRequestedRaw) ? `${riskRequestedRaw.toFixed(Math.max(2,lotDecimals))} lots` : Number.isFinite(riskCalculatedLots) ? `${riskCalculatedLots.toFixed(Math.max(2,lotDecimals))} lots` : '—'}</strong>
+                </div>
+                <div className="rounded border border-[#5e2932] bg-[#14090c] px-2 py-1.5">
+                  <span className="block text-[7px] font-semibold uppercase tracking-[0.05em] text-[#8f6970]">Stop loss</span>
+                  <strong className="mt-0.5 block text-[9px] font-black text-[#FF6F7A]">{hasStopLoss ? 'SET' : 'REQUIRED'}</strong>
+                </div>
+              </div>
+
+              {!tradePlan ? (
+                <p className="mt-2 rounded border border-white/[0.05] bg-black/40 px-2 py-1.5 text-[8px] leading-4 text-[#7f93a6]">
+                  Choose risk %, then press BUY or SELL. ACG Trader will open SL placement and calculate lots from the stop distance.
+                </p>
+              ) : (
+                <p className="mt-2 rounded border border-[#195be1]/35 bg-[#0d1a22]/20 px-2 py-1.5 text-[8px] leading-4 text-[#8da9bd]">
+                  Move or type the stop loss. Position size, SL loss and required margin update automatically.
+                </p>
+              )}
+
+              {riskNeedsCap && (
+                <div className="mt-1.5 rounded border border-[#5a4523] bg-[#171208] px-2 py-1.5 text-[8px] leading-3.5 text-[#d8b867]">
+                  {riskSizing?.blockReason === 'MAX_VOLUME'
+                    ? `Selected risk requires more than the instrument maximum. Requested size is ${Number.isFinite(riskRequestedRaw) ? riskRequestedRaw.toFixed(Math.max(2,lotDecimals)) : '—'} lots.`
+                    : riskSizing?.blockReason === 'INSUFFICIENT_MARGIN'
+                      ? `Selected risk needs more margin than available. Margin-supported size is about ${Number.isFinite(riskExecutableLots) ? riskExecutableLots.toFixed(Math.max(2,lotDecimals)) : '—'} lots.`
+                      : `Selected risk is below the instrument minimum. Minimum size is ${Number.isFinite(riskExecutableLots) ? riskExecutableLots.toFixed(Math.max(2,lotDecimals)) : '—'} lots.`}
+                </div>
               )}
             </div>
           )}
@@ -1157,7 +1204,7 @@ export default function DesktopOrderTicket({
         <div className="grid grid-cols-2 gap-1.5">
           <button
             type="button"
-            disabled={!canSubmit || (pendingPlan && selectedSide !== 'sell')}
+            disabled={sideButtonDisabled('sell')}
             onClick={() => clickSide('sell')}
             className="flex h-[62px] min-w-0 flex-col justify-center rounded-[10px] border border-[#8A3440] bg-[#D7384B] px-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,.08)] transition hover:bg-[#E13D51] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35"
           >
@@ -1166,7 +1213,7 @@ export default function DesktopOrderTicket({
           </button>
           <button
             type="button"
-            disabled={!canSubmit || (pendingPlan && selectedSide !== 'buy')}
+            disabled={sideButtonDisabled('buy')}
             onClick={() => clickSide('buy')}
             className="flex h-[62px] min-w-0 flex-col items-end justify-center rounded-[10px] border border-[#10A884] bg-[#0AA17C] px-3 text-right shadow-[inset_0_1px_0_rgba(255,255,255,.08)] transition hover:bg-[#0DB28A] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45"
           >
