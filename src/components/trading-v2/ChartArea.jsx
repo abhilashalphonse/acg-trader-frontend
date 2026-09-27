@@ -636,7 +636,13 @@ function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, 
         <div className="absolute left-0 right-0 z-30" style={{ top }}>
           <div className="relative border-t border-dotted" style={{ borderColor: `${mutedColor}b5` }}>
             <div
-              className="pointer-events-auto absolute left-3 top-1/2 z-10 flex h-7 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border border-dotted bg-[#09090b]/96 font-mono text-[9px] font-medium tabular-nums shadow-[0_4px_14px_rgba(0,0,0,.28)]"
+              onPointerDown={event => {
+                event.preventDefault();
+                event.stopPropagation();
+                setDragging(kind);
+                onChange({ activeField: kind, stage: `dragging-${kind}` });
+              }}
+              className="pointer-events-auto absolute left-3 top-1/2 z-10 flex h-7 -translate-y-1/2 cursor-ns-resize items-stretch overflow-hidden rounded-[5px] border border-dotted bg-[#09090b]/96 font-mono text-[9px] font-medium tabular-nums shadow-[0_4px_14px_rgba(0,0,0,.28)]"
               style={{ borderColor: `${mutedColor}b5`, color: '#d8dee5' }}
             >
               <span className="flex min-w-[34px] items-center justify-center px-2">{label}</span>
@@ -644,6 +650,10 @@ function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, 
               <span className="flex min-w-[82px] items-center justify-center border-l border-dotted px-2" style={{ borderColor: `${mutedColor}70`, color: mutedColor }}>{projectedText}</span>
               <button
                 type="button"
+                onPointerDown={event => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
                 onClick={event => {
                   event.preventDefault();
                   event.stopPropagation();
