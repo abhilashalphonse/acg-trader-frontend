@@ -1065,9 +1065,8 @@ export default function DesktopTerminal({
                 <DesktopOrderTicket
                   key={`floating-order-${account?.id || 'none'}`}
                   variant="floating"
-                  floatingCollapsed={floatingOrder.collapsed}
                   onFloatingDragStart={beginFloatingOrderDrag}
-                  onToggleFloatingCollapsed={() => setFloatingOrder(current => ({ ...current, collapsed: !current.collapsed }))}
+                  onOpenFullTrade={() => openSidebarView('trade')}
                   market={market}
                   account={account}
                   exposureAllowed={exposureAllowed}
