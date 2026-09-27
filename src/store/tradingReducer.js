@@ -99,7 +99,24 @@ function mergeCommandResult(state, result) {
   const fill = result.deal || result.fill || null;
   const position = result.position || null;
   const account = result.account || null;
-  const valuation = result.valuation || null;
+  const executionAccount = result?.execution?.resultingAccount || null;
+  const resultAccountId = entityId(account)
+    || (result?.order?.accountId == null ? null : String(result.order.accountId))
+    || (result?.position?.accountId == null ? null : String(result.position.accountId));
+  const priorValuation = resultAccountId ? state.trading.valuationsByAccountId[resultAccountId] || null : null;
+  const valuation = result.valuation || (executionAccount && resultAccountId ? {
+    ...(priorValuation || {}),
+    accountId: resultAccountId,
+    valuationStatus: 'LIVE',
+    complete: true,
+    balance: executionAccount.balance,
+    floatingPnl: executionAccount.floatingPnl,
+    equity: executionAccount.equity,
+    usedMargin: executionAccount.usedMargin,
+    freeMargin: executionAccount.freeMargin,
+    marginLevel: executionAccount.marginLevel,
+    financialRevision: executionAccount.financialRevision,
+  } : null);
 
   let positionsById = state.trading.positionsById;
   let positionValuationsById = state.trading.positionValuationsById;
