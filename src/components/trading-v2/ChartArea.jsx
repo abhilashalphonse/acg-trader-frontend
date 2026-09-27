@@ -713,6 +713,7 @@ export default function ChartArea({
   drawingInteractionEnabled = true,
   drawingToolbarOpen = true,
   drawingToolbarOverlay = false,
+  mobileOverlayStyle = false,
   fillAvailableHeight = false,
 }) {
   const [clockNow, setClockNow] = useState(() => new Date());
@@ -960,7 +961,7 @@ export default function ChartArea({
             account={account}
             riskPercent={riskPercent}
             showEntry={false}
-            mobileStyle={mobileReference}
+            mobileStyle={mobileOverlayStyle}
           />
         )}
         {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} />}
@@ -976,7 +977,7 @@ export default function ChartArea({
           onUpdatePosition={onUpdatePosition}
           selectedPositionId={selectedPositionId}
           onSelectPosition={onSelectPosition}
-          mobileStyle={mobileReference}
+          mobileStyle={mobileOverlayStyle}
         />
 
         {desktopEnhanced && !compactContext && (
