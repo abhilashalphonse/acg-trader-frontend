@@ -45,6 +45,10 @@ export default function DesktopMultiChart({
   onCreateRiskOrder = () => {},
   onTradePlanChange = () => {},
   onUpdatePosition = () => {},
+  positionProtectionDraft = null,
+  onPositionProtectionDraftChange = () => {},
+  onRemovePositionProtection = () => {},
+  onRequestPositionProtection = null,
   selectedPositionId = null,
   onSelectPosition = () => {},
   onClosePosition = () => {},
@@ -150,6 +154,10 @@ export default function DesktopMultiChart({
                   drawingInteractionEnabled={isActive}
                   onTradePlanChange={isActive ? onTradePlanChange : () => {}}
                   onUpdatePosition={onUpdatePosition}
+                  positionProtectionDraft={isActive && String(positionProtectionDraft?.symbol || '').toUpperCase() === String(symbol || '').toUpperCase() ? positionProtectionDraft : null}
+                  onPositionProtectionDraftChange={isActive ? onPositionProtectionDraftChange : () => {}}
+                  onRemovePositionProtection={onRemovePositionProtection}
+                  onRequestPositionProtection={isActive ? onRequestPositionProtection : null}
                   selectedPositionId={selectedPositionId}
                   onSelectPosition={onSelectPosition}
                   onClosePosition={onClosePosition}
