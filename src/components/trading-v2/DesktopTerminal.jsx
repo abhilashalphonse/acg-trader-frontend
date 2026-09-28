@@ -858,12 +858,13 @@ export default function DesktopTerminal({
       useCurrentReference: true,
       initialPrice,
     });
-    if (started === false) return;
+    if (started === false) return false;
     setPositionEditRequest(current => ({
       positionId: String(positionId),
       field,
       nonce: Number(current?.nonce || 0) + 1,
     }));
+    return true;
   };
 
   return (
