@@ -169,7 +169,8 @@ export default function DesktopPositionManager({
   const beginEditingProtection = field => {
     if (!['sl', 'tp'].includes(field)) return;
     setProtectionError('');
-    onBeginProtection(field);
+    const started = onBeginProtection(field);
+    if (started === false) return;
     setEditing(field);
   };
 
