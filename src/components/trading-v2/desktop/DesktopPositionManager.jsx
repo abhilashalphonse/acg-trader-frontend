@@ -299,6 +299,7 @@ export default function DesktopPositionManager({
             <div className="grid grid-cols-[26px_minmax(0,1fr)_26px_auto_auto] items-center gap-1">
               <button type="button" disabled={working} onClick={() => nudge(field, -1)} className="grid size-7 place-items-center rounded border border-white/[0.06] text-[#6F8191] disabled:opacity-40"><Minus size={10}/></button>
               <input
+                autoFocus
                 value={input}
                 onFocus={event => event.currentTarget.select()}
                 onChange={event => syncProtectionInput(field, event.target.value, setInput)}
