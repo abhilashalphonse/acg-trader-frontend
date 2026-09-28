@@ -540,12 +540,14 @@ export default function TradingTerminalV2({
       return false;
     }
 
-    const candidates = positions.filter(position =>
-      String(position?.symbol || '').toUpperCase() === String(activeSymbol || '').toUpperCase()
-    );
-    let position = requestedPositionId == null
+    const requestedPosition = requestedPositionId == null
       ? null
-      : candidates.find(item => String(item?.id) === String(requestedPositionId));
+      : positions.find(item => String(item?.id) === String(requestedPositionId));
+    const targetSymbol = requestedPosition?.symbol || activeSymbol;
+    const candidates = positions.filter(position =>
+      String(position?.symbol || '').toUpperCase() === String(targetSymbol || '').toUpperCase()
+    );
+    let position = requestedPosition;
     if (!position) position = candidates.find(item => String(item?.id) === String(selectedOpenPositionId));
     if (!position && candidates.length === 1) position = candidates[0];
 
