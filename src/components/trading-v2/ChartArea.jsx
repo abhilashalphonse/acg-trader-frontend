@@ -918,7 +918,7 @@ function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, 
   );
 }
 
-function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, instrument, onUpdatePosition = () => {}, selectedPositionId = null, onSelectPosition = () => {}, mobileStyle = false }) {
+function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, instrument, onUpdatePosition = () => {}, onRemoveProtection = () => {}, selectedPositionId = null, onSelectPosition = () => {}, mobileStyle = false }) {
   const layerRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [preview, setPreview] = useState({});
@@ -1043,12 +1043,32 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
       <div key={key} className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: y }}>
         <div className="relative border-t border-dotted" style={{ borderColor: `${mutedColor}${active ? 'c8' : '92'}` }}>
           <div
-            className="absolute left-3 top-1/2 flex h-7 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border border-dotted bg-[#09090b]/94 font-mono text-[9px] font-medium tabular-nums"
+            className="absolute left-3 top-1/2 z-10 flex h-7 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border border-dotted bg-[#09090b]/94 font-mono text-[9px] font-medium tabular-nums"
             style={{ borderColor: `${mutedColor}${active ? 'c8' : '82'}`, color: '#cbd3da' }}
           >
             <span className="flex min-w-[34px] items-center justify-center px-2">{lots}</span>
             <span className="flex min-w-[30px] items-center justify-center border-l border-dotted px-1.5" style={{ borderColor: `${mutedColor}70`, color: mutedColor }}>{label}</span>
             {active && <span className="flex min-w-[74px] items-center justify-center border-l border-dotted px-2" style={{ borderColor: `${mutedColor}70`, color: mutedColor }}>{pnlText}</span>}
+            {selected && (
+              <button
+                type="button"
+                onPointerDown={event => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+                onClick={event => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onRemoveProtection(position.id, kind);
+                }}
+                className="pointer-events-auto grid w-8 place-items-center border-l border-dotted text-[13px] font-normal text-[#9aa4ae] active:bg-white/[0.05]"
+                style={{ borderColor: `${mutedColor}70` }}
+                aria-label={`Remove ${label}`}
+                title={`Remove ${label}`}
+              >
+                ×
+              </button>
+            )}
           </div>
           <span
             className="absolute right-[56px] top-1/2 -translate-y-1/2 rounded-[4px] border border-dotted bg-[#09090b]/94 px-1.5 py-0.5 font-mono text-[8px] font-medium tabular-nums lg:right-2"
@@ -1065,7 +1085,7 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
               onSelectPosition(position.id);
               setDragging({ positionId: position.id, kind });
             }}
-            className="pointer-events-auto absolute left-[12px] right-[56px] top-1/2 h-7 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent lg:right-2"
+            className="pointer-events-auto absolute left-[12px] right-[56px] top-1/2 z-0 h-7 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent lg:right-2"
           />
         </div>
       </div>
@@ -1100,6 +1120,7 @@ export default function ChartArea({
   accountCurrency = 'USD',
   onTradePlanChange = () => {},
   onUpdatePosition = () => {},
+  onRemovePositionProtection = () => {},
   selectedPositionId = null,
   onSelectPosition = () => {},
   onClosePosition = () => {},
@@ -1399,6 +1420,7 @@ export default function ChartArea({
           coordinateApi={coordinateApi}
           instrument={instrument}
           onUpdatePosition={onUpdatePosition}
+          onRemoveProtection={onRemovePositionProtection}
           selectedPositionId={selectedPositionId}
           onSelectPosition={onSelectPosition}
           mobileStyle={mobileOverlayStyle}
