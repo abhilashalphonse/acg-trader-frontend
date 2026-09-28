@@ -22,6 +22,7 @@ import { DEFAULT_RISK_GUARD_SETTINGS, evaluateRiskGuard } from '../utils/riskGua
 import { createDefaultTradePlan, effectiveTradePlan, validateTradePlanForExecution } from '../utils/tradePlanExecution.js';
 import { estimateExecutionPrice, resolveExecutionPreview } from '../utils/executionPricing.js';
 import { deriveAccountCapabilities, protectionRequirement } from '../utils/accountCapabilities.js';
+import { validateOpenPositionProtection } from '../utils/openPositionPresentation.js';
 
 const INDICATOR_STORAGE_KEY = 'acg-trader-indicators-v1';
 const INDICATOR_FAVORITES_KEY = 'acg-trader-indicator-favorites-v1';
@@ -532,17 +533,22 @@ export default function TradingTerminalV2({
     return true;
   };
 
-  const beginPositionProtection = field => {
+  const beginPositionProtection = (field, requestedPositionId = null, options = {}) => {
     if (!['sl', 'tp'].includes(field)) return false;
     if (tradePlan) {
       showNotice('Finish or cancel the current order plan before editing an open position');
       return false;
     }
 
+    const requestedPosition = requestedPositionId == null
+      ? null
+      : positions.find(item => String(item?.id) === String(requestedPositionId));
+    const targetSymbol = requestedPosition?.symbol || activeSymbol;
     const candidates = positions.filter(position =>
-      String(position?.symbol || '').toUpperCase() === String(activeSymbol || '').toUpperCase()
+      String(position?.symbol || '').toUpperCase() === String(targetSymbol || '').toUpperCase()
     );
-    let position = candidates.find(item => String(item?.id) === String(selectedOpenPositionId));
+    let position = requestedPosition;
+    if (!position) position = candidates.find(item => String(item?.id) === String(selectedOpenPositionId));
     if (!position && candidates.length === 1) position = candidates[0];
 
     if (!position) {
@@ -568,6 +574,15 @@ export default function TradingTerminalV2({
     const stopDistance = defaultPlannerStopDistance(instrument, entry)
       || Math.max(Number(instrumentPipSize(instrument)) || 0, Number(instrument?.tickSize) || 0) * 10
       || entry * 0.005;
+    const liveReference = Number(
+      position.closePrice
+        ?? position.currentPrice
+        ?? (side === 'BUY' ? instrument?.bid : instrument?.ask)
+    );
+    const reference = options?.useCurrentReference === true && Number.isFinite(liveReference) && liveReference > 0
+      ? liveReference
+      : entry;
+    const initialPrice = existingPrice(options?.initialPrice);
 
     setSelectedOpenPositionId(position.id);
     setPositionProtectionDraft(current => {
@@ -586,12 +601,14 @@ export default function TradingTerminalV2({
         source: 'open-position',
       };
 
-      if (existingPrice(draft[field]) == null) {
+      if (initialPrice != null) {
+        draft[field] = normalizeProtectionPrice(initialPrice, instrument, side, field);
+      } else if (existingPrice(draft[field]) == null) {
         const multiplier = field === 'tp' ? 2 : 1;
         const direction = field === 'sl'
           ? (side === 'BUY' ? -1 : 1)
           : (side === 'BUY' ? 1 : -1);
-        const proposed = entry + direction * stopDistance * multiplier;
+        const proposed = reference + direction * stopDistance * multiplier;
         draft[field] = normalizeProtectionPrice(proposed, instrument, side, field);
       }
 
@@ -624,7 +641,7 @@ export default function TradingTerminalV2({
     setPositionProtectionDraft(null);
   };
 
-  const applyPositionProtection = async () => {
+  const applyPositionProtection = async (overrides = null, options = {}) => {
     const draft = positionProtectionDraft;
     if (!draft || positionProtectionSaving) return false;
     const position = positions.find(item => String(item?.id) === String(draft.positionId));
@@ -634,10 +651,24 @@ export default function TradingTerminalV2({
       return false;
     }
 
+    const instrument = markets.find(item => item.symbol === position.symbol) || market;
     const entry = Number(position.entry ?? position.entryPrice ?? draft.entry);
     const side = String(position.side || draft.side || '').toUpperCase();
-    const sl = draft.sl == null ? null : Number(draft.sl);
-    const tp = draft.tp == null ? null : Number(draft.tp);
+    const hasOverrides = overrides && typeof overrides === 'object';
+    const normalizedOverrides = {};
+    if (hasOverrides) {
+      for (const field of ['sl', 'tp']) {
+        if (!Object.prototype.hasOwnProperty.call(overrides, field)) continue;
+        const raw = overrides[field];
+        normalizedOverrides[field] = raw === null || raw === undefined || raw === ''
+          ? null
+          : normalizeProtectionPrice(raw, instrument, side, field);
+      }
+    }
+
+    const nextDraft = { ...draft, ...normalizedOverrides };
+    const sl = nextDraft.sl == null ? null : Number(nextDraft.sl);
+    const tp = nextDraft.tp == null ? null : Number(nextDraft.tp);
     if (!Number.isFinite(entry) || entry <= 0) {
       showNotice('Position entry price is unavailable');
       return false;
@@ -650,18 +681,30 @@ export default function TradingTerminalV2({
       showNotice('Enter a valid take-profit price');
       return false;
     }
-    if (side === 'BUY' && ((sl != null && sl >= entry) || (tp != null && tp <= entry))) {
-      showNotice('For a BUY position, SL must be below entry and TP above entry');
-      return false;
-    }
-    if (side === 'SELL' && ((sl != null && sl <= entry) || (tp != null && tp >= entry))) {
-      showNotice('For a SELL position, SL must be above entry and TP below entry');
-      return false;
+
+    const patch = hasOverrides ? normalizedOverrides : { sl, tp };
+    if (!Object.keys(patch).length) return false;
+
+    if (options?.validateAgainstCurrent === true) {
+      const validation = validateOpenPositionProtection(position, instrument, patch);
+      if (!validation.ok) {
+        showNotice(validation.message);
+        return false;
+      }
+    } else {
+      if (side === 'BUY' && ((sl != null && sl >= entry) || (tp != null && tp <= entry))) {
+        showNotice('For a BUY position, SL must be below entry and TP above entry');
+        return false;
+      }
+      if (side === 'SELL' && ((sl != null && sl <= entry) || (tp != null && tp >= entry))) {
+        showNotice('For a SELL position, SL must be above entry and TP below entry');
+        return false;
+      }
     }
 
     setPositionProtectionSaving(true);
     try {
-      const saved = await updatePosition(position.id, { sl, tp });
+      const saved = await updatePosition(position.id, patch);
       if (saved) setPositionProtectionDraft(null);
       return Boolean(saved);
     } finally {
@@ -1290,6 +1333,12 @@ export default function TradingTerminalV2({
           onModifyPlan={modifyPlan}
           onTradePlanChange={updatePlan}
           onCreateRiskOrder={createPlanFromRiskTool}
+          positionProtectionDraft={positionProtectionDraft}
+          onPositionProtectionDraftChange={updatePositionProtectionDraft}
+          onBeginPositionProtection={(field, positionId, options = {}) => beginPositionProtection(field, positionId, { ...options, useCurrentReference: true })}
+          onApplyPositionProtection={overrides => applyPositionProtection(overrides, { validateAgainstCurrent: true })}
+          onCancelPositionProtection={cancelPositionProtection}
+          positionProtectionSaving={positionProtectionSaving}
           onOpenSettings={() => setOverlay('more')}
           exposureAllowed={exposure.allowed}
           exposureBlockReason={exposure.reason}

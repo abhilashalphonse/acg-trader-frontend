@@ -918,7 +918,7 @@ function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, 
   );
 }
 
-function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, instrument, onUpdatePosition = () => {}, onRemoveProtection = () => {}, selectedPositionId = null, onSelectPosition = () => {}, mobileStyle = false }) {
+function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, instrument, onUpdatePosition = () => {}, onRemoveProtection = () => {}, onRequestProtectionChange = null, selectedPositionId = null, onSelectPosition = () => {}, mobileStyle = false }) {
   const layerRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [preview, setPreview] = useState({});
@@ -972,7 +972,11 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
       setDragging(null);
       try {
         if (commit && Number.isFinite(converted)) {
-          await onUpdatePosition(current.positionId, { [current.kind]: converted });
+          if (typeof onRequestProtectionChange === 'function') {
+            await onRequestProtectionChange(current.positionId, current.kind, converted);
+          } else {
+            await onUpdatePosition(current.positionId, { [current.kind]: converted });
+          }
         }
       } finally {
         clearPreview(current);
@@ -993,7 +997,7 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', cancel);
     };
-  }, [coordinateApi, dragging, onUpdatePosition]);
+  }, [coordinateApi, dragging, onRequestProtectionChange, onUpdatePosition]);
 
   if (!coordinateApi?.priceToY || !activePositions.length) return null;
 
@@ -1121,6 +1125,7 @@ export default function ChartArea({
   onTradePlanChange = () => {},
   onUpdatePosition = () => {},
   onRemovePositionProtection = () => {},
+  onRequestPositionProtection = null,
   selectedPositionId = null,
   onSelectPosition = () => {},
   onClosePosition = () => {},
@@ -1421,6 +1426,7 @@ export default function ChartArea({
           instrument={instrument}
           onUpdatePosition={onUpdatePosition}
           onRemoveProtection={onRemovePositionProtection}
+          onRequestProtectionChange={onRequestPositionProtection}
           selectedPositionId={selectedPositionId}
           onSelectPosition={onSelectPosition}
           mobileStyle={mobileOverlayStyle}

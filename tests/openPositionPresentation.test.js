@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildOpenPositionSummary, resolvePositionClosePrice } from '../src/utils/openPositionPresentation.js';
+import { buildOpenPositionSummary, resolvePositionClosePrice, validateOpenPositionProtection } from '../src/utils/openPositionPresentation.js';
 
 const instrument = {
   bid: 1.14279,
@@ -68,4 +68,78 @@ test('stop-loss risk is measured from entry and becomes protected beyond break e
   assert.equal(protectedPosition.riskStatus, 'PROTECTED');
   assert.equal(protectedPosition.riskAmount, 0);
   assert.equal(protectedPosition.riskPercent, 0);
+});
+
+
+test('profitable BUY can move stop above entry while remaining below current bid', () => {
+  const result = validateOpenPositionProtection({
+    side: 'BUY',
+    entry: 1.14000,
+    closePrice: 1.14500,
+  }, instrument, {
+    sl: 1.14400,
+  });
+
+  assert.equal(result.ok, true);
+});
+
+test('BUY protection is validated against executable bid rather than entry', () => {
+  const stopTooHigh = validateOpenPositionProtection({
+    side: 'BUY',
+    entry: 1.14000,
+    closePrice: 1.14500,
+  }, instrument, {
+    sl: 1.14500,
+  });
+  const targetTooLow = validateOpenPositionProtection({
+    side: 'BUY',
+    entry: 1.14000,
+    closePrice: 1.14500,
+  }, instrument, {
+    tp: 1.14490,
+  });
+
+  assert.equal(stopTooHigh.ok, false);
+  assert.match(stopTooHigh.message, /current Bid/);
+  assert.equal(targetTooLow.ok, false);
+  assert.match(targetTooLow.message, /current Bid/);
+});
+
+test('SELL protection is validated against executable ask and supports profit locking', () => {
+  const valid = validateOpenPositionProtection({
+    side: 'SELL',
+    entry: 1.15000,
+    closePrice: 1.14500,
+  }, instrument, {
+    sl: 1.14600,
+    tp: 1.14300,
+  });
+  const invalid = validateOpenPositionProtection({
+    side: 'SELL',
+    entry: 1.15000,
+    closePrice: 1.14500,
+  }, instrument, {
+    sl: 1.14490,
+  });
+
+  assert.equal(valid.ok, true);
+  assert.equal(invalid.ok, false);
+  assert.match(invalid.message, /current Ask/);
+});
+
+test('minimum stop distance honors stop-level points when supplied', () => {
+  const result = validateOpenPositionProtection({
+    side: 'BUY',
+    closePrice: 100,
+  }, {
+    bid: 100,
+    ask: 100.1,
+    tickSize: 0.1,
+    stopsLevel: 5,
+  }, {
+    sl: 99.7,
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.minDistance, 0.5);
 });
