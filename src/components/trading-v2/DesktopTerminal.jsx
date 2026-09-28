@@ -37,6 +37,8 @@ import IndicatorManager from './IndicatorManager.jsx';
 import { accountStatusLabel, accountTypeBadge, accountTypeLabel } from '../../utils/accountPresentation.js';
 import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
 import { marketApi } from '../../api/market.js';
+import { normalizeProtectionPrice } from '../../utils/tradingCommandNormalization.js';
+import { validateOpenPositionProtection } from '../../utils/openPositionPresentation.js';
 
 const timeframes = [['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], ['1H', '1H'], ['4H', '4H'], ['1D', '1D'], ['1W', '1W']];
 const DESKTOP_LAYOUT_KEY = 'acg-trader-desktop-layout-v2';
@@ -312,6 +314,12 @@ export default function DesktopTerminal({
   onModifyPlan = () => {},
   onTradePlanChange = () => {},
   onCreateRiskOrder = () => {},
+  positionProtectionDraft = null,
+  onPositionProtectionDraftChange = () => {},
+  onBeginPositionProtection = () => false,
+  onApplyPositionProtection = async () => false,
+  onCancelPositionProtection = () => {},
+  positionProtectionSaving = false,
   onOpenSettings = () => {},
   exposureAllowed = true,
   exposureBlockReason = 'New exposure is temporarily unavailable',
@@ -816,8 +824,41 @@ export default function DesktopTerminal({
     setActiveNav('trade');
   };
 
-  const editPositionProtection = (positionId, field) => {
+  const updateDesktopProtection = async (positionId, patch) => {
+    const position = positions.find(item => String(item?.id) === String(positionId));
+    if (!position || !patch || typeof patch !== 'object') return false;
+    const instrument = markets.find(item => item.symbol === position.symbol) || market;
+    const side = String(position.side || '').toUpperCase();
+    const normalizedPatch = {};
+
+    for (const field of ['sl', 'tp']) {
+      if (!Object.prototype.hasOwnProperty.call(patch, field)) continue;
+      const raw = patch[field];
+      normalizedPatch[field] = raw === null || raw === undefined || raw === ''
+        ? null
+        : normalizeProtectionPrice(raw, instrument, side, field);
+    }
+
+    if (!Object.keys(normalizedPatch).length) return false;
+    const validation = validateOpenPositionProtection(position, instrument, normalizedPatch);
+    if (!validation.ok) {
+      setNotice(validation.message);
+      return false;
+    }
+
+    const saved = await onUpdatePosition(position.id, normalizedPatch);
+    return saved !== false;
+  };
+
+  const editPositionProtection = (positionId, field, initialPrice = null) => {
     selectPosition(positionId);
+    setDesktopLayout(current => ({ ...current, sidebarCollapsed: false }));
+    setActiveNav('trade');
+    const started = onBeginPositionProtection(field, positionId, {
+      useCurrentReference: true,
+      initialPrice,
+    });
+    if (started === false) return;
     setPositionEditRequest(current => ({
       positionId: String(positionId),
       field,
@@ -1053,7 +1094,11 @@ export default function DesktopTerminal({
                 riskPercent={riskPercent}
                 onCreateRiskOrder={onCreateRiskOrder}
                 onTradePlanChange={onTradePlanChange}
-                onUpdatePosition={onUpdatePosition}
+                onUpdatePosition={updateDesktopProtection}
+                positionProtectionDraft={positionProtectionDraft}
+                onPositionProtectionDraftChange={onPositionProtectionDraftChange}
+                onRemovePositionProtection={(positionId, field) => updateDesktopProtection(positionId, { [field]: null })}
+                onRequestPositionProtection={(positionId, field, price) => editPositionProtection(positionId, field, price)}
                 selectedPositionId={selectedPositionId}
                 onSelectPosition={selectPosition}
                 onClosePosition={onClosePosition}
@@ -1121,9 +1166,16 @@ export default function DesktopTerminal({
                         editRequest={positionEditRequest && String(positionEditRequest.positionId) === String(selectedPosition.id) ? positionEditRequest : null}
                         onClose={onClosePosition}
                         onBreakEven={onBreakEven}
-                        onUpdate={onUpdatePosition}
+                        onUpdate={updateDesktopProtection}
                         onSetTrailing={onSetTrailing}
-                        onDismiss={() => { setSelectedPositionId(null); setPositionEditRequest(null); }}
+                        protectionDraft={positionProtectionDraft}
+                        onProtectionDraftChange={onPositionProtectionDraftChange}
+                        onBeginProtection={field => editPositionProtection(selectedPosition.id, field)}
+                        onApplyProtection={onApplyPositionProtection}
+                        onCancelProtection={onCancelPositionProtection}
+                        protectionSaving={positionProtectionSaving}
+                        onNotice={setNotice}
+                        onDismiss={() => { setSelectedPositionId(null); setPositionEditRequest(null); onCancelPositionProtection(); }}
                       />
                     </div>
                   )}
@@ -1175,7 +1227,7 @@ export default function DesktopTerminal({
           </aside>
 
           <div className="min-h-0 overflow-hidden rounded-[10px] border border-white/[0.07] bg-[#0A0C0F] shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_8px_22px_rgba(0,0,0,.20)] transition-[height,transform,opacity] duration-300 ease-out" style={{ gridColumn: '1 / 4', gridRow: '2' }}>
-            <PositionsPanel desktopDense collapsed={desktopLayout.dockCollapsed} compactDock={dockHeight <= compactDockThreshold && !positionsExpanded} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={onUpdatePosition} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition} onEditProtection={editPositionProtection}/>
+            <PositionsPanel desktopDense collapsed={desktopLayout.dockCollapsed} compactDock={dockHeight <= compactDockThreshold && !positionsExpanded} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={updateDesktopProtection} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition} onEditProtection={editPositionProtection}/>
           </div>
 
           {!desktopLayout.sidebarCollapsed && !positionsExpanded && (
