@@ -19,11 +19,12 @@ export function resolvePositionClosePrice(position, instrument) {
 }
 
 export function minimumPositionProtectionDistance(instrument) {
+  const tick = positiveNumber(instrument?.tickSize);
+  const pip = positiveNumber(instrument?.pipSize) ?? tick;
+
   const direct = positiveNumber(
     instrument?.minStopDistancePrice
       ?? instrument?.minimumStopDistancePrice
-      ?? instrument?.minStopDistance
-      ?? instrument?.minimumStopDistance
   );
   if (direct != null) return direct;
 
@@ -33,8 +34,24 @@ export function minimumPositionProtectionDistance(instrument) {
       ?? instrument?.minStopDistancePoints
       ?? instrument?.minimumStopDistancePoints
   );
-  const tick = positiveNumber(instrument?.tickSize);
   if (points != null && tick != null) return points * tick;
+
+  const pips = positiveNumber(
+    instrument?.minStopDistancePips
+      ?? instrument?.minimumStopDistancePips
+  );
+  if (pips != null && pip != null) return pips * pip;
+
+  const generic = positiveNumber(instrument?.minStopDistance ?? instrument?.minimumStopDistance);
+  const genericUnit = String(
+    instrument?.minStopDistanceUnit
+      ?? instrument?.minimumStopDistanceUnit
+      ?? ''
+  ).trim().toUpperCase();
+  if (generic != null && genericUnit === 'PRICE') return generic;
+  if (generic != null && ['POINT', 'POINTS'].includes(genericUnit) && tick != null) return generic * tick;
+  if (generic != null && ['PIP', 'PIPS'].includes(genericUnit) && pip != null) return generic * pip;
+
   return tick ?? 0;
 }
 
