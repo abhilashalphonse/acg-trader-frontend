@@ -112,11 +112,12 @@ async function requestIdentity(symbol) {
   const task = marketApi.instrumentIdentity(symbol)
     .then(response => {
       const identity = response?.identity?.status === 'READY' ? response.identity : null;
-      identityCache.set(symbol, identity);
+      if (identity) identityCache.set(symbol, identity);
+      else identityCache.delete(symbol);
       return identity;
     })
     .catch(() => {
-      identityCache.set(symbol, null);
+      identityCache.delete(symbol);
       return null;
     })
     .finally(() => identityRequests.delete(symbol));
