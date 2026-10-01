@@ -45,7 +45,7 @@ export default function FrontendSheet({
     const q = query.trim().toLowerCase();
     return markets.filter(item => {
       const group = marketGroup(item);
-      if (marketGroupFilter !== 'All' && group !== marketGroupFilter) return false;
+      if (!q && marketGroupFilter !== 'All' && group !== marketGroupFilter) return false;
       if (!q) return true;
       const searchable = `${item.symbol || ''} ${item.displaySymbol || ''} ${item.name || ''} ${item.assetClass || ''} ${group}`.toLowerCase();
       return searchable.includes(q);
