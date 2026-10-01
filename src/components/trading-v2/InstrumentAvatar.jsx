@@ -100,10 +100,10 @@ const AGRICULTURE_SYMBOLS = new Set([
 
 const INDIA_EQUITY_LOGOS = Object.freeze({
   RELIANCE: 'https://www.google.com/s2/favicons?domain=ril.com&sz=128',
-  TCS: 'https://www.google.com/s2/favicons?domain=tcs.com&sz=128',
+  TCS: 'https://upload.wikimedia.org/wikipedia/commons/9/9b/TATA_Consultancy_Services_Logo.svg',
   HDFCBANK: 'https://www.google.com/s2/favicons?domain=hdfcbank.com&sz=128',
   INFY: 'https://www.google.com/s2/favicons?domain=infosys.com&sz=128',
-  SBIN: 'https://www.google.com/s2/favicons?domain=bank.sbi&sz=128',
+  SBIN: 'https://upload.wikimedia.org/wikipedia/commons/a/a4/State-Bank-of-India-Logo.svg',
 });
 
 function indiaEquityLogoUrl(instrument) {
