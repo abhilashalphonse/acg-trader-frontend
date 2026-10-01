@@ -222,7 +222,32 @@ function parseProtectionInput(value) {
 }
 
 function idValue(item) {
-  return item?.id || item?.positionId || item?.orderId || item?.ticket || item?.raw?.id || '—';
+  return item?.positionId || item?.orderId || item?.ticket || item?.id || item?.raw?.id || '—';
+}
+
+function humanizeValue(value, fallback = '—') {
+  const text = String(value || '').trim();
+  if (!text) return fallback;
+  return text
+    .replaceAll('_', ' ')
+    .replaceAll('-', ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, char => char.toUpperCase());
+}
+
+function canPartialClose(position, percentage, instrument) {
+  const percent = Number(percentage);
+  if (!Number.isFinite(percent) || percent >= 100) return true;
+  const openVolume = Number(position?.volume ?? position?.openVolume ?? position?.lots);
+  const step = Math.max(Number(position?.volumeStep || instrument?.volumeStep) || 0.01, 0.00000001);
+  const minimum = Math.max(Number(instrument?.minVolume) || step, step);
+  if (!Number.isFinite(openVolume) || openVolume <= 0) return false;
+  const units = Math.floor(((openVolume * percent / 100) + step * 1e-8) / step);
+  const closing = units * step;
+  const remaining = openVolume - closing;
+  return closing >= minimum - step * 1e-8
+    && closing < openVolume - step * 1e-8
+    && (remaining <= step * 1e-8 || remaining >= minimum - step * 1e-8);
 }
 
 function DetailRow({ label, value, valueClass = 'text-[#e3e8ed]', mono = true }) {
@@ -457,13 +482,14 @@ export default function MobileTradesSheet({
     const fallbackCurrent = Number(market?.[side === 'BUY' ? 'bid' : 'ask']);
     const currentPrice = Number.isFinite(closePrice) ? closePrice : fallbackCurrent;
     const opened = openedDate(position);
+    const pnlCurrency = String(position?.pnlCurrency || currency).toUpperCase();
 
     return (
       <div className="absolute inset-0 z-40 flex flex-col bg-[#050505] pt-[env(safe-area-inset-top)]">
         <DetailHeader title={symbolLabel(position.symbol)} subtitle={`${side} · ${compactLots(position.volume ?? position.lots)} lot`} onBack={() => { setDetail(null); setDetailMode(null); }} />
         <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-[max(16px,env(safe-area-inset-bottom))]">
           <div className="py-4 text-center">
-            <div className="text-[9px] font-medium uppercase tracking-[0.12em] text-[#707b86]">Live P&amp;L · {currency}</div>
+            <div className="text-[9px] font-medium uppercase tracking-[0.12em] text-[#707b86]">Live P&amp;L · {pnlCurrency}</div>
             <div className={`mt-2 font-mono text-[30px] font-semibold leading-none tabular-nums ${pnlClass(position.pnl)}`}>{pnlNumber(position.pnl)}</div>
           </div>
 
@@ -472,9 +498,9 @@ export default function MobileTradesSheet({
             <DetailRow label="Current" value={price(currentPrice, position.symbol)} />
             <DetailRow label="Stop loss" value={protectionValue(position.sl, value => price(value, position.symbol))} valueClass={Number(position.sl) > 0 ? 'text-[#ff727d]' : 'text-[#78838e]'} />
             <DetailRow label="Take profit" value={protectionValue(position.tp, value => price(value, position.symbol))} valueClass={Number(position.tp) > 0 ? 'text-[#45d6a2]' : 'text-[#78838e]'} />
-            <DetailRow label="Commission" value={costNumber(position.commission)} />
-            <DetailRow label="Swap" value={costNumber(position.swap)} />
-            <DetailRow label="Margin" value={costNumber(position.margin)} />
+            <DetailRow label={`Commission (${pnlCurrency})`} value={costNumber(position.commission)} />
+            <DetailRow label={`Swap (${pnlCurrency})`} value={costNumber(position.swap)} />
+            <DetailRow label={`Margin (${currency})`} value={costNumber(position.margin)} />
             <DetailRow label="Opened" value={formatDate(opened)} />
             <DetailRow label="Position ID" value={idValue(position)} valueClass="text-[#9fa9b3]" />
           </div>
@@ -510,11 +536,14 @@ export default function MobileTradesSheet({
               <div className="text-[11px] font-semibold text-[#f0d9dc]">Close position</div>
               <div className="mt-1 text-[9px] text-[#8f777c]">Choose how much of the current position to close.</div>
               <div className="mt-3 grid grid-cols-4 gap-2">
-                {[25, 50, 75, 100].map(value => (
-                  <button key={value} type="button" disabled={busy} onClick={() => void runClose(position, value)} className={`h-10 rounded-lg border text-[11px] font-bold disabled:opacity-40 ${value === 100 ? 'border-[#7b2b37] bg-[#270c11] text-[#ff6976]' : 'border-white/[0.09] bg-[#0b0c0e] text-[#d5dce3]'}`}>
+                {[25, 50, 75, 100].map(value => {
+                  const allowed = canPartialClose(position, value, marketFor(position.symbol));
+                  return (
+                  <button key={value} type="button" disabled={busy || !allowed} onClick={() => void runClose(position, value)} className={`h-10 rounded-lg border text-[11px] font-bold disabled:opacity-25 ${value === 100 ? 'border-[#7b2b37] bg-[#270c11] text-[#ff6976]' : 'border-white/[0.09] bg-[#0b0c0e] text-[#d5dce3]'}`}>
                     {value === 100 ? 'Full' : `${value}%`}
                   </button>
-                ))}
+                  );
+                })}
               </div>
               <button type="button" disabled={busy} onClick={() => setDetailMode(null)} className="mt-2 h-9 w-full rounded-lg text-[10px] font-semibold text-[#8c97a2] disabled:opacity-40">Cancel</button>
             </div>
@@ -568,12 +597,13 @@ export default function MobileTradesSheet({
     const side = String(position?.side || '').toUpperCase();
     const opened = openedDate(position);
     const closed = dateValue(position);
+    const pnlCurrency = String(position?.pnlCurrency || currency).toUpperCase();
     return (
       <div className="absolute inset-0 z-40 flex flex-col bg-[#050505] pt-[env(safe-area-inset-top)]">
         <DetailHeader title={symbolLabel(position.symbol)} subtitle={`Closed · ${side} · ${compactLots(position.volume ?? position.lots)} lot`} onBack={() => setDetail(null)} />
         <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-[max(16px,env(safe-area-inset-bottom))]">
           <div className="py-4 text-center">
-            <div className="text-[9px] font-medium uppercase tracking-[0.12em] text-[#707b86]">Realized P&amp;L · {currency}</div>
+            <div className="text-[9px] font-medium uppercase tracking-[0.12em] text-[#707b86]">Realized P&amp;L · {pnlCurrency}</div>
             <div className={`mt-2 font-mono text-[30px] font-semibold leading-none tabular-nums ${pnlClass(position.pnl)}`}>{pnlNumber(position.pnl)}</div>
           </div>
           <div className="overflow-hidden rounded-xl border border-white/[0.075] bg-[#08090a] px-3">
@@ -581,10 +611,9 @@ export default function MobileTradesSheet({
             <DetailRow label="Close" value={price(position.closePrice ?? position.exitPrice, position.symbol)} />
             <DetailRow label="Stop loss" value={protectionValue(position.sl, value => price(value, position.symbol))} />
             <DetailRow label="Take profit" value={protectionValue(position.tp, value => price(value, position.symbol))} />
-            <DetailRow label="Commission" value={costNumber(position.commission)} />
-            <DetailRow label="Swap" value={costNumber(position.swap)} />
-            <DetailRow label="Slippage" value={costNumber(position.slippage)} />
-            <DetailRow label="Close reason" value={String(position.closeType || 'Closed')} mono={false} />
+            <DetailRow label={`Commission (${pnlCurrency})`} value={costNumber(position.commission)} />
+            <DetailRow label={`Swap (${pnlCurrency})`} value={costNumber(position.swap)} />
+            <DetailRow label="Close reason" value={humanizeValue(position.closeType, 'Closed')} mono={false} />
             <DetailRow label="Opened" value={formatDate(opened)} />
             <DetailRow label="Closed" value={formatDate(closed)} />
             <DetailRow label="Duration" value={durationLabel(opened, closed)} />
