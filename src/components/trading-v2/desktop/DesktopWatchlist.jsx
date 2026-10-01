@@ -142,12 +142,12 @@ function cellValue(column, item) {
 }
 
 function statusFor(item) {
-  if (item?.sessionOpen === false) return { label: 'CLOSED', tone: 'text-[#75889a]' };
-  if (!lastReady(item)) {
-    const state = String(item?.marketState || '').toUpperCase();
-    if (['ERROR','SUBSCRIPTION_ERROR','DISCONNECTED','DISABLED'].includes(state)) return { label: 'QUOTE UNAVAILABLE', tone: 'text-[#FF6F7A]' };
-    return { label: 'REFRESHING', tone: 'text-[#6f8599]' };
+  const state = String(item?.marketState || '').toUpperCase();
+  if (['ERROR','SUBSCRIPTION_ERROR','DISCONNECTED','DISABLED','UNAVAILABLE'].includes(state)) {
+    return { label: 'QUOTE UNAVAILABLE', tone: 'text-[#FF6F7A]' };
   }
+  if (item?.sessionOpen === false) return { label: 'CLOSED', tone: 'text-[#75889a]' };
+  if (!lastReady(item)) return { label: 'REFRESHING', tone: 'text-[#6f8599]' };
   if (item?.isStale) return { label: 'STALE', tone: 'text-[#E7BD58]' };
   return { label: 'LIVE', tone: 'text-[#42D7A1]' };
 }
