@@ -156,6 +156,53 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
   );
 }
 
+function ClosedPositionChartOverlay({ symbol, position = null, coordinateApi, instrument, onClear = () => {} }) {
+  const [, forceLayout] = useState(0);
+
+  useEffect(() => {
+    if (!coordinateApi?.subscribe) return undefined;
+    return coordinateApi.subscribe(() => forceLayout(value => value + 1));
+  }, [coordinateApi]);
+
+  if (!position || !coordinateApi?.priceToY) return null;
+  if (String(position?.symbol || '').toUpperCase() !== String(symbol || '').toUpperCase()) return null;
+
+  const entry = Number(position?.entry ?? position?.entryPrice);
+  const exit = Number(position?.closePrice ?? position?.exitPrice);
+  const pnl = Number(position?.pnl);
+  const currency = position?.pnlCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || 'USD';
+  const exitTone = Number.isFinite(pnl) && pnl < 0 ? '#ff5968' : '#35d79d';
+  const levels = [
+    { key: 'entry', label: 'ENTRY', price: entry, color: '#5d8dff' },
+    { key: 'exit', label: 'EXIT', price: exit, color: exitTone },
+  ].filter(level => Number.isFinite(level.price) && level.price > 0);
+
+  if (!levels.length) return null;
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-[33] overflow-hidden">
+      <div className="pointer-events-auto absolute right-[58px] top-3 z-20 flex h-7 items-center overflow-hidden rounded-md border border-white/[0.10] bg-[#08090b]/95 font-mono text-[8px] font-semibold text-[#d6dde5] shadow-[0_4px_16px_rgba(0,0,0,.32)]">
+        <span className="px-2">Closed · {formatPositionPnl(pnl, currency)}</span>
+        <button type="button" onClick={onClear} className="grid h-full w-7 place-items-center border-l border-white/[0.08] text-[12px] text-[#8e99a4] active:bg-white/[0.05]" aria-label="Hide closed position from chart">×</button>
+      </div>
+      {levels.map(level => {
+        const y = coordinateApi.priceToY(level.price);
+        if (!Number.isFinite(y)) return null;
+        return (
+          <div key={level.key} className="absolute left-0 right-0" style={{ top: y }}>
+            <div className="relative border-t border-dashed" style={{ borderColor: `${level.color}a8` }}>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 rounded-[4px] border bg-[#09090b]/94 px-1.5 py-0.5 font-mono text-[8px] font-bold" style={{ borderColor: `${level.color}88`, color: level.color }}>{level.label}</span>
+              <span className="absolute right-[56px] top-1/2 -translate-y-1/2 rounded-[4px] border bg-[#09090b]/94 px-1.5 py-0.5 font-mono text-[8px] font-semibold tabular-nums lg:right-2" style={{ borderColor: `${level.color}88`, color: level.color }}>
+                {formatInstrumentPrice(level.price, instrument)}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function PendingOrderOverlay({
   symbol,
   orders = [],
@@ -1113,6 +1160,8 @@ export default function ChartArea({
   selectedPositionId = null,
   onSelectPosition = () => {},
   onClosePosition = () => {},
+  historicalPosition = null,
+  onClearHistoricalPosition = () => {},
   positionProtectionDraft = null,
   onPositionProtectionDraftChange = () => {},
   indicators = [],
@@ -1401,6 +1450,7 @@ export default function ChartArea({
             mobileStyle={mobileOverlayStyle}
           />
         )}
+        <ClosedPositionChartOverlay symbol={symbol} position={historicalPosition} coordinateApi={coordinateApi} instrument={instrument} onClear={onClearHistoricalPosition} />
         {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} onMove={onMovePending} desktopStyle={desktopEnhanced && !mobileOverlayStyle} />}
         <OpenPositionEntryOverlay symbol={symbol} positions={positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} />
         <OpenPositionProtectionOverlay
