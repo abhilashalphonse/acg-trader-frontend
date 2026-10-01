@@ -38,9 +38,12 @@ export function normalizeCandle(candle) {
   const tickCount = nullableNonNegativeNumber(candle?.tickCount);
   const volumeMode = normalizedVolumeMode(candle?.volumeMode);
   const displayVolume = nullableNonNegativeNumber(candle?.displayVolume);
-  const rawStateVersion = Number(candle?.stateVersion);
-  const stateVersion = Number.isFinite(rawStateVersion) && rawStateVersion >= 0
-    ? Math.trunc(rawStateVersion)
+  const rawStateVersion = candle?.stateVersion;
+  const numericStateVersion = rawStateVersion === null || rawStateVersion === undefined || rawStateVersion === ''
+    ? null
+    : Number(rawStateVersion);
+  const stateVersion = Number.isFinite(numericStateVersion) && numericStateVersion >= 0
+    ? Math.trunc(numericStateVersion)
     : null;
   const backendVolumeSource = ['provider', 'tick', 'unavailable'].includes(candle?.volumeSource)
     ? candle.volumeSource
