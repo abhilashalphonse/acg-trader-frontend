@@ -270,3 +270,30 @@ test('completed candle correction triggers authoritative history reconciliation 
   assert.equal(state.market.historyRecoveryRevision, 1);
   assert.deepEqual(state.market.candlesByKey['EURUSD:1m'], active);
 });
+
+
+test('retains per-symbol market availability from realtime status events', () => {
+  let state = tradingReducer(initialTradingState, {
+    type: 'socket/envelope',
+    payload: envelope('market.status', {
+      scope: 'symbol',
+      symbol: 'AUDCNH',
+      state: 'SUBSCRIPTION_ERROR',
+      message: 'pair unavailable',
+    }),
+  });
+
+  assert.equal(state.market.symbolStatusBySymbol.AUDCNH.state, 'SUBSCRIPTION_ERROR');
+  assert.equal(state.market.symbolStatusBySymbol.AUDCNH.message, 'pair unavailable');
+
+  state = tradingReducer(state, {
+    type: 'socket/envelope',
+    payload: envelope('market.status', {
+      scope: 'symbol',
+      symbol: 'AUDCNH',
+      state: 'LIVE',
+    }),
+  });
+
+  assert.equal(state.market.symbolStatusBySymbol.AUDCNH.state, 'LIVE');
+});
