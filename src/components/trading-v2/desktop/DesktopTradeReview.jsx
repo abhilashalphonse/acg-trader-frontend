@@ -155,7 +155,7 @@ export default function DesktopTradeReview({
   const totalCosts = selected ? (Number(selected.commission || 0) + Number(selected.swap || 0)) : 0;
 
   return (
-    <div className="absolute inset-0 z-[150] bg-black/70 backdrop-blur-[2px]">
+    <div className="absolute inset-0 z-[150] bg-black/70 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-label="Trade review" data-acg-hotkeys-suspend="true">
       <div className="absolute bottom-3 left-[60px] right-3 top-[60px] grid min-h-0 grid-cols-[330px_minmax(0,1fr)] 2xl:grid-cols-[360px_minmax(0,1fr)] overflow-hidden rounded-lg border border-white/[0.10] bg-[#07090B] shadow-[0_24px_80px_rgba(0,0,0,.65)]">
         <aside className="flex min-h-0 flex-col border-r border-white/[0.06]">
           <div className="flex h-11 items-center justify-between border-b border-white/[0.06] px-3">
