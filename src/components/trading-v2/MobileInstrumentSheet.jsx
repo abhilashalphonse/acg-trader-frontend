@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronLeft, Search, Star } from 'lucide-react';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
+import { isIndiaInstrument } from '../../utils/marketClassification.js';
 
 function symbolLabel(symbol = '') {
   const normalized = String(symbol || '').toUpperCase();
@@ -10,17 +11,18 @@ function symbolLabel(symbol = '') {
 }
 
 function marketGroup(item) {
+  if (isIndiaInstrument(item)) return 'India';
+
   const assetClass = String(item?.assetClass || '').toUpperCase();
   if (assetClass === 'FOREX') return 'Forex';
   if (assetClass === 'METAL') return 'Metals';
-  if (assetClass === 'INDEX') return 'Indices';
   if (assetClass === 'EQUITY') return 'Stocks';
   if (assetClass === 'CRYPTO') return 'Crypto';
   if (assetClass === 'ENERGY' || assetClass === 'OTHER') return 'Commodities';
   return 'Other';
 }
 
-const GROUPS = ['All', 'Forex', 'Metals', 'Commodities', 'Indices', 'Stocks', 'Crypto'];
+const GROUPS = ['All', 'Forex', 'Metals', 'Commodities', 'India', 'Stocks', 'Crypto'];
 
 export default function MobileInstrumentSheet({
   markets = [],
@@ -38,6 +40,8 @@ export default function MobileInstrumentSheet({
   const source = useMemo(() => {
     const q = query.trim().toLowerCase();
     return markets.filter(item => {
+      if (item?.marketDataAvailable === false) return false;
+      if (String(item?.assetClass || '').toUpperCase() === 'INDEX') return false;
       if (tab === 'watchlist' && !watched.has(item.symbol)) return false;
       const itemGroup = marketGroup(item);
       if (group !== 'All' && itemGroup !== group) return false;
