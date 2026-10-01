@@ -202,7 +202,7 @@ export default function DesktopWatchlist({
         ? markets
         : markets.filter(item => watched.has(item.symbol));
 
-    if (mode === 'markets' && category !== 'all') base = base.filter(item => assetCategory(item) === category);
+    if (mode === 'markets' && !query && category !== 'all') base = base.filter(item => assetCategory(item) === category);
 
     if (query) {
       base = base.filter(item => `${item.symbol} ${item.displaySymbol || ''} ${item.name || ''} ${item.assetClass || ''}`.toLowerCase().includes(query));
