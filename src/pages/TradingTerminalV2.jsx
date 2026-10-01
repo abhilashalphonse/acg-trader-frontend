@@ -133,6 +133,7 @@ export default function TradingTerminalV2({
   activeSymbol = market?.symbol,
   onSelectSymbol = () => {},
   watchlists = null,
+  onViewportQuoteSymbolsChange = () => {},
 }) {
   const shellRef = useRef(null);
   const nativeFullscreenRequestedRef = useRef(false);
@@ -1278,6 +1279,7 @@ export default function TradingTerminalV2({
           activeSymbol={activeSymbol}
           onSelectSymbol={selectSymbol}
           watchlists={watchlists}
+          onViewportQuoteSymbolsChange={onViewportQuoteSymbolsChange}
           positions={positions}
           positionHistory={positionHistory}
           pendingOrders={pendingOrders}
