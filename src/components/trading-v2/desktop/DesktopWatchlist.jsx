@@ -7,10 +7,12 @@ import { marketCategoryId, marketVenue } from '../../../utils/marketClassificati
 const PREFS_KEY = 'acg-trader-desktop-watchlist-v1';
 const RECENT_KEY = 'acg-trader-recent-markets-v1';
 const COLUMN_OPTIONS = [
+  ['last', 'Last'],
   ['bid', 'Bid'],
   ['ask', 'Ask'],
   ['spread', 'Spread'],
-  ['change', 'Day %'],
+  ['changeValue', 'Chg'],
+  ['change', 'Chg%'],
   ['high', 'High'],
   ['low', 'Low'],
   ['volume', 'Volume'],
@@ -34,14 +36,14 @@ const CATEGORY_OPTIONS = [
 const POPULAR_SYMBOLS = ['EURUSD','GBPUSD','USDJPY','XAUUSD','XAGUSD','BTCUSD','ETHUSD','US100','NAS100','US30','SPX500','GER40','UK100','RELIANCE','TCS','HDFCBANK','INFY','SBIN'];
 
 function loadPrefs() {
-  const fallback = { columns: ['bid', 'ask', 'change'] };
+  const fallback = { columns: ['last', 'changeValue', 'change'] };
   if (typeof window === 'undefined') return fallback;
   try {
     const stored = JSON.parse(window.localStorage.getItem(PREFS_KEY) || 'null');
     let columns = Array.isArray(stored?.columns)
       ? stored.columns.filter(item => COLUMN_OPTIONS.some(([id]) => id === item)).slice(0, 5)
       : fallback.columns;
-    if (columns.length === 4 && columns.join(',') === 'bid,ask,spread,change') columns = fallback.columns;
+    if ((columns.length === 4 && columns.join(',') === 'bid,ask,spread,change') || columns.join(',') === 'bid,ask,change') columns = fallback.columns;
     return { columns: columns.length ? columns : fallback.columns };
   } catch {
     return fallback;
@@ -75,6 +77,9 @@ function finite(...values) {
 function dayChange(item) {
   return finite(item?.changePercent, item?.percentChange, item?.changePct, item?.dailyChangePercent, item?.dayChangePercent);
 }
+function dayChangeValue(item) {
+  return finite(item?.change, item?.changeValue, item?.dailyChange, item?.dayChange);
+}
 function dayHigh(item) { return finite(item?.dayHigh, item?.high, item?.sessionHigh); }
 function dayLow(item) { return finite(item?.dayLow, item?.low, item?.sessionLow); }
 function volume(item) { return finite(item?.volume, item?.dayVolume, item?.sessionVolume); }
@@ -99,8 +104,21 @@ function quoteReady(item) {
   return bid != null && ask != null && bid > 0 && ask > 0 && ask >= bid;
 }
 
+function lastReady(item) {
+  const last = finite(item?.last, item?.price, item?.mid);
+  return last != null && last > 0;
+}
+
+function signedPrice(value, item) {
+  const numeric = finite(value);
+  if (numeric == null) return '—';
+  const digits = Number.isFinite(Number(item?.digits)) ? Math.max(0, Math.min(8, Number(item.digits))) : 5;
+  return `${numeric >= 0 ? '+' : ''}${numeric.toFixed(digits)}`;
+}
+
 function cellValue(column, item) {
   if (!quoteReady(item) && ['bid','ask','spread'].includes(column)) return '—';
+  if (column === 'last') return lastReady(item) ? (item?.last ?? item?.price ?? item?.mid) : '—';
   if (column === 'bid') return item?.bid ?? '—';
   if (column === 'ask') return item?.ask ?? '—';
   if (column === 'spread') {
@@ -109,6 +127,7 @@ function cellValue(column, item) {
     const pip = instrumentPipSize(item);
     return bid != null && ask != null && Number.isFinite(pip) && pip > 0 ? `${(Math.abs(ask - bid) / pip).toFixed(1)}p` : '—';
   }
+  if (column === 'changeValue') return signedPrice(dayChangeValue(item), item);
   if (column === 'change') {
     const value = dayChange(item);
     return value == null ? '—' : `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
@@ -123,18 +142,20 @@ function cellValue(column, item) {
 }
 
 function statusFor(item) {
-  if (item?.sessionOpen === false) return { label: 'CLOSED', tone: 'text-[#75889a]' };
-  if (!quoteReady(item)) {
-    const state = String(item?.marketState || '').toUpperCase();
-    if (['ERROR','SUBSCRIPTION_ERROR','DISCONNECTED','DISABLED'].includes(state)) return { label: 'QUOTE UNAVAILABLE', tone: 'text-[#FF6F7A]' };
-    return { label: 'REFRESHING', tone: 'text-[#6f8599]' };
+  const state = String(item?.marketState || '').toUpperCase();
+  if (['ERROR','SUBSCRIPTION_ERROR','DISCONNECTED','DISABLED','UNAVAILABLE'].includes(state)) {
+    return { label: 'QUOTE UNAVAILABLE', tone: 'text-[#FF6F7A]' };
   }
+  if (item?.sessionOpen === false) return { label: 'CLOSED', tone: 'text-[#75889a]' };
+  if (!lastReady(item)) return { label: 'REFRESHING', tone: 'text-[#6f8599]' };
   if (item?.isStale) return { label: 'STALE', tone: 'text-[#E7BD58]' };
   return { label: 'LIVE', tone: 'text-[#42D7A1]' };
 }
 
 function sortValue(item, key) {
   if (key === 'symbol') return String(item?.symbol || '');
+  if (key === 'last') return finite(item?.last, item?.price, item?.mid);
+  if (key === 'changeValue') return dayChangeValue(item);
   if (key === 'change') return dayChange(item);
   if (key === 'volume') return volume(item);
   if (key === 'spread') {
@@ -163,6 +184,7 @@ export default function DesktopWatchlist({
   onClose = () => {},
   searchRef,
   onNotice = () => {},
+  onViewportQuoteSymbolsChange = () => {},
 }) {
   const [search, setSearch] = useState('');
   const [listMenuOpen, setListMenuOpen] = useState(false);
@@ -174,6 +196,7 @@ export default function DesktopWatchlist({
   const [sort, setSort] = useState({ key: 'symbol', direction: 'asc' });
   const [recent, setRecent] = useState(loadRecent);
   const rowRefs = useRef(new Map());
+  const scrollRef = useRef(null);
 
   useEffect(() => {
     try { window.localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* optional preference */ }
@@ -240,7 +263,69 @@ export default function DesktopWatchlist({
     return base;
   }, [category, marketView, markets, mode, recent, search, sort, watched]);
 
-  const columns = mode === 'markets' ? ['bid','ask','change'] : prefs.columns;
+  const rowSymbolKey = rows.map(item => item.symbol).join('|');
+
+  useEffect(() => {
+    if (mode !== 'markets') {
+      onViewportQuoteSymbolsChange([]);
+      return undefined;
+    }
+
+    const root = scrollRef.current;
+    if (!root) return undefined;
+    const symbols = rowSymbolKey ? rowSymbolKey.split('|').filter(Boolean) : [];
+    let frame = null;
+
+    const publish = () => {
+      frame = null;
+      if (!symbols.length) {
+        onViewportQuoteSymbolsChange([]);
+        return;
+      }
+
+      const viewport = root.getBoundingClientRect();
+      let first = -1;
+      let last = -1;
+
+      for (let index = 0; index < symbols.length; index += 1) {
+        const node = rowRefs.current.get(symbols[index]);
+        if (!node) continue;
+        const row = node.getBoundingClientRect();
+        if (row.bottom >= viewport.top && row.top <= viewport.bottom) {
+          if (first < 0) first = index;
+          last = index;
+        }
+      }
+
+      if (first < 0) {
+        first = 0;
+        last = Math.min(symbols.length - 1, 18);
+      }
+
+      const start = Math.max(0, first - 6);
+      const end = Math.min(symbols.length - 1, last + 8);
+      onViewportQuoteSymbolsChange(symbols.slice(start, end + 1));
+    };
+
+    const schedule = () => {
+      if (frame != null) return;
+      frame = window.requestAnimationFrame(publish);
+    };
+
+    schedule();
+    root.addEventListener('scroll', schedule, { passive: true });
+    const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(schedule) : null;
+    resizeObserver?.observe(root);
+
+    return () => {
+      root.removeEventListener('scroll', schedule);
+      resizeObserver?.disconnect();
+      if (frame != null) window.cancelAnimationFrame(frame);
+      onViewportQuoteSymbolsChange([]);
+    };
+  }, [mode, onViewportQuoteSymbolsChange, rowSymbolKey]);
+
+  const columns = mode === 'markets' ? ['last','changeValue','change'] : prefs.columns;
   const gridTemplate = `minmax(118px,1.32fr) repeat(${columns.length},minmax(54px,.72fr)) 24px`;
 
   const toggleColumn = id => {
@@ -373,7 +458,7 @@ export default function DesktopWatchlist({
         <span />
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain outline-none [scrollbar-gutter:stable] [scrollbar-width:thin]" tabIndex={0}>
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain outline-none [scrollbar-gutter:stable] [scrollbar-width:thin]" tabIndex={0}>
         {!rows.length && <div className="grid h-28 place-items-center px-4 text-center text-[8px] text-[#6F8191]">{search ? 'No markets match this search.' : marketView === 'recent' ? 'Recently viewed markets will appear here.' : 'No instruments are available for this filter.'}</div>}
         {rows.map(item => {
           const selected = item.symbol === activeSymbol;
@@ -408,7 +493,15 @@ export default function DesktopWatchlist({
                 const change = column === 'change' ? dayChange(item) : null;
                 const value = cellValue(column, item);
                 return (
-                  <button key={column} type="button" onClick={() => selectInstrument(item.symbol)} className={`truncate py-1.5 text-right font-mono text-[10px] tabular-nums ${column === 'change' && change != null ? (change >= 0 ? 'text-[#42D7A1]' : 'text-[#FF6F7A]') : column === 'bid' ? 'font-bold text-[#A1AFBC]' : 'text-[#A1AFBC]'}`}>
+                  <button key={column} type="button" onClick={() => selectInstrument(item.symbol)} className={`truncate py-1.5 text-right font-mono text-[10px] tabular-nums ${
+                    ['change', 'changeValue'].includes(column) && (column === 'change' ? change : dayChangeValue(item)) != null
+                      ? ((column === 'change' ? change : dayChangeValue(item)) >= 0 ? 'text-[#42D7A1]' : 'text-[#FF6F7A]')
+                      : column === 'last'
+                        ? (item.direction === 'up' ? 'font-semibold text-[#42D7A1]' : item.direction === 'down' ? 'font-semibold text-[#FF6F7A]' : 'font-semibold text-[#D8E0E7]')
+                        : column === 'bid'
+                          ? 'font-bold text-[#A1AFBC]'
+                          : 'text-[#A1AFBC]'
+                  }`}>
                     <span key={`${item.symbol}-${column}-${String(value)}`} className="acg-motion-value inline-block">{value}</span>
                   </button>
                 );

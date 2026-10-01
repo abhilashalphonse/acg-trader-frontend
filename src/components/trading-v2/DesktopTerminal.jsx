@@ -263,6 +263,7 @@ export default function DesktopTerminal({
   activeSymbol = market?.symbol,
   onSelectSymbol = () => {},
   watchlists = null,
+  onViewportQuoteSymbolsChange = () => {},
   positions = [],
   positionHistory = [],
   pendingOrders = [],
@@ -1160,6 +1161,7 @@ export default function DesktopTerminal({
                     onClose={() => setDesktopLayout(current => ({ ...current, sidebarCollapsed: true }))}
                     searchRef={searchRef}
                     onNotice={setNotice}
+                    onViewportQuoteSymbolsChange={onViewportQuoteSymbolsChange}
                   />
                 </div>
               ) : (

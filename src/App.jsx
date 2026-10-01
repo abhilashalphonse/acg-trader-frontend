@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import TerminalStatusBanner from './components/TerminalStatusBanner.jsx';
 import ACGStartupLoader from './components/ACGStartupLoader.jsx';
 import { useInstrumentCatalog } from './hooks/useInstrumentCatalog.js';
@@ -79,6 +79,7 @@ export default function App() {
   const { instruments, loading: instrumentsLoading, error: instrumentsError } = useInstrumentCatalog();
   const watchlists = useWatchlists(instruments);
   const [activeSymbol, setActiveSymbol] = useState(null);
+  const [viewportQuoteSymbols, setViewportQuoteSymbols] = useState([]);
 
   useEffect(() => {
     if (!instruments.length) return;
@@ -99,9 +100,24 @@ export default function App() {
     try { window.localStorage.setItem(LAST_SYMBOL_STORAGE_KEY, activeSymbol); } catch { /* non-critical preference */ }
   }, [activeSymbol]);
 
+  const handleViewportQuoteSymbols = useCallback(symbols => {
+    const normalized = [...new Set((Array.isArray(symbols) ? symbols : [])
+      .map(symbol => String(symbol || '').trim().toUpperCase())
+      .filter(Boolean))];
+    setViewportQuoteSymbols(current => (
+      current.length === normalized.length && current.every((symbol, index) => symbol === normalized[index])
+        ? current
+        : normalized
+    ));
+  }, []);
+
   const subscriptionSymbols = useMemo(
-    () => [...new Set([...watchlists.activeSymbols, activeSymbol].filter(Boolean))],
-    [activeSymbol, watchlists.activeSymbols],
+    () => [...new Set([
+      ...watchlists.activeSymbols,
+      ...viewportQuoteSymbols,
+      activeSymbol,
+    ].filter(Boolean))],
+    [activeSymbol, viewportQuoteSymbols, watchlists.activeSymbols],
   );
 
   const { markets, activeTick, activeMarket, status, error: marketError } = useMarketData(instruments, activeSymbol, subscriptionSymbols);
@@ -166,6 +182,7 @@ export default function App() {
     activeSymbol: market?.symbol || activeSymbol,
     onSelectSymbol: setActiveSymbol,
     watchlists,
+    onViewportQuoteSymbolsChange: handleViewportQuoteSymbols,
   };
 
   return (
