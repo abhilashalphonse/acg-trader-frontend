@@ -181,7 +181,7 @@ function ClosedPositionChartOverlay({ symbol, position = null, coordinateApi, in
 
   return (
     <div className="pointer-events-none absolute inset-0 z-[33] overflow-hidden">
-      <div className="pointer-events-auto absolute right-[58px] top-3 z-20 flex h-7 items-center overflow-hidden rounded-md border border-white/[0.10] bg-[#08090b]/95 font-mono text-[8px] font-semibold text-[#d6dde5] shadow-[0_4px_16px_rgba(0,0,0,.32)]">
+      <div className="pointer-events-auto absolute right-[58px] top-[58px] z-20 flex h-7 items-center overflow-hidden rounded-md border border-white/[0.10] bg-[#08090b]/95 font-mono text-[8px] font-semibold text-[#d6dde5] shadow-[0_4px_16px_rgba(0,0,0,.32)]">
         <span className="px-2">Closed · {formatPositionPnl(pnl, currency)}</span>
         <button type="button" onClick={onClear} className="grid h-full w-7 place-items-center border-l border-white/[0.08] text-[12px] text-[#8e99a4] active:bg-white/[0.05]" aria-label="Hide closed position from chart">×</button>
       </div>
