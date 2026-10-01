@@ -522,7 +522,11 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
     setOverlay(null);
     selectOpenPosition(position);
-    const preferredField = Number(position.sl) > 0 ? 'sl' : Number(position.tp) > 0 ? 'tp' : 'sl';
+    const preferredField = Number(position.sl) > 0 ? 'sl' : Number(position.tp) > 0 ? 'tp' : null;
+    if (!preferredField) {
+      showNotice('Position selected · tap SL or TP below the chart to add protection');
+      return true;
+    }
     return beginPositionProtection(preferredField, position.id);
   };
 
@@ -906,8 +910,10 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       await trading.cancelPendingOrder(id);
       logEvent('order', `${String(order.side).toUpperCase()} ${String(order.orderType).toUpperCase()} ${order.symbol} cancelled`);
       showNotice('Pending order cancelled');
+      return true;
     } catch (error) {
       handleTradingError(error, `Cancel ${order.symbol}`);
+      return false;
     }
   };
 
