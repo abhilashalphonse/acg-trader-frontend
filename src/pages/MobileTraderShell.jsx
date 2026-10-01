@@ -515,6 +515,10 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   };
 
   const editPositionOnChart = positionOrId => {
+    if (tradePlan) {
+      showNotice('Finish or cancel the current order plan before editing an open position on the chart');
+      return false;
+    }
     const id = typeof positionOrId === 'object' ? positionOrId?.id : positionOrId;
     const position = positions.find(item => String(item?.id) === String(id));
     if (!position) {
@@ -940,6 +944,10 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
   const viewClosedPositionOnChart = position => {
     if (!position?.symbol) return false;
+    if (tradePlan) {
+      showNotice('Finish or cancel the current order plan before viewing a closed position on the chart');
+      return false;
+    }
     setPositionProtectionDraft(null);
     setSelectedOpenPositionId(null);
     setHistoricalChartContext(position);
@@ -1169,7 +1177,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
             markets={markets}
             activeSymbol={activeSymbol}
             watchlists={watchlists}
-            onSelectSymbol={symbol => { onSelectSymbol(symbol); setOverlay(null); }}
+            onSelectSymbol={symbol => { setHistoricalChartContext(null); onSelectSymbol(symbol); setOverlay(null); }}
             {...indicatorSheetProps}
           />
         )}
