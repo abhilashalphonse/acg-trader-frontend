@@ -34,6 +34,8 @@ export default function MarketPanel({
   onRemovePositionProtection = () => {},
   onRequestPositionProtection = null,
   onClosePosition = () => {},
+  historicalPosition = null,
+  onClearHistoricalPosition = () => {},
   selectedPositionId = null,
   onSelectPosition = () => {},
   positionProtectionDraft = null,
@@ -80,6 +82,8 @@ export default function MarketPanel({
         onRemovePositionProtection={onRemovePositionProtection}
         onRequestPositionProtection={onRequestPositionProtection}
         onClosePosition={onClosePosition}
+        historicalPosition={historicalPosition}
+        onClearHistoricalPosition={onClearHistoricalPosition}
         selectedPositionId={selectedPositionId}
         onSelectPosition={onSelectPosition}
         positionProtectionDraft={positionProtectionDraft}
