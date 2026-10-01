@@ -98,6 +98,24 @@ const AGRICULTURE_SYMBOLS = new Set([
   'HOGS',
 ]);
 
+const INDIA_EQUITY_LOGOS = Object.freeze({
+  RELIANCE: 'https://www.google.com/s2/favicons?domain=ril.com&sz=128',
+  TCS: 'https://www.google.com/s2/favicons?domain=tcs.com&sz=128',
+  HDFCBANK: 'https://www.google.com/s2/favicons?domain=hdfcbank.com&sz=128',
+  INFY: 'https://www.google.com/s2/favicons?domain=infosys.com&sz=128',
+  SBIN: 'https://www.google.com/s2/favicons?domain=bank.sbi&sz=128',
+});
+
+function indiaEquityLogoUrl(instrument) {
+  const symbol = String(instrument?.symbol || '').toUpperCase();
+  return instrument?.providerMappings?.accelpix ? INDIA_EQUITY_LOGOS[symbol] || null : null;
+}
+
+function hasBuiltInCommodityArtwork(instrument) {
+  const assetClass = String(instrument?.assetClass || '').toUpperCase();
+  return ['METAL', 'ENERGY', 'OTHER'].includes(assetClass);
+}
+
 function embeddedIdentity(instrument) {
   const value = instrument?.identity;
   if (!value || value.status !== 'READY') return null;
@@ -221,28 +239,44 @@ function CryptoVisual({ token, size }) {
 
 function MetalVisual({ symbol, size }) {
   const label = METAL_LABELS[symbol] || String(symbol || '').slice(0, 2);
+  const accent = symbol === 'XAUUSD' ? '#d4a72f'
+    : symbol === 'COPPER' ? '#c87343'
+      : symbol === 'ALUMINUM' ? '#a8b4bd'
+        : symbol === 'XAGUSD' ? '#c5ced6'
+          : '#aebbc6';
   return (
-    <CircleShell size={size} className="bg-gradient-to-br from-[#31404a] via-[#1b2730] to-[#0b1319]">
+    <CircleShell size={size} className="bg-gradient-to-br from-[#25333d] via-[#141e25] to-[#080d11]">
       <span className="relative grid size-full place-items-center">
         <svg viewBox="0 0 32 32" className="absolute inset-0 size-full" aria-hidden="true">
-          <circle cx="16" cy="16" r="10.2" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[#8fa4b4]" />
-          <path d="M10 10.5l2-2m8 2l2-2M9 19l-2 2m18-2l-2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" className="text-[#5d7588]" />
+          <path d="M7 20.5 11.5 11h9L25 20.5 20.5 25h-9Z" fill={accent} />
+          <path d="M11.5 11 14 7.5h8L24.5 11" fill="none" stroke="#dbe5eb" strokeWidth="1.2" opacity=".7" />
+          <path d="M10 20.5h12" stroke="#0a1116" strokeWidth="1.2" opacity=".55" />
         </svg>
-        <b className="relative z-10 text-[#e2e9ee]" style={{ fontSize: Math.max(8, Math.round(size * 0.34)) }}>{label}</b>
+        <b className="relative z-10 mt-[2px] text-[#f4f7f9] drop-shadow" style={{ fontSize: Math.max(7, Math.round(size * 0.28)) }}>{label}</b>
       </span>
     </CircleShell>
   );
 }
 
 function EnergyVisual({ symbol, size }) {
-  const naturalGas = String(symbol || '').startsWith('NG');
+  const normalized = String(symbol || '').toUpperCase();
+  const naturalGas = normalized === 'NGASUSD';
+  const barrel = ['WTIUSD', 'XBRUSD', 'GASOLINE', 'HEATOIL'].includes(normalized);
+  const shortLabel = normalized === 'WTIUSD' ? 'WTI' : normalized === 'XBRUSD' ? 'BR' : normalized === 'GASOLINE' ? 'RBOB' : normalized === 'HEATOIL' ? 'HO' : '';
   return (
     <CircleShell size={size} className="bg-gradient-to-br from-[#15364b] to-[#09151e]">
-      <svg viewBox="0 0 32 32" className="size-[70%]" aria-hidden="true">
+      <svg viewBox="0 0 32 32" className="size-[82%]" aria-hidden="true">
         {naturalGas ? (
-          <path d="M17 3c1.5 5-3.5 6.5-3 11 1.3-1.6 2.6-2.2 4-2.7 4.2 3.1 6 6 5.1 9.6C22.2 25 19 28 15.5 28 10.2 28 6 24.1 6 18.8c0-4.4 2.5-8.4 7.3-12.1-.2 3.4.5 5.1 1.5 6.3C15.2 9.2 17.8 7.8 17 3Z" fill="currentColor" className="text-[#65caff]" />
+          <path d="M17 3c1.5 5-3.5 6.5-3 11 1.3-1.6 2.6-2.2 4-2.7 4.2 3.1 6 6 5.1 9.6C22.2 25 19 28 15.5 28 10.2 28 6 24.1 6 18.8c0-4.4 2.5-8.4 7.3-12.1-.2 3.4.5 5.1 1.5 6.3C15.2 9.2 17.8 7.8 17 3Z" fill="#65caff" />
+        ) : barrel ? (
+          <>
+            <rect x="8" y="5" width="16" height="22" rx="3" fill="#5b86a1"/>
+            <path d="M8 11h16M8 21h16" stroke="#d9e5ec" strokeWidth="1.3" opacity=".75"/>
+            <path d="M16 12c-2.6 3.8-4.2 5.8-4.2 8a4.2 4.2 0 008.4 0c0-2.2-1.6-4.2-4.2-8Z" fill="#0b151d" opacity=".8"/>
+            <text x="16" y="30" textAnchor="middle" fontSize="5" fontWeight="700" fill="#e7f0f5">{shortLabel}</text>
+          </>
         ) : (
-          <path d="M16 3C13 8.3 8 13.5 8 19a8 8 0 1016 0c0-5.5-5-10.7-8-16Zm0 20.5a4.5 4.5 0 01-4.5-4.5c0-2.4 2.2-5.4 4.5-8.4 2.3 3 4.5 6 4.5 8.4a4.5 4.5 0 01-4.5 4.5Z" fill="currentColor" className="text-[#67cbff]" />
+          <path d="M16 3C13 8.3 8 13.5 8 19a8 8 0 1016 0c0-5.5-5-10.7-8-16Z" fill="#67cbff" />
         )}
       </svg>
     </CircleShell>
@@ -370,7 +404,7 @@ export default function InstrumentAvatar({ instrument, size = 30, className = ''
   }, [embeddedKey, symbol]);
 
   useEffect(() => {
-    if (!symbol || identity || !REMOTE_IDENTITY_CLASSES.has(assetClass)) return undefined;
+    if (!symbol || identity || indiaEquityLogoUrl(instrument) || hasBuiltInCommodityArtwork(instrument) || !REMOTE_IDENTITY_CLASSES.has(assetClass)) return undefined;
     const node = rootRef.current;
     let disposed = false;
 
@@ -397,7 +431,7 @@ export default function InstrumentAvatar({ instrument, size = 30, className = ''
       disposed = true;
       observer.disconnect();
     };
-  }, [assetClass, identity, symbol]);
+  }, [assetClass, identity, instrument, symbol]);
 
   const onBroken = src => {
     if (!src) return;
@@ -447,7 +481,10 @@ export default function InstrumentAvatar({ instrument, size = 30, className = ''
     );
   }
 
-  const logoUrl = identity?.logoUrl && !failedUrls.has(identity.logoUrl) ? identity.logoUrl : null;
+  const indiaLogoUrl = indiaEquityLogoUrl(instrument);
+  const providerLogoUrl = identity?.logoUrl && !failedUrls.has(identity.logoUrl) ? identity.logoUrl : null;
+  const localLogoUrl = indiaLogoUrl && !failedUrls.has(indiaLogoUrl) ? indiaLogoUrl : null;
+  const logoUrl = providerLogoUrl || localLogoUrl;
   return (
     <span
       ref={rootRef}
@@ -458,7 +495,7 @@ export default function InstrumentAvatar({ instrument, size = 30, className = ''
     >
       {logoUrl ? (
         <CircleShell size={outer} className="bg-white">
-          <IdentityImage src={logoUrl} onBroken={onBroken} className="size-full object-contain p-[2px]" />
+          <IdentityImage src={logoUrl} onBroken={onBroken} className="size-full object-contain p-[3px]" />
         </CircleShell>
       ) : fallbackVisual(instrument, outer)}
     </span>
