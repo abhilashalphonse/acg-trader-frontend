@@ -240,6 +240,24 @@ export default function ExecutionPanel({
     protectionTargetSide,
     Number.isFinite(protectionTargetLots) && protectionTargetLots > 0 ? `${formatLots(protectionTargetLots)} lot` : null,
   ].filter(Boolean).join(' · ');
+  const protectionChanges = positionProtectionDraft
+    ? ['sl', 'tp'].flatMap(field => {
+      if (!Object.prototype.hasOwnProperty.call(positionProtectionDraft, field)) return [];
+      const beforeRaw = selectedPosition?.[field];
+      const afterRaw = positionProtectionDraft?.[field];
+      const before = Number(beforeRaw);
+      const after = Number(afterRaw);
+      const beforeSet = Number.isFinite(before) && before > 0;
+      const afterSet = Number.isFinite(after) && after > 0;
+      if (!beforeSet && !afterSet) return [];
+      if (beforeSet && afterSet && Math.abs(before - after) < 1e-12) return [];
+      const label = field.toUpperCase();
+      const beforeText = beforeSet ? formatInstrumentPrice(before, market) : 'Not set';
+      const afterText = afterSet ? formatInstrumentPrice(after, market) : 'Removed';
+      return [`${label} ${beforeText} → ${afterText}`];
+    })
+    : [];
+  const protectionChangeText = protectionChanges.join(' · ');
 
   const clickSide = side => {
     if (!canSubmitExposure || !market?.symbol) return;
@@ -752,7 +770,7 @@ export default function ExecutionPanel({
             <div className="mt-1.5 flex min-h-8 items-center gap-2 rounded-[7px] border border-white/[0.08] bg-black/35 px-2">
               <div className="min-w-0 flex-1">
                 <b className="block truncate text-[8px] font-bold text-[#dce4eb]">{protectionTargetText || 'Open position'}</b>
-                <span className="block truncate text-[7px] text-[#71808e]">Drag the draft {protectionActiveField === 'tp' ? 'TP' : protectionActiveField === 'sl' ? 'SL' : 'SL / TP'} line on the chart, then apply.</span>
+                <span className="block truncate text-[7px] text-[#71808e]">{protectionChangeText || `Drag the draft ${protectionActiveField === 'tp' ? 'TP' : protectionActiveField === 'sl' ? 'SL' : 'SL / TP'} line on the chart, then apply.`}</span>
               </div>
               <button type="button" disabled={positionProtectionSaving} onClick={onCancelPositionProtection} className="h-7 shrink-0 rounded px-2 text-[8px] font-bold text-[#8f9aa5] disabled:opacity-40">Cancel</button>
               <button type="button" disabled={positionProtectionSaving} onClick={() => void onApplyPositionProtection()} className="flex h-7 shrink-0 items-center gap-1 rounded border border-[#245f4a] bg-[#071710] px-2 text-[8px] font-black text-[#42d7a2] disabled:opacity-45">
