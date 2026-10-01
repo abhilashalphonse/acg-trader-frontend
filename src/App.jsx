@@ -123,7 +123,7 @@ export default function App() {
   const { markets, activeTick, activeMarket, status, error: marketError } = useMarketData(instruments, activeSymbol, subscriptionSymbols);
 
   useEffect(() => {
-    if (!activeSymbol || activeMarket?.marketDataAvailable !== false) return;
+    if (!isDesktop || !activeSymbol || activeMarket?.marketDataAvailable !== false) return;
 
     const supported = markets.filter(item => (
       item.symbol !== activeSymbol
@@ -147,7 +147,7 @@ export default function App() {
     const replacement = watchedFallback || sameClassLive || anyLive || priced || supported[0];
 
     if (replacement?.symbol) setActiveSymbol(replacement.symbol);
-  }, [activeMarket?.assetClass, activeMarket?.marketDataAvailable, activeSymbol, markets, watchlists.activeSymbols]);
+  }, [activeMarket?.assetClass, activeMarket?.marketDataAvailable, activeSymbol, isDesktop, markets, watchlists.activeSymbols]);
 
   const market = activeMarket?.marketDataAvailable === false
     ? (markets.find(item => item.marketDataAvailable !== false) || null)
