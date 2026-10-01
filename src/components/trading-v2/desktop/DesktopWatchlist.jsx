@@ -36,14 +36,14 @@ const CATEGORY_OPTIONS = [
 const POPULAR_SYMBOLS = ['EURUSD','GBPUSD','USDJPY','XAUUSD','XAGUSD','BTCUSD','ETHUSD','US100','NAS100','US30','SPX500','GER40','UK100','RELIANCE','TCS','HDFCBANK','INFY','SBIN'];
 
 function loadPrefs() {
-  const fallback = { columns: ['bid', 'ask', 'change'] };
+  const fallback = { columns: ['last', 'changeValue', 'change'] };
   if (typeof window === 'undefined') return fallback;
   try {
     const stored = JSON.parse(window.localStorage.getItem(PREFS_KEY) || 'null');
     let columns = Array.isArray(stored?.columns)
       ? stored.columns.filter(item => COLUMN_OPTIONS.some(([id]) => id === item)).slice(0, 5)
       : fallback.columns;
-    if (columns.length === 4 && columns.join(',') === 'bid,ask,spread,change') columns = fallback.columns;
+    if ((columns.length === 4 && columns.join(',') === 'bid,ask,spread,change') || columns.join(',') === 'bid,ask,change') columns = fallback.columns;
     return { columns: columns.length ? columns : fallback.columns };
   } catch {
     return fallback;
