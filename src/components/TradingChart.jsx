@@ -29,6 +29,7 @@ import { drawingBarsBetween, drawingTimeToLogical, logicalToDrawingTime } from '
 import { ArrowRight, Eye, EyeOff, Settings2, X } from 'lucide-react';
 import ACGStartupLoader from './ACGStartupLoader.jsx';
 import { indicatorValueAt } from '../utils/chartToolSettings.js';
+import { formatChartCrosshairTime, formatChartTick } from '../utils/desktopChartSettings.js';
 
 const chartTokens = {
   background: '#09090b',
@@ -104,6 +105,8 @@ export default function TradingChart({
   showAttributionLogo = true,
   desktopEnhanced = false,
   compactContext = false,
+  candleAppearance = null,
+  chartTimezone = null,
   layoutRevision = '',
   onToggleIndicator = () => {},
   onOpenIndicatorSettings = () => {},
@@ -365,11 +368,31 @@ export default function TradingChart({
       autoSize: false,
       width: initialWidth,
       height: initialHeight,
+      ...(chartTimezone ? {
+        localization: {
+          timeFormatter: time => formatChartCrosshairTime(time, chartTimezone, instrument),
+        },
+      } : {}),
       layout: { background: { type: ColorType.Solid, color: chartTokens.background }, textColor: chartTokens.text, attributionLogo: showAttributionLogo, fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif', fontSize: mobileReference ? 10 : 11, panes: { separatorColor: '#1b1b1b', separatorHoverColor: 'rgba(83,199,255,0.18)', enableResize: true } },
       grid: { vertLines: { visible: !compactContext, color: chartTokens.gridline, style: LineStyle.Dotted }, horzLines: { visible: !compactContext, color: chartTokens.gridline, style: LineStyle.Dotted } },
       crosshair: { mode: CrosshairMode.Normal, vertLine: { visible: !compactContext, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: !compactContext, labelBackgroundColor: chartTokens.crosshairLabel }, horzLine: { visible: !compactContext, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: !compactContext, labelBackgroundColor: chartTokens.crosshairLabel } },
       rightPriceScale: { visible: true, borderVisible: true, borderColor: '#242424', ticksVisible: true, scaleMargins: { top: 0.045, bottom: 0.07 } },
-      timeScale: { visible: true, borderVisible: true, borderColor: '#242424', ticksVisible: true, timeVisible: true, secondsVisible: ['S1', 'S5', 'S15', 'S30'].includes(timeframe), rightOffset: chartRightBars, barSpacing: 9, minBarSpacing: 3, fixLeftEdge: false, lockVisibleTimeRangeOnResize: !mobileReference },
+      timeScale: {
+        visible: true,
+        borderVisible: true,
+        borderColor: '#242424',
+        ticksVisible: true,
+        timeVisible: true,
+        secondsVisible: ['S1', 'S5', 'S15', 'S30'].includes(timeframe),
+        rightOffset: chartRightBars,
+        barSpacing: 9,
+        minBarSpacing: 3,
+        fixLeftEdge: false,
+        lockVisibleTimeRangeOnResize: !mobileReference,
+        ...(chartTimezone ? {
+          tickMarkFormatter: (time, tickMarkType) => formatChartTick(time, tickMarkType, chartTimezone, instrument),
+        } : {}),
+      },
       handleScroll: compactContext ? false : { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true }, handleScale: compactContext ? false : { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
     });
     chartRef.current = chart;
@@ -445,9 +468,21 @@ export default function TradingChart({
     settleResize();
 
     const priceFormat = { type: 'price', precision: decimals, minMove };
+    const customCandle = candleAppearance && !compactContext;
     const series = chartMode === 'line'
       ? chart.addSeries(LineSeries, { color: compactContext ? 'rgba(0,0,0,0)' : chartTokens.blue, lineWidth: 2, priceFormat, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: !compactContext })
-      : chart.addSeries(CandlestickSeries, { upColor: compactContext ? 'rgba(0,0,0,0)' : chartTokens.buy, downColor: compactContext ? 'rgba(0,0,0,0)' : chartTokens.sell, wickUpColor: compactContext ? 'rgba(0,0,0,0)' : chartTokens.buyWick, wickDownColor: compactContext ? 'rgba(0,0,0,0)' : chartTokens.sellWick, borderVisible: false, priceFormat, priceLineVisible: false, lastValueVisible: false });
+      : chart.addSeries(CandlestickSeries, {
+          upColor: compactContext ? 'rgba(0,0,0,0)' : (candleAppearance?.upBody || chartTokens.buy),
+          downColor: compactContext ? 'rgba(0,0,0,0)' : (candleAppearance?.downBody || chartTokens.sell),
+          wickUpColor: compactContext ? 'rgba(0,0,0,0)' : (candleAppearance?.upWick || chartTokens.buyWick),
+          wickDownColor: compactContext ? 'rgba(0,0,0,0)' : (candleAppearance?.downWick || chartTokens.sellWick),
+          borderVisible: Boolean(customCandle),
+          borderUpColor: candleAppearance?.upBorder || chartTokens.buy,
+          borderDownColor: candleAppearance?.downBorder || chartTokens.sell,
+          priceFormat,
+          priceLineVisible: false,
+          lastValueVisible: false,
+        });
     seriesRef.current = series; marketLineRef.current = null; askLineRef.current = null; midLineRef.current = null; positionLinesRef.current = []; scaleAnchorLinesRef.current = []; setError('');
     const timeScale = chart.timeScale();
     const visibleRangeHandler = () => {
@@ -775,6 +810,49 @@ export default function TradingChart({
       chart.remove();
     };
   }, [symbol, timeframe, chartMode, chartRequestKey, refreshDisplayBar, renderIndicators, decimals, minMove, historyLimit, historyProfile.max, historyProfile.page, setRealtimeTracking, chartRightBars, mobileReference, showAttributionLogo, compactContext]);
+
+  useEffect(() => {
+    const series = seriesRef.current;
+    if (!series || chartMode !== 'candles') return;
+    const custom = candleAppearance && !compactContext;
+    series.applyOptions({
+      upColor: compactContext ? 'rgba(0,0,0,0)' : (candleAppearance?.upBody || chartTokens.buy),
+      downColor: compactContext ? 'rgba(0,0,0,0)' : (candleAppearance?.downBody || chartTokens.sell),
+      wickUpColor: compactContext ? 'rgba(0,0,0,0)' : (candleAppearance?.upWick || chartTokens.buyWick),
+      wickDownColor: compactContext ? 'rgba(0,0,0,0)' : (candleAppearance?.downWick || chartTokens.sellWick),
+      borderVisible: Boolean(custom),
+      borderUpColor: candleAppearance?.upBorder || chartTokens.buy,
+      borderDownColor: candleAppearance?.downBorder || chartTokens.sell,
+    });
+  }, [
+    candleAppearance?.downBody,
+    candleAppearance?.downBorder,
+    candleAppearance?.downWick,
+    candleAppearance?.upBody,
+    candleAppearance?.upBorder,
+    candleAppearance?.upWick,
+    chartMode,
+    compactContext,
+  ]);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || !chartTimezone) return;
+    chart.applyOptions({
+      localization: {
+        timeFormatter: time => formatChartCrosshairTime(time, chartTimezone, instrument),
+      },
+    });
+    chart.timeScale().applyOptions({
+      tickMarkFormatter: (time, tickMarkType) => formatChartTick(time, tickMarkType, chartTimezone, instrument),
+    });
+  }, [
+    chartTimezone,
+    instrument?.exchangeTimezone,
+    instrument?.sessionTimezone,
+    instrument?.timeZone,
+    instrument?.timezone,
+  ]);
 
   useEffect(() => {
     const chart = chartRef.current;
