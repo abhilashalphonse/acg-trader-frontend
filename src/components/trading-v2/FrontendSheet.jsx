@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Search, Bell, UserRound, Activity, Star, Clock3, Settings, ShieldCheck } from 'lucide-react';
 import IndicatorManager from './IndicatorManager.jsx';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
@@ -41,6 +41,8 @@ export default function FrontendSheet({
   const [message, setMessage] = useState('');
   const [marketGroupFilter, setMarketGroupFilter] = useState('Forex');
   const [visibleMarketLimit, setVisibleMarketLimit] = useState(60);
+  const sheetRef = useRef(null);
+  const returnFocusRef = useRef(null);
   const filteredMarkets = useMemo(() => {
     const q = query.trim().toLowerCase();
     return markets.filter(item => {
@@ -55,6 +57,49 @@ export default function FrontendSheet({
   useEffect(() => {
     setVisibleMarketLimit(60);
   }, [marketGroupFilter, query, type]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    returnFocusRef.current = document.activeElement;
+    const frame = window.requestAnimationFrame(() => {
+      const root = sheetRef.current;
+      if (!root || root.contains(document.activeElement)) return;
+      root.querySelector('input:not([disabled]), button:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')?.focus?.();
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      const previous = returnFocusRef.current;
+      if (previous?.isConnected) previous.focus?.();
+    };
+  }, []);
+
+  const handleSheetKeyDown = event => {
+    event.stopPropagation();
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      onClose();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const root = sheetRef.current;
+    if (!root) return;
+    const focusable = [...root.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])')]
+      .filter(element => !element.hasAttribute('hidden') && element.getAttribute('aria-hidden') !== 'true');
+    if (!focusable.length) {
+      event.preventDefault();
+      root.focus();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
 
   const titleMap = { search: 'Search markets', notifications: 'Notifications', profile: 'Account', instruments: 'Select instrument', indicators: 'Indicators', watchlist: 'Watchlist', markets: 'Markets', history: 'History', more: 'Terminal', platform: 'Platform settings', help: 'Help & support' };
 
@@ -137,7 +182,17 @@ export default function FrontendSheet({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/55 px-2 backdrop-blur-[2px]" onMouseDown={onClose}>
-      <section onMouseDown={event => event.stopPropagation()} className={`${isMarketSheet ? 'flex h-[84dvh] min-h-0 flex-col bg-black' : isIndicators ? 'max-h-[90dvh] bg-[#080808]' : 'max-h-[84dvh] bg-[#080808]'} mb-[max(8px,env(safe-area-inset-bottom))] w-full max-w-[444px] overflow-hidden rounded-[24px] border border-white/[0.08] shadow-[0_30px_90px_rgba(0,0,0,.65)]`}>
+      <section
+        ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={titleMap[type] || 'ACG Trader'}
+        data-acg-hotkeys-suspend="true"
+        tabIndex={-1}
+        onKeyDown={handleSheetKeyDown}
+        onMouseDown={event => event.stopPropagation()}
+        className={`${isMarketSheet ? 'flex h-[84dvh] min-h-0 flex-col bg-black' : isIndicators ? 'max-h-[90dvh] bg-[#080808]' : 'max-h-[84dvh] bg-[#080808]'} mb-[max(8px,env(safe-area-inset-bottom))] w-full max-w-[444px] overflow-hidden rounded-[24px] border border-white/[0.08] shadow-[0_30px_90px_rgba(0,0,0,.65)]`}
+      >
         <header className={`flex shrink-0 items-start justify-between gap-3 border-b border-white/[0.08] ${isMarketSheet ? 'bg-black px-4 pb-4 pt-4' : 'px-4 py-3.5'}`}><div><h2 className={`${isMarketSheet ? 'text-[20px] tracking-[-0.035em]' : 'text-[15px]'} font-black text-[#f3f7fb]`}>{titleMap[type] || 'ACG Trader'}</h2><p className={`${isMarketSheet ? 'mt-1 text-[9px] text-[#718397]' : 'mt-0.5 text-[9px] text-[#6e8195]'}`}>{isIndicators ? 'Technical studies · live chart' : type === 'more' ? 'Profiles, preferences and shortcuts' : type === 'platform' ? 'Terminal preferences and trading profiles' : type === 'notifications' ? 'Terminal and risk alerts' : type === 'profile' ? 'Trading account summary' : type === 'help' ? 'Using ACG Trader' : 'Markets and terminal tools'}</p></div><button type="button" onClick={onClose} className="grid size-9 place-items-center rounded-md border border-white/[0.08] bg-[#101010] text-[#93a6b8]"><X size={17}/></button></header>
         <div className={`${isMarketSheet ? 'flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-3 pt-2' : isIndicators ? 'max-h-[calc(90dvh-70px)] overflow-y-auto p-3' : 'max-h-[calc(84dvh-70px)] overflow-y-auto p-3'} [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
           {message && <div className="mb-3 rounded-md border border-white/[0.08] bg-[#101010] px-3 py-2.5 text-[9px] leading-4 text-[#a9c5d8]">{message}</div>}
