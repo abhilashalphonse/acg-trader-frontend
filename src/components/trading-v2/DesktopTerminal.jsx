@@ -29,6 +29,7 @@ import DesktopMultiChart from './desktop/DesktopMultiChart.jsx';
 import DesktopTradeReview from './desktop/DesktopTradeReview.jsx';
 import DesktopWorkspaceMenu from './desktop/DesktopWorkspaceMenu.jsx';
 import DesktopWatchlist from './desktop/DesktopWatchlist.jsx';
+import DesktopChartSettingsPopover from './desktop/DesktopChartSettingsPopover.jsx';
 import ChartObjectManager from './desktop/ChartObjectManager.jsx';
 import ResizeHandle from './desktop/ResizeHandle.jsx';
 import PositionsPanel from './PositionsPanel.jsx';
@@ -39,6 +40,7 @@ import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
 import { marketApi } from '../../api/market.js';
 import { normalizeProtectionPrice } from '../../utils/tradingCommandNormalization.js';
 import { validateOpenPositionProtection } from '../../utils/openPositionPresentation.js';
+import { loadDesktopChartSettings, normalizeDesktopChartSettings, saveDesktopChartSettings } from '../../utils/desktopChartSettings.js';
 
 const timeframes = [['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], ['1H', '1H'], ['4H', '4H'], ['1D', '1D'], ['1W', '1W']];
 const DESKTOP_LAYOUT_KEY = 'acg-trader-desktop-layout-v2';
@@ -346,6 +348,8 @@ export default function DesktopTerminal({
   const [market24hStats, setMarket24hStats] = useState({ symbol: null, high: null, low: null, volume: null });
   const [chartMenuOpen, setChartMenuOpen] = useState(false);
   const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
+  const [chartSettingsOpen, setChartSettingsOpen] = useState(false);
+  const [chartSettings, setChartSettings] = useState(loadDesktopChartSettings);
   const [indicatorPanelOpen, setIndicatorPanelOpen] = useState(false);
   const [indicatorFocusId, setIndicatorFocusId] = useState(null);
   const [objectManagerOpen, setObjectManagerOpen] = useState(false);
@@ -396,6 +400,10 @@ export default function DesktopTerminal({
       // Floating widget persistence is optional.
     }
   }, [floatingOrder]);
+
+  useEffect(() => {
+    saveDesktopChartSettings(chartSettings);
+  }, [chartSettings]);
 
   useEffect(() => {
     const onResize = () => {
@@ -1062,6 +1070,7 @@ export default function DesktopTerminal({
             <div className="min-h-0 min-w-0 bg-black p-0">
               <DesktopMultiChart
                 compactContext={positionsExpanded}
+                chartSettings={chartSettings}
                 config={multiChart}
                 onChange={setMultiChart}
                 markets={markets}
@@ -1225,7 +1234,28 @@ export default function DesktopTerminal({
             >
               <Layers3 size={17}/>
             </button>
+            <button
+              type="button"
+              onClick={event => {
+                event.stopPropagation();
+                setChartSettingsOpen(value => !value);
+              }}
+              className={chartSettingsOpen
+                ? "mt-auto grid size-9 place-items-center rounded-md bg-[#111820] text-[#195be1] ring-1 ring-inset ring-[#195be1]/70"
+                : "mt-auto grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"}
+              title="Chart appearance settings"
+              aria-label="Chart appearance settings"
+            >
+              <Settings size={17}/>
+            </button>
           </aside>
+
+          <DesktopChartSettingsPopover
+            open={chartSettingsOpen}
+            settings={chartSettings}
+            onChange={next => setChartSettings(normalizeDesktopChartSettings(next))}
+            onClose={() => setChartSettingsOpen(false)}
+          />
 
           <div className="min-h-0 overflow-hidden rounded-[10px] border border-white/[0.07] bg-[#0A0C0F] shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_8px_22px_rgba(0,0,0,.20)] transition-[height,transform,opacity] duration-300 ease-out" style={{ gridColumn: '1 / 4', gridRow: '2' }}>
             <PositionsPanel desktopDense collapsed={desktopLayout.dockCollapsed} compactDock={dockHeight <= compactDockThreshold && !positionsExpanded} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={updateDesktopProtection} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition} onEditProtection={editPositionProtection}/>
