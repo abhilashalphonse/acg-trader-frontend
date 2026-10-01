@@ -68,6 +68,7 @@ function displaySymbol(symbol = '') {
 
 function finite(...values) {
   for (const value of values) {
+    if (value === null || value === undefined || value === '') continue;
     const numeric = Number(value);
     if (Number.isFinite(numeric)) return numeric;
   }
