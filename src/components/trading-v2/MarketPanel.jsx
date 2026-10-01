@@ -32,6 +32,7 @@ export default function MarketPanel({
   onCancelPending = () => {},
   onUpdatePosition = () => {},
   onRemovePositionProtection = () => {},
+  onRequestPositionProtection = null,
   onClosePosition = () => {},
   selectedPositionId = null,
   onSelectPosition = () => {},
@@ -77,6 +78,7 @@ export default function MarketPanel({
         onTradePlanChange={onTradePlanChange}
         onUpdatePosition={onUpdatePosition}
         onRemovePositionProtection={onRemovePositionProtection}
+        onRequestPositionProtection={onRequestPositionProtection}
         onClosePosition={onClosePosition}
         selectedPositionId={selectedPositionId}
         onSelectPosition={onSelectPosition}
