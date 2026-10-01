@@ -13,6 +13,7 @@ export const initialTradingState = Object.freeze({
     candlesByKey: {},
     status: null,
     gatewayStatus: null,
+    symbolStatusBySymbol: {},
     historyRecoveryRevision: 0,
   },
   trading: {
@@ -173,12 +174,17 @@ function handleEnvelope(state, envelope) {
     const recovered = data?.scope === 'gateway'
       && data?.state === 'LIVE'
       && data?.recovered === true;
+    const symbol = data?.scope === 'symbol' ? String(data?.symbol || '').toUpperCase() : '';
+    const symbolStatusBySymbol = symbol
+      ? { ...next.market.symbolStatusBySymbol, [symbol]: data }
+      : next.market.symbolStatusBySymbol;
     return {
       ...next,
       market: {
         ...next.market,
         status: data,
         gatewayStatus,
+        symbolStatusBySymbol,
         historyRecoveryRevision: next.market.historyRecoveryRevision + (recovered ? 1 : 0),
       },
     };
