@@ -364,24 +364,27 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     return true;
   };
 
-  const beginPositionProtection = field => {
+  const beginPositionProtection = (field, positionOrId = null) => {
     if (!['sl', 'tp'].includes(field)) return false;
     if (tradePlan) {
       showNotice('Finish or cancel the current order plan before editing an open position');
       return false;
     }
 
+    const explicitId = typeof positionOrId === 'object' ? positionOrId?.id : positionOrId;
     const currentSymbol = String(activeSymbol || market?.symbol || '').toUpperCase();
     const candidates = positions.filter(position =>
       String(position?.symbol || '').toUpperCase() === currentSymbol
     );
-    let position = candidates.find(item => String(item?.id) === String(selectedOpenPositionId));
-    if (!position && candidates.length === 1) position = candidates[0];
+    let position = explicitId == null
+      ? candidates.find(item => String(item?.id) === String(selectedOpenPositionId))
+      : positions.find(item => String(item?.id) === String(explicitId));
+    if (!position && explicitId == null && candidates.length === 1) position = candidates[0];
 
     if (!position) {
-      showNotice(candidates.length > 1
+      showNotice(explicitId == null && candidates.length > 1
         ? 'Tap the position badge on the chart, then choose SL or TP'
-        : 'There is no open position on this chart to protect');
+        : 'There is no open position available to protect');
       return false;
     }
 
@@ -406,6 +409,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       || entry * 0.005;
 
     setSelectedOpenPositionId(position.id);
+    if (position.symbol && position.symbol !== market?.symbol) onSelectSymbol(position.symbol);
     setPositionProtectionDraft(current => {
       const samePosition = current && String(current.positionId) === String(position.id);
       const draft = samePosition ? { ...current } : {
@@ -457,6 +461,69 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       }
       return next;
     });
+  };
+
+  const requestPositionProtectionChange = (positionId, field, value) => {
+    if (!['sl', 'tp'].includes(field) || positionProtectionSaving) return false;
+    if (tradePlan) {
+      showNotice('Finish or cancel the current order plan before editing an open position');
+      return false;
+    }
+
+    const position = positions.find(item => String(item?.id) === String(positionId));
+    if (!position) {
+      showNotice('That position is no longer open');
+      return false;
+    }
+
+    const instrument = markets.find(item => item.symbol === position.symbol) || market;
+    const side = String(position.side || '').toUpperCase();
+    const entry = Number(position.entry ?? position.entryPrice);
+    const requested = normalizeProtectionPrice(value, instrument, side, field);
+    if (!['BUY', 'SELL'].includes(side) || !Number.isFinite(entry) || entry <= 0 || !Number.isFinite(Number(requested)) || Number(requested) <= 0) {
+      showNotice('The requested protection price is invalid');
+      return false;
+    }
+
+    const existingPrice = current => {
+      if (current === null || current === undefined || current === '') return null;
+      const numeric = Number(current);
+      return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+    };
+
+    setSelectedOpenPositionId(position.id);
+    setPositionProtectionDraft({
+      positionId: position.id,
+      symbol: position.symbol,
+      side: side.toLowerCase(),
+      entry,
+      sl: field === 'sl' ? Number(requested) : existingPrice(position.sl),
+      tp: field === 'tp' ? Number(requested) : existingPrice(position.tp),
+      manualLots: Number(position.volume ?? position.lots) || lots,
+      sizingMode: 'lots',
+      pending: false,
+      open: false,
+      source: 'open-position',
+      activeField: field,
+      stage: 'ready',
+    });
+    setSelectedTool('cursor');
+    showNotice(`${field.toUpperCase()} moved · review and tap Apply`);
+    return true;
+  };
+
+  const editPositionOnChart = positionOrId => {
+    const id = typeof positionOrId === 'object' ? positionOrId?.id : positionOrId;
+    const position = positions.find(item => String(item?.id) === String(id));
+    if (!position) {
+      showNotice('That position is no longer open');
+      return false;
+    }
+
+    setOverlay(null);
+    selectOpenPosition(position);
+    const preferredField = Number(position.sl) > 0 ? 'sl' : Number(position.tp) > 0 ? 'tp' : 'sl';
+    return beginPositionProtection(preferredField, position.id);
   };
 
   const removePositionProtectionFromChart = (positionId, field) => {
@@ -974,7 +1041,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       />
       <div className="acg-mobile-reference-content flex min-h-0 flex-1 flex-col px-2 pt-[10px]">
         <div className="acg-mobile-reference-chart-wrap min-h-0 flex-1">
-          <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} accountCurrency={account.currency} account={account} riskPercent={riskPercent} onCreateRiskOrder={createPlanFromRiskTool} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onRemovePositionProtection={removePositionProtectionFromChart} onClosePosition={closePosition} selectedPositionId={selectedOpenPositionId} onSelectPosition={selectOpenPosition} positionProtectionDraft={positionProtectionDraft} onPositionProtectionDraftChange={updatePositionProtectionDraft} onSelectInstrument={() => setOverlay('markets')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} compactMobileToolbar fillAvailableHeight />
+          <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} accountCurrency={account.currency} account={account} riskPercent={riskPercent} onCreateRiskOrder={createPlanFromRiskTool} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onRemovePositionProtection={removePositionProtectionFromChart} onRequestPositionProtection={requestPositionProtectionChange} onClosePosition={closePosition} selectedPositionId={selectedOpenPositionId} onSelectPosition={selectOpenPosition} positionProtectionDraft={positionProtectionDraft} onPositionProtectionDraftChange={updatePositionProtectionDraft} onSelectInstrument={() => setOverlay('markets')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} compactMobileToolbar fillAvailableHeight />
         </div>
         <div className="acg-mobile-reference-order-wrap mt-1.5 shrink-0">
           <ExecutionPanel
@@ -1017,7 +1084,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     <div className="min-h-dvh bg-black font-sans text-[#f5f8fb] antialiased">
       <main ref={shellRef} className={`relative mx-auto h-dvh w-full overflow-hidden overscroll-none bg-black ${chartFocus ? 'max-w-none' : 'max-w-[460px]'}`}>
         {chartFocus ? (
-          <MobileScalperMode market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} lots={lots} setLots={setLots} sizingMode={sizingMode} setSizingMode={setSizingMode} riskPercent={riskPercent} setRiskPercent={setRiskPercent} orderType={orderType} setOrderType={setOrderType} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} onCreateRiskOrder={createPlanFromRiskTool} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onRemovePositionProtection={removePositionProtectionFromChart} onClosePosition={closePosition} selectedPositionId={selectedOpenPositionId} onSelectPosition={selectOpenPosition} positionProtectionDraft={positionProtectionDraft} onPositionProtectionDraftChange={updatePositionProtectionDraft} selectedPosition={selectedOpenPosition} positionProtectionAvailable={positionProtectionAvailable} onBeginPositionProtection={beginPositionProtection} onApplyPositionProtection={applyPositionProtection} onCancelPositionProtection={cancelPositionProtection} positionProtectionSaving={positionProtectionSaving} onIndicators={() => setOverlay('indicators')} indicators={indicators} account={account} plannedRisk={plannedRisk} exposureAllowed={exposure.allowed} exposureBlockReason={exposure.reason} onExit={exitChartFocus} />
+          <MobileScalperMode market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} lots={lots} setLots={setLots} sizingMode={sizingMode} setSizingMode={setSizingMode} riskPercent={riskPercent} setRiskPercent={setRiskPercent} orderType={orderType} setOrderType={setOrderType} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} onCreateRiskOrder={createPlanFromRiskTool} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onRemovePositionProtection={removePositionProtectionFromChart} onRequestPositionProtection={requestPositionProtectionChange} onClosePosition={closePosition} selectedPositionId={selectedOpenPositionId} onSelectPosition={selectOpenPosition} positionProtectionDraft={positionProtectionDraft} onPositionProtectionDraftChange={updatePositionProtectionDraft} selectedPosition={selectedOpenPosition} positionProtectionAvailable={positionProtectionAvailable} onBeginPositionProtection={beginPositionProtection} onApplyPositionProtection={applyPositionProtection} onCancelPositionProtection={cancelPositionProtection} positionProtectionSaving={positionProtectionSaving} onIndicators={() => setOverlay('indicators')} indicators={indicators} account={account} plannedRisk={plannedRisk} exposureAllowed={exposure.allowed} exposureBlockReason={exposure.reason} onExit={exitChartFocus} />
         ) : chartContent}
 
         <ExecutionStatus event={executionEvent} instrument={market} onDismiss={() => setExecutionEvent(null)} />
@@ -1045,6 +1112,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
             historyLoaded={historyLoaded}
             markets={markets}
             onOpenChart={openChart}
+            onEditPositionOnChart={editPositionOnChart}
             onSelectPosition={selectOpenPosition}
             onClosePosition={closePosition}
             onCloseAll={closeAllPositions}
