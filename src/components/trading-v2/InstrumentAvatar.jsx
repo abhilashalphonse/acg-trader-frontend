@@ -59,6 +59,8 @@ const METAL_LABELS = Object.freeze({
   XAGUSD: 'Ag',
   XPTUSD: 'Pt',
   XPDUSD: 'Pd',
+  COPPER: 'Cu',
+  ALUMINUM: 'Al',
 });
 
 const CRYPTO_GLYPHS = Object.freeze({
@@ -74,6 +76,14 @@ const CRYPTO_GLYPHS = Object.freeze({
   DOT: '●',
   LINK: '⬡',
   AVAX: 'A',
+  XLM: '✦',
+  UNI: 'U',
+  AAVE: 'A',
+  ATOM: '⚛',
+  TRX: 'T',
+  ETC: 'Ξ',
+  NEAR: 'N',
+  ALGO: 'A',
 });
 
 const AGRICULTURE_SYMBOLS = new Set([
@@ -115,10 +125,9 @@ async function requestIdentity(symbol) {
   return task;
 }
 
-function flagEmoji(region) {
-  const value = String(region || '').toUpperCase();
-  if (value.length !== 2 || !/^[A-Z]{2}$/.test(value)) return '';
-  return String.fromCodePoint(...[...value].map(letter => 127397 + letter.charCodeAt(0)));
+function flagImageUrl(region) {
+  const value = String(region || '').trim().toLowerCase();
+  return /^[a-z]{2}$/.test(value) ? `https://flagcdn.com/w80/${value}.png` : '';
 }
 
 function pairTokens(instrument) {
@@ -165,15 +174,32 @@ function CircleShell({ size, children, className = '' }) {
 }
 
 function FlagVisual({ currency, size }) {
-  const emoji = flagEmoji(CURRENCY_REGIONS[String(currency || '').toUpperCase()]);
+  const normalized = String(currency || '').toUpperCase();
+  const region = CURRENCY_REGIONS[normalized];
+  const src = flagImageUrl(region);
+  const [failed, setFailed] = useState(false);
+
   return (
     <CircleShell size={size} className="bg-[#101c25]">
-      <span
-        className="grid size-full place-items-center leading-none"
-        style={{ fontSize: Math.max(11, Math.round(size * 0.72)) }}
-      >
-        {emoji || String(currency || '').slice(0, 2)}
-      </span>
+      {src && !failed ? (
+        <img
+          src={src}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          draggable="false"
+          onError={() => setFailed(true)}
+          className="size-full object-cover"
+        />
+      ) : (
+        <span
+          className="grid size-full place-items-center font-black leading-none text-[#dbe7ef]"
+          style={{ fontSize: Math.max(7, Math.round(size * 0.32)) }}
+        >
+          {normalized.slice(0, 3) || '—'}
+        </span>
+      )}
     </CircleShell>
   );
 }
@@ -244,13 +270,31 @@ function CommodityVisual({ symbol, size }) {
 }
 
 function IndexVisual({ symbol, size }) {
-  const emoji = flagEmoji(INDEX_REGIONS[symbol]);
+  const region = INDEX_REGIONS[symbol];
+  const src = flagImageUrl(region);
+  const [failed, setFailed] = useState(false);
+
   return (
     <CircleShell size={size} className="bg-[#0e1b24]">
       <span className="relative grid size-full place-items-center">
-        <span className="leading-none" style={{ fontSize: Math.max(10, Math.round(size * 0.62)) }}>{emoji || '◫'}</span>
+        {src && !failed ? (
+          <img
+            src={src}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            draggable="false"
+            onError={() => setFailed(true)}
+            className="size-full object-cover opacity-90"
+          />
+        ) : (
+          <b className="text-[#dbe7ef]" style={{ fontSize: Math.max(7, Math.round(size * 0.25)) }}>
+            {region || String(symbol || '').slice(0, 3)}
+          </b>
+        )}
         <svg viewBox="0 0 32 32" className="absolute inset-0 size-full" aria-hidden="true">
-          <path d="M8 22l5-5 4 2 7-8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-white/70" />
+          <path d="M8 22l5-5 4 2 7-8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-white/90" />
         </svg>
       </span>
     </CircleShell>
@@ -281,7 +325,7 @@ function fallbackVisual(instrument, size, token = null) {
     if (CURRENCY_REGIONS[normalized]) return <FlagVisual currency={normalized} size={size} />;
     return <CryptoVisual token={normalized} size={size} />;
   }
-  if (assetClass === 'METAL') return <MetalVisual symbol={symbol} size={size} />;
+  if (assetClass === 'METAL' || ['COPPER', 'ALUMINUM'].includes(symbol)) return <MetalVisual symbol={symbol} size={size} />;
   if (assetClass === 'ENERGY') return <EnergyVisual symbol={symbol} size={size} />;
   if (assetClass === 'INDEX') return <IndexVisual symbol={symbol} size={size} />;
   if (assetClass === 'EQUITY') return <EquityVisual symbol={symbol} size={size} />;
