@@ -3,23 +3,13 @@ import { X, Search, Bell, UserRound, Activity, Star, Clock3, Settings, ShieldChe
 import IndicatorManager from './IndicatorManager.jsx';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import ShareProfileEditor from './ShareProfileEditor.jsx';
+import { isChartOnlyInstrument, marketGroup, marketVenue } from '../../utils/marketClassification.js';
 
 function symbolLabel(symbol = '') {
   return symbol.length === 6 ? `${symbol.slice(0, 3)}/${symbol.slice(3)}` : symbol;
 }
 
-function marketGroup(item) {
-  const assetClass = String(item?.assetClass || '').toUpperCase();
-  if (assetClass === 'FOREX') return 'Forex';
-  if (assetClass === 'METAL') return 'Metals';
-  if (assetClass === 'INDEX') return 'Indices';
-  if (assetClass === 'EQUITY') return 'Stocks';
-  if (assetClass === 'CRYPTO') return 'Crypto';
-  if (assetClass === 'ENERGY' || assetClass === 'OTHER') return 'Commodities';
-  return 'Other';
-}
-
-const MARKET_GROUPS = ['All', 'Forex', 'Metals', 'Commodities', 'Indices', 'Stocks', 'Crypto'];
+const MARKET_GROUPS = ['All', 'Forex', 'Metals', 'Commodities', 'Indices', 'India', 'Stocks', 'Crypto'];
 
 const tradingProfiles = [
   { id: 'scalp', name: 'SCALP', description: '5s · Risk 0.25% · EMA 9/20 + VWAP', settings: { timeframe: '5s', chartMode: 'candles', sizingMode: 'risk', riskPercent: 0.25, orderType: 'market' }, indicators: [{ id: 'ema', settings: { period: 9 } }, { id: 'ema', settings: { period: 20 } }, { id: 'vwap' }, { id: 'volume' }] },
@@ -105,7 +95,8 @@ export default function FrontendSheet({
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <strong className="text-[12px] font-black text-[#f1f5f8]">{item.displaySymbol || symbolLabel(item.symbol)}</strong>
-                      <span className="rounded-md bg-[#101010] px-1.5 py-0.5 text-[7px] font-black text-[#738ba0]">{marketGroup(item)}</span>
+                      <span className="rounded-md bg-[#101010] px-1.5 py-0.5 text-[7px] font-black text-[#738ba0]">{marketVenue(item) || marketGroup(item)}</span>
+                      {isChartOnlyInstrument(item) && <span className="rounded-md border border-white/[0.08] px-1.5 py-0.5 text-[7px] font-black text-[#7f93a5]">CHART ONLY</span>}
                     </div>
                     <p className="mt-1 truncate text-[8px] text-[#60758a]">{item.name || 'Market instrument'}</p>
                   </div>
@@ -153,7 +144,7 @@ export default function FrontendSheet({
           {isMarketSheet && (
             <div className="flex min-h-0 flex-1 flex-col">
               <div className="shrink-0">
-                <div className="mb-2 flex h-11 items-center gap-2 border-y border-white/[0.08] bg-black px-1"><Search size={15} className="text-[#6f8295]"/><input autoFocus={type === 'search'} value={query} onChange={e => setQuery(e.target.value)} placeholder="Search 300 markets…" className="min-w-0 flex-1 bg-transparent text-[12px] text-[#eef4f8] outline-none placeholder:text-[#53677b]"/></div>
+                <div className="mb-2 flex h-11 items-center gap-2 border-y border-white/[0.08] bg-black px-1"><Search size={15} className="text-[#6f8295]"/><input autoFocus={type === 'search'} value={query} onChange={e => setQuery(e.target.value)} placeholder={`Search ${markets.length || ""} markets…`} className="min-w-0 flex-1 bg-transparent text-[12px] text-[#eef4f8] outline-none placeholder:text-[#53677b]"/></div>
                 <div className="mb-3 flex gap-1 overflow-x-auto border-b border-white/[0.08] pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{MARKET_GROUPS.map(group => <button key={group} type="button" onClick={() => setMarketGroupFilter(group)} className={`shrink-0 border-b-2 px-2.5 py-1.5 text-[8px] font-black ${marketGroupFilter === group ? 'border-[#62cbff] text-[#dce9f2]' : 'border-transparent text-[#60758a]'}`}>{group}</button>)}</div>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
