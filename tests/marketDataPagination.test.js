@@ -64,3 +64,15 @@ test('manual horizontal pan disables realtime tracking in either direction', () 
   assert.equal(isRealtimeLogicalRange({ from: 70, to: 114 }, 100, 7), false);
   assert.equal(isRealtimeLogicalRange({ from: 10, to: 80 }, 100, 7), false);
 });
+
+
+test('latest reconciliation cannot replace a newer live revision with an older REST revision', () => {
+  const existing = [bar(400, 40), { ...bar(500, 55), stateVersion: 9 }];
+  const latest = [{ ...bar(500, 51), stateVersion: 8 }];
+
+  const reconciled = reconcileLatestCandles(existing, latest, 10);
+  const active = reconciled.find(item => item.time === 500);
+
+  assert.equal(active.stateVersion, 9);
+  assert.equal(active.close, 55);
+});
