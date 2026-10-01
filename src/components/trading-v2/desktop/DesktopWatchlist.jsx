@@ -38,7 +38,6 @@ const COMMODITY_VIEWS = [
   ['all', 'All'],
   ['metals', 'Metals'],
   ['energy', 'Energy'],
-  ['agriculture', 'Agriculture'],
 ];
 const POPULAR_SYMBOLS = ['EURUSD','GBPUSD','USDJPY','XAUUSD','XAGUSD','BTCUSD','ETHUSD','US100','NAS100','US30','SPX500','GER40','UK100','RELIANCE','TCS','HDFCBANK','INFY','SBIN'];
 
