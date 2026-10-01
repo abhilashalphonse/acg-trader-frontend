@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronDown, Star } from 'lucide-react';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
+import { isChartOnlyInstrument, marketVenue } from '../../utils/marketClassification.js';
 
 const names = {
   AUDCAD: 'Australian Dollar / Canadian Dollar',
@@ -25,6 +26,8 @@ export default function InstrumentHeader({ market, favorite, onFavorite, onSelec
       : market?.isStale
         ? 'STALE'
         : String(market?.marketState || 'WAITING').toUpperCase();
+  const venue = marketVenue(market);
+  const chartOnly = isChartOnlyInstrument(market);
   const statusTone = status === 'LIVE'
     ? 'text-[#39d7a1]'
     : status === 'STALE'
@@ -44,7 +47,9 @@ export default function InstrumentHeader({ market, favorite, onFavorite, onSelec
           </button>
           <p className="mt-1 flex min-w-0 items-center gap-1.5 text-[8px] font-semibold">
             <span className="truncate text-[#74879b]">{market?.name || names[market?.symbol] || symbol}</span>
+            {venue && <span className="shrink-0 text-[#8093a5]">{venue}</span>}
             <span className={`shrink-0 ${statusTone}`}>{status}</span>
+            {chartOnly && <span className="shrink-0 text-[#71869a]">CHART ONLY</span>}
           </p>
         </div>
       </div>
