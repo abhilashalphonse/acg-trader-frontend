@@ -261,3 +261,34 @@ test('ignores stale websocket revisions for the active candle', () => {
   assert.equal(merged[0].high, 112);
   assert.equal(merged[0].low, 98);
 });
+
+
+test('versioned backend candle replaces the whole same-time bar instead of client-merging OHLC', () => {
+  const stale = normalizeCandle(candle({
+    time: 1_700_000_000,
+    open: 105,
+    high: 107,
+    low: 105,
+    close: 106,
+    stateVersion: 4,
+  }));
+  const authoritative = candle({
+    time: 1_700_000_000,
+    open: 100,
+    high: 120,
+    low: 90,
+    close: 115,
+    providerVolume: 125,
+    displayVolume: 125,
+    volumeMode: 'provider',
+    volumeSource: 'provider',
+    stateVersion: 5,
+  });
+
+  const merged = mergeLiveCandleIntoSeries([stale], authoritative, 10);
+  assert.equal(merged[0].open, 100);
+  assert.equal(merged[0].high, 120);
+  assert.equal(merged[0].low, 90);
+  assert.equal(merged[0].close, 115);
+  assert.equal(merged[0].stateVersion, 5);
+});
