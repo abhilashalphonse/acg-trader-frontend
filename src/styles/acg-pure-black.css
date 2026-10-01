@@ -2545,3 +2545,132 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
     padding-right:6px!important;
   }
 }
+
+
+/* Canonical compact mobile trading header — final override. */
+@media (max-width:430px){
+  .acg-mobile-reference-header{
+    height:calc(60px + env(safe-area-inset-top))!important;
+    grid-template-columns:minmax(0,1fr) 52px 80px 42px!important;
+    align-items:stretch!important;
+    background:#000!important;
+    border-bottom:1px solid rgba(255,255,255,.07)!important;
+    box-shadow:none!important;
+  }
+
+  .acg-mobile-reference-header > button:first-child{
+    gap:7px!important;
+    padding:0 4px 0 9px!important;
+    align-items:center!important;
+  }
+
+  .acg-mobile-instrument-icon-shell{
+    width:28px!important;
+    height:28px!important;
+    border-radius:999px!important;
+    border:1px solid rgba(255,255,255,.10)!important;
+    background:#0a0b0d!important;
+    box-shadow:none!important;
+  }
+
+  .acg-mobile-instrument-icon-shell > span{
+    width:28px!important;
+    height:28px!important;
+    margin:0!important;
+    transform:none!important;
+  }
+
+  .acg-mobile-reference-header > button:first-child strong{
+    font-size:16px!important;
+    line-height:1!important;
+    font-weight:900!important;
+    letter-spacing:-.035em!important;
+  }
+
+  .acg-mobile-reference-header > button:first-child strong + svg{
+    width:14px!important;
+    height:14px!important;
+    opacity:.82!important;
+  }
+
+  .acg-mobile-reference-header > button:first-child > div > div:last-child{
+    margin-top:4px!important;
+    gap:5px!important;
+    font-size:8px!important;
+    line-height:1!important;
+    letter-spacing:.055em!important;
+  }
+
+  .acg-mobile-trades-button{
+    position:relative!important;
+    gap:3px!important;
+    padding:0!important;
+    color:#d5dbe2!important;
+  }
+
+  .acg-mobile-trades-button::before,
+  .acg-mobile-menu-button::before{
+    content:""!important;
+    position:absolute!important;
+    left:0!important;
+    top:50%!important;
+    width:1px!important;
+    height:24px!important;
+    transform:translateY(-50%)!important;
+    background:rgba(255,255,255,.08)!important;
+  }
+
+  .acg-mobile-trades-button svg{
+    width:16px!important;
+    height:16px!important;
+  }
+
+  .acg-mobile-trades-button > span:last-child{
+    font-size:8px!important;
+    line-height:1!important;
+    color:#9ea8b3!important;
+  }
+
+  .acg-mobile-pnl-card{
+    align-self:center!important;
+    height:42px!important;
+    margin:0 3px!important;
+    padding:0 5px!important;
+    border-radius:9px!important;
+    border:1px solid rgba(255,255,255,.09)!important;
+    background:#0d0f12!important;
+    box-shadow:none!important;
+  }
+
+  .acg-mobile-pnl-card > span{
+    font-size:7px!important;
+    line-height:1!important;
+    letter-spacing:.055em!important;
+    color:#8f99a4!important;
+  }
+
+  .acg-mobile-pnl-card > strong{
+    margin-top:4px!important;
+    font-size:11px!important;
+    line-height:1!important;
+    letter-spacing:-.02em!important;
+  }
+
+  .acg-mobile-menu-button{
+    position:relative!important;
+    padding:0!important;
+    color:#a8b1ba!important;
+  }
+
+  .acg-mobile-menu-button svg{
+    width:18px!important;
+    height:18px!important;
+  }
+
+  .acg-mobile-instrument-selector::after{
+    left:9px!important;
+    bottom:0!important;
+    width:50px!important;
+    height:2px!important;
+  }
+}
