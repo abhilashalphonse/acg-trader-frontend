@@ -426,6 +426,16 @@ export default function MobileTradesSheet({
       onNotice('Enter a valid SL/TP price, or leave the field empty to remove it');
       return;
     }
+    const side = String(position?.side || '').toUpperCase();
+    const entry = Number(position?.entry ?? position?.entryPrice);
+    if (side === 'BUY' && ((sl != null && sl >= entry) || (tp != null && tp <= entry))) {
+      onNotice('For a BUY position, SL must be below entry and TP above entry');
+      return;
+    }
+    if (side === 'SELL' && ((sl != null && sl <= entry) || (tp != null && tp >= entry))) {
+      onNotice('For a SELL position, SL must be above entry and TP below entry');
+      return;
+    }
     setBusy(true);
     try {
       const saved = await onUpdatePosition(position.id, { sl, tp });
@@ -483,6 +493,7 @@ export default function MobileTradesSheet({
     const currentPrice = Number.isFinite(closePrice) ? closePrice : fallbackCurrent;
     const opened = openedDate(position);
     const pnlCurrency = String(position?.pnlCurrency || currency).toUpperCase();
+    const partialCloseAvailable = [25, 50, 75].some(value => canPartialClose(position, value, market));
 
     return (
       <div className="absolute inset-0 z-40 flex flex-col bg-[#050505] pt-[env(safe-area-inset-top)]">
@@ -545,6 +556,7 @@ export default function MobileTradesSheet({
                   );
                 })}
               </div>
+              {!partialCloseAvailable && <div className="mt-2 text-center text-[8px] text-[#8f777c]">This lot size cannot be partially closed without going below the instrument minimum.</div>}
               <button type="button" disabled={busy} onClick={() => setDetailMode(null)} className="mt-2 h-9 w-full rounded-lg text-[10px] font-semibold text-[#8c97a2] disabled:opacity-40">Cancel</button>
             </div>
           )}
