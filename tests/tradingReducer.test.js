@@ -207,3 +207,37 @@ test('market command result immediately applies authoritative post-fill account 
   assert.equal(state.trading.valuationsByAccountId.a1.freeMargin, '98866.2');
   assert.equal(state.trading.valuationsByAccountId.a1.valuationStatus, 'LIVE');
 });
+
+
+test('realtime store ignores an older candle stateVersion for the same series', () => {
+  let state = tradingReducer(initialTradingState, {
+    type: 'socket/envelope',
+    payload: envelope('market.candle.update', {
+      symbol: 'EURUSD',
+      timeframe: '1m',
+      openTimeMs: 1_700_000_000_000,
+      open: 100,
+      high: 112,
+      low: 98,
+      close: 110,
+      stateVersion: 12,
+    }),
+  });
+
+  state = tradingReducer(state, {
+    type: 'socket/envelope',
+    payload: envelope('market.candle.update', {
+      symbol: 'EURUSD',
+      timeframe: '1m',
+      openTimeMs: 1_700_000_000_000,
+      open: 100,
+      high: 105,
+      low: 99,
+      close: 101,
+      stateVersion: 11,
+    }),
+  });
+
+  assert.equal(state.market.candlesByKey['EURUSD:1m'].stateVersion, 12);
+  assert.equal(state.market.candlesByKey['EURUSD:1m'].close, 110);
+});
