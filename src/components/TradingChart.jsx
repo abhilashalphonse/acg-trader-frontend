@@ -1280,7 +1280,7 @@ export default function TradingChart({
           src="/acg-logo.png"
           alt=""
           draggable="false"
-          className="h-auto w-[58px] select-none object-contain opacity-90 drop-shadow-[0_1px_2px_rgba(0,0,0,.9)]"
+          className="h-5 w-auto select-none opacity-90"
         />
       </div>
     )}
