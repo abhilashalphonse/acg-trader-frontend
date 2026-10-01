@@ -6,6 +6,7 @@ import { formatInstrumentPrice, formatSpreadDisplay, instrumentPipSize } from '.
 import { calculateRiskOrderSizing, estimatePositionPnlAtPrice, estimateStopRisk, positionDistancePips } from '../../utils/tradingRisk.js';
 import { DRAWING_TOOL_GROUPS, DRAWING_TOOL_LABELS } from '../../utils/drawingTools.js';
 import { DRAWING_TOOL_ICONS } from './DrawingToolIcons.jsx';
+import { chartTimezoneLabel, formatChartClock } from '../../utils/desktopChartSettings.js';
 
 const MOBILE_HIDDEN_DRAWING_TOOLS = new Set([
   'ray',
@@ -20,11 +21,6 @@ const toolGroups = DRAWING_TOOL_GROUPS.map(group =>
 );
 
 const oscillatorIds = new Set(['rsi', 'macd', 'atr', 'stochastic']);
-
-function chartClockLabel(date = new Date()) {
-  return [date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds()]
-    .map(value => String(value).padStart(2, '0')).join(':');
-}
 
 function validPlanPrice(value) {
   if (value === null || value === undefined || value === '') return null;
@@ -1128,6 +1124,7 @@ export default function ChartArea({
   onCancelTradePlan = () => {},
   desktopEnhanced = false,
   compactContext = false,
+  chartSettings = null,
   onToggleIndicator = () => {},
   onOpenIndicatorSettings = () => {},
   onRemoveIndicator = () => {},
@@ -1347,6 +1344,8 @@ export default function ChartArea({
           showAttributionLogo={false}
           desktopEnhanced={desktopEnhanced}
           compactContext={compactContext}
+          candleAppearance={desktopEnhanced ? chartSettings?.candle : null}
+          chartTimezone={desktopEnhanced ? chartSettings?.timezone : 'UTC'}
           layoutRevision={`${toolbarVisible ? 'rail-open' : 'rail-closed'}:${focusMode ? 'focus' : 'normal'}`}
           onToggleIndicator={onToggleIndicator}
           onOpenIndicatorSettings={onOpenIndicatorSettings}
@@ -1433,8 +1432,8 @@ export default function ChartArea({
 
         {!compactContext && !drawingToolbarOverlay && !tradePlan && (!embedded || desktopEnhanced) && (
           <div className="pointer-events-auto absolute bottom-2 right-[64px] z-30 flex items-center gap-2 font-mono text-[8px] font-medium tabular-nums text-[#737D87]">
-            <span>UTC</span>
-            <span className="text-[#9AA4AE]" title="Current chart time (UTC)">{chartClockLabel(clockNow)}</span>
+            <span>{chartTimezoneLabel(chartSettings?.timezone || 'UTC', instrument)}</span>
+            <span className="text-[#9AA4AE]" title="Current chart time">{formatChartClock(clockNow, chartSettings?.timezone || 'UTC', instrument)}</span>
             <button
               type="button"
               onClick={() => coordinateApi?.resetView?.()}
@@ -1449,8 +1448,8 @@ export default function ChartArea({
 
         {drawingToolbarOverlay && !tradePlan && (
           <div className="pointer-events-auto absolute bottom-0 right-0 z-30 flex h-5 items-center overflow-hidden rounded-tl-[4px] border-l border-t border-white/[0.08] bg-black/88 text-[7px] font-medium text-[#7E8994] shadow-[-4px_-2px_10px_rgba(0,0,0,.22)] backdrop-blur-sm">
-            <span className="border-r border-white/[0.07] px-1.5">UTC</span>
-            <span className="border-r border-white/[0.07] px-1.5 font-mono font-semibold tabular-nums text-[#B9C2CA]" title="Current chart time (UTC)">{chartClockLabel(clockNow)}</span>
+            <span className="border-r border-white/[0.07] px-1.5">{chartTimezoneLabel(chartSettings?.timezone || 'UTC', instrument)}</span>
+            <span className="border-r border-white/[0.07] px-1.5 font-mono font-semibold tabular-nums text-[#B9C2CA]" title="Current chart time">{formatChartClock(clockNow, chartSettings?.timezone || 'UTC', instrument)}</span>
             <button type="button" onClick={() => coordinateApi?.resetView?.()} className="h-full px-1.5 font-semibold text-[#929DA7] transition active:bg-white/[0.05] active:text-[#F1F4F6]" title="Return to live chart and restore the default view">Auto</button>
           </div>
         )}
