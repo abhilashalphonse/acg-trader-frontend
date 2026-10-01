@@ -830,11 +830,13 @@ export default function MobileTradesSheet({
               })}
             </div>
 
-            <div className="mt-3 border-t border-white/[0.08] py-3">
-              <SummaryMetric label="Profit" value={pnlNumber(historyStats.profit)} valueClass={pnlClass(historyStats.profit)} />
-              <SummaryMetric label="Swap" value={pnlNumber(historyStats.swap)} />
-              <SummaryMetric label="Commission" value={pnlNumber(historyStats.commission)} />
-            </div>
+            {historyKind !== 'order' && (
+              <div className="mt-3 border-t border-white/[0.08] py-3">
+                <SummaryMetric label="Profit" value={pnlNumber(historyStats.profit)} valueClass={pnlClass(historyStats.profit)} />
+                <SummaryMetric label="Swap" value={pnlNumber(historyStats.swap)} />
+                <SummaryMetric label="Commission" value={pnlNumber(historyStats.commission)} />
+              </div>
+            )}
           </>
         )}
       </div>
