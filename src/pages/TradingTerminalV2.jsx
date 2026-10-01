@@ -1315,7 +1315,7 @@ export default function TradingTerminalV2({
           plannedRisk={plannedRisk}
           hotkeysEnabled={hotkeysEnabled}
           timeframe={timeframe}
-          onTimeframeChange={setTimeframe}
+          onTimeframeChange={value => setTimeframe(normalizeTimeframePreference(value))}
           chartMode={chartMode}
           onChartModeChange={setChartMode}
           selectedTool={selectedTool}
