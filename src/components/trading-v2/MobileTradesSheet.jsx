@@ -81,11 +81,11 @@ function eventDate(item) {
 
 function openedDate(item) {
   const value = item?.openedAtIso
-    || item?.openedAt
-    || item?.openTime
-    || item?.createdAt
     || item?.raw?.openedAt
     || item?.raw?.createdAt
+    || item?.openTime
+    || item?.createdAt
+    || item?.openedAt
     || null;
   const parsed = value ? new Date(value) : null;
   return parsed && !Number.isNaN(parsed.getTime()) ? parsed : null;
@@ -247,7 +247,7 @@ function ActionButton({ children, onClick, tone = 'default', disabled = false })
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`min-h-10 rounded-lg border px-3 text-[11px] font-semibold active:opacity-75 disabled:cursor-not-allowed disabled:opacity-40 ${toneClass}`}
+      className={`min-h-10 w-full rounded-lg border px-3 text-[11px] font-semibold active:opacity-75 disabled:cursor-not-allowed disabled:opacity-40 ${toneClass}`}
     >
       {children}
     </button>
@@ -282,7 +282,6 @@ export default function MobileTradesSheet({
   onEditPositionOnChart = () => {},
   onSelectPosition = () => {},
   onClosePosition = async () => false,
-  onCloseAll = async () => {},
   onCancelPending = async () => {},
   onModifyPending = () => {},
   onUpdatePosition = async () => false,
@@ -438,8 +437,8 @@ export default function MobileTradesSheet({
   const runCancelPending = async order => {
     setBusy(true);
     try {
-      await onCancelPending(order.id);
-      setDetail(null);
+      const cancelled = await onCancelPending(order.id);
+      if (cancelled !== false) setDetail(null);
     } finally {
       setBusy(false);
     }
@@ -475,6 +474,7 @@ export default function MobileTradesSheet({
             <DetailRow label="Take profit" value={protectionValue(position.tp, value => price(value, position.symbol))} valueClass={Number(position.tp) > 0 ? 'text-[#45d6a2]' : 'text-[#78838e]'} />
             <DetailRow label="Commission" value={costNumber(position.commission)} />
             <DetailRow label="Swap" value={costNumber(position.swap)} />
+            <DetailRow label="Margin" value={costNumber(position.margin)} />
             <DetailRow label="Opened" value={formatDate(opened)} />
             <DetailRow label="Position ID" value={idValue(position)} valueClass="text-[#9fa9b3]" />
           </div>
@@ -528,7 +528,7 @@ export default function MobileTradesSheet({
                 <ActionButton onClick={() => void runBreakEven(position)} disabled={busy}>Break Even</ActionButton>
                 <ActionButton onClick={() => editOnChart(position)} tone="success">Edit on Chart</ActionButton>
               </div>
-              <button type="button" onClick={() => openChart(position)} className="mt-2 h-10 w-full rounded-lg text-[10px] font-semibold text-[#7f8b97] active:bg-white/[0.035]">Open chart without editing</button>
+              <button type="button" onClick={() => { onSelectPosition(position.id); openChart(position); }} className="mt-2 h-10 w-full rounded-lg text-[10px] font-semibold text-[#7f8b97] active:bg-white/[0.035]">Open chart without editing</button>
             </>
           )}
         </div>
@@ -583,6 +583,8 @@ export default function MobileTradesSheet({
             <DetailRow label="Take profit" value={protectionValue(position.tp, value => price(value, position.symbol))} />
             <DetailRow label="Commission" value={costNumber(position.commission)} />
             <DetailRow label="Swap" value={costNumber(position.swap)} />
+            <DetailRow label="Slippage" value={costNumber(position.slippage)} />
+            <DetailRow label="Close reason" value={String(position.closeType || 'Closed')} mono={false} />
             <DetailRow label="Opened" value={formatDate(opened)} />
             <DetailRow label="Closed" value={formatDate(closed)} />
             <DetailRow label="Duration" value={durationLabel(opened, closed)} />
