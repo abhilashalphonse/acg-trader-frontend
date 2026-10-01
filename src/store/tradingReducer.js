@@ -201,6 +201,18 @@ function handleEnvelope(state, envelope) {
       },
     };
   }
+  if (type === 'market.candle.corrected') {
+    // A correction targets an already-finalized bar, not the active candle.
+    // Keep candlesByKey reserved for the live bucket and trigger an
+    // authoritative latest-history reconciliation instead.
+    return {
+      ...next,
+      market: {
+        ...next.market,
+        historyRecoveryRevision: next.market.historyRecoveryRevision + 1,
+      },
+    };
+  }
   if (type === 'market.candle.update' || type === 'market.candle.closed') {
     const key = candleKey(data);
     if (!key) return next;

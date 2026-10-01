@@ -241,3 +241,32 @@ test('realtime store ignores an older candle stateVersion for the same series', 
   assert.equal(state.market.candlesByKey['EURUSD:1m'].stateVersion, 12);
   assert.equal(state.market.candlesByKey['EURUSD:1m'].close, 110);
 });
+
+
+test('completed candle correction triggers authoritative history reconciliation without replacing active candle state', () => {
+  const active = {
+    symbol: 'EURUSD',
+    timeframe: '1m',
+    openTimeMs: 1_700_000_060_000,
+    close: 110,
+    stateVersion: 12,
+  };
+  let state = tradingReducer(initialTradingState, {
+    type: 'socket/envelope',
+    payload: envelope('market.candle.update', active),
+  });
+
+  state = tradingReducer(state, {
+    type: 'socket/envelope',
+    payload: envelope('market.candle.corrected', {
+      symbol: 'EURUSD',
+      timeframe: '1m',
+      openTimeMs: 1_700_000_000_000,
+      close: 105,
+      stateVersion: 13,
+    }),
+  });
+
+  assert.equal(state.market.historyRecoveryRevision, 1);
+  assert.deepEqual(state.market.candlesByKey['EURUSD:1m'], active);
+});
