@@ -12,9 +12,9 @@ function symbolLabel(symbol = '') {
 const MARKET_GROUPS = ['All', 'Forex', 'Metals', 'Commodities', 'Indices', 'India', 'Stocks', 'Crypto'];
 
 const tradingProfiles = [
-  { id: 'scalp', name: 'SCALP', description: '5s · Risk 0.25% · EMA 9/20 + VWAP', settings: { timeframe: '5s', chartMode: 'candles', sizingMode: 'risk', riskPercent: 0.25, orderType: 'market' }, indicators: [{ id: 'ema', settings: { period: 9 } }, { id: 'ema', settings: { period: 20 } }, { id: 'vwap' }, { id: 'volume' }] },
+  { id: 'scalp', name: 'SCALP', description: '1m · Risk 0.25% · EMA 9/20 + VWAP', settings: { timeframe: '1m', chartMode: 'candles', sizingMode: 'risk', riskPercent: 0.25, orderType: 'market' }, indicators: [{ id: 'ema', settings: { period: 9 } }, { id: 'ema', settings: { period: 20 } }, { id: 'vwap' }, { id: 'volume' }] },
   { id: 'intraday', name: 'INTRADAY', description: '5m · Risk 0.50% · EMA 20/50 + RSI', settings: { timeframe: '5m', chartMode: 'candles', sizingMode: 'risk', riskPercent: 0.5, orderType: 'market' }, indicators: [{ id: 'ema', settings: { period: 20 } }, { id: 'ema', settings: { period: 50 } }, { id: 'rsi', settings: { period: 14 } }, { id: 'volume' }] },
-  { id: 'gold', name: 'GOLD', description: '15s · Risk 0.50% · VWAP + ATR', settings: { timeframe: '15s', chartMode: 'candles', sizingMode: 'risk', riskPercent: 0.5, orderType: 'market' }, symbol: 'XAUUSD', indicators: [{ id: 'vwap' }, { id: 'atr', settings: { period: 14 } }, { id: 'volume' }] },
+  { id: 'gold', name: 'GOLD', description: '1m · Risk 0.50% · VWAP + ATR', settings: { timeframe: '1m', chartMode: 'candles', sizingMode: 'risk', riskPercent: 0.5, orderType: 'market' }, symbol: 'XAUUSD', indicators: [{ id: 'vwap' }, { id: 'atr', settings: { period: 14 } }, { id: 'volume' }] },
   { id: 'classic', name: 'MT5 CLASSIC', description: '1m · Manual lots · clean chart', settings: { timeframe: '1m', chartMode: 'candles', sizingMode: 'lots', orderType: 'market' }, indicators: [{ id: 'volume' }] },
 ];
 
