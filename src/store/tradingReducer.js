@@ -204,6 +204,18 @@ function handleEnvelope(state, envelope) {
   if (type === 'market.candle.update' || type === 'market.candle.closed') {
     const key = candleKey(data);
     if (!key) return next;
+
+    const previous = next.market.candlesByKey[key];
+    const previousVersion = previous?.stateVersion == null ? null : Number(previous.stateVersion);
+    const incomingVersion = data?.stateVersion == null ? null : Number(data.stateVersion);
+    if (
+      Number.isFinite(previousVersion)
+      && Number.isFinite(incomingVersion)
+      && incomingVersion < previousVersion
+    ) {
+      return next;
+    }
+
     return { ...next, market: { ...next.market, candlesByKey: { ...next.market.candlesByKey, [key]: data } } };
   }
   if (type === 'trading.state.snapshot') {
