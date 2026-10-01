@@ -198,7 +198,9 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
       marketState,
       sessionOpen,
       subscribed: subscribedSet.has(symbol),
-      change: null,
+      previousClose: Number.isFinite(Number(quote?.previousClose)) ? Number(quote.previousClose) : null,
+      change: Number.isFinite(Number(quote?.change)) ? Number(quote.change) : null,
+      changePercent: Number.isFinite(Number(quote?.changePercent)) ? Number(quote.changePercent) : null,
       ...itemDirections,
     };
   }), [directions, gatewayStatus, instruments, market.quotesBySymbol, subscribedSet]);
