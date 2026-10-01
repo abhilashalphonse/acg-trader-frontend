@@ -38,6 +38,10 @@ export function normalizeCandle(candle) {
   const tickCount = nullableNonNegativeNumber(candle?.tickCount);
   const volumeMode = normalizedVolumeMode(candle?.volumeMode);
   const displayVolume = nullableNonNegativeNumber(candle?.displayVolume);
+  const rawStateVersion = Number(candle?.stateVersion);
+  const stateVersion = Number.isFinite(rawStateVersion) && rawStateVersion >= 0
+    ? Math.trunc(rawStateVersion)
+    : null;
   const backendVolumeSource = ['provider', 'tick', 'unavailable'].includes(candle?.volumeSource)
     ? candle.volumeSource
     : null;
@@ -83,6 +87,7 @@ export function normalizeCandle(candle) {
     volumeSource,
     complete: Boolean(candle?.complete),
     synthetic: Boolean(candle?.synthetic),
+    stateVersion,
   };
 }
 
@@ -90,7 +95,18 @@ export function normalizeCandleSeries(candles = []) {
   const byTime = new Map();
   for (const candle of Array.isArray(candles) ? candles : []) {
     const normalized = normalizeCandle(candle);
-    if (normalized) byTime.set(normalized.time, normalized);
+    if (!normalized) continue;
+
+    const existing = byTime.get(normalized.time);
+    if (
+      existing
+      && existing.stateVersion != null
+      && normalized.stateVersion != null
+      && normalized.stateVersion < existing.stateVersion
+    ) {
+      continue;
+    }
+    byTime.set(normalized.time, normalized);
   }
   return [...byTime.values()].sort((a, b) => a.time - b.time);
 }
