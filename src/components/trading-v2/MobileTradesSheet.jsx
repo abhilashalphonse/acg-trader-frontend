@@ -304,6 +304,7 @@ export default function MobileTradesSheet({
   historyLoaded = false,
   markets = [],
   onOpenChart = () => {},
+  onViewClosedPositionChart = () => {},
   onEditPositionOnChart = () => {},
   onSelectPosition = () => {},
   onClosePosition = async () => false,
@@ -632,7 +633,7 @@ export default function MobileTradesSheet({
             <DetailRow label="Position ID" value={idValue(position)} valueClass="text-[#9fa9b3]" />
           </div>
           <div className="mt-3">
-            <ActionButton onClick={() => openChart(position)} tone="primary">View Chart</ActionButton>
+            <ActionButton onClick={() => onViewClosedPositionChart(position)} tone="primary">View Chart</ActionButton>
           </div>
         </div>
       </div>
