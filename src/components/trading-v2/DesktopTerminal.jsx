@@ -43,6 +43,13 @@ import { validateOpenPositionProtection } from '../../utils/openPositionPresenta
 import { loadDesktopChartSettings, normalizeDesktopChartSettings, saveDesktopChartSettings } from '../../utils/desktopChartSettings.js';
 
 const timeframes = [['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], ['1H', '1H'], ['4H', '4H'], ['1D', '1D'], ['1W', '1W']];
+
+function normalizeDesktopTimeframe(value) {
+  const raw = String(value || '');
+  const aliases = { '1h': '1H', '4h': '4H', '1d': '1D', D: '1D', '1w': '1W' };
+  const normalized = aliases[raw] || raw;
+  return timeframes.some(([id]) => id === normalized) ? normalized : '1m';
+}
 const DESKTOP_LAYOUT_KEY = 'acg-trader-desktop-layout-v2';
 const MULTI_CHART_KEY = 'acg-trader-multi-chart-v1';
 const FLOATING_ORDER_KEY = 'acg-trader-floating-order-v1';
@@ -514,6 +521,18 @@ export default function DesktopTerminal({
   }, [activeSymbol]);
 
   useEffect(() => {
+    const nextTimeframe = normalizeDesktopTimeframe(timeframe);
+    setMultiChart(current => {
+      const layout = [1, 2, 4].includes(Number(current?.layout)) ? Number(current.layout) : 1;
+      const index = Math.min(Math.max(0, Number(current?.activeCell) || 0), layout - 1);
+      const cells = Array.from({ length: 4 }, (_, cellIndex) => current?.cells?.[cellIndex] || {});
+      if (cells[index]?.timeframe === nextTimeframe) return current;
+      cells[index] = { ...cells[index], timeframe: nextTimeframe };
+      return { ...current, cells };
+    });
+  }, [timeframe]);
+
+  useEffect(() => {
     setMultiChart(current => {
       const layout = [1, 2, 4].includes(Number(current?.layout)) ? Number(current.layout) : 1;
       const index = Math.min(Math.max(0, Number(current?.activeCell) || 0), layout - 1);
@@ -559,13 +578,14 @@ export default function DesktopTerminal({
   };
 
   const setDesktopTimeframe = value => {
-    onTimeframeChange(value);
+    const normalized = normalizeDesktopTimeframe(value);
+    onTimeframeChange(normalized);
     setMultiChart(current => {
       const layout = [1, 2, 4].includes(Number(current?.layout)) ? Number(current.layout) : 1;
       const index = Math.min(Math.max(0, Number(current?.activeCell) || 0), layout - 1);
       const cells = Array.from({ length: 4 }, (_, cellIndex) => current?.cells?.[cellIndex] || {});
-      if (cells[index]?.timeframe === value) return current;
-      cells[index] = { ...cells[index], timeframe: value };
+      if (cells[index]?.timeframe === normalized) return current;
+      cells[index] = { ...cells[index], timeframe: normalized };
       return { ...current, cells };
     });
   };
