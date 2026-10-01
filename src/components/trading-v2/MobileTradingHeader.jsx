@@ -99,7 +99,7 @@ export default function MobileTradingHeader({
       <button
         type="button"
         onClick={onOpenTrades}
-        className="acg-mobile-header-divider flex min-w-0 flex-col items-center justify-center gap-1 text-[#dfe6ee] active:bg-white/[0.035]"
+        className="acg-mobile-trades-button acg-mobile-header-divider flex min-w-0 flex-col items-center justify-center gap-1 text-[#dfe6ee] active:bg-white/[0.035]"
         aria-label={`Open trades${activityCount ? `, ${activityCount} active` : ''}`}
       >
         <span className="relative grid place-items-center">
@@ -121,7 +121,7 @@ export default function MobileTradingHeader({
       <button
         type="button"
         onClick={onOpenAccount}
-        className="acg-mobile-header-divider grid place-items-center text-[#dce3ea] active:bg-white/[0.035]"
+        className="acg-mobile-menu-button acg-mobile-header-divider grid place-items-center text-[#dce3ea] active:bg-white/[0.035]"
         aria-label="Open account and platform menu"
       >
         <MoreVertical size={20} strokeWidth={2}/>
