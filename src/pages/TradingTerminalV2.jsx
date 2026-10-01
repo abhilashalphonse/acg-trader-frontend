@@ -1245,7 +1245,7 @@ export default function TradingTerminalV2({
   };
 
   useTradingHotkeys({
-    enabled: isDesktop && hotkeysEnabled && !readOnly,
+    enabled: isDesktop && hotkeysEnabled && !readOnly && !overlay,
     onBuy: () => hotkeyTrade('buy'),
     onSell: () => hotkeyTrade('sell'),
     onFullscreen: () => toggleDesktopFullscreen(),
