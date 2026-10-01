@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowUpDown, ChevronDown, MoreVertical } from 'lucide-react';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
+import { marketVenue } from '../../utils/marketClassification.js';
 
 function displaySymbol(symbol = '') {
   const normalized = String(symbol || '').toUpperCase();
@@ -11,6 +12,9 @@ function displaySymbol(symbol = '') {
 }
 
 function marketCategory(market) {
+  const venue = marketVenue(market);
+  if (venue) return venue;
+
   const explicit = String(
     market?.assetClass ||
     market?.category ||
