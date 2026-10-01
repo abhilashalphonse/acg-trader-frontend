@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, GripVertical, ListFilter, Plus, Search, Setting
 import InstrumentAvatar from '../InstrumentAvatar.jsx';
 import { instrumentPipSize } from '../../../utils/instrumentFormatting.js';
 import { marketCategoryId, marketVenue } from '../../../utils/marketClassification.js';
+import { commodityDisplaySymbol, commoditySearchTerms, commoditySubgroup, isCommodityInstrument } from '../../../utils/commodityPresentation.js';
 
 const PREFS_KEY = 'acg-trader-desktop-watchlist-v1';
 const RECENT_KEY = 'acg-trader-recent-markets-v1';
@@ -27,11 +28,17 @@ const MARKET_VIEWS = [
 const CATEGORY_OPTIONS = [
   ['all', 'All'],
   ['forex', 'Forex'],
-  ['metals', 'Metals'],
+  ['commodities', 'Commodities'],
   ['indices', 'Indices'],
   ['india', 'India'],
   ['crypto', 'Crypto'],
   ['stocks', 'Stocks'],
+];
+const COMMODITY_VIEWS = [
+  ['all', 'All'],
+  ['metals', 'Metals'],
+  ['energy', 'Energy'],
+  ['agriculture', 'Agriculture'],
 ];
 const POPULAR_SYMBOLS = ['EURUSD','GBPUSD','USDJPY','XAUUSD','XAGUSD','BTCUSD','ETHUSD','US100','NAS100','US30','SPX500','GER40','UK100','RELIANCE','TCS','HDFCBANK','INFY','SBIN'];
 
@@ -86,17 +93,21 @@ function dayLow(item) { return finite(item?.dayLow, item?.low, item?.sessionLow)
 function volume(item) { return finite(item?.volume, item?.dayVolume, item?.sessionVolume); }
 
 function assetCategory(item) {
+  if (isCommodityInstrument(item)) return 'commodities';
   return marketCategoryId(item);
 }
 
 function categoryLabel(item) {
   const category = assetCategory(item);
+  if (category === 'commodities') {
+    const subgroup = commoditySubgroup(item);
+    return subgroup === 'metals' ? 'Metal' : subgroup === 'energy' ? 'Energy' : 'Agriculture';
+  }
   return marketVenue(item) || (category === 'forex' ? 'Forex'
-    : category === 'metals' ? 'Metal'
-      : category === 'indices' ? 'Index'
-        : category === 'crypto' ? 'Crypto'
-          : category === 'stocks' ? 'Stock'
-            : String(item?.assetClass || 'Market'));
+    : category === 'indices' ? 'Index'
+      : category === 'crypto' ? 'Crypto'
+        : category === 'stocks' ? 'Stock'
+          : String(item?.assetClass || 'Market'));
 }
 
 function quoteReady(item) {
@@ -193,6 +204,7 @@ export default function DesktopWatchlist({
   const [prefs, setPrefs] = useState(loadPrefs);
   const [dragSymbol, setDragSymbol] = useState(null);
   const [category, setCategory] = useState('all');
+  const [commodityView, setCommodityView] = useState('all');
   const [marketView, setMarketView] = useState('all');
   const [sort, setSort] = useState({ key: 'symbol', direction: 'asc' });
   const [recent, setRecent] = useState(loadRecent);
@@ -231,9 +243,12 @@ export default function DesktopWatchlist({
         : availableMarkets.filter(item => watched.has(item.symbol));
 
     if (mode === 'markets' && !query && category !== 'all') base = base.filter(item => assetCategory(item) === category);
+    if (mode === 'markets' && !query && category === 'commodities' && commodityView !== 'all') {
+      base = base.filter(item => commoditySubgroup(item) === commodityView);
+    }
 
     if (query) {
-      base = base.filter(item => `${item.symbol} ${item.displaySymbol || ''} ${item.name || ''} ${item.assetClass || ''}`.toLowerCase().includes(query));
+      base = base.filter(item => `${item.symbol} ${item.displaySymbol || ''} ${item.name || ''} ${item.assetClass || ''} ${commoditySearchTerms(item)}`.toLowerCase().includes(query));
     }
 
     if (mode === 'markets' && !query) {
@@ -266,7 +281,7 @@ export default function DesktopWatchlist({
     }
 
     return base;
-  }, [availableMarkets, category, marketView, mode, recent, search, sort, watched]);
+  }, [availableMarkets, category, commodityView, marketView, mode, recent, search, sort, watched]);
 
   const rowSymbolKey = rows.map(item => item.symbol).join('|');
 
@@ -437,8 +452,13 @@ export default function DesktopWatchlist({
       {mode === 'markets' && (
         <>
           <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-white/[0.06] px-1.5 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {availableCategories.map(([id, label]) => <button key={id} type="button" onClick={() => setCategory(id)} className={`h-7 shrink-0 rounded px-2.5 text-[8px] font-semibold ${category === id ? 'bg-[#0d1a22] text-[#63caff]' : 'text-[#6F8191] hover:bg-white/[0.03] hover:text-white'}`}>{label}</button>)}
+            {availableCategories.map(([id, label]) => <button key={id} type="button" onClick={() => { setCategory(id); if (id !== 'commodities') setCommodityView('all'); }} className={`h-7 shrink-0 rounded px-2.5 text-[8px] font-semibold ${category === id ? 'bg-[#0d1a22] text-[#63caff]' : 'text-[#6F8191] hover:bg-white/[0.03] hover:text-white'}`}>{label}</button>)}
           </div>
+          {category === 'commodities' && (
+            <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-white/[0.06] px-1.5 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {COMMODITY_VIEWS.map(([id, label]) => <button key={id} type="button" onClick={() => setCommodityView(id)} className={`h-7 shrink-0 rounded border px-2.5 text-[8px] font-semibold ${commodityView === id ? 'border-[#315b72] bg-[#0d1a22] text-[#63caff]' : 'border-white/[0.06] text-[#6F8191]'}`}>{label}</button>)}
+            </div>
+          )}
           <div className="flex shrink-0 gap-1 overflow-x-auto px-1.5 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {MARKET_VIEWS.map(([id, label]) => <button key={id} type="button" onClick={() => setMarketView(id)} className={`h-7 shrink-0 rounded border px-2.5 text-[8px] font-semibold ${marketView === id ? 'border-[#315b72] bg-[#0d1a22] text-[#63caff]' : 'border-white/[0.06] text-[#6F8191]'}`}>{label}</button>)}
           </div>
@@ -485,7 +505,7 @@ export default function DesktopWatchlist({
                 {mode !== 'markets' && !search && isWatched && <GripVertical size={9} className="shrink-0 text-[#44515D]"/>}
                 <InstrumentAvatar instrument={item} size={21}/>
                 <span className="min-w-0">
-                  <b className="block truncate text-[11px] font-semibold text-[#E6EDF3]">{item.displaySymbol || displaySymbol(item.symbol)}</b>
+                  <b className="block truncate text-[11px] font-semibold text-[#E6EDF3]">{commodityDisplaySymbol(item) || item.displaySymbol || displaySymbol(item.symbol)}</b>
                   <small className="mt-0.5 flex min-w-0 items-center gap-1 truncate text-[8px]">
                     {mode === 'markets' && <span className="truncate text-[#6F8191]">{categoryLabel(item)}</span>}
                     {mode === 'markets' && <span className="text-[#44515D]">·</span>}
