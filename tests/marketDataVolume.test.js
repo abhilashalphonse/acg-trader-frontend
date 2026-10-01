@@ -230,3 +230,34 @@ test('unavailable volume mode does not fall back to live tick count', () => {
   assert.equal(merged[0].volumeSource, 'unavailable');
   assert.equal(merged[0].close, 104);
 });
+
+
+test('preserves backend candle stateVersion through normalization', () => {
+  const normalized = normalizeCandle(candle({ stateVersion: 42 }));
+  assert.equal(normalized.stateVersion, 42);
+  assert.deepEqual(normalizeCandle(normalized), normalized);
+});
+
+test('ignores stale websocket revisions for the active candle', () => {
+  const current = normalizeCandle(candle({
+    time: 1_700_000_000,
+    close: 110,
+    high: 112,
+    low: 98,
+    stateVersion: 12,
+  }));
+  const stale = candle({
+    time: 1_700_000_000,
+    close: 101,
+    high: 105,
+    low: 99,
+    stateVersion: 11,
+  });
+
+  const merged = mergeLiveCandleIntoSeries([current], stale, 10);
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].stateVersion, 12);
+  assert.equal(merged[0].close, 110);
+  assert.equal(merged[0].high, 112);
+  assert.equal(merged[0].low, 98);
+});
