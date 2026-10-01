@@ -142,7 +142,7 @@ function cellValue(column, item) {
 }
 
 function statusFor(item) {
-  if (item?.sessionOpen === false && !lastReady(item)) return { label: 'CLOSED', tone: 'text-[#75889a]' };
+  if (item?.sessionOpen === false) return { label: 'CLOSED', tone: 'text-[#75889a]' };
   if (!lastReady(item)) {
     const state = String(item?.marketState || '').toUpperCase();
     if (['ERROR','SUBSCRIPTION_ERROR','DISCONNECTED','DISABLED'].includes(state)) return { label: 'QUOTE UNAVAILABLE', tone: 'text-[#FF6F7A]' };
@@ -283,17 +283,15 @@ export default function DesktopWatchlist({
         return;
       }
 
-      const viewportTop = root.scrollTop;
-      const viewportBottom = viewportTop + root.clientHeight;
+      const viewport = root.getBoundingClientRect();
       let first = -1;
       let last = -1;
 
       for (let index = 0; index < symbols.length; index += 1) {
         const node = rowRefs.current.get(symbols[index]);
         if (!node) continue;
-        const top = node.offsetTop;
-        const bottom = top + node.offsetHeight;
-        if (bottom >= viewportTop && top <= viewportBottom) {
+        const row = node.getBoundingClientRect();
+        if (row.bottom >= viewport.top && row.top <= viewport.bottom) {
           if (first < 0) first = index;
           last = index;
         }
