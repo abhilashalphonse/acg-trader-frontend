@@ -349,8 +349,7 @@ export default function MobileTradesSheet({
     const source = Array.isArray(historyOrders) ? historyOrders : [];
     return source.filter(order => {
       const status = normalizedStatus(order);
-      if (!status || ACTIVE_ORDER_STATUSES.has(status)) return false;
-      return ['CANCELLED', 'CANCELED', 'REJECTED', 'EXPIRED'].includes(status);
+      return Boolean(status) && !ACTIVE_ORDER_STATUSES.has(status);
     });
   }, [historyOrders]);
 
