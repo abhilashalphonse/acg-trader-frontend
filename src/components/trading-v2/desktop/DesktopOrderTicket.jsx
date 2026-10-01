@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ChevronDown, GripVertical, Maximize2, Minus, Plus, X } from 'lucide-react';
 import { decimalPlaces, normalizeVolumeToStep } from '../../../utils/tradingCommandNormalization.js';
 import {
@@ -14,6 +14,13 @@ import { deriveAccountCapabilities } from '../../../utils/accountCapabilities.js
 import InstrumentAvatar from '../InstrumentAvatar.jsx';
 
 const RISK_PRESETS = [0.25, 0.5, 1];
+
+function selectInputNextFrame(event) {
+  const input = event.currentTarget;
+  requestAnimationFrame(() => {
+    if (input?.isConnected) input.select();
+  });
+}
 
 function finitePositive(value) {
   const numeric = Number(value);
@@ -95,6 +102,7 @@ export default function DesktopOrderTicket({
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [protectionIntent, setProtectionIntent] = useState(null);
   const [marketLotsBeforePending, setMarketLotsBeforePending] = useState(null);
+  const lotCancelRef = useRef(false);
 
   const currency = account?.currency || 'USD';
   const equity = Number(account?.equity);
@@ -219,6 +227,12 @@ export default function DesktopOrderTicket({
   };
 
   const commitLot = () => {
+    if (lotCancelRef.current) {
+      lotCancelRef.current = false;
+      setLotInput(Number(normalizedLots).toFixed(lotDecimals));
+      setLotFocused(false);
+      return;
+    }
     const numeric = Number(String(lotInput).trim());
     setLots(Number.isFinite(numeric) && numeric > 0 ? numeric : normalizedLots);
     setLotFocused(false);
@@ -638,7 +652,7 @@ export default function DesktopOrderTicket({
                 <div className="grid h-[42px] grid-cols-[30px_minmax(0,1fr)_30px] items-center overflow-hidden rounded-[7px] border border-white/[0.07] bg-[#13161a]">
                   <button type="button" onClick={() => setLots(Math.max(minVolume, normalizedLots - volumeStep))} className="grid h-full place-items-center text-[#8d99a5] hover:bg-white/[0.03] hover:text-white" aria-label="Decrease lot size"><Minus size={12}/></button>
                   <div className="flex h-full min-w-0 flex-col items-center justify-center border-x border-white/[0.05]">
-                    <input value={lotInput} onFocus={event => { setLotFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }} onChange={event => setLotInput(event.target.value)} onBlur={commitLot} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { setLotInput(Number(normalizedLots).toFixed(lotDecimals)); event.currentTarget.blur(); } }} inputMode="decimal" className="w-full bg-transparent text-center font-mono text-[13px] font-bold tabular-nums text-[#f4f6f8] outline-none" aria-label="Lot size"/>
+                    <input value={lotInput} onFocus={event => { lotCancelRef.current = false; setLotFocused(true); selectInputNextFrame(event); }} onChange={event => setLotInput(event.target.value)} onBlur={commitLot} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { event.preventDefault(); lotCancelRef.current = true; setLotInput(Number(normalizedLots).toFixed(lotDecimals)); event.currentTarget.blur(); } }} inputMode="decimal" className="w-full bg-transparent text-center font-mono text-[13px] font-bold tabular-nums text-[#f4f6f8] outline-none" aria-label="Lot size"/>
                     <span className="text-[7px] font-semibold uppercase tracking-[0.06em] text-[#677581]">lots</span>
                   </div>
                   <button type="button" onClick={() => setLots(Math.min(maxVolume, normalizedLots + volumeStep))} className="grid h-full place-items-center text-[#8d99a5] hover:bg-white/[0.03] hover:text-white" aria-label="Increase lot size"><Plus size={12}/></button>
@@ -647,7 +661,7 @@ export default function DesktopOrderTicket({
                 <div className="grid h-[42px] grid-cols-[30px_minmax(0,1fr)_30px] items-center overflow-hidden rounded-[7px] border border-[#195be1]/28 bg-[#10151d]">
                   <button type="button" onClick={() => setRiskFromInput(Math.max(0.1, Number(riskPercent) - 0.25))} className="grid h-full place-items-center text-[#8d99a5] hover:bg-white/[0.03] hover:text-white" aria-label="Decrease risk"><Minus size={12}/></button>
                   <div className="flex h-full min-w-0 flex-col items-center justify-center border-x border-white/[0.05]">
-                    <input value={riskInput} onFocus={event => { setRiskFocused(true); setRiskUnit('percent'); requestAnimationFrame(() => event.currentTarget.select()); }} onChange={event => setRiskInput(event.target.value)} onBlur={commitRisk} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }} inputMode="decimal" className="w-full bg-transparent text-center font-mono text-[13px] font-bold tabular-nums text-[#4f82ef] outline-none" aria-label="Risk percent"/>
+                    <input value={riskInput} onFocus={event => { setRiskFocused(true); setRiskUnit('percent'); selectInputNextFrame(event); }} onChange={event => setRiskInput(event.target.value)} onBlur={commitRisk} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }} inputMode="decimal" className="w-full bg-transparent text-center font-mono text-[13px] font-bold tabular-nums text-[#4f82ef] outline-none" aria-label="Risk percent"/>
                     <span className="text-[7px] font-semibold uppercase tracking-[0.06em] text-[#677581]">% risk</span>
                   </div>
                   <button type="button" onClick={() => setRiskFromInput(Math.min(5, Number(riskPercent) + 0.25))} className="grid h-full place-items-center text-[#8d99a5] hover:bg-white/[0.03] hover:text-white" aria-label="Increase risk"><Plus size={12}/></button>
@@ -698,7 +712,7 @@ export default function DesktopOrderTicket({
               </div>
               <input
                 value={entryInput}
-                onFocus={event => { setEntryFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }}
+                onFocus={event => { setEntryFocused(true); selectInputNextFrame(event); }}
                 onChange={event => updateEntryInput(event.target.value)}
                 onBlur={commitEntry}
                 onKeyDown={event => {
@@ -735,12 +749,14 @@ export default function DesktopOrderTicket({
               <div className="flex items-center justify-center border-x border-white/[0.05]">
                 <input
                   value={lotInput}
-                  onFocus={event => { setLotFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }}
+                  onFocus={event => { lotCancelRef.current = false; setLotFocused(true); selectInputNextFrame(event); }}
                   onChange={event => setLotInput(event.target.value)}
                   onBlur={commitLot}
                   onKeyDown={event => {
                     if (event.key === 'Enter') event.currentTarget.blur();
                     if (event.key === 'Escape') {
+                      event.preventDefault();
+                      lotCancelRef.current = true;
                       setLotInput(Number(normalizedLots).toFixed(lotDecimals));
                       event.currentTarget.blur();
                     }
@@ -762,7 +778,7 @@ export default function DesktopOrderTicket({
                 </div>
                 <input
                   value={riskInput}
-                  onFocus={event => { setRiskFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }}
+                  onFocus={event => { setRiskFocused(true); selectInputNextFrame(event); }}
                   onChange={event => setRiskInput(event.target.value)}
                   onBlur={commitRisk}
                   onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }}
@@ -836,7 +852,7 @@ export default function DesktopOrderTicket({
                 <span className="mb-1 block text-[8px] font-semibold text-[#697784]">Limit price</span>
                 <input
                   value={limitInput}
-                  onFocus={event => { setLimitFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }}
+                  onFocus={event => { setLimitFocused(true); selectInputNextFrame(event); }}
                   onChange={event => updateLimitInput(event.target.value)}
                   onBlur={commitLimit}
                   inputMode="decimal"
