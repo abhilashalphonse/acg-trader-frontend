@@ -6,6 +6,13 @@ import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrument
 import { effectiveTradePlan, validateTradePlanForExecution } from '../../utils/tradePlanExecution.js';
 import { deriveAccountCapabilities, protectionRequirement } from '../../utils/accountCapabilities.js';
 
+function selectInputNextFrame(event) {
+  const input = event.currentTarget;
+  requestAnimationFrame(() => {
+    if (input?.isConnected) input.select();
+  });
+}
+
 const orderTypes = [
   ['market', 'Market'],
   ['limit', 'Limit'],
@@ -121,6 +128,7 @@ export default function ExecutionPanel({
   const previousAskRef = useRef(null);
   const bidFlashTimerRef = useRef(null);
   const askFlashTimerRef = useRef(null);
+  const lotInputCancelRef = useRef(false);
   const lots = controlledLots ?? internalLots;
   const setLots = onLotsChange ?? setInternalLots;
   const volumeStep = Math.max(Number(market?.volumeStep) || 0.01, 0.00000001);
@@ -164,6 +172,12 @@ export default function ExecutionPanel({
   }, []);
 
   const commitLotInput = () => {
+    if (lotInputCancelRef.current) {
+      lotInputCancelRef.current = false;
+      setLotInput(formatLots(normalizedLots));
+      setLotInputFocused(false);
+      return;
+    }
     const text = String(lotInput || '').trim();
     const numeric = Number(text);
     const next = Number.isFinite(numeric) && numeric > 0
@@ -655,8 +669,9 @@ export default function ExecutionPanel({
                 aria-label="Lot size"
                 value={lotInput}
                 onFocus={event => {
+                  lotInputCancelRef.current = false;
                   setLotInputFocused(true);
-                  requestAnimationFrame(() => event.currentTarget.select());
+                  selectInputNextFrame(event);
                 }}
                 onChange={event => updateLotInput(event.target.value)}
                 onBlur={commitLotInput}
@@ -667,6 +682,7 @@ export default function ExecutionPanel({
                   }
                   if (event.key === 'Escape') {
                     event.preventDefault();
+                    lotInputCancelRef.current = true;
                     setLotInput(formatLots(normalizedLots));
                     event.currentTarget.blur();
                   }
@@ -832,8 +848,9 @@ export default function ExecutionPanel({
                     value={lotInput}
                     onFocus={event => {
                       event.stopPropagation();
+                      lotInputCancelRef.current = false;
                       setLotInputFocused(true);
-                      requestAnimationFrame(() => event.currentTarget.select());
+                      selectInputNextFrame(event);
                     }}
                     onClick={event => event.stopPropagation()}
                     onChange={event => updateLotInput(event.target.value)}
@@ -845,6 +862,7 @@ export default function ExecutionPanel({
                       }
                       if (event.key === 'Escape') {
                         event.preventDefault();
+                        lotInputCancelRef.current = true;
                         setLotInput(formatLots(normalizedLots));
                         event.currentTarget.blur();
                       }
@@ -908,7 +926,7 @@ export default function ExecutionPanel({
                       type="text"
                       inputMode="decimal"
                       value={lotInput}
-                      onFocus={event => { setLotInputFocused(true); requestAnimationFrame(() => event.currentTarget.select()); }}
+                      onFocus={event => { lotInputCancelRef.current = false; setLotInputFocused(true); selectInputNextFrame(event); }}
                       onChange={event => updateLotInput(event.target.value)}
                       onBlur={commitLotInput}
                       onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); } }}
