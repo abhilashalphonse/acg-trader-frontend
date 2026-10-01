@@ -46,6 +46,7 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
   const [gatewayStatus, setGatewayStatus] = useState(null);
   const previousQuotesRef = useRef({});
   const activeRefreshRef = useRef({ symbol: null, at: 0 });
+  const quoteSubscriptionCleanupsRef = useRef(new Map());
 
   const universeSymbols = useMemo(() => [...new Set((instruments || []).map(item => item.symbol).filter(Boolean))], [instruments]);
   const symbols = useMemo(() => {
@@ -86,9 +87,31 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
   }, [connection.status]);
 
   useEffect(() => {
-    if (!symbols.length || !authenticated) return undefined;
-    return subscribeMarket({ quotes: symbols, ticks: activeSymbol ? [activeSymbol] : [] });
-  }, [activeSymbol, authenticated, subscribeMarket, symbols]);
+    const cleanups = quoteSubscriptionCleanupsRef.current;
+    const desired = authenticated ? new Set(symbols) : new Set();
+
+    for (const [symbol, cleanup] of [...cleanups.entries()]) {
+      if (desired.has(symbol)) continue;
+      cleanup?.();
+      cleanups.delete(symbol);
+    }
+
+    if (!authenticated) return;
+    for (const symbol of desired) {
+      if (cleanups.has(symbol)) continue;
+      cleanups.set(symbol, subscribeMarket({ quotes: [symbol] }));
+    }
+  }, [authenticated, subscribeMarket, symbols]);
+
+  useEffect(() => {
+    if (!authenticated || !activeSymbol) return undefined;
+    return subscribeMarket({ ticks: [activeSymbol] });
+  }, [activeSymbol, authenticated, subscribeMarket]);
+
+  useEffect(() => () => {
+    for (const cleanup of quoteSubscriptionCleanupsRef.current.values()) cleanup?.();
+    quoteSubscriptionCleanupsRef.current.clear();
+  }, []);
 
   useEffect(() => {
     if (!symbols.length) return undefined;
