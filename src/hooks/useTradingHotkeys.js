@@ -6,6 +6,13 @@ function isTypingTarget(target) {
   return ['INPUT', 'TEXTAREA', 'SELECT'].includes(tag) || target.isContentEditable;
 }
 
+function hasBlockingDialog(target) {
+  const selector = '[data-acg-hotkeys-suspend="true"], [aria-modal="true"], [role="dialog"]';
+  if (target?.closest?.(selector)) return true;
+  if (typeof document === 'undefined') return false;
+  return Boolean(document.querySelector(selector));
+}
+
 export default function useTradingHotkeys({
   enabled = true,
   onBuy = () => {},
@@ -21,7 +28,7 @@ export default function useTradingHotkeys({
     if (!enabled || typeof window === 'undefined') return undefined;
 
     const handler = event => {
-      if (isTypingTarget(event.target) || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (isTypingTarget(event.target) || hasBlockingDialog(event.target) || event.ctrlKey || event.metaKey || event.altKey) return;
       if (event.repeat) return;
       const key = event.key;
       const lower = key.toLowerCase();
@@ -35,7 +42,7 @@ export default function useTradingHotkeys({
       if (key === '+' || key === '=') { event.preventDefault(); onLotsDelta(0.01); return; }
       if (key === '-' || key === '_') { event.preventDefault(); onLotsDelta(-0.01); return; }
 
-      const timeframeMap = { '1': '1m', '2': '5m', '3': '15m', '4': '1h' };
+      const timeframeMap = { '1': '1m', '2': '5m', '3': '15m', '4': '1H' };
       if (timeframeMap[key]) {
         event.preventDefault();
         onTimeframe(timeframeMap[key]);
