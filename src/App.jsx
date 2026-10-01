@@ -121,7 +121,37 @@ export default function App() {
   );
 
   const { markets, activeTick, activeMarket, status, error: marketError } = useMarketData(instruments, activeSymbol, subscriptionSymbols);
-  const market = activeMarket || markets[0] || null;
+
+  useEffect(() => {
+    if (!isDesktop || !activeSymbol || activeMarket?.marketDataAvailable !== false) return;
+
+    const supported = markets.filter(item => (
+      item.symbol !== activeSymbol
+      && item.marketDataAvailable !== false
+    ));
+    if (!supported.length) return;
+
+    const watchedRank = new Map((watchlists.activeSymbols || []).map((symbol, index) => [String(symbol).toUpperCase(), index]));
+    const watchedFallback = [...supported]
+      .filter(item => watchedRank.has(String(item.symbol).toUpperCase()))
+      .sort((a, b) => watchedRank.get(String(a.symbol).toUpperCase()) - watchedRank.get(String(b.symbol).toUpperCase()))[0];
+    const sameClassLive = supported.find(item => (
+      item.assetClass === activeMarket?.assetClass
+      && item.live === true
+    ));
+    const anyLive = supported.find(item => item.live === true);
+    const priced = supported.find(item => {
+      const value = Number(item.last);
+      return Number.isFinite(value) && value > 0;
+    });
+    const replacement = watchedFallback || sameClassLive || anyLive || priced || supported[0];
+
+    if (replacement?.symbol) setActiveSymbol(replacement.symbol);
+  }, [activeMarket?.assetClass, activeMarket?.marketDataAvailable, activeSymbol, isDesktop, markets, watchlists.activeSymbols]);
+
+  const market = activeMarket?.marketDataAvailable === false
+    ? (markets.find(item => item.marketDataAvailable !== false) || null)
+    : (activeMarket || markets[0] || null);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;

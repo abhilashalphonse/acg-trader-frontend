@@ -213,18 +213,22 @@ export default function DesktopWatchlist({
   }, [activeSymbol]);
 
   const watched = useMemo(() => new Set(watchlists?.activeSymbols || []), [watchlists?.activeSymbols]);
+  const availableMarkets = useMemo(
+    () => markets.filter(item => item?.marketDataAvailable !== false),
+    [markets],
+  );
   const availableCategories = useMemo(() => {
-    const present = new Set(markets.map(assetCategory));
+    const present = new Set(availableMarkets.map(assetCategory));
     return CATEGORY_OPTIONS.filter(([id]) => id === 'all' || present.has(id));
-  }, [markets]);
+  }, [availableMarkets]);
 
   const rows = useMemo(() => {
     const query = search.trim().toLowerCase();
     let base = mode === 'markets'
-      ? markets
+      ? availableMarkets
       : query
-        ? markets
-        : markets.filter(item => watched.has(item.symbol));
+        ? availableMarkets
+        : availableMarkets.filter(item => watched.has(item.symbol));
 
     if (mode === 'markets' && !query && category !== 'all') base = base.filter(item => assetCategory(item) === category);
 
@@ -262,7 +266,7 @@ export default function DesktopWatchlist({
     }
 
     return base;
-  }, [category, marketView, markets, mode, recent, search, sort, watched]);
+  }, [availableMarkets, category, marketView, mode, recent, search, sort, watched]);
 
   const rowSymbolKey = rows.map(item => item.symbol).join('|');
 
@@ -388,13 +392,13 @@ export default function DesktopWatchlist({
           {mode === 'markets' ? (
             <>
               <strong className="block text-[11px] font-bold tracking-[0.05em] text-[#E6EDF3]">MARKETS</strong>
-              <span className="mt-0.5 block text-[8px] text-[#6F8191]">{markets.length} instruments · discover &amp; trade</span>
+              <span className="mt-0.5 block text-[8px] text-[#6F8191]">{availableMarkets.length} instruments · discover &amp; trade</span>
             </>
           ) : (
             <button type="button" onClick={() => setListMenuOpen(value => !value)} className="flex min-w-0 items-center gap-1.5 text-left">
               <span className="min-w-0">
                 <strong className="block truncate text-[11px] font-bold tracking-[0.04em] text-[#E6EDF3]">{watchlists?.activeList?.name || 'Favorites'}</strong>
-                <span className="mt-0.5 block text-[8px] text-[#6F8191]">{watchlists?.activeSymbols?.length || 0} instruments</span>
+                <span className="mt-0.5 block text-[8px] text-[#6F8191]">{availableMarkets.filter(item => watched.has(item.symbol)).length} instruments</span>
               </span>
               <ChevronDown size={11} className="text-[#6F8191]"/>
             </button>
