@@ -195,12 +195,22 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
     const digits = Number.isFinite(Number(instrument.digits)) ? Number(instrument.digits) : 5;
     const itemDirections = directions[symbol] || { direction: 'flat', bidDirection: 'flat', askDirection: 'flat' };
     const gateway = gatewayStateFor(gatewayStatus, symbol);
+    const realtimeStatus = market.symbolStatusBySymbol?.[symbol] || null;
+    const realtimeState = String(realtimeStatus?.state || '').toUpperCase();
+    const polledState = String(gateway?.state || '').toUpperCase();
+    const effectiveState = realtimeState || polledState;
+    const unavailableStates = ['ERROR', 'SUBSCRIPTION_ERROR', 'DISABLED', 'UNAVAILABLE'];
+    const marketDataAvailable = realtimeState
+      ? !unavailableStates.includes(realtimeState)
+      : gateway?.marketDataAvailable !== false && !unavailableStates.includes(polledState);
     const sessionOpen = instrument.sessionOpen === true;
     const rawStale = quote ? Boolean(quote.isStale) : Boolean(gateway?.isStale ?? true);
-    const isStale = sessionOpen ? rawStale : false;
-    const marketState = sessionOpen
-      ? (gateway?.state || (quote ? (isStale ? 'STALE' : 'LIVE') : 'WAITING'))
-      : 'CLOSED';
+    const isStale = marketDataAvailable && sessionOpen ? rawStale : Boolean(quote?.isStale ?? true);
+    const marketState = !marketDataAvailable
+      ? (effectiveState || 'UNAVAILABLE')
+      : sessionOpen
+        ? (effectiveState || (quote ? (isStale ? 'STALE' : 'LIVE') : 'WAITING'))
+        : 'CLOSED';
     return {
       ...instrument,
       bid: formatPrice(quote?.bid, digits),
@@ -217,8 +227,10 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
       timestamp: quote?.providerTimestampMs ?? quote?.receivedAtMs ?? quote?.timeMs ?? null,
       dayVolume: quote?.dayVolume ?? null,
       isStale,
-      live: sessionOpen && Boolean(quote) && !isStale && !['DISCONNECTED', 'UNAVAILABLE'].includes(String(gateway?.state || '').toUpperCase()),
+      live: marketDataAvailable && sessionOpen && Boolean(quote) && !isStale && !['DISCONNECTED', 'UNAVAILABLE', 'SUBSCRIPTION_ERROR'].includes(marketState),
       marketState,
+      marketDataAvailable,
+      marketDataError: realtimeStatus?.message || gateway?.subscriptionError || null,
       sessionOpen,
       subscribed: subscribedSet.has(symbol),
       previousClose: Number.isFinite(Number(quote?.previousClose)) ? Number(quote.previousClose) : null,
@@ -226,7 +238,7 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
       changePercent: Number.isFinite(Number(quote?.changePercent)) ? Number(quote.changePercent) : null,
       ...itemDirections,
     };
-  }), [directions, gatewayStatus, instruments, market.quotesBySymbol, subscribedSet]);
+  }), [directions, gatewayStatus, instruments, market.quotesBySymbol, market.symbolStatusBySymbol, subscribedSet]);
 
   const activeQuote = activeSymbol ? market.quotesBySymbol[activeSymbol] : null;
   const activeStreamTick = activeSymbol ? market.ticksBySymbol[activeSymbol] : null;
