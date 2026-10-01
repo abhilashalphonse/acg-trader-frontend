@@ -1,3 +1,4 @@
+import { candleReadout } from '../utils/candleReadout.js';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   CandlestickSeries,
@@ -140,6 +141,10 @@ export default function TradingChart({
   const chartRequestKey = `${String(symbol || '').toUpperCase()}:${timeframe}:${chartMode}`;
   const [readyKey, setReadyKey] = useState(null);
   const [displayBar, setDisplayBar] = useState(null);
+  const selectedCandleTimeRef = useRef(null);
+  const refreshDisplayBar = useCallback(() => {
+    setDisplayBar(candleReadout(barsByTimeRef.current, lastBarRef.current, selectedCandleTimeRef.current));
+  }, []);
   const [paneLayout, setPaneLayout] = useState([]);
   const [indicatorReadouts, setIndicatorReadouts] = useState([]);
   const [isAtRealtime, setIsAtRealtime] = useState(true);
@@ -209,8 +214,8 @@ export default function TradingChart({
         to: lastIndex + chartRightBars,
       });
     }
-    if (lastBarRef.current) setDisplayBar(lastBarRef.current);
-  }, [chartRightBars, setRealtimeTracking]);
+    refreshDisplayBar();
+  }, [chartRightBars, setRealtimeTracking, refreshDisplayBar]);
 
   useEffect(() => {
     const onKeyDown = event => {
@@ -351,6 +356,7 @@ export default function TradingChart({
   useEffect(() => {
     if (!hostRef.current) return undefined;
     setReadyKey(null);
+    selectedCandleTimeRef.current = null;
     const host = hostRef.current;
     const initialRect = host.getBoundingClientRect();
     const initialWidth = Math.max(1, Math.floor(initialRect.width || host.clientWidth || 1));
@@ -612,7 +618,7 @@ export default function TradingChart({
       barsByTimeRef.current = new Map(bars.map(bar => [Number(bar.time), bar]));
       series.setData(bars.map(bar => toSeriesPoint(bar, chartMode)));
       lastBarRef.current = bars[bars.length - 1] || null;
-      if (lastBarRef.current) setDisplayBar(lastBarRef.current);
+      refreshDisplayBar();
     };
 
     const loadOlderHistory = async () => {
@@ -685,7 +691,10 @@ export default function TradingChart({
     };
     loadOlderHistoryRef.current = loadOlderHistory;
 
-    const crosshairHandler = param => { if (!param?.time) { setDisplayBar(lastBarRef.current); return; } const bar = barsByTimeRef.current.get(Number(param.time)); if (bar) setDisplayBar(bar); };
+    const crosshairHandler = param => {
+      selectedCandleTimeRef.current = param?.time == null ? null : Number(param.time);
+      refreshDisplayBar();
+    };
     chart.subscribeCrosshairMove(crosshairHandler);
     void (async () => {
       try {
@@ -765,7 +774,7 @@ export default function TradingChart({
       barsByTimeRef.current = new Map();
       chart.remove();
     };
-  }, [symbol, timeframe, chartMode, renderIndicators, decimals, minMove, historyLimit, historyProfile.max, historyProfile.page, setRealtimeTracking, chartRightBars, mobileReference, showAttributionLogo, compactContext]);
+  }, [symbol, timeframe, chartMode, chartRequestKey, refreshDisplayBar, renderIndicators, decimals, minMove, historyLimit, historyProfile.max, historyProfile.page, setRealtimeTracking, chartRightBars, mobileReference, showAttributionLogo, compactContext]);
 
   useEffect(() => {
     const chart = chartRef.current;
@@ -814,7 +823,7 @@ export default function TradingChart({
         barsByTimeRef.current = new Map(bars.map(bar => [Number(bar.time), bar]));
         seriesRef.current.setData(bars.map(bar => toSeriesPoint(bar, chartMode)));
         lastBarRef.current = bars[bars.length - 1];
-        setDisplayBar(lastBarRef.current);
+        refreshDisplayBar();
         renderIndicators(chartRef.current, bars);
         if (autoFollowRef.current) chartRef.current?.timeScale().scrollToRealTime();
       } catch (error) {
@@ -823,7 +832,7 @@ export default function TradingChart({
     })();
 
     return () => controller.abort();
-  }, [chartMode, connection?.status, historyLimit, historyProfile.max, renderIndicators, symbol, timeframe]);
+  }, [refreshDisplayBar, chartMode, connection?.status, historyLimit, historyProfile.max, renderIndicators, symbol, timeframe]);
 
   useEffect(() => {
     const previousRevision = previousHistoryRecoveryRevisionRef.current;
@@ -850,7 +859,7 @@ export default function TradingChart({
         barsByTimeRef.current = new Map(bars.map(bar => [Number(bar.time), bar]));
         seriesRef.current.setData(bars.map(bar => toSeriesPoint(bar, chartMode)));
         lastBarRef.current = bars[bars.length - 1];
-        setDisplayBar(lastBarRef.current);
+        refreshDisplayBar();
         renderIndicators(chartRef.current, bars);
         if (autoFollowRef.current) chartRef.current?.timeScale().scrollToRealTime();
       } catch (error) {
@@ -859,7 +868,7 @@ export default function TradingChart({
     })();
 
     return () => controller.abort();
-  }, [chartMode, historyLimit, historyProfile.max, historyRecoveryRevision, renderIndicators, symbol, timeframe]);
+  }, [refreshDisplayBar, chartMode, historyLimit, historyProfile.max, historyRecoveryRevision, renderIndicators, symbol, timeframe]);
 
   useEffect(() => {
     const syncPaneLayout = () => {
@@ -1097,11 +1106,11 @@ export default function TradingChart({
       barsByTimeRef.current.set(Number(next.time), next);
       seriesRef.current.update(toSeriesPoint(next, chartMode));
     }
-    setDisplayBar(next); scheduleIndicatorUpdate(); if (shouldAutoFollow) chartRef.current?.timeScale().scrollToRealTime(); mergeLiveBarIntoCache(symbol, timeframe, next, historyLimit);
-  }, [chartMode, historyLimit, historyProfile.max, liveCandle, scheduleIndicatorUpdate, updateIndicatorData, symbol, timeframe]);
+    refreshDisplayBar(); scheduleIndicatorUpdate(); if (shouldAutoFollow) chartRef.current?.timeScale().scrollToRealTime(); mergeLiveBarIntoCache(symbol, timeframe, next, historyLimit);
+  }, [refreshDisplayBar, chartMode, historyLimit, historyProfile.max, liveCandle, scheduleIndicatorUpdate, updateIndicatorData, symbol, timeframe]);
 
   const ohlc = displayBar;
-  const format = value => Number.isFinite(Number(value)) ? Number(value).toFixed(decimals) : '—';
+  const format = value => value != null && Number.isFinite(Number(value)) ? Number(value).toFixed(decimals) : '—';
   const candleChange = ohlc && Number.isFinite(Number(ohlc.open)) && Number.isFinite(Number(ohlc.close))
     ? Number(ohlc.close) - Number(ohlc.open)
     : null;
@@ -1233,7 +1242,7 @@ export default function TradingChart({
             <span className="text-[#AAB5BF]">ACG</span>
             <span className={`ml-0.5 size-1.5 rounded-full ${mobileQuoteLive ? 'bg-[#24d7b7]' : 'bg-[#697785]'}`} aria-label={mobileQuoteLive ? 'Live quotes' : 'Quotes unavailable'} />
           </div>
-          {!compactContext && <div className="mt-1 flex flex-wrap gap-x-2 whitespace-nowrap font-medium"><span>O <b className="text-[#aab9c8]">{format(ohlc?.open)}</b></span><span>H <b className="text-[#aab9c8]">{format(ohlc?.high)}</b></span><span>L <b className="text-[#aab9c8]">{format(ohlc?.low)}</b></span><span>C <b className="text-[#aab9c8]">{format(ohlc?.close)}</b></span>{candleChange != null && <span className={`font-semibold ${candleChangeTone}`}>{signed(candleChange, value => value.toFixed(decimals))}{candleChangePercent != null ? ` (${signed(candleChangePercent, value => value.toFixed(2))}%)` : ''}</span>}</div>}
+          {!compactContext && <div data-testid="chart-ohlc" className="mt-1 flex flex-wrap gap-x-2 whitespace-nowrap font-medium"><span>O <b className="text-[#aab9c8]">{format(ohlc?.open)}</b></span><span>H <b className="text-[#aab9c8]">{format(ohlc?.high)}</b></span><span>L <b className="text-[#aab9c8]">{format(ohlc?.low)}</b></span><span>C <b className="text-[#aab9c8]">{format(ohlc?.close)}</b></span>{candleChange != null && <span className={`font-semibold ${candleChangeTone}`}>{signed(candleChange, value => value.toFixed(decimals))}{candleChangePercent != null ? ` (${signed(candleChangePercent, value => value.toFixed(2))}%)` : ''}</span>}</div>}
         </>
       )}
       {!compactContext && overlayIndicators.length > 0 && (

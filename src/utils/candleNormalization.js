@@ -1,3 +1,5 @@
+import { isOlderCandle } from './candleRevision.js';
+
 function nullableNonNegativeNumber(value) {
   if (value === null || value === undefined || value === '') return null;
   const numeric = Number(value);
@@ -20,6 +22,7 @@ export function normalizeCandle(candle) {
   const time = normalizeEpochSeconds(
     candle?.time ?? (candle?.openTimeMs == null ? null : Number(candle.openTimeMs) / 1000),
   );
+  if ([candle?.open, candle?.high, candle?.low, candle?.close].some(value => value == null || String(value).trim() === '')) return null;
   const open = Number(candle?.open);
   const rawHigh = Number(candle?.high);
   const rawLow = Number(candle?.low);
@@ -91,6 +94,7 @@ export function normalizeCandle(candle) {
     complete: Boolean(candle?.complete),
     synthetic: Boolean(candle?.synthetic),
     stateVersion,
+    stateEpoch: nullableNonNegativeNumber(candle?.stateEpoch),
   };
 }
 
@@ -102,10 +106,7 @@ export function normalizeCandleSeries(candles = []) {
 
     const existing = byTime.get(normalized.time);
     if (
-      existing
-      && existing.stateVersion != null
-      && normalized.stateVersion != null
-      && normalized.stateVersion < existing.stateVersion
+      isOlderCandle(normalized, existing)
     ) {
       continue;
     }

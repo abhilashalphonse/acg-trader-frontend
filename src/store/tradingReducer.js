@@ -1,3 +1,5 @@
+import { isOlderCandle } from '../utils/candleRevision.js';
+
 export const initialTradingState = Object.freeze({
   connection: {
     status: 'disconnected',
@@ -218,15 +220,7 @@ function handleEnvelope(state, envelope) {
     if (!key) return next;
 
     const previous = next.market.candlesByKey[key];
-    const previousVersion = previous?.stateVersion == null ? null : Number(previous.stateVersion);
-    const incomingVersion = data?.stateVersion == null ? null : Number(data.stateVersion);
-    if (
-      Number.isFinite(previousVersion)
-      && Number.isFinite(incomingVersion)
-      && incomingVersion < previousVersion
-    ) {
-      return next;
-    }
+    if (isOlderCandle(data, previous)) return next;
 
     return { ...next, market: { ...next.market, candlesByKey: { ...next.market.candlesByKey, [key]: data } } };
   }

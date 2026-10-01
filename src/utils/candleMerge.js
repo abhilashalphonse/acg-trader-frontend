@@ -1,3 +1,4 @@
+import { isOlderCandle } from './candleRevision.js';
 import { normalizeCandle, normalizeCandleSeries } from './candleNormalization.js';
 
 function positive(value) {
@@ -106,9 +107,7 @@ export function mergeLiveCandleIntoSeries(series = [], bar, outputsize = 500) {
   const last = bars[bars.length - 1];
   if (
     last?.time === normalized.time
-    && last.stateVersion != null
-    && normalized.stateVersion != null
-    && normalized.stateVersion < last.stateVersion
+    && isOlderCandle(normalized, last)
   ) {
     return bars.slice(-outputsize);
   }

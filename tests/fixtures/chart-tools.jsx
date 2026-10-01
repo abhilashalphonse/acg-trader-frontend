@@ -26,14 +26,16 @@ const store = { market: { candlesByKey: {} }, connection: { status: 'connected' 
 const instrument = { symbol: 'EURUSD', digits: 5, tickSize: 0.00001, pipSize: 0.0001, sessionOpen: true };
 
 export default function Fixture() {
+  const [liveCandle, setLiveCandle] = useState(null);
+  const liveStore = { ...store, market: { ...store.market, candlesByKey: liveCandle ? { 'EURUSD:1m': liveCandle } : {} } };
   const [indicators, setIndicators] = useState([createIndicator('ema'), createIndicator('rsi')]);
   const [favorites, setFavorites] = useState(['ema', 'rsi']);
   const [tool, setTool] = useState('cursor');
   const [focus, setFocus] = useState(null);
   const remove = id => setIndicators(items => items.filter(item => item.instanceId !== id));
   const toggle = id => setIndicators(items => items.map(item => item.instanceId === id ? { ...item, visible: !item.visible } : item));
-  useEffect(() => { window.chartToolsQA = { indicators, drawings: () => getDrawingSnapshot('EURUSD').present }; }, [indicators]);
-  return <AuthContext.Provider value={auth}><TradingContext.Provider value={store}>
+  useEffect(() => { window.chartToolsQA = { indicators, pushCandle: setLiveCandle, lastCandle: candles.at(-1), drawings: () => getDrawingSnapshot('EURUSD').present }; }, [indicators]);
+  return <AuthContext.Provider value={auth}><TradingContext.Provider value={liveStore}>
     <header className="fixture-header"><strong>ACG Trader <span> / Chart workspace</span></strong><span>TEST FIXTURE · SYNTHETIC DATA</span></header>
     <main className="fixture-layout"><section className="fixture-chart" aria-label="Analysis chart"><ChartArea symbol="EURUSD" instrument={instrument} chartTimeframe="M1" chartMode="candles" price={candles.at(-1).close} ask={candles.at(-1).close + .0001} selectedTool={tool} onSelectTool={setTool} indicators={indicators} onToggleIndicator={toggle} onRemoveIndicator={remove} onOpenIndicatorSettings={setFocus} embedded desktopEnhanced /></section>
       <aside className="fixture-library"><div className="fixture-library-title"><strong>Indicators</strong><span>Build your analysis</span></div><IndicatorManager applied={indicators} favorites={favorites} focusInstanceId={focus} onAdd={id => setIndicators(items => [...items, createIndicator(id)])} onRemove={remove} onToggleVisible={toggle} onUpdate={(id, patch) => setIndicators(items => items.map(item => item.instanceId === id ? { ...item, settings: { ...item.settings, ...patch } } : item))} onToggleFavorite={id => setFavorites(items => items.includes(id) ? items.filter(item => item !== id) : [...items, id])} /></aside>

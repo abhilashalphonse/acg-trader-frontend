@@ -21,21 +21,9 @@ const toolGroups = DRAWING_TOOL_GROUPS.map(group =>
 
 const oscillatorIds = new Set(['rsi', 'macd', 'atr', 'stochastic']);
 
-function localUtcLabel(date = new Date()) {
-  const offsetMinutes = -date.getTimezoneOffset();
-  const sign = offsetMinutes >= 0 ? '+' : '-';
-  const absolute = Math.abs(offsetMinutes);
-  const hours = Math.floor(absolute / 60);
-  const minutes = absolute % 60;
-  return `UTC${sign}${hours}${minutes ? `:${String(minutes).padStart(2, '0')}` : ''}`;
-}
-
-function localClockLabel(date = new Date()) {
-  return [
-    date.getHours(),
-    date.getMinutes(),
-    date.getSeconds(),
-  ].map(value => String(value).padStart(2, '0')).join(':');
+function chartClockLabel(date = new Date()) {
+  return [date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds()]
+    .map(value => String(value).padStart(2, '0')).join(':');
 }
 
 function validPlanPrice(value) {
@@ -1445,8 +1433,8 @@ export default function ChartArea({
 
         {!compactContext && !drawingToolbarOverlay && !tradePlan && (!embedded || desktopEnhanced) && (
           <div className="pointer-events-auto absolute bottom-2 right-[64px] z-30 flex items-center gap-2 font-mono text-[8px] font-medium tabular-nums text-[#737D87]">
-            <span>{localUtcLabel(clockNow)}</span>
-            <span className="text-[#9AA4AE]" title="Current local chart time">{localClockLabel(clockNow)}</span>
+            <span>UTC</span>
+            <span className="text-[#9AA4AE]" title="Current chart time (UTC)">{chartClockLabel(clockNow)}</span>
             <button
               type="button"
               onClick={() => coordinateApi?.resetView?.()}
@@ -1461,8 +1449,8 @@ export default function ChartArea({
 
         {drawingToolbarOverlay && !tradePlan && (
           <div className="pointer-events-auto absolute bottom-0 right-0 z-30 flex h-5 items-center overflow-hidden rounded-tl-[4px] border-l border-t border-white/[0.08] bg-black/88 text-[7px] font-medium text-[#7E8994] shadow-[-4px_-2px_10px_rgba(0,0,0,.22)] backdrop-blur-sm">
-            <span className="border-r border-white/[0.07] px-1.5">{localUtcLabel(clockNow)}</span>
-            <span className="border-r border-white/[0.07] px-1.5 font-mono font-semibold tabular-nums text-[#B9C2CA]" title="Current local chart time">{localClockLabel(clockNow)}</span>
+            <span className="border-r border-white/[0.07] px-1.5">UTC</span>
+            <span className="border-r border-white/[0.07] px-1.5 font-mono font-semibold tabular-nums text-[#B9C2CA]" title="Current chart time (UTC)">{chartClockLabel(clockNow)}</span>
             <button type="button" onClick={() => coordinateApi?.resetView?.()} className="h-full px-1.5 font-semibold text-[#929DA7] transition active:bg-white/[0.05] active:text-[#F1F4F6]" title="Return to live chart and restore the default view">Auto</button>
           </div>
         )}
