@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowUpDown, ChevronDown, MoreVertical } from 'lucide-react';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
+import { marketVenue } from '../../utils/marketClassification.js';
 
 function displaySymbol(symbol = '') {
   const normalized = String(symbol || '').toUpperCase();
@@ -11,6 +12,9 @@ function displaySymbol(symbol = '') {
 }
 
 function marketCategory(market) {
+  const venue = marketVenue(market);
+  if (venue) return venue;
+
   const explicit = String(
     market?.assetClass ||
     market?.category ||
@@ -86,7 +90,7 @@ export default function MobileTradingHeader({
           </div>
           <div className="mt-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.065em]">
             <span className="text-[#8b94a3]">{category}</span>
-            <span className="size-1.5 rounded-full bg-[#22d3b6]" aria-hidden="true"/>
+            <span className={`size-1.5 rounded-full ${marketStatus === 'LIVE' ? 'bg-[#22d3b6]' : marketStatus === 'STALE' ? 'bg-[#e7bd58]' : 'bg-[#566575]'}`} aria-hidden="true"/>
             <span className={marketStatus === 'LIVE' ? 'text-[#31e1bc]' : 'text-[#89929f]'}>{marketStatus}</span>
           </div>
         </div>
