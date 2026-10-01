@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronUp, GripVertical, ListFilter, Plus, Search, Settings2, Star, X } from 'lucide-react';
 import InstrumentAvatar from '../InstrumentAvatar.jsx';
 import { instrumentPipSize } from '../../../utils/instrumentFormatting.js';
+import { marketCategoryId, marketVenue } from '../../../utils/marketClassification.js';
 
 const PREFS_KEY = 'acg-trader-desktop-watchlist-v1';
 const RECENT_KEY = 'acg-trader-recent-markets-v1';
@@ -26,10 +27,11 @@ const CATEGORY_OPTIONS = [
   ['forex', 'Forex'],
   ['metals', 'Metals'],
   ['indices', 'Indices'],
+  ['india', 'India'],
   ['crypto', 'Crypto'],
   ['stocks', 'Stocks'],
 ];
-const POPULAR_SYMBOLS = ['EURUSD','GBPUSD','USDJPY','XAUUSD','XAGUSD','BTCUSD','ETHUSD','US100','NAS100','US30','SPX500','GER40','UK100'];
+const POPULAR_SYMBOLS = ['EURUSD','GBPUSD','USDJPY','XAUUSD','XAGUSD','BTCUSD','ETHUSD','US100','NAS100','US30','SPX500','GER40','UK100','RELIANCE','TCS','HDFCBANK','INFY','SBIN'];
 
 function loadPrefs() {
   const fallback = { columns: ['bid', 'ask', 'change'] };
@@ -78,23 +80,17 @@ function dayLow(item) { return finite(item?.dayLow, item?.low, item?.sessionLow)
 function volume(item) { return finite(item?.volume, item?.dayVolume, item?.sessionVolume); }
 
 function assetCategory(item) {
-  const raw = String(item?.assetClass || item?.category || '').toUpperCase();
-  if (['FOREX','FX'].includes(raw)) return 'forex';
-  if (['METAL','METALS'].includes(raw)) return 'metals';
-  if (['INDEX','INDICES'].includes(raw)) return 'indices';
-  if (raw === 'CRYPTO') return 'crypto';
-  if (['EQUITY','STOCK','STOCKS'].includes(raw)) return 'stocks';
-  return 'other';
+  return marketCategoryId(item);
 }
 
 function categoryLabel(item) {
   const category = assetCategory(item);
-  return category === 'forex' ? 'Forex'
+  return marketVenue(item) || (category === 'forex' ? 'Forex'
     : category === 'metals' ? 'Metal'
       : category === 'indices' ? 'Index'
         : category === 'crypto' ? 'Crypto'
           : category === 'stocks' ? 'Stock'
-            : String(item?.assetClass || 'Market');
+            : String(item?.assetClass || 'Market'));
 }
 
 function quoteReady(item) {
