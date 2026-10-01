@@ -103,7 +103,7 @@ function fillEvent(result, fallback) {
   };
 }
 
-export default function MobileTraderShell({ market, tick, markets = [], activeSymbol, onSelectSymbol = () => {}, watchlists = null }) {
+export default function MobileTraderShell({ market, tick, markets = [], activeSymbol, onSelectSymbol = () => {}, watchlists = null, onViewportQuoteSymbolsChange = () => {} }) {
   const shellRef = useRef(null);
   const noticeTimerRef = useRef(null);
   const executionDismissRef = useRef(null);
@@ -1030,6 +1030,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
             watchlists={watchlists}
             onSelectSymbol={onSelectSymbol}
             onClose={() => setOverlay(null)}
+            onViewportQuoteSymbolsChange={onViewportQuoteSymbolsChange}
           />
         )}
 
