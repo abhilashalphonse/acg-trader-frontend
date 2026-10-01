@@ -104,6 +104,15 @@ export function mergeLiveCandleIntoSeries(series = [], bar, outputsize = 500) {
   if (!normalized) return bars.slice(-outputsize);
 
   const last = bars[bars.length - 1];
+  if (
+    last?.time === normalized.time
+    && last.stateVersion != null
+    && normalized.stateVersion != null
+    && normalized.stateVersion < last.stateVersion
+  ) {
+    return bars.slice(-outputsize);
+  }
+
   if (last?.time === normalized.time) {
     const tickCount = Math.max(
       nonNegative(last.tickCount) ?? 0,
@@ -127,6 +136,7 @@ export function mergeLiveCandleIntoSeries(series = [], bar, outputsize = 500) {
         volumeSource: authoritative.volumeSource,
         complete: false,
         synthetic: Boolean(last.synthetic && normalized.synthetic),
+        stateVersion: normalized.stateVersion ?? last.stateVersion ?? null,
       };
     } else {
       // Compatibility path for an older backend during rollout/rollback.
@@ -151,6 +161,7 @@ export function mergeLiveCandleIntoSeries(series = [], bar, outputsize = 500) {
         volumeSource,
         complete: false,
         synthetic: Boolean(last.synthetic && normalized.synthetic),
+        stateVersion: normalized.stateVersion ?? last.stateVersion ?? null,
       };
     }
   } else if (!last || normalized.time > last.time) {
