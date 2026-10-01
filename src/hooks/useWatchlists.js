@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { isIndiaInstrument } from '../utils/marketClassification.js';
 
 export const WATCHLIST_STORAGE_KEY = 'acg-trader-watchlists-v1';
 
@@ -42,6 +43,10 @@ export function buildDefaultWatchlists(instruments = []) {
   const byAsset = assetClass => instruments
     .filter(item => String(item?.assetClass || '').toUpperCase() === assetClass)
     .map(item => item.symbol);
+  const indiaSymbols = instruments.filter(isIndiaInstrument).map(item => item.symbol);
+  const nonIndiaStocks = instruments
+    .filter(item => String(item?.assetClass || '').toUpperCase() === 'EQUITY' && !isIndiaInstrument(item))
+    .map(item => item.symbol);
 
   return [
     { id: 'favorites', name: 'Favorites', symbols: filter(DEFAULT_WATCHLIST_SYMBOLS) },
@@ -49,7 +54,8 @@ export function buildDefaultWatchlists(instruments = []) {
     { id: 'metals', name: 'Metals', symbols: filter(['XAUUSD', 'XAGUSD', 'XPTUSD', 'XPDUSD']) },
     { id: 'indices', name: 'Indices', symbols: filter(byAsset('INDEX')) },
     { id: 'crypto', name: 'Crypto', symbols: filter(byAsset('CRYPTO')) },
-    { id: 'stocks', name: 'Stocks', symbols: filter(byAsset('EQUITY')) },
+    { id: 'india', name: 'India · NSE', symbols: filter(indiaSymbols) },
+    { id: 'stocks', name: 'Stocks', symbols: filter(nonIndiaStocks) },
   ].filter(list => list.id === 'favorites' || list.symbols.length);
 }
 
