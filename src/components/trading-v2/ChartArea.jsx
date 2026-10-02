@@ -1394,6 +1394,7 @@ export default function ChartArea({
           desktopEnhanced={desktopEnhanced}
           compactContext={compactContext}
           candleAppearance={desktopEnhanced ? chartSettings?.candle : null}
+          viewportSettings={desktopEnhanced ? chartSettings?.viewport : null}
           chartTimezone={desktopEnhanced ? (chartSettings?.timezone || 'UTC') : null}
           layoutRevision={`${toolbarVisible ? 'rail-open' : 'rail-closed'}:${focusMode ? 'focus' : 'normal'}`}
           onToggleIndicator={onToggleIndicator}

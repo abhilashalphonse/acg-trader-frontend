@@ -1,3 +1,5 @@
+import { DEFAULT_CHART_VIEWPORT, normalizeChartViewport } from './chartViewport.js';
+
 export const DESKTOP_CHART_SETTINGS_KEY = 'acg-trader-desktop-chart-settings-v1';
 
 export const DEFAULT_DESKTOP_CHART_SETTINGS = Object.freeze({
@@ -10,6 +12,7 @@ export const DEFAULT_DESKTOP_CHART_SETTINGS = Object.freeze({
     downWick: '#F23645',
   }),
   timezone: 'UTC',
+  viewport: DEFAULT_CHART_VIEWPORT,
 });
 
 export const CHART_TIMEZONE_OPTIONS = Object.freeze([
@@ -47,6 +50,7 @@ export function normalizeDesktopChartSettings(value) {
       downWick: color(candle.downWick, defaults.downWick),
     },
     timezone,
+    viewport: normalizeChartViewport(value?.viewport),
   };
 }
 

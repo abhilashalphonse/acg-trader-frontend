@@ -1,4 +1,5 @@
 import { candleReadout } from '../utils/candleReadout.js';
+import { initialChartRange, normalizeChartViewport } from '../utils/chartViewport.js';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   CandlestickSeries,
@@ -106,6 +107,7 @@ export default function TradingChart({
   desktopEnhanced = false,
   compactContext = false,
   candleAppearance = null,
+  viewportSettings = null,
   chartTimezone = null,
   layoutRevision = '',
   onToggleIndicator = () => {},
@@ -152,6 +154,10 @@ export default function TradingChart({
   const [indicatorReadouts, setIndicatorReadouts] = useState([]);
   const [isAtRealtime, setIsAtRealtime] = useState(true);
   const chartRightBars = mobileReference ? 10 : DEFAULT_RIGHT_BARS;
+  const viewport = useMemo(() => normalizeChartViewport(viewportSettings), [viewportSettings]);
+  const viewportRef = useRef(viewport);
+  useEffect(() => { viewportRef.current = viewport; }, [viewport]);
+  const visibleBars = useCallback(() => desktopEnhanced && !mobileReference ? viewportRef.current.bars : DEFAULT_BARS_BACK + 1, [desktopEnhanced, mobileReference]);
 
   const backendTimeframe = useMemo(() => {
     try { return toBackendTimeframe(timeframe); } catch { return null; }
@@ -212,13 +218,10 @@ export default function TradingChart({
       timeScale.scrollToRealTime();
     } catch {
       const lastIndex = barsRef.current.length - 1;
-      timeScale.setVisibleLogicalRange?.({
-        from: Math.max(0, lastIndex - DEFAULT_BARS_BACK),
-        to: lastIndex + chartRightBars,
-      });
+      timeScale.setVisibleLogicalRange?.(initialChartRange(lastIndex + 1, desktopEnhanced && !mobileReference ? viewportRef.current.bars : DEFAULT_BARS_BACK + 1, chartRightBars));
     }
     refreshDisplayBar();
-  }, [chartRightBars, setRealtimeTracking, refreshDisplayBar]);
+  }, [chartRightBars, desktopEnhanced, mobileReference, setRealtimeTracking, refreshDisplayBar]);
 
   useEffect(() => {
     const onKeyDown = event => {
@@ -376,7 +379,7 @@ export default function TradingChart({
       layout: { background: { type: ColorType.Solid, color: chartTokens.background }, textColor: chartTokens.text, attributionLogo: showAttributionLogo, fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif', fontSize: mobileReference ? 10 : 11, panes: { separatorColor: '#1b1b1b', separatorHoverColor: 'rgba(83,199,255,0.18)', enableResize: true } },
       grid: { vertLines: { visible: !compactContext, color: chartTokens.gridline, style: LineStyle.Dotted }, horzLines: { visible: !compactContext, color: chartTokens.gridline, style: LineStyle.Dotted } },
       crosshair: { mode: CrosshairMode.Normal, vertLine: { visible: !compactContext, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: !compactContext, labelBackgroundColor: chartTokens.crosshairLabel }, horzLine: { visible: !compactContext, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: !compactContext, labelBackgroundColor: chartTokens.crosshairLabel } },
-      rightPriceScale: { visible: true, borderVisible: true, borderColor: '#242424', ticksVisible: true, scaleMargins: { top: 0.045, bottom: 0.07 } },
+      rightPriceScale: { visible: true, borderVisible: true, borderColor: '#242424', ticksVisible: true, scaleMargins: desktopEnhanced && !mobileReference ? { top: viewportRef.current.top, bottom: viewportRef.current.bottom } : { top: 0.045, bottom: 0.07 } },
       timeScale: {
         visible: true,
         borderVisible: true,
@@ -385,7 +388,7 @@ export default function TradingChart({
         timeVisible: true,
         secondsVisible: ['S1', 'S5', 'S15', 'S30'].includes(timeframe),
         rightOffset: chartRightBars,
-        barSpacing: 9,
+        // Initial/reset zoom is set by the logical range after loading data.
         minBarSpacing: 3,
         fixLeftEdge: false,
         lockVisibleTimeRangeOnResize: !mobileReference,
@@ -468,9 +471,14 @@ export default function TradingChart({
     settleResize();
 
     const priceFormat = { type: 'price', precision: decimals, minMove };
+    const basisVisible = desktopEnhanced && !compactContext && !mobileReference;
+    const basisOptions = {
+      title: basisVisible ? 'CHART' : '', priceLineVisible: basisVisible, lastValueVisible: basisVisible,
+      priceLineColor: '#b8a375', priceLineStyle: LineStyle.Dotted,
+    };
     const customCandle = candleAppearance && !compactContext;
     const series = chartMode === 'line'
-      ? chart.addSeries(LineSeries, { color: compactContext ? 'rgba(0,0,0,0)' : chartTokens.blue, lineWidth: 2, priceFormat, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: !compactContext })
+      ? chart.addSeries(LineSeries, { color: compactContext ? 'rgba(0,0,0,0)' : chartTokens.blue, lineWidth: 2, priceFormat, ...basisOptions, crosshairMarkerVisible: !compactContext })
       : chart.addSeries(CandlestickSeries, {
           upColor: compactContext ? 'rgba(0,0,0,0)' : (candleAppearance?.upBody || chartTokens.buy),
           downColor: compactContext ? 'rgba(0,0,0,0)' : (candleAppearance?.downBody || chartTokens.sell),
@@ -480,8 +488,7 @@ export default function TradingChart({
           borderUpColor: candleAppearance?.upBorder || chartTokens.buy,
           borderDownColor: candleAppearance?.downBorder || chartTokens.sell,
           priceFormat,
-          priceLineVisible: false,
-          lastValueVisible: false,
+          ...basisOptions,
         });
     seriesRef.current = series; marketLineRef.current = null; askLineRef.current = null; midLineRef.current = null; positionLinesRef.current = []; scaleAnchorLinesRef.current = []; setError('');
     const timeScale = chart.timeScale();
@@ -606,7 +613,7 @@ export default function TradingChart({
         const numeric = Number(time);
         const logical = drawingTimeToLogical(numeric, barsRef.current, timeframe);
         if (logical == null || !Number.isFinite(Number(logical))) return;
-        const halfWindow = 22;
+        const halfWindow = (visibleBars() - 1) / 2;
         timeScale.setVisibleLogicalRange({
           from: logical - halfWindow,
           to: logical + halfWindow + chartRightBars,
@@ -614,7 +621,10 @@ export default function TradingChart({
       },
       resetView() {
         const lastIndex = barsRef.current.length - 1;
-        if (lastIndex >= 0) timeScale.setVisibleLogicalRange({ from: Math.max(0, lastIndex - DEFAULT_BARS_BACK), to: lastIndex + chartRightBars });
+        if (lastIndex >= 0) {
+          chart.priceScale('right').applyOptions({ autoScale: true });
+          timeScale.setVisibleLogicalRange(initialChartRange(lastIndex + 1, visibleBars(), chartRightBars));
+        }
       },
       subscribe(handler) {
         let frame = null;
@@ -749,10 +759,7 @@ export default function TradingChart({
           loading: false,
         };
         renderIndicators(chart, bars);
-        chart.timeScale().setVisibleLogicalRange({
-          from: Math.max(0, bars.length - DEFAULT_BARS_BACK - 1),
-          to: bars.length - 1 + chartRightBars,
-        });
+        chart.timeScale().setVisibleLogicalRange(initialChartRange(bars.length, visibleBars(), chartRightBars));
         setRealtimeTracking(true);
         initialLoadCompleteRef.current = true;
         // Mobile layout height/width can settle after the first candle render
@@ -809,7 +816,7 @@ export default function TradingChart({
       barsByTimeRef.current = new Map();
       chart.remove();
     };
-  }, [symbol, timeframe, chartMode, chartRequestKey, refreshDisplayBar, renderIndicators, decimals, minMove, historyLimit, historyProfile.max, historyProfile.page, setRealtimeTracking, chartRightBars, mobileReference, showAttributionLogo, compactContext]);
+  }, [symbol, timeframe, chartMode, chartRequestKey, refreshDisplayBar, renderIndicators, decimals, minMove, historyLimit, historyProfile.max, historyProfile.page, setRealtimeTracking, chartRightBars, mobileReference, desktopEnhanced, visibleBars, showAttributionLogo, compactContext]);
 
   useEffect(() => {
     const series = seriesRef.current;
@@ -976,9 +983,9 @@ export default function TradingChart({
     chartRef.current?.priceScale('right').applyOptions({
       scaleMargins: mobileReference
         ? { top: 0.085, bottom: 0.09 }
-        : { top: 0.045, bottom: 0.07 },
+        : desktopEnhanced ? { top: viewport.top, bottom: viewport.bottom } : { top: 0.045, bottom: 0.07 },
     });
-  }, [chartMode, compactContext, mobileReference, symbol, timeframe]);
+  }, [chartMode, compactContext, desktopEnhanced, mobileReference, symbol, timeframe, viewport.top, viewport.bottom]);
   useEffect(() => {
     const series = seriesRef.current;
     if (!series) return;
@@ -1320,6 +1327,7 @@ export default function TradingChart({
             <span className="text-[#7F8A95]">{timeframe}</span>
             <span className="text-[#7F8A95]">·</span>
             <span className="text-[#AAB5BF]">ACG</span>
+            {desktopEnhanced && <span className="text-[9px] font-normal text-[#b8a375]" title="Candles show the provider price. BID and ASK show execution quotes.">· Provider price</span>}
             <span className={`ml-0.5 size-1.5 rounded-full ${mobileQuoteLive ? 'bg-[#24d7b7]' : 'bg-[#697785]'}`} aria-label={mobileQuoteLive ? 'Live quotes' : 'Quotes unavailable'} />
           </div>
           {!compactContext && <div data-testid="chart-ohlc" className="mt-1 flex flex-wrap gap-x-2 whitespace-nowrap font-medium"><span>O <b className="text-[#aab9c8]">{format(ohlc?.open)}</b></span><span>H <b className="text-[#aab9c8]">{format(ohlc?.high)}</b></span><span>L <b className="text-[#aab9c8]">{format(ohlc?.low)}</b></span><span>C <b className="text-[#aab9c8]">{format(ohlc?.close)}</b></span>{candleChange != null && <span className={`font-semibold ${candleChangeTone}`}>{signed(candleChange, value => value.toFixed(decimals))}{candleChangePercent != null ? ` (${signed(candleChangePercent, value => value.toFixed(2))}%)` : ''}</span>}</div>}

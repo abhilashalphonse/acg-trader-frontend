@@ -21,6 +21,7 @@ test('desktop chart settings default to TradingView-style candle colors and UTC'
       downWick: '#F23645',
     },
     timezone: 'UTC',
+    viewport: { top: 0.12, bottom: 0.16, bars: 42 },
   });
   assert.equal(settings.candle.upBody, DEFAULT_DESKTOP_CHART_SETTINGS.candle.upBody);
 });

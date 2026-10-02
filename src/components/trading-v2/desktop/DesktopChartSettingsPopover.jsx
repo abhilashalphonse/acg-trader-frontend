@@ -53,6 +53,7 @@ export default function DesktopChartSettingsPopover({
   if (!open) return null;
 
   const candle = settings?.candle || DEFAULT_DESKTOP_CHART_SETTINGS.candle;
+  const viewport = settings?.viewport || DEFAULT_DESKTOP_CHART_SETTINGS.viewport;
   const patchCandle = patch => onChange({
     ...settings,
     candle: { ...candle, ...patch },
@@ -110,6 +111,28 @@ export default function DesktopChartSettingsPopover({
           ))}
         </div>
 
+        <div className="mt-4 space-y-2">
+          <div className="text-[8px] font-bold uppercase tracking-[0.08em] text-[#687784]">Chart spacing</div>
+          {[
+            ['Top space (%)', 'top', 100, 2, 30],
+            ['Bottom space (%)', 'bottom', 100, 2, 30],
+            ['Initial candles', 'bars', 1, 20, 200],
+          ].map(([label, key, factor, min, max]) => (
+            <label key={key} className="flex items-center justify-between text-[9px] text-[#B7C1CA]">
+              {label}
+              <input key={`${key}:${viewport[key]}`} type="number" min={min} max={max} step="1" aria-label={label}
+                defaultValue={Math.round(viewport[key] * factor)}
+                onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }}
+                onBlur={event => {
+                  if (event.target.value !== '') onChange({ ...settings, viewport: { ...viewport, [key]: Number(event.target.value) / factor } });
+                  else event.target.value = Math.round(viewport[key] * factor);
+                }}
+                className="h-7 w-16 rounded border border-white/10 bg-[#111419] px-2 text-[#D8E0E7]" />
+            </label>
+          ))}
+          <div className="text-[7px] leading-4 text-[#566572]">Initial candles applies when opening or resetting a chart.</div>
+        </div>
+
         <div className="mt-4">
           <div className="mb-1.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#687784]">Timezone</div>
           <select
@@ -136,6 +159,7 @@ export default function DesktopChartSettingsPopover({
           onClick={() => onChange({
             candle: { ...DEFAULT_DESKTOP_CHART_SETTINGS.candle },
             timezone: DEFAULT_DESKTOP_CHART_SETTINGS.timezone,
+            viewport: { ...DEFAULT_DESKTOP_CHART_SETTINGS.viewport },
           })}
           className="flex h-8 items-center gap-1.5 rounded-md border border-white/[0.08] px-2.5 text-[8px] font-semibold text-[#8998A5] transition hover:bg-white/[0.04] hover:text-white"
         >
