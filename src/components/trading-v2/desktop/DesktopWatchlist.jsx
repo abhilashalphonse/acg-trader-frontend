@@ -154,10 +154,14 @@ function cellValue(column, item) {
 
 function statusFor(item) {
   const state = String(item?.marketState || '').toUpperCase();
+  // Exchange closure takes precedence over provider availability. On weekends
+  // and exchange holidays keep the last known values visible and label CLOSED.
+  if (item?.sessionOpen === false || state === 'CLOSED') {
+    return { label: 'CLOSED', tone: 'text-[#75889a]' };
+  }
   if (['ERROR','SUBSCRIPTION_ERROR','DISCONNECTED','DISABLED','UNAVAILABLE'].includes(state)) {
     return { label: 'QUOTE UNAVAILABLE', tone: 'text-[#FF6F7A]' };
   }
-  if (item?.sessionOpen === false) return { label: 'CLOSED', tone: 'text-[#75889a]' };
   if (!lastReady(item)) return { label: 'REFRESHING', tone: 'text-[#6f8599]' };
   if (item?.isStale) return { label: 'STALE', tone: 'text-[#E7BD58]' };
   return { label: 'LIVE', tone: 'text-[#42D7A1]' };
