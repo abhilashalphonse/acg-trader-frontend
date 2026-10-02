@@ -42,12 +42,14 @@ export function deriveTerminalStatus({
   }
 
   const normalizedMarket = String(activeMarket?.marketState || marketStatus || '').toUpperCase();
-  if (BAD_MARKET_STATES.has(normalizedMarket)) {
-    return status('MARKET_UNAVAILABLE', 'warning', 'Market data unavailable', 'Executable quotes are unavailable. New exposure is paused until the market gateway recovers.', true);
+  // Session closure is authoritative. Provider outages/staleness are only
+  // actionable while the exchange session is actually open.
+  if (activeMarket?.sessionOpen === false || normalizedMarket === 'CLOSED') {
+    return status('SESSION_CLOSED', 'info', 'Market session closed', `${activeMarket.displaySymbol || activeMarket.symbol || 'This instrument'} is outside its configured trading session.`, true);
   }
 
-  if (activeMarket?.sessionOpen === false) {
-    return status('SESSION_CLOSED', 'info', 'Market session closed', `${activeMarket.displaySymbol || activeMarket.symbol || 'This instrument'} is outside its configured trading session.`, true);
+  if (BAD_MARKET_STATES.has(normalizedMarket)) {
+    return status('MARKET_UNAVAILABLE', 'warning', 'Market data unavailable', 'Executable quotes are unavailable. New exposure is paused until the market gateway recovers.', true);
   }
 
   if (activeMarket?.isStale || normalizedMarket === 'STALE') {
