@@ -471,10 +471,12 @@ export default function TradingChart({
     settleResize();
 
     const priceFormat = { type: 'price', precision: decimals, minMove };
-    const basisVisible = desktopEnhanced && !compactContext && !mobileReference;
     const basisOptions = {
-      title: basisVisible ? 'CHART' : '', priceLineVisible: basisVisible, lastValueVisible: basisVisible,
-      priceLineColor: '#b8a375', priceLineStyle: LineStyle.Dotted,
+      // Candles are provider/reference prices; execution BID/ASK lines are shown
+      // separately. Do not add a third overlapping price line/axis badge.
+      title: '',
+      priceLineVisible: false,
+      lastValueVisible: false,
     };
     const customCandle = candleAppearance && !compactContext;
     const series = chartMode === 'line'
