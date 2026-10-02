@@ -205,12 +205,17 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
       : gateway?.marketDataAvailable !== false && !unavailableStates.includes(polledState);
     const sessionOpen = instrument.sessionOpen === true;
     const rawStale = quote ? Boolean(quote.isStale) : Boolean(gateway?.isStale ?? true);
-    const isStale = marketDataAvailable && sessionOpen ? rawStale : Boolean(quote?.isStale ?? true);
-    const marketState = !marketDataAvailable
-      ? (effectiveState || 'UNAVAILABLE')
-      : sessionOpen
-        ? (effectiveState || (quote ? (isStale ? 'STALE' : 'LIVE') : 'WAITING'))
-        : 'CLOSED';
+    // Exchange session state wins over provider freshness/connection state.
+    // A closed market keeps its last known quote/candles without being labelled
+    // stale or unavailable, matching TradingView-style session semantics.
+    const isStale = sessionOpen
+      ? (marketDataAvailable ? rawStale : Boolean(quote?.isStale ?? true))
+      : false;
+    const marketState = !sessionOpen
+      ? 'CLOSED'
+      : !marketDataAvailable
+        ? (effectiveState || 'UNAVAILABLE')
+        : (effectiveState || (quote ? (isStale ? 'STALE' : 'LIVE') : 'WAITING'));
     return {
       ...instrument,
       bid: formatPrice(quote?.bid, digits),
