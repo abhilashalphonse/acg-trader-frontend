@@ -43,3 +43,17 @@ test('surfaces market session closure before allowing new exposure', () => {
   assert.equal(result.code, 'SESSION_CLOSED');
   assert.equal(result.blocksNewExposure, true);
 });
+
+test('closed exchange session wins over feed outage state', () => {
+  const result = deriveTerminalStatus(base({
+    marketStatus: 'ERROR',
+    activeMarket: {
+      ...liveMarket,
+      sessionOpen: false,
+      marketState: 'ERROR',
+      isStale: true,
+    },
+  }));
+  assert.equal(result.code, 'SESSION_CLOSED');
+  assert.equal(result.blocksNewExposure, true);
+});
