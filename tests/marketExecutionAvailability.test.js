@@ -5,6 +5,7 @@ import {
   marketForSymbol,
   positionCloseAvailability,
 } from '../src/utils/marketExecutionAvailability.js';
+import { exposureAvailability } from '../src/utils/exposureAvailability.js';
 
 function market(overrides = {}) {
   return {
@@ -47,4 +48,24 @@ test('market lookup resolves the position symbol instead of using the active cha
   const markets = [market(), market({ symbol: 'XAUUSD', bid: 4300, ask: 4301 })];
   assert.equal(marketForSymbol(markets, 'xauusd')?.symbol, 'XAUUSD');
   assert.equal(marketForSymbol(markets, 'GBPUSD', markets[0])?.symbol, 'AUDCAD');
+});
+
+
+test('new exposure is disabled when market state says CLOSED even before sessionOpen refreshes', () => {
+  const result = exposureAvailability({
+    account: {
+      id: 'account-1',
+      status: 'ACTIVE',
+      tradingEnabled: true,
+      valuationStatus: 'LIVE',
+      riskProcessingState: 'RESOLVED',
+      marginStopOutState: 'NONE',
+    },
+    connectionStatus: 'ready',
+    commandState: {},
+    market: market({ sessionOpen: undefined, marketState: 'CLOSED' }),
+  });
+  assert.equal(result.allowed, false);
+  assert.equal(result.code, 'SESSION_CLOSED');
+  assert.match(result.reason, /Market closed/);
 });
