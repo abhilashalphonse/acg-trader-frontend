@@ -546,7 +546,15 @@ export default function TradingTerminalV2({
       return false;
     }
 
-    const results = await Promise.allSettled(closable.map(position => trading.closePosition(position.id, 100)));
+    const results = [];
+    for (const position of closable) {
+      try {
+        await trading.closePosition(position.id, 100);
+        results.push({ status: 'fulfilled', positionId: position.id });
+      } catch (error) {
+        results.push({ status: 'rejected', positionId: position.id, reason: error });
+      }
+    }
     const closed = results.filter(item => item.status === 'fulfilled').length;
     const racedClosed = results.filter(item => item.status === 'rejected' && String(item.reason?.code || '').toUpperCase() === 'MARKET_SESSION_CLOSED').length;
     const failed = results.length - closed - racedClosed;
