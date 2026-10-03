@@ -110,6 +110,21 @@ function normalizeClosedPosition(position, deals = [], accountCurrency = 'USD') 
     raw: position,
   };
 }
+function normalizeTradingPermissions(value = {}) {
+  return {
+    newsTrading: value?.newsTrading !== false,
+    weekendHolding: value?.weekendHolding !== false,
+    highImpactOnly: value?.highImpactOnly !== false,
+    newsRestrictionBeforeMinutes: Number(value?.newsRestrictionBeforeMinutes ?? 5),
+    newsRestrictionAfterMinutes: Number(value?.newsRestrictionAfterMinutes ?? 5),
+    closeReduceAlwaysAllowed: value?.closeReduceAlwaysAllowed !== false,
+    pendingEntriesBlocked: value?.pendingEntriesBlocked !== false,
+    weekendCloseBufferMinutes: Number(value?.weekendCloseBufferMinutes ?? 5),
+    weekendBreach: value?.weekendBreach === true,
+    carryToMaster: value?.carryToMaster !== false,
+  };
+}
+
 function normalizeAccount(account, valuation) {
   const durable = account?.state || {};
   const policy = account?.riskPolicy || {};
@@ -127,7 +142,7 @@ function normalizeAccount(account, valuation) {
   return {
     id: account?.id || null, accountCode: account?.accountCode || null, accountType: account?.accountType || null, currency: account?.currency || 'USD', status: account?.status || 'UNKNOWN', tradingEnabled: account?.tradingEnabled === true, leverage: account?.leverage || null,
     initialBalance: nullableNumber(durable.initialBalance), balance: valuationNumber('balance', durable.balance), equity: valuationNumber('equity', durable.equity), floatingPnl: valuationNumber('floatingPnl', durable.floatingPnl), margin: valuationNumber('usedMargin', durable.usedMargin), usedMargin: valuationNumber('usedMargin', durable.usedMargin), freeMargin: valuationNumber('freeMargin', durable.freeMargin), marginLevel: valuationNumber('marginLevel', durable.marginLevel), dailyStartEquity: nullableNumber(durable.dailyStartEquity), realizedPnlToday: nullableNumber(durable.realizedPnlToday), valuationStatus: valuationCoherent ? (valuation?.valuationStatus || 'WAITING') : 'WAITING', complete: valuationCoherent ? valuation?.complete !== false : false, valuationCoherent, staleSymbols: valuation?.staleSymbols || [],
-    dailyLossLimit: numberOr(policy?.dailyLoss?.limit), dailyLossReference: policy?.dailyLoss?.reference || 'DAILY_START_EQUITY', maxLossLimit: numberOr(policy?.maxLoss?.limit), maxLossReference: policy?.maxLoss?.reference || 'INITIAL_BALANCE', profitTarget: numberOr(policy?.profitTarget), riskPolicy: policy, challenge: account?.challenge || {}, capabilities: account?.capabilities || {}, marginStopOut: account?.marginStopOut || { state: account?.marginStopOutState || 'NONE', episodeId: account?.marginStopOutEpisodeId || null }, riskProcessingState: account?.riskProcessingState || 'RESOLVED', riskUnresolvedReason: account?.riskUnresolvedReason || null, financialRevision: Number(account?.financialRevision || 0), fundedAccountId: account?.challenge?.fundedAccountId || account?.fundedAccountId || null, riskDayKey: account?.riskDayKey || null, riskTimezone: account?.riskTimezone || 'UTC',
+    dailyLossLimit: numberOr(policy?.dailyLoss?.limit), dailyLossReference: policy?.dailyLoss?.reference || 'DAILY_START_EQUITY', maxLossLimit: numberOr(policy?.maxLoss?.limit), maxLossReference: policy?.maxLoss?.reference || 'INITIAL_BALANCE', profitTarget: numberOr(policy?.profitTarget), riskPolicy: policy, challenge: account?.challenge || {}, tradingPermissions: normalizeTradingPermissions(account?.tradingPermissions), capabilities: account?.capabilities || {}, marginStopOut: account?.marginStopOut || { state: account?.marginStopOutState || 'NONE', episodeId: account?.marginStopOutEpisodeId || null }, riskProcessingState: account?.riskProcessingState || 'RESOLVED', riskUnresolvedReason: account?.riskUnresolvedReason || null, financialRevision: Number(account?.financialRevision || 0), fundedAccountId: account?.challenge?.fundedAccountId || account?.fundedAccountId || null, riskDayKey: account?.riskDayKey || null, riskTimezone: account?.riskTimezone || 'UTC',
   };
 }
 
@@ -158,6 +173,7 @@ function normalizeGrantAccount(grant) {
     maxLossLimit: 0,
     profitTarget: 0,
     riskPolicy: {},
+    tradingPermissions: normalizeTradingPermissions(grant?.tradingPermissions),
     capabilities: {},
     marginStopOut: { state: 'NONE', episodeId: null },
     riskProcessingState: 'RESOLVED',
@@ -563,6 +579,10 @@ export function useTradingTerminal(markets = []) {
   }, [commands, rawPositions, requireAccount, run]);
 
   const refreshState = useCallback(() => accountId ? requestSnapshot([accountId]) : false, [accountId, requestSnapshot]);
+  const getPolicyStatus = useCallback((symbol, signal) => {
+    const targetAccountId = requireAccount();
+    return commands.policyStatus(targetAccountId, String(symbol || '').toUpperCase(), signal);
+  }, [commands, requireAccount]);
 
   const replacePendingOrder = useCallback((orderId, replacement) => {
     const existing = pendingOrders.find(item => String(item.id) === String(orderId));
@@ -593,5 +613,5 @@ export function useTradingTerminal(markets = []) {
     }));
   }, [commands, instrumentForSymbol, pendingOrders, requireAccount, run]);
 
-  return { accountId, activeAccountId, grantedAccountIds, accountGrants, accounts, selectAccount, accountSwitching, accountGrantMissing, accountSwitchError, lifecycleEvent, clearLifecycleEvent, account, rawAccount, valuation, positions, pendingOrders, positionHistory, historyOrders: history.accountId === accountId ? history.orders : [], historyDeals: history.accountId === accountId ? history.deals : [], historyPositions: history.accountId === accountId ? history.positions : [], historyLoaded: history.accountId === accountId && history.loaded, fills: trading.fills.filter(fill => String(fill?.accountId || '') === String(accountId || '')), orders: Object.values(trading.ordersById).filter(order => String(order?.accountId || '') === String(accountId || '')), connection, commandState, tradingReady: Boolean(accountId && !accountGrantMissing && rawAccount && account.tradingEnabled && connection.status === 'ready' && !commandState.uncertain && !accountSwitching), refreshState, openMarketOrder, placePendingOrder, replacePendingOrder, cancelPendingOrder, closePosition, closeAllPositions, updatePosition, movePositionToBreakEven, setPositionTrailing, duplicatePosition, reversePosition, errorMessage };
+  return { accountId, activeAccountId, grantedAccountIds, accountGrants, accounts, selectAccount, accountSwitching, accountGrantMissing, accountSwitchError, lifecycleEvent, clearLifecycleEvent, account, rawAccount, valuation, positions, pendingOrders, positionHistory, historyOrders: history.accountId === accountId ? history.orders : [], historyDeals: history.accountId === accountId ? history.deals : [], historyPositions: history.accountId === accountId ? history.positions : [], historyLoaded: history.accountId === accountId && history.loaded, fills: trading.fills.filter(fill => String(fill?.accountId || '') === String(accountId || '')), orders: Object.values(trading.ordersById).filter(order => String(order?.accountId || '') === String(accountId || '')), connection, commandState, tradingReady: Boolean(accountId && !accountGrantMissing && rawAccount && account.tradingEnabled && connection.status === 'ready' && !commandState.uncertain && !accountSwitching), refreshState, getPolicyStatus, openMarketOrder, placePendingOrder, replacePendingOrder, cancelPendingOrder, closePosition, closeAllPositions, updatePosition, movePositionToBreakEven, setPositionTrailing, duplicatePosition, reversePosition, errorMessage };
 }

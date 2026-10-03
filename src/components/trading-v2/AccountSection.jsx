@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, CircleHelp, Gauge, ShieldCheck } from 'lucide-react';
+import { CalendarClock, ChevronRight, CircleHelp, Gauge, Moon, ShieldCheck } from 'lucide-react';
 import { calculateAccountRiskSummary } from '../../utils/accountRisk.js';
 import { accountLimitsUnavailableCopy, accountRiskDescription, accountRiskTitle, accountStatusLabel, accountStatusToneClass, accountTypeLabel, isMasterAccount } from '../../utils/accountPresentation.js';
 
@@ -35,6 +35,9 @@ export default function AccountSection({ account = {}, onOpenSheet = () => {} })
   const valuation = String(account.valuationStatus || 'WAITING').toUpperCase();
   const master = isMasterAccount(account);
   const typeLabel = accountTypeLabel(account);
+  const permissions = account.tradingPermissions || {};
+  const newsTrading = permissions.newsTrading !== false;
+  const weekendHolding = permissions.weekendHolding !== false;
 
   return (
     <section className="acg-mobile-terminal-page min-h-[calc(100dvh-92px)] px-2 pb-4 pt-2">
@@ -44,6 +47,23 @@ export default function AccountSection({ account = {}, onOpenSheet = () => {} })
         <div className="flex items-start justify-between gap-3"><div><span className="text-[8px] font-bold uppercase tracking-[0.12em] text-[#60768a]">{typeLabel}</span><strong className="mt-1.5 block text-[20px] font-black tracking-[-0.04em] text-[#f0f5f8]">{account.accountCode || '—'}</strong><p className="mt-1 text-[9px] text-[#71869a]">{currency}{account.leverage ? ` • 1:${account.leverage}` : ''}</p></div><span className={`rounded-full border px-2.5 py-1.5 text-[8px] font-black ${accountStatusToneClass(status)}`}>{accountStatusLabel(status)}</span></div>
         <div className="mt-4 grid grid-cols-2 gap-2"><Stat label="Balance" value={money(balance, currency)}/><Stat label="Equity" value={money(equity, currency)}/><Stat label="Free margin" value={money(account.freeMargin, currency)}/><Stat label="Used margin" value={money(account.usedMargin, currency)}/></div>
         <div className="mt-2 flex items-center justify-between rounded-md border border-white/[0.08] bg-[#101010] px-3 py-2.5"><span className="text-[8px] font-bold uppercase tracking-[0.09em] text-[#5d7287]">Valuation</span><span className={`text-[9px] font-black ${valuation === 'LIVE' ? 'text-[#45dda9]' : valuation === 'STALE' ? 'text-[#e8c35f]' : 'text-[#90a2b4]'}`}>{valuation}</span></div>
+      </div>
+
+      <div className="mt-5 px-1"><h2 className="text-[11px] font-black text-[#e9f0f5]">Trading permissions</h2><p className="mt-1 text-[8px] text-[#60758a]">The permissions selected for this account carry forward through its ACG lifecycle.</p></div>
+      <div className="mt-2 overflow-hidden rounded-[17px] border border-white/[0.08] bg-[#080808]">
+        <PermissionRow
+          icon={CalendarClock}
+          label="News Trading"
+          value={newsTrading ? 'Allowed' : 'Restricted ±5 min'}
+          detail={newsTrading ? 'High-impact news trading is included.' : 'Existing positions may stay open; closing or reducing is always allowed.'}
+        />
+        <PermissionRow
+          icon={Moon}
+          label="Weekend Holding"
+          value={weekendHolding ? 'Allowed' : 'Protective auto-close'}
+          detail={weekendHolding ? 'Positions may remain open through the weekend.' : 'Positions close 5 minutes before the instrument weekend shutdown; this is not a breach.'}
+          last
+        />
       </div>
 
       <div className="mt-5 px-1"><h2 className="text-[11px] font-black text-[#e9f0f5]">{accountRiskTitle(account)}</h2><p className="mt-1 text-[8px] text-[#60758a]">{accountRiskDescription(account)}</p></div>
@@ -69,6 +89,10 @@ export default function AccountSection({ account = {}, onOpenSheet = () => {} })
 }
 
 function Stat({ label, value }) { return <div className="rounded-md border border-white/[0.08] bg-[#101010] px-3 py-2.5"><span className="block text-[7px] font-bold uppercase tracking-[0.1em] text-[#5d7287]">{label}</span><b className="mt-1 block text-[11px] text-[#d6e0e8]">{value}</b></div>; }
+
+function PermissionRow({ icon: Icon, label, value, detail, last = false }) {
+  return <div className={`flex items-start gap-3 px-3.5 py-3 ${last ? '' : 'border-b border-white/[0.07]'}`}><div className="grid size-9 shrink-0 place-items-center rounded-md border border-white/[0.08] bg-[#101010] text-[#718da3]"><Icon size={15}/></div><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-3"><b className="text-[10px] text-[#dce5ec]">{label}</b><span className="text-right text-[8px] font-black text-[#aebdca]">{value}</span></div><p className="mt-1 text-[8px] leading-relaxed text-[#61768b]">{detail}</p></div></div>;
+}
 
 function ProgressCard({ icon: Icon, label, value, total, valueLabel, tone = 'blue', invert = false }) {
   const pct = progress(value, total);
