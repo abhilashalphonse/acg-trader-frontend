@@ -18,6 +18,7 @@ import {
 import { formatInstrumentPrice, instrumentForSymbol, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 import { estimatePositionPnlAtPrice, positionDistancePips } from '../../utils/tradingRisk.js';
 import { buildOpenPositionSummary } from '../../utils/openPositionPresentation.js';
+import { positionCloseAvailability } from '../../utils/marketExecutionAvailability.js';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import SharePositionSheet from './SharePositionSheet.jsx';
 
@@ -117,6 +118,13 @@ export default function PositionsPanel({
       ? accountEquity - accountBalance
       : null;
   const availableMargin = Number(account?.freeMargin ?? account?.availableMargin ?? account?.availableFunds);
+  const closeAvailabilityFor = position => positionCloseAvailability(instrumentForSymbol(markets, position?.symbol));
+  const closablePositions = useMemo(
+    () => positions.filter(position => positionCloseAvailability(instrumentForSymbol(markets, position?.symbol)).allowed),
+    [markets, positions],
+  );
+  const blockedCloseCount = Math.max(0, positions.length - closablePositions.length);
+
 
   const positionGroups = useMemo(() => {
     const map = new Map();
@@ -234,6 +242,8 @@ export default function PositionsPanel({
   };
 
   const applyCustomClose = position => {
+    const availability = closeAvailabilityFor(position);
+    if (!availability.allowed) return;
     const raw = Number(customClose[position.id]);
     if (!Number.isFinite(raw) || raw <= 0) return;
     const value = Math.max(1, Math.min(100, raw));
@@ -316,12 +326,13 @@ export default function PositionsPanel({
                     </button>
                     <button
                       type="button"
-                      disabled={!positions.length}
-                      onClick={() => confirmDesktopBulk('Close every open position?', onCloseAll)}
-                      className="flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-[9px] font-semibold text-[#AEB8C1] hover:bg-white/[0.04] disabled:opacity-35"
+                      disabled={!closablePositions.length}
+                      onClick={() => confirmDesktopBulk(blockedCloseCount ? 'Close all positions whose markets are open?' : 'Close every open position?', onCloseAll)}
+                      title={!closablePositions.length && positions.length ? 'Markets closed · positions remain open until their sessions resume.' : undefined}
+                      className="flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-[9px] font-semibold text-[#AEB8C1] hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-35"
                     >
-                      <span>Open positions · Close</span>
-                      <span className="text-[8px] font-semibold text-[#687784]">{positions.length}</span>
+                      <span>{blockedCloseCount ? 'Open positions · Close available' : 'Open positions · Close'}</span>
+                      <span className="text-[8px] font-semibold text-[#687784]">{closablePositions.length}/{positions.length}</span>
                     </button>
                     <button
                       type="button"
@@ -359,7 +370,7 @@ export default function PositionsPanel({
             ))}
           </div>
           {tab === 'positions' && (
-            <button type="button" onClick={() => confirmDesktopBulk('Close every open position?', onCloseAll)} disabled={!positions.length} className="flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.10] bg-black px-2 text-[8px] font-bold text-[#E6EDF3] disabled:cursor-not-allowed disabled:opacity-35"><Trash2 size={12} className="text-[#6F8191]" />Close All</button>
+            <button type="button" onClick={() => confirmDesktopBulk(blockedCloseCount ? 'Close positions whose markets are open?' : 'Close every open position?', onCloseAll)} disabled={!closablePositions.length} title={!closablePositions.length && positions.length ? 'Markets closed · positions remain open until their sessions resume.' : undefined} className="flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.10] bg-black px-2 text-[8px] font-bold text-[#E6EDF3] disabled:cursor-not-allowed disabled:opacity-35"><Trash2 size={12} className="text-[#6F8191]" />{blockedCloseCount ? 'Close Available' : 'Close All'}</button>
           )}
         </div>
       )}
@@ -387,6 +398,8 @@ export default function PositionsPanel({
                     {!positions.length && <div className="grid h-[110px] place-items-center text-center text-[10px] text-[#6F8191]"><div><b className="block text-[#A1AFBC]">No open positions</b><span className="mt-1 block">Market executions will appear here</span></div></div>}
                     {positions.map(position => {
                       const instrument = instrumentForSymbol(markets, position.symbol);
+                      const closeAvailability = positionCloseAvailability(instrument);
+                      const closeDisabled = !closeAvailability.allowed;
                       const summary = buildOpenPositionSummary(position, account, instrument);
                       const positive = Number(position.pnl) >= 0;
                       const sideBuy = String(position.side).toUpperCase() === 'BUY';
@@ -406,17 +419,17 @@ export default function PositionsPanel({
                           <span key={`pnl-percent-${position.id}-${Number.isFinite(pnlPercent) ? pnlPercent.toFixed(2) : 'empty'}`} className={positive ? "acg-motion-value text-right font-mono text-[8px] text-[#35b788]" : "acg-motion-value text-right font-mono text-[8px] text-[#d84d5d]"}>{Number.isFinite(pnlPercent) ? <>{pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%</> : '—'}</span>
                           <div className="relative flex items-center justify-end gap-1">
                             <button type="button" onClick={event => { event.stopPropagation(); onBreakEven(position.id); }} className="h-7 rounded border border-[#245b48] px-2 text-[7px] font-bold text-[#42D7A1] hover:bg-[#071710]">BE</button>
-                            <button type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, 50); }} className="h-7 rounded border border-white/[0.06] px-2 text-[7px] font-bold text-[#9AABB9] hover:bg-white/[0.03] hover:text-white">50%</button>
-                            <button type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, 100); }} className="h-7 rounded border border-[#51242c] px-2 text-[7px] font-bold text-[#ff727d] hover:bg-[#241015]">Close</button>
+                            <button type="button" disabled={closeDisabled} title={closeDisabled ? closeAvailability.reason : 'Close 50%'} onClick={event => { event.stopPropagation(); onClosePosition(position.id, 50); }} className="h-7 rounded border border-white/[0.06] px-2 text-[7px] font-bold text-[#9AABB9] hover:bg-white/[0.03] hover:text-white disabled:cursor-not-allowed disabled:opacity-30">50%</button>
+                            <button type="button" disabled={closeDisabled} title={closeDisabled ? closeAvailability.reason : 'Close position'} onClick={event => { event.stopPropagation(); onClosePosition(position.id, 100); }} className="h-7 rounded border border-[#51242c] px-2 text-[7px] font-bold text-[#ff727d] hover:bg-[#241015] disabled:cursor-not-allowed disabled:opacity-30">{closeDisabled ? 'Closed' : 'Close'}</button>
                             <button type="button" onClick={event => { event.stopPropagation(); setRowActionsId(rowActionsId === position.id ? null : position.id); }} className="grid size-7 place-items-center rounded border border-white/[0.06] text-[#8092a2] hover:text-white"><MoreHorizontal size={11}/></button>
                             {rowActionsId === position.id && (
                               <div className="acg-motion-popover absolute right-0 top-8 z-50 w-[164px] rounded-md border border-white/[0.10] bg-[#0a0a0a] p-1 shadow-xl">
-                                <button type="button" onClick={event => { event.stopPropagation(); onDuplicate(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#b6c3ce] hover:bg-white/[0.03]">Duplicate position</button>
-                                <button type="button" onClick={event => { event.stopPropagation(); onReverse(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#b6c3ce] hover:bg-white/[0.03]">Reverse position</button>
+                                <button type="button" disabled={closeDisabled} title={closeDisabled ? closeAvailability.reason : undefined} onClick={event => { event.stopPropagation(); onDuplicate(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#b6c3ce] hover:bg-white/[0.03] disabled:cursor-not-allowed disabled:opacity-35">Duplicate position</button>
+                                <button type="button" disabled={closeDisabled} title={closeDisabled ? closeAvailability.reason : undefined} onClick={event => { event.stopPropagation(); onReverse(position.id); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#b6c3ce] hover:bg-white/[0.03] disabled:cursor-not-allowed disabled:opacity-35">Reverse position</button>
                                 <button type="button" onClick={event => { event.stopPropagation(); moveBreakEvenOffset(position, 1); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#48d8a4] hover:bg-white/[0.03]">BE + 1 pip</button>
                                 {[5,10,20].map(pips => <button key={pips} type="button" onClick={event => { event.stopPropagation(); onSetTrailing(position.id, true, pips); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#7fcfff] hover:bg-white/[0.03]">Trailing {pips} pips</button>)}
                                 <div className="my-1 border-t border-white/[0.06]"/>
-                                {[25,75].map(percent => <button key={percent} type="button" onClick={event => { event.stopPropagation(); onClosePosition(position.id, percent); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#b6c3ce] hover:bg-white/[0.03]">Close {percent}%</button>)}
+                                {[25,75].map(percent => <button key={percent} type="button" disabled={closeDisabled} title={closeDisabled ? closeAvailability.reason : undefined} onClick={event => { event.stopPropagation(); onClosePosition(position.id, percent); setRowActionsId(null); }} className="w-full rounded px-2 py-1.5 text-left text-[8px] text-[#b6c3ce] hover:bg-white/[0.03] disabled:cursor-not-allowed disabled:opacity-35">Close {percent}%</button>)}
                               </div>
                             )}
                           </div>
@@ -435,6 +448,9 @@ export default function PositionsPanel({
                       const editing = editingId === position.id;
                       const positive = Number(position.pnl) >= 0;
                       const sideBuy = position.side === 'BUY';
+                      const instrument = instrumentForSymbol(markets, position.symbol);
+                      const closeAvailability = positionCloseAvailability(instrument);
+                      const closeDisabled = !closeAvailability.allowed;
           
                       return (
                         <article key={position.id} className="overflow-hidden border-b border-white/[0.06] bg-black last:border-b-0">
@@ -462,10 +478,10 @@ export default function PositionsPanel({
                           </div>
           
                           <div className="grid grid-cols-4 gap-px border-t border-white/[0.06] bg-white/[0.07]">
-                            <QuickAction label="CLOSE" tone="danger" onClick={() => onClosePosition(position.id, 100)} />
-                            <QuickAction label="50%" onClick={() => onClosePosition(position.id, 50)} />
+                            <QuickAction label={closeDisabled ? "CLOSED" : "CLOSE"} tone="danger" disabled={closeDisabled} title={closeDisabled ? closeAvailability.reason : 'Close position'} onClick={() => onClosePosition(position.id, 100)} />
+                            <QuickAction label="50%" disabled={closeDisabled} title={closeDisabled ? closeAvailability.reason : 'Close 50%'} onClick={() => onClosePosition(position.id, 50)} />
                             <QuickAction label="BE" tone="success" onClick={() => onBreakEven(position.id)} />
-                            <QuickAction label="REVERSE" tone="accent" onClick={() => onReverse(position.id)} />
+                            <QuickAction label="REVERSE" tone="accent" disabled={closeDisabled} title={closeDisabled ? closeAvailability.reason : 'Reverse position'} onClick={() => onReverse(position.id)} />
                           </div>
           
                           {expanded && (
@@ -519,8 +535,9 @@ export default function PositionsPanel({
           
                               <div className="border-t border-white/[0.06] bg-black p-2.5">
                                 <div className="flex items-center gap-2 text-[#A1AFBC]"><TrendingDown size={14}/><b className="text-[10px]">Partial close</b></div>
-                                <div className="mt-2 grid grid-cols-4 gap-1.5">{[25, 50, 75, 100].map(percent => <button key={percent} type="button" onClick={() => onClosePosition(position.id, percent)} className="h-8 rounded-lg border border-white/[0.06] bg-black text-[9px] font-bold text-[#A1AFBC] active:bg-[#0C1013]">{percent === 100 ? 'ALL' : `${percent}%`}</button>)}</div>
-                                <div className="mt-2 flex items-center gap-2"><input inputMode="numeric" value={customClose[position.id] ?? ''} onChange={event => setCustomClose(current => ({ ...current, [position.id]: event.target.value.replace(/[^0-9]/g, '').slice(0, 3) }))} placeholder="Custom %" className="h-9 min-w-0 flex-1 rounded-lg border border-white/[0.06] bg-black px-3 text-[9px] font-semibold text-[#e5e5e5] outline-none placeholder:text-[#44515D]"/><button type="button" onClick={() => applyCustomClose(position)} className="h-9 rounded-lg border border-[#642832] bg-black px-3 text-[9px] font-bold text-[#ff7a86]">Close</button></div>
+                                {closeDisabled && <div className="mt-2 rounded-md border border-white/[0.06] bg-[#0C1013] px-2 py-1.5 text-[8px] font-semibold text-[#71808d]">{closeAvailability.reason}</div>}
+                                <div className="mt-2 grid grid-cols-4 gap-1.5">{[25, 50, 75, 100].map(percent => <button key={percent} type="button" disabled={closeDisabled} title={closeDisabled ? closeAvailability.reason : undefined} onClick={() => onClosePosition(position.id, percent)} className="h-8 rounded-lg border border-white/[0.06] bg-black text-[9px] font-bold text-[#A1AFBC] active:bg-[#0C1013] disabled:cursor-not-allowed disabled:opacity-30">{percent === 100 ? 'ALL' : `${percent}%`}</button>)}</div>
+                                <div className="mt-2 flex items-center gap-2"><input inputMode="numeric" value={customClose[position.id] ?? ''} onChange={event => setCustomClose(current => ({ ...current, [position.id]: event.target.value.replace(/[^0-9]/g, '').slice(0, 3) }))} placeholder="Custom %" className="h-9 min-w-0 flex-1 rounded-lg border border-white/[0.06] bg-black px-3 text-[9px] font-semibold text-[#e5e5e5] outline-none placeholder:text-[#44515D]"/><button type="button" disabled={closeDisabled} title={closeDisabled ? closeAvailability.reason : 'Close custom percentage'} onClick={() => applyCustomClose(position)} className="h-9 rounded-lg border border-[#642832] bg-black px-3 text-[9px] font-bold text-[#ff7a86] disabled:cursor-not-allowed disabled:opacity-30">Close</button></div>
                               </div>
                             </div>
                           )}
@@ -571,14 +588,14 @@ export default function PositionsPanel({
   );
 }
 
-function QuickAction({ label, onClick, tone = 'neutral' }) {
+function QuickAction({ label, onClick, tone = 'neutral', disabled = false, title = undefined }) {
   const tones = {
     neutral: 'bg-black text-[#A1AFBC] active:bg-[#0C1013]',
     danger: 'bg-black text-[#FF6F7A] active:bg-[#0C1013]',
     success: 'bg-black text-[#42D7A1] active:bg-[#0C1013]',
     accent: 'bg-black text-[#A1AFBC] active:bg-[#0C1013]',
   };
-  return <button type="button" onClick={onClick} className={`h-10 text-[8px] font-black tracking-[0.045em] ${tones[tone]}`}>{label}</button>;
+  return <button type="button" onClick={onClick} disabled={disabled} title={title} className={`h-10 text-[8px] font-black tracking-[0.045em] disabled:cursor-not-allowed disabled:opacity-30 ${tones[tone]}`}>{label}</button>;
 }
 
 function ProtectionEditor({ label, position, instrument, value, inputValue, autoFocus = false, onInput, onMinus, onPlus }) {
