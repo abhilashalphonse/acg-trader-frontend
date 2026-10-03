@@ -408,7 +408,7 @@ export default function PositionsPanel({
                       return (
                         <div key={position.id} onClick={() => onSelectPosition(position.id)} className={String(selectedPositionId) === String(position.id) ? "acg-motion-row relative grid cursor-pointer grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-[#195be1]/45 bg-[#12151a] px-3 py-2 text-[9px] transition" : "acg-motion-row relative grid cursor-pointer grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-white/[0.055] px-3 py-2 text-[9px] transition hover:bg-white/[0.018]"}>
                           {String(selectedPositionId) === String(position.id) && <span className="absolute inset-y-1 left-0 w-0.5 rounded-r bg-[#195be1]" />}
-                          <div className="flex min-w-0 items-center gap-2"><InstrumentAvatar instrument={instrument} size={20}/><strong className="truncate text-[10px] text-[#f2f5f7]">{formatSymbol(position.symbol)}</strong></div>
+                          <div className="flex min-w-0 items-center gap-2"><InstrumentAvatar instrument={instrument} size={20}/><strong className="truncate text-[10px] text-[#f2f5f7]">{formatSymbol(position.symbol)}</strong>{closeDisabled && <span className="shrink-0 rounded border border-white/[0.06] px-1 py-0.5 text-[6px] font-bold text-[#657482]">CLOSED</span>}</div>
                           <span className={sideBuy ? "w-fit rounded bg-[#0c3b2e] px-1.5 py-0.5 text-[7px] font-black text-[#38dba4]" : "w-fit rounded bg-[#3b1820] px-1.5 py-0.5 text-[7px] font-black text-[#ff707a]"}>{String(position.side).toUpperCase()}</span>
                           <span className="font-mono text-[9px] text-[#c4ced6]">{Number(position.volume).toFixed(2)} lots</span>
                           <span className="font-mono text-[9px] text-[#aebbc5]">{formatInstrumentPrice(position.entry, instrument)}</span>
@@ -420,7 +420,7 @@ export default function PositionsPanel({
                           <div className="relative flex items-center justify-end gap-1">
                             <button type="button" onClick={event => { event.stopPropagation(); onBreakEven(position.id); }} className="h-7 rounded border border-[#245b48] px-2 text-[7px] font-bold text-[#42D7A1] hover:bg-[#071710]">BE</button>
                             <button type="button" disabled={closeDisabled} title={closeDisabled ? closeAvailability.reason : 'Close 50%'} onClick={event => { event.stopPropagation(); onClosePosition(position.id, 50); }} className="h-7 rounded border border-white/[0.06] px-2 text-[7px] font-bold text-[#9AABB9] hover:bg-white/[0.03] hover:text-white disabled:cursor-not-allowed disabled:opacity-30">50%</button>
-                            <button type="button" disabled={closeDisabled} title={closeDisabled ? closeAvailability.reason : 'Close position'} onClick={event => { event.stopPropagation(); onClosePosition(position.id, 100); }} className="h-7 rounded border border-[#51242c] px-2 text-[7px] font-bold text-[#ff727d] hover:bg-[#241015] disabled:cursor-not-allowed disabled:opacity-30">{closeDisabled ? 'Closed' : 'Close'}</button>
+                            <button type="button" disabled={closeDisabled} title={closeDisabled ? closeAvailability.reason : 'Close position'} onClick={event => { event.stopPropagation(); onClosePosition(position.id, 100); }} className="h-7 rounded border border-[#51242c] px-2 text-[7px] font-bold text-[#ff727d] hover:bg-[#241015] disabled:cursor-not-allowed disabled:opacity-30">Close</button>
                             <button type="button" onClick={event => { event.stopPropagation(); setRowActionsId(rowActionsId === position.id ? null : position.id); }} className="grid size-7 place-items-center rounded border border-white/[0.06] text-[#8092a2] hover:text-white"><MoreHorizontal size={11}/></button>
                             {rowActionsId === position.id && (
                               <div className="acg-motion-popover absolute right-0 top-8 z-50 w-[164px] rounded-md border border-white/[0.10] bg-[#0a0a0a] p-1 shadow-xl">
@@ -461,6 +461,7 @@ export default function PositionsPanel({
                                   <InstrumentAvatar instrument={instrumentForSymbol(markets, position.symbol)} size={24}/>
                                   <strong className="truncate text-[13px] font-black tracking-[-0.025em] text-[#f5f5f5]">{formatSymbol(position.symbol)}</strong>
                                   <span className={`rounded-md px-1.5 py-1 text-[8px] font-black leading-none ${sideBuy ? 'bg-[#0c3b2e] text-[#38dba4]' : 'bg-[#3b1820] text-[#ff707a]'}`}>{position.side}</span>
+                                  {closeDisabled && <span className="rounded-md border border-white/[0.07] bg-[#0C1013] px-1.5 py-1 text-[7px] font-bold text-[#6F8191]">MARKET CLOSED</span>}
                                   {position.trailingEnabled && <span className="rounded-md border border-white/[0.10] bg-black px-1.5 py-1 text-[8px] font-bold text-[#195be1]">TRAIL {position.trailingPips}p</span>}
                                 </div>
                                 <p className="mt-1.5 text-[9px] text-[#6F8191]"><b className="text-[#A1AFBC]">{Number(position.volume).toFixed(2)} lots</b><span className="mx-1.5 text-[#44515D]">•</span>Entry {formatInstrumentPrice(position.entry, instrumentForSymbol(markets, position.symbol))}</p>
@@ -478,7 +479,7 @@ export default function PositionsPanel({
                           </div>
           
                           <div className="grid grid-cols-4 gap-px border-t border-white/[0.06] bg-white/[0.07]">
-                            <QuickAction label={closeDisabled ? "CLOSED" : "CLOSE"} tone="danger" disabled={closeDisabled} title={closeDisabled ? closeAvailability.reason : 'Close position'} onClick={() => onClosePosition(position.id, 100)} />
+                            <QuickAction label="CLOSE" tone="danger" disabled={closeDisabled} title={closeDisabled ? closeAvailability.reason : 'Close position'} onClick={() => onClosePosition(position.id, 100)} />
                             <QuickAction label="50%" disabled={closeDisabled} title={closeDisabled ? closeAvailability.reason : 'Close 50%'} onClick={() => onClosePosition(position.id, 50)} />
                             <QuickAction label="BE" tone="success" onClick={() => onBreakEven(position.id)} />
                             <QuickAction label="REVERSE" tone="accent" disabled={closeDisabled} title={closeDisabled ? closeAvailability.reason : 'Reverse position'} onClick={() => onReverse(position.id)} />
@@ -488,7 +489,7 @@ export default function PositionsPanel({
                             <div className="space-y-2 border-t border-white/[0.06] bg-black p-2.5">
                               <div className="grid grid-cols-3 gap-2">
                                 <button type="button" onClick={() => editing ? cancelProtectionEdit() : startProtectionEdit(position)} className={`flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md border text-[9px] font-bold ${editing ? 'border-white/[0.13] bg-[#0C1013] text-[#195be1]' : 'border-white/[0.06] bg-black text-[#A1AFBC]'}`}><SlidersHorizontal size={13}/><span className="truncate">{editing ? 'Editing' : 'SL / TP'}</span></button>
-                                <button type="button" onClick={() => onDuplicate(position.id)} className="flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md border border-white/[0.06] bg-black text-[9px] font-bold text-[#A1AFBC]"><Copy size={13}/><span className="truncate">Duplicate</span></button>
+                                <button type="button" disabled={closeDisabled} title={closeDisabled ? closeAvailability.reason : 'Duplicate position'} onClick={() => onDuplicate(position.id)} className="flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md border border-white/[0.06] bg-black text-[9px] font-bold text-[#A1AFBC] disabled:cursor-not-allowed disabled:opacity-35"><Copy size={13}/><span className="truncate">Duplicate</span></button>
                                 <button type="button" onClick={() => setSharePosition(position)} className="flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md border border-white/[0.06] bg-black text-[9px] font-bold text-[#E6EDF3]"><Share2 size={13}/><span className="truncate">Share P&amp;L</span></button>
                               </div>
           
