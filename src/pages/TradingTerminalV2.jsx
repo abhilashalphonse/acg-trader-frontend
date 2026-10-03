@@ -177,7 +177,11 @@ export default function TradingTerminalV2({
   const [riskGuardSettings, setRiskGuardSettings] = useState(loadRiskGuardSettings);
   const accountCapabilities = deriveAccountCapabilities(account);
   const exposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market, commandState: executionCommandState });
-  const executionMarketFor = symbol => marketForSymbol(markets, symbol, market);
+  const executionMarketFor = symbol => {
+    const found = marketForSymbol(markets, symbol, null);
+    if (found) return found;
+    return String(market?.symbol || '').toUpperCase() === String(symbol || '').toUpperCase() ? market : null;
+  };
   const closeAvailabilityFor = position => positionCloseAvailability(executionMarketFor(position?.symbol));
 
 
