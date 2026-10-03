@@ -11,6 +11,7 @@ function queryString(query = {}) {
 export const tradingApi = Object.freeze({
   status(signal) { return apiRequest('/v1/trading/status', { signal }); },
   accountValuation(token, accountId, signal) { return apiRequest(`/v1/trading/accounts/${encodeURIComponent(accountId)}/valuation`, auth(token, { signal })); },
+  policyStatus(token, accountId, symbol, signal) { return apiRequest(`/v1/trading/accounts/${encodeURIComponent(accountId)}/policy-status${queryString({ symbol })}`, auth(token, { signal })); },
   positionValuation(token, positionId, signal) { return apiRequest(`/v1/trading/positions/${encodeURIComponent(positionId)}/valuation`, auth(token, { signal })); },
   pendingOrders(token, accountId, signal) { return apiRequest(`/v1/trading/accounts/${encodeURIComponent(accountId)}/orders/pending`, auth(token, { signal })); },
   historyOrders(token, accountId, query, signal) { return apiRequest(`/v1/trading/accounts/${encodeURIComponent(accountId)}/history/orders${queryString(query)}`, auth(token, { signal })); },
