@@ -1,3 +1,10 @@
+export function resolveAuthoritativeSessionOpen({ realtimeStatus = null, gateway = null, quote = null, instrument = null } = {}) {
+  if (typeof realtimeStatus?.sessionOpen === 'boolean') return realtimeStatus.sessionOpen;
+  if (typeof gateway?.sessionOpen === 'boolean') return gateway.sessionOpen;
+  if (typeof quote?.sessionOpen === 'boolean') return quote.sessionOpen;
+  return instrument?.sessionOpen === true;
+}
+
 export function isMarketSessionClosed(market) {
   const state = String(market?.marketState || '').toUpperCase();
   return market?.sessionOpen === false || state === 'CLOSED';
