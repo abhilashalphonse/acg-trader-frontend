@@ -32,3 +32,28 @@ export function marketForSymbol(markets, symbol, fallback = null) {
   const canonical = String(symbol || '').toUpperCase();
   return (Array.isArray(markets) ? markets : []).find(item => String(item?.symbol || '').toUpperCase() === canonical) || fallback;
 }
+
+
+export function summarizeCloseAllResult(result, fallbackRequested = 0) {
+  const rows = Array.isArray(result?.results) ? result.results : [];
+  const count = status => rows.filter(item => String(item?.status || '').toUpperCase() === status).length;
+  const numeric = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+
+  const closed = numeric(result?.closed, count('CLOSED'));
+  const skipped = numeric(result?.skipped, count('SKIPPED_CLOSED_SESSION'));
+  const failed = numeric(result?.failed, count('FAILED'));
+  const requested = numeric(result?.requested, Math.max(fallbackRequested, closed + skipped + failed));
+  const complete = result?.complete === true || (requested > 0 && closed === requested && skipped === 0 && failed === 0);
+
+  if (complete) {
+    return { complete: true, requested, closed, skipped: 0, failed: 0, message: 'All positions closed' };
+  }
+
+  const parts = [];
+  if (closed > 0) parts.push(`${closed} closed`);
+  if (skipped > 0) parts.push(`${skipped} market closed`);
+  if (failed > 0) parts.push(`${failed} failed`);
+  if (!parts.length) parts.push('No positions were closed');
+
+  return { complete: false, requested, closed, skipped, failed, message: parts.join(' · ') };
+}
