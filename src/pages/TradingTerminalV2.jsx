@@ -10,6 +10,7 @@ import FrontendSheet from '../components/trading-v2/FrontendSheet.jsx';
 import WatchlistSection from '../components/trading-v2/WatchlistSection.jsx';
 import PropRiskStrip from '../components/trading-v2/PropRiskStrip.jsx';
 import ExecutionStatus from '../components/trading-v2/ExecutionStatus.jsx';
+import TradingPermissionNotice from '../components/trading-v2/TradingPermissionNotice.jsx';
 import useTradingHotkeys from '../hooks/useTradingHotkeys.js';
 import { useTradingTerminal } from '../hooks/useTradingTerminal.js';
 import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
@@ -175,6 +176,7 @@ export default function TradingTerminalV2({
   const [overlay, setOverlay] = useState(null);
   const [notice, setNotice] = useState('');
   const [riskGuardSettings, setRiskGuardSettings] = useState(loadRiskGuardSettings);
+  const [tradingPolicyStatus, setTradingPolicyStatus] = useState(null);
   const accountCapabilities = deriveAccountCapabilities(account);
   const exposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market, commandState: executionCommandState });
   const executionMarketFor = symbol => {
@@ -241,6 +243,32 @@ export default function TradingTerminalV2({
     showNotice(trading.lifecycleEvent.message);
     trading.clearLifecycleEvent?.();
   }, [trading.lifecycleEvent?.id]);
+
+  useEffect(() => {
+    setTradingPolicyStatus(null);
+    if (!trading.accountId || !activeSymbol || trading.connection.status !== 'ready') return undefined;
+
+    let active = true;
+    let controller = null;
+    const loadPolicy = async () => {
+      controller?.abort();
+      controller = new AbortController();
+      try {
+        const result = await trading.getPolicyStatus(activeSymbol, controller.signal);
+        if (active && !controller.signal.aborted) setTradingPolicyStatus(result || null);
+      } catch (error) {
+        if (active && !controller.signal.aborted) setTradingPolicyStatus(null);
+      }
+    };
+
+    void loadPolicy();
+    const timer = window.setInterval(() => void loadPolicy(), 30 * 1000);
+    return () => {
+      active = false;
+      controller?.abort();
+      window.clearInterval(timer);
+    };
+  }, [activeSymbol, trading.accountId, trading.connection.status, trading.getPolicyStatus]);
 
   const selectTradingAccount = nextAccountId => {
     const target = String(nextAccountId || '').trim();
@@ -1342,6 +1370,7 @@ export default function TradingTerminalV2({
   if (isDesktop) {
     return (
       <>
+        <TradingPermissionNotice status={tradingPolicyStatus} />
         <DesktopTerminal
           market={market}
           tick={tick}
@@ -1426,6 +1455,7 @@ export default function TradingTerminalV2({
 
   return (
     <div className="min-h-dvh bg-black font-sans text-[#f5f8fb] antialiased">
+      <TradingPermissionNotice status={tradingPolicyStatus} />
       <main ref={shellRef} className={chartFocus ? 'relative mx-auto h-dvh w-full max-w-[460px] overflow-hidden bg-black' : 'relative mx-auto min-h-dvh w-full max-w-[460px] overflow-x-hidden bg-black bg-[radial-gradient(circle_at_top,rgba(26,79,116,0.20),transparent_36%)] pb-[98px]'}>
         {chartFocus ? (
           <MobileScalperMode
