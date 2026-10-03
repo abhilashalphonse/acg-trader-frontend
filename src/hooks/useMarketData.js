@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { marketApi } from '../api/market.js';
 import { useTraderAuth } from './useTraderAuth.js';
 import { useTradingStore } from './useTradingStore.js';
+import { resolveAuthoritativeSessionOpen } from '../utils/marketExecutionAvailability.js';
 
 function formatPrice(value, digits) {
   const numeric = Number(value);
@@ -203,11 +204,14 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
     const marketDataAvailable = realtimeState
       ? !unavailableStates.includes(realtimeState)
       : gateway?.marketDataAvailable !== false && !unavailableStates.includes(polledState);
-    const sessionOpen = instrument.sessionOpen === true;
+    // Session state is backend-authoritative. Realtime status wins over the
+    // polled snapshot and quote payload; catalog state is compatibility-only.
+    const sessionOpen = resolveAuthoritativeSessionOpen({ realtimeStatus, gateway, quote, instrument });
     const rawStale = quote ? Boolean(quote.isStale) : Boolean(gateway?.isStale ?? true);
+    const quoteBelongsToOpenSession = quote ? quote.sessionOpen !== false : false;
     // Exchange session state wins over provider freshness/connection state.
-    // A closed market keeps its last known quote/candles without being labelled
-    // stale or unavailable, matching TradingView-style session semantics.
+    // When a session has just reopened, keep execution in WAITING until the
+    // backend delivers the first quote that belongs to the new open session.
     const isStale = sessionOpen
       ? (marketDataAvailable ? rawStale : Boolean(quote?.isStale ?? true))
       : false;
@@ -215,7 +219,9 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
       ? 'CLOSED'
       : !marketDataAvailable
         ? (effectiveState || 'UNAVAILABLE')
-        : (effectiveState || (quote ? (isStale ? 'STALE' : 'LIVE') : 'WAITING'));
+        : quote && !quoteBelongsToOpenSession
+          ? 'WAITING'
+          : (effectiveState || (quote ? (isStale ? 'STALE' : 'LIVE') : 'WAITING'));
     return {
       ...instrument,
       bid: formatPrice(quote?.bid, digits),
@@ -232,7 +238,7 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
       timestamp: quote?.providerTimestampMs ?? quote?.receivedAtMs ?? quote?.timeMs ?? null,
       dayVolume: quote?.dayVolume ?? null,
       isStale,
-      live: marketDataAvailable && sessionOpen && Boolean(quote) && !isStale && !['DISCONNECTED', 'UNAVAILABLE', 'SUBSCRIPTION_ERROR'].includes(marketState),
+      live: marketDataAvailable && sessionOpen && quoteBelongsToOpenSession && Boolean(quote) && !isStale && !['DISCONNECTED', 'UNAVAILABLE', 'SUBSCRIPTION_ERROR'].includes(marketState),
       marketState,
       marketDataAvailable,
       marketDataError: realtimeStatus?.message || gateway?.subscriptionError || null,

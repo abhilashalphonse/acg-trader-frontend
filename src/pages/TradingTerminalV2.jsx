@@ -23,7 +23,7 @@ import { createDefaultTradePlan, effectiveTradePlan, validateTradePlanForExecuti
 import { estimateExecutionPrice, resolveExecutionPreview } from '../utils/executionPricing.js';
 import { deriveAccountCapabilities, protectionRequirement } from '../utils/accountCapabilities.js';
 import { validateOpenPositionProtection } from '../utils/openPositionPresentation.js';
-import { marketForSymbol, positionCloseAvailability } from '../utils/marketExecutionAvailability.js';
+import { marketForSymbol, positionCloseAvailability, summarizeCloseAllResult } from '../utils/marketExecutionAvailability.js';
 
 const INDICATOR_STORAGE_KEY = 'acg-trader-indicators-v1';
 const INDICATOR_FAVORITES_KEY = 'acg-trader-indicator-favorites-v1';
@@ -497,34 +497,29 @@ export default function TradingTerminalV2({
     if (!positions.length) return false;
 
     const closable = positions.filter(position => closeAvailabilityFor(position).allowed);
-    const blocked = positions.filter(position => !closeAvailabilityFor(position).allowed);
     if (!closable.length) {
       showNotice('Markets are closed · positions remain open until their sessions resume.');
       return false;
     }
 
-    if (blocked.length) {
-      const results = await Promise.allSettled(closable.map(position => trading.closePosition(position.id, 100)));
-      const closed = results.filter(item => item.status === 'fulfilled').length;
-      trading.refreshState();
-      if (tradePlan?.open) setTradePlan(null);
-      logEvent('position', `Close available: ${closed} closed, ${blocked.length} waiting for market open`);
-      showNotice(`${closed} closed · ${blocked.length} waiting for market open`);
-      return closed > 0;
-    }
-
     try {
+      // Keep account-level close orchestration authoritative on the backend.
+      // It closes sequentially and classifies closed-session positions as
+      // skipped instead of racing multiple client-side close requests.
       const result = await trading.closeAllPositions();
       trading.refreshState();
       if (tradePlan?.open) setTradePlan(null);
-      if (result?.complete === false) {
-        logEvent('warning', `Close all partially completed: ${result.closed || 0} closed, ${result.failed || 0} failed`);
-        showNotice(`${result.closed || 0} positions closed; ${result.failed || 0} still require attention`);
-        return false;
-      }
-      logEvent('position', `Close all completed for ${result?.closed ?? positions.length} positions`);
-      showNotice('All positions closed');
-      return true;
+
+      const summary = summarizeCloseAllResult(result, positions.length);
+      const level = summary.failed > 0 ? 'warning' : summary.skipped > 0 ? 'info' : 'position';
+      logEvent(level, `Close all: ${summary.message}`, {
+        requested: summary.requested,
+        closed: summary.closed,
+        skipped: summary.skipped,
+        failed: summary.failed,
+      });
+      showNotice(summary.message);
+      return summary.complete;
     } catch (error) {
       handleTradingError(error, 'Close all');
       return false;
@@ -537,23 +532,45 @@ export default function TradingTerminalV2({
       showNotice(`No ${label.toLowerCase()} positions to close`);
       return false;
     }
-    const closable = targets.filter(position => closeAvailabilityFor(position).allowed);
-    const blocked = targets.length - closable.length;
+
+    const availabilityById = new Map(targets.map(position => [String(position.id), closeAvailabilityFor(position)]));
+    const closable = targets.filter(position => availabilityById.get(String(position.id))?.allowed);
+    const preflightClosed = targets.filter(position => availabilityById.get(String(position.id))?.code === 'MARKET_CLOSED').length;
+    const preflightUnavailable = targets.length - closable.length - preflightClosed;
+
     if (!closable.length) {
-      showNotice('Market closed · selected positions remain open until the session resumes.');
+      const parts = [];
+      if (preflightClosed) parts.push(`${preflightClosed} market closed`);
+      if (preflightUnavailable) parts.push(`${preflightUnavailable} waiting for market data`);
+      showNotice(parts.join(' · ') || 'Selected positions are not currently executable.');
       return false;
     }
-    const results = await Promise.allSettled(closable.map(position => trading.closePosition(position.id, 100)));
+
+    const results = [];
+    for (const position of closable) {
+      try {
+        await trading.closePosition(position.id, 100);
+        results.push({ status: 'fulfilled', positionId: position.id });
+      } catch (error) {
+        results.push({ status: 'rejected', positionId: position.id, reason: error });
+      }
+    }
     const closed = results.filter(item => item.status === 'fulfilled').length;
-    const failed = results.length - closed;
+    const racedClosed = results.filter(item => item.status === 'rejected' && String(item.reason?.code || '').toUpperCase() === 'MARKET_SESSION_CLOSED').length;
+    const failed = results.length - closed - racedClosed;
+    const skipped = preflightClosed + racedClosed;
+
     trading.refreshState();
-    logEvent(failed ? 'warning' : 'position', `${label}: ${closed} closed${failed ? `, ${failed} failed` : ''}${blocked ? `, ${blocked} waiting for market open` : ''}`);
-    showNotice(blocked
-      ? `${closed} closed · ${blocked} waiting for market open`
-      : failed
-        ? `${closed} closed; ${failed} require attention`
-        : `${closed} positions closed`);
-    return closed > 0;
+    const parts = [];
+    if (closed) parts.push(`${closed} closed`);
+    if (skipped) parts.push(`${skipped} market closed`);
+    if (preflightUnavailable) parts.push(`${preflightUnavailable} waiting for market data`);
+    if (failed) parts.push(`${failed} failed`);
+    const message = parts.join(' · ') || 'No positions were closed';
+
+    logEvent(failed ? 'warning' : skipped || preflightUnavailable ? 'info' : 'position', `${label}: ${message}`);
+    showNotice(message);
+    return closed > 0 && failed === 0;
   };
 
   const closeWinners = () => closePositionSet(position => Number(position.pnl) > 0, 'Close winners');

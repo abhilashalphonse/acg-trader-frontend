@@ -9,6 +9,7 @@ import { useWatchlists } from './hooks/useWatchlists.js';
 import { deriveTerminalStatus } from './utils/terminalStatus.js';
 import { formatInstrumentPrice } from './utils/instrumentFormatting.js';
 import { resolveActiveAccountId } from './utils/accountLifecycleRouting.js';
+import { riskCriticalMarketSymbols } from './utils/marketSubscriptions.js';
 
 const TradingTerminalV2 = lazy(() => import('./pages/TradingTerminalV2.jsx'));
 const MobileTraderShell = lazy(() => import('./pages/MobileTraderShell.jsx'));
@@ -111,13 +112,20 @@ export default function App() {
     ));
   }, []);
 
+  const riskCriticalSymbols = useMemo(() => riskCriticalMarketSymbols({
+    positionsById: trading.positionsById,
+    ordersById: trading.ordersById,
+    grantedAccountIds: auth.principal?.accountIds,
+  }), [auth.principal?.accountIds, trading.ordersById, trading.positionsById]);
+
   const subscriptionSymbols = useMemo(
     () => [...new Set([
+      ...riskCriticalSymbols,
       ...watchlists.activeSymbols,
       ...viewportQuoteSymbols,
       activeSymbol,
     ].filter(Boolean))],
-    [activeSymbol, viewportQuoteSymbols, watchlists.activeSymbols],
+    [activeSymbol, riskCriticalSymbols, viewportQuoteSymbols, watchlists.activeSymbols],
   );
 
   const { markets, activeTick, activeMarket, status, error: marketError } = useMarketData(instruments, activeSymbol, subscriptionSymbols);
