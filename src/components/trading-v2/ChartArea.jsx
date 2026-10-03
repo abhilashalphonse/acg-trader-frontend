@@ -3,6 +3,7 @@ import { Eye, EyeOff, RotateCcw, ScanLine, Magnet, Lock, Unlock, Pin } from 'luc
 import TradingChart from '../TradingChart.jsx';
 import DrawingLayer from './DrawingLayer.jsx';
 import { formatInstrumentPrice, formatSpreadDisplay, instrumentPipSize } from '../../utils/instrumentFormatting.js';
+import { positionCloseAvailability } from '../../utils/marketExecutionAvailability.js';
 import { calculateRiskOrderSizing, estimatePositionPnlAtPrice, estimateStopRisk, positionDistancePips } from '../../utils/tradingRisk.js';
 import { DRAWING_TOOL_GROUPS, DRAWING_TOOL_LABELS } from '../../utils/drawingTools.js';
 import { DRAWING_TOOL_ICONS } from './DrawingToolIcons.jsx';
@@ -59,6 +60,8 @@ function formatPositionLots(value) {
 
 function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instrument, selectedPositionId = null, onSelectPosition = () => {}, onClosePosition = () => {} }) {
   const [, forceLayout] = useState(0);
+  const closeAvailability = positionCloseAvailability(instrument);
+  const closeDisabled = !closeAvailability.allowed;
 
   const activePositions = useMemo(
     () => (Array.isArray(positions) ? positions : []).filter(position =>
@@ -129,15 +132,17 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
                 </span>
                 <button
                   type="button"
+                  disabled={closeDisabled}
                   onClick={event => {
                     event.preventDefault();
                     event.stopPropagation();
+                    if (closeDisabled) return;
                     void onClosePosition(position.id, 100);
                   }}
-                  className="grid w-7 place-items-center text-[13px] leading-none transition hover:bg-white/[0.05] active:bg-white/[0.08]"
+                  className="grid w-7 place-items-center text-[13px] leading-none transition hover:bg-white/[0.05] active:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-30"
                   style={{ color: closeColor }}
                   aria-label={`Close ${side} ${position.symbol || symbol} position`}
-                  title="Close position"
+                  title={closeDisabled ? closeAvailability.reason : 'Close position'}
                 >
                   ×
                 </button>

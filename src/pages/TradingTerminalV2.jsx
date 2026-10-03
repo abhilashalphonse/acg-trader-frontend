@@ -23,6 +23,7 @@ import { createDefaultTradePlan, effectiveTradePlan, validateTradePlanForExecuti
 import { estimateExecutionPrice, resolveExecutionPreview } from '../utils/executionPricing.js';
 import { deriveAccountCapabilities, protectionRequirement } from '../utils/accountCapabilities.js';
 import { validateOpenPositionProtection } from '../utils/openPositionPresentation.js';
+import { marketForSymbol, positionCloseAvailability } from '../utils/marketExecutionAvailability.js';
 
 const INDICATOR_STORAGE_KEY = 'acg-trader-indicators-v1';
 const INDICATOR_FAVORITES_KEY = 'acg-trader-indicator-favorites-v1';
@@ -176,6 +177,13 @@ export default function TradingTerminalV2({
   const [riskGuardSettings, setRiskGuardSettings] = useState(loadRiskGuardSettings);
   const accountCapabilities = deriveAccountCapabilities(account);
   const exposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market, commandState: executionCommandState });
+  const executionMarketFor = symbol => {
+    const found = marketForSymbol(markets, symbol, null);
+    if (found) return found;
+    return String(market?.symbol || '').toUpperCase() === String(symbol || '').toUpperCase() ? market : null;
+  };
+  const closeAvailabilityFor = position => positionCloseAvailability(executionMarketFor(position?.symbol));
+
 
   useEffect(() => {
     const onFullscreenChange = () => {
@@ -313,6 +321,13 @@ export default function TradingTerminalV2({
   };
 
   const handleTradingError = (error, context = 'Trading command') => {
+    if (String(error?.code || '').toUpperCase() === 'MARKET_SESSION_CLOSED') {
+      const message = 'Market closed · trading resumes when the session opens.';
+      setExecutionEvent(null);
+      logEvent('info', `${context}: ${message}`);
+      showNotice(message);
+      return;
+    }
     const message = trading.errorMessage(error);
     const unknown = error?.code === 'EXECUTION_STATUS_UNKNOWN';
     setExecutionEvent(current => current ? { ...current, status: unknown ? 'unknown' : 'rejected', message } : { status: unknown ? 'unknown' : 'rejected', message });
@@ -460,19 +475,44 @@ export default function TradingTerminalV2({
 
   const closePosition = async (id, percentage = 100) => {
     const position = positions.find(item => String(item.id) === String(id));
-    if (!position) return;
+    if (!position) return false;
+    const availability = closeAvailabilityFor(position);
+    if (!availability.allowed) {
+      showNotice(availability.reason);
+      return false;
+    }
     try {
       await trading.closePosition(id, percentage);
       if (tradePlan?.positionId === id && Number(percentage) >= 100) setTradePlan(null);
       logEvent('position', `${percentage >= 100 ? 'Closed' : `Closed ${percentage}% of`} ${position.symbol} ${position.side}`, { positionId: position.id, symbol: position.symbol, side: position.side, lots: position.volume, entry: position.entry, pnl: position.pnl, percentage, timeframe });
       showNotice(percentage >= 100 ? 'Position closed' : `${percentage}% of position closed`);
+      return true;
     } catch (error) {
       handleTradingError(error, `Close ${position.symbol}`);
+      return false;
     }
   };
 
   const closeAllPositions = async () => {
-    if (!positions.length) return;
+    if (!positions.length) return false;
+
+    const closable = positions.filter(position => closeAvailabilityFor(position).allowed);
+    const blocked = positions.filter(position => !closeAvailabilityFor(position).allowed);
+    if (!closable.length) {
+      showNotice('Markets are closed · positions remain open until their sessions resume.');
+      return false;
+    }
+
+    if (blocked.length) {
+      const results = await Promise.allSettled(closable.map(position => trading.closePosition(position.id, 100)));
+      const closed = results.filter(item => item.status === 'fulfilled').length;
+      trading.refreshState();
+      if (tradePlan?.open) setTradePlan(null);
+      logEvent('position', `Close available: ${closed} closed, ${blocked.length} waiting for market open`);
+      showNotice(`${closed} closed · ${blocked.length} waiting for market open`);
+      return closed > 0;
+    }
+
     try {
       const result = await trading.closeAllPositions();
       trading.refreshState();
@@ -480,12 +520,14 @@ export default function TradingTerminalV2({
       if (result?.complete === false) {
         logEvent('warning', `Close all partially completed: ${result.closed || 0} closed, ${result.failed || 0} failed`);
         showNotice(`${result.closed || 0} positions closed; ${result.failed || 0} still require attention`);
-      } else {
-        logEvent('position', `Close all completed for ${result?.closed ?? positions.length} positions`);
-        showNotice('All positions closed');
+        return false;
       }
+      logEvent('position', `Close all completed for ${result?.closed ?? positions.length} positions`);
+      showNotice('All positions closed');
+      return true;
     } catch (error) {
       handleTradingError(error, 'Close all');
+      return false;
     }
   };
 
@@ -493,14 +535,25 @@ export default function TradingTerminalV2({
     const targets = positions.filter(predicate);
     if (!targets.length) {
       showNotice(`No ${label.toLowerCase()} positions to close`);
-      return;
+      return false;
     }
-    const results = await Promise.allSettled(targets.map(position => trading.closePosition(position.id, 100)));
+    const closable = targets.filter(position => closeAvailabilityFor(position).allowed);
+    const blocked = targets.length - closable.length;
+    if (!closable.length) {
+      showNotice('Market closed · selected positions remain open until the session resumes.');
+      return false;
+    }
+    const results = await Promise.allSettled(closable.map(position => trading.closePosition(position.id, 100)));
     const closed = results.filter(item => item.status === 'fulfilled').length;
     const failed = results.length - closed;
     trading.refreshState();
-    logEvent(failed ? 'warning' : 'position', `${label}: ${closed} closed${failed ? `, ${failed} failed` : ''}`);
-    showNotice(failed ? `${closed} closed; ${failed} require attention` : `${closed} positions closed`);
+    logEvent(failed ? 'warning' : 'position', `${label}: ${closed} closed${failed ? `, ${failed} failed` : ''}${blocked ? `, ${blocked} waiting for market open` : ''}`);
+    showNotice(blocked
+      ? `${closed} closed · ${blocked} waiting for market open`
+      : failed
+        ? `${closed} closed; ${failed} require attention`
+        : `${closed} positions closed`);
+    return closed > 0;
   };
 
   const closeWinners = () => closePositionSet(position => Number(position.pnl) > 0, 'Close winners');

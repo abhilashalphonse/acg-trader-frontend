@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, ExternalLink, Plus, X } from 'lucide-react';
 import { formatInstrumentPrice, instrumentForSymbol } from '../../utils/instrumentFormatting.js';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import { estimatePositionPnlAtPrice, positionDistancePips } from '../../utils/tradingRisk.js';
 import { accountTypeLabel } from '../../utils/accountPresentation.js';
 import { buildOpenPositionSummary } from '../../utils/openPositionPresentation.js';
+import { positionCloseAvailability } from '../../utils/marketExecutionAvailability.js';
 
 function money(value, currency = 'USD', signed = false) {
   if (value === null || value === undefined || value === '') return '—';
@@ -79,6 +80,12 @@ export default function TradeSection({
 
   const marketFor = symbol => instrumentForSymbol(markets, symbol);
   const price = (value, symbol) => formatInstrumentPrice(value, marketFor(symbol));
+  const closeAvailabilityFor = position => positionCloseAvailability(marketFor(position?.symbol));
+  const closablePositions = useMemo(
+    () => positions.filter(position => positionCloseAvailability(instrumentForSymbol(markets, position?.symbol)).allowed),
+    [markets, positions],
+  );
+  const blockedCloseCount = Math.max(0, positions.length - closablePositions.length);
 
   const openPositionDetails = position => {
     const nextExpanded = expandedId === position.id ? null : position.id;
@@ -158,6 +165,8 @@ export default function TradeSection({
 
   const runPartialClose = async (position, percent) => {
     if (positionActionBusy) return;
+    const availability = closeAvailabilityFor(position);
+    if (!availability.allowed) return false;
     setPositionActionBusy(`partial:${position.id}`);
     try {
       const closed = await onClosePosition(position.id, Number(percent));
@@ -172,6 +181,8 @@ export default function TradeSection({
 
   const runFullClose = async position => {
     if (positionActionBusy) return;
+    const availability = closeAvailabilityFor(position);
+    if (!availability.allowed) return false;
     if (closeConfirmId !== position.id) {
       setCloseConfirmId(position.id);
       return;
@@ -217,7 +228,7 @@ export default function TradeSection({
         <>
       <div className={`${embedded ? 'mt-1' : 'mt-5'} flex items-center justify-between px-1`}>
         <div><h2 className={`${embedded ? 'text-[10px]' : 'text-[12px]'} font-black text-[#eaf1f6]`}>Open positions <span className="ml-1 text-[#5e7890]">{positions.length}</span></h2>{!embedded && <p className="mt-0.5 text-[8px] text-[#60758a]">Tap a position to set SL / TP or manage it.</p>}</div>
-        {positions.length > 1 && <button type="button" onClick={onCloseAll} className="rounded-lg border border-[#4b2830] bg-[#080808] px-2.5 py-1.5 text-[8px] font-bold text-[#ff7b85]">Close all</button>}
+        {positions.length > 1 && <button type="button" onClick={onCloseAll} disabled={!closablePositions.length} title={!closablePositions.length ? 'Markets closed · positions remain open until their sessions resume.' : blockedCloseCount ? 'Closes only positions whose markets are open.' : 'Close all positions'} className="rounded-lg border border-[#4b2830] bg-[#080808] px-2.5 py-1.5 text-[8px] font-bold text-[#ff7b85] disabled:cursor-not-allowed disabled:opacity-35">{blockedCloseCount ? 'Close available' : 'Close all'}</button>}
       </div>
 
       <div className={`${embedded ? 'mt-1 space-y-0' : 'mt-2 space-y-2'}`}>
@@ -225,6 +236,8 @@ export default function TradeSection({
         {positions.map(position => {
           const expanded = expandedId === position.id;
           const live = marketFor(position.symbol);
+          const closeAvailability = positionCloseAvailability(live);
+          const closeDisabled = !closeAvailability.allowed;
           const summary = buildOpenPositionSummary(position, account, live);
           const current = summary.currentPrice;
           const numericPnl = Number(position.pnl);
@@ -354,6 +367,12 @@ export default function TradeSection({
                     </div>
                   </div>
 
+                  {closeDisabled && (
+                    <div className="mb-2 rounded-md border border-white/[0.06] bg-black/45 px-2.5 py-2 text-[8px] font-semibold text-[#71808d]">
+                      {closeAvailability.reason}
+                    </div>
+                  )}
+
                   {(() => {
                     const entry = Number(position.entry);
                     const tickSize = Math.max(Number(live?.tickSize) || Number(live?.pipSize) || 0, 0);
@@ -382,8 +401,9 @@ export default function TradeSection({
                           <button
                             type="button"
                             onClick={() => { setPartialCloseId(partialOpen ? null : position.id); setCloseConfirmId(null); }}
-                            disabled={Boolean(positionActionBusy)}
-                            className="h-10 rounded-md border border-white/[0.08] bg-black text-[9px] font-bold text-[#c4d0da] disabled:opacity-50"
+                            disabled={Boolean(positionActionBusy) || closeDisabled}
+                            title={closeDisabled ? closeAvailability.reason : 'Partially close position'}
+                            className="h-10 rounded-md border border-white/[0.08] bg-black text-[9px] font-bold text-[#c4d0da] disabled:cursor-not-allowed disabled:opacity-35"
                           >
                             Partial close
                           </button>
@@ -425,7 +445,8 @@ export default function TradeSection({
                             <button
                               type="button"
                               onClick={() => void runPartialClose(position, partialClosePercent)}
-                              disabled={!preview.valid || Boolean(positionActionBusy)}
+                              disabled={!preview.valid || Boolean(positionActionBusy) || closeDisabled}
+                              title={closeDisabled ? closeAvailability.reason : undefined}
                               className="mt-2 h-9 w-full rounded-md border border-white/[0.10] bg-[#15151a] text-[8px] font-black text-[#67ccff] disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               {positionActionBusy === `partial:${position.id}` ? 'Closing…' : `Close ${Number(partialClosePercent) || 0}%`}
@@ -436,11 +457,12 @@ export default function TradeSection({
                         <button
                           type="button"
                           onClick={() => void runFullClose(position)}
-                          disabled={Boolean(positionActionBusy)}
-                          className={`mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-md border text-[9px] font-black disabled:opacity-50 ${closeConfirmId === position.id ? 'border-[#7b3440] bg-[#351820] text-[#ff8790]' : 'border-[#562c35] bg-[#251319] text-[#ff7a85]'}`}
+                          disabled={Boolean(positionActionBusy) || closeDisabled}
+                          title={closeDisabled ? closeAvailability.reason : 'Close position'}
+                          className={`mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-md border text-[9px] font-black disabled:cursor-not-allowed disabled:opacity-35 ${closeConfirmId === position.id ? 'border-[#7b3440] bg-[#351820] text-[#ff8790]' : 'border-[#562c35] bg-[#251319] text-[#ff7a85]'}`}
                         >
                           <X size={13}/>
-                          {positionActionBusy === `close:${position.id}` ? 'Closing…' : closeConfirmId === position.id ? 'Confirm full close' : 'Close position'}
+                          {closeDisabled ? 'Market closed' : positionActionBusy === `close:${position.id}` ? 'Closing…' : closeConfirmId === position.id ? 'Confirm full close' : 'Close position'}
                         </button>
 
                         <button

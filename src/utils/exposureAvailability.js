@@ -14,9 +14,9 @@ export function exposureAvailability({ account, connectionStatus, market, comman
   if (String(account.valuationStatus || '').toUpperCase() !== 'LIVE') return { allowed: false, code: 'VALUATION_NOT_LIVE', reason: 'Account valuation is not live' };
   if (!market?.symbol) return { allowed: false, code: 'SYMBOL_MISSING', reason: 'No instrument is selected' };
   if (market.executionEnabled === false) return { allowed: false, code: 'INSTRUMENT_EXECUTION_DISABLED', reason: 'Chart-only market — trading is not enabled yet' };
-  if (market.sessionOpen === false) return { allowed: false, code: 'SESSION_CLOSED', reason: 'Market session is closed' };
-  if (market.isStale === true) return { allowed: false, code: 'QUOTE_STALE', reason: 'Executable quote is stale' };
   const state = String(market.marketState || '').toUpperCase();
+  if (market.sessionOpen === false || state === 'CLOSED') return { allowed: false, code: 'SESSION_CLOSED', reason: 'Market closed · trading resumes when the session opens.' };
+  if (market.isStale === true) return { allowed: false, code: 'QUOTE_STALE', reason: 'Executable quote is stale' };
   if (['WAITING', 'STALE', 'DISCONNECTED', 'ERROR', 'DISABLED'].includes(state)) return { allowed: false, code: 'MARKET_DATA_UNAVAILABLE', reason: 'Executable market data is unavailable' };
   const bid = Number(market.bid);
   const ask = Number(market.ask);

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Check, ChevronLeft, Clock, X } from 'lucide-react';
 import { formatInstrumentPrice, instrumentForSymbol } from '../../utils/instrumentFormatting.js';
+import { positionCloseAvailability } from '../../utils/marketExecutionAvailability.js';
 
 const HISTORY_PERIOD_KEY = 'acg-mobile-history-period-v1';
 const ACTIVE_ORDER_STATUSES = new Set(['PENDING', 'ACCEPTED', 'TRIGGERED']);
@@ -446,6 +447,8 @@ export default function MobileTradesSheet({
   };
 
   const runClose = async (position, percentage) => {
+    const availability = positionCloseAvailability(marketFor(position?.symbol));
+    if (!availability.allowed) return false;
     setBusy(true);
     try {
       const closed = await onClosePosition(position.id, percentage);
@@ -488,6 +491,8 @@ export default function MobileTradesSheet({
   const renderOpenPositionDetail = position => {
     const side = String(position?.side || '').toUpperCase();
     const market = marketFor(position?.symbol);
+    const closeAvailability = positionCloseAvailability(market);
+    const closeDisabled = !closeAvailability.allowed;
     const closePrice = Number(position?.closePrice);
     const fallbackCurrent = Number(market?.[side === 'BUY' ? 'bid' : 'ask']);
     const currentPrice = Number.isFinite(closePrice) ? closePrice : fallbackCurrent;
@@ -542,15 +547,21 @@ export default function MobileTradesSheet({
             </div>
           )}
 
+          {closeDisabled && (
+            <div className="mt-3 rounded-lg border border-white/[0.07] bg-[#0b0c0e] px-3 py-2 text-[9px] font-medium text-[#7f8a95]">
+              {closeAvailability.reason}
+            </div>
+          )}
+
           {detailMode === 'close' && (
             <div className="mt-3 rounded-xl border border-[#652832]/55 bg-[#16080b] p-3">
               <div className="text-[11px] font-semibold text-[#f0d9dc]">Close position</div>
-              <div className="mt-1 text-[9px] text-[#8f777c]">Choose how much of the current position to close.</div>
+              <div className="mt-1 text-[9px] text-[#8f777c]">{closeDisabled ? closeAvailability.reason : 'Choose how much of the current position to close.'}</div>
               <div className="mt-3 grid grid-cols-4 gap-2">
                 {[25, 50, 75, 100].map(value => {
                   const allowed = canPartialClose(position, value, marketFor(position.symbol));
                   return (
-                  <button key={value} type="button" disabled={busy || !allowed} onClick={() => void runClose(position, value)} className={`h-10 rounded-lg border text-[11px] font-bold disabled:opacity-25 ${value === 100 ? 'border-[#7b2b37] bg-[#270c11] text-[#ff6976]' : 'border-white/[0.09] bg-[#0b0c0e] text-[#d5dce3]'}`}>
+                  <button key={value} type="button" disabled={busy || !allowed || closeDisabled} title={closeDisabled ? closeAvailability.reason : undefined} onClick={() => void runClose(position, value)} className={`h-10 rounded-lg border text-[11px] font-bold disabled:cursor-not-allowed disabled:opacity-25 ${value === 100 ? 'border-[#7b2b37] bg-[#270c11] text-[#ff6976]' : 'border-white/[0.09] bg-[#0b0c0e] text-[#d5dce3]'}`}>
                     {value === 100 ? 'Full' : `${value}%`}
                   </button>
                   );
@@ -564,7 +575,7 @@ export default function MobileTradesSheet({
           {!readOnly && !detailMode && (
             <>
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <ActionButton onClick={() => setDetailMode('close')} tone="danger">Close / Partial</ActionButton>
+                <ActionButton onClick={() => setDetailMode('close')} tone="danger" disabled={closeDisabled}>{closeDisabled ? 'Market closed' : 'Close / Partial'}</ActionButton>
                 <ActionButton onClick={() => beginModify(position)} tone="primary">Modify SL/TP</ActionButton>
                 <ActionButton onClick={() => void runBreakEven(position)} disabled={busy}>Break Even</ActionButton>
                 <ActionButton onClick={() => editOnChart(position)} tone="success">Edit on Chart</ActionButton>
