@@ -545,10 +545,10 @@ export default function DesktopOrderTicket({
 
   const marketClosed = market?.sessionOpen === false || String(market?.marketState || '').toUpperCase() === 'CLOSED';
   let warning = null;
-  if (!exposureAllowed) warning = exposureBlockReason;
+  if (marketClosed) warning = 'Market closed · trading resumes when the session opens.';
+  else if (!exposureAllowed) warning = exposureBlockReason;
   else if (!executableQuote) {
-    if (marketClosed) warning = 'Market closed · trading resumes when the session opens.';
-    else if (market?.isStale) warning = 'Quote is stale. Execution is disabled.';
+    if (market?.isStale) warning = 'Quote is stale. Execution is disabled.';
     else warning = 'Waiting for an executable quote.';
   } else if (executionPlan && !planValidation.valid && !tradePlan?.desktopPendingDraft) warning = planValidation.message;
   else if (marginBlocked) warning = `Opening requirement exceeds free margin ${money(freeMargin, currency)}.`;
