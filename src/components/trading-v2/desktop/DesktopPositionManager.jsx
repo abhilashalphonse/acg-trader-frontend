@@ -4,6 +4,7 @@ import { formatInstrumentPrice, instrumentPipSize } from '../../../utils/instrum
 import { estimatePositionPnlAtPrice, estimateRequiredMargin, positionDistancePips } from '../../../utils/tradingRisk.js';
 import { normalizeProtectionPrice } from '../../../utils/tradingCommandNormalization.js';
 import { validateOpenPositionProtection } from '../../../utils/openPositionPresentation.js';
+import { positionCloseAvailability } from '../../../utils/marketExecutionAvailability.js';
 
 function money(value, currency = 'USD', signed = false) {
   const numeric = Number(value);
@@ -86,6 +87,8 @@ export default function DesktopPositionManager({
   const draftSl = draftMatchesPosition ? validPrice(protectionDraft?.sl) : sl;
   const draftTp = draftMatchesPosition ? validPrice(protectionDraft?.tp) : tp;
   const working = busy || protectionSaving;
+  const closeAvailability = positionCloseAvailability(instrument);
+  const closeDisabled = !closeAvailability.allowed;
 
   useEffect(() => {
     if (draftMatchesPosition) return;
@@ -242,9 +245,13 @@ export default function DesktopPositionManager({
   };
 
   const runClose = async percent => {
+    if (closeDisabled) {
+      onNotice(closeAvailability.reason);
+      return false;
+    }
     setBusy(true);
     try {
-      await onClose(position.id, percent);
+      return await onClose(position.id, percent);
     } finally {
       setBusy(false);
     }
@@ -385,10 +392,10 @@ export default function DesktopPositionManager({
             )}
           </div>
           <div className="relative">
-            <button type="button" disabled={working} onClick={() => { setReduceOpen(value => !value); setTrailOpen(false); }} className="flex h-8 w-full items-center justify-center gap-1 rounded border border-white/[0.06] text-[7px] font-black text-[#A1AFBC] disabled:opacity-40">REDUCE<ChevronDown size={9}/></button>
+            <button type="button" disabled={working || closeDisabled} title={closeDisabled ? closeAvailability.reason : 'Reduce position'} onClick={() => { setReduceOpen(value => !value); setTrailOpen(false); }} className="flex h-8 w-full items-center justify-center gap-1 rounded border border-white/[0.06] text-[7px] font-black text-[#A1AFBC] disabled:cursor-not-allowed disabled:opacity-35">REDUCE<ChevronDown size={9}/></button>
             {reduceOpen && (
               <div className="absolute left-0 right-0 top-9 z-40 rounded-md border border-white/[0.10] bg-[#090B0D] p-1 shadow-xl">
-                {[25,50,75].map(percent => <button key={percent} type="button" onClick={() => { setReduceOpen(false); runClose(percent); }} className="block h-7 w-full rounded px-2 text-left text-[7px] font-semibold text-[#A1AFBC] hover:bg-white/[0.04] hover:text-white">Close {percent}%</button>)}
+                {[25,50,75].map(percent => <button key={percent} type="button" disabled={closeDisabled} title={closeDisabled ? closeAvailability.reason : undefined} onClick={() => { setReduceOpen(false); runClose(percent); }} className="block h-7 w-full rounded px-2 text-left text-[7px] font-semibold text-[#A1AFBC] hover:bg-white/[0.04] hover:text-white disabled:cursor-not-allowed disabled:opacity-35">Close {percent}%</button>)}
               </div>
             )}
           </div>
@@ -408,7 +415,8 @@ export default function DesktopPositionManager({
           )}
         </div>
 
-        <button type="button" disabled={working} onClick={() => runClose(100)} className="h-9 w-full rounded-md border border-[#642c35] bg-[#16090d] text-[8px] font-black uppercase tracking-[0.06em] text-[#FF6F7A] disabled:opacity-40">Close position</button>
+        {closeDisabled && <div className="rounded-md border border-white/[0.06] bg-black/35 px-2 py-1.5 text-[7px] font-semibold text-[#7f8b97]">{closeAvailability.reason}</div>}
+        <button type="button" disabled={working || closeDisabled} title={closeDisabled ? closeAvailability.reason : 'Close position'} onClick={() => runClose(100)} className="h-9 w-full rounded-md border border-[#642c35] bg-[#16090d] text-[8px] font-black uppercase tracking-[0.06em] text-[#FF6F7A] disabled:cursor-not-allowed disabled:opacity-35">{closeDisabled ? 'Market closed' : 'Close position'}</button>
       </div>
     </section>
   );
