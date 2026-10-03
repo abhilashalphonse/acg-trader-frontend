@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { marketApi } from '../api/market.js';
 import { useTraderAuth } from './useTraderAuth.js';
 import { useTradingStore } from './useTradingStore.js';
+import { resolveAuthoritativeSessionOpen } from '../utils/marketExecutionAvailability.js';
 
 function formatPrice(value, digits) {
   const numeric = Number(value);
@@ -203,16 +204,9 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
     const marketDataAvailable = realtimeState
       ? !unavailableStates.includes(realtimeState)
       : gateway?.marketDataAvailable !== false && !unavailableStates.includes(polledState);
-    // Session state is backend-authoritative. Prefer the realtime symbol status
-    // event, then the polled gateway snapshot, then the quote payload. The
-    // slower catalog value is only a compatibility fallback.
-    const sessionOpen = typeof realtimeStatus?.sessionOpen === 'boolean'
-      ? realtimeStatus.sessionOpen
-      : typeof gateway?.sessionOpen === 'boolean'
-        ? gateway.sessionOpen
-        : typeof quote?.sessionOpen === 'boolean'
-          ? quote.sessionOpen
-          : instrument.sessionOpen === true;
+    // Session state is backend-authoritative. Realtime status wins over the
+    // polled snapshot and quote payload; catalog state is compatibility-only.
+    const sessionOpen = resolveAuthoritativeSessionOpen({ realtimeStatus, gateway, quote, instrument });
     const rawStale = quote ? Boolean(quote.isStale) : Boolean(gateway?.isStale ?? true);
     // Exchange session state wins over provider freshness/connection state.
     // A closed market keeps its last known quote/candles without being labelled
