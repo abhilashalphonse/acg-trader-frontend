@@ -4,6 +4,8 @@ import {
   isMarketSessionClosed,
   marketForSymbol,
   positionCloseAvailability,
+  resolveAuthoritativeSessionOpen,
+  summarizeCloseAllResult,
 } from '../src/utils/marketExecutionAvailability.js';
 import { exposureAvailability } from '../src/utils/exposureAvailability.js';
 
@@ -68,4 +70,61 @@ test('new exposure is disabled when market state says CLOSED even before session
   assert.equal(result.allowed, false);
   assert.equal(result.code, 'SESSION_CLOSED');
   assert.match(result.reason, /Market closed/);
+});
+
+
+test('authoritative session state prefers realtime backend status over slower fallbacks', () => {
+  assert.equal(resolveAuthoritativeSessionOpen({
+    realtimeStatus: { sessionOpen: false },
+    gateway: { sessionOpen: true },
+    quote: { sessionOpen: true },
+    instrument: { sessionOpen: true },
+  }), false);
+
+  assert.equal(resolveAuthoritativeSessionOpen({
+    gateway: { sessionOpen: true },
+    quote: { sessionOpen: false },
+    instrument: { sessionOpen: false },
+  }), true);
+
+  assert.equal(resolveAuthoritativeSessionOpen({
+    quote: { sessionOpen: false },
+    instrument: { sessionOpen: true },
+  }), false);
+});
+
+test('close-all summary distinguishes closed-session skips from real failures', () => {
+  const summary = summarizeCloseAllResult({
+    complete: false,
+    requested: 3,
+    closed: 1,
+    skipped: 1,
+    failed: 1,
+    results: [
+      { status: 'CLOSED' },
+      { status: 'SKIPPED_CLOSED_SESSION' },
+      { status: 'FAILED' },
+    ],
+  });
+
+  assert.equal(summary.complete, false);
+  assert.equal(summary.closed, 1);
+  assert.equal(summary.skipped, 1);
+  assert.equal(summary.failed, 1);
+  assert.equal(summary.message, '1 closed · 1 market closed · 1 failed');
+});
+
+test('close-all summary can infer counts from result rows for rollout compatibility', () => {
+  const summary = summarizeCloseAllResult({
+    complete: false,
+    results: [
+      { status: 'CLOSED' },
+      { status: 'SKIPPED_CLOSED_SESSION' },
+    ],
+  }, 2);
+
+  assert.equal(summary.closed, 1);
+  assert.equal(summary.skipped, 1);
+  assert.equal(summary.failed, 0);
+  assert.equal(summary.message, '1 closed · 1 market closed');
 });
