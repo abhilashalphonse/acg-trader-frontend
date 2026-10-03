@@ -256,7 +256,7 @@ export default function TradingTerminalV2({
       try {
         const result = await trading.getPolicyStatus(activeSymbol, controller.signal);
         if (active && !controller.signal.aborted) setTradingPolicyStatus(result || null);
-      } catch (error) {
+      } catch {
         if (active && !controller.signal.aborted) setTradingPolicyStatus(null);
       }
     };
