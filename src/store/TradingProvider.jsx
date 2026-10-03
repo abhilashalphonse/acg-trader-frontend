@@ -116,6 +116,7 @@ export function TradingProvider({ children }) {
 
   const commands = useMemo(() => ({
     accountValuation: (accountId, signal) => withTraderToken(token => tradingApi.accountValuation(token, accountId, signal)),
+    policyStatus: (accountId, symbol, signal) => withTraderToken(token => tradingApi.policyStatus(token, accountId, symbol, signal)),
     positionValuation: (positionId, signal) => withTraderToken(token => tradingApi.positionValuation(token, positionId, signal)),
     pendingOrders: (accountId, signal) => withTraderToken(token => tradingApi.pendingOrders(token, accountId, signal)),
     historyOrders: (accountId, query, signal) => withTraderToken(token => tradingApi.historyOrders(token, accountId, query, signal)),
