@@ -9,13 +9,13 @@ import { useWatchlists } from './hooks/useWatchlists.js';
 import { deriveTerminalStatus } from './utils/terminalStatus.js';
 import { formatInstrumentPrice } from './utils/instrumentFormatting.js';
 import { resolveActiveAccountId } from './utils/accountLifecycleRouting.js';
+import { riskCriticalMarketSymbols } from './utils/marketSubscriptions.js';
 
 const TradingTerminalV2 = lazy(() => import('./pages/TradingTerminalV2.jsx'));
 const MobileTraderShell = lazy(() => import('./pages/MobileTraderShell.jsx'));
 
 const LAST_SYMBOL_STORAGE_KEY = 'acg-trader-last-symbol-v1';
 const FX_PRIORITY = ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD'];
-const ACTIVE_PENDING_ORDER_STATUSES = new Set(['PENDING', 'ACCEPTED', 'TRIGGERED']);
 
 function storedLastSymbol() {
   if (typeof window === 'undefined') return null;
@@ -112,26 +112,11 @@ export default function App() {
     ));
   }, []);
 
-  const riskCriticalSymbols = useMemo(() => {
-    const granted = new Set((auth.principal?.accountIds || []).map(String));
-    const symbols = [];
-
-    for (const position of Object.values(trading.positionsById || {})) {
-      if (String(position?.status || '').toUpperCase() !== 'OPEN') continue;
-      if (granted.size && !granted.has(String(position?.accountId || ''))) continue;
-      if (position?.symbol) symbols.push(String(position.symbol).toUpperCase());
-    }
-
-    for (const order of Object.values(trading.ordersById || {})) {
-      const status = String(order?.status || '').toUpperCase();
-      const type = String(order?.type || '').toUpperCase();
-      if (!ACTIVE_PENDING_ORDER_STATUSES.has(status) || type === 'MARKET') continue;
-      if (granted.size && !granted.has(String(order?.accountId || ''))) continue;
-      if (order?.symbol) symbols.push(String(order.symbol).toUpperCase());
-    }
-
-    return [...new Set(symbols)];
-  }, [auth.principal?.accountIds, trading.ordersById, trading.positionsById]);
+  const riskCriticalSymbols = useMemo(() => riskCriticalMarketSymbols({
+    positionsById: trading.positionsById,
+    ordersById: trading.ordersById,
+    grantedAccountIds: auth.principal?.accountIds,
+  }), [auth.principal?.accountIds, trading.ordersById, trading.positionsById]);
 
   const subscriptionSymbols = useMemo(
     () => [...new Set([
