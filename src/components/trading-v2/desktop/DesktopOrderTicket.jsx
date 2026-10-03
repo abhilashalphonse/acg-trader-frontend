@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ChevronDown, GripVertical, Maximize2, Minus, Plus, X } from 'lucide-react';
+import { AlertTriangle, ChevronDown, Clock3, GripVertical, Maximize2, Minus, Plus, X } from 'lucide-react';
 import { decimalPlaces, normalizeVolumeToStep } from '../../../utils/tradingCommandNormalization.js';
 import {
   estimateOpeningRequirement,
@@ -543,10 +543,11 @@ export default function DesktopOrderTicket({
       : 'Set SL to calculate'
     : null;
 
+  const marketClosed = market?.sessionOpen === false || String(market?.marketState || '').toUpperCase() === 'CLOSED';
   let warning = null;
   if (!exposureAllowed) warning = exposureBlockReason;
   else if (!executableQuote) {
-    if (market?.sessionOpen === false) warning = 'Market session is closed.';
+    if (marketClosed) warning = 'Market closed · trading resumes when the session opens.';
     else if (market?.isStale) warning = 'Quote is stale. Execution is disabled.';
     else warning = 'Waiting for an executable quote.';
   } else if (executionPlan && !planValidation.valid && !tradePlan?.desktopPendingDraft) warning = planValidation.message;
@@ -824,8 +825,12 @@ export default function DesktopOrderTicket({
         </div>
 
         {warning && (
-          <div className="mb-3 flex items-start gap-1.5 rounded-md border border-[#56353b] bg-[#14090c] px-2 py-1.5 text-[8px] font-semibold leading-4 text-[#d8a1a7]">
-            <AlertTriangle size={11} className="mt-0.5 shrink-0 text-[#d45a64]"/>
+          <div className={marketClosed
+            ? 'mb-3 flex items-start gap-1.5 rounded-md border border-white/[0.07] bg-black/35 px-2 py-1.5 text-[8px] font-semibold leading-4 text-[#83919e]'
+            : 'mb-3 flex items-start gap-1.5 rounded-md border border-[#56353b] bg-[#14090c] px-2 py-1.5 text-[8px] font-semibold leading-4 text-[#d8a1a7]'}>
+            {marketClosed
+              ? <Clock3 size={11} className="mt-0.5 shrink-0 text-[#657482]"/>
+              : <AlertTriangle size={11} className="mt-0.5 shrink-0 text-[#d45a64]"/>}
             <span>{warning}</span>
           </div>
         )}
