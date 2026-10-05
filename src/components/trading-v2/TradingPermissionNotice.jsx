@@ -29,7 +29,7 @@ function noticeFor(status, now) {
   const weekend = status.weekend || {};
   const enforcement = status.enforcement || {};
 
-  if (permissions.newsTrading === false && news.active && news.event) {
+  if (permissions.newsTrading === false && news.active && news.event && !(weekend.active && enforcement.weekendEnabled && !enforcement.newsEnabled)) {
     return {
       priority: 100,
       tone: enforcement.newsEnabled ? 'danger' : 'warning',
@@ -37,7 +37,7 @@ function noticeFor(status, now) {
       title: `${news.event.currency || ''} high-impact news window`.trim(),
       message: enforcement.newsEnabled
         ? `New ${status.symbol || 'instrument'} exposure is temporarily unavailable until ${timeLabel(news.blockedUntil)}. Existing positions may remain open; closing or reducing is always available.`
-        : `This account is configured to restrict new ${status.symbol || 'instrument'} exposure in this window. Existing positions may remain open; closing or reducing is always available.`,
+        : `Monitoring only: this account's News Trading setting would restrict new ${status.symbol || 'instrument'} exposure once enforcement is active. Existing positions may remain open.`,
       detail: news.event.title || 'High-impact economic event',
     };
   }
@@ -50,7 +50,7 @@ function noticeFor(status, now) {
       title: 'Weekend holding cutoff',
       message: enforcement.weekendEnabled
         ? `This account does not include Weekend Holding. Open ${status.symbol || 'instrument'} positions are scheduled for protective closure before the market shuts at ${timeLabel(weekend.marketCloseAt)}.`
-        : `This account does not include Weekend Holding. The protective cutoff for ${status.symbol || 'this instrument'} is ${timeLabel(weekend.autoCloseAt)}.`,
+        : `Monitoring only: this account's Weekend Holding setting would apply a protective cutoff at ${timeLabel(weekend.autoCloseAt)} once enforcement is active.`,
       detail: 'Protective weekend closure is not an account breach.',
     };
   }
@@ -64,7 +64,9 @@ function noticeFor(status, now) {
         tone: 'info',
         icon: CalendarClock,
         title: `${news.next.currency || ''} high-impact news in ${countdown(news.next.timestamp, now) || 'soon'}`.trim(),
-        message: `The ${status.symbol || 'instrument'} restriction window starts in ${countdown(news.next.blockedFrom, now)} at ${timeLabel(news.next.blockedFrom)}.`,
+        message: enforcement.newsEnabled
+          ? `The ${status.symbol || 'instrument'} restriction window starts in ${countdown(news.next.blockedFrom, now)} at ${timeLabel(news.next.blockedFrom)}.`
+          : `Monitoring only: the configured news window starts at ${timeLabel(news.next.blockedFrom)}. Automated news restrictions are not active.`,
         detail: `${news.next.title || 'High-impact event'} · Existing positions may remain open.`,
       };
     }
@@ -76,18 +78,22 @@ function noticeFor(status, now) {
       tone: 'info',
       icon: AlertTriangle,
       title: `Weekend cutoff in ${countdown(weekend.autoCloseAt, now) || 'soon'}`,
-      message: `This account does not include Weekend Holding. ${status.symbol || 'Instrument'} positions are due for protective closure 5 minutes before its weekend market shutdown.`,
+      message: enforcement.weekendEnabled
+        ? `Protective closure of ${status.symbol || 'instrument'} positions begins at ${timeLabel(weekend.autoCloseAt)}. The target to be flat is ${timeLabel(weekend.requiredFlatAt)}.`
+        : 'Monitoring only: automatic weekend closure is not active for this account.',
       detail: `Cutoff ${timeLabel(weekend.autoCloseAt)} · Market close ${timeLabel(weekend.marketCloseAt)}`,
     };
   }
 
-  if (permissions.newsTrading === false && ['STALE', 'UNAVAILABLE'].includes(String(news.dataStatus || '').toUpperCase())) {
+  if (permissions.newsTrading === false && ['STALE', 'UNAVAILABLE', 'EXPIRED'].includes(String(news.dataStatus || '').toUpperCase())) {
     return {
       priority: 30,
       tone: 'neutral',
       icon: ShieldCheck,
       title: 'Economic calendar verification unavailable',
-      message: 'ACG is not using uncertain calendar timing to impose an automated news restriction.',
+      message: enforcement.newsEnabled
+        ? 'New exposure is paused until the calendar is verified. Existing positions may still be closed or reduced.'
+        : 'Monitoring only: automated news restrictions are not active. Calendar timing is currently unverified.',
       detail: 'The dashboard calendar may still show cached events for planning.',
     };
   }
