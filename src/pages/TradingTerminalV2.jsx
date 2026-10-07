@@ -11,6 +11,7 @@ import WatchlistSection from '../components/trading-v2/WatchlistSection.jsx';
 import PropRiskStrip from '../components/trading-v2/PropRiskStrip.jsx';
 import ExecutionStatus from '../components/trading-v2/ExecutionStatus.jsx';
 import TradingPermissionNotice from '../components/trading-v2/TradingPermissionNotice.jsx';
+import OrderPreviewConfirm from '../components/trading-v2/OrderPreviewConfirm.jsx';
 import useTradingHotkeys from '../hooks/useTradingHotkeys.js';
 import { useTradingTerminal } from '../hooks/useTradingTerminal.js';
 import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
@@ -25,6 +26,7 @@ import { estimateExecutionPrice, resolveExecutionPreview } from '../utils/execut
 import { deriveAccountCapabilities, protectionRequirement } from '../utils/accountCapabilities.js';
 import { validateOpenPositionProtection } from '../utils/openPositionPresentation.js';
 import { marketForSymbol, positionCloseAvailability, summarizeCloseAllResult } from '../utils/marketExecutionAvailability.js';
+import { requiresServerOrderPreview } from '../utils/serverOrderPreview.js';
 
 const INDICATOR_STORAGE_KEY = 'acg-trader-indicators-v1';
 const INDICATOR_FAVORITES_KEY = 'acg-trader-indicator-favorites-v1';
@@ -143,6 +145,7 @@ export default function TradingTerminalV2({
   const executionDismissRef = useRef(null);
   const prefsRef = useRef(loadTerminalPrefs());
   const journalAccountRef = useRef(null);
+  const marketOrderPreviewRequestRef = useRef(0);
   const isDesktop = useDesktopLayout();
   const trading = useTradingTerminal(markets);
   const { account, positions, pendingOrders, positionHistory } = trading;
@@ -171,6 +174,7 @@ export default function TradingTerminalV2({
   const [positionProtectionSaving, setPositionProtectionSaving] = useState(false);
   const [journal, setJournal] = useState([]);
   const [executionEvent, setExecutionEvent] = useState(null);
+  const [marketOrderPreview, setMarketOrderPreview] = useState(null);
   const [indicators, setIndicators] = useState(loadIndicators);
   const [indicatorFavorites, setIndicatorFavorites] = useState(loadIndicatorFavorites);
   const [overlay, setOverlay] = useState(null);
@@ -202,6 +206,11 @@ export default function TradingTerminalV2({
     if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
     if (executionDismissRef.current) window.clearTimeout(executionDismissRef.current);
   }, []);
+
+  useEffect(() => {
+    marketOrderPreviewRequestRef.current += 1;
+    setMarketOrderPreview(null);
+  }, [activeSymbol, trading.accountId]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') try { window.localStorage.setItem(INDICATOR_STORAGE_KEY, JSON.stringify(indicators)); } catch { /* preferences are non-critical */ }
@@ -373,6 +382,9 @@ export default function TradingTerminalV2({
     takeProfit = null,
     executionSizingMode = sizingMode,
     skipRiskGuard = false,
+    serverPreviewConfirmed = false,
+    serverPreview = null,
+    clearTradePlanOnFill = false,
   }) => {
     if (!symbol || !trading.accountId) return null;
     const instrument = markets.find(item => item.symbol === symbol) || market;
@@ -388,19 +400,71 @@ export default function TradingTerminalV2({
       return null;
     }
 
+    const serverPreviewRequired = requiresServerOrderPreview(instrument, account);
+    if (serverPreviewRequired && !serverPreviewConfirmed) {
+      const previewRequestVersion = ++marketOrderPreviewRequestRef.current;
+      const previewRequest = {
+        side,
+        executionLots,
+        symbol,
+        requestedPrice,
+        stopLoss,
+        takeProfit,
+        executionSizingMode,
+        skipRiskGuard,
+        clearTradePlanOnFill,
+      };
+      setMarketOrderPreview({
+        status: 'loading',
+        request: previewRequest,
+        instrument,
+        preview: null,
+      });
+      try {
+        const preview = await trading.previewMarketOrder({
+          symbol,
+          side,
+          volume: executionLots,
+          stopLoss,
+          takeProfit,
+          requestedPrice: Number.isFinite(Number(requestedPrice)) ? Number(requestedPrice) : null,
+        });
+        if (previewRequestVersion !== marketOrderPreviewRequestRef.current) return null;
+        setMarketOrderPreview({
+          status: 'ready',
+          request: previewRequest,
+          instrument,
+          preview,
+        });
+      } catch (error) {
+        if (previewRequestVersion !== marketOrderPreviewRequestRef.current) return null;
+        setMarketOrderPreview(null);
+        handleTradingError(error, `Preview ${String(side || '').toUpperCase()} ${symbol}`);
+      }
+      return null;
+    }
+
     const modeledPrice = Number(estimateExecutionPrice(instrument, side, executionLots)?.price);
     const effectiveRequestedPrice = Number.isFinite(modeledPrice) && modeledPrice > 0
       ? modeledPrice
       : Number(requestedPrice);
-    const openingRequirement = estimateOpeningRequirement(effectiveRequestedPrice, executionLots, instrument, account);
+    const openingRequirement = serverPreviewRequired
+      ? Number(serverPreview?.costs?.requiredMargin)
+      : estimateOpeningRequirement(effectiveRequestedPrice, executionLots, instrument, account);
     const freeMargin = Number(account?.freeMargin);
     if (Number.isFinite(openingRequirement) && Number.isFinite(freeMargin) && openingRequirement > freeMargin + 1e-8) {
       showNotice(`Opening requirement ${openingRequirement.toFixed(2)} ${account?.currency || 'USD'} exceeds available free margin.`);
       return null;
     }
-    const proposedRisk = stopLoss == null
+    const serverRiskRaw = serverPreview?.risk?.amount;
+    const serverRisk = serverRiskRaw === null || serverRiskRaw === undefined || serverRiskRaw === ''
       ? null
-      : estimateStopRisk({ entry: effectiveRequestedPrice, sl: stopLoss, side }, executionLots, instrument, account.currency);
+      : Number(serverRiskRaw);
+    const proposedRisk = Number.isFinite(serverRisk)
+      ? serverRisk
+      : stopLoss == null
+        ? null
+        : estimateStopRisk({ entry: effectiveRequestedPrice, sl: stopLoss, side }, executionLots, instrument, account.currency);
     if (!skipRiskGuard) {
       const guard = evaluateRiskGuard({
         account,
@@ -445,6 +509,7 @@ export default function TradingTerminalV2({
       const filled = fillEvent(result, base);
       setExecutionEvent(filled);
       logEvent('fill', `${base.side} ${base.lots.toFixed(2)} ${symbol} filled @ ${formatInstrumentPrice(filled.fillPrice, instrument)}`, filled);
+      if (clearTradePlanOnFill) setTradePlan(null);
       dismissExecutionLater();
       return result;
     } catch (error) {
@@ -1174,6 +1239,7 @@ export default function TradingTerminalV2({
       takeProfit: executionPlan.tp,
       executionSizingMode: executionPlan.sizingMode || sizingMode,
       skipRiskGuard: options?.skipRiskGuard === true,
+      clearTradePlanOnFill: true,
     });
     if (result?.position || result?.reconciled || String(result?.order?.status || '').toUpperCase() === 'FILLED') {
       setTradePlan(null);
@@ -1193,6 +1259,27 @@ export default function TradingTerminalV2({
       const instrument = markets.find(item => item.symbol === plan.symbol) || market;
       return { ...plan, ...normalizeTradePlanPatch(plan, patch, instrument) };
     });
+  };
+
+  const cancelMarketOrderPreview = () => {
+    if (marketOrderPreview?.status === 'confirming') return;
+    marketOrderPreviewRequestRef.current += 1;
+    setMarketOrderPreview(null);
+  };
+
+  const confirmMarketOrderPreview = async () => {
+    const current = marketOrderPreview;
+    if (!current?.preview || !current?.request || current.status === 'confirming') return null;
+    setMarketOrderPreview({ ...current, status: 'confirming' });
+    try {
+      return await runMarketExecution({
+        ...current.request,
+        serverPreviewConfirmed: true,
+        serverPreview: current.preview,
+      });
+    } finally {
+      setMarketOrderPreview(null);
+    }
   };
 
   const manualOrder = (order, options = {}) => {
@@ -1448,6 +1535,13 @@ export default function TradingTerminalV2({
           readOnly={readOnly}
         />
         <ExecutionStatus event={executionEvent} instrument={market} onDismiss={() => setExecutionEvent(null)} />
+        <OrderPreviewConfirm
+          state={marketOrderPreview}
+          account={account}
+          instrument={marketOrderPreview?.instrument}
+          onCancel={cancelMarketOrderPreview}
+          onConfirm={confirmMarketOrderPreview}
+        />
         {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} watchlists={watchlists} onSelectSymbol={symbol => { selectSymbol(symbol); setOverlay(null); }} {...indicatorSheetProps} />}
       </>
     );
@@ -1525,6 +1619,13 @@ export default function TradingTerminalV2({
           </>
         )}
         <ExecutionStatus event={executionEvent} instrument={market} onDismiss={() => setExecutionEvent(null)} />
+        <OrderPreviewConfirm
+          state={marketOrderPreview}
+          account={account}
+          instrument={marketOrderPreview?.instrument}
+          onCancel={cancelMarketOrderPreview}
+          onConfirm={confirmMarketOrderPreview}
+        />
         {notice && <div className="fixed left-1/2 top-[74px] z-[120] w-[calc(100%-24px)] max-w-[420px] -translate-x-1/2 rounded-xl border border-white/[0.08] bg-[#101010]/95 px-3 py-2.5 text-center text-[10px] font-semibold text-[#dce9f2] shadow-[0_16px_48px_rgba(0,0,0,.45)] backdrop-blur-xl">{notice}</div>}
         {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} onSelectSymbol={symbol => { selectSymbol(symbol); if (activeNav === 'watchlist') setActiveNav('trade'); }} {...indicatorSheetProps} />}
       </main>

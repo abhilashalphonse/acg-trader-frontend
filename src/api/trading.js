@@ -17,6 +17,7 @@ export const tradingApi = Object.freeze({
   historyOrders(token, accountId, query, signal) { return apiRequest(`/v1/trading/accounts/${encodeURIComponent(accountId)}/history/orders${queryString(query)}`, auth(token, { signal })); },
   historyDeals(token, accountId, query, signal) { return apiRequest(`/v1/trading/accounts/${encodeURIComponent(accountId)}/history/deals${queryString(query)}`, auth(token, { signal })); },
   historyPositions(token, accountId, query, signal) { return apiRequest(`/v1/trading/accounts/${encodeURIComponent(accountId)}/history/positions${queryString(query)}`, auth(token, { signal })); },
+  previewMarketOrder(token, command, signal) { return apiRequest('/v1/trading/orders/market/preview', auth(token, { method: 'POST', body: command, signal })); },
   openMarketOrder(token, command, signal) { return apiRequest('/v1/trading/orders/market', auth(token, { method: 'POST', body: command, signal })); },
   placePendingOrder(token, command, signal) { return apiRequest('/v1/trading/orders/pending', auth(token, { method: 'POST', body: command, signal })); },
   amendPendingOrder(token, orderId, command, signal) { return apiRequest(`/v1/trading/orders/${encodeURIComponent(orderId)}`, auth(token, { method: 'PATCH', body: command, signal })); },

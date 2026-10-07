@@ -447,6 +447,23 @@ export function useTradingTerminal(markets = []) {
 
   const instrumentForSymbol = useCallback(symbol => markets.find(item => item.symbol === String(symbol || '').toUpperCase()) || null, [markets]);
 
+  const previewMarketOrder = useCallback(({ symbol, side, volume, stopLoss = null, takeProfit = null, requestedPrice = null }, signal) => {
+    const normalizedSymbol = String(symbol || '').toUpperCase();
+    const normalizedSide = String(side || '').toUpperCase();
+    const instrument = instrumentForSymbol(normalizedSymbol);
+    const targetAccountId = requireAccount();
+    return commands.previewMarketOrder({
+      accountId: targetAccountId,
+      symbol: normalizedSymbol,
+      side: normalizedSide,
+      volume: String(normalizeVolumeToStep(volume, instrument)),
+      stopLoss: normalizeProtectionPrice(stopLoss, instrument, normalizedSide, 'sl'),
+      takeProfit: normalizeProtectionPrice(takeProfit, instrument, normalizedSide, 'tp'),
+      requestedPrice,
+      source: sourceForViewport(),
+    }, signal);
+  }, [commands, instrumentForSymbol, requireAccount]);
+
   const openMarketOrder = useCallback(({ symbol, side, volume, stopLoss = null, takeProfit = null, requestedPrice = null }) => {
     const normalizedSymbol = String(symbol || '').toUpperCase();
     const normalizedSide = String(side || '').toUpperCase();
@@ -613,5 +630,5 @@ export function useTradingTerminal(markets = []) {
     }));
   }, [commands, instrumentForSymbol, pendingOrders, requireAccount, run]);
 
-  return { accountId, activeAccountId, grantedAccountIds, accountGrants, accounts, selectAccount, accountSwitching, accountGrantMissing, accountSwitchError, lifecycleEvent, clearLifecycleEvent, account, rawAccount, valuation, positions, pendingOrders, positionHistory, historyOrders: history.accountId === accountId ? history.orders : [], historyDeals: history.accountId === accountId ? history.deals : [], historyPositions: history.accountId === accountId ? history.positions : [], historyLoaded: history.accountId === accountId && history.loaded, fills: trading.fills.filter(fill => String(fill?.accountId || '') === String(accountId || '')), orders: Object.values(trading.ordersById).filter(order => String(order?.accountId || '') === String(accountId || '')), connection, commandState, tradingReady: Boolean(accountId && !accountGrantMissing && rawAccount && account.tradingEnabled && connection.status === 'ready' && !commandState.uncertain && !accountSwitching), refreshState, getPolicyStatus, openMarketOrder, placePendingOrder, replacePendingOrder, cancelPendingOrder, closePosition, closeAllPositions, updatePosition, movePositionToBreakEven, setPositionTrailing, duplicatePosition, reversePosition, errorMessage };
+  return { accountId, activeAccountId, grantedAccountIds, accountGrants, accounts, selectAccount, accountSwitching, accountGrantMissing, accountSwitchError, lifecycleEvent, clearLifecycleEvent, account, rawAccount, valuation, positions, pendingOrders, positionHistory, historyOrders: history.accountId === accountId ? history.orders : [], historyDeals: history.accountId === accountId ? history.deals : [], historyPositions: history.accountId === accountId ? history.positions : [], historyLoaded: history.accountId === accountId && history.loaded, fills: trading.fills.filter(fill => String(fill?.accountId || '') === String(accountId || '')), orders: Object.values(trading.ordersById).filter(order => String(order?.accountId || '') === String(accountId || '')), connection, commandState, tradingReady: Boolean(accountId && !accountGrantMissing && rawAccount && account.tradingEnabled && connection.status === 'ready' && !commandState.uncertain && !accountSwitching), refreshState, getPolicyStatus, previewMarketOrder, openMarketOrder, placePendingOrder, replacePendingOrder, cancelPendingOrder, closePosition, closeAllPositions, updatePosition, movePositionToBreakEven, setPositionTrailing, duplicatePosition, reversePosition, errorMessage };
 }

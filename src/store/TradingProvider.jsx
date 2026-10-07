@@ -122,6 +122,7 @@ export function TradingProvider({ children }) {
     historyOrders: (accountId, query, signal) => withTraderToken(token => tradingApi.historyOrders(token, accountId, query, signal)),
     historyDeals: (accountId, query, signal) => withTraderToken(token => tradingApi.historyDeals(token, accountId, query, signal)),
     historyPositions: (accountId, query, signal) => withTraderToken(token => tradingApi.historyPositions(token, accountId, query, signal)),
+    previewMarketOrder: (command, signal) => withTraderToken(token => tradingApi.previewMarketOrder(token, command, signal)),
     openMarketOrder: (command, signal) => executeCommand(token => tradingApi.openMarketOrder(token, command, signal)),
     placePendingOrder: (command, signal) => executeCommand(token => tradingApi.placePendingOrder(token, command, signal)),
     amendPendingOrder: (orderId, command, signal) => executeCommand(token => tradingApi.amendPendingOrder(token, orderId, command, signal)),
