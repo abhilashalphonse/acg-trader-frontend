@@ -467,7 +467,7 @@ export function useTradingTerminal(markets = []) {
     }, signal);
   }, [commands, instrumentForSymbol, requireAccount]);
 
-  const openMarketOrder = useCallback(({ symbol, side, volume, maxRiskAmount = null, stopLoss = null, takeProfit = null, requestedPrice = null }) => {
+  const openMarketOrder = useCallback(({ symbol, side, volume, maxRiskAmount = null, maxExposureAmount = null, stopLoss = null, takeProfit = null, requestedPrice = null }) => {
     const normalizedSymbol = String(symbol || '').toUpperCase();
     const normalizedSide = String(side || '').toUpperCase();
     const instrument = instrumentForSymbol(normalizedSymbol);
@@ -480,6 +480,7 @@ export function useTradingTerminal(markets = []) {
       side: normalizedSide,
       volume: String(normalizeVolumeToStep(volume, instrument)),
       ...(maxRiskAmount == null ? {} : { maxRiskAmount: String(maxRiskAmount) }),
+      ...(maxExposureAmount == null ? {} : { maxExposureAmount: String(maxExposureAmount) }),
       stopLoss: normalizeProtectionPrice(stopLoss, instrument, normalizedSide, 'sl'),
       takeProfit: normalizeProtectionPrice(takeProfit, instrument, normalizedSide, 'tp'),
       requestedPrice,
