@@ -529,6 +529,8 @@ export default function TradingTerminalV2({
           ? String(serverPreview.volume) : base.lots,
         ...(serverPreview?.sizing?.mode === 'RISK'
           ? { maxRiskAmount: String(serverPreview.sizing.requestedAmount) } : {}),
+        ...(serverPreview?.sizing?.mode === 'AMOUNT'
+          ? { maxExposureAmount: String(serverPreview.sizing.requestedAmount) } : {}),
         stopLoss,
         takeProfit,
         requestedPrice: Number.isFinite(base.requestedPrice) ? base.requestedPrice : null,
@@ -1293,6 +1295,39 @@ export default function TradingTerminalV2({
     });
   };
 
+  const recalculateMarketOrderPreview = async ({ sizingMode, sizingAmount = null } = {}) => {
+    const current = marketOrderPreview;
+    if (!current?.request || current.status !== 'ready') return;
+    const mode = String(sizingMode || 'QUANTITY').toUpperCase();
+    const request = current.request;
+    const version = ++marketOrderPreviewRequestRef.current;
+    setMarketOrderPreview({ ...current, status: 'loading' });
+    try {
+      const nextPreview = await trading.previewMarketOrder({
+        symbol: request.symbol,
+        side: request.side,
+        sizingMode: mode,
+        ...(mode === 'QUANTITY'
+          ? { volume: request.executionLots }
+          : { sizingAmount: String(sizingAmount) }),
+        stopLoss: request.stopLoss,
+        takeProfit: request.takeProfit,
+        requestedPrice: Number.isFinite(Number(request.requestedPrice))
+          ? Number(request.requestedPrice) : null,
+      });
+      if (version !== marketOrderPreviewRequestRef.current) return;
+      setMarketOrderPreview({
+        ...current,
+        status: 'ready',
+        preview: nextPreview,
+      });
+    } catch (error) {
+      if (version !== marketOrderPreviewRequestRef.current) return;
+      setMarketOrderPreview({ ...current, status: 'ready' });
+      handleTradingError(error, 'Recalculate server preview');
+    }
+  };
+
   const cancelMarketOrderPreview = () => {
     if (marketOrderPreview?.status === 'confirming') return;
     marketOrderPreviewRequestRef.current += 1;
@@ -1573,6 +1608,7 @@ export default function TradingTerminalV2({
           instrument={marketOrderPreview?.instrument}
           onCancel={cancelMarketOrderPreview}
           onConfirm={confirmMarketOrderPreview}
+          onRecalculate={recalculateMarketOrderPreview}
         />
         {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} watchlists={watchlists} onSelectSymbol={symbol => { selectSymbol(symbol); setOverlay(null); }} {...indicatorSheetProps} />}
       </>
@@ -1657,6 +1693,7 @@ export default function TradingTerminalV2({
           instrument={marketOrderPreview?.instrument}
           onCancel={cancelMarketOrderPreview}
           onConfirm={confirmMarketOrderPreview}
+          onRecalculate={recalculateMarketOrderPreview}
         />
         {notice && <div className="fixed left-1/2 top-[74px] z-[120] w-[calc(100%-24px)] max-w-[420px] -translate-x-1/2 rounded-xl border border-white/[0.08] bg-[#101010]/95 px-3 py-2.5 text-center text-[10px] font-semibold text-[#dce9f2] shadow-[0_16px_48px_rgba(0,0,0,.45)] backdrop-blur-xl">{notice}</div>}
         {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} onSelectSymbol={symbol => { selectSymbol(symbol); if (activeNav === 'watchlist') setActiveNav('trade'); }} {...indicatorSheetProps} />}
