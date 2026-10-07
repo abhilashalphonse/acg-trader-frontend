@@ -33,8 +33,13 @@ export function previewIsExecutable(preview) {
   if (!preview || preview.previewVersion !== 'ACG_ORDER_PREVIEW_V1') return false;
   if (preview.executionPolicy?.allowed === false) return false;
 
-  const requiredMargin = Number(preview.costs?.requiredMargin);
-  const projectedFreeMargin = Number(preview.projectedAccount?.freeMargin);
+  const requiredMarginRaw = preview.costs?.requiredMargin;
+  const projectedFreeMarginRaw = preview.projectedAccount?.freeMargin;
+  if (requiredMarginRaw === null || requiredMarginRaw === undefined || requiredMarginRaw === '') return false;
+  if (projectedFreeMarginRaw === null || projectedFreeMarginRaw === undefined || projectedFreeMarginRaw === '') return false;
+
+  const requiredMargin = Number(requiredMarginRaw);
+  const projectedFreeMargin = Number(projectedFreeMarginRaw);
   return Number.isFinite(requiredMargin)
     && requiredMargin >= 0
     && Number.isFinite(projectedFreeMargin)
