@@ -50,10 +50,13 @@ const chartTokens = {
 const DEFAULT_BARS_BACK = 44;
 const DEFAULT_RIGHT_BARS = 7;
 const HISTORY_PREFETCH_BARS = 120;
-const DESKTOP_INITIAL_HISTORY = 750;
-const MOBILE_INITIAL_HISTORY = 320;
-const DESKTOP_HISTORY_PAGE = 750;
-const MOBILE_HISTORY_PAGE = 320;
+// Initial chart paint should never wait for a deep history request. The visible
+// viewport is only ~42 candles; older bars are already cursor-paginated and
+// prefetched as the trader approaches the left edge.
+const DESKTOP_INITIAL_HISTORY = 160;
+const MOBILE_INITIAL_HISTORY = 160;
+const DESKTOP_HISTORY_PAGE = 320;
+const MOBILE_HISTORY_PAGE = 240;
 const DESKTOP_MAX_LOADED_BARS = 10_000;
 const MOBILE_MAX_LOADED_BARS = 3_000;
 
