@@ -1,5 +1,7 @@
 import { apiRequest } from './client.js';
 
+const CANDLE_REQUEST_TIMEOUT_MS = 20_000;
+
 export const marketApi = Object.freeze({
   status(signal) {
     return apiRequest('/v1/market/status', { signal });
@@ -41,6 +43,11 @@ export const marketApi = Object.freeze({
         limit,
         ...(before == null ? {} : { before }),
       },
+      // Candle history may require one provider REST round-trip on a cold
+      // cache. Keep the global 10s trading/API deadline unchanged and give
+      // history its own guardrail so the browser does not abort just before
+      // the backend can return or fall back.
+      timeoutMs: CANDLE_REQUEST_TIMEOUT_MS,
       signal,
     });
   },
