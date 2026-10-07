@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Loader2, ShieldCheck, X } from 'lucide-react';
 import { primaryConversionLeg, previewIsExecutable } from '../../utils/serverOrderPreview.js';
 
@@ -27,7 +27,17 @@ export default function OrderPreviewConfirm({
   instrument = null,
   onCancel = () => {},
   onConfirm = () => {},
+  onRecalculate = () => {},
 }) {
+  const [selectedMode, setSelectedMode] = useState('QUANTITY');
+  const [budget, setBudget] = useState('50');
+  useEffect(() => {
+    const mode = state?.preview?.sizing?.mode;
+    if (mode) setSelectedMode(mode);
+    if (state?.preview?.sizing?.requestedAmount != null) {
+      setBudget(String(state.preview.sizing.requestedAmount));
+    }
+  }, [state?.preview?.sizing?.mode, state?.preview?.sizing?.requestedAmount]);
   if (!state) return null;
 
   const loading = state.status === 'loading';
@@ -82,6 +92,63 @@ export default function OrderPreviewConfirm({
           </div>
         ) : (
           <div className="p-4">
+            <div className="mb-3 rounded-lg border border-white/[0.07] bg-black p-2.5">
+              <span className="mb-2 block text-[8px] font-semibold uppercase tracking-[0.08em] text-[#8294a4]">
+                Order sizing · {currency}
+              </span>
+              <div className="grid grid-cols-3 gap-1">
+                {[
+                  ['QUANTITY', 'Quantity'],
+                  ['RISK', 'Risk'],
+                  ['AMOUNT', 'Amount'],
+                ].map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    disabled={confirming}
+                    onClick={() => setSelectedMode(mode)}
+                    className={`rounded-md border px-2 py-2 text-[9px] font-semibold ${selectedMode === mode
+                      ? 'border-[#195be1] bg-[#102248] text-[#dbe8ff]'
+                      : 'border-white/[0.08] text-[#94a3b8]'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {selectedMode !== 'QUANTITY' && (
+                <label className="mt-2 block">
+                  <span className="block text-[8px] text-[#8493a1]">
+                    {selectedMode === 'RISK' ? 'Maximum loss at stop, including estimated costs' : 'Maximum exposure in account currency'}
+                  </span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={budget}
+                    onChange={event => setBudget(event.target.value)}
+                    aria-label={selectedMode === 'RISK' ? 'Risk amount' : 'Exposure amount'}
+                    className="mt-1 h-9 w-full rounded-md border border-white/[0.12] bg-[#0d1218] px-3 font-mono text-[12px] text-white outline-none focus:border-[#195be1]"
+                  />
+                </label>
+              )}
+              <button
+                type="button"
+                disabled={confirming || (selectedMode !== 'QUANTITY' && !(Number(budget) > 0))}
+                onClick={() => void onRecalculate({
+                  sizingMode: selectedMode,
+                  sizingAmount: selectedMode === 'QUANTITY' ? null : budget,
+                })}
+                className="mt-2 w-full rounded-md border border-white/[0.14] px-3 py-2 text-[9px] font-bold text-[#d6e4f3] disabled:opacity-40"
+              >
+                Recalculate with server
+              </button>
+              {preview?.sizing?.requestedAmount != null && (
+                <span className="mt-2 block text-[8px] text-[#9bafc3]">
+                  {preview.sizing.mode === 'RISK' ? 'Risk budget' : 'Exposure budget'}:
+                  {' '}{money(preview.sizing.requestedAmount, currency)} · Actual:
+                  {' '}{money(preview.sizing.actualAmount, currency)}
+                </span>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-2">
               {[
                 ['Size', `${scalar(preview?.volume)} ${String(instrument?.assetClass || state.instrument?.assetClass || '').toUpperCase() === 'EQUITY' ? 'shares' : 'lot'}`],
