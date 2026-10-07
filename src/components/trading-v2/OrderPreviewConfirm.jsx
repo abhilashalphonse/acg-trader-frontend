@@ -177,6 +177,8 @@ export default function OrderPreviewConfirm({
                 ['Size', `${scalar(preview?.volume)} ${String(instrument?.assetClass || state.instrument?.assetClass || '').toUpperCase() === 'EQUITY' ? 'shares' : 'lot'}`],
                 ['Expected fill', scalar(preview?.fillPrice)],
                 ['Effective leverage', preview?.leverage?.effective ? `1:${preview.leverage.effective}` : 'Margin rate'],
+                ['Native exposure', money(preview?.exposure?.nativeAmount, preview?.exposure?.nativeCurrency || currency)],
+                ['Account exposure', money(preview?.exposure?.amount, currency)],
                 ['Required margin', money(preview?.costs?.requiredMargin, currency)],
                 ['Opening cost', money(preview?.costs?.immediateOpeningPnl, currency)],
                 ['Opening commission', money(preview?.costs?.openingCommission, currency)],
