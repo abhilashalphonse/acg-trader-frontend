@@ -1,4 +1,5 @@
 name: Deploy ACG Trader to Firebase Hosting
+# Live deploys are triggered by main pushes or merged PRs.
 
 on:
   push:
