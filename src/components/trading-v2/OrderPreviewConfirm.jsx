@@ -31,9 +31,11 @@ export default function OrderPreviewConfirm({
 }) {
   const [selectedMode, setSelectedMode] = useState('QUANTITY');
   const [budget, setBudget] = useState('50');
+  const [quantity, setQuantity] = useState('0.001');
   useEffect(() => {
     const mode = state?.preview?.sizing?.mode;
     if (mode) setSelectedMode(mode);
+    if (state?.preview?.volume != null) setQuantity(String(state.preview.volume));
     if (state?.preview?.sizing?.requestedAmount != null) {
       setBudget(String(state.preview.sizing.requestedAmount));
     }
@@ -47,7 +49,12 @@ export default function OrderPreviewConfirm({
   const side = String(request.side || preview?.side || '').toUpperCase();
   const currency = preview?.accountCurrency || account?.currency || 'USD';
   const fxLeg = primaryConversionLeg(preview);
-  const canConfirm = !loading && !confirming && previewIsExecutable(preview);
+  const confirmedMode = preview?.sizing?.mode || 'QUANTITY';
+  const budgetMatches = selectedMode === 'QUANTITY'
+    ? quantity === String(preview?.volume ?? '')
+    : budget === String(preview?.sizing?.requestedAmount ?? '');
+  const canConfirm = !loading && !confirming
+    && selectedMode === confirmedMode && budgetMatches && previewIsExecutable(preview);
   const corporateActionsUnsupported = String(
     instrument?.corporateActionPolicy || state.instrument?.corporateActionPolicy || ''
   ).toUpperCase() === 'UNSUPPORTED';
@@ -115,6 +122,21 @@ export default function OrderPreviewConfirm({
                   </button>
                 ))}
               </div>
+              {selectedMode === 'QUANTITY' && (
+                <label className="mt-2 block">
+                  <span className="block text-[8px] text-[#8493a1]">
+                    Exact instrument quantity
+                  </span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={quantity}
+                    onChange={event => setQuantity(event.target.value)}
+                    aria-label="Order quantity"
+                    className="mt-1 h-9 w-full rounded-md border border-white/[0.12] bg-[#0d1218] px-3 font-mono text-[12px] text-white outline-none focus:border-[#195be1]"
+                  />
+                </label>
+              )}
               {selectedMode !== 'QUANTITY' && (
                 <label className="mt-2 block">
                   <span className="block text-[8px] text-[#8493a1]">
@@ -132,10 +154,11 @@ export default function OrderPreviewConfirm({
               )}
               <button
                 type="button"
-                disabled={confirming || (selectedMode !== 'QUANTITY' && !(Number(budget) > 0))}
+                disabled={confirming || (selectedMode === 'QUANTITY' ? !(Number(quantity) > 0) : !(Number(budget) > 0))}
                 onClick={() => void onRecalculate({
                   sizingMode: selectedMode,
                   sizingAmount: selectedMode === 'QUANTITY' ? null : budget,
+                  volume: selectedMode === 'QUANTITY' ? quantity : null,
                 })}
                 className="mt-2 w-full rounded-md border border-white/[0.14] px-3 py-2 text-[9px] font-bold text-[#d6e4f3] disabled:opacity-40"
               >
