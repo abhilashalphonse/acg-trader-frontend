@@ -1295,7 +1295,7 @@ export default function TradingTerminalV2({
     });
   };
 
-  const recalculateMarketOrderPreview = async ({ sizingMode, sizingAmount = null } = {}) => {
+  const recalculateMarketOrderPreview = async ({ sizingMode, sizingAmount = null, volume = null } = {}) => {
     const current = marketOrderPreview;
     if (!current?.request || current.status !== 'ready') return;
     const mode = String(sizingMode || 'QUANTITY').toUpperCase();
@@ -1308,7 +1308,7 @@ export default function TradingTerminalV2({
         side: request.side,
         sizingMode: mode,
         ...(mode === 'QUANTITY'
-          ? { volume: request.executionLots }
+          ? { volume: String(volume ?? request.executionLots) }
           : { sizingAmount: String(sizingAmount) }),
         stopLoss: request.stopLoss,
         takeProfit: request.takeProfit,
