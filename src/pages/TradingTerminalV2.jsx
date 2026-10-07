@@ -381,6 +381,7 @@ export default function TradingTerminalV2({
     stopLoss = null,
     takeProfit = null,
     executionSizingMode = sizingMode,
+    sizingAmount = null,
     skipRiskGuard = false,
     serverPreviewConfirmed = false,
     serverPreview = null,
@@ -401,6 +402,15 @@ export default function TradingTerminalV2({
     }
 
     const serverPreviewRequired = requiresServerOrderPreview(instrument, account);
+    const previewSizingMode = serverPreviewRequired && String(executionSizingMode).toLowerCase() === 'risk'
+      ? 'RISK' : 'QUANTITY';
+    const requestedSizingAmount = sizingAmount ?? (previewSizingMode === 'RISK'
+      ? Number(account?.equity ?? account?.balance ?? 0) * Number(riskPercent) / 100
+      : null);
+    if (previewSizingMode === 'RISK' && (!Number.isFinite(Number(requestedSizingAmount)) || Number(requestedSizingAmount) <= 0)) {
+      showNotice('A positive USD risk budget is required for this order.');
+      return null;
+    }
     if (serverPreviewRequired && !serverPreviewConfirmed) {
       const previewRequestVersion = ++marketOrderPreviewRequestRef.current;
       const previewRequest = {
@@ -411,6 +421,7 @@ export default function TradingTerminalV2({
         stopLoss,
         takeProfit,
         executionSizingMode,
+        sizingAmount: requestedSizingAmount,
         skipRiskGuard,
         clearTradePlanOnFill,
       };
@@ -424,7 +435,10 @@ export default function TradingTerminalV2({
         const preview = await trading.previewMarketOrder({
           symbol,
           side,
-          volume: executionLots,
+          sizingMode: previewSizingMode,
+          ...(previewSizingMode === 'QUANTITY'
+            ? { volume: executionLots }
+            : { sizingAmount: String(requestedSizingAmount) }),
           stopLoss,
           takeProfit,
           requestedPrice: Number.isFinite(Number(requestedPrice)) ? Number(requestedPrice) : null,
@@ -444,6 +458,16 @@ export default function TradingTerminalV2({
       return null;
     }
 
+    // For currency-dependent products, use the exact quantity from the
+    // authoritative preview, never the earlier local risk-size estimate.
+    const finalExecutionLots = serverPreviewRequired && serverPreviewConfirmed
+      ? Number(serverPreview?.volume)
+      : Number(executionLots);
+    if (!Number.isFinite(finalExecutionLots) || finalExecutionLots <= 0) {
+      showNotice('Server preview returned an invalid execution quantity.');
+      return null;
+    }
+    executionLots = finalExecutionLots;
     const modeledPrice = Number(estimateExecutionPrice(instrument, side, executionLots)?.price);
     const effectiveRequestedPrice = Number.isFinite(modeledPrice) && modeledPrice > 0
       ? modeledPrice
@@ -501,7 +525,10 @@ export default function TradingTerminalV2({
       const result = await trading.openMarketOrder({
         symbol,
         side: base.side,
-        volume: base.lots,
+        volume: serverPreviewRequired && serverPreviewConfirmed
+          ? String(serverPreview.volume) : base.lots,
+        ...(serverPreview?.sizing?.mode === 'RISK'
+          ? { maxRiskAmount: String(serverPreview.sizing.requestedAmount) } : {}),
         stopLoss,
         takeProfit,
         requestedPrice: Number.isFinite(base.requestedPrice) ? base.requestedPrice : null,
@@ -1159,7 +1186,10 @@ export default function TradingTerminalV2({
       stopLoss: executionPlan.sl,
     });
     if (!planProtection.valid) { showNotice(planProtection.message); return; }
-    if (!executionSizing.canExecute || !Number.isFinite(Number(executionSizing.lots))) {
+    const serverRiskSizing = !executionPlan.pending
+      && String(executionPlan.sizingMode || sizingMode).toLowerCase() === 'risk'
+      && requiresServerOrderPreview(planMarket, account);
+    if (!serverRiskSizing && (!executionSizing.canExecute || !Number.isFinite(Number(executionSizing.lots)))) {
       const reason = executionSizing.blockReason === 'UNSUPPORTED_RISK_CURRENCY'
         ? 'Risk % sizing is unavailable because this instrument P&L requires currency conversion. Use Lots sizing.'
         : executionSizing.blockReason === 'INSUFFICIENT_MARGIN'
@@ -1172,13 +1202,15 @@ export default function TradingTerminalV2({
       showNotice(reason);
       return;
     }
-    const volume = executionSizing.lots;
+    const volume = serverRiskSizing
+      ? Number(planMarket?.minVolume ?? 0.001)
+      : executionSizing.lots;
     const marginReference = executionPlan.pending && String(executionPlan.orderType || '').toLowerCase() === 'stop-limit'
       ? executionPlan.limitPrice
       : executionPlan.entry;
     const openingRequirement = estimateOpeningRequirement(marginReference, volume, planMarket, account);
     const freeMargin = Number(account?.freeMargin);
-    if (Number.isFinite(openingRequirement) && Number.isFinite(freeMargin) && openingRequirement > freeMargin + 1e-8) {
+    if (!serverRiskSizing && Number.isFinite(openingRequirement) && Number.isFinite(freeMargin) && openingRequirement > freeMargin + 1e-8) {
       showNotice(`Opening requirement ${openingRequirement.toFixed(2)} ${account?.currency || 'USD'} exceeds available free margin.`);
       return;
     }
@@ -1186,7 +1218,7 @@ export default function TradingTerminalV2({
       ? { ...executionPlan, entry: executionPlan.limitPrice }
       : executionPlan;
     const proposedRisk = estimateStopRisk(riskPlan, volume, planMarket, account.currency);
-    if (!options?.skipRiskGuard) {
+    if (!options?.skipRiskGuard && !serverRiskSizing) {
       const guard = evaluateRiskGuard({
         account,
         positions,
