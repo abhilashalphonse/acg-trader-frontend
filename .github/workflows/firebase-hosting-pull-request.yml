@@ -1,4 +1,4 @@
-name: Preview ACG Trader on Firebase Hosting
+name: One-time ACG Trader production deploy
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: acg-trader-firebase-pr-${{ github.event.pull_request.number }}
+  group: acg-trader-firebase-one-time-production
   cancel-in-progress: true
 
 jobs:
@@ -44,5 +44,5 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ACG_TRADER }}
           projectId: acg-trader
-          channelId: pr-${{ github.event.pull_request.number }}
-          expires: 7d
+          channelId: live
+          
