@@ -145,6 +145,7 @@ export default function TradingTerminalV2({
   const executionDismissRef = useRef(null);
   const prefsRef = useRef(loadTerminalPrefs());
   const journalAccountRef = useRef(null);
+  const marketOrderPreviewRequestRef = useRef(0);
   const isDesktop = useDesktopLayout();
   const trading = useTradingTerminal(markets);
   const { account, positions, pendingOrders, positionHistory } = trading;
@@ -207,6 +208,7 @@ export default function TradingTerminalV2({
   }, []);
 
   useEffect(() => {
+    marketOrderPreviewRequestRef.current += 1;
     setMarketOrderPreview(null);
   }, [activeSymbol, trading.accountId]);
 
@@ -400,6 +402,7 @@ export default function TradingTerminalV2({
 
     const serverPreviewRequired = requiresServerOrderPreview(instrument, account);
     if (serverPreviewRequired && !serverPreviewConfirmed) {
+      const previewRequestVersion = ++marketOrderPreviewRequestRef.current;
       const previewRequest = {
         side,
         executionLots,
@@ -426,6 +429,7 @@ export default function TradingTerminalV2({
           takeProfit,
           requestedPrice: Number.isFinite(Number(requestedPrice)) ? Number(requestedPrice) : null,
         });
+        if (previewRequestVersion !== marketOrderPreviewRequestRef.current) return null;
         setMarketOrderPreview({
           status: 'ready',
           request: previewRequest,
@@ -433,6 +437,7 @@ export default function TradingTerminalV2({
           preview,
         });
       } catch (error) {
+        if (previewRequestVersion !== marketOrderPreviewRequestRef.current) return null;
         setMarketOrderPreview(null);
         handleTradingError(error, `Preview ${String(side || '').toUpperCase()} ${symbol}`);
       }
@@ -451,7 +456,10 @@ export default function TradingTerminalV2({
       showNotice(`Opening requirement ${openingRequirement.toFixed(2)} ${account?.currency || 'USD'} exceeds available free margin.`);
       return null;
     }
-    const serverRisk = Number(serverPreview?.risk?.amount);
+    const serverRiskRaw = serverPreview?.risk?.amount;
+    const serverRisk = serverRiskRaw === null || serverRiskRaw === undefined || serverRiskRaw === ''
+      ? null
+      : Number(serverRiskRaw);
     const proposedRisk = Number.isFinite(serverRisk)
       ? serverRisk
       : stopLoss == null
@@ -1255,6 +1263,7 @@ export default function TradingTerminalV2({
 
   const cancelMarketOrderPreview = () => {
     if (marketOrderPreview?.status === 'confirming') return;
+    marketOrderPreviewRequestRef.current += 1;
     setMarketOrderPreview(null);
   };
 
