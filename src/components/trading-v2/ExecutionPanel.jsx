@@ -5,6 +5,7 @@ import { calculateRiskOrderSizing, effectiveLeverage, estimateRequiredMargin, es
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 import { effectiveTradePlan, validateTradePlanForExecution } from '../../utils/tradePlanExecution.js';
 import { deriveAccountCapabilities, protectionRequirement } from '../../utils/accountCapabilities.js';
+import { requiresServerOrderPreview } from '../../utils/serverOrderPreview.js';
 
 function selectInputNextFrame(event) {
   const input = event.currentTarget;
@@ -217,9 +218,13 @@ export default function ExecutionPanel({
   const effectivePlan = useMemo(() => effectiveTradePlan(tradePlan, market), [market, tradePlan]);
   const metrics = useMemo(() => getPlanMetrics(effectivePlan, riskPercent, effectivePlan?.manualLots ?? lots, market, account), [account, market, effectivePlan, riskPercent, lots]);
   const executableQuote = finiteQuote(market?.bid) && finiteQuote(market?.ask) && market?.isStale !== true && market?.sessionOpen !== false && !['WAITING', 'DISCONNECTED', 'ERROR', 'DISABLED', 'STALE'].includes(String(market?.marketState || '').toUpperCase());
-  const riskModeSupported = sizingMode !== 'risk' || riskSizingSupported(market, account?.currency);
+  const serverRiskSizing = sizingMode === 'risk' && orderType === 'market'
+    && requiresServerOrderPreview(market, account);
+  const riskModeSupported = sizingMode !== 'risk'
+    || riskSizingSupported(market, account?.currency)
+    || serverRiskSizing;
   const riskConstraint = effectivePlan && sizingMode === 'risk' ? metrics?.riskSizing : null;
-  const riskOrderExecutable = !riskConstraint || riskConstraint.canExecute !== false;
+  const riskOrderExecutable = serverRiskSizing || !riskConstraint || riskConstraint.canExecute !== false;
   const planValidation = validateTradePlanForExecution(effectivePlan, market);
   const accountCapabilities = deriveAccountCapabilities(account);
   const planProtection = effectivePlan
@@ -241,7 +246,7 @@ export default function ExecutionPanel({
       : riskConstraint?.blockReason === 'MIN_VOLUME'
         ? `Minimum ${Number(market?.minVolume || 0).toFixed(2)} lots exceeds the selected risk`
         : null;
-  const marketHint = !exposureAllowed ? exposureBlockReason : !riskModeSupported ? 'Risk % sizing requires the instrument P&L currency to match the account currency' : riskConstraintHint || (!planValidation.valid ? planValidation.message : !planProtection.valid ? planProtection.message : (market?.sessionOpen === false ? 'Market closed · trading resumes when the session opens' : market?.isStale ? 'Quote stale' : !executableQuote ? 'Waiting for quote' : orderType === 'market' ? (sizingMode === 'risk' ? 'Tap Buy/Sell' : accountCapabilities.manualLotWithoutStopLoss ? `${spreadPips?.toFixed(1) ?? '—'} pips · SL optional` : `${spreadPips?.toFixed(1) ?? '—'} pips · SL required`) : 'Tap side to place on chart'));
+  const marketHint = !exposureAllowed ? exposureBlockReason : !riskModeSupported ? 'Risk sizing requires a server-supported conversion path' : (serverRiskSizing ? null : riskConstraintHint) || (!planValidation.valid ? planValidation.message : !planProtection.valid ? planProtection.message : (market?.sessionOpen === false ? 'Market closed · trading resumes when the session opens' : market?.isStale ? 'Quote stale' : !executableQuote ? 'Waiting for quote' : orderType === 'market' ? (sizingMode === 'risk' ? 'Tap Buy/Sell' : accountCapabilities.manualLotWithoutStopLoss ? `${spreadPips?.toFixed(1) ?? '—'} pips · SL optional` : `${spreadPips?.toFixed(1) ?? '—'} pips · SL required`) : 'Tap side to place on chart'));
 
   const protectionTargetSymbol = String(positionProtectionDraft?.symbol || selectedPosition?.symbol || market?.symbol || '').toUpperCase();
   const protectionTargetSide = String(positionProtectionDraft?.side || selectedPosition?.side || '').toUpperCase();
