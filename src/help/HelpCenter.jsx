@@ -5,6 +5,7 @@ import {
   ShieldCheck, Wrench, X,
 } from 'lucide-react';
 import { HELP_ARTICLES, HELP_SECTIONS, findHelpArticles, getHelpArticle } from './helpContent.js';
+import { useTraderAuth } from '../hooks/useTraderAuth.js';
 import { REPORT_CATEGORIES, requestHumanSupport, submitHelpRequest } from './supportClient.js';
 
 const SECTION_ICONS = { start: Rocket, guides: BookOpen, faq: CircleHelp, troubleshooting: Wrench };
@@ -19,6 +20,9 @@ const caption = 'text-[12px] leading-relaxed text-[#96a4b5]';
 const tile = 'rounded-lg border border-white/[0.08] bg-[#14181e] transition hover:border-[#195be1]/40 hover:bg-[#192029]';
 
 export default function HelpCenter({ onClose, desktop = false, symbol = '', timeframe = '' }) {
+  const { principal } = useTraderAuth();
+  const fundedEmail = principal?.authMethod === 'FEDERATED' ? String(principal?.fundedCustomerEmail || '').trim().toLowerCase() : '';
+  const validFundedEmail = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(fundedEmail);
   const rootRef = useRef(null);
   const returnFocusRef = useRef(null);
   const [page, setPage] = useState({ kind: 'home', id: null });
@@ -27,7 +31,6 @@ export default function HelpCenter({ onClose, desktop = false, symbol = '', time
   const [category, setCategory] = useState(REPORT_CATEGORIES[0]);
   const [description, setDescription] = useState('');
   const [expected, setExpected] = useState('');
-  const [replyEmail, setReplyEmail] = useState('');
   const [sendDiagnostics, setSendDiagnostics] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -46,7 +49,6 @@ export default function HelpCenter({ onClose, desktop = false, symbol = '', time
       setCategory(id === 'feedback' ? FEEDBACK_CATEGORIES[0] : id === 'bug' ? REPORT_CATEGORIES[0] : 'Platform Support');
       setDescription('');
       setExpected('');
-      setReplyEmail('');
       setSendDiagnostics(false);
     }
     rootRef.current?.querySelector('[data-help-scroll]')?.scrollTo({ top: 0 });
@@ -87,7 +89,7 @@ export default function HelpCenter({ onClose, desktop = false, symbol = '', time
 
   const send = async event => {
     event.preventDefault();
-    if (busy || description.trim().length < 10) return;
+    if (busy || description.trim().length < 10 || !validFundedEmail) return;
     setBusy(true);
     setError('');
     const kind = page.id;
@@ -97,7 +99,7 @@ export default function HelpCenter({ onClose, desktop = false, symbol = '', time
         symbol, timeframe, browser: navigator.userAgent, build: import.meta.env.VITE_GIT_SHA || '',
       } : null;
       const data = await submitHelpRequest({
-        kind, category, description: description.trim(), expected: kind === 'bug' ? expected : '', contactEmail: replyEmail.trim(),
+        kind, category, description: description.trim(), expected: kind === 'bug' ? expected : '', contactEmail: fundedEmail,
         context, humanReview: kind !== 'support',
       });
       setReceipt(data);
@@ -283,12 +285,18 @@ export default function HelpCenter({ onClose, desktop = false, symbol = '', time
                 <p className="text-right text-[11px] text-[#7e8e9d]">{description.length}/2000</p>
               </div>
               <div className="space-y-1.5">
-                <label htmlFor="help-email" className="text-[12px] font-semibold">Email for replies</label>
-                <input id="help-email" type="email" autoComplete="email" required maxLength={200}
-                  value={replyEmail} onChange={event => setReplyEmail(event.target.value)}
-                  placeholder="you@example.com"
-                  className="w-full rounded-lg border border-white/[0.12] bg-[#14181e] p-3 text-[13px] text-white outline-none placeholder:text-[#768699] focus:border-[#195be1]"/>
-                <p className="text-[11px] leading-5 text-[#8293a5]">Trader sessions are separate from Funded support sign-in. We use the email you provide for follow-up; do not enter passwords or payment details.</p>
+                <span className="text-[12px] font-semibold">ACG Funded account email</span>
+                {validFundedEmail ? (
+                  <div className="flex min-h-[46px] items-center gap-2 rounded-lg border border-white/[0.12] bg-[#14181e] px-3 text-[13px] text-[#d9e4ef]">
+                    <ShieldCheck size={16} className="shrink-0 text-[#69c6a1]"/>
+                    <span className="min-w-0 flex-1 break-all">{fundedEmail}</span>
+                  </div>
+                ) : (
+                  <div role="status" className="rounded-lg border border-amber-500/25 bg-[#201a0e] p-3 text-[12px] leading-5 text-[#eccd91]">
+                    Your ACG Funded email has not yet synced with this Trader session. Reopen ACG Trader from your ACG Funded dashboard to refresh your sign-in before submitting a support request.
+                  </div>
+                )}
+                {validFundedEmail && <p className="text-[11px] leading-5 text-[#8293a5]">We’ll use your ACG Funded account email for replies across support, bug reports and feedback. This address comes from your signed-in Funded session and cannot be edited here.</p>}
               </div>
               {page.id === 'bug' && <div className="space-y-1.5">
                 <label htmlFor="help-expected" className="text-[12px] font-semibold">What did you expect? <span className="font-normal text-[#8395a8]">(optional)</span></label>
@@ -302,7 +310,7 @@ export default function HelpCenter({ onClose, desktop = false, symbol = '', time
               </label>
               <p className="text-[11px] leading-5 text-[#8293a5]">Screenshots are not supported in this version. Please do not include private credentials or personal payment details.</p>
               {error && <p role="alert" className="rounded-lg border border-rose-500/30 bg-[#251016] p-3 text-[12px] leading-5 text-[#ffadb8]">{error}</p>}
-              <button disabled={busy || description.trim().length < 10 || !replyEmail.includes('@')} type="submit"
+              <button disabled={busy || description.trim().length < 10 || !validFundedEmail} type="submit"
                 className="w-full rounded-lg bg-[#195be1] p-3 text-[13px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">
                 {busy ? 'Submitting…' : page.id === 'support' ? 'Send to Support' : 'Submit ' + (page.id === 'bug' ? 'Bug Report' : 'Feedback')}
               </button>
