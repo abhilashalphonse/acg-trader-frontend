@@ -1,7 +1,6 @@
 // Text-only integration with ACG Funded's existing support conversations.
 // Trader federation tokens are NOT Funded customer auth tokens. Until a vetted
 // cross-service identity handoff exists, use a random anonymous support session.
-const DEFAULT_SUPPORT_API = 'https://funded-backend-production.up.railway.app';
 const SESSION_KEY = 'acg-trader-support-session-v1';
 const MAX_CHARS = 3000;
 
@@ -14,10 +13,11 @@ function clean(value, maximum = 500) {
   return String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, maximum);
 }
 
-export function makeReportText({ kind, category, description, expected = '', context = null }) {
+export function makeReportText({ kind, category, description, expected = '', contactEmail = '', context = null }) {
   const heading = kind === 'bug' ? 'ACG TRADER BUG REPORT' : kind === 'feedback' ? 'ACG TRADER FEATURE FEEDBACK' : 'ACG TRADER SUPPORT';
   const parts = [heading, 'Category: ' + clean(category, 80), 'Details: ' + clean(description, 2200)];
   if (expected) parts.push('Expected: ' + clean(expected, 380));
+  if (contactEmail) parts.push('Reply email: ' + clean(contactEmail, 200));
   if (context) {
     if (context.symbol) parts.push('Symbol: ' + clean(context.symbol, 28));
     if (context.timeframe) parts.push('Timeframe: ' + clean(context.timeframe, 12));
@@ -31,7 +31,8 @@ export function makeReportText({ kind, category, description, expected = '', con
 }
 
 function supportApiBase() {
-  const configured = import.meta.env?.VITE_ACG_FUNDED_SUPPORT_BASE_URL || DEFAULT_SUPPORT_API;
+  const configured = import.meta.env?.VITE_ACG_FUNDED_SUPPORT_BASE_URL;
+  if (!configured) throw new Error('Support service is not configured for this deployment. Open support from your ACG Funded dashboard instead.');
   const url = new URL(configured);
   if (url.protocol !== 'https:' && !(import.meta.env?.DEV && url.hostname === 'localhost')) {
     throw new Error('Support service must use HTTPS.');
@@ -62,9 +63,12 @@ async function request(path, body) {
   return data.data;
 }
 
-export async function submitHelpRequest({ kind, category, description, expected, context, humanReview = false }) {
-  const message = makeReportText({ kind, category, description, expected, context });
-  const pageContext = 'ACG_TRADER_HELP_CENTER';
+export async function submitHelpRequest({ kind, category, description, expected, contactEmail, context, humanReview = false }) {
+  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(String(contactEmail || '')) || String(contactEmail).length > 200) {
+    throw new Error('Enter a valid email address for support follow-up.');
+  }
+  const message = makeReportText({ kind, category, description, expected, contactEmail, context });
+  const pageContext = 'ACG_TRADER_HELP_CENTER:' + String(kind || 'support').toUpperCase();
   // Never automatically retry POST after an ambiguous network failure.
   const saved = await request('/api/support/message', { message, pageContext });
   if (!saved?.conversationId) throw new Error('Support did not return a reference. Do not resubmit before checking with support.');
