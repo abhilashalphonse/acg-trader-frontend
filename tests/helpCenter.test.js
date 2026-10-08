@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { HELP_ARTICLES, HELP_SECTIONS, findHelpArticles, getHelpArticle } from '../src/help/helpContent.js';
 import { REPORT_CATEGORIES, makeReportText } from '../src/help/supportClient.js';
+import { fundedSupportEmail } from '../src/help/supportIdentity.js';
 
 test('curated Help Center has unique IDs and agreed release counts', () => {
   assert.equal(HELP_ARTICLES.length, 45);
@@ -41,4 +42,14 @@ test('reply email stays in the support message only when supplied', () => {
     description: 'Account is not synchronizing', contactEmail: 'reply@example.com' });
   assert.match(data, /Reply email: reply@example\.com/);
   assert.doesNotMatch(data, /accessToken|authorization|bearer/i);
+});
+
+test('all help forms use only the authenticated federated Funded email', () => {
+  assert.equal(fundedSupportEmail({
+    authMethod: 'FEDERATED', fundedCustomerEmail: ' Trader.User@Example.com '
+  }), 'trader.user@example.com');
+  assert.equal(fundedSupportEmail({ authMethod: 'FEDERATED', fundedCustomerEmail: 'invalid' }), null);
+  assert.equal(fundedSupportEmail({ authMethod: 'PASSWORD', fundedCustomerEmail: 'other@example.com' }), null);
+  assert.equal(fundedSupportEmail({ authMethod: 'FEDERATED', ownerExternalRef: 'other@example.com' }), null);
+  assert.equal(fundedSupportEmail(null), null);
 });
