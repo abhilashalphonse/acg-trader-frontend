@@ -64,7 +64,7 @@ async function request(path, body) {
 }
 
 export async function submitHelpRequest({ kind, category, description, expected, contactEmail, context, humanReview = false }) {
-  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(String(contactEmail || '')) || String(contactEmail).length > 200) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(contactEmail || '')) || String(contactEmail).length > 200) {
     throw new Error('Enter a valid email address for support follow-up.');
   }
   const message = makeReportText({ kind, category, description, expected, contactEmail, context });
