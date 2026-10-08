@@ -428,14 +428,14 @@ export const HELP_ARTICLES = [
     ]
   },
   {
-    "id": "devices",
+    "id": "trading-days",
     "section": "faq",
-    "title": "Can I use ACG Trader on desktop and mobile?",
-    "summary": "Yes. Both interfaces support trading workflows with device-specific navigation. Desktop also offers an expanded positions dock and multi-chart workspace.",
+    "title": "What counts as a trading day in ACG Funded?",
+    "summary": "A trading day is a UTC calendar day (00:00–23:59 UTC) on which you open at least one new position. Closing a position the next day does not create a second trading day. The minimum required days depend on your particular challenge rules.",
     "steps": [],
     "note": "",
     "keywords": [
-      "devices"
+      "trading days"
     ]
   },
   {
