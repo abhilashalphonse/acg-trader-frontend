@@ -3,5 +3,5 @@
 export function fundedSupportEmail(principal) {
   if (principal?.authMethod !== 'FEDERATED') return null;
   const email = String(principal?.fundedCustomerEmail || '').trim().toLowerCase();
-  return email.length <= 200 && /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) ? email : null;
+  return email.length <= 200 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
 }
