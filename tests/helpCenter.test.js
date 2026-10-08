@@ -14,6 +14,7 @@ test('FAQ search works with multiple terms and scoped sections', () => {
   assert.ok(findHelpArticles('margin', 'faq').every(item => item.section === 'faq'));
   assert.equal(findHelpArticles('this does not exist in help').length, 0);
   assert.equal(getHelpArticle('no-such-article'), null);
+  assert.match(getHelpArticle('trading-days').summary, /UTC calendar day/);
 });
 test('knowledge base does not claim unreleased India or policy features', () => {
   const articles = HELP_ARTICLES.filter(item => item.section !== 'faq');
@@ -33,4 +34,11 @@ test('feedback is distinguished from bug and remains below API limits', () => {
   const text = makeReportText({ kind: 'feedback', category: 'Feature Request', description: 'Please add keyboard hints' });
   assert.match(text, /FEATURE FEEDBACK/);
   assert.ok(text.length < 3000);
+});
+
+test('reply email stays in the support message only when supplied', () => {
+  const data = makeReportText({ kind: 'support', category: 'Platform Support',
+    description: 'Account is not synchronizing', contactEmail: 'reply@example.com' });
+  assert.match(data, /Reply email: reply@example\.com/);
+  assert.doesNotMatch(data, /accessToken|authorization|bearer/i);
 });
