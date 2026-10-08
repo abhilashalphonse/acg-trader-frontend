@@ -68,7 +68,7 @@ export default function HelpCenter({ onClose, desktop = false, symbol = '', time
     return () => {
       window.cancelAnimationFrame(t);
       document.body.style.overflow = original;
-      returnFocusRef.current?.isConnected && returnFocusRef.current.focus?.();
+      if (returnFocusRef.current?.isConnected) returnFocusRef.current.focus?.();
     };
   }, [desktop]);
 
