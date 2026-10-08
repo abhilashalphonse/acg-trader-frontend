@@ -1,3 +1,4 @@
+import { CircleHelp } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Bell,
@@ -331,6 +332,7 @@ export default function DesktopTerminal({
   onCancelPositionProtection = () => {},
   positionProtectionSaving = false,
   onOpenSettings = () => {},
+  onOpenHelp = () => {},
   exposureAllowed = true,
   exposureBlockReason = 'New exposure is temporarily unavailable',
   riskGuardSettings = null,
@@ -1256,6 +1258,11 @@ export default function DesktopTerminal({
             >
               <Layers3 size={17}/>
             </button>
+            <button type="button" onClick={onOpenHelp}
+              className="mt-auto mb-1 grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"
+              title="Help Center" aria-label="Help Center">
+              <CircleHelp size={17}/>
+            </button>
             <button
               type="button"
               onClick={event => {
@@ -1263,8 +1270,8 @@ export default function DesktopTerminal({
                 setChartSettingsOpen(value => !value);
               }}
               className={chartSettingsOpen
-                ? "mt-auto grid size-9 place-items-center rounded-md bg-[#111820] text-[#195be1] ring-1 ring-inset ring-[#195be1]/70"
-                : "mt-auto grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"}
+                ? "grid size-9 place-items-center rounded-md bg-[#111820] text-[#195be1] ring-1 ring-inset ring-[#195be1]/70"
+                : "grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"}
               title="Chart appearance settings"
               aria-label="Chart appearance settings"
             >
