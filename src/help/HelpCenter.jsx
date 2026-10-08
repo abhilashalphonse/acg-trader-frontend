@@ -27,6 +27,7 @@ export default function HelpCenter({ onClose, desktop = false, symbol = '', time
   const [category, setCategory] = useState(REPORT_CATEGORIES[0]);
   const [description, setDescription] = useState('');
   const [expected, setExpected] = useState('');
+  const [replyEmail, setReplyEmail] = useState('');
   const [sendDiagnostics, setSendDiagnostics] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -45,6 +46,7 @@ export default function HelpCenter({ onClose, desktop = false, symbol = '', time
       setCategory(id === 'feedback' ? FEEDBACK_CATEGORIES[0] : id === 'bug' ? REPORT_CATEGORIES[0] : 'Platform Support');
       setDescription('');
       setExpected('');
+      setReplyEmail('');
       setSendDiagnostics(false);
     }
     rootRef.current?.querySelector('[data-help-scroll]')?.scrollTo({ top: 0 });
@@ -95,7 +97,7 @@ export default function HelpCenter({ onClose, desktop = false, symbol = '', time
         symbol, timeframe, browser: navigator.userAgent, build: import.meta.env.VITE_GIT_SHA || '',
       } : null;
       const data = await submitHelpRequest({
-        kind, category, description: description.trim(), expected: kind === 'bug' ? expected : '',
+        kind, category, description: description.trim(), expected: kind === 'bug' ? expected : '', contactEmail: replyEmail.trim(),
         context, humanReview: kind !== 'support',
       });
       setReceipt(data);
@@ -119,7 +121,7 @@ export default function HelpCenter({ onClose, desktop = false, symbol = '', time
   };
 
   return (
-    <div className="fixed inset-0 z-[205]" data-acg-hotkeys-suspend="true" onKeyDown={handleKeys}>
+    <div className="fixed inset-0 z-[135]" data-acg-hotkeys-suspend="true" onKeyDown={handleKeys}>
       <button type="button" aria-label="Close Help Center" onClick={() => !busy && onClose()}
         className="absolute inset-0 h-full w-full cursor-default bg-black/55 md:bg-black/20" />
       <section ref={rootRef} role="dialog" aria-modal="true" aria-label="ACG Trader Help Center"
@@ -280,6 +282,14 @@ export default function HelpCenter({ onClose, desktop = false, symbol = '', time
                   className="w-full resize-y rounded-lg border border-white/[0.12] bg-[#14181e] p-3 text-[13px] leading-6 text-white outline-none placeholder:text-[#768699] focus:border-[#195be1]"/>
                 <p className="text-right text-[11px] text-[#7e8e9d]">{description.length}/2000</p>
               </div>
+              <div className="space-y-1.5">
+                <label htmlFor="help-email" className="text-[12px] font-semibold">Email for replies</label>
+                <input id="help-email" type="email" autoComplete="email" required maxLength={200}
+                  value={replyEmail} onChange={event => setReplyEmail(event.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full rounded-lg border border-white/[0.12] bg-[#14181e] p-3 text-[13px] text-white outline-none placeholder:text-[#768699] focus:border-[#195be1]"/>
+                <p className="text-[11px] leading-5 text-[#8293a5]">Trader sessions are separate from Funded support sign-in. We use the email you provide for follow-up; do not enter passwords or payment details.</p>
+              </div>
               {page.id === 'bug' && <div className="space-y-1.5">
                 <label htmlFor="help-expected" className="text-[12px] font-semibold">What did you expect? <span className="font-normal text-[#8395a8]">(optional)</span></label>
                 <textarea id="help-expected" rows={2} maxLength={350} value={expected} onChange={event => setExpected(event.target.value)}
@@ -292,7 +302,7 @@ export default function HelpCenter({ onClose, desktop = false, symbol = '', time
               </label>
               <p className="text-[11px] leading-5 text-[#8293a5]">Screenshots are not supported in this version. Please do not include private credentials or personal payment details.</p>
               {error && <p role="alert" className="rounded-lg border border-rose-500/30 bg-[#251016] p-3 text-[12px] leading-5 text-[#ffadb8]">{error}</p>}
-              <button disabled={busy || description.trim().length < 10} type="submit"
+              <button disabled={busy || description.trim().length < 10 || !replyEmail.includes('@')} type="submit"
                 className="w-full rounded-lg bg-[#195be1] p-3 text-[13px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">
                 {busy ? 'Submitting…' : page.id === 'support' ? 'Send to Support' : 'Submit ' + (page.id === 'bug' ? 'Bug Report' : 'Feedback')}
               </button>
