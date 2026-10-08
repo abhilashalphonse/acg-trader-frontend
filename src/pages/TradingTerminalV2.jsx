@@ -7,6 +7,7 @@ import BottomNavbar from '../components/trading-v2/BottomNavbar.jsx';
 import DesktopTerminal from '../components/trading-v2/DesktopTerminal.jsx';
 import MobileScalperMode from '../components/trading-v2/MobileScalperMode.jsx';
 import FrontendSheet from '../components/trading-v2/FrontendSheet.jsx';
+import HelpCenter from '../help/HelpCenter.jsx';
 import WatchlistSection from '../components/trading-v2/WatchlistSection.jsx';
 import PropRiskStrip from '../components/trading-v2/PropRiskStrip.jsx';
 import ExecutionStatus from '../components/trading-v2/ExecutionStatus.jsx';
@@ -174,6 +175,7 @@ export default function TradingTerminalV2({
   const [indicators, setIndicators] = useState(loadIndicators);
   const [indicatorFavorites, setIndicatorFavorites] = useState(loadIndicatorFavorites);
   const [overlay, setOverlay] = useState(null);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const [riskGuardSettings, setRiskGuardSettings] = useState(loadRiskGuardSettings);
   const [tradingPolicyStatus, setTradingPolicyStatus] = useState(null);
@@ -1326,7 +1328,10 @@ export default function TradingTerminalV2({
     setOverlay(null);
   };
 
+  const openHelp = () => { setOverlay(null); if (!isDesktop) setActiveNav('trade'); setHelpOpen(true); };
+
   const handleNav = id => {
+    if (id === 'help') { openHelp(); return; }
     setActiveNav(id);
     if (id === 'trade' || id === 'watchlist') {
       setOverlay(null);
@@ -1343,7 +1348,7 @@ export default function TradingTerminalV2({
   };
 
   useTradingHotkeys({
-    enabled: isDesktop && hotkeysEnabled && !readOnly && !overlay,
+    enabled: isDesktop && hotkeysEnabled && !readOnly && !overlay && !helpOpen,
     onBuy: () => hotkeyTrade('buy'),
     onSell: () => hotkeyTrade('sell'),
     onFullscreen: () => toggleDesktopFullscreen(),
@@ -1441,6 +1446,7 @@ export default function TradingTerminalV2({
           onCancelPositionProtection={cancelPositionProtection}
           positionProtectionSaving={positionProtectionSaving}
           onOpenSettings={() => setOverlay('more')}
+          onOpenHelp={openHelp}
           exposureAllowed={exposure.allowed}
           exposureBlockReason={exposure.reason}
           riskGuardSettings={riskGuardSettings}
@@ -1448,7 +1454,8 @@ export default function TradingTerminalV2({
           readOnly={readOnly}
         />
         <ExecutionStatus event={executionEvent} instrument={market} onDismiss={() => setExecutionEvent(null)} />
-        {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} watchlists={watchlists} onSelectSymbol={symbol => { selectSymbol(symbol); setOverlay(null); }} {...indicatorSheetProps} />}
+        {helpOpen && <HelpCenter desktop onClose={() => setHelpOpen(false)} symbol={activeSymbol} timeframe={timeframe} />}
+        {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} watchlists={watchlists} onSelectSymbol={symbol => { selectSymbol(symbol); setOverlay(null); }} onOpenHelp={openHelp} {...indicatorSheetProps} />}
       </>
     );
   }
@@ -1526,7 +1533,8 @@ export default function TradingTerminalV2({
         )}
         <ExecutionStatus event={executionEvent} instrument={market} onDismiss={() => setExecutionEvent(null)} />
         {notice && <div className="fixed left-1/2 top-[74px] z-[120] w-[calc(100%-24px)] max-w-[420px] -translate-x-1/2 rounded-xl border border-white/[0.08] bg-[#101010]/95 px-3 py-2.5 text-center text-[10px] font-semibold text-[#dce9f2] shadow-[0_16px_48px_rgba(0,0,0,.45)] backdrop-blur-xl">{notice}</div>}
-        {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} onSelectSymbol={symbol => { selectSymbol(symbol); if (activeNav === 'watchlist') setActiveNav('trade'); }} {...indicatorSheetProps} />}
+        {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} onSelectSymbol={symbol => { selectSymbol(symbol); if (activeNav === 'watchlist') setActiveNav('trade'); }} onOpenHelp={openHelp} {...indicatorSheetProps} />}
+        {helpOpen && <HelpCenter onClose={() => setHelpOpen(false)} symbol={activeSymbol} timeframe={timeframe} />}
       </main>
     </div>
   );

@@ -37,6 +37,8 @@ jobs:
           VITE_ACG_TRADER_API_BASE: ${{ secrets.VITE_ACG_TRADER_API_BASE }}
           VITE_ACG_TRADER_WS_URL: ${{ secrets.VITE_ACG_TRADER_WS_URL }}
           VITE_ACG_TRADER_HTTP_TIMEOUT_MS: 10000
+          VITE_ACG_FUNDED_SUPPORT_BASE_URL: ${{ secrets.VITE_ACG_FUNDED_SUPPORT_STAGING_BASE_URL }}
+          VITE_GIT_SHA: ${{ github.event.pull_request.head.sha }}
 
       - name: Deploy preview channel
         uses: FirebaseExtended/action-hosting-deploy@v0
