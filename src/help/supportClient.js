@@ -78,3 +78,8 @@ export async function submitHelpRequest({ kind, category, description, expected,
     return { id: saved.conversationId, status: saved.status || 'OPEN', escalated: false, followUpNeeded: true };
   }
 }
+
+export async function requestHumanSupport(conversationId) {
+  if (!conversationId || !/^[a-f0-9-]{36}$/i.test(String(conversationId))) throw new Error('Invalid support reference.');
+  return request('/api/support/conversations/' + encodeURIComponent(conversationId) + '/escalate', { reason: 'CUSTOMER_REQUESTED' });
+}
