@@ -17,6 +17,7 @@ env:
   VITE_ACG_TRADER_WS_URL: wss://acg-trader-backend-production.up.railway.app/v1/ws
   VITE_ACG_TRADER_HTTP_TIMEOUT_MS: 10000
   VITE_ACG_FUNDED_SUPPORT_BASE_URL: ${{ secrets.VITE_ACG_FUNDED_SUPPORT_BASE_URL }}
+  VITE_GIT_SHA: ${{ github.sha }}
 
 jobs:
   deploy:
