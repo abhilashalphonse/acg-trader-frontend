@@ -22,6 +22,7 @@ function sessionFromAuthResponse(response) {
       sessionId: response.session.id,
       tenantId: response.session.tenantId,
       ownerExternalRef: response.session.ownerExternalRef ?? null,
+      fundedCustomerEmail: response.session.fundedCustomerEmail ?? null,
       accountIds: Array.isArray(response.session.accountIds) ? response.session.accountIds.map(String) : [],
       selectedAccountId: response.session.selectedAccountId ? String(response.session.selectedAccountId) : null,
       authMethod: response.session.authMethod,
