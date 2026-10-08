@@ -258,7 +258,7 @@ export default function FrontendSheet({
               </section>
             </div>
           )}
-           {type === 'help' && <div className="space-y-2"><div className="rounded-lg border border-white/[0.08] bg-[#080808] p-4"><b className="text-[11px] text-[#edf3f7]">Trading help</b><p className="mt-2 text-[9px] leading-4 text-[#71869a]">Use Search to find markets, Chart to place and manage trades, Trade for positions and orders, and History for completed activity.</p></div><div className="rounded-lg border border-white/[0.08] bg-[#080808] p-4"><b className="text-[11px] text-[#edf3f7]">Account or challenge support</b><p className="mt-2 text-[9px] leading-4 text-[#71869a]">Account, payment and challenge support is handled from your ACG Funded account.</p></div></div>}
+          {type === 'help' && <div className="space-y-3"><p className="px-1 text-[12px] leading-5 text-[#8a9caf]">Find tutorials, searchable answers, troubleshooting, and support inside ACG Trader.</p><button type="button" onClick={onOpenHelp} className="flex w-full items-center justify-between rounded-lg border border-[#195be1]/40 bg-[#101a2e] p-4 text-[13px] font-bold text-[#dae6ff]">Open Help Center <CircleHelp size={18}/></button></div>}
        </div>
       </section>
     </div>
