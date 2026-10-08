@@ -138,7 +138,7 @@ export default function HelpCenter({ onClose, desktop = false, symbol = '', time
                 className="grid size-9 shrink-0 place-items-center rounded-md text-[#a2b2c3] hover:bg-white/[0.07]">
                 <ArrowLeft size={18}/>
               </button>
-            ) : <CircleHelp data-help-first size={19} className="text-[#648fff]" />}
+            ) : <CircleHelp size={19} className="text-[#648fff]" />}
             <h2 className="truncate text-[16px] font-bold">
               {page.kind === 'home' ? 'Help Center' :
                 page.kind === 'section' ? activeSection?.label :
