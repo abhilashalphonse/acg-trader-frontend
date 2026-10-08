@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { HELP_ARTICLES, HELP_SECTIONS, findHelpArticles, getHelpArticle } from './helpContent.js';
 import { useTraderAuth } from '../hooks/useTraderAuth.js';
+import { fundedSupportEmail } from './supportIdentity.js';
 import { REPORT_CATEGORIES, requestHumanSupport, submitHelpRequest } from './supportClient.js';
 
 const SECTION_ICONS = { start: Rocket, guides: BookOpen, faq: CircleHelp, troubleshooting: Wrench };
@@ -21,8 +22,8 @@ const tile = 'rounded-lg border border-white/[0.08] bg-[#14181e] transition hove
 
 export default function HelpCenter({ onClose, desktop = false, symbol = '', timeframe = '' }) {
   const { principal } = useTraderAuth();
-  const fundedEmail = principal?.authMethod === 'FEDERATED' ? String(principal?.fundedCustomerEmail || '').trim().toLowerCase() : '';
-  const validFundedEmail = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(fundedEmail);
+  const fundedEmail = fundedSupportEmail(principal);
+  const validFundedEmail = Boolean(fundedEmail);
   const rootRef = useRef(null);
   const returnFocusRef = useRef(null);
   const [page, setPage] = useState({ kind: 'home', id: null });
