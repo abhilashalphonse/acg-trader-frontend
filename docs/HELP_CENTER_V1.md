@@ -12,7 +12,7 @@ No new trading/backend architecture, pricing, order, risk, execution, or market 
 No video/screenshot uploads in V1.
 
 ## Support API deployment requirements (release blockers)
-1. Configure `VITE_ACG_FUNDED_SUPPORT_BASE_URL` for EACH frontend build environment. It must point to the matching funded-backend environment's HTTPS origin (no `/api` suffix).
+1. Configure GitHub Actions secrets: `VITE_ACG_FUNDED_SUPPORT_STAGING_BASE_URL` for Firebase PR previews and `VITE_ACG_FUNDED_SUPPORT_BASE_URL` for Firebase live. Both must point to the appropriate funded-backend environment's HTTPS origin (no `/api` suffix). Never send preview reports to the production support API.
 2. The funded backend must authorize the exact Trader frontend origin in its `CORS_ORIGINS` deployment allowlist (including preview/staging origins where used). This is a backend **configuration** change, not a trading engine change; do not alter without permission.
 3. Confirm `POST /api/support/message` from the Trader origin returns `data.conversationId`; confirm `POST /api/support/conversations/{id}/escalate` returns status `ESCALATED`.
 4. Confirm admin support shows the created conversation, Trader channel context, reporter-supplied reply email, and human escalation.
@@ -20,7 +20,7 @@ No video/screenshot uploads in V1.
 6. Test the support flow using staging Funded API; never use the production support endpoint for staging smoke tests.
 7. Verify real human follow-up processes for reporter emails; the submitted email is currently message text, not a verified authenticated Funded identity.
 
-If the support service is unconfigured, the form shows an error directing users to their ACG Funded dashboard. Do not release publicly with this blocker unresolved.
+If the support service is unconfigured, the form shows an error directing users to their ACG Funded dashboard. The environment-specific values are forwarded by the Firebase preview/live GitHub workflows and do not require source-code secrets. Do not release publicly with this blocker unresolved.
 
 ## Data/privacy
 - No trading auth tokens, passwords, cookies, complete trade ledgers, or payment data are submitted.
