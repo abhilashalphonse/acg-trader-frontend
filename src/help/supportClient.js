@@ -11,7 +11,7 @@ export const REPORT_CATEGORIES = Object.freeze([
 ]);
 
 function clean(value, maximum = 500) {
-  return String(value ?? '').replace(/[\\u0000-\\u001f\\u007f]/g, ' ').trim().slice(0, maximum);
+  return String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, maximum);
 }
 
 export function makeReportText({ kind, category, description, expected = '', context = null }) {
@@ -25,7 +25,7 @@ export function makeReportText({ kind, category, description, expected = '', con
     if (context.browser) parts.push('Browser: ' + clean(context.browser, 140));
     if (context.build) parts.push('Build: ' + clean(context.build, 80));
   }
-  const result = parts.join('\\n');
+  const result = parts.join('\n');
   if (result.length > MAX_CHARS) throw new Error('Report is too long. Please shorten the description.');
   return result;
 }
@@ -36,7 +36,8 @@ function supportApiBase() {
   if (url.protocol !== 'https:' && !(import.meta.env?.DEV && url.hostname === 'localhost')) {
     throw new Error('Support service must use HTTPS.');
   }
-  return url.toString().replace(/\\/$/, '');
+  const base = url.toString();
+  return base.endsWith('/') ? base.slice(0, -1) : base;
 }
 
 function anonymousSession() {
