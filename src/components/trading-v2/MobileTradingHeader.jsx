@@ -1,5 +1,6 @@
 import React from 'react';
-import { ArrowUpDown, ChevronDown, MoreVertical } from 'lucide-react';
+import { ChevronDown, List, MoreVertical } from 'lucide-react';
+import { formatMobileFloatingPnl, mobilePnlTone, openPositionsBadge } from '../../utils/mobileHeaderPresentation.js';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import { marketVenue } from '../../utils/marketClassification.js';
 
@@ -38,23 +39,6 @@ function marketCategory(market) {
   return 'MARKET';
 }
 
-function money(value, currency = 'USD') {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return '—';
-  try {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency || 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-      signDisplay: numeric > 0 ? 'always' : 'auto',
-    }).format(numeric);
-  } catch {
-    const sign = numeric > 0 ? '+' : '';
-    return `${sign}${numeric.toFixed(2)} ${currency || ''}`.trim();
-  }
-}
-
 export default function MobileTradingHeader({
   market,
   account,
@@ -62,18 +46,20 @@ export default function MobileTradingHeader({
   pendingCount = 0,
   onSelectInstrument = () => {},
   onOpenTrades = () => {},
+  onOpenPnl = () => {},
   onOpenAccount = () => {},
 }) {
   const symbol = market?.displaySymbol || displaySymbol(market?.symbol);
   const category = marketCategory(market);
   const marketStatus = market?.sessionOpen === false ? 'CLOSED' : market?.live ? 'LIVE' : String(market?.marketState || 'WAIT').toUpperCase();
-  const floatingPnl = Number(account?.floatingPnl);
-  const pnl = Number.isFinite(floatingPnl) ? floatingPnl : 0;
-  const pnlTone = pnl > 0 ? 'text-[#32ddb0]' : pnl < 0 ? 'text-[#ff6675]' : 'text-[#d7dce3]';
-  const activityCount = Math.max(0, Number(positionsCount) || 0) + Math.max(0, Number(pendingCount) || 0);
+  const pnl = account?.floatingPnl;
+  const currency = account?.currency || 'USD';
+  const pnlTone = mobilePnlTone(pnl);
+  const pnlClass = pnlTone === 'profit' ? 'text-[#32ddb0]' : pnlTone === 'loss' ? 'text-[#ff6675]' : 'text-[#e8e8e8]';
+  const badge = openPositionsBadge(positionsCount);
 
   return (
-    <header className="acg-mobile-reference-header grid h-[calc(66px+env(safe-area-inset-top))] w-full shrink-0 grid-cols-[minmax(0,1fr)_68px_86px_42px] pt-[env(safe-area-inset-top)]">
+    <header className="acg-mobile-reference-header acg-mobile-option-c-header grid h-[calc(66px+env(safe-area-inset-top))] w-full shrink-0 items-center pt-[env(safe-area-inset-top)]">
       <button
         type="button"
         onClick={onSelectInstrument}
@@ -98,30 +84,37 @@ export default function MobileTradingHeader({
 
       <button
         type="button"
-        onClick={onOpenTrades}
-        className="acg-mobile-header-divider flex min-w-0 flex-col items-center justify-center gap-1 text-[#dfe6ee] active:bg-white/[0.035]"
-        aria-label={`Open trades${activityCount ? `, ${activityCount} active` : ''}`}
+        onClick={onOpenPnl}
+        aria-label={`Floating profit and loss ${formatMobileFloatingPnl(pnl, currency, false)}. Open account breakdown`}
+        title={formatMobileFloatingPnl(pnl, currency, false)}
+        className="acg-mobile-inline-pnl flex h-11 min-w-0 items-center justify-end overflow-hidden px-0.5 text-right active:opacity-70"
       >
-        <span className="relative grid place-items-center">
-          <ArrowUpDown size={17} strokeWidth={2}/>
-          {activityCount > 0 && (
-            <span className="absolute -right-3 -top-1 min-w-3.5 rounded-full bg-[#195be1] px-1 text-center text-[7px] font-bold leading-[14px] text-white">
-              {activityCount > 99 ? '99+' : activityCount}
+        <strong className={`block max-w-full truncate whitespace-nowrap font-mono text-[12px] font-semibold tabular-nums tracking-[-0.035em] transition-colors duration-200 motion-reduce:transition-none ${pnlClass}`}>
+          {formatMobileFloatingPnl(pnl, currency)}
+        </strong>
+      </button>
+
+      <button
+        type="button"
+        onClick={onOpenTrades}
+        aria-label={`Open trades${badge ? `, ${badge} open positions` : ''}`}
+        className="acg-mobile-trades-hit flex h-11 min-w-0 items-center justify-center px-0.5 active:opacity-85"
+      >
+        <span className="acg-mobile-trades-pill relative inline-flex h-[32px] min-w-0 items-center justify-center gap-1 rounded-full px-2.5 text-[#eaeaea]">
+          <List size={13} strokeWidth={1.9} className="shrink-0" aria-hidden="true"/>
+          <span className="whitespace-nowrap text-[11px] font-medium tracking-[-0.01em]">Trades</span>
+          {badge && (
+            <span className="absolute -right-1.5 -top-1 grid min-h-[15px] min-w-[15px] place-items-center rounded-full border border-[#090909] bg-[#363636] px-1 text-[9px] font-semibold leading-none text-white" aria-hidden="true">
+              {badge}
             </span>
           )}
         </span>
-        <span className="text-[9px] font-semibold tracking-[-0.01em] text-[#b9c3ce]">Trades</span>
       </button>
-
-      <div className="acg-mobile-pnl-card mx-1.5 my-2 flex min-w-0 flex-col items-center justify-center rounded-[8px] px-1" aria-label="Floating P&L">
-        <span className="text-[9px] font-semibold uppercase tracking-[0.035em] text-[#98a4b2]">P&amp;L</span>
-        <strong className={`mt-1 max-w-full truncate font-mono text-[14px] font-semibold leading-none tabular-nums tracking-[-0.025em] ${pnlTone}`}>{money(pnl, account?.currency || 'USD')}</strong>
-      </div>
 
       <button
         type="button"
         onClick={onOpenAccount}
-        className="acg-mobile-header-divider grid place-items-center text-[#dce3ea] active:bg-white/[0.035]"
+        className="acg-mobile-menu-hit grid h-11 w-11 place-items-center text-[#b8b8b8] active:text-white"
         aria-label="Open account and platform menu"
       >
         <MoreVertical size={20} strokeWidth={2}/>
