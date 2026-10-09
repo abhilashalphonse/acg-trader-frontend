@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Check, ChevronLeft, ChevronRight, CircleHelp, Loader2, Settings } from 'lucide-react';
 import { accountStatusLabel, accountStatusToneClass, accountTypeLabel } from '../../utils/accountPresentation.js';
 
@@ -45,12 +45,35 @@ export default function MobileAccountSheet({
   const status = String(account?.status || 'UNKNOWN').toUpperCase();
   const floatingPnl = Number(account?.floatingPnl);
   const pnlTone = floatingPnl > 0 ? 'text-[#31d79b]' : floatingPnl < 0 ? 'text-[#ff6975]' : 'text-[#d5dbe1]';
+  const sheetRef = useRef(null);
+  const closeRef = useRef(null);
+
+  useEffect(() => {
+    const previouslyFocused = document.activeElement;
+    closeRef.current?.focus();
+    return () => { if (previouslyFocused?.isConnected) previouslyFocused.focus?.(); };
+  }, []);
+
+  const handleKeyDown = event => {
+    event.stopPropagation();
+    if (event.key === 'Escape') { event.preventDefault(); onClose(); return; }
+    if (event.key !== 'Tab') return;
+    const focusable = [...(sheetRef.current?.querySelectorAll('button:not([disabled]), [href], input:not([disabled])') || [])];
+    if (!focusable.length) { event.preventDefault(); return; }
+    if (event.shiftKey && document.activeElement === focusable[0]) {
+      event.preventDefault(); focusable[focusable.length - 1].focus();
+    } else if (!event.shiftKey && document.activeElement === focusable[focusable.length - 1]) {
+      event.preventDefault(); focusable[0].focus();
+    }
+  };
 
   return (
-    <section className="fixed inset-0 z-[110] flex h-dvh w-full min-h-0 flex-col overflow-hidden bg-[#050505] text-[#f4f7fa]">
-      <header className="shrink-0 border-b border-white/[0.07] bg-[#070707] pt-[env(safe-area-inset-top)]">
+    <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/75 backdrop-blur-[2px]" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
+      <section ref={sheetRef} role="dialog" aria-modal="true" aria-label="Account and platform menu" onKeyDown={handleKeyDown} className="flex max-h-[min(88dvh,760px)] w-full max-w-[460px] min-h-0 flex-col overflow-hidden rounded-t-[22px] border border-b-0 border-white/[0.10] bg-[#080808] text-[#f4f7fa] shadow-[0_-20px_50px_rgba(0,0,0,.7)]">
+      <header className="shrink-0 border-b border-white/[0.07] bg-[#080808] pt-2">
+        <div className="mx-auto h-1 w-9 rounded-full bg-[#343434]" aria-hidden="true"/>
         <div className="flex h-14 items-center gap-2 px-3">
-          <button type="button" onClick={onClose} className="grid size-10 shrink-0 place-items-center rounded-xl text-[#c4ccd4] active:bg-white/[0.06]" aria-label="Back to chart">
+          <button ref={closeRef} type="button" onClick={onClose} className="grid size-11 shrink-0 place-items-center rounded-xl text-[#c4ccd4] active:bg-white/[0.06]" aria-label="Close account menu">
             <ChevronLeft size={22} strokeWidth={2}/>
           </button>
           <div className="min-w-0 flex-1">
@@ -129,6 +152,7 @@ export default function MobileAccountSheet({
           <Action icon={CircleHelp} title="Help & support" subtitle="Trading, platform and account assistance" onClick={onHelp} />
         </section>
       </div>
-    </section>
+      </section>
+    </div>
   );
 }
