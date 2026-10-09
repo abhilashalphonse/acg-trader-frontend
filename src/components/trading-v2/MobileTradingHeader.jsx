@@ -43,7 +43,6 @@ export default function MobileTradingHeader({
   market,
   account,
   positionsCount = 0,
-  pendingCount = 0,
   onSelectInstrument = () => {},
   onOpenTrades = () => {},
   onOpenPnl = () => {},
