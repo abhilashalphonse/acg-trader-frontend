@@ -2,8 +2,9 @@ import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { formatMobileFloatingPnl, mobilePnlTone } from '../../utils/mobileHeaderPresentation.js';
 
-function metric(value, currency) {
-  return formatMobileFloatingPnl(value, currency, false);
+function metric(value, currency, signed = false) {
+  const formatted = formatMobileFloatingPnl(value, currency, false);
+  return !signed && formatted.startsWith('+') ? formatted.slice(1) : formatted;
 }
 
 export default function MobilePnlSheet({ account = {}, onClose = () => {} }) {
@@ -47,7 +48,7 @@ export default function MobilePnlSheet({ account = {}, onClose = () => {} }) {
         </div>
         <div className="border-b border-white/[0.08] pb-5">
           <p className="text-[10px] font-medium text-[#8a8a8a]">Floating P&amp;L</p>
-          <strong className={`mt-2 block font-mono text-[28px] font-semibold tabular-nums tracking-[-0.045em] ${toneClass}`}>{metric(account?.floatingPnl, currency)}</strong>
+          <strong className={`mt-2 block font-mono text-[28px] font-semibold tabular-nums tracking-[-0.045em] ${toneClass}`}>{metric(account?.floatingPnl, currency, true)}</strong>
         </div>
         <dl className="divide-y divide-white/[0.065]">
           {[['Balance', account?.balance], ['Equity', account?.equity]].map(([label, value]) => (
