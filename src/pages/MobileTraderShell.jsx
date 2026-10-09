@@ -9,7 +9,6 @@ import ExecutionStatus from '../components/trading-v2/ExecutionStatus.jsx';
 import MobileInstrumentSheet from '../components/trading-v2/MobileInstrumentSheet.jsx';
 import MobileTradesSheet from '../components/trading-v2/MobileTradesSheet.jsx';
 import MobileAccountSheet from '../components/trading-v2/MobileAccountSheet.jsx';
-import MobilePnlSheet from '../components/trading-v2/MobilePnlSheet.jsx';
 import { useTradingTerminal } from '../hooks/useTradingTerminal.js';
 import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
 import { calculateRiskOrderSizing, defaultPlannerStopDistance, estimateStopRisk, evaluateRiskToolSetup } from '../utils/tradingRisk.js';
@@ -1064,9 +1063,9 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
         market={market}
         account={account}
         positionsCount={positions.length}
+        pendingCount={pendingOrders.length}
         onSelectInstrument={() => setOverlay('markets')}
         onOpenTrades={() => setOverlay('trades')}
-        onOpenPnl={() => setOverlay('pnl')}
         onOpenAccount={() => setOverlay('account')}
       />
       <div className="acg-mobile-reference-content flex min-h-0 flex-1 flex-col px-2 pt-[10px]">
@@ -1157,10 +1156,6 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
           />
         )}
 
-        {overlay === 'pnl' && (
-          <MobilePnlSheet account={account} onClose={() => setOverlay(null)}/>
-        )}
-
         {overlay === 'account' && (
           <MobileAccountSheet
             account={account}
@@ -1175,7 +1170,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
           />
         )}
 
-        {overlay && !['markets', 'trades', 'pnl', 'account'].includes(overlay) && (
+        {overlay && !['markets', 'trades', 'account'].includes(overlay) && (
           <FrontendSheet
             type={overlay}
             onClose={() => setOverlay(null)}
