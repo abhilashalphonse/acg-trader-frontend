@@ -665,12 +665,12 @@ export default function DesktopOrderTicket({
                 </div>
               ) : (
                 <div className="grid h-[42px] grid-cols-[30px_minmax(0,1fr)_30px] items-center overflow-hidden rounded-[7px] border border-[#195be1]/28 bg-[#10151d]">
-                  <button type="button" onClick={() => setRiskFromInput(Math.max(0.1, Number(riskPercent) - 0.25))} className="grid h-full place-items-center text-[#8d99a5] hover:bg-white/[0.03] hover:text-white" aria-label="Decrease risk"><Minus size={12}/></button>
+                  <button type="button" onClick={() => setRiskFromInput(Math.max(0.1, Number(riskPercent) - 0.25), 'percent')} className="grid h-full place-items-center text-[#8d99a5] hover:bg-white/[0.03] hover:text-white" aria-label="Decrease risk"><Minus size={12}/></button>
                   <div className="flex h-full min-w-0 flex-col items-center justify-center border-x border-white/[0.05]">
                     <input value={riskInput} onFocus={event => { setRiskFocused(true); setRiskUnit('percent'); selectInputNextFrame(event); }} onChange={event => setRiskInput(event.target.value)} onBlur={commitRisk} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }} inputMode="decimal" className="w-full bg-transparent text-center font-mono text-[13px] font-bold tabular-nums text-[#4f82ef] outline-none" aria-label="Risk percent"/>
                     <span className="text-[7px] font-semibold uppercase tracking-[0.06em] text-[#677581]">% risk</span>
                   </div>
-                  <button type="button" onClick={() => setRiskFromInput(Math.min(5, Number(riskPercent) + 0.25))} className="grid h-full place-items-center text-[#8d99a5] hover:bg-white/[0.03] hover:text-white" aria-label="Increase risk"><Plus size={12}/></button>
+                  <button type="button" onClick={() => setRiskFromInput(Math.min(5, Number(riskPercent) + 0.25), 'percent')} className="grid h-full place-items-center text-[#8d99a5] hover:bg-white/[0.03] hover:text-white" aria-label="Increase risk"><Plus size={12}/></button>
                 </div>
               )}
               <button type="button" disabled={sideDisabled('buy')} onClick={() => handleSide('buy')} className="flex h-[42px] min-w-0 flex-col items-center justify-center rounded-[7px] border border-[#4f82ef] bg-[#195be1] px-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.10)] transition hover:bg-[#2868e8] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35">
