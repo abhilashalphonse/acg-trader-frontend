@@ -111,11 +111,8 @@ function estimatedRisk(plan, riskPercent, manualLots, account, instrument) {
   if (!plan) return 0;
   const preview = resolveExecutionPreview({ plan, riskPercent, manualLots, account, instrument });
   if (!Number.isFinite(Number(preview.sizing?.lots))) return null;
-  const effectivePlan = preview.plan || plan;
-  const riskPlan = effectivePlan.pending && String(effectivePlan.orderType || '').toLowerCase() === 'stop-limit'
-    ? { ...effectivePlan, entry: effectivePlan.limitPrice }
-    : effectivePlan;
-  return estimateStopRisk(riskPlan, preview.sizing.lots, instrument, account?.currency);
+  const riskPlan = preview.riskPlan || preview.plan || plan;
+  return estimateLossAtStopWithCosts(riskPlan, preview.sizing.lots, instrument, account);
 }
 
 function fillEvent(result, fallback) {
@@ -1123,7 +1120,7 @@ export default function TradingTerminalV2({
     const riskPlan = executionPlan.pending && String(executionPlan.orderType || '').toLowerCase() === 'stop-limit'
       ? { ...executionPlan, entry: executionPlan.limitPrice }
       : executionPlan;
-    const proposedRisk = estimateStopRisk(riskPlan, volume, planMarket, account.currency);
+    const proposedRisk = estimateLossAtStopWithCosts(riskPlan, volume, planMarket, account);
     if (!options?.skipRiskGuard) {
       const guard = evaluateRiskGuard({
         account,
