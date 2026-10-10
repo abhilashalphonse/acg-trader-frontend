@@ -79,6 +79,7 @@ export default function DesktopOrderTicket({
   orderType = 'market',
   onOrderTypeChange = () => {},
   tradePlan,
+  orderExecutionPreview = null,
   onStartPlan = () => {},
   onCancelPlan = () => {},
   onExecutePlan = () => {},
@@ -129,7 +130,7 @@ export default function DesktopOrderTicket({
     [market, tradePlan],
   );
 
-  const executionPreview = useMemo(() => {
+  const localExecutionPreview = useMemo(() => {
     if (!previewPlan) return { plan: null, sizing: null };
     return resolveExecutionPreview({
       plan: previewPlan,
@@ -140,6 +141,7 @@ export default function DesktopOrderTicket({
     });
   }, [account, market, normalizedLots, previewPlan, riskPercent]);
 
+  const executionPreview = tradePlan && orderExecutionPreview ? orderExecutionPreview : localExecutionPreview;
   const executionPlan = executionPreview.plan || previewPlan;
   const executionSizing = executionPreview.sizing;
   const activeSizingMode = executionPlan?.sizingMode || sizingMode;
