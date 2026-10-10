@@ -40,6 +40,7 @@ export default function DesktopMultiChart({
   onActiveTimeframeChange = () => {},
   tradePlan = null,
   tradePlanLots = 0.1,
+  orderExecutionPreview = null,
   accountCurrency = 'USD',
   account = null,
   riskPercent = 0.5,
@@ -148,6 +149,7 @@ export default function DesktopMultiChart({
                   hideToolbar={!isActive}
                   tradePlan={isActive ? tradePlan : null}
                   tradePlanLots={tradePlanLots}
+                  orderExecutionPreview={isActive ? orderExecutionPreview : null}
                   accountCurrency={accountCurrency}
                   account={account}
                   riskPercent={riskPercent}
