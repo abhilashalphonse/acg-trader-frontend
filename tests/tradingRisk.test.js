@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateRiskOrderSizing, calculateRiskSizedLots, defaultPlannerStopDistance, effectiveLeverage, estimateCommission, estimateOpeningRequirement, estimatePositionPnlAtPrice, estimateRequiredMargin, estimateStopRisk, evaluateRiskToolSetup, positionDistancePips, resolveExecutionSizing, riskSizingSupported } from '../src/utils/tradingRisk.js';
+import { calculateRiskOrderSizing, calculateRiskSizedLots, defaultPlannerStopDistance, effectiveLeverage, estimateCommission, estimateLossAtStopWithCosts, estimateOpeningRequirement, estimatePositionPnlAtPrice, estimateRequiredMargin, estimateStopRisk, evaluateRiskToolSetup, positionDistancePips, resolveExecutionSizing, riskSizingSupported } from '../src/utils/tradingRisk.js';
 import { exposureAvailability } from '../src/utils/exposureAvailability.js';
 
 const xau = { pnlCurrency: 'USD', quoteCurrency: 'USD', contractSize: 100 };
@@ -231,4 +231,27 @@ test('new exposure is blocked during margin stop-out without marking the account
   assert.equal(result.allowed, false);
   assert.equal(result.code, 'MARGIN_STOP_OUT_ACTIVE');
   assert.match(result.reason, /above 50%/i);
+});
+
+
+test('risk-sized orders include both commissions in budget and round down to the instrument step', () => {
+  const market = { pnlCurrency: 'USD', quoteCurrency: 'USD', marginCurrency: 'USD', contractSize: 1, defaultLeverage: 100, minVolume: 0.01, maxVolume: 1000, volumeStep: 0.01, commissionPerLotPerSide: 2 };
+  const account = { currency: 'USD', leverage: 100, equity: 10000, freeMargin: 10000 };
+  const plan = { side: 'buy', entry: 100, sl: 90 };
+  const sized = calculateRiskOrderSizing(plan, 1, account, market);
+  assert.equal(sized.requestedLots, 7.14);
+  assert.equal(sized.canExecute, true);
+  assert.ok(sized.actualRisk <= 100);
+  assert.ok(sized.actualRisk > estimateStopRisk(plan, sized.requestedLots, market, 'USD'));
+  assert.ok(Math.abs(estimateLossAtStopWithCosts(plan, sized.requestedLots, market, account) - sized.actualRisk) < 1e-9);
+});
+
+test('fee-inclusive risk sizing blocks above the maximum volume rather than promising the selected budget', () => {
+  const market = { pnlCurrency: 'USD', quoteCurrency: 'USD', marginCurrency: 'USD', contractSize: 1, defaultLeverage: 100, minVolume: 0.01, maxVolume: 2, volumeStep: 0.01, commissionRate: 0.0002 };
+  const account = { currency: 'USD', leverage: 100, equity: 10000, freeMargin: 10000 };
+  const sizing = calculateRiskOrderSizing({ side: 'sell', entry: 100, sl: 110 }, 1, account, market);
+  assert.equal(sizing.canExecute, false);
+  assert.equal(sizing.blockReason, 'MAX_VOLUME');
+  assert.equal(sizing.requestedLots, 2);
+  assert.ok(sizing.actualRisk < sizing.riskBudget);
 });
