@@ -6,6 +6,7 @@ import { formatInstrumentPrice, formatSpreadDisplay, instrumentPipSize } from '.
 import { positionCloseAvailability } from '../../utils/marketExecutionAvailability.js';
 import { estimateLossAtStopWithCosts, estimatePositionPnlAtPrice, estimateStopRisk, positionDistancePips } from '../../utils/tradingRisk.js';
 import { resolveExecutionPreview } from '../../utils/executionPricing.js';
+import { effectiveTradePlan } from '../../utils/tradePlanExecution.js';
 import { DRAWING_TOOL_GROUPS, DRAWING_TOOL_LABELS } from '../../utils/drawingTools.js';
 import { DRAWING_TOOL_ICONS } from './DrawingToolIcons.jsx';
 import { chartTimezoneLabel, formatChartClock } from '../../utils/desktopChartSettings.js';
