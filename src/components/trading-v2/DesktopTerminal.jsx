@@ -40,6 +40,8 @@ import { accountStatusLabel, accountTypeBadge, accountTypeLabel } from '../../ut
 import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
 import { marketApi } from '../../api/market.js';
 import { normalizeProtectionPrice } from '../../utils/tradingCommandNormalization.js';
+import { effectiveTradePlan } from '../../utils/tradePlanExecution.js';
+import { resolveExecutionPreview } from '../../utils/executionPricing.js';
 import { validateOpenPositionProtection } from '../../utils/openPositionPresentation.js';
 import { loadDesktopChartSettings, normalizeDesktopChartSettings, saveDesktopChartSettings } from '../../utils/desktopChartSettings.js';
 
@@ -339,6 +341,20 @@ export default function DesktopTerminal({
   onRiskGuardSettingsChange = () => {},
   readOnly = false,
 }) {
+  // One authoritative preview for the chart, fixed ticket, and floating ticket.
+  // Derive market entries from the same quote before position sizing.
+  const orderExecutionPreview = React.useMemo(() => {
+    if (!tradePlan || !market) return null;
+    const previewPlan = effectiveTradePlan(tradePlan, market);
+    return resolveExecutionPreview({
+      plan: previewPlan,
+      riskPercent,
+      manualLots: previewPlan?.manualLots ?? lots,
+      account,
+      instrument: market,
+    });
+  }, [account, lots, market, riskPercent, tradePlan]);
+
   const shellRef = useRef(null);
   const chartWorkspaceRef = useRef(null);
   const floatingOrderRef = useRef(null);
@@ -1122,6 +1138,7 @@ export default function DesktopTerminal({
                 onActiveTimeframeChange={onTimeframeChange}
                 tradePlan={tradePlan}
                 tradePlanLots={lots}
+                orderExecutionPreview={orderExecutionPreview}
                 accountCurrency={account?.currency || 'USD'}
                 account={account}
                 riskPercent={riskPercent}
@@ -1158,6 +1175,7 @@ export default function DesktopTerminal({
                   orderType={orderType}
                   onOrderTypeChange={onOrderTypeChange}
                   tradePlan={tradePlan}
+                  orderExecutionPreview={orderExecutionPreview}
                   onStartPlan={onStartPlan}
                   onCancelPlan={onCancelPlan}
                   onExecutePlan={onExecutePlan}
@@ -1189,7 +1207,7 @@ export default function DesktopTerminal({
               ) : (
                 <>
                   <div className="min-h-0 flex-1">
-                    <DesktopOrderTicket key={`order-ticket-${account?.id || 'none'}`} market={market} account={account} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} onNotice={setNotice}/>
+                    <DesktopOrderTicket key={`order-ticket-${account?.id || 'none'}`} market={market} account={account} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} orderExecutionPreview={orderExecutionPreview} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} onNotice={setNotice}/>
                   </div>
                   {selectedPosition && (
                     <div className="acg-motion-panel-stack max-h-[46%] shrink-0 overflow-y-auto [scrollbar-width:thin]">

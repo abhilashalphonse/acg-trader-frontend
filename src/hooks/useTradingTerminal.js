@@ -447,7 +447,7 @@ export function useTradingTerminal(markets = []) {
 
   const instrumentForSymbol = useCallback(symbol => markets.find(item => item.symbol === String(symbol || '').toUpperCase()) || null, [markets]);
 
-  const openMarketOrder = useCallback(({ symbol, side, volume, stopLoss = null, takeProfit = null, requestedPrice = null }) => {
+  const openMarketOrder = useCallback(({ symbol, side, volume, stopLoss = null, takeProfit = null, requestedPrice = null, riskBudget = null }) => {
     const normalizedSymbol = String(symbol || '').toUpperCase();
     const normalizedSide = String(side || '').toUpperCase();
     const instrument = instrumentForSymbol(normalizedSymbol);
@@ -462,6 +462,7 @@ export function useTradingTerminal(markets = []) {
       stopLoss: normalizeProtectionPrice(stopLoss, instrument, normalizedSide, 'sl'),
       takeProfit: normalizeProtectionPrice(takeProfit, instrument, normalizedSide, 'tp'),
       requestedPrice,
+      riskBudget,
       source: sourceForViewport(),
     };
     return run(() => executeExposureCommand({
@@ -471,7 +472,7 @@ export function useTradingTerminal(markets = []) {
     }));
   }, [commands, executeExposureCommand, instrumentForSymbol, requireAccount, run]);
 
-  const placePendingOrder = useCallback(({ symbol, side, type, volume, entry, limitPrice = null, stopLoss = null, takeProfit = null, timeInForce = 'GTC', expiresAt = null }) => {
+  const placePendingOrder = useCallback(({ symbol, side, type, volume, entry, limitPrice = null, stopLoss = null, takeProfit = null, timeInForce = 'GTC', expiresAt = null, riskBudget = null }) => {
     const normalizedSymbol = String(symbol || '').toUpperCase();
     const normalizedSide = String(side || '').toUpperCase();
     const normalizedType = String(type || '').replace('-', '_').toUpperCase();
@@ -496,6 +497,7 @@ export function useTradingTerminal(markets = []) {
       takeProfit: normalizeProtectionPrice(takeProfit, instrument, normalizedSide, 'tp'),
       timeInForce: tif,
       expiresAt: tif === 'SPECIFIED' ? normalizeExpiryToIso(expiresAt) : null,
+      riskBudget,
       source: sourceForViewport(),
     };
     return run(() => executeExposureCommand({
@@ -606,6 +608,7 @@ export function useTradingTerminal(markets = []) {
       stopPrice: normalizedType === 'STOP' || normalizedType === 'STOP_LIMIT' ? entry : undefined,
       stopLoss: normalizeProtectionPrice(replacement.stopLoss ?? replacement.sl, instrument, normalizedSide, 'sl'),
       takeProfit: normalizeProtectionPrice(replacement.takeProfit ?? replacement.tp, instrument, normalizedSide, 'tp'),
+      riskBudget: replacement.riskBudget === undefined ? undefined : replacement.riskBudget,
       timeInForce: tif,
       expiresAt: tif === 'SPECIFIED'
         ? normalizeExpiryToIso(replacement.expiresAt ?? replacement.expirationAt ?? existing.expiresAt)

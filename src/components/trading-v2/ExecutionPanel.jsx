@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Calculator, ChevronDown, CircleMinus, Info, Minus, Plus, Shield, Target, X, Check, SlidersHorizontal, Clock3 } from 'lucide-react';
 import { decimalPlaces, normalizeVolumeToStep } from '../../utils/tradingCommandNormalization.js';
-import { calculateRiskOrderSizing, effectiveLeverage, estimateRequiredMargin, estimateStopRisk, riskSizingSupported } from '../../utils/tradingRisk.js';
+import { effectiveLeverage, estimateLossAtStopWithCosts, estimateRequiredMargin, estimateStopRisk, riskSizingSupported } from '../../utils/tradingRisk.js';
+import { resolveExecutionPreview } from '../../utils/executionPricing.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 import { effectiveTradePlan, validateTradePlanForExecution } from '../../utils/tradePlanExecution.js';
 import { deriveAccountCapabilities, protectionRequirement } from '../../utils/accountCapabilities.js';
@@ -31,20 +32,21 @@ function defaultSpecifiedExpiry() {
 
 function getPlanMetrics(plan, riskPercent, manualLots = 0.1, market, account) {
   if (!plan) return null;
-  const entry = Number(plan.entry) || 0;
-  const sl = Number(plan.sl) || entry;
-  const tp = Number(plan.tp) || entry;
+  const resolved = resolveExecutionPreview({ plan, riskPercent, manualLots, account, instrument: market });
+  const projected = resolved.riskPlan || resolved.plan || plan;
+  const entry = Number(projected.entry) || 0;
+  const sl = Number(projected.sl) || entry;
+  const tp = Number(projected.tp) || entry;
   const pipSize = instrumentPipSize(market);
   const slPips = Math.max(0.1, Math.abs(entry - sl) / pipSize);
   const tpPips = Math.max(0.1, Math.abs(tp - entry) / pipSize);
   const supported = riskSizingSupported(market, account?.currency);
-  const riskSizing = plan.sizingMode === 'risk'
-    ? calculateRiskOrderSizing(plan, riskPercent, account, market)
-    : null;
-  const requestedLots = plan.sizingMode === 'risk' ? (riskSizing?.requestedLots ?? manualLots) : manualLots;
-  const lots = normalizeVolumeToStep(requestedLots, market);
-  const riskAmount = estimateStopRisk(plan, lots, market, account?.currency);
-  const reward = riskAmount == null ? null : riskAmount * (tpPips / slPips);
+  const riskSizing = plan.sizingMode === 'risk' ? resolved.sizing?.riskSizing : null;
+  const requestedLots = plan.sizingMode === 'risk' ? resolved.sizing?.lots : manualLots;
+  const lots = Number.isFinite(Number(requestedLots)) && requestedLots != null
+    ? normalizeVolumeToStep(requestedLots, market) : null;
+  const riskAmount = lots == null ? null : estimateLossAtStopWithCosts(projected, lots, market, account);
+  const reward = lots == null ? null : estimateStopRisk({ ...projected, sl: tp }, lots, market, account?.currency);
   return { slPips, tpPips, riskDollars: riskAmount, lots, rr: tpPips / slPips, reward, riskSupported: supported, riskSizing };
 }
 
@@ -307,6 +309,7 @@ export default function ExecutionPanel({
       : numeric;
     if (!Number.isFinite(nextPercent) || nextPercent <= 0) return;
     const clamped = Math.max(0.1, Math.min(5, nextPercent));
+    if (clamped !== nextPercent) return;
     onRiskPercentChange(clamped);
     onSizingModeChange('risk');
     onTradePlanChange({ sizingMode: 'risk' });
@@ -425,7 +428,9 @@ export default function ExecutionPanel({
     const symbolLabel = String(tradePlan.symbol || market?.symbol || '').toUpperCase();
     const riskAmount = Number(metrics?.riskDollars);
     const potential = Number(metrics?.reward);
-    const riskValue = Number(riskPercent).toFixed(2);
+    const riskValue = riskDisplayMode === 'amount'
+      ? (Number(account?.equity) * Number(riskPercent) / 100).toFixed(2)
+      : Number(riskPercent).toFixed(2);
     const actionPrice = formatInstrumentPrice(effectivePlan?.entry, market);
     const slPrice = formatInstrumentPrice(effectivePlan?.sl, market);
     const tpPrice = formatInstrumentPrice(effectivePlan?.tp, market);
@@ -445,15 +450,15 @@ export default function ExecutionPanel({
       <div className="min-w-0 px-1 py-1.5 text-center">
         <span className={labelClass}>Risk</span>
         <input
-          key={`risk:percent:${riskValue}`}
+          key={`risk:${riskDisplayMode}:${riskValue}`}
           defaultValue={riskValue}
           inputMode="decimal"
-          onBlur={event => commitPlannerRisk(event.currentTarget.value, 'percent')}
+          onBlur={event => commitPlannerRisk(event.currentTarget.value, riskDisplayMode)}
           onKeyDown={plannerInputKeyDown}
           className={inputClass}
-          aria-label="Risk percent"
+          aria-label={riskDisplayMode === 'amount' ? `Risk amount in ${account?.currency || 'USD'}` : 'Risk percent'}
         />
-        <span className={secondaryClass}>% risk</span>
+        <button type="button" onClick={() => setRiskDisplayMode(mode => mode === 'amount' ? 'percent' : 'amount')} className={secondaryClass} aria-label="Switch between percent and account currency risk">{riskDisplayMode === 'amount' ? (account?.currency || 'USD') : '% risk'}</button>
       </div>
     );
 
@@ -943,8 +948,8 @@ export default function ExecutionPanel({
                   <div className="pt-3">
                     <label className="block text-[7px] font-bold uppercase tracking-[0.09em] text-[#61768a]">Risk per trade</label>
                     <div className="mt-1.5 flex h-10 items-center border-y border-white/[0.08] bg-black px-2">
-                      <input type="number" inputMode="decimal" min="0.1" max="5" step="0.05" value={riskPercent} onChange={event => onRiskPercentChange(Math.max(0.1, Math.min(5, Number(event.target.value) || 0.1)))} className="min-w-0 flex-1 bg-transparent text-center font-mono text-[15px] font-black tabular-nums text-[#f1f5f8] outline-none"/>
-                      <span className="text-[9px] font-bold text-[#687b8d]">%</span>
+                      <input key={`mobile-risk:${riskDisplayMode}:${riskPercent}`} type="text" inputMode="decimal" defaultValue={riskDisplayMode === 'amount' ? (Number(account?.equity) * Number(riskPercent) / 100).toFixed(2) : riskPercent} onBlur={event => commitPlannerRisk(event.currentTarget.value, riskDisplayMode)} onKeyDown={plannerInputKeyDown} className="min-w-0 flex-1 bg-transparent text-center font-mono text-[15px] font-black tabular-nums text-[#f1f5f8] outline-none" aria-label="Risk value"/>
+                      <button type="button" onClick={() => setRiskDisplayMode(mode => mode === 'amount' ? 'percent' : 'amount')} className="text-[9px] font-bold text-[#687b8d]" aria-label="Switch risk unit">{riskDisplayMode === 'amount' ? (account?.currency || 'USD') : '%'}</button>
                     </div>
                     <div className="mt-2 grid grid-cols-4 gap-1">
                       {[0.25, 0.5, 1, 2].map(value => <button key={value} type="button" onClick={() => onRiskPercentChange(value)} className={`h-8 border text-[8px] font-bold ${Math.abs(Number(riskPercent) - value) < 0.001 ? 'border-[#195be1] bg-[#101820] text-[#195be1]' : 'border-white/[0.08] bg-black text-[#94a4b2]'}`}>{value}%</button>)}

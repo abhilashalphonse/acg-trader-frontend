@@ -16,7 +16,7 @@ import useTradingHotkeys from '../hooks/useTradingHotkeys.js';
 import { useTradingTerminal } from '../hooks/useTradingTerminal.js';
 import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
 import { normalizePriceToTick, normalizeProtectionPrice, normalizeVolumeToStep, pendingPriceDirection } from '../utils/tradingCommandNormalization.js';
-import { defaultPlannerStopDistance, estimateOpeningRequirement, estimateStopRisk, evaluateRiskToolSetup } from '../utils/tradingRisk.js';
+import {defaultPlannerStopDistance, estimateOpeningRequirement, estimateStopRisk, evaluateRiskToolSetup, estimateLossAtStopWithCosts } from '../utils/tradingRisk.js';
 import { exposureAvailability } from '../utils/exposureAvailability.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../utils/instrumentFormatting.js';
 import { normalizeTradePlanPatch } from '../utils/tradePlanNormalization.js';
@@ -111,11 +111,8 @@ function estimatedRisk(plan, riskPercent, manualLots, account, instrument) {
   if (!plan) return 0;
   const preview = resolveExecutionPreview({ plan, riskPercent, manualLots, account, instrument });
   if (!Number.isFinite(Number(preview.sizing?.lots))) return null;
-  const effectivePlan = preview.plan || plan;
-  const riskPlan = effectivePlan.pending && String(effectivePlan.orderType || '').toLowerCase() === 'stop-limit'
-    ? { ...effectivePlan, entry: effectivePlan.limitPrice }
-    : effectivePlan;
-  return estimateStopRisk(riskPlan, preview.sizing.lots, instrument, account?.currency);
+  const riskPlan = preview.riskPlan || preview.plan || plan;
+  return estimateLossAtStopWithCosts(riskPlan, preview.sizing.lots, instrument, account);
 }
 
 function fillEvent(result, fallback) {
@@ -402,7 +399,7 @@ export default function TradingTerminalV2({
     }
     const proposedRisk = stopLoss == null
       ? null
-      : estimateStopRisk({ entry: effectiveRequestedPrice, sl: stopLoss, side }, executionLots, instrument, account.currency);
+      : estimateLossAtStopWithCosts({ entry: effectiveRequestedPrice, sl: stopLoss, side }, executionLots, instrument, account);
     if (!skipRiskGuard) {
       const guard = evaluateRiskGuard({
         account,
@@ -443,6 +440,7 @@ export default function TradingTerminalV2({
         stopLoss,
         takeProfit,
         requestedPrice: Number.isFinite(base.requestedPrice) ? base.requestedPrice : null,
+        riskBudget: executionSizingMode === 'risk' ? Number(account?.equity) * Number(riskPercent) / 100 : null,
       });
       const filled = fillEvent(result, base);
       setExecutionEvent(filled);
@@ -1122,7 +1120,7 @@ export default function TradingTerminalV2({
     const riskPlan = executionPlan.pending && String(executionPlan.orderType || '').toLowerCase() === 'stop-limit'
       ? { ...executionPlan, entry: executionPlan.limitPrice }
       : executionPlan;
-    const proposedRisk = estimateStopRisk(riskPlan, volume, planMarket, account.currency);
+    const proposedRisk = estimateLossAtStopWithCosts(riskPlan, volume, planMarket, account);
     if (!options?.skipRiskGuard) {
       const guard = evaluateRiskGuard({
         account,
@@ -1149,6 +1147,7 @@ export default function TradingTerminalV2({
         limitPrice: executionPlan.limitPrice,
         stopLoss: executionPlan.sl,
         takeProfit: executionPlan.tp,
+        riskBudget: (executionPlan.sizingMode || sizingMode) === 'risk' ? Number(account?.equity) * Number(riskPercent) / 100 : null,
         timeInForce: executionPlan.expiration || 'GTC',
         expiresAt: executionPlan.expirationAt || executionPlan.expiresAt || null,
       };

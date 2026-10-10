@@ -4,7 +4,9 @@ import TradingChart from '../TradingChart.jsx';
 import DrawingLayer from './DrawingLayer.jsx';
 import { formatInstrumentPrice, formatSpreadDisplay, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 import { positionCloseAvailability } from '../../utils/marketExecutionAvailability.js';
-import { calculateRiskOrderSizing, estimatePositionPnlAtPrice, estimateStopRisk, positionDistancePips } from '../../utils/tradingRisk.js';
+import { estimateLossAtStopWithCosts, estimatePositionPnlAtPrice, estimateStopRisk, positionDistancePips } from '../../utils/tradingRisk.js';
+import { resolveExecutionPreview } from '../../utils/executionPricing.js';
+import { effectiveTradePlan } from '../../utils/tradePlanExecution.js';
 import { DRAWING_TOOL_GROUPS, DRAWING_TOOL_LABELS } from '../../utils/drawingTools.js';
 import { DRAWING_TOOL_ICONS } from './DrawingToolIcons.jsx';
 import { chartTimezoneLabel, formatChartClock } from '../../utils/desktopChartSettings.js';
@@ -523,7 +525,7 @@ function PendingOrderOverlay({
   );
 }
 
-function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, instrument, lots = 0.1, accountCurrency = 'USD', account = null, riskPercent = 0.5, showEntry = true, mobileStyle = false }) {
+function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, instrument, lots = 0.1, accountCurrency = 'USD', account = null, riskPercent = 0.5, orderExecutionPreview = null, showEntry = true, mobileStyle = false }) {
   const layerRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [preview, setPreview] = useState({});
@@ -610,18 +612,29 @@ function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, 
   const liveSl = sourcePrice('sl');
   const liveTp = sourcePrice('tp');
   const livePlan = { ...plan, entry: liveEntry, sl: liveSl, tp: liveTp };
-  const liveRiskSizing = plan?.sizingMode === 'risk'
-    ? calculateRiskOrderSizing(livePlan, riskPercent, account || {}, instrument)
-    : null;
+  // With no uncommitted chart drag, display the exact same resolved size
+  // as the ticket; both derive from the current executable market quote.
+  const dragPreviewActive = ['entry', 'sl', 'tp', 'limitPrice']
+    .some(field => Object.prototype.hasOwnProperty.call(preview, field));
+  const resolvedLive = !dragPreviewActive && orderExecutionPreview
+    ? orderExecutionPreview
+    : resolveExecutionPreview({
+      plan: effectiveTradePlan(livePlan, instrument),
+      riskPercent,
+      manualLots: plan?.manualLots ?? lots,
+      account: account || {},
+      instrument,
+    });
   const rawDisplayLots = plan?.sizingMode === 'risk'
-    ? (liveRiskSizing?.requestedLots ?? lots)
+    ? (resolvedLive.sizing?.lots ?? Number.NaN)
     : (plan?.manualLots ?? lots);
   const displayLots = rawDisplayLots == null ? Number.NaN : Number(rawDisplayLots);
+  const riskPricePlan = resolvedLive.riskPlan || resolvedLive.plan || livePlan;
   const liveRisk = Number.isFinite(displayLots) && Number.isFinite(liveEntry) && Number.isFinite(liveSl)
-    ? estimateStopRisk(livePlan, displayLots, instrument, accountCurrency)
+    ? estimateLossAtStopWithCosts(riskPricePlan, displayLots, instrument, account)
     : null;
   const liveReward = Number.isFinite(displayLots) && Number.isFinite(liveEntry) && Number.isFinite(liveTp)
-    ? estimateStopRisk({ ...livePlan, sl: liveTp }, displayLots, instrument, accountCurrency)
+    ? estimateStopRisk({ ...riskPricePlan, sl: liveTp }, displayLots, instrument, accountCurrency)
     : null;
   const lotLabel = Number.isFinite(displayLots) ? `${displayLots.toFixed(Math.max(2, Number(instrument?.volumeStep) < 0.01 ? 3 : 2))} lot` : '— lot';
   const lotCompact = Number.isFinite(displayLots) ? formatPositionLots(displayLots) : '—';
@@ -1157,6 +1170,7 @@ export default function ChartArea({
   hideToolbar = false,
   tradePlan,
   tradePlanLots = 0.1,
+  orderExecutionPreview = null,
   accountCurrency = 'USD',
   onTradePlanChange = () => {},
   onUpdatePosition = () => {},
@@ -1441,6 +1455,7 @@ export default function ChartArea({
           accountCurrency={accountCurrency}
           account={account}
           riskPercent={riskPercent}
+          orderExecutionPreview={orderExecutionPreview}
         />
         {positionProtectionDraft && (
           <TradePlanOverlay

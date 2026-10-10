@@ -11,7 +11,8 @@ import MobileTradesSheet from '../components/trading-v2/MobileTradesSheet.jsx';
 import MobileAccountSheet from '../components/trading-v2/MobileAccountSheet.jsx';
 import { useTradingTerminal } from '../hooks/useTradingTerminal.js';
 import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
-import { calculateRiskOrderSizing, defaultPlannerStopDistance, estimateStopRisk, evaluateRiskToolSetup } from '../utils/tradingRisk.js';
+import { calculateRiskOrderSizing, defaultPlannerStopDistance, estimateLossAtStopWithCosts, estimateStopRisk, evaluateRiskToolSetup } from '../utils/tradingRisk.js';
+import { resolveExecutionPreview } from '../utils/executionPricing.js';
 import { exposureAvailability } from '../utils/exposureAvailability.js';
 import {
   normalizePriceToTick,
@@ -269,7 +270,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     dismissExecutionLater();
   };
 
-  const runMarketExecution = async ({ side, executionLots, symbol, requestedPrice, stopLoss = null, takeProfit = null }) => {
+  const runMarketExecution = async ({ side, executionLots, symbol, requestedPrice, stopLoss = null, takeProfit = null, riskBudget = null }) => {
     if (!symbol || !trading.accountId) return null;
     if (!exposure.allowed) { showNotice(exposure.reason); return null; }
     const base = { side: String(side).toUpperCase(), lots: Number(executionLots), symbol, requestedPrice: Number(requestedPrice) };
@@ -282,6 +283,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
         volume: base.lots,
         stopLoss,
         takeProfit,
+        riskBudget,
         requestedPrice: Number.isFinite(base.requestedPrice) ? base.requestedPrice : null,
       });
       const filled = fillEvent(result, base);
@@ -824,11 +826,13 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       showNotice(`${planSymbol} is unavailable. Cancel this plan and try again.`);
       return;
     }
-    const executionPlan = tradePlan.open ? tradePlan : effectiveTradePlan(tradePlan, planMarket);
+    const basePlan = tradePlan.open ? tradePlan : effectiveTradePlan(tradePlan, planMarket);
+    const preview = resolveExecutionPreview({ plan: basePlan, riskPercent, manualLots: basePlan.manualLots ?? lots, account, instrument: planMarket });
+    const executionPlan = preview.plan || basePlan;
 
     let calculated;
     if (executionPlan.sizingMode === 'risk') {
-      const sizing = calculateRiskOrderSizing(executionPlan, riskPercent, account, planMarket);
+      const sizing = preview.sizing?.riskSizing;
       if (!sizing) {
         showNotice('Risk % sizing is unavailable because this instrument P&L requires currency conversion. Use Lots sizing.');
         return;
@@ -858,6 +862,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
         limitPrice: executionPlan.limitPrice,
         stopLoss: executionPlan.sl,
         takeProfit: executionPlan.tp,
+        riskBudget: executionPlan.sizingMode === 'risk' ? Number(account?.equity) * Number(riskPercent) / 100 : null,
         timeInForce: executionPlan.expiration || 'GTC',
         expiresAt: executionPlan.expirationAt || executionPlan.expiresAt || null,
       };
@@ -883,6 +888,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       requestedPrice: executionPlan.entry,
       stopLoss: executionPlan.sl,
       takeProfit: executionPlan.tp,
+      riskBudget: executionPlan.sizingMode === 'risk' ? Number(account?.equity) * Number(riskPercent) / 100 : null,
     });
     if (result?.position || result?.reconciled || String(result?.order?.status || '').toUpperCase() === 'FILLED') setTradePlan(null);
   };
@@ -1030,8 +1036,8 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   }, [plannedRiskInstrument, tradePlan]);
   const canonicalRiskSizing = useMemo(() => {
     if (!canonicalTradePlan || canonicalTradePlan.sizingMode !== 'risk') return null;
-    return calculateRiskOrderSizing(canonicalTradePlan, riskPercent, account, plannedRiskInstrument);
-  }, [account, canonicalTradePlan, plannedRiskInstrument, riskPercent]);
+    return resolveExecutionPreview({ plan: canonicalTradePlan, riskPercent, manualLots: canonicalTradePlan.manualLots ?? lots, account, instrument: plannedRiskInstrument }).sizing?.riskSizing || null;
+  }, [account, canonicalTradePlan, plannedRiskInstrument, riskPercent, lots]);
   const tradePlanLots = canonicalTradePlan
     ? normalizeVolumeToStep(
       canonicalTradePlan.sizingMode === 'risk'
@@ -1041,7 +1047,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     )
     : lots;
   const plannedRisk = canonicalTradePlan && Number.isFinite(Number(tradePlanLots))
-    ? estimateStopRisk(canonicalTradePlan, tradePlanLots, plannedRiskInstrument, account.currency)
+    ? estimateLossAtStopWithCosts(canonicalTradePlan, tradePlanLots, plannedRiskInstrument, account)
     : 0;
   const indicatorSheetProps = {
     indicators,
