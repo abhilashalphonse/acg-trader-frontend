@@ -59,3 +59,16 @@ test('execution preview resolves risk sizing against the volume-adjusted market 
   assert.ok(Number.isFinite(result.sizing.lots));
   assert.equal(result.plan.entry, estimateExecutionPrice(instrument, 'buy', result.sizing.lots).price);
 });
+
+
+test('STOP_LIMIT risk previews size against the limit fill leg, not the trigger', () => {
+  const instrument = { symbol: 'TESTUSD', pnlCurrency: 'USD', quoteCurrency: 'USD', marginCurrency: 'USD',
+    contractSize: 1, tickSize: 0.01, defaultLeverage: 100, minVolume: 0.01, maxVolume: 1000, volumeStep: 0.01 };
+  const account = { currency: 'USD', equity: 10000, freeMargin: 10000, leverage: 100 };
+  const plan = { side: 'buy', pending: true, orderType: 'stop-limit', sizingMode: 'risk',
+    entry: 100, limitPrice: 101, sl: 99 };
+  const preview = resolveExecutionPreview({ plan, riskPercent: 1, account, instrument, manualLots: 0.1 });
+  assert.equal(preview.plan.entry, 100);
+  assert.equal(preview.riskPlan.entry, 101);
+  assert.equal(preview.sizing.lots, 50);
+});
