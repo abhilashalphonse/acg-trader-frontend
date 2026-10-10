@@ -89,14 +89,25 @@ export function estimateOpeningRequirement(price, lots, instrument, account) {
   return margin + commission;
 }
 
+// Includes both estimated sides of commission; the SL-distance estimate alone
+// understates the budget consumed by fee-bearing instruments.
+export function estimateLossAtStopWithCosts(plan, lots, instrument, account) {
+  const priceLoss = estimateStopRisk(plan, lots, instrument, account?.currency);
+  const openingFee = estimateCommission(plan?.entry, lots, instrument, account);
+  const closingFee = estimateCommission(plan?.sl, lots, instrument, account);
+  if (![priceLoss, openingFee, closingFee].every(Number.isFinite)) return null;
+  return priceLoss + openingFee + closingFee;
+}
+
 export function calculateRiskOrderSizing(plan, riskPercent, account, instrument) {
-  const requestedRaw = calculateRiskSizedLots(
-    plan,
-    riskPercent,
-    account?.equity,
-    instrument,
-    account?.currency,
-  );
+  const equity = Number(account?.equity);
+  const percentage = Number(riskPercent);
+  const riskBudget = equity * percentage / 100;
+  const perLotRisk = estimateLossAtStopWithCosts(plan, 1, instrument, account);
+  const requestedRaw = Number.isFinite(riskBudget) && riskBudget > 0
+    && Number.isFinite(perLotRisk) && perLotRisk > 0
+    ? riskBudget / perLotRisk
+    : null;
   if (!Number.isFinite(requestedRaw) || requestedRaw <= 0) return null;
 
   const step = finitePositive(instrument?.volumeStep) || 0.01;
@@ -123,8 +134,7 @@ export function calculateRiskOrderSizing(plan, riskPercent, account, instrument)
     maxMarginLots = Math.max(0, Math.min(maxVolume, floorToStep(Math.max(0, freeMargin) / perLotRequirement)));
   }
 
-  const actualRisk = estimateStopRisk(plan, requestedLots, instrument, account?.currency);
-  const equity = Number(account?.equity);
+  const actualRisk = estimateLossAtStopWithCosts(plan, requestedLots, instrument, account);
   const actualRiskPercent = Number.isFinite(actualRisk) && Number.isFinite(equity) && equity > 0
     ? actualRisk / equity * 100
     : null;
@@ -136,6 +146,7 @@ export function calculateRiskOrderSizing(plan, riskPercent, account, instrument)
 
   return {
     requestedRaw,
+    riskBudget,
     requestedLots,
     requiredMargin,
     commission,
