@@ -113,7 +113,8 @@ export function calculateRiskOrderSizing(plan, riskPercent, account, instrument)
   const step = finitePositive(instrument?.volumeStep) || 0.01;
   const minVolume = finitePositive(instrument?.minVolume) || step;
   const maxVolume = finitePositive(instrument?.maxVolume) || Number.POSITIVE_INFINITY;
-  const floorToStep = value => Math.floor((value + step * 1e-8) / step) * step;
+  const stepDigits = Math.min(8, (String(step).split('.')[1] || '').length);
+  const floorToStep = value => Number((Math.floor((value + step * 1e-8) / step) * step).toFixed(stepDigits));
 
   const belowMinimum = requestedRaw < minVolume - step * 1e-8;
   const aboveMaximum = requestedRaw > maxVolume + step * 1e-8;
