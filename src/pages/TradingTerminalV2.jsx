@@ -16,7 +16,7 @@ import useTradingHotkeys from '../hooks/useTradingHotkeys.js';
 import { useTradingTerminal } from '../hooks/useTradingTerminal.js';
 import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
 import { normalizePriceToTick, normalizeProtectionPrice, normalizeVolumeToStep, pendingPriceDirection } from '../utils/tradingCommandNormalization.js';
-import { defaultPlannerStopDistance, estimateOpeningRequirement, estimateStopRisk, evaluateRiskToolSetup } from '../utils/tradingRisk.js';
+import {defaultPlannerStopDistance, estimateOpeningRequirement, estimateStopRisk, evaluateRiskToolSetup, estimateLossAtStopWithCosts } from '../utils/tradingRisk.js';
 import { exposureAvailability } from '../utils/exposureAvailability.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../utils/instrumentFormatting.js';
 import { normalizeTradePlanPatch } from '../utils/tradePlanNormalization.js';
@@ -402,7 +402,7 @@ export default function TradingTerminalV2({
     }
     const proposedRisk = stopLoss == null
       ? null
-      : estimateStopRisk({ entry: effectiveRequestedPrice, sl: stopLoss, side }, executionLots, instrument, account.currency);
+      : estimateLossAtStopWithCosts({ entry: effectiveRequestedPrice, sl: stopLoss, side }, executionLots, instrument, account);
     if (!skipRiskGuard) {
       const guard = evaluateRiskGuard({
         account,
@@ -443,6 +443,7 @@ export default function TradingTerminalV2({
         stopLoss,
         takeProfit,
         requestedPrice: Number.isFinite(base.requestedPrice) ? base.requestedPrice : null,
+        riskBudget: executionSizingMode === 'risk' ? Number(account?.equity) * Number(riskPercent) / 100 : null,
       });
       const filled = fillEvent(result, base);
       setExecutionEvent(filled);
@@ -1149,6 +1150,7 @@ export default function TradingTerminalV2({
         limitPrice: executionPlan.limitPrice,
         stopLoss: executionPlan.sl,
         takeProfit: executionPlan.tp,
+        riskBudget: (executionPlan.sizingMode || sizingMode) === 'risk' ? Number(account?.equity) * Number(riskPercent) / 100 : null,
         timeInForce: executionPlan.expiration || 'GTC',
         expiresAt: executionPlan.expirationAt || executionPlan.expiresAt || null,
       };
