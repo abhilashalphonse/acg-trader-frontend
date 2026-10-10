@@ -52,14 +52,21 @@ export function estimateExecutionPrice(market, side, volume) {
 export function resolveExecutionPreview({ plan, riskPercent, manualLots, account, instrument }) {
   if (!plan) {
     const sizing = resolveExecutionSizing({ sizingMode: 'lots', manualLots }, riskPercent, manualLots, account, instrument);
-    return { plan: null, sizing };
+    return { plan: null, riskPlan: null, sizing };
   }
 
   let effectivePlan = { ...plan };
   let sizing = resolveExecutionSizing(effectivePlan, riskPercent, effectivePlan.manualLots ?? manualLots, account, instrument);
 
   if (plan.pending || !['BUY', 'SELL'].includes(String(plan.side || '').toUpperCase())) {
-    return { plan: effectivePlan, sizing };
+    // STOP_LIMIT fills against its limit leg, not its stop trigger. Size and
+    // estimate stop risk against the same reference the backend validates.
+    const limit = Number(plan.limitPrice);
+    const stopLimit = plan.pending && String(plan.orderType || '').toLowerCase().replace('_', '-') === 'stop-limit'
+      && Number.isFinite(limit) && limit > 0;
+    const riskPlan = stopLimit ? { ...effectivePlan, entry: limit } : effectivePlan;
+    sizing = resolveExecutionSizing(riskPlan, riskPercent, riskPlan.manualLots ?? manualLots, account, instrument);
+    return { plan: effectivePlan, riskPlan, sizing };
   }
 
   for (let iteration = 0; iteration < 3; iteration += 1) {
@@ -80,5 +87,5 @@ export function resolveExecutionPreview({ plan, riskPercent, manualLots, account
     if (sameEntry && sameLots) break;
   }
 
-  return { plan: effectivePlan, sizing };
+  return { plan: effectivePlan, riskPlan: effectivePlan, sizing };
 }
