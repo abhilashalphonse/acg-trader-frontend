@@ -5,6 +5,7 @@ import {
   estimateOpeningRequirement,
   estimateRequiredMargin,
   estimateStopRisk,
+  estimateLossAtStopWithCosts,
   riskSizingSupported,
 } from '../../../utils/tradingRisk.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../../../utils/instrumentFormatting.js';
@@ -169,7 +170,7 @@ export default function DesktopOrderTicket({
     ? { ...executionPlan, entry: executionPlan?.limitPrice }
     : executionPlan;
   const stopRisk = hasStopLoss && Number.isFinite(Number(effectiveLots))
-    ? estimateStopRisk(riskPlan, effectiveLots, market, currency)
+    ? estimateLossAtStopWithCosts(riskPlan, effectiveLots, market, account)
     : null;
   const takeProfitValue = hasTakeProfit && Number.isFinite(Number(effectiveLots))
     ? estimateStopRisk({ ...riskPlan, sl: executionPlan?.tp }, effectiveLots, market, currency)
@@ -245,14 +246,15 @@ export default function DesktopOrderTicket({
     if (next === 'lots') setProtectionIntent(null);
   };
 
-  const setRiskFromInput = value => {
+  const setRiskFromInput = (value, unit = riskUnit) => {
     const numeric = Number(value);
     if (!Number.isFinite(numeric) || numeric <= 0) return;
-    const asPercent = riskUnit === 'amount'
+    const asPercent = unit === 'amount'
       ? (Number.isFinite(equity) && equity > 0 ? numeric / equity * 100 : null)
       : numeric;
     if (!Number.isFinite(asPercent)) return;
     const next = Math.max(0.1, Math.min(5, asPercent));
+    if (next !== asPercent) onNotice(`Risk input is limited to 0.1%–5% of equity (${money(equity * next / 100, currency)}).`);
     onRiskPercentChange(next);
     onSizingModeChange('risk');
     if (tradePlan) onTradePlanChange({ sizingMode: 'risk', manualLots: normalizedLots, stage: 'ready' });
@@ -551,8 +553,11 @@ export default function DesktopOrderTicket({
     if (market?.isStale) warning = 'Quote is stale. Execution is disabled.';
     else warning = 'Waiting for an executable quote.';
   } else if (executionPlan && !planValidation.valid && !tradePlan?.desktopPendingDraft) warning = planValidation.message;
-  else if (marginBlocked) warning = `Opening requirement exceeds free margin ${money(freeMargin, currency)}.`;
   else if (activeSizingMode === 'risk' && !riskSupported) warning = 'Risk sizing is unavailable for this instrument/account currency.';
+  else if (activeSizingMode === 'risk' && hasStopLoss && executionSizing?.blockReason === 'MAX_VOLUME') warning = `Selected risk ${money(riskAmount, currency)} requires ${Number(executionSizing?.riskSizing?.requestedRaw).toFixed(2)} lots · instrument maximum ${Number(maxVolume).toFixed(2)}. Reduce risk or adjust SL.`;
+  else if (activeSizingMode === 'risk' && hasStopLoss && executionSizing?.blockReason === 'MIN_VOLUME') warning = `Selected risk is below the minimum tradable volume ${Number(minVolume).toFixed(2)} lots.`;
+  else if (activeSizingMode === 'risk' && hasStopLoss && executionSizing?.blockReason === 'INSUFFICIENT_MARGIN') warning = `Opening requirement exceeds free margin ${money(freeMargin, currency)}.`;
+  else if (marginBlocked) warning = `Opening requirement exceeds free margin ${money(freeMargin, currency)}.`;
 
   const marketSellPrice = formatInstrumentPrice(market?.bid, market);
   const marketBuyPrice = formatInstrumentPrice(market?.ask, market);
@@ -790,13 +795,13 @@ export default function DesktopOrderTicket({
               </div>
               <div className="mt-1.5 flex gap-1">
                 {RISK_PRESETS.map(value => (
-                  <button key={value} type="button" onClick={() => { setRiskUnit('percent'); setRiskFromInput(value); }} className={Math.abs(Number(riskPercent) - value) < 0.001 ? 'h-6 flex-1 rounded border border-[#195be1]/60 bg-[#0d1a22] text-[8px] font-bold text-[#195be1]' : 'h-6 flex-1 rounded border border-white/[0.05] text-[8px] font-semibold text-[#677684] hover:text-white'}>
+                  <button key={value} type="button" onClick={() => { setRiskUnit('percent'); setRiskFromInput(value, 'percent'); }} className={Math.abs(Number(riskPercent) - value) < 0.001 ? 'h-6 flex-1 rounded border border-[#195be1]/60 bg-[#0d1a22] text-[8px] font-bold text-[#195be1]' : 'h-6 flex-1 rounded border border-white/[0.05] text-[8px] font-semibold text-[#677684] hover:text-white'}>
                     {value}%
                   </button>
                 ))}
               </div>
               <div className="mt-2 flex items-center justify-between text-[9px]">
-                <span className="text-[#697784]">Set SL to calculate size</span>
+                <span className="text-[#697784]">{hasStopLoss ? 'Calculated size' : 'Set SL to calculate size'}</span>
                 <strong className={Number.isFinite(Number(effectiveLots)) ? 'font-mono text-[#eef2f5]' : 'font-normal text-[#8b98a4]'}>{riskSizingText}</strong>
               </div>
             </div>
