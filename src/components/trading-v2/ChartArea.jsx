@@ -524,7 +524,7 @@ function PendingOrderOverlay({
   );
 }
 
-function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, instrument, lots = 0.1, accountCurrency = 'USD', account = null, riskPercent = 0.5, showEntry = true, mobileStyle = false }) {
+function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, instrument, lots = 0.1, accountCurrency = 'USD', account = null, riskPercent = 0.5, orderExecutionPreview = null, showEntry = true, mobileStyle = false }) {
   const layerRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [preview, setPreview] = useState({});
@@ -611,10 +611,19 @@ function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, 
   const liveSl = sourcePrice('sl');
   const liveTp = sourcePrice('tp');
   const livePlan = { ...plan, entry: liveEntry, sl: liveSl, tp: liveTp };
-  const resolvedLive = resolveExecutionPreview({
-    plan: livePlan, riskPercent, manualLots: plan?.manualLots ?? lots,
-    account: account || {}, instrument,
-  });
+  // With no uncommitted chart drag, display the exact same resolved size
+  // as the ticket; both derive from the current executable market quote.
+  const dragPreviewActive = ['entry', 'sl', 'tp', 'limitPrice']
+    .some(field => Object.prototype.hasOwnProperty.call(preview, field));
+  const resolvedLive = !dragPreviewActive && orderExecutionPreview
+    ? orderExecutionPreview
+    : resolveExecutionPreview({
+      plan: effectiveTradePlan(livePlan, instrument),
+      riskPercent,
+      manualLots: plan?.manualLots ?? lots,
+      account: account || {},
+      instrument,
+    });
   const rawDisplayLots = plan?.sizingMode === 'risk'
     ? (resolvedLive.sizing?.lots ?? Number.NaN)
     : (plan?.manualLots ?? lots);
@@ -1160,6 +1169,7 @@ export default function ChartArea({
   hideToolbar = false,
   tradePlan,
   tradePlanLots = 0.1,
+  orderExecutionPreview = null,
   accountCurrency = 'USD',
   onTradePlanChange = () => {},
   onUpdatePosition = () => {},
@@ -1444,6 +1454,7 @@ export default function ChartArea({
           accountCurrency={accountCurrency}
           account={account}
           riskPercent={riskPercent}
+          orderExecutionPreview={orderExecutionPreview}
         />
         {positionProtectionDraft && (
           <TradePlanOverlay
