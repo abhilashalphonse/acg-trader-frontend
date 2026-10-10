@@ -33,7 +33,7 @@ function defaultSpecifiedExpiry() {
 function getPlanMetrics(plan, riskPercent, manualLots = 0.1, market, account) {
   if (!plan) return null;
   const resolved = resolveExecutionPreview({ plan, riskPercent, manualLots, account, instrument: market });
-  const projected = resolved.plan || plan;
+  const projected = resolved.riskPlan || resolved.plan || plan;
   const entry = Number(projected.entry) || 0;
   const sl = Number(projected.sl) || entry;
   const tp = Number(projected.tp) || entry;
