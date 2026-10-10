@@ -4,7 +4,8 @@ import TradingChart from '../TradingChart.jsx';
 import DrawingLayer from './DrawingLayer.jsx';
 import { formatInstrumentPrice, formatSpreadDisplay, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 import { positionCloseAvailability } from '../../utils/marketExecutionAvailability.js';
-import { calculateRiskOrderSizing, estimatePositionPnlAtPrice, estimateStopRisk, positionDistancePips } from '../../utils/tradingRisk.js';
+import { estimateLossAtStopWithCosts, estimatePositionPnlAtPrice, estimateStopRisk, positionDistancePips } from '../../utils/tradingRisk.js';
+import { resolveExecutionPreview } from '../../utils/executionPricing.js';
 import { DRAWING_TOOL_GROUPS, DRAWING_TOOL_LABELS } from '../../utils/drawingTools.js';
 import { DRAWING_TOOL_ICONS } from './DrawingToolIcons.jsx';
 import { chartTimezoneLabel, formatChartClock } from '../../utils/desktopChartSettings.js';
@@ -610,18 +611,20 @@ function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, 
   const liveSl = sourcePrice('sl');
   const liveTp = sourcePrice('tp');
   const livePlan = { ...plan, entry: liveEntry, sl: liveSl, tp: liveTp };
-  const liveRiskSizing = plan?.sizingMode === 'risk'
-    ? calculateRiskOrderSizing(livePlan, riskPercent, account || {}, instrument)
-    : null;
+  const resolvedLive = resolveExecutionPreview({
+    plan: livePlan, riskPercent, manualLots: plan?.manualLots ?? lots,
+    account: account || {}, instrument,
+  });
   const rawDisplayLots = plan?.sizingMode === 'risk'
-    ? (liveRiskSizing?.requestedLots ?? lots)
+    ? (resolvedLive.sizing?.lots ?? Number.NaN)
     : (plan?.manualLots ?? lots);
   const displayLots = rawDisplayLots == null ? Number.NaN : Number(rawDisplayLots);
+  const riskPricePlan = resolvedLive.plan || livePlan;
   const liveRisk = Number.isFinite(displayLots) && Number.isFinite(liveEntry) && Number.isFinite(liveSl)
-    ? estimateStopRisk(livePlan, displayLots, instrument, accountCurrency)
+    ? estimateLossAtStopWithCosts(riskPricePlan, displayLots, instrument, account)
     : null;
   const liveReward = Number.isFinite(displayLots) && Number.isFinite(liveEntry) && Number.isFinite(liveTp)
-    ? estimateStopRisk({ ...livePlan, sl: liveTp }, displayLots, instrument, accountCurrency)
+    ? estimateStopRisk({ ...riskPricePlan, sl: liveTp }, displayLots, instrument, accountCurrency)
     : null;
   const lotLabel = Number.isFinite(displayLots) ? `${displayLots.toFixed(Math.max(2, Number(instrument?.volumeStep) < 0.01 ? 3 : 2))} lot` : '— lot';
   const lotCompact = Number.isFinite(displayLots) ? formatPositionLots(displayLots) : '—';
