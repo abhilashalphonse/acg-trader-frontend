@@ -619,7 +619,7 @@ function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, 
     ? (resolvedLive.sizing?.lots ?? Number.NaN)
     : (plan?.manualLots ?? lots);
   const displayLots = rawDisplayLots == null ? Number.NaN : Number(rawDisplayLots);
-  const riskPricePlan = resolvedLive.plan || livePlan;
+  const riskPricePlan = resolvedLive.riskPlan || resolvedLive.plan || livePlan;
   const liveRisk = Number.isFinite(displayLots) && Number.isFinite(liveEntry) && Number.isFinite(liveSl)
     ? estimateLossAtStopWithCosts(riskPricePlan, displayLots, instrument, account)
     : null;
