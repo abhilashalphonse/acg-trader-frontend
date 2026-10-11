@@ -99,7 +99,8 @@ async function run(){
  if(lotSlider?.max!=='1000')failed.push('Lots logarithmic track range missing');
  if(!(practicalTop>0.1&&practicalTop<10))failed.push('BTC affordable tick endpoint is not account-based: '+practicalTop);
  if(!ticket.querySelector('.v4-translation')?.textContent?.includes('BTC'))failed.push('BTC quantity not shown alongside USD exposure');
- if(!ticket.querySelector('.v4-translation')?.textContent?.includes('
+ if(!ticket.querySelector('.v4-translation')?.textContent?.includes(String.fromCharCode(36)))failed.push('USD exposure is missing');
+ const buy=ticket.querySelector('button.v4-buy');
  if(!buy){failed.push('Buy button missing');status.textContent='FAIL: '+failed.join(' | ');return;}
  buy.click();buy.click();
  await sleep(470);
