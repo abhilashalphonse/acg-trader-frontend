@@ -113,6 +113,17 @@ async function run(){
  if(!chart.querySelector('[title="Add SL"]'))failed.push('Chart draft entry missing SL shortcut');
  if(!chart.textContent.includes('BUY'))failed.push('Chart draft direction missing');
  if(counters.planned!==0)failed.push('Margin draft unexpectedly submitted an order');
+ // TradingView-style lifecycle: tapping SL moves the shortcut to its own
+ // draggable protection line. Clearing it restores the entry shortcut.
+ chart.querySelector('[title="Add SL"]')?.click();
+ await sleep(150);
+ if(chart.querySelector('[title="Add SL"]'))failed.push('SL chip remained after activation');
+ if(!chart.querySelector('[aria-label="Drag SL"]'))failed.push('SL did not transform into draggable price line');
+ if(!ticket.querySelector('input[aria-label="Stop Loss value"]'))failed.push('SL chart activation not synchronized with ticket');
+ chart.querySelector('[aria-label="Clear SL"]')?.click();
+ await sleep(150);
+ if(!chart.querySelector('[title="Add SL"]'))failed.push('SL shortcut not restored after clearing line');
+ if(ticket.querySelector('input[aria-label="Stop Loss value"]'))failed.push('SL remained enabled in ticket after clearing');
 
  findMode(ticket,'Risk %')?.click();
  await sleep(180);
@@ -129,6 +140,16 @@ async function run(){
  addTp?.click();
  await sleep(150);
  if(!ticket.querySelector('input[aria-label="Take Profit value"]'))failed.push('Chart TP toggle failed to update ticket');
+ if(chart.querySelector('[title="Add TP"]'))failed.push('Activated TP shortcut stayed on entry row');
+ if(!chart.querySelector('[aria-label="Clear TP"]'))failed.push('Activated TP has no independent removable price line');
+ // Removing the independent line returns its entry shortcut and updates
+ // the same V4 ticket; this is an edit to a draft, not an execution.
+ chart.querySelector('[aria-label="Clear TP"]')?.click();
+ await sleep(150);
+ if(!chart.querySelector('[title="Add TP"]'))failed.push('Removed TP did not return to entry row');
+ if(ticket.querySelector('input[aria-label="Take Profit value"]'))failed.push('Removed TP remained active in ticket');
+ if(chart.querySelector('[title="Add SL"]'))failed.push('Active risk SL remained on entry row');
+ if(!chart.querySelector('[aria-label="Clear SL"]'))failed.push('Active risk SL line not removable');
  const slDrag=chart.querySelector('[aria-label="Drag SL"]');
  if(!slDrag)failed.push('Chart SL drag handle missing');
  else {

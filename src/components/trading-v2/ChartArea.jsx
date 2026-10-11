@@ -843,44 +843,41 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
     <div className="absolute left-0 right-0 z-30" style={{ top: entryY }}>
       <div className="relative border-t border-dotted border-[#3b78d8]/90">
         <div className="pointer-events-auto absolute left-3 top-1/2 z-10 flex h-7 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border border-dotted border-[#3b78d8]/80 bg-[#09090b]/96 font-mono text-[9px] font-medium tabular-nums shadow-[0_4px_14px_rgba(0,0,0,.28)]">
-          <button
-            type="button"
-            onPointerDown={event => {
-              if (liveTp == null) {
+          {/* TP and SL are independent entry shortcuts only when absent.
+              Activating either creates its own line, so its shortcut
+              disappears here until that line is removed. */}
+          {liveTp == null && (
+            <button
+              type="button"
+              onPointerDown={event => event.stopPropagation()}
+              onClick={event => {
+                event.preventDefault();
                 event.stopPropagation();
-                return;
-              }
-              beginProjectedDrag(event, 'tp');
-            }}
-            onClick={event => {
-              event.preventDefault();
-              event.stopPropagation();
-              requestDesktopProtection('tp');
-            }}
-            className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 transition ${liveTp != null ? 'text-[#2aa37f]' : 'text-[#23876b] hover:text-[#35d79d]'}`}
-            title={liveTp != null ? 'Focus TP' : 'Add TP'}
-          >
-            TP
-          </button>
-          <button
-            type="button"
-            onPointerDown={event => {
-              if (liveSl == null) {
+                requestDesktopProtection('tp');
+              }}
+              className="min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[#23876b] transition hover:text-[#35d79d]"
+              aria-label="Add TP"
+              title="Add TP"
+            >
+              TP
+            </button>
+          )}
+          {liveSl == null && (
+            <button
+              type="button"
+              onPointerDown={event => event.stopPropagation()}
+              onClick={event => {
+                event.preventDefault();
                 event.stopPropagation();
-                return;
-              }
-              beginProjectedDrag(event, 'sl');
-            }}
-            onClick={event => {
-              event.preventDefault();
-              event.stopPropagation();
-              requestDesktopProtection('sl');
-            }}
-            className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 transition ${liveSl != null ? 'text-[#d45a64]' : 'text-[#b64f59] hover:text-[#e36a74]'}`}
-            title={liveSl != null ? 'Focus SL' : 'Add SL'}
-          >
-            SL
-          </button>
+                requestDesktopProtection('sl');
+              }}
+              className="min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[#b64f59] transition hover:text-[#e36a74]"
+              aria-label="Add SL"
+              title="Add SL"
+            >
+              SL
+            </button>
+          )}
           <span
             onPointerDown={event => { if (plan.pending) beginProjectedDrag(event, 'entry'); }}
             className={`flex min-w-[46px] items-center justify-center border-r border-dotted border-[#3b78d8]/55 px-2 text-[#d9e1e8] ${plan.pending ? 'cursor-ns-resize' : ''}`}
