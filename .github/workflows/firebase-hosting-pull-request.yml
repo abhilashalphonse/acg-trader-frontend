@@ -40,6 +40,19 @@ jobs:
           curl --fail --silent --show-error --retry 2 --connect-timeout 10 --max-time 25 "$base/health/ready" >/dev/null
           echo 'Staging Trader live and readiness checks returned HTTP success.'
 
+      - name: Verify STAGING CORS allows the V4 Firebase preview
+        if: ${{ github.event.pull_request.number == 90 }}
+        run: |
+          set -euo pipefail
+          origin='https://acg-trader--pr-90-ois6tr16.web.app'
+          base='https://discerning-presence-staging.up.railway.app'
+          headers="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 20 --dump-header - --output /dev/null --header "Origin: $origin" "$base/health/live")"
+          if ! printf '%s\n' "$headers" | grep -qiF "access-control-allow-origin: $origin"; then
+            echo '::error::Railway STAGING does not permit the V4 Firebase preview Origin. Correct STAGING CORS_ORIGINS first; do not deploy the preview as a usable staging trading terminal.'
+            exit 1
+          fi
+          echo 'Staging CORS permits the isolated V4 preview Origin.'
+
       - name: Build preview
         run: npm run build
         env:
