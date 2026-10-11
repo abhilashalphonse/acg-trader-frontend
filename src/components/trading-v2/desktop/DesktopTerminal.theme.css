@@ -307,6 +307,10 @@
 .acg-desktop-v3 .acg-desktop-chart-inner {
   border-radius: 0 !important;
 }
+.acg-desktop-v3 .acg-desktop-chart-frame {
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+}
 .acg-desktop-v3 .acg-motion-side-panel,
 .acg-desktop-v3 aside[aria-label="Desktop panel dock"] {
   border-top: 0 !important;
