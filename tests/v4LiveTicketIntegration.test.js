@@ -66,7 +66,8 @@ test('Protection units retain actual price as canonical source of truth',()=>{
 });
 
 test('Rendering and callbacks fail closed when live numbers or permissions are unavailable',()=>{
- assert.match(component,/exposureAllowed&&financialVerified&&volume/);
+ assert.match(component,/canStartPlan&&\(requiresPlan\|\|\(financialVerified&&Boolean\(volume\)\)\)/);
+ assert.match(component,/const requiresPlan=!tradePlan/);
  assert.match(component,/Number\.isFinite\(requirement\)&&Number\.isFinite\(freeAfter\)&&freeAfter>=0/);
  assert.match(component,/validMarket&&exposureAllowed&&!financialVerified/);
  assert.match(component,/market\?\.isStale!==true/);
@@ -98,6 +99,30 @@ test('V4 prevents duplicate click submissions and tracks actual command pending 
  assert.match(component,/submitOnce\(\(\)=>onExecutePlan\(\)\)/);
  assert.match(component,/submitOnce\(\(\)=>onManualOrder\(/);
  assert.match(component,/Promise\.resolve\(callback\(\)\)/);
+});
+
+test('Audit bug regression: selecting BTC/USD opens existing Markets panel',()=>{
+ assert.match(desktop,/onOpenMarkets=\{\(\) => openMarketPanel\('markets', true\)\}/);
+ assert.match(component,/onClick=\{onOpenMarkets\} aria-label="Open markets and select instrument"/);
+ assert.match(css,/\.v4-symbol-button \{/);
+});
+
+test('Audit bug regression: Margin slider domain does not derive from current margin',()=>{
+ assert.match(component,/marginBudget,setMarginBudget/);
+ assert.match(component,/setMarginBudget\(value\)/);
+ assert.match(component,/marginBudget\?\?margin/);
+ assert.match(component,/Math\.min\(maxMargin,Number\(account\.freeMargin\)\)/);
+ assert.doesNotMatch(component,/Number\(margin\|\|100\)\*4/);
+});
+
+test('Audit bug regression: Risk % and Risk USD work before a chart SL exists',()=>{
+ assert.doesNotMatch(component,/Select Buy or Sell and set a valid SL before risk sizing/);
+ assert.match(component,/const canStartPlan=/);
+ assert.match(component,/const requiresPlan=!tradePlan/);
+ assert.match(component,/onStartPlan\(side,orderType,\{protection/);
+ assert.match(component,/const sl=positive\(effective\?\.sl\)\|\|defaultProtect\('sl'\)/);
+ assert.match(component,/onRiskPercentChange\(percent\)/);
+ assert.match(component,/if\(!result\.canExecute\)notice/);
 });
 
 test('Mobile execution and protected preview remain separate entry points',()=>{
