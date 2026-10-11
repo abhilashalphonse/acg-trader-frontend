@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronUp, CheckCircle2, Circle, Ellipsis, X, Minus, Plus, ArrowRight } from 'lucide-react';
 import InstrumentAvatar from '../InstrumentAvatar.jsx';
 import { formatInstrumentPrice, formatSpreadDisplay, instrumentPipSize } from '../../../utils/instrumentFormatting.js';
@@ -130,6 +130,12 @@ export default function DesktopOrderTicketV4({
   const [wantTp,setWantTp]=useState(false);
   const [advanced,setAdvanced]=useState(false);
   const [menuOpen,setMenuOpen]=useState(false);
+  // A chart-loaded risk plan can change the native mode independently.
+  useEffect(()=>{if(tradePlan?.sizingMode==='risk')setUiMode(current=>
+    current==='lots'||current==='margin'?'riskPercent':current);
+  },[tradePlan?.sizingMode]);
+  // Initial protection toggles only apply to one chart plan.
+  useEffect(()=>{if(tradePlan?.symbol){setWantSl(false);setWantTp(false);}},[tradePlan?.symbol]);
   const currency=account?.currency||'USD';
   const family=orderType==='market'?'market':'pending';
   const capabilities=deriveAccountCapabilities(account);
@@ -213,7 +219,7 @@ export default function DesktopOrderTicketV4({
       if(['usd','balance'].includes(slUnit))setSlUnit('ticks');
     }else{
       onSizingModeChange('lots');
-      if(tradePlan)onTradePlanChange({sizingMode:'lots',manualLots:normalLots(lots),stage:'ready'});
+      if(tradePlan)onTradePlanChange({sizingMode:'lots',manualLots:normalLots(volume||lots),stage:'ready'});
     }
     setUiMode(next);
   };
@@ -260,7 +266,7 @@ export default function DesktopOrderTicketV4({
       onTradePlanChange({[field]:null,activeField:null,stage:'ready'});
     }else{
       const price=defaultProtect(field);
-      if(!price){notice('Protection level unavailable for this instrument.');return;}
+      if(!positive(price)){notice('Protection level unavailable for this instrument.');return;}
       onTradePlanChange({[field]:price,activeField:field,stage:'ready'});
     }
   };
@@ -311,7 +317,7 @@ export default function DesktopOrderTicketV4({
     return <>{money(risk,currency)} risk <ArrowRight size={13}/> {fmt(volume,lotPrecision)} lots <span>{Number.isFinite(risk)&&accountValid?'('+fmt(risk/Number(account.equity)*100)+'%)':''}</span></>;
   };
   const slideMin=uiMode==='lots'?min:uiMode==='margin'?0:0;
-  const slideMax=uiMode==='lots'?Math.max(1,Math.min(max,Number(lots)*4||1)):
+  const slideMax=uiMode==='lots'?Math.max(min+step,Math.min(max,Math.max(min+step,Number(lots)*4||min+step))):
     uiMode==='margin'?Math.max(100,Number(margin||100)*4):
       uiMode==='riskPercent'?5:Math.max(100,Number(selectedValue||100)*4);
   const slideStep=uiMode==='lots'?step:uiMode==='margin'?10:uiMode==='riskPercent'?0.01:10;
