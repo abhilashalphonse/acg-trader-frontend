@@ -966,15 +966,22 @@ export default function TradingTerminalV2({
       side,
       requestedType,
       market,
-      sizingMode,
-      lots,
+      // Explicit draft overrides avoid a React batching race when the V4
+      // slider changes sizing and creates the chart preview in one gesture.
+      sizingMode: options?.sizingMode === 'risk' ? 'risk' : options?.sizingMode === 'lots' ? 'lots' : sizingMode,
+      lots: Number.isFinite(Number(options?.manualLots)) && Number(options.manualLots) > 0
+        ? Number(options.manualLots) : lots,
       protection: options?.protection || 'both',
     });
     if (!plan) {
       showNotice('Executable market price is unavailable');
       return;
     }
-    setTradePlan(options?.desktopPendingDraft ? { ...plan, desktopPendingDraft: true } : plan);
+    setTradePlan({
+      ...plan,
+      ...(options?.desktopPendingDraft ? { desktopPendingDraft: true } : {}),
+      ...(options?.source === 'v4-slider' ? { source: 'v4-slider' } : {}),
+    });
   };
 
   const createPlanFromRiskTool = setup => {

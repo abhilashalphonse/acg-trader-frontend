@@ -12,6 +12,9 @@
 .v4-instrument { display: flex; align-items: center; min-width: 0; gap: 9px; }
 .v4-coin { flex: 0 0 32px; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: #f39824; }
 .v4-symbol { flex: 1; min-width: 0; }
+.v4-symbol-button { display:block; padding:0; border:0; border-radius:7px; background:transparent; color:inherit; text-align:left; cursor:pointer; }
+.v4-symbol-button:hover strong, .v4-symbol-button:focus-visible strong { color:#fff; }
+.v4-symbol-button:hover { background:#222225; }
 .v4-symbol strong { display: flex; align-items: center; gap: 5px; font-size: 15px; font-weight: 750; letter-spacing: -.012em; }
 .v4-symbol span { display: block; margin-top: 2px; color: #a6a6af; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .v4-head-actions { display: flex; flex: 0 0 auto; gap: 5px; }

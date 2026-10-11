@@ -525,7 +525,7 @@ function PendingOrderOverlay({
   );
 }
 
-function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, instrument, lots = 0.1, accountCurrency = 'USD', account = null, riskPercent = 0.5, orderExecutionPreview = null, showEntry = true, mobileStyle = false }) {
+export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, instrument, lots = 0.1, accountCurrency = 'USD', account = null, riskPercent = 0.5, orderExecutionPreview = null, showEntry = true, mobileStyle = false }) {
   const layerRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [preview, setPreview] = useState({});
@@ -800,11 +800,13 @@ function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, 
   const entryLabel = plan.pending
     ? `${isBuy ? 'BUY' : 'SELL'} ${String(plan.orderType || '').replace('-', ' ').toUpperCase()}`
     : (isBuy ? 'BUY' : 'SELL');
+  // Reuse the established inline TP/SL/entry controls for V4 market drafts.
+  // A market entry is read-only; pending orders keep their drag handles.
   const desktopPendingStyle = Boolean(
-    plan.pending
-    && showEntry
-    && !mobileStyle
-    && Object.prototype.hasOwnProperty.call(plan, 'desktopPendingDraft')
+    showEntry && !mobileStyle && (
+      (plan.pending && Object.prototype.hasOwnProperty.call(plan, 'desktopPendingDraft'))
+      || plan.source === 'v4-slider'
+    )
   );
 
   const requestDesktopProtection = kind => {
@@ -880,16 +882,16 @@ function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, 
             SL
           </button>
           <span
-            onPointerDown={event => beginProjectedDrag(event, 'entry')}
-            className="flex min-w-[46px] cursor-ns-resize items-center justify-center border-r border-dotted border-[#3b78d8]/55 px-2 text-[#d9e1e8]"
-            title="Drag pending entry price"
+            onPointerDown={event => { if (plan.pending) beginProjectedDrag(event, 'entry'); }}
+            className={`flex min-w-[46px] items-center justify-center border-r border-dotted border-[#3b78d8]/55 px-2 text-[#d9e1e8] ${plan.pending ? 'cursor-ns-resize' : ''}`}
+            title={plan.pending ? 'Drag pending entry price' : 'Draft volume, not submitted'}
           >
             {Number.isFinite(displayLots) ? displayLots.toFixed(Math.max(2, Number(instrument?.volumeStep) < 0.01 ? 3 : 2)) : '—'}
           </span>
           <span
-            onPointerDown={event => beginProjectedDrag(event, 'entry')}
-            className={`flex min-w-[84px] cursor-ns-resize items-center justify-center border-r border-dotted border-[#3b78d8]/55 px-2 ${isBuy ? 'text-[#35d79d]' : 'text-[#d45a64]'}`}
-            title="Drag pending entry price"
+            onPointerDown={event => { if (plan.pending) beginProjectedDrag(event, 'entry'); }}
+            className={`flex min-w-[84px] items-center justify-center border-r border-dotted border-[#3b78d8]/55 px-2 ${plan.pending ? 'cursor-ns-resize' : ''} ${isBuy ? 'text-[#35d79d]' : 'text-[#d45a64]'}`}
+            title={plan.pending ? 'Drag pending entry price' : 'Unsubmitted draft'}
           >
             {entryLabel}
           </span>
@@ -905,8 +907,8 @@ function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, 
               onCancel();
             }}
             className="grid w-8 place-items-center text-[13px] text-[#8995a0] transition hover:bg-white/[0.04] hover:text-white"
-            aria-label={plan?.editingOrderId ? 'Cancel pending order' : 'Cancel pending projection'}
-            title={plan?.editingOrderId ? 'Cancel pending order' : 'Cancel projection'}
+            aria-label={plan?.editingOrderId ? 'Cancel pending order' : 'Cancel draft'}
+            title={plan?.editingOrderId ? 'Cancel pending order' : 'Cancel draft'}
           >
             ×
           </button>
@@ -916,9 +918,10 @@ function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, 
         </span>
         <button
           type="button"
-          aria-label="Drag pending entry"
-          onPointerDown={event => beginProjectedDrag(event, 'entry')}
-          className="pointer-events-auto absolute left-[235px] right-[56px] top-1/2 z-0 h-8 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent lg:right-2"
+          aria-label={plan.pending ? 'Drag pending entry' : 'Draft entry price'}
+          disabled={!plan.pending}
+          onPointerDown={event => { if (plan.pending) beginProjectedDrag(event, 'entry'); }}
+          className={`pointer-events-auto absolute left-[235px] right-[56px] top-1/2 z-0 h-8 -translate-y-1/2 touch-none bg-transparent lg:right-2 ${plan.pending ? 'cursor-ns-resize' : 'cursor-default'}`}
         />
       </div>
     </div>
