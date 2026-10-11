@@ -1017,8 +1017,8 @@ export default function TradingChart({
     const labelledQuotes = showBidAskLines || mobileQuotes;
 
     if (Number.isFinite(liveBid)) {
-      const bidColor = mobileQuotes ? '#19c9ad' : showBidAskLines ? '#42a5ff' : chartTokens.livePriceLine;
-      const bidLabelColor = mobileQuotes ? '#0fa68f' : showBidAskLines ? '#42a5ff' : chartTokens.livePriceLabel;
+      const bidColor = mobileQuotes ? '#19c9ad' : showBidAskLines ? '#B0B7BF' : chartTokens.livePriceLine;
+      const bidLabelColor = mobileQuotes ? '#0fa68f' : showBidAskLines ? '#3B4148' : chartTokens.livePriceLabel;
       const bidLabelText = labelledQuotes ? '#ffffff' : chartTokens.livePriceLabelText;
       if (!marketLineRef.current) {
         marketLineRef.current = series.createPriceLine({
@@ -1044,7 +1044,7 @@ export default function TradingChart({
     }
 
     if (labelledQuotes && Number.isFinite(liveAsk)) {
-      const askColor = '#ff5d70';
+      const askColor = mobileQuotes ? '#ff5d70' : '#939BA4';
       if (!askLineRef.current) {
         askLineRef.current = series.createPriceLine({
           price: liveAsk,
@@ -1052,14 +1052,14 @@ export default function TradingChart({
           lineWidth: 1,
           lineStyle: LineStyle.Dashed,
           axisLabelVisible: true,
-          ...(mobileQuotes ? { axisLabelColor: '#d93d52', axisLabelTextColor: '#ffffff' } : {}),
+          ...(mobileQuotes ? { axisLabelColor: '#d93d52', axisLabelTextColor: '#ffffff' } : { axisLabelColor: '#4A5058', axisLabelTextColor: '#F3F4F6' }),
           title: 'ASK',
         });
       } else {
         askLineRef.current.applyOptions({
           price: liveAsk,
           color: askColor,
-          ...(mobileQuotes ? { axisLabelColor: '#d93d52', axisLabelTextColor: '#ffffff' } : {}),
+          ...(mobileQuotes ? { axisLabelColor: '#d93d52', axisLabelTextColor: '#ffffff' } : { axisLabelColor: '#4A5058', axisLabelTextColor: '#F3F4F6' }),
           title: 'ASK',
         });
       }
