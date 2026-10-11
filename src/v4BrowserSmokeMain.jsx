@@ -113,6 +113,17 @@ async function run(){
  if(!chart.querySelector('[title="Add SL"]'))failed.push('Chart draft entry missing SL shortcut');
  if(!chart.textContent.includes('BUY'))failed.push('Chart draft direction missing');
  if(counters.planned!==0)failed.push('Margin draft unexpectedly submitted an order');
+ // TradingView-style lifecycle: tapping SL moves the shortcut to its own
+ // draggable protection line. Clearing it restores the entry shortcut.
+ chart.querySelector('[title="Add SL"]')?.click();
+ await sleep(150);
+ if(chart.querySelector('[title="Add SL"]'))failed.push('SL chip remained after activation');
+ if(!chart.querySelector('[aria-label="Drag SL"]'))failed.push('SL did not transform into draggable price line');
+ if(!ticket.querySelector('input[aria-label="Stop Loss value"]'))failed.push('SL chart activation not synchronized with ticket');
+ chart.querySelector('[aria-label="Clear SL"]')?.click();
+ await sleep(150);
+ if(!chart.querySelector('[title="Add SL"]'))failed.push('SL shortcut not restored after clearing line');
+ if(ticket.querySelector('input[aria-label="Stop Loss value"]'))failed.push('SL remained enabled in ticket after clearing');
 
  findMode(ticket,'Risk %')?.click();
  await sleep(180);
