@@ -146,7 +146,38 @@ async function run(){
  await sleep(120);
  if(findMode(ticket,'Risk USD')?.getAttribute('aria-pressed')!=='true')failed.push('Risk USD selection failed');
  if(counters.planned!==0)failed.push('Chart edit unexpectedly sent trading command');
+ // Cancelling a draft must restore a clean ticket and chart, and changing
+ // the risk slider alone must rebuild a new, protected chart draft.
+ chart.querySelector('[aria-label="Cancel draft"]')?.click();
+ await sleep(160);
+ if(chart.querySelector('[title="Add TP"]'))failed.push('Cancel did not clear draft');
+ const countBeforeRisk=counters.drafts;
+ ticket.querySelector('button[aria-label="Increase position value"]')?.click();
+ await sleep(180);
+ if(counters.drafts!==countBeforeRisk+1)failed.push('Risk USD slider did not create an SL-protected draft');
+ if(!ticket.querySelector('input[aria-label="Stop Loss value"]'))failed.push('Risk USD draft lacks SL');
+ if(counters.planned!==0)failed.push('Risk USD slider sent order');
+ // An opposite-side Buy/Sell click only reverses draft direction,
+ // never executes the new side automatically.
+ const draftBeforeSide=counters.drafts;
+ ticket.querySelector('button.v4-sell')?.click();
+ await sleep(160);
+ if(counters.drafts!==draftBeforeSide+1)failed.push('Sell did not switch draft side');
+ if(!chart.textContent.includes('SELL'))failed.push('Chart direction failed to switch to SELL');
+ if(counters.planned!==0)failed.push('Direction switch executed a trade');
+ // Pending slider drafts keep their normal draggable entry and same
+ // protections; switching order type must not place an order.
+ const pendingMode=Array.from(ticket.querySelectorAll('.v4-mainmodes button'))
+   .find(b=>b.textContent.trim()==='Pending');
+ pendingMode?.click();
+ await sleep(170);
+ const countBeforePending=counters.drafts;
+ ticket.querySelector('button[aria-label="Increase position value"]')?.click();
+ await sleep(200);
+ if(counters.drafts!==countBeforePending+1)failed.push('Pending slider did not create chart draft');
+ if(!chart.querySelector('[aria-label="Drag pending entry"]'))failed.push('Pending chart entry drag missing');
+ if(counters.planned!==0)failed.push('Pending slider unexpectedly sent order');
  status.textContent=failed.length?'FAIL: '+failed.join(' | ')
-   :'V4_SMOKE_PASS 330px chart-draft slider-first Margin Risk SL-TP sync no-execution';
+   :'V4_SMOKE_PASS 330px chart-draft slider-first Margin Risk SL-TP reverse cancel Pending no-execution';
 }
 run().catch(error=>{document.getElementById('v4-smoke-status').textContent='FAIL: '+error.message;});
