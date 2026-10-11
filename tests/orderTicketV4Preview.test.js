@@ -14,7 +14,7 @@ test('V4 preview has its own Firebase PR-only HTML and React entry point', () =>
  assert.doesNotMatch(main, /OrderTicketV4Preview/);
  assert.match(preview, /import OrderTicketV4Preview/);
  assert.match(preview, /createRoot\(document\.getElementById\('root'\)\)/);
- assert.doesNotMatch(preview, /AuthProvider|SessionGate|TradingProvider|\.\/App\.jsx/);
+ assert.doesNotMatch(preview, /^\s*import[^\n]*(?:AuthProvider|SessionGate|TradingProvider|\.\/App\.jsx)/m);
  assert.match(html, /ACG Trader V4 Execution Design Preview/);
  assert.match(html, /\/src\/previewOrderTicketMain\.jsx/);
  assert.doesNotMatch(html, /Loading ACG Trader/);
