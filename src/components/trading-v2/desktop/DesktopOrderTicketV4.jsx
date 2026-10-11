@@ -400,8 +400,9 @@ export default function DesktopOrderTicketV4({
   // Slider bounds are instrument/account limits, never a function of the
   // value being dragged. The old "current margin * 4" feedback loop
   // repeatedly rescaled the track after every lot-step conversion.
-  const minMargin=previewRef?estimateRequiredMargin(previewRef,min,market,account):null;
-  const maxMargin=previewRef?estimateRequiredMargin(previewRef,max,market,account):null;
+  const baseSliderQuote=positive(market?.ask)||positive(market?.bid);
+  const minMargin=baseSliderQuote?estimateRequiredMargin(baseSliderQuote,min,market,account):null;
+  const maxMargin=baseSliderQuote?estimateRequiredMargin(baseSliderQuote,max,market,account):null;
   const marginCap=Number.isFinite(maxMargin)&&Number.isFinite(Number(account?.freeMargin))
     ?Math.min(maxMargin,Number(account.freeMargin)):null;
   const slideMin=uiMode==='lots'?min:uiMode==='margin'?(positive(minMargin)||0):0;
