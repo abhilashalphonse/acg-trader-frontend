@@ -8,7 +8,7 @@ const instrument = Object.freeze({
   marginCurrency:'USD', quoteCurrency:'USD', pnlCurrency:'USD',
   commissionPerLotPerSide:0,
 });
-const account=Object.freeze({currency:'USD',equity:100000});
+const account=Object.freeze({currency:'USD',equity:100000,balance:100000});
 const buy=Object.freeze({symbol:'BTCUSD',side:'buy',pending:false,orderType:'market',entry:83020.98,sl:82220.98,tp:84620.98});
 const from=(field,unit,amount,override={})=>v4ExitPriceFromInput({field,unit,amount,plan:buy,instrument,lots:0.1,account,...override});
 const as=(field,unit,price,override={})=>v4ExitValueFromPrice({field,unit,price,plan:buy,instrument,lots:0.1,account,...override});
@@ -96,8 +96,19 @@ test('reject invalid side, misaligned values, missing tick and improper directio
  assert.equal(from('sl','unknown',1).code,'INVALID_UNIT');
 });
 
-test('invalid account equity blocks percentage-budget conversion',()=>{
- const result=from('sl','balance',0.08,{account:{...account,equity:null}});
- assert.equal(result.valid,false);
- assert.equal(result.code,'EQUITY_UNAVAILABLE');
+test('percent-of-balance protection uses balance, NOT fluctuating account equity',()=>{
+ const varied={...account,balance:200000,equity:50000};
+ const p=from('sl','balance',0.04,{account:varied});
+ assert.equal(p.valid,true);
+ near(p.price,82220.98);
+ const v=as('sl','balance',82220.98,{account:varied});
+ near(v.value,0.04);
+ near(v.accountPercent,0.04);
+});
+test('missing account balance fails percentage-budget conversion closed',()=>{
+ const p=from('sl','balance',0.08,{account:{...account,balance:null}});
+ assert.equal(p.valid,false);
+ assert.equal(p.code,'BALANCE_UNAVAILABLE');
+ const d=as('sl','balance',82220.98,{account:{...account,balance:null}});
+ assert.equal(d.code,'BALANCE_UNAVAILABLE');
 });
