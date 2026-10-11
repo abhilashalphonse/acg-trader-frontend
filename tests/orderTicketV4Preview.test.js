@@ -52,3 +52,14 @@ test('V4 is chart-black with no blue UI selection and compact 330px option', () 
  assert.match(jsx, /330px dock/);
  assert.match(css, /@container \(max-width: 390px\)/);
 });
+
+test('Market/Pending uses a white capsule with black text, scoped to that selector only', () => {
+ const css = read('src/components/trading-v2/desktop/OrderTicketV4Preview.css');
+ const jsx = read('src/components/trading-v2/desktop/OrderTicketV4Preview.jsx');
+ assert.match(jsx, /className="v4-segment v4-mainmodes"/);
+ assert.match(css, /\.v4-mainmodes \{[\s\S]*?border-radius: 999px/);
+ assert.match(css, /\.v4-mainmodes \.v4-pick\.is-on,[\s\S]*?background: #f7f7f8;/);
+ assert.match(css, /\.v4-mainmodes \.v4-pick\.is-on,[\s\S]*?color: #0b0c0e;/);
+ assert.match(css, /\.v4-mainmodes \.v4-pick:hover:not\(\.is-on\)/);
+ assert.match(css, /\.v4-pick\.is-on \{ color: #fff/);
+});
