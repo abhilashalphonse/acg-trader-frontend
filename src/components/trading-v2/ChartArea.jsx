@@ -1330,8 +1330,8 @@ export default function ChartArea({
     : focusMode || embedded
       ? desktopEnhanced
         ? compactContext
-          ? 'acg-desktop-drawing-rail my-2 flex min-h-0 flex-col items-center overflow-hidden rounded-[10px] border border-white/[0.07] bg-[#0A0C0F] py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]'
-          : 'acg-desktop-drawing-rail my-2 flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto rounded-[10px] border border-white/[0.07] bg-[#0A0C0F] py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+          ? 'acg-desktop-drawing-rail my-0 flex min-h-0 flex-col items-center overflow-hidden rounded-[10px] border border-white/[0.07] bg-[#0A0C0F] py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]'
+          : 'acg-desktop-drawing-rail my-0 flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto rounded-[10px] border border-white/[0.07] bg-[#0A0C0F] py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
         : 'flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto bg-transparent py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
       : 'flex min-h-0 flex-col items-center gap-0.5 bg-transparent py-1';
 
