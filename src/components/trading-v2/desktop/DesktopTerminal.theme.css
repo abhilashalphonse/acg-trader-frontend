@@ -161,3 +161,50 @@
 .acg-desktop-v3 [class*="border-[#3b78d8]"] {
   border-color: #929aa3 !important;
 }
+
+/* Desktop-only full-screen dialogs are siblings of DesktopTerminal.
+   They opt in via explicit classes, so mobile sheets retain their styles. */
+.acg-v3-sheet > section {
+  background: #0b0c0e !important;
+  border-color: #30343a !important;
+  box-shadow: 0 15px 40px rgb(0 0 0 / .40) !important;
+}
+.acg-v3-sheet [class*="border-[#62cbff]"],
+.acg-v3-sheet [class*="border-[#195be1]"],
+.acg-v3-help [class*="border-[#195be1]"] {
+  border-color: #8e949b !important;
+}
+.acg-v3-sheet [class*="bg-[#101a2e]"],
+.acg-v3-sheet [class*="bg-[#195be1]"],
+.acg-v3-help [class*="bg-[#195be1]"],
+.acg-v3-help [class*="bg-[#13213e]"] {
+  background: #292d32 !important;
+  box-shadow: none !important;
+}
+.acg-v3-sheet [class*="text-[#69cfff]"],
+.acg-v3-sheet [class*="text-[#55c7ff]"],
+.acg-v3-sheet [class*="text-[#59c8ff]"],
+.acg-v3-sheet [class*="text-[#67ccff]"],
+.acg-v3-help [class*="text-[#9ab8ff]"],
+.acg-v3-help [class*="text-[#91b0ff]"],
+.acg-v3-help [class*="text-[#195be1]"] {
+  color: #d6d9de !important;
+}
+.acg-v3-sheet [class*="bg-[#62cbff]"],
+.acg-v3-help [class*="bg-[#182640]"] {
+  background: #292d32 !important;
+}
+.acg-v3-sheet :is(button,input,textarea,select):focus-visible,
+.acg-v3-help :is(button,input,textarea,select):focus-visible {
+  outline: 1px solid #cbd0d6 !important;
+  outline-offset: -2px;
+}
+.acg-v3-help section[role="dialog"] {
+  background: #0b0c0e !important;
+  border-color: #30343a !important;
+  border-radius: 10px !important;
+  box-shadow: 0 16px 36px rgb(0 0 0 / .45) !important;
+}
+.acg-v3-help [class*="accent-[#195be1]"] { accent-color: #cbd0d6 !important; }
+.acg-v3-help [class*="hover:border-[#195be1]"]:hover { border-color: #777e85 !important; }
+.acg-v3-help [class*="hover:bg-[#192029]"]:hover { background: #1b1e21 !important; }
