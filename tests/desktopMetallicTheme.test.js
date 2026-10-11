@@ -91,7 +91,7 @@ test('desktop positions headers sit close to their tabs without changing the 44p
 
 test('desktop workspace is edge-aligned without outer vertical gutters', () => {
   const desktop = source('src/components/trading-v2/DesktopTerminal.jsx');
-  assert.match(desktop, /acg-terminal acg-desktop-v3 relative flex h-dvh min-h-0 flex-col gap-0 overflow-hidden bg-black px-1 pt-1 pb-0/);
+  assert.match(desktop, /acg-terminal acg-desktop-v3 fixed inset-0 flex h-dvh w-full min-h-0 flex-col gap-0 overflow-hidden bg-black p-0/);
   assert.match(desktop, /relative grid h-full min-h-0 min-w-0 gap-x-1 gap-y-0 bg-black/);
   assert.match(desktop, /gridTemplateRows: `minmax\(0, 1fr\) \$\{dockHeight\}px`/);
 });
@@ -102,4 +102,24 @@ test('desktop Positions empty state fills remaining dock area and keeps mobile v
   assert.match(positions, /tab === 'positions' && desktopDense && \([\s\S]*?<div className="flex min-w-\[1120px\] flex-1 flex-col">/);
   assert.match(positions, /!positions\.length && <div className="grid min-h-\[110px\] flex-1 place-items-center/);
   assert.match(positions, /: 'mt-3 overflow-visible'/);
+});
+
+test('desktop rail, chart and dock join without clipped rounded edges', () => {
+  const desktop = source('src/components/trading-v2/DesktopTerminal.jsx');
+  const chart = source('src/components/trading-v2/ChartArea.jsx');
+  const theme = source('src/components/trading-v2/desktop/DesktopTerminal.theme.css');
+  assert.match(desktop, /acg-desktop-market-strip flex h-\[46px\][^"\n]*rounded-none border-b/);
+  assert.match(desktop, /acg-desktop-dock-shell min-h-0 overflow-hidden rounded-none border-t/);
+  assert.equal((chart.match(/acg-desktop-drawing-rail my-0[^'\n]*rounded-none/g) || []).length, 2);
+  assert.match(chart, /acg-desktop-chart-frame rounded-none/);
+  assert.match(chart, /acg-desktop-chart-inner rounded-none/);
+  assert.match(theme, /\.acg-desktop-v3 \.acg-desktop-dock-shell \{\s*border: 0 !important;/);
+  assert.match(theme, /\.acg-desktop-v3 \.acg-dock-v3 \{[\s\S]*?border-radius: 0 !important;/);
+});
+
+test('desktop viewport edges are fixed without changing mobile shell', () => {
+  const terminal = source('src/components/trading-v2/DesktopTerminal.jsx');
+  const mobile = source('src/pages/TradingTerminalV2.jsx');
+  assert.match(terminal, /fixed inset-0 flex h-dvh w-full min-h-0 flex-col gap-0/);
+  assert.match(mobile, /relative mx-auto min-h-dvh w-full max-w-\[460px\]/);
 });
