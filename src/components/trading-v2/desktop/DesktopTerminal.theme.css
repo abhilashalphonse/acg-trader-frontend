@@ -1,0 +1,110 @@
+/* ACG Trader desktop V3 — restrained black / metallic graphite chrome.
+   This stylesheet is imported only by DesktopTerminal and scoped to that
+   subtree; it does not change canvas painting, trading data, or mobile UI. */
+.acg-desktop-v3 {
+  --acg-v3-black: #000000;
+  --acg-v3-canvas: #050607;
+  --acg-v3-panel: #0b0c0e;
+  --acg-v3-control: #101214;
+  --acg-v3-elevated: #181a1d;
+  --acg-v3-selected: #25282b;
+  --acg-v3-line: #292d31;
+  --acg-v3-strong-line: #44484e;
+  --acg-v3-white: #f2f3f5;
+  --acg-v3-silver: #cbd0d6;
+  --acg-v3-muted: #9da4ac;
+  background: var(--acg-v3-black);
+  color: var(--acg-v3-white);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+/* The existing geometry, resize handles, chart and workspace persistence remain. */
+.acg-desktop-v3 .acg-desktop-market-strip,
+.acg-desktop-v3 .acg-motion-side-panel,
+.acg-desktop-v3 aside[aria-label="Desktop panel dock"],
+.acg-desktop-v3 .acg-desktop-dock-shell {
+  background: var(--acg-v3-panel) !important;
+  border: 1px solid var(--acg-v3-line) !important;
+  border-radius: 9px !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+.acg-desktop-v3 .acg-desktop-market-strip {
+  background: #08090b !important;
+}
+.acg-desktop-v3 .acg-desktop-chart-toolbar .terminal-toolbar-group {
+  background: #090a0c !important;
+  border: 1px solid #272a2e !important;
+  border-radius: 7px !important;
+  box-shadow: none !important;
+}
+.acg-desktop-v3 .acg-desktop-chart-toolbar button,
+.acg-desktop-v3 aside[aria-label="Desktop panel dock"] button {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+.acg-desktop-v3 .acg-active-underline {
+  height: 1px !important;
+  border-radius: 0 !important;
+  background: #cbd0d6 !important;
+}
+.acg-desktop-v3 aside[aria-label="Desktop panel dock"] button[aria-label] {
+  border-radius: 7px !important;
+}
+/* Drawing tools are a shared React component; only change them in desktop. */
+.acg-desktop-v3 .acg-mobile-drawing-tool-selected {
+  color: var(--acg-v3-white) !important;
+  background: var(--acg-v3-selected) !important;
+  box-shadow: inset 0 0 0 1px #5a5f65 !important;
+  border-radius: 7px !important;
+}
+.acg-desktop-v3 .acg-mobile-drawing-tool {
+  border-radius: 7px !important;
+}
+.acg-desktop-v3 .acg-mobile-drawing-tool:not(.acg-mobile-drawing-tool-selected):hover {
+  background: #191b1e !important;
+}
+/* Desktop menus, account switcher, layout presets, chart settings, indicator
+   panels, and review use the same subdued popover language. */
+.acg-desktop-v3 .acg-motion-popover,
+.acg-desktop-v3 .acg-v3-popover {
+  background: #101113 !important;
+  border: 1px solid #30343a !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.32) !important;
+  backdrop-filter: none !important;
+}
+.acg-desktop-v3 :is(.acg-motion-popover,.acg-v3-popover) button:hover:not(:disabled) {
+  background-color: #202226;
+}
+/* Main desktop selection/focus is neutral; action colors are owned by
+   the separately scoped execution ticket's Buy and Sell buttons. */
+.acg-desktop-v3 button[class*="text-[#195be1]"]:not(.acg-exec-buy):not(.acg-exec-sell),
+.acg-desktop-v3 button[class*="text-[#59C7FF]"]:not(.acg-exec-buy):not(.acg-exec-sell),
+.acg-desktop-v3 button[class*="text-[#53c7ff]"]:not(.acg-exec-buy):not(.acg-exec-sell) {
+  color: var(--acg-v3-silver) !important;
+}
+.acg-desktop-v3 button[class*="border-[#195be1]"]:not(.acg-exec-buy):not(.acg-exec-sell),
+.acg-desktop-v3 button[class*="ring-[#195be1]"]:not(.acg-exec-buy):not(.acg-exec-sell) {
+  border-color: var(--acg-v3-strong-line) !important;
+  --tw-ring-color: var(--acg-v3-strong-line) !important;
+}
+.acg-desktop-v3 button[class*="bg-[#0d1a22]"],
+.acg-desktop-v3 button[class*="bg-[#111820]"] {
+  background-color: var(--acg-v3-selected) !important;
+}
+.acg-desktop-v3 :is(input:not([type="color"]),textarea,select):focus-visible,
+.acg-desktop-v3 button:focus-visible {
+  outline: 1px solid #cbd0d6 !important;
+  outline-offset: -1px;
+}
+.acg-desktop-v3 :is(input:not([type="color"]),textarea,select) {
+  box-shadow: none !important;
+}
+.acg-desktop-v3 :is(input:not([type="color"]),textarea,select):focus {
+  border-color: #676c72 !important;
+}
+/* Do not recolor candles, order price lines, P&L, account risk, or true market states. */
+@media (prefers-reduced-motion: reduce) {
+  .acg-desktop-v3 button { transition-duration: 0ms !important; }
+}
