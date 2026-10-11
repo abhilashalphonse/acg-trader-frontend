@@ -1,0 +1,85 @@
+/* Desktop execution ticket V3: presentation only, no order/risk behaviour changes. */
+.acg-exec-root {
+  --acg-exec-canvas: #050607;
+  --acg-exec-surface: #0a0b0d;
+  --acg-exec-raised: #151719;
+  --acg-exec-selected: #25272a;
+  --acg-exec-line: #292d32;
+  --acg-exec-text: #f2f3f5;
+  --acg-exec-muted: #a1a5ac;
+  --acg-exec-silver: #c6cbd1;
+  background: var(--acg-exec-canvas) !important;
+  color: var(--acg-exec-text);
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Only the ticket is themed; other ACG terminal surfaces keep their palette. */
+.acg-exec-root button:not(.acg-exec-buy):not(.acg-exec-sell) {
+  background-image: none !important;
+  box-shadow: none !important;
+  text-shadow: none;
+}
+.acg-exec-root :is(input, select, textarea) {
+  background: #08090b !important;
+  border-color: var(--acg-exec-line) !important;
+  color: var(--acg-exec-text) !important;
+  border-radius: 6px;
+  box-shadow: none !important;
+}
+.acg-exec-root input::placeholder {
+  color: #737980;
+}
+.acg-exec-root :is(button, input, select, textarea):focus-visible {
+  outline: 1px solid var(--acg-exec-silver) !important;
+  outline-offset: -1px;
+}
+.acg-exec-root :is(button, input, select, textarea):disabled {
+  cursor: not-allowed;
+}
+.acg-exec-root [class*="text-[7px]"] { font-size: 9px; }
+.acg-exec-root [class*="text-[8px]"] { font-size: 10px; }
+.acg-exec-root [class*="text-[9px]"] { font-size: 11px; }
+
+/* Flat execution-only color. No gradient, glow, bevel, or metallic fill on actions. */
+.acg-exec-root button.acg-exec-sell {
+  background: #c83242 !important;
+  border-color: #c83242 !important;
+  color: #fff !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+.acg-exec-root button.acg-exec-buy {
+  background: #195be1 !important;
+  border-color: #195be1 !important;
+  color: #fff !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+.acg-exec-root button.acg-exec-buy :is(strong,span),
+.acg-exec-root button.acg-exec-sell :is(strong,span) {
+  color: #fff !important;
+}
+.acg-exec-root button:is(.acg-exec-buy,.acg-exec-sell):hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+.acg-exec-root button:is(.acg-exec-buy,.acg-exec-sell):active:not(:disabled) {
+  filter: brightness(.92);
+}
+.acg-exec-root button:is(.acg-exec-buy,.acg-exec-sell):disabled {
+  opacity: .35;
+  filter: grayscale(.35);
+}
+
+/* Flat floating quick-ticket, visually consistent with the docked variant. */
+.acg-floating-order.acg-exec-root {
+  border-color: #34373b !important;
+  border-radius: 9px;
+}
+.acg-desktop-order.acg-exec-root {
+  border-color: #292d32;
+}
