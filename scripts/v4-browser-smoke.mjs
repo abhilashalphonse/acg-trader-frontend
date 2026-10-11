@@ -1,5 +1,6 @@
 // CI-only real Chromium smoke: synthetic V4 callbacks, no credentials or API.
 import { spawn, spawnSync } from 'node:child_process';
+import process from 'node:process';
 import { setTimeout as pause } from 'node:timers/promises';
 
 const url='http://127.0.0.1:4176/v4-browser-smoke.html';
