@@ -88,7 +88,7 @@ export default function ChartObjectManager({
   const toggleSection = key => setSections(current => ({ ...current, [key]: !current[key] }));
 
   return (
-    <div className="w-[330px] overflow-hidden rounded-lg border border-white/[0.10] bg-[#0B0D0F]/98 shadow-[0_24px_70px_rgba(0,0,0,.68)] backdrop-blur-xl">
+    <div className="acg-v3-popover w-[330px] overflow-hidden rounded-lg border border-white/[0.10] bg-[#0B0D0F]/98 shadow-[0_24px_70px_rgba(0,0,0,.68)] backdrop-blur-xl">
       <header className="flex h-11 items-center justify-between border-b border-white/[0.07] px-3">
         <div className="flex min-w-0 items-center gap-2">
           <Layers3 size={14} className="shrink-0 text-[#C9CDD2]"/>
