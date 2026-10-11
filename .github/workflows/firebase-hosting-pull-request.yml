@@ -31,6 +31,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify V4 STAGING Trader readiness
+        if: ${{ github.event.pull_request.number == 90 }}
+        run: |
+          set -euo pipefail
+          base='https://discerning-presence-staging.up.railway.app'
+          curl --fail --silent --show-error --retry 2 --connect-timeout 10 --max-time 25 "$base/health/live" >/dev/null
+          curl --fail --silent --show-error --retry 2 --connect-timeout 10 --max-time 25 "$base/health/ready" >/dev/null
+          echo 'Staging Trader live and readiness checks returned HTTP success.'
+
       - name: Build preview
         run: npm run build
         env:
