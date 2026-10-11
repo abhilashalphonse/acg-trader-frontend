@@ -270,7 +270,7 @@ export default function PositionsPanel({
   };
 
   return (
-    <section className={`${desktopDense ? `acg-desktop-positions acg-dock-v3 flex h-full min-h-0 flex-col ${collapsed || compactDock ? 'overflow-hidden' : 'overflow-auto'}` : 'mt-3 overflow-visible'} border-y border-white/[0.06] bg-black`}>
+    <section className={`${desktopDense ? `acg-desktop-positions acg-dock-v3 h-full ${collapsed || compactDock ? 'overflow-hidden' : 'overflow-auto'}` : 'mt-3 overflow-visible'} border-y border-white/[0.06] bg-black`}>
       {desktopDense ? (
         <div className="flex h-[44px] items-center justify-between gap-2 border-b border-[#292C30] bg-[#0A0B0D] px-2">
           <div className="flex h-full min-w-0 items-stretch gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -379,7 +379,7 @@ export default function PositionsPanel({
       {!collapsed && !compactDock && (
         <>
                 {tab === 'positions' && desktopDense && (
-                  <div className="flex min-w-[1120px] flex-1 flex-col">
+                  <div className="min-w-[1120px]">
                     {positionGroups.length > 0 && (
                       <div className="flex h-8 items-center gap-1.5 overflow-x-auto border-b border-white/[0.055] px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                         <span className="mr-1 shrink-0 text-[7px] font-black uppercase tracking-[0.08em] text-[#53677a]">Exposure</span>
@@ -393,10 +393,10 @@ export default function PositionsPanel({
                         ))}
                       </div>
                     )}
-                    <div className="grid grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-white/[0.06] px-3 pb-1 pt-0.5 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#647586]">
+                    <div className="grid grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-white/[0.06] px-3 py-1.5 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#647586]">
                       <span>Symbol</span><span>Side</span><span>Size</span><span>Entry</span><span>Current</span><span>S/L</span><span>T/P</span><span className="text-right">P&amp;L</span><span className="text-right">P&amp;L %</span><span className="text-right">Actions</span>
                     </div>
-                    {!positions.length && <div className="grid min-h-[110px] flex-1 place-items-center text-center text-[10px] text-[#6F8191]"><div><b className="block text-[#A1AFBC]">No open positions</b><span className="mt-1 block">Market executions will appear here</span></div></div>}
+                    {!positions.length && <div className="grid h-[110px] place-items-center text-center text-[10px] text-[#6F8191]"><div><b className="block text-[#A1AFBC]">No open positions</b><span className="mt-1 block">Market executions will appear here</span></div></div>}
                     {positions.map(position => {
                       const instrument = instrumentForSymbol(markets, position.symbol);
                       const closeAvailability = positionCloseAvailability(instrument);
