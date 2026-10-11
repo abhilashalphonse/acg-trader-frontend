@@ -25,6 +25,7 @@ import {
   X,
 } from 'lucide-react';
 import DesktopOrderTicket from './desktop/DesktopOrderTicket.jsx';
+import DesktopOrderTicketV4 from './desktop/DesktopOrderTicketV4.jsx';
 import './desktop/DesktopTerminal.theme.css';
 import DesktopPositionManager from './desktop/DesktopPositionManager.jsx';
 import DesktopMultiChart from './desktop/DesktopMultiChart.jsx';
@@ -45,6 +46,9 @@ import { effectiveTradePlan } from '../../utils/tradePlanExecution.js';
 import { resolveExecutionPreview } from '../../utils/executionPricing.js';
 import { validateOpenPositionProtection } from '../../utils/openPositionPresentation.js';
 import { loadDesktopChartSettings, normalizeDesktopChartSettings, saveDesktopChartSettings } from '../../utils/desktopChartSettings.js';
+
+// Explicit opt-in only. Disabled in all existing builds unless configured.
+const V4_DESKTOP_EXECUTION_ENABLED = import.meta.env.VITE_ACG_EXECUTION_V4_ENABLED === 'true';
 
 const timeframes = [['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], ['1H', '1H'], ['4H', '4H'], ['1D', '1D'], ['1W', '1W']];
 
@@ -1208,7 +1212,21 @@ export default function DesktopTerminal({
               ) : (
                 <>
                   <div className="min-h-0 flex-1">
-                    <DesktopOrderTicket key={`order-ticket-${account?.id || 'none'}`} market={market} account={account} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} orderExecutionPreview={orderExecutionPreview} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} onNotice={setNotice}/>
+<React.Fragment>
+                      {V4_DESKTOP_EXECUTION_ENABLED ? (
+                        <DesktopOrderTicketV4 key={`v4-order-ticket-${account?.id || 'none'}-${market?.symbol || 'none'}`}
+                          market={market} account={account} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason}
+                          lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange}
+                          riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange}
+                          orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan}
+                          onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan}
+                          onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} onNotice={setNotice}
+                          onCloseTicket={() => setDesktopLayout(current => ({ ...current, sidebarCollapsed: true }))}
+                        />
+                      ) : (
+                        <DesktopOrderTicket key={`order-ticket-${account?.id || 'none'}`} market={market} account={account} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} orderExecutionPreview={orderExecutionPreview} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} onNotice={setNotice}/>
+                      )}
+                    </React.Fragment>
                   </div>
                   {selectedPosition && (
                     <div className="acg-motion-panel-stack max-h-[46%] shrink-0 overflow-y-auto [scrollbar-width:thin]">
