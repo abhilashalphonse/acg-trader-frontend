@@ -420,3 +420,7 @@
 .v4-ticket.v4-live-scope:not(.v4-typography-baseline):not(.v4-terminal-type-baseline) .v4-margin-summary strong {
   font-weight: 600;
 }
+
+/* The affordability status is informational and does not resize the dock. */
+.v4-live-scope .v4-slider-hint { color:#c5a97c; font-size:10px; line-height:1.35; }
+.v4-live-scope .v4-slider input:disabled { opacity:.45; cursor:not-allowed; }
