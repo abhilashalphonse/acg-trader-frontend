@@ -8,8 +8,14 @@ import { TradingProvider } from './store/TradingProvider.jsx';
 import './index.css';
 import './styles/acg-pure-black.css';
 
+const isIsolatedTicketPreview = import.meta.env.VITE_ACG_V4_DESIGN_PREVIEW === 'true'
+  && window.location.pathname === '/preview/order-ticket';
+const OrderTicketV4Preview = React.lazy(() => import('./components/trading-v2/desktop/OrderTicketV4Preview.jsx'));
+
 createRoot(document.getElementById('root')).render(
-  <AppErrorBoundary>
+  isIsolatedTicketPreview
+    ? <React.Suspense fallback={<div className="acg-boot" role="status">Loading design studio…</div>}><OrderTicketV4Preview/></React.Suspense>
+    : <AppErrorBoundary>
     <AuthProvider>
       <TradingProvider>
         <SessionGate>
