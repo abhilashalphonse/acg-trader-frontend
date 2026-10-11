@@ -35,7 +35,7 @@ function Metric({ label, value, tone = 'default' }) {
     : tone === 'danger'
       ? 'text-[#FF6F7A]'
       : tone === 'accent'
-        ? 'text-[#59C7FF]'
+        ? 'text-[#CCD1D6]'
         : 'text-[#E6EDF3]';
   return (
     <div className="min-w-0">
@@ -313,7 +313,7 @@ export default function DesktopPositionManager({
                 onChange={event => syncProtectionInput(field, event.target.value, setInput)}
                 inputMode="decimal"
                 placeholder={saved ? 'Price' : `Add ${label.toLowerCase()} price`}
-                className="h-7 min-w-0 rounded border border-white/[0.06] bg-[#07090B] px-2 font-mono text-[9px] font-bold text-[#E6EDF3] outline-none focus:border-[#315b72]"
+                className="h-7 min-w-0 rounded border border-white/[0.06] bg-[#07090B] px-2 font-mono text-[9px] font-bold text-[#E6EDF3] outline-none focus:border-[#55595F]"
               />
               <button type="button" disabled={working} onClick={() => nudge(field, 1)} className="grid size-7 place-items-center rounded border border-white/[0.06] text-[#6F8191] disabled:opacity-40"><Plus size={10}/></button>
               <button type="button" disabled={working} onClick={() => cancelProtectionEdit()} className="h-7 rounded border border-white/[0.06] px-2 text-[7px] font-bold text-[#8295A7] disabled:opacity-40">Cancel</button>
@@ -367,7 +367,7 @@ export default function DesktopPositionManager({
           {Number.isFinite(rr) && (
             <div className="mt-1.5 flex items-center justify-between rounded border border-white/[0.05] bg-black/30 px-2 py-1.5">
               <span className="text-[7px] font-semibold text-[#6F8191]">Protected R:R</span>
-              <strong className="font-mono text-[8px] text-[#59C7FF]">1:{rr.toFixed(2)}</strong>
+              <strong className="font-mono text-[8px] text-[#CCD1D6]">1:{rr.toFixed(2)}</strong>
             </div>
           )}
         </div>
@@ -383,7 +383,7 @@ export default function DesktopPositionManager({
             BREAK EVEN
           </button>
           <div className="relative">
-            <button type="button" disabled={working} onClick={() => { setTrailOpen(value => !value); setReduceOpen(false); }} className={`flex h-8 w-full items-center justify-center gap-1 rounded border text-[7px] font-black disabled:opacity-40 ${position.trailingEnabled ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#8295A7]'}`}>{position.trailingEnabled ? `TRAIL ${position.trailingPips || 5}p` : 'TRAIL'}<ChevronDown size={9}/></button>
+            <button type="button" disabled={working} onClick={() => { setTrailOpen(value => !value); setReduceOpen(false); }} className={`flex h-8 w-full items-center justify-center gap-1 rounded border text-[7px] font-black disabled:opacity-40 ${position.trailingEnabled ? 'border-[#55595F] bg-[#25282B] text-[#CCD1D6]' : 'border-white/[0.06] text-[#8295A7]'}`}>{position.trailingEnabled ? `TRAIL ${position.trailingPips || 5}p` : 'TRAIL'}<ChevronDown size={9}/></button>
             {trailOpen && (
               <div className="absolute left-0 right-0 top-9 z-40 rounded-md border border-white/[0.10] bg-[#090B0D] p-1 shadow-xl">
                 {[5,10,20].map(pips => <button key={pips} type="button" onClick={() => { onSetTrailing(position.id, true, pips); setTrailOpen(false); }} className="block h-7 w-full rounded px-2 text-left text-[7px] font-semibold text-[#A1AFBC] hover:bg-white/[0.04] hover:text-white">{pips} pips</button>)}

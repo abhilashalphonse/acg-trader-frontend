@@ -124,7 +124,7 @@ export default function HelpCenter({ onClose, desktop = false, symbol = '', time
   };
 
   return (
-    <div className="fixed inset-0 z-[135]" data-acg-hotkeys-suspend="true" onKeyDown={handleKeys}>
+    <div className={desktop ? "acg-v3-help fixed inset-0 z-[135]" : "fixed inset-0 z-[135]"} data-acg-hotkeys-suspend="true" onKeyDown={handleKeys}>
       <button type="button" aria-label="Close Help Center" onClick={() => !busy && onClose()}
         className="absolute inset-0 h-full w-full cursor-default bg-black/55 md:bg-black/20" />
       <section ref={rootRef} role="dialog" aria-modal="true" aria-label="ACG Trader Help Center"
