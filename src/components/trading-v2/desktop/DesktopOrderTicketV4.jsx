@@ -8,6 +8,7 @@ import { deriveAccountCapabilities } from '../../../utils/accountCapabilities.js
 import { estimateRequiredMargin, estimateLossAtStopWithCosts, effectiveLeverage, estimateOpeningRequirement, riskSizingSupported, defaultPlannerStopDistance } from '../../../utils/tradingRisk.js';
 import { resolveV4PositionSizing } from '../../../utils/v4ExecutionPrecision.js';
 import { v4ExitPriceFromInput, v4ExitValueFromPrice } from '../../../utils/v4ProtectionPrecision.js';
+import { estimateExecutionPrice } from '../../../utils/executionPricing.js';
 import './DesktopOrderTicketV4.css';
 
 // This is a PRODUCTION PRESENTATION ADAPTER, gated off by default in DesktopTerminal.
@@ -187,15 +188,19 @@ export default function DesktopOrderTicketV4({
   const max=positive(market?.maxVolume)||Math.max(1,Number(lots)||1);
   const lotPrecision=String(step).includes('.')?Math.min(8,String(step).split('.')[1].length):0;
   const planRef=positive(effective?.pending&&effective?.orderType==='stop-limit'?effective?.limitPrice:effective?.entry);
-  const previewRef=planRef || positive(market?.ask);
+  // The displayed margin and projected risk use the SAME executable volume-
+  // adjusted price as the trading command (pending orders use pending entry).
+  const liveModeledPrice=volume
+    ?positive(estimateExecutionPrice(market,effective?.side||'buy',volume)?.price):null;
+  const previewRef=effective?.pending?planRef:(liveModeledPrice||planRef||positive(market?.ask));
   const margin=volume&&previewRef?estimateRequiredMargin(previewRef,volume,market,account):null;
   const requirement=volume&&previewRef?estimateOpeningRequirement(previewRef,volume,market,account):null;
   const freeAfter=Number.isFinite(Number(account?.freeMargin)) && account?.freeMargin!=null&&Number.isFinite(requirement)
     ? Number(account.freeMargin)-requirement:null;
   const risk=effective&&volume&&positive(effective.sl)
-    ? estimateLossAtStopWithCosts({...effective,entry:planRef||effective.entry},volume,market,account):null;
-  const stopDistance=planRef&&positive(effective?.sl)?Math.abs(planRef-effective.sl):null;
-  const tpDistance=planRef&&positive(effective?.tp)?Math.abs(planRef-effective.tp):null;
+    ? estimateLossAtStopWithCosts({...effective,entry:previewRef||effective.entry},volume,market,account):null;
+  const stopDistance=previewRef&&positive(effective?.sl)?Math.abs(previewRef-effective.sl):null;
+  const tpDistance=previewRef&&positive(effective?.tp)?Math.abs(previewRef-effective.tp):null;
   const rr=Number.isFinite(stopDistance)&&stopDistance>0&&Number.isFinite(tpDistance)?tpDistance/stopDistance:null;
   const notional=volume&&previewRef&&positive(market?.contractSize)&&String(market?.quoteCurrency||'').toUpperCase()===String(currency).toUpperCase()
     ?volume*previewRef*Number(market.contractSize):null;
