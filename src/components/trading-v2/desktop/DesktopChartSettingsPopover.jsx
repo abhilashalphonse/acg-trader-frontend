@@ -138,7 +138,7 @@ export default function DesktopChartSettingsPopover({
           <select
             value={settings?.timezone || 'UTC'}
             onChange={event => onChange({ ...settings, timezone: event.target.value })}
-            className="h-9 w-full rounded-md border border-white/[0.09] bg-[#111419] px-2.5 text-[9px] font-semibold text-[#D8E0E7] outline-none transition focus:border-[#195be1]/70"
+            className="h-9 w-full rounded-md border border-white/[0.09] bg-[#111419] px-2.5 text-[9px] font-semibold text-[#D8E0E7] outline-none transition focus:border-[#C9CDD2]/70"
             aria-label="Chart timezone"
           >
             {CHART_TIMEZONE_OPTIONS.map(option => (
