@@ -150,6 +150,7 @@ export default function DesktopOrderTicketV4({
   exposureAllowed=true,exposureBlockReason='New exposure unavailable',
   executionCommandPending=false,
   onCloseTicket=()=>{},
+  onOpenMarkets=()=>{},
 }) {
   const [uiMode,setUiMode]=useState(sizingMode==='risk'?'riskPercent':'lots');
   const [slUnit,setSlUnit]=useState('ticks');
@@ -160,6 +161,9 @@ export default function DesktopOrderTicketV4({
   const [menuOpen,setMenuOpen]=useState(false);
   const submittingRef=useRef(false);
   const [localSubmitting,setLocalSubmitting]=useState(false);
+  // Margin $ is a user-selected budget; it must not be replaced by the
+  // discretized required margin after lot-step rounding.
+  const [marginBudget,setMarginBudget]=useState(null);
   // A chart-loaded risk plan can change the native mode independently.
   useEffect(()=>{if(tradePlan?.sizingMode==='risk')setUiMode(current=>
     current==='lots'||current==='margin'?'riskPercent':current);
@@ -178,10 +182,12 @@ export default function DesktopOrderTicketV4({
   const hasSl=tradePlan?positive(effective?.sl)!==null:wantSl;
   const hasTp=tradePlan?positive(effective?.tp)!==null:wantTp;
   const effectiveLots=useMemo(()=>{
+    // Risk sizing without a side/SL is an uncommitted budget, not lots.
+    if(!effective && ['riskPercent','riskUSD'].includes(uiMode))return null;
     if(!effective||effective.sizingMode!=='risk')return positive(lots);
     const result=resolveV4PositionSizing({mode:'riskPercent',amount:riskPercent,plan:effective,account,instrument:market});
     return result.canExecute?result.lots:null;
-  },[effective,account,market,lots,riskPercent]);
+  },[effective,account,market,lots,riskPercent,uiMode]);
   const volume=positive(effectiveLots);
   const step=positive(market?.volumeStep)||0.01;
   const min=positive(market?.minVolume)||step;
@@ -204,7 +210,7 @@ export default function DesktopOrderTicketV4({
   const rr=Number.isFinite(stopDistance)&&stopDistance>0&&Number.isFinite(tpDistance)?tpDistance/stopDistance:null;
   const notional=volume&&previewRef&&positive(market?.contractSize)&&String(market?.quoteCurrency||'').toUpperCase()===String(currency).toUpperCase()
     ?volume*previewRef*Number(market.contractSize):null;
-  const selectedValue=uiMode==='lots'?Number(lots):uiMode==='margin'?margin
+  const selectedValue=uiMode==='lots'?Number(lots):uiMode==='margin'?(marginBudget??margin)
     :uiMode==='riskPercent'?Number(riskPercent):accountValid?Number(account.equity)*Number(riskPercent)/100:null;
   const activeMode=uiMode==='riskUSD'||uiMode==='riskPercent'?'risk':'lots';
   const quoteState=market?.sessionOpen===false||String(market?.marketState||'').toUpperCase()==='CLOSED'?'Market Closed'
@@ -225,10 +231,23 @@ export default function DesktopOrderTicketV4({
       if(tradePlan)onTradePlanChange({manualLots:l,sizingMode:'lots',stage:'ready'});
       return;
     }
-    const plan=effective||fakePlanForIndicative;
+    if(uiMode==='margin')setMarginBudget(value);
     if((uiMode==='riskUSD'||uiMode==='riskPercent')&&!effective?.sl){
-      notice('Select Buy or Sell and set a valid SL before risk sizing.');return;
+      // Store the risk budget now. Selecting Buy/Sell creates a chart plan
+      // with an initial SL; the authoritative engine then derives volume.
+      const equity=positive(account?.equity);
+      if(!equity){notice('Account equity is unavailable.');return;}
+      const percent=uiMode==='riskUSD'?value/equity*100:value;
+      onRiskPercentChange(percent);
+      onSizingModeChange('risk');
+      if(tradePlan){
+        const sl=defaultProtect('sl');
+        if(!positive(sl)){notice('Unable to calculate a safe initial SL.');return;}
+        onTradePlanChange({sl,sizingMode:'risk',stage:'ready'});
+      }
+      return;
     }
+    const plan=effective||fakePlanForIndicative;
     const result=resolveV4PositionSizing({mode:uiMode,amount:value,plan,account,instrument:market});
     if(!result.canExecute){notice(result.message||'Unable to calculate position size');return;}
     if(uiMode==='margin'){
@@ -241,20 +260,26 @@ export default function DesktopOrderTicketV4({
   };
   const changeSizing=next=>{
     if(['riskPercent','riskUSD'].includes(next)){
-      if(!effective?.sl){notice('Set a stop loss in a Buy or Sell plan before risk-based sizing.');return;}
       if(!riskSizingSupported(market,currency)){notice('Risk sizing needs verified account-currency P&L.');return;}
+      // The user can choose the risk budget before choosing Buy or Sell.
+      // A new chart plan will create a default SL, and then compute lots.
       const priceReference=planRef||positive(effective?.entry);
-      const perLot=volume&&priceReference
+      const perLot=effective?.sl&&volume&&priceReference
         ?estimateLossAtStopWithCosts({...effective,entry:priceReference},volume,market,account):null;
       if(Number.isFinite(perLot)&&positive(account?.equity)){
         onRiskPercentChange(perLot/Number(account.equity)*100);
       }
       onSizingModeChange('risk');
-      onTradePlanChange({sizingMode:'risk',stage:'ready'});
+      if(tradePlan){
+        const sl=positive(effective?.sl)||defaultProtect('sl');
+        if(!positive(sl)){notice('Unable to create an initial stop loss.');return;}
+        onTradePlanChange({sl,sizingMode:'risk',stage:'ready'});
+      }
       if(['usd','balance'].includes(slUnit))setSlUnit('ticks');
     }else{
       onSizingModeChange('lots');
       if(tradePlan)onTradePlanChange({sizingMode:'lots',manualLots:normalLots(volume||lots),stage:'ready'});
+      if(next==='margin')setMarginBudget(Number.isFinite(margin)?margin:null);
     }
     setUiMode(next);
   };
@@ -306,7 +331,11 @@ export default function DesktopOrderTicketV4({
     }
   };
   const financialVerified=Number.isFinite(requirement)&&Number.isFinite(freeAfter)&&freeAfter>=0;
-  const canTrade=Boolean(market?.symbol&&validMarket&&exposureAllowed&&financialVerified&&volume&&!executionCommandPending&&!localSubmitting);
+  const canStartPlan=Boolean(market?.symbol&&validMarket&&exposureAllowed&&!executionCommandPending&&!localSubmitting);
+  const requiresPlan=!tradePlan&&(family==='pending'||activeMode==='risk'||wantSl||wantTp||capabilities.stopLossRequiredForManualLots);
+  // Starting a risk plan does NOT submit an order. Its first SL and
+  // estimated volume are calculated after Buy/Sell sets the direction.
+  const canTrade=canStartPlan&&(requiresPlan||(financialVerified&&Boolean(volume)));
   const executionDisabledReason=!financialVerified
     ? 'Opening margin, fees, and free margin must be verified before V4 execution.'
     : !volume?'Position size is not executable.':null;
@@ -368,11 +397,19 @@ export default function DesktopOrderTicketV4({
     if(uiMode==='riskPercent')return <>{Number.isFinite(risk)&&accountValid?fmt(risk/Number(account.equity)*100)+'% risk':'—'} <ArrowRight size={13}/> {money(risk,currency)} <span>({fmt(volume,lotPrecision)} lots)</span></>;
     return <>{money(risk,currency)} risk <ArrowRight size={13}/> {fmt(volume,lotPrecision)} lots <span>{Number.isFinite(risk)&&accountValid?'('+fmt(risk/Number(account.equity)*100)+'% equity)':''}</span></>;
   };
-  const slideMin=uiMode==='lots'?min:uiMode==='margin'?0:0;
-  const slideMax=uiMode==='lots'?Math.max(min+step,Math.min(max,Math.max(min+step,Number(lots)*4||min+step))):
-    uiMode==='margin'?Math.max(100,Number(margin||100)*4):
-      uiMode==='riskPercent'?5:Math.max(100,Number(selectedValue||100)*4);
-  const slideStep=uiMode==='lots'?step:uiMode==='margin'?10:uiMode==='riskPercent'?0.01:10;
+  // Slider bounds are instrument/account limits, never a function of the
+  // value being dragged. The old "current margin * 4" feedback loop
+  // repeatedly rescaled the track after every lot-step conversion.
+  const minMargin=previewRef?estimateRequiredMargin(previewRef,min,market,account):null;
+  const maxMargin=previewRef?estimateRequiredMargin(previewRef,max,market,account):null;
+  const marginCap=Number.isFinite(maxMargin)&&Number.isFinite(Number(account?.freeMargin))
+    ?Math.min(maxMargin,Number(account.freeMargin)):null;
+  const slideMin=uiMode==='lots'?min:uiMode==='margin'?(positive(minMargin)||0):0;
+  const slideMax=uiMode==='lots'?Math.max(min,max):
+    uiMode==='margin'&&Number.isFinite(marginCap)?Math.max(slideMin+1,marginCap):
+      uiMode==='margin'?Math.max(slideMin+1,100):
+      uiMode==='riskPercent'?5:positive(account?.equity)?Number(account.equity)*0.05:100;
+  const slideStep=uiMode==='lots'?step:uiMode==='margin'?1:uiMode==='riskPercent'?0.01:1;
   const slideValue=Number.isFinite(selectedValue)?Math.max(slideMin,Math.min(slideMax,selectedValue)):slideMin;
   // Keep local editing state when quotes move; committed value is read from
   // live account/plan state. Never freeze financial values at first render.
@@ -380,8 +417,11 @@ export default function DesktopOrderTicketV4({
     <div className="v4-ticket-body">
       <div className="v4-instrument">
         <InstrumentAvatar instrument={market} size={32}/>
-        <div className="v4-symbol"><strong>{market?.displaySymbol||market?.symbol||'—'} <ChevronDown size={13}/></strong>
-          <span>{market?.name||market?.displayName||market?.description||market?.symbol||'Instrument'}</span></div>
+        <button className="v4-symbol v4-symbol-button" type="button"
+          onClick={onOpenMarkets} aria-label="Open markets and select instrument">
+          <strong>{market?.displaySymbol||market?.symbol||'—'} <ChevronDown size={13}/></strong>
+          <span>{market?.name||market?.displayName||market?.description||market?.symbol||'Instrument'}</span>
+        </button>
         <div className="v4-head-actions">
           <button type="button" aria-label="Ticket information" onClick={()=>setMenuOpen(x=>!x)}><Ellipsis size={20}/></button>
           <button type="button" aria-label="Close trade ticket" onClick={()=>{if(tradePlan)onCancelPlan();else onCloseTicket();}}><X size={19}/></button>
