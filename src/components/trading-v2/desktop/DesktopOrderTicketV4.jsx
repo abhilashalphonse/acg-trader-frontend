@@ -164,6 +164,9 @@ export default function DesktopOrderTicketV4({
   // Margin $ is a user-selected budget; it must not be replaced by the
   // discretized required margin after lot-step rounding.
   const [marginBudget,setMarginBudget]=useState(null);
+  // A default BUY is a clearly marked chart DRAFT, never an order submission.
+  // Once the trader chooses SELL, subsequent slider edits retain that direction.
+  const [draftSide,setDraftSide]=useState('buy');
   // A chart-loaded risk plan can change the native mode independently.
   useEffect(()=>{if(tradePlan?.sizingMode==='risk')setUiMode(current=>
     current==='lots'||current==='margin'?'riskPercent':current);
@@ -220,7 +223,15 @@ export default function DesktopOrderTicketV4({
   const notice=message=>onNotice(message);
   const normalLots=value=>normalizeVolumeToStep(value,market,{rounding:'nearest'});
   const fakePlanForIndicative={
-    symbol:market?.symbol,side:'buy',pending:false,orderType:'market',entry:market?.ask,sl:null,tp:null,
+    symbol:market?.symbol,side:draftSide,pending:false,orderType:'market',
+    entry:draftSide==='buy'?market?.ask:market?.bid,sl:null,tp:null,
+  };
+  const createSliderDraft=(nextSizingMode,nextLots,protection='none')=>{
+    if(tradePlan || executionCommandPending || localSubmitting || !exposureAllowed || !validMarket) return;
+    onStartPlan(draftSide,orderType,{
+      sizingMode:nextSizingMode,manualLots:nextLots,protection,
+      source:'v4-slider',desktopPendingDraft:family==='pending',
+    });
   };
   const applySize=value=>{
     if(!Number.isFinite(value)||value<=0){notice('Enter a valid positive size.');return;}
@@ -229,6 +240,7 @@ export default function DesktopOrderTicketV4({
       const l=normalLots(value);
       onLotsChange(l);onSizingModeChange('lots');
       if(tradePlan)onTradePlanChange({manualLots:l,sizingMode:'lots',stage:'ready'});
+      else createSliderDraft('lots',l,capabilities.stopLossRequiredForManualLots?'sl':'none');
       return;
     }
     if(uiMode==='margin')setMarginBudget(value);
@@ -244,6 +256,8 @@ export default function DesktopOrderTicketV4({
         const sl=defaultProtect('sl');
         if(!positive(sl)){notice('Unable to calculate a safe initial SL.');return;}
         onTradePlanChange({sl,sizingMode:'risk',stage:'ready'});
+      }else{
+        createSliderDraft('risk',lots,'sl');
       }
       return;
     }
@@ -253,6 +267,7 @@ export default function DesktopOrderTicketV4({
       if(!result.canExecute){notice(result.message||'Unable to calculate position size');return;}
       onLotsChange(result.lots);onSizingModeChange('lots');
       if(tradePlan)onTradePlanChange({sizingMode:'lots',manualLots:result.lots,stage:'ready'});
+      else createSliderDraft('lots',result.lots,capabilities.stopLossRequiredForManualLots?'sl':'none');
     }else{
       // A trader must be able to lower an unaffordable risk budget.
       // Persist the requested risk even if its current volume is blocked;
@@ -273,7 +288,7 @@ export default function DesktopOrderTicketV4({
       const priceReference=planRef||positive(effective?.entry);
       const perLot=effective?.sl&&volume&&priceReference
         ?estimateLossAtStopWithCosts({...effective,entry:priceReference},volume,market,account):null;
-      if(Number.isFinite(perLot)&&positive(account?.equity)){
+      if(activeMode!=='risk'&&Number.isFinite(perLot)&&positive(account?.equity)){
         onRiskPercentChange(perLot/Number(account.equity)*100);
       }
       onSizingModeChange('risk');
@@ -364,8 +379,20 @@ export default function DesktopOrderTicketV4({
     }
   };
   const place=side=>{
+    // Selecting the opposite side switches the existing chart draft,
+    // without ever dispatching an order for that first side change.
+    if(tradePlan?.source==='v4-slider'&&effective?.side!==side&&!tradePlan.editingOrderId){
+      setDraftSide(side);
+      onStartPlan(side,orderType,{
+        protection:activeMode==='risk'||hasSl?'sl':hasTp?'tp':'none',
+        sizingMode:activeMode,manualLots:volume||lots,source:'v4-slider',
+        desktopPendingDraft:family==='pending',
+      });
+      return;
+    }
     if(!canTrade){if(!executionCommandPending&&!localSubmitting)notice(!exposureAllowed?exposureBlockReason:executionDisabledReason||'Waiting for executable market quote.');return;}
     if(!tradePlan){
+      setDraftSide(side);
       if(family==='pending'||activeMode==='risk'||wantSl||wantTp||capabilities.stopLossRequiredForManualLots){
         const protection=(wantSl||capabilities.stopLossRequiredForManualLots||activeMode==='risk')
           ?(wantTp?'both':'sl'):(wantTp?'tp':'none');
@@ -380,6 +407,7 @@ export default function DesktopOrderTicketV4({
       notice('Cannot reverse the side of an order being replaced.');return;
     }
     if(String(effective?.side||'').toLowerCase()!==side){
+      setDraftSide(side);
       onStartPlan(side,orderType,{protection:hasSl?(hasTp?'both':'sl'):(hasTp?'tp':'none'),desktopPendingDraft:family==='pending'});
       notice('Order direction changed. Review the chart before execution.');
       return;
