@@ -80,9 +80,8 @@ test('Frozen V4 layout and guardrails use graphite, white pills, pinned executio
 
 test('Mobile execution and protected preview remain separate entry points',()=>{
  const main=read('src/main.jsx');
- const preview=read('src/previewOrderTicketMain.jsx').toString();
  assert.doesNotMatch(main,/DesktopOrderTicketV4/);
- assert.doesNotMatch(preview,/DesktopOrderTicketV4/);
+ assert.doesNotMatch(main,/OrderTicketV4Preview/);
  assert.match(read('src/pages/TradingTerminalV2.jsx'),/MobileScalperMode/);
  assert.doesNotMatch(component,/MobileScalperMode|ExecutionPanel/);
 });
