@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronUp, CheckCircle2, Circle, Ellipsis, X, Minus, Plus, ArrowRight } from 'lucide-react';
 import InstrumentAvatar from '../InstrumentAvatar.jsx';
-import { formatInstrumentPrice, instrumentPipSize } from '../../../utils/instrumentFormatting.js';
+import { formatInstrumentPrice, formatSpreadDisplay, instrumentPipSize } from '../../../utils/instrumentFormatting.js';
 import { normalizePriceToTick, normalizeProtectionPrice, normalizeVolumeToStep } from '../../../utils/tradingCommandNormalization.js';
 import { effectiveTradePlan, validateTradePlanForExecution } from '../../../utils/tradePlanExecution.js';
 import { deriveAccountCapabilities } from '../../../utils/accountCapabilities.js';
@@ -228,7 +228,7 @@ export default function DesktopOrderTicketV4({
     if(tradePlan?.editingOrderId){notice('Finish or cancel editing the existing pending order before changing its type.');return;}
     onOrderTypeChange(next);
     if(tradePlan){
-      const base=positive(next==='limit'?market?.ask:market?.ask);
+      const base=positive(String(effective.side).toLowerCase()==='buy'?market?.ask:market?.bid);
       const pip=positive(instrumentPipSize(market))||positive(market?.tickSize);
       const isBuy=String(effective.side).toLowerCase()==='buy';
       const direction=next==='limit'?(isBuy?-1:1):(isBuy?1:-1);
@@ -264,9 +264,13 @@ export default function DesktopOrderTicketV4({
       onTradePlanChange({[field]:price,activeField:field,stage:'ready'});
     }
   };
-  const canTrade=Boolean(market?.symbol&&validMarket&&exposureAllowed);
+  const financialVerified=Number.isFinite(requirement)&&Number.isFinite(freeAfter)&&freeAfter>=0;
+  const canTrade=Boolean(market?.symbol&&validMarket&&exposureAllowed&&financialVerified&&volume);
+  const executionDisabledReason=!financialVerified
+    ? 'Opening margin, fees, and free margin must be verified before V4 execution.'
+    : !volume?'Position size is not executable.':null;
   const place=side=>{
-    if(!canTrade){notice(exposureAllowed?'Waiting for executable market quote.':exposureBlockReason);return;}
+    if(!canTrade){notice(!exposureAllowed?exposureBlockReason:executionDisabledReason||'Waiting for executable market quote.');return;}
     if(!tradePlan){
       if(family==='pending'||activeMode==='risk'||wantSl||wantTp||capabilities.stopLossRequiredForManualLots){
         const protection=(wantSl||capabilities.stopLossRequiredForManualLots||activeMode==='risk')
@@ -334,7 +338,7 @@ export default function DesktopOrderTicketV4({
       <div className="v4-quote-strip">
         <span>Bid <strong>{formatInstrumentPrice(market?.bid,market)}</strong></span>
         <span>Ask <strong>{formatInstrumentPrice(market?.ask,market)}</strong></span>
-        <span>Spr <strong>{positive(market?.ask)&&positive(market?.bid)?formatInstrumentPrice(Number(market.ask)-Number(market.bid),market):'—'}</strong></span>
+        <span>Spr <strong>{positive(market?.ask)&&positive(market?.bid)?formatSpreadDisplay(market.bid,market.ask,market):'—'}</strong></span>
       </div>
       <Capsule className="v4-mainmodes" label="Order entry type" options={modeOptions} active={family} onChange={setFamily}/>
       {family==='pending'&&<div className="v4-pending v4-block">
@@ -401,10 +405,11 @@ export default function DesktopOrderTicketV4({
       </div>
       {!exposureAllowed&&<div className="v4-notice" role="status">{exposureBlockReason}</div>}
       {!validMarket&&<div className="v4-notice" role="status">An executable quote is unavailable.</div>}
+      {validMarket&&exposureAllowed&&!financialVerified&&<div className="v4-notice" role="status">{executionDisabledReason}</div>}
     </div>
     <div className="v4-execution-footer">
       <div className="v4-margin-summary">
-        <div><span>Required margin</span><strong>{money(requirement,currency)}</strong></div>
+        <div><span>Required margin</span><strong>{money(margin,currency)}</strong></div>
         <div><span>Free after</span><strong>{money(freeAfter,currency)}</strong></div>
       </div>
       <div className="v4-trade-actions">
