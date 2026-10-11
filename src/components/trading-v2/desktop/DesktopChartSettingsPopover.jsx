@@ -13,7 +13,7 @@ const COLOR_ROWS = [
 
 function ColorCell({ value, onChange, label }) {
   return (
-    <label className="relative grid size-8 cursor-pointer place-items-center rounded-md border border-white/[0.10] bg-[#111419] shadow-[inset_0_1px_0_rgba(255,255,255,.025)]" title={label}>
+    <label className="relative grid size-8 cursor-pointer place-items-center rounded-md border border-white/[0.10] bg-[#111113] shadow-[inset_0_1px_0_rgba(255,255,255,.025)]" title={label}>
       <span className="size-5 rounded-[3px] border border-white/[0.16]" style={{ backgroundColor: value }}/>
       <input
         type="color"
@@ -62,7 +62,7 @@ export default function DesktopChartSettingsPopover({
   return (
     <div
       ref={panelRef}
-      className="acg-motion-popover absolute right-[47px] top-1 z-[180] w-[286px] overflow-hidden rounded-[10px] border border-white/[0.10] bg-[#0B0E11]/[0.985] shadow-[0_24px_70px_rgba(0,0,0,.62)] backdrop-blur-xl"
+      className="acg-motion-popover absolute right-[47px] top-1 z-[180] w-[286px] overflow-hidden rounded-[10px] border border-white/[0.10] bg-[#09090B]/[0.985] shadow-[0_24px_70px_rgba(0,0,0,.62)] backdrop-blur-xl"
       role="dialog"
       aria-label="Chart appearance settings"
     >
@@ -127,7 +127,7 @@ export default function DesktopChartSettingsPopover({
                   if (event.target.value !== '') onChange({ ...settings, viewport: { ...viewport, [key]: Number(event.target.value) / factor } });
                   else event.target.value = Math.round(viewport[key] * factor);
                 }}
-                className="h-7 w-16 rounded border border-white/10 bg-[#111419] px-2 text-[#D8E0E7]" />
+                className="h-7 w-16 rounded border border-white/10 bg-[#111113] px-2 text-[#D8E0E7]" />
             </label>
           ))}
           <div className="text-[7px] leading-4 text-[#566572]">Initial candles applies when opening or resetting a chart.</div>
@@ -138,11 +138,11 @@ export default function DesktopChartSettingsPopover({
           <select
             value={settings?.timezone || 'UTC'}
             onChange={event => onChange({ ...settings, timezone: event.target.value })}
-            className="h-9 w-full rounded-md border border-white/[0.09] bg-[#111419] px-2.5 text-[9px] font-semibold text-[#D8E0E7] outline-none transition focus:border-[#C9CDD2]/70"
+            className="h-9 w-full rounded-md border border-white/[0.09] bg-[#111113] px-2.5 text-[9px] font-semibold text-[#D8E0E7] outline-none transition focus:border-[#C9CDD2]/70"
             aria-label="Chart timezone"
           >
             {CHART_TIMEZONE_OPTIONS.map(option => (
-              <option key={option.value} value={option.value} className="bg-[#111419]">
+              <option key={option.value} value={option.value} className="bg-[#111113]">
                 {option.label}
               </option>
             ))}
