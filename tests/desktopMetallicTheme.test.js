@@ -37,3 +37,13 @@ test('desktop quote labels are neutral but mobile bid/ask markers remain in thei
   assert.match(chart, /mobileQuotes \? '#ff5d70' : '#939BA4'/);
   assert.match(chart, /mobileQuotes \? \{ axisLabelColor: '#d93d52'/);
 });
+
+test('desktop settings and help surfaces opt in without affecting mobile sheets', () => {
+  const page = source('src/pages/TradingTerminalV2.jsx');
+  const sheet = source('src/components/trading-v2/FrontendSheet.jsx');
+  const help = source('src/help/HelpCenter.jsx');
+  assert.match(page, /<FrontendSheet desktop type=\{overlay\}/);
+  assert.match(sheet, /desktop = false/);
+  assert.match(sheet, /acg-v3-sheet fixed inset-0/);
+  assert.match(help, /desktop \? "acg-v3-help fixed inset-0/);
+});
