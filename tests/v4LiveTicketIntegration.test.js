@@ -9,13 +9,22 @@ const desktop=read('src/components/trading-v2/DesktopTerminal.jsx');
 const original=read('src/components/trading-v2/desktop/DesktopOrderTicket.jsx');
 
 test('V4 production ticket is opt-in only; legacy desktop and floating tickets remain',()=>{
- assert.match(desktop,/V4_DESKTOP_EXECUTION_ENABLED = import\.meta\.env\.VITE_ACG_EXECUTION_V4_ENABLED === 'true'/);
+ assert.match(desktop,/import\.meta\.env\.VITE_ACG_EXECUTION_V4_ENABLED === 'true'/);
+ assert.match(desktop,/new URLSearchParams\(window\.location\.search\)\.get\('acg_v4_audit'\) === '1'/);
  assert.match(desktop,/V4_DESKTOP_EXECUTION_ENABLED \? \(/);
  assert.match(desktop,/<DesktopOrderTicketV4 /);
  assert.match(desktop,/<DesktopOrderTicket key=/);
  assert.match(desktop,/<DesktopOrderTicket\s+[\s\S]*?variant="floating"/);
  assert.match(desktop,/onCloseTicket=\{\(\) => setDesktopLayout/);
  assert.doesNotMatch(original,/DesktopOrderTicketV4/);
+});
+
+test('Production build enables audit-only bundle but keeps default legacy UI',()=>{
+ const workflow=read('.github/workflows/firebase-hosting-live.yml');
+ assert.match(workflow,/VITE_ACG_EXECUTION_V4_ENABLED: 'true'/);
+ assert.match(workflow,/grep -qrF 'acg_v4_audit' dist\/assets/);
+ assert.match(desktop,/V4_DESKTOP_EXECUTION_ENABLED \? \(/);
+ assert.match(desktop,/<DesktopOrderTicket key=/);
 });
 
 test('V4 uses real market/account/plan props, not synthetic preview values',()=>{
