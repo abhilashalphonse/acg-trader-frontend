@@ -146,3 +146,113 @@
 .v4-ticket.v4-live-scope .v4-inline-setting input:disabled { cursor:default; }
 .v4-ticket.v4-live-scope .v4-translation { min-height:20px; }
 .v4-ticket.v4-live-scope .v4-exit-controls > input:disabled { opacity:.55; }
+
+/*
+ * V4 COMPACT DENSITY PASS — approved 2026-10-11
+ * Visual-only. No markup, execution or chart behavior changes.
+ *
+ * Only the real desktop V4 ticket is compacted: the frozen isolated
+ * design preview, mobile ticket and legacy V3 panel are unchanged.
+ * .v4-density-baseline is used only by the synthetic visual QA fixture
+ * to reproduce the original dimensions at the exact same viewport.
+ */
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-ticket-body {
+  padding: 9px 10px 0;
+  gap: 8px;
+  padding-bottom: 10px;
+}
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-instrument { gap: 7px; }
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-symbol strong { font-size: 14px; }
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-head-actions button { width: 25px; height: 25px; }
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-quote-strip {
+  min-height: 31px;
+  padding: 5px 8px;
+  border-radius: 8px;
+}
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-capsule {
+  gap: 2px;
+  padding: 2px;
+}
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-capsule-button {
+  padding: 6px 2px;
+}
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-mainmodes .v4-capsule-button {
+  min-height: 30px;
+  font-size: 12px;
+}
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-block { gap: 8px; }
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-section-heading {
+  min-height: 14px;
+  font-size: 10px;
+}
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-position-modes .v4-capsule-button {
+  padding: 6px 2px;
+  font-size: 10px;
+}
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-amount {
+  grid-template-columns: 34px minmax(0,1fr) 34px;
+  gap: 7px;
+  min-height: 44px;
+}
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-amount > button {
+  height: 34px;
+  width: 34px;
+  border-radius: 8px;
+}
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-hero-input { height: 44px; }
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-hero-value {
+  font-size: 21px !important;
+  line-height: 1.25;
+}
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-hero-input input {
+  height: 38px;
+  font-size: 21px !important;
+}
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-slider { gap: 4px; }
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-slider input { height: 12px; }
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-scale { font-size: 8px; }
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-translation {
+  min-height: 15px;
+  gap: 4px;
+  font-size: 10px;
+}
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-exits { gap: 7px; }
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-exit-card {
+  gap: 8px;
+  padding: 8px 9px;
+  border-radius: 9px;
+}
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-exit-heading strong { font-size: 12px; }
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-exit-toggle { font-size: 10px; }
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-exit-controls > input,
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-select-wrap {
+  height: 32px;
+}
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-select-wrap > svg { top: 9px; }
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-exit-result { font-size: 10px; }
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-ratio-slab {
+  padding: 9px;
+  border-radius: 9px;
+  gap: 8px;
+}
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-ratio-slab > div { gap: 4px; }
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-ratio-slab span { font-size: 10px; }
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-ratio-slab strong { font-size: 13px; }
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-execution-footer {
+  padding: 8px 10px;
+  gap: 8px;
+}
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-margin-summary {
+  padding: 8px 9px;
+  gap: 8px;
+  border-radius: 9px;
+}
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-margin-summary > div { gap: 4px; }
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-margin-summary strong { font-size: 12px; }
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-trade-actions { gap: 7px; }
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-trade-actions button {
+  padding: 8px;
+  gap: 4px;
+  border-radius: 8px;
+}
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-trade-actions button strong { font-size: 14px; }
