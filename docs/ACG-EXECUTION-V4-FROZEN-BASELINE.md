@@ -116,6 +116,27 @@ the live terminal. Any visual restructuring requires explicit new approval.
   change editing representation, not the actual level. Verify conversion
   quality/fees before allowing monetary units.
 
+### M2 progress update — 2026-10-11 (gated implementation, NOT accepted)
+
+- Added live presentation component `DesktopOrderTicketV4.jsx`, styled
+  independently from the frozen metallic-black preview baseline.
+- The desktop rail can render it only with the **disabled-by-default**
+  build flag `VITE_ACG_EXECUTION_V4_ENABLED=true`. The existing ticket
+  remains the default, and the floating order widget remains V3.
+- Calls the existing chart planning, trade plan patching, execution
+  and manual-order callbacks. Does not create a new backend endpoint.
+- Live Bid/Ask/spread, instrument sizes/leverage, account equity/free
+  margin, canonical SL/TP and pricing come from existing terminal data.
+- Uses the fee-aware sizing and protection adapters from M1. Requires
+  verified financial inputs before V4 execution.
+- **Not yet validated** in an authenticated staging browser or with real
+  simulated orders. Automated source/CI tests and build are necessary but
+  not acceptance. Floating V4 remains a separate follow-on; no live
+  order-flow redesign has been approved.
+- Next: enable the flag in a controlled staging environment, verify
+  market/pending Buy/Sell, account policy, price unit editor, chart drag,
+  330px layout, focus and reconnection, then gather backend evidence.
+
 ### M3: Functional and regression acceptance (NOT STARTED)
 
 - Market Buy/Sell manual and protected, V1/V2 mandatory/optional stops.
