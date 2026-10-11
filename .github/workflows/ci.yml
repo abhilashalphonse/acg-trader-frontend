@@ -27,3 +27,6 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+      - name: Browser V4 330px and double-click smoke
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 90 }}
+        run: node scripts/v4-browser-smoke.mjs
