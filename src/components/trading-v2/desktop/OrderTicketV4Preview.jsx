@@ -22,7 +22,7 @@ function Pick({ active, onClick, children, disabled, title }) {
 function Stat({ label, value, detail }) {
   return <div className="v4-stat"><div className="v4-label">{label}</div><strong className="v4-stat-value">{value}</strong>{detail ? <small>{detail}</small> : null}</div>;
 }
-function NumericInput({ value, onChange, step = 1, min = 0, max = Infinity, label, places = 2, suffix }) {
+function NumericInput({ value, onChange, step = 1, min = 0, max = Infinity, label, suffix }) {
   const valueNumber = Number(value);
   const applyDelta = delta => { const next = bounded((Number.isFinite(valueNumber) ? valueNumber : 0) + delta, min, max); onChange(Number(next.toFixed(8))); };
   return <div className="v4-number">
@@ -47,7 +47,7 @@ function Exit({ type, on, toggle, price, setPrice, entry, side, lots, riskMode }
   return <div className={'v4-exit' + (on ? ' is-enabled' : '')}>
     <div className="v4-exit-top"><button className={'v4-switch' + (on ? ' is-on' : '')} type="button" role="switch" aria-checked={on} aria-label={isStop ? 'Enable stop loss' : 'Enable take profit'} onClick={toggle}><span/></button><strong>{isStop ? 'Stop Loss' : 'Take Profit'}</strong><Tip text={meaningful}/></div>
     <label className="v4-field-label">Price</label>
-    <NumericInput value={price} onChange={setPrice} step={5} min={1} places={2} label={isStop ? 'Stop loss price' : 'Take profit price'} />
+    <NumericInput value={price} onChange={setPrice} step={5} min={1} label={isStop ? 'Stop loss price' : 'Take profit price'} />
     <label className="v4-field-label">Distance</label>
     <div className="v4-distance">
       <input aria-label={isStop ? 'Stop loss distance' : 'Take profit distance'} type="number" min="0" step="any" disabled={!on} value={on && Number.isFinite(distance) ? (unit === 'ticks' ? distanceTicks : Number(distance.toFixed(2))) : ''} onChange={e => moveDistance(Number(e.target.value))}/>
@@ -95,7 +95,6 @@ function Ticket({ initialMode = 'market', compact = false, label }) {
   const ratio = slOn && tpOn && isFinitePositive(slDistance) ? tpDistance / slDistance : NaN;
   const stopDirectionOkay = side === 'buy' ? stopPrice < entry : stopPrice > entry;
   const tpDirectionOkay = side === 'buy' ? tpPrice > entry : tpPrice < entry;
-  const estimatedImpact = validLots ? (notional / DEMO_ACCOUNT.equity) * 100 : NaN;
   const reasons = [
     !validLots && 'Select a valid position size',
     sizing !== 'lots' && !slOn && 'Stop Loss required to calculate risk-based size',
