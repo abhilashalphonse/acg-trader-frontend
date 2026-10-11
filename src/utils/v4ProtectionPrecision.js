@@ -129,9 +129,9 @@ export function v4ExitPriceFromInput({
       c, field, instrument,
     );
   } else {
-    const equity = positive(account?.equity);
-    if (unit === 'balance' && !equity) return fail('EQUITY_UNAVAILABLE', 'Account equity is unavailable.');
-    const budget = unit === 'usd' ? value : value * equity / 100;
+    const balance = positive(account?.balance);
+    if (unit === 'balance' && !balance) return fail('BALANCE_UNAVAILABLE', 'Account balance is unavailable.');
+    const budget = unit === 'usd' ? value : value * balance / 100;
     price = priceForMoney(budget, c, field, instrument, account);
   }
 
@@ -154,18 +154,18 @@ export function v4ExitValueFromPrice({
   if (['usd','balance'].includes(unit) && !Number.isFinite(financial)) {
     return fail('PNL_CONVERSION_UNKNOWN', 'Account-currency P&L projection is unavailable.');
   }
-  const eq = positive(account?.equity);
-  if (unit === 'balance' && !eq) return fail('EQUITY_UNAVAILABLE', 'Account equity is unavailable.');
+  const balance = positive(account?.balance);
+  if (unit === 'balance' && !balance) return fail('BALANCE_UNAVAILABLE', 'Account balance is unavailable.');
   const value = unit === 'price' ? level
     : unit === 'ticks' ? delta / c.tick
     : unit === 'percent' ? delta / c.entry * 100
-    : unit === 'usd' ? financial : financial / eq * 100;
+    : unit === 'usd' ? financial : financial / balance * 100;
 
   return {
     valid:true, code:'READY', message:null, price:level, unit, value,
     entry:c.entry,
     accountCurrencyValue: Number.isFinite(financial) ? financial : null,
-    accountPercent: Number.isFinite(financial) && eq ? financial / eq * 100 : null,
+    accountPercent: Number.isFinite(financial) && balance ? financial / balance * 100 : null,
     financialBasis:field==='sl'?'LOSS_INCLUDING_ESTIMATED_FEES':'GROSS_PRICE_PROFIT',
   };
 }
