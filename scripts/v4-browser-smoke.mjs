@@ -1,7 +1,6 @@
 // CI-only real Chromium smoke: synthetic V4 callbacks, no credentials or API.
 import { spawn, spawnSync } from 'node:child_process';
 import process from 'node:process';
-import { mkdirSync, existsSync } from 'node:fs';
 import { setTimeout as pause } from 'node:timers/promises';
 
 const url='http://127.0.0.1:4176/v4-browser-smoke.html';
@@ -42,22 +41,6 @@ try{
      '; page '+html.slice(-1300));
  }
  console.log(marker);
- // Save fixed-viewport visual evidence for the PR: EXACTLY the same
- // synthetic trading state and Chrome viewport, toggling only density CSS.
- const outputDir='outputs/v4-density';
- mkdirSync(outputDir,{recursive:true});
- for(const mode of ['before','after']){
-   const screenshot=outputDir+'/v4-330-'+mode+'.png';
-   const shot=spawnSync(chrome,[
-     '--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage',
-     '--hide-scrollbars','--no-first-run','--disable-background-networking',
-     '--window-size=960,760','--virtual-time-budget=7000',
-     '--screenshot='+screenshot,url+'?density='+mode,
-   ],{encoding:'utf8',timeout:30000,maxBuffer:1024*1024});
-   if(shot.status!==0||!existsSync(screenshot))
-     throw new Error('V4 '+mode+' screenshot failed: '+String(shot.stderr||'').slice(-600));
-   console.log('Saved '+screenshot);
- }
 }finally{
  try{process.kill(-server.pid,'SIGTERM');}catch{server.kill('SIGTERM');}
  server.stdout.destroy();
