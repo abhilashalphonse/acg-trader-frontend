@@ -1,9 +1,9 @@
 /* V3 metallic-black treatment is strictly scoped to the desktop positions dock. */
 .acg-dock-v3 {
-  --acg-dock-canvas: #050607;
-  --acg-dock-panel: #0a0b0d;
-  --acg-dock-metal: #1c1e21;
-  --acg-dock-divider: #292d31;
+  --acg-dock-canvas: #09090B;
+  --acg-dock-panel: #09090B;
+  --acg-dock-metal: #171719;
+  --acg-dock-divider: #262628;
   --acg-dock-silver: #ced1d5;
   background: var(--acg-dock-canvas);
   color: #e9ebee;
@@ -26,8 +26,8 @@
   color: var(--acg-dock-silver) !important;
 }
 .acg-dock-v3 .acg-motion-popover {
-  background: #101214 !important;
-  border-color: #30343a !important;
+  background: #111113 !important;
+  border-color: #29292D !important;
   box-shadow: 0 8px 22px rgb(0 0 0 / 0.32) !important;
   backdrop-filter: none !important;
 }

@@ -47,3 +47,27 @@ test('desktop settings and help surfaces opt in without affecting mobile sheets'
   assert.match(sheet, /acg-v3-sheet fixed inset-0/);
   assert.match(help, /desktop \? "acg-v3-help fixed inset-0/);
 });
+
+test('all desktop primary surfaces use the exact chart-black palette', () => {
+  const shell = source('src/components/trading-v2/desktop/DesktopTerminal.theme.css');
+  const execution = source('src/components/trading-v2/desktop/DesktopOrderTicket.theme.css');
+  const dock = source('src/components/trading-v2/PositionsPanel.desktop.css');
+  assert.match(shell, /--acg-v3-chart-black: #09090B;/);
+  assert.match(shell, /\.acg-desktop-v3 \.acg-exec-root,/);
+  assert.match(shell, /\.acg-desktop-v3 \.acg-dock-v3,/);
+  assert.match(shell, /background: var\(--acg-v3-chart-black\) !important;/);
+  assert.match(execution, /--acg-exec-canvas: #09090B;/);
+  assert.match(dock, /--acg-dock-canvas: #09090B;/);
+});
+
+test('desktop chart-black visual refinement leaves execution colors and mobile layout intact', () => {
+  const shell = source('src/components/trading-v2/desktop/DesktopTerminal.theme.css');
+  const ticket = source('src/components/trading-v2/desktop/DesktopOrderTicket.theme.css');
+  const page = source('src/pages/TradingTerminalV2.jsx');
+  assert.match(shell, /\.acg-desktop-v3 aside\[aria-label="Drawing tools"\] button\[class\*="ring-\[#195be1\]"\]/);
+  assert.match(ticket, /button\.acg-exec-buy\s*\{\s*background: #195be1/i);
+  assert.match(ticket, /button\.acg-exec-sell\s*\{\s*background: #c83242/i);
+  assert.match(page, /if \(isDesktop\)/);
+  assert.match(page, /<FrontendSheet desktop type=\{overlay\}/);
+  assert.match(page, /<PositionsPanel key=\{\x60positions-/);
+});

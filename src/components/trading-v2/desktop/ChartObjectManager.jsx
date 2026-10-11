@@ -88,7 +88,7 @@ export default function ChartObjectManager({
   const toggleSection = key => setSections(current => ({ ...current, [key]: !current[key] }));
 
   return (
-    <div className="acg-v3-popover w-[330px] overflow-hidden rounded-lg border border-white/[0.10] bg-[#0B0D0F]/98 shadow-[0_24px_70px_rgba(0,0,0,.68)] backdrop-blur-xl">
+    <div className="acg-v3-popover w-[330px] overflow-hidden rounded-lg border border-white/[0.10] bg-[#09090B]/98 shadow-[0_24px_70px_rgba(0,0,0,.68)] backdrop-blur-xl">
       <header className="flex h-11 items-center justify-between border-b border-white/[0.07] px-3">
         <div className="flex min-w-0 items-center gap-2">
           <Layers3 size={14} className="shrink-0 text-[#C9CDD2]"/>
@@ -144,7 +144,7 @@ export default function ChartObjectManager({
               {drawings.map(drawing => {
                 const selected = drawing.id === selectedDrawingId;
                 return (
-                  <div key={drawing.id} className={`group flex min-h-10 items-center gap-1 rounded-md border px-1.5 ${selected ? 'border-[#C9CDD2] bg-[#25282B]' : 'border-transparent hover:border-white/[0.06] hover:bg-white/[0.025]'}`}>
+                  <div key={drawing.id} className={`group flex min-h-10 items-center gap-1 rounded-md border px-1.5 ${selected ? 'border-[#C9CDD2] bg-[#222225]' : 'border-transparent hover:border-white/[0.06] hover:bg-white/[0.025]'}`}>
                     <button type="button" onClick={() => { setSelectedDrawingId(drawing.id); drawingUiCommand(symbol, chartInstanceId, drawing.id, 'select'); }} className="min-w-0 flex-1 px-1 text-left">
                       <span className="block truncate text-[9px] font-semibold text-[#DDE7EE]">{drawingLabel(drawing)}</span>
                       <span className="mt-0.5 flex items-center gap-1.5 text-[8px] text-[#5F7488]">

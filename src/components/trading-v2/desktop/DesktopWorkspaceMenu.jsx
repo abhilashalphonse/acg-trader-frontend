@@ -81,7 +81,7 @@ export default function DesktopWorkspaceMenu({ snapshot, onApply = () => {} }) {
       </button>
 
       {open && (
-        <div className="acg-v3-popover absolute right-0 top-9 z-[90] w-[230px] overflow-hidden rounded-md border border-white/[0.10] bg-[#0C1013] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+        <div className="acg-v3-popover absolute right-0 top-9 z-[90] w-[230px] overflow-hidden rounded-md border border-white/[0.10] bg-[#111113] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
           <div className="px-1 pb-1 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#6F8191]">Layout presets</div>
           {workspaces.map(item => (
             <div key={item.id} className="group flex items-center gap-1 rounded hover:bg-white/[0.025]">
@@ -92,7 +92,7 @@ export default function DesktopWorkspaceMenu({ snapshot, onApply = () => {} }) {
               {!item.builtIn && <button type="button" onClick={() => remove(item.id)} className="grid size-7 place-items-center text-[#6F8191] opacity-0 transition hover:text-[#FF6F7A] group-hover:opacity-100" aria-label={`Delete ${item.name}`}><Trash2 size={11}/></button>}
             </div>
           ))}
-          <button type="button" onClick={saveCurrent} className="mt-1 flex h-9 w-full items-center justify-center gap-1.5 rounded border border-[#55595F] bg-[#25282B] text-[9px] font-semibold text-[#CCD1D6]"><Save size={11}/>Save current workspace</button>
+          <button type="button" onClick={saveCurrent} className="mt-1 flex h-9 w-full items-center justify-center gap-1.5 rounded border border-[#55595F] bg-[#222225] text-[9px] font-semibold text-[#CCD1D6]"><Save size={11}/>Save current workspace</button>
           <div className="mt-1 flex items-center gap-1 px-1 text-[8px] text-[#44515D]"><Plus size={9}/>Up to 12 custom workspaces are stored locally.</div>
         </div>
       )}

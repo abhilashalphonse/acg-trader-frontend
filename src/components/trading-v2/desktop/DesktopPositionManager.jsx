@@ -313,7 +313,7 @@ export default function DesktopPositionManager({
                 onChange={event => syncProtectionInput(field, event.target.value, setInput)}
                 inputMode="decimal"
                 placeholder={saved ? 'Price' : `Add ${label.toLowerCase()} price`}
-                className="h-7 min-w-0 rounded border border-white/[0.06] bg-[#07090B] px-2 font-mono text-[9px] font-bold text-[#E6EDF3] outline-none focus:border-[#55595F]"
+                className="h-7 min-w-0 rounded border border-white/[0.06] bg-[#09090B] px-2 font-mono text-[9px] font-bold text-[#E6EDF3] outline-none focus:border-[#55595F]"
               />
               <button type="button" disabled={working} onClick={() => nudge(field, 1)} className="grid size-7 place-items-center rounded border border-white/[0.06] text-[#6F8191] disabled:opacity-40"><Plus size={10}/></button>
               <button type="button" disabled={working} onClick={() => cancelProtectionEdit()} className="h-7 rounded border border-white/[0.06] px-2 text-[7px] font-bold text-[#8295A7] disabled:opacity-40">Cancel</button>
@@ -327,7 +327,7 @@ export default function DesktopPositionManager({
   };
 
   return (
-    <section className="border-t border-white/[0.08] bg-[#07090B]">
+    <section className="border-t border-white/[0.08] bg-[#09090B]">
       <div className="flex h-9 items-center justify-between border-b border-white/[0.06] px-2.5">
         <div className="flex min-w-0 items-center gap-2">
           <strong className="text-[8px] font-black uppercase tracking-[0.08em] text-[#A1AFBC]">Open position</strong>
@@ -383,9 +383,9 @@ export default function DesktopPositionManager({
             BREAK EVEN
           </button>
           <div className="relative">
-            <button type="button" disabled={working} onClick={() => { setTrailOpen(value => !value); setReduceOpen(false); }} className={`flex h-8 w-full items-center justify-center gap-1 rounded border text-[7px] font-black disabled:opacity-40 ${position.trailingEnabled ? 'border-[#55595F] bg-[#25282B] text-[#CCD1D6]' : 'border-white/[0.06] text-[#8295A7]'}`}>{position.trailingEnabled ? `TRAIL ${position.trailingPips || 5}p` : 'TRAIL'}<ChevronDown size={9}/></button>
+            <button type="button" disabled={working} onClick={() => { setTrailOpen(value => !value); setReduceOpen(false); }} className={`flex h-8 w-full items-center justify-center gap-1 rounded border text-[7px] font-black disabled:opacity-40 ${position.trailingEnabled ? 'border-[#55595F] bg-[#222225] text-[#CCD1D6]' : 'border-white/[0.06] text-[#8295A7]'}`}>{position.trailingEnabled ? `TRAIL ${position.trailingPips || 5}p` : 'TRAIL'}<ChevronDown size={9}/></button>
             {trailOpen && (
-              <div className="absolute left-0 right-0 top-9 z-40 rounded-md border border-white/[0.10] bg-[#090B0D] p-1 shadow-xl">
+              <div className="absolute left-0 right-0 top-9 z-40 rounded-md border border-white/[0.10] bg-[#09090B] p-1 shadow-xl">
                 {[5,10,20].map(pips => <button key={pips} type="button" onClick={() => { onSetTrailing(position.id, true, pips); setTrailOpen(false); }} className="block h-7 w-full rounded px-2 text-left text-[7px] font-semibold text-[#A1AFBC] hover:bg-white/[0.04] hover:text-white">{pips} pips</button>)}
                 {position.trailingEnabled && <button type="button" onClick={() => { onSetTrailing(position.id, false, Number(position.trailingPips || 5)); setTrailOpen(false); }} className="block h-7 w-full rounded px-2 text-left text-[7px] font-semibold text-[#FF6F7A] hover:bg-white/[0.04]">Disable</button>}
               </div>
@@ -394,7 +394,7 @@ export default function DesktopPositionManager({
           <div className="relative">
             <button type="button" disabled={working || closeDisabled} title={closeDisabled ? closeAvailability.reason : 'Reduce position'} onClick={() => { setReduceOpen(value => !value); setTrailOpen(false); }} className="flex h-8 w-full items-center justify-center gap-1 rounded border border-white/[0.06] text-[7px] font-black text-[#A1AFBC] disabled:cursor-not-allowed disabled:opacity-35">REDUCE<ChevronDown size={9}/></button>
             {reduceOpen && (
-              <div className="absolute left-0 right-0 top-9 z-40 rounded-md border border-white/[0.10] bg-[#090B0D] p-1 shadow-xl">
+              <div className="absolute left-0 right-0 top-9 z-40 rounded-md border border-white/[0.10] bg-[#09090B] p-1 shadow-xl">
                 {[25,50,75].map(percent => <button key={percent} type="button" disabled={closeDisabled} title={closeDisabled ? closeAvailability.reason : undefined} onClick={() => { setReduceOpen(false); runClose(percent); }} className="block h-7 w-full rounded px-2 text-left text-[7px] font-semibold text-[#A1AFBC] hover:bg-white/[0.04] hover:text-white disabled:cursor-not-allowed disabled:opacity-35">Close {percent}%</button>)}
               </div>
             )}

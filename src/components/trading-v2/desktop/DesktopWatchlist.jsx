@@ -401,7 +401,7 @@ export default function DesktopWatchlist({
 
   return (
     <div className="acg-v3-watchlist flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden" onKeyDown={onKeyDown}>
-      <div className="grid h-8 shrink-0 grid-cols-2 border-b border-white/[0.06] bg-[#080a0c] p-0.5">
+      <div className="grid h-8 shrink-0 grid-cols-2 border-b border-white/[0.06] bg-[#09090B] p-0.5">
         <button type="button" onClick={() => onModeChange('watchlist')} className={mode === 'watchlist' ? "relative rounded text-[8px] font-bold text-[#f0f4f7]" : "rounded text-[8px] font-semibold text-[#687988] hover:text-white"}>Watchlist{mode === 'watchlist' && <span className="acg-active-underline absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#C9CDD2]"/>}</button>
         <button type="button" onClick={() => onModeChange('markets')} className={mode === 'markets' ? "relative rounded text-[8px] font-bold text-[#f0f4f7]" : "rounded text-[8px] font-semibold text-[#687988] hover:text-white"}>Markets{mode === 'markets' && <span className="acg-active-underline absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#C9CDD2]"/>}</button>
       </div>
@@ -430,9 +430,9 @@ export default function DesktopWatchlist({
         </div>
 
         {listMenuOpen && mode !== 'markets' && (
-          <div className="acg-motion-popover absolute left-2 top-10 z-50 w-[210px] overflow-hidden rounded-md border border-white/[0.10] bg-[#0C1013] p-1 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+          <div className="acg-motion-popover absolute left-2 top-10 z-50 w-[210px] overflow-hidden rounded-md border border-white/[0.10] bg-[#111113] p-1 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
             {(watchlists?.workspace?.lists || []).map(list => (
-              <button key={list.id} type="button" onClick={() => { watchlists?.setActiveListId?.(list.id); setListMenuOpen(false); }} className={`flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] ${list.id === watchlists?.activeList?.id ? 'bg-[#25282B] text-[#CBD0D5]' : 'text-[#aab7c3] hover:bg-white/[0.03]'}`}>
+              <button key={list.id} type="button" onClick={() => { watchlists?.setActiveListId?.(list.id); setListMenuOpen(false); }} className={`flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] ${list.id === watchlists?.activeList?.id ? 'bg-[#222225] text-[#CBD0D5]' : 'text-[#aab7c3] hover:bg-white/[0.03]'}`}>
                 <span className="truncate font-bold">{list.name}</span><span className="font-mono text-[8px] text-[#6F8191]">{list.symbols.length}</span>
               </button>
             ))}
@@ -441,7 +441,7 @@ export default function DesktopWatchlist({
         )}
 
         {columnsOpen && mode !== 'markets' && (
-          <div className="acg-motion-popover absolute right-2 top-10 z-50 w-[176px] rounded-md border border-white/[0.10] bg-[#0C1013] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+          <div className="acg-motion-popover absolute right-2 top-10 z-50 w-[176px] rounded-md border border-white/[0.10] bg-[#111113] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
             <div className="mb-1 flex items-center gap-1.5 px-1 text-[8px] font-black uppercase tracking-[0.08em] text-[#6F8191]"><ListFilter size={10}/>Columns</div>
             {COLUMN_OPTIONS.map(([id, label]) => {
               const active = columns.includes(id);
@@ -455,15 +455,15 @@ export default function DesktopWatchlist({
       {mode === 'markets' && (
         <>
           <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-white/[0.06] px-1.5 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {availableCategories.map(([id, label]) => <button key={id} type="button" onClick={() => { setCategory(id); if (id !== 'commodities') setCommodityView('all'); }} className={`h-7 shrink-0 rounded px-2.5 text-[8px] font-semibold ${category === id ? 'bg-[#25282B] text-[#CBD0D5]' : 'text-[#6F8191] hover:bg-white/[0.03] hover:text-white'}`}>{label}</button>)}
+            {availableCategories.map(([id, label]) => <button key={id} type="button" onClick={() => { setCategory(id); if (id !== 'commodities') setCommodityView('all'); }} className={`h-7 shrink-0 rounded px-2.5 text-[8px] font-semibold ${category === id ? 'bg-[#222225] text-[#CBD0D5]' : 'text-[#6F8191] hover:bg-white/[0.03] hover:text-white'}`}>{label}</button>)}
           </div>
           {category === 'commodities' && (
             <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-white/[0.06] px-1.5 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {COMMODITY_VIEWS.map(([id, label]) => <button key={id} type="button" onClick={() => setCommodityView(id)} className={`h-7 shrink-0 rounded border px-2.5 text-[8px] font-semibold ${commodityView === id ? 'border-[#55595F] bg-[#25282B] text-[#CBD0D5]' : 'border-white/[0.06] text-[#6F8191]'}`}>{label}</button>)}
+              {COMMODITY_VIEWS.map(([id, label]) => <button key={id} type="button" onClick={() => setCommodityView(id)} className={`h-7 shrink-0 rounded border px-2.5 text-[8px] font-semibold ${commodityView === id ? 'border-[#55595F] bg-[#222225] text-[#CBD0D5]' : 'border-white/[0.06] text-[#6F8191]'}`}>{label}</button>)}
             </div>
           )}
           <div className="flex shrink-0 gap-1 overflow-x-auto px-1.5 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {MARKET_VIEWS.map(([id, label]) => <button key={id} type="button" onClick={() => setMarketView(id)} className={`h-7 shrink-0 rounded border px-2.5 text-[8px] font-semibold ${marketView === id ? 'border-[#55595F] bg-[#25282B] text-[#CBD0D5]' : 'border-white/[0.06] text-[#6F8191]'}`}>{label}</button>)}
+            {MARKET_VIEWS.map(([id, label]) => <button key={id} type="button" onClick={() => setMarketView(id)} className={`h-7 shrink-0 rounded border px-2.5 text-[8px] font-semibold ${marketView === id ? 'border-[#55595F] bg-[#222225] text-[#CBD0D5]' : 'border-white/[0.06] text-[#6F8191]'}`}>{label}</button>)}
           </div>
         </>
       )}
@@ -501,7 +501,7 @@ export default function DesktopWatchlist({
               onDragEnd={() => setDragSymbol(null)}
               onDragOver={event => { if (dragSymbol) event.preventDefault(); }}
               onDrop={() => { if (dragSymbol && dragSymbol !== item.symbol) watchlists?.moveSymbol?.(dragSymbol, item.symbol); setDragSymbol(null); }}
-              className={`acg-motion-row grid items-center border-b border-white/[0.06] px-2 py-0.5 transition ${selected ? 'border-l border-[#CCD1D6] bg-[#1C1E21]' : 'border-l border-transparent hover:bg-white/[0.018]'} ${dragSymbol === item.symbol ? 'opacity-45' : ''}`}
+              className={`acg-motion-row grid items-center border-b border-white/[0.06] px-2 py-0.5 transition ${selected ? 'border-l border-[#CCD1D6] bg-[#222225]' : 'border-l border-transparent hover:bg-white/[0.018]'} ${dragSymbol === item.symbol ? 'opacity-45' : ''}`}
               style={{ gridTemplateColumns: gridTemplate }}
             >
               <button type="button" onClick={() => selectInstrument(item.symbol)} className="flex min-w-0 items-center gap-1.5 py-2 text-left">

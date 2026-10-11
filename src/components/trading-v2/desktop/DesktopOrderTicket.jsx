@@ -626,7 +626,7 @@ export default function DesktopOrderTicket({
         : `${floatingLotText} lots · Margin ${money(previewMargin, currency)}${Number.isFinite(floatingMarginPercent) ? ` (${floatingMarginPercent.toFixed(2)}%)` : ''} · Free ${money(freeAfter, currency)}`;
 
     return (
-      <section className="acg-floating-order acg-exec-root w-[344px] overflow-hidden rounded-[12px] border border-white/[0.16] bg-[#0d0f12]/[0.98] text-[#f4f6f8] shadow-[0_14px_40px_rgba(0,0,0,.52)] backdrop-blur-md">
+      <section className="acg-floating-order acg-exec-root w-[344px] overflow-hidden rounded-[12px] border border-white/[0.16] bg-[#09090B]/[0.98] text-[#f4f6f8] shadow-[0_14px_40px_rgba(0,0,0,.52)] backdrop-blur-md">
         <div className="flex h-[36px] items-center gap-1 border-b border-white/[0.07] px-1.5">
           <button type="button" onPointerDown={onFloatingDragStart} className="grid h-7 w-6 shrink-0 cursor-move place-items-center rounded text-[#7c8995] hover:bg-white/[0.04] hover:text-white" aria-label="Drag execution widget" title="Drag execution widget">
             <GripVertical size={13}/>
@@ -635,15 +635,15 @@ export default function DesktopOrderTicket({
             <InstrumentAvatar instrument={market} size={16}/>
             <span className="min-w-0 truncate text-[10px] font-bold text-[#f1f4f6]">{market?.displaySymbol || market?.symbol || '—'}</span>
           </div>
-          <button type="button" onClick={() => chooseFamily(orderFamily === 'market' ? 'pending' : 'market')} className="h-7 rounded-[5px] border border-white/[0.07] bg-[#15181d] px-2 text-[9px] font-black text-[#e9edf2] transition hover:bg-[#1a1e24]">
+          <button type="button" onClick={() => chooseFamily(orderFamily === 'market' ? 'pending' : 'market')} className="h-7 rounded-[5px] border border-white/[0.07] bg-[#111113] px-2 text-[9px] font-black text-[#e9edf2] transition hover:bg-[#1a1e24]">
             {floatingModeLabel}
           </button>
-          <button type="button" onClick={() => setMode(activeSizingMode === 'risk' ? 'lots' : 'risk')} disabled={!riskSupported} className={activeSizingMode === 'risk' ? 'h-7 rounded-[5px] border border-[#ACB2B9]/55 bg-[#202225] px-2 text-[9px] font-black text-[#C8CDD3]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#15181d] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white disabled:opacity-30'}>
+          <button type="button" onClick={() => setMode(activeSizingMode === 'risk' ? 'lots' : 'risk')} disabled={!riskSupported} className={activeSizingMode === 'risk' ? 'h-7 rounded-[5px] border border-[#ACB2B9]/55 bg-[#222225] px-2 text-[9px] font-black text-[#C8CDD3]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#111113] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white disabled:opacity-30'}>
             RISK
           </button>
-          <button type="button" onClick={() => addProtection('sl')} className={hasStopLoss || protectionIntent === 'sl' ? 'h-7 rounded-[5px] border border-[#303338] bg-[#0B0C0E] px-2 text-[9px] font-black text-[#C5CAD0]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#15181d] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white'}>SL</button>
-          <button type="button" onClick={() => addProtection('tp')} className={hasTakeProfit || protectionIntent === 'tp' ? 'h-7 rounded-[5px] border border-[#34373C] bg-[#0B0D0E] px-2 text-[9px] font-black text-[#C5CAD0]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#15181d] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white'}>TP</button>
-          <button type="button" onClick={onOpenFullTrade} className="grid size-7 shrink-0 place-items-center rounded-[5px] border border-white/[0.06] bg-[#15181d] text-[#8d99a5] hover:bg-[#1a1e24] hover:text-white" aria-label="Open full trade execution panel" title="Open full trade execution">
+          <button type="button" onClick={() => addProtection('sl')} className={hasStopLoss || protectionIntent === 'sl' ? 'h-7 rounded-[5px] border border-[#303338] bg-[#09090B] px-2 text-[9px] font-black text-[#C5CAD0]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#111113] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white'}>SL</button>
+          <button type="button" onClick={() => addProtection('tp')} className={hasTakeProfit || protectionIntent === 'tp' ? 'h-7 rounded-[5px] border border-[#34373C] bg-[#0B0D0E] px-2 text-[9px] font-black text-[#C5CAD0]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#111113] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white'}>TP</button>
+          <button type="button" onClick={onOpenFullTrade} className="grid size-7 shrink-0 place-items-center rounded-[5px] border border-white/[0.06] bg-[#111113] text-[#8d99a5] hover:bg-[#1a1e24] hover:text-white" aria-label="Open full trade execution panel" title="Open full trade execution">
             <Maximize2 size={12}/>
           </button>
         </div>
@@ -653,12 +653,12 @@ export default function DesktopOrderTicket({
             <span className="truncate">{summaryText}</span>
           </div>
           <div className="grid grid-cols-[92px_minmax(0,1fr)_92px] gap-1.5 p-2">
-              <button type="button" disabled={sideDisabled('sell')} onClick={() => handleSide('sell')} className="acg-exec-sell flex h-[42px] min-w-0 flex-col items-center justify-center rounded-[7px] border border-[#373A3F] bg-[#17191C] px-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.10)] transition hover:bg-[#25282C] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35">
+              <button type="button" disabled={sideDisabled('sell')} onClick={() => handleSide('sell')} className="acg-exec-sell flex h-[42px] min-w-0 flex-col items-center justify-center rounded-[7px] border border-[#373A3F] bg-[#171719] px-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.10)] transition hover:bg-[#25282C] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35">
                 <strong className="max-w-full truncate text-[8px] font-black uppercase tracking-[0.03em] text-white">{floatingSellLabel}</strong>
                 <span className="mt-0.5 max-w-full truncate font-mono text-[13px] font-bold tabular-nums text-white">{floatingSellPrice}</span>
               </button>
               {activeSizingMode === 'lots' ? (
-                <div className="grid h-[42px] grid-cols-[30px_minmax(0,1fr)_30px] items-center overflow-hidden rounded-[7px] border border-white/[0.07] bg-[#13161a]">
+                <div className="grid h-[42px] grid-cols-[30px_minmax(0,1fr)_30px] items-center overflow-hidden rounded-[7px] border border-white/[0.07] bg-[#111113]">
                   <button type="button" onClick={() => setLots(Math.max(minVolume, normalizedLots - volumeStep))} className="grid h-full place-items-center text-[#8d99a5] hover:bg-white/[0.03] hover:text-white" aria-label="Decrease lot size"><Minus size={12}/></button>
                   <div className="flex h-full min-w-0 flex-col items-center justify-center border-x border-white/[0.05]">
                     <input value={lotInput} onFocus={event => { lotCancelRef.current = false; setLotFocused(true); selectInputNextFrame(event); }} onChange={event => setLotInput(event.target.value)} onBlur={commitLot} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { event.preventDefault(); lotCancelRef.current = true; setLotInput(Number(normalizedLots).toFixed(lotDecimals)); event.currentTarget.blur(); } }} inputMode="decimal" className="w-full bg-transparent text-center font-mono text-[13px] font-bold tabular-nums text-[#f4f6f8] outline-none" aria-label="Lot size"/>
@@ -667,7 +667,7 @@ export default function DesktopOrderTicket({
                   <button type="button" onClick={() => setLots(Math.min(maxVolume, normalizedLots + volumeStep))} className="grid h-full place-items-center text-[#8d99a5] hover:bg-white/[0.03] hover:text-white" aria-label="Increase lot size"><Plus size={12}/></button>
                 </div>
               ) : (
-                <div className="grid h-[42px] grid-cols-[30px_minmax(0,1fr)_30px] items-center overflow-hidden rounded-[7px] border border-[#ACB2B9]/28 bg-[#17191C]">
+                <div className="grid h-[42px] grid-cols-[30px_minmax(0,1fr)_30px] items-center overflow-hidden rounded-[7px] border border-[#ACB2B9]/28 bg-[#171719]">
                   <button type="button" onClick={() => setRiskFromInput(Math.max(0.1, Number(riskPercent) - 0.25), 'percent')} className="grid h-full place-items-center text-[#8d99a5] hover:bg-white/[0.03] hover:text-white" aria-label="Decrease risk"><Minus size={12}/></button>
                   <div className="flex h-full min-w-0 flex-col items-center justify-center border-x border-white/[0.05]">
                     <input value={riskInput} onFocus={event => { setRiskFocused(true); setRiskUnit('percent'); selectInputNextFrame(event); }} onChange={event => setRiskInput(event.target.value)} onBlur={commitRisk} onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }} inputMode="decimal" className="w-full bg-transparent text-center font-mono text-[13px] font-bold tabular-nums text-[#C8CDD3] outline-none" aria-label="Risk percent"/>
@@ -687,8 +687,8 @@ export default function DesktopOrderTicket({
   }
 
   return (
-    <section className="acg-desktop-order acg-exec-root flex h-full min-h-0 flex-col bg-[#0A0C0F]">
-      <div className="grid h-11 shrink-0 grid-cols-2 border-b border-white/[0.05] bg-[#0A0C0F]">
+    <section className="acg-desktop-order acg-exec-root flex h-full min-h-0 flex-col bg-[#09090B]">
+      <div className="grid h-11 shrink-0 grid-cols-2 border-b border-white/[0.05] bg-[#09090B]">
         <button type="button" onClick={() => chooseFamily('market')} className={orderFamily === 'market' ? 'relative text-[11px] font-bold text-[#f4f6f8]' : 'relative text-[11px] font-semibold text-[#74808b] hover:text-white'}>
           Market
           {orderFamily === 'market' && <span className="absolute inset-x-[22%] bottom-0 h-0.5 bg-[#ACB2B9]"/>}
@@ -748,7 +748,7 @@ export default function DesktopOrderTicket({
             <span className="text-[9px] font-semibold text-[#8b98a4]">Position size</span>
             <div className="grid h-7 w-[128px] grid-cols-2 rounded-md border border-white/[0.06] bg-black p-0.5">
               <button type="button" onClick={() => setMode('lots')} className={activeSizingMode === 'lots' ? 'rounded bg-[#151820] text-[8px] font-bold text-[#eef2f5]' : 'rounded text-[8px] font-semibold text-[#657380] hover:text-white'}>Lots</button>
-              <button type="button" onClick={() => setMode('risk')} disabled={!riskSupported} className={activeSizingMode === 'risk' ? 'rounded bg-[#202225] text-[8px] font-bold text-[#ACB2B9]' : 'rounded text-[8px] font-semibold text-[#657380] hover:text-white disabled:opacity-35'}>Risk</button>
+              <button type="button" onClick={() => setMode('risk')} disabled={!riskSupported} className={activeSizingMode === 'risk' ? 'rounded bg-[#222225] text-[8px] font-bold text-[#ACB2B9]' : 'rounded text-[8px] font-semibold text-[#657380] hover:text-white disabled:opacity-35'}>Risk</button>
             </div>
           </div>
 
@@ -798,7 +798,7 @@ export default function DesktopOrderTicket({
               </div>
               <div className="mt-1.5 flex gap-1">
                 {RISK_PRESETS.map(value => (
-                  <button key={value} type="button" onClick={() => { setRiskUnit('percent'); setRiskFromInput(value, 'percent'); }} className={Math.abs(Number(riskPercent) - value) < 0.001 ? 'h-6 flex-1 rounded border border-[#ACB2B9]/60 bg-[#202225] text-[8px] font-bold text-[#ACB2B9]' : 'h-6 flex-1 rounded border border-white/[0.05] text-[8px] font-semibold text-[#677684] hover:text-white'}>
+                  <button key={value} type="button" onClick={() => { setRiskUnit('percent'); setRiskFromInput(value, 'percent'); }} className={Math.abs(Number(riskPercent) - value) < 0.001 ? 'h-6 flex-1 rounded border border-[#ACB2B9]/60 bg-[#222225] text-[8px] font-bold text-[#ACB2B9]' : 'h-6 flex-1 rounded border border-white/[0.05] text-[8px] font-semibold text-[#677684] hover:text-white'}>
                     {value}%
                   </button>
                 ))}
@@ -818,13 +818,13 @@ export default function DesktopOrderTicket({
           </div>
           <div className="grid grid-cols-2 gap-1.5">
             <div className="flex min-w-0">
-              <button type="button" onClick={() => addProtection('sl')} className={hasStopLoss ? 'h-9 min-w-0 flex-1 rounded-l-md border border-[#303338] bg-[#0B0C0E] text-[9px] font-bold text-[#C5CAD0]' : protectionIntent === 'sl' ? 'h-9 min-w-0 flex-1 rounded-l-md border border-[#ACB2B9] bg-[#202225] text-[9px] font-bold text-[#ACB2B9]' : 'h-9 min-w-0 flex-1 rounded-l-md border border-white/[0.06] bg-black text-[9px] font-semibold text-[#8b98a4] hover:text-white'}>
+              <button type="button" onClick={() => addProtection('sl')} className={hasStopLoss ? 'h-9 min-w-0 flex-1 rounded-l-md border border-[#303338] bg-[#09090B] text-[9px] font-bold text-[#C5CAD0]' : protectionIntent === 'sl' ? 'h-9 min-w-0 flex-1 rounded-l-md border border-[#ACB2B9] bg-[#222225] text-[9px] font-bold text-[#ACB2B9]' : 'h-9 min-w-0 flex-1 rounded-l-md border border-white/[0.06] bg-black text-[9px] font-semibold text-[#8b98a4] hover:text-white'}>
                 {hasStopLoss ? 'SL ACTIVE' : activeSizingMode === 'risk' ? 'SET SL' : 'SL'}
               </button>
               <button type="button" onClick={() => removeProtection('sl')} disabled={!hasStopLoss && protectionIntent !== 'sl'} className="grid h-9 w-8 place-items-center rounded-r-md border border-l-0 border-white/[0.06] bg-black text-[#647382] hover:text-white disabled:opacity-25" aria-label="Remove stop loss"><X size={10}/></button>
             </div>
             <div className="flex min-w-0">
-              <button type="button" onClick={() => addProtection('tp')} className={hasTakeProfit ? 'h-9 min-w-0 flex-1 rounded-l-md border border-[#34373C] bg-[#0B0D0E] text-[9px] font-bold text-[#C5CAD0]' : protectionIntent === 'tp' ? 'h-9 min-w-0 flex-1 rounded-l-md border border-[#ACB2B9] bg-[#202225] text-[9px] font-bold text-[#ACB2B9]' : 'h-9 min-w-0 flex-1 rounded-l-md border border-white/[0.06] bg-black text-[9px] font-semibold text-[#8b98a4] hover:text-white'}>
+              <button type="button" onClick={() => addProtection('tp')} className={hasTakeProfit ? 'h-9 min-w-0 flex-1 rounded-l-md border border-[#34373C] bg-[#0B0D0E] text-[9px] font-bold text-[#C5CAD0]' : protectionIntent === 'tp' ? 'h-9 min-w-0 flex-1 rounded-l-md border border-[#ACB2B9] bg-[#222225] text-[9px] font-bold text-[#ACB2B9]' : 'h-9 min-w-0 flex-1 rounded-l-md border border-white/[0.06] bg-black text-[9px] font-semibold text-[#8b98a4] hover:text-white'}>
                 {hasTakeProfit ? 'TP ACTIVE' : 'TP'}
               </button>
               <button type="button" onClick={() => removeProtection('tp')} disabled={!hasTakeProfit && protectionIntent !== 'tp'} className="grid h-9 w-8 place-items-center rounded-r-md border border-l-0 border-white/[0.06] bg-black text-[#647382] hover:text-white disabled:opacity-25" aria-label="Remove take profit"><X size={10}/></button>
@@ -835,7 +835,7 @@ export default function DesktopOrderTicket({
         {warning && (
           <div className={marketClosed
             ? 'mb-3 flex items-start gap-1.5 rounded-md border border-white/[0.07] bg-black/35 px-2 py-1.5 text-[8px] font-semibold leading-4 text-[#83919e]'
-            : 'mb-3 flex items-start gap-1.5 rounded-md border border-[#303338] bg-[#0B0C0E] px-2 py-1.5 text-[8px] font-semibold leading-4 text-[#B5BBC2]'}>
+            : 'mb-3 flex items-start gap-1.5 rounded-md border border-[#303338] bg-[#09090B] px-2 py-1.5 text-[8px] font-semibold leading-4 text-[#B5BBC2]'}>
             {marketClosed
               ? <Clock3 size={11} className="mt-0.5 shrink-0 text-[#657482]"/>
               : <AlertTriangle size={11} className="mt-0.5 shrink-0 text-[#C5CAD0]"/>}
@@ -854,8 +854,8 @@ export default function DesktopOrderTicket({
               <div>
                 <span className="mb-1 block text-[8px] font-semibold text-[#697784]">Pending type</span>
                 <div className="grid grid-cols-2 gap-1">
-                  <button type="button" onClick={disableStopLimit} className={!tradePlan?.desktopExplicitStopLimit ? 'h-7 rounded border border-[#ACB2B9]/50 bg-[#202225] text-[8px] font-bold text-[#ACB2B9]' : 'h-7 rounded border border-white/[0.05] text-[8px] text-[#748391]'}>Auto Limit / Stop</button>
-                  <button type="button" onClick={enableStopLimit} className={tradePlan?.desktopExplicitStopLimit ? 'h-7 rounded border border-[#ACB2B9]/50 bg-[#202225] text-[8px] font-bold text-[#ACB2B9]' : 'h-7 rounded border border-white/[0.05] text-[8px] text-[#748391]'}>Stop Limit</button>
+                  <button type="button" onClick={disableStopLimit} className={!tradePlan?.desktopExplicitStopLimit ? 'h-7 rounded border border-[#ACB2B9]/50 bg-[#222225] text-[8px] font-bold text-[#ACB2B9]' : 'h-7 rounded border border-white/[0.05] text-[8px] text-[#748391]'}>Auto Limit / Stop</button>
+                  <button type="button" onClick={enableStopLimit} className={tradePlan?.desktopExplicitStopLimit ? 'h-7 rounded border border-[#ACB2B9]/50 bg-[#222225] text-[8px] font-bold text-[#ACB2B9]' : 'h-7 rounded border border-white/[0.05] text-[8px] text-[#748391]'}>Stop Limit</button>
                 </div>
               </div>
             )}
@@ -879,7 +879,7 @@ export default function DesktopOrderTicket({
                 <span className="mb-1 block text-[8px] font-semibold text-[#697784]">Risk : Reward</span>
                 <div className="grid grid-cols-4 gap-1">
                   {[1, 1.5, 2, 3].map(value => (
-                    <button key={value} type="button" onClick={() => applyRewardRatio(value)} className={Number.isFinite(rr) && Math.abs(rr - value) < 0.03 ? 'h-7 rounded border border-[#ACB2B9]/55 bg-[#202225] text-[8px] font-bold text-[#ACB2B9]' : 'h-7 rounded border border-white/[0.05] text-[8px] text-[#748391] hover:text-white'}>
+                    <button key={value} type="button" onClick={() => applyRewardRatio(value)} className={Number.isFinite(rr) && Math.abs(rr - value) < 0.03 ? 'h-7 rounded border border-[#ACB2B9]/55 bg-[#222225] text-[8px] font-bold text-[#ACB2B9]' : 'h-7 rounded border border-white/[0.05] text-[8px] text-[#748391] hover:text-white'}>
                       1:{value}
                     </button>
                   ))}
@@ -892,7 +892,7 @@ export default function DesktopOrderTicket({
                 <span className="mb-1 block text-[8px] font-semibold text-[#697784]">Expiry</span>
                 <div className="grid grid-cols-3 gap-1">
                   {['GTC', 'TODAY', 'SPECIFIED'].map(value => (
-                    <button key={value} type="button" onClick={() => onTradePlanChange({ expiration: value, ...(value === 'SPECIFIED' ? {} : { expirationAt: null }), stage: 'ready' })} className={String(tradePlan?.expiration || 'GTC').toUpperCase() === value ? 'h-7 rounded border border-[#ACB2B9]/55 bg-[#202225] text-[8px] font-bold text-[#ACB2B9]' : 'h-7 rounded border border-white/[0.05] text-[8px] text-[#748391]'}>
+                    <button key={value} type="button" onClick={() => onTradePlanChange({ expiration: value, ...(value === 'SPECIFIED' ? {} : { expirationAt: null }), stage: 'ready' })} className={String(tradePlan?.expiration || 'GTC').toUpperCase() === value ? 'h-7 rounded border border-[#ACB2B9]/55 bg-[#222225] text-[8px] font-bold text-[#ACB2B9]' : 'h-7 rounded border border-white/[0.05] text-[8px] text-[#748391]'}>
                       {value === 'SPECIFIED' ? 'Custom' : value === 'TODAY' ? 'Today' : 'GTC'}
                     </button>
                   ))}
@@ -906,7 +906,7 @@ export default function DesktopOrderTicket({
         )}
       </div>
 
-      <div className="shrink-0 border-t border-white/[0.05] bg-[#0A0C0F]/98 px-3 pb-3 pt-2.5 shadow-[0_-10px_24px_rgba(0,0,0,.22)] backdrop-blur">
+      <div className="shrink-0 border-t border-white/[0.05] bg-[#09090B]/98 px-3 pb-3 pt-2.5 shadow-[0_-10px_24px_rgba(0,0,0,.22)] backdrop-blur">
         <div className={`mb-2 grid gap-2 ${hasStopLoss || hasTakeProfit ? 'grid-cols-2' : 'grid-cols-2'}`}>
           {hasStopLoss && <Metric label="Loss at SL" value={Number.isFinite(stopRisk) ? money(-Math.abs(stopRisk), currency) : '—'} tone="danger"/>}
           {hasTakeProfit && <Metric label="Profit at TP" value={Number.isFinite(takeProfitValue) ? money(Math.abs(takeProfitValue), currency) : '—'} tone="success"/>}

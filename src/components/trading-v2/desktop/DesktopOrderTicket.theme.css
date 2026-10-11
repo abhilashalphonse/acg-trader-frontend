@@ -1,10 +1,10 @@
 /* Desktop execution ticket V3: presentation only, no order/risk behaviour changes. */
 .acg-exec-root {
-  --acg-exec-canvas: #050607;
-  --acg-exec-surface: #0a0b0d;
-  --acg-exec-raised: #151719;
-  --acg-exec-selected: #25272a;
-  --acg-exec-line: #292d32;
+  --acg-exec-canvas: #09090B;
+  --acg-exec-surface: #09090B;
+  --acg-exec-raised: #111113;
+  --acg-exec-selected: #222225;
+  --acg-exec-line: #262628;
   --acg-exec-text: #f2f3f5;
   --acg-exec-muted: #a1a5ac;
   --acg-exec-silver: #c6cbd1;
@@ -23,7 +23,7 @@
   text-shadow: none;
 }
 .acg-exec-root :is(input, select, textarea) {
-  background: #08090b !important;
+  background: #111113 !important;
   border-color: var(--acg-exec-line) !important;
   color: var(--acg-exec-text) !important;
   border-radius: 6px;
@@ -77,9 +77,9 @@
 
 /* Flat floating quick-ticket, visually consistent with the docked variant. */
 .acg-floating-order.acg-exec-root {
-  border-color: #34373b !important;
+  border-color: #303034 !important;
   border-radius: 9px;
 }
 .acg-desktop-order.acg-exec-root {
-  border-color: #292d32;
+  border-color: #262628;
 }
