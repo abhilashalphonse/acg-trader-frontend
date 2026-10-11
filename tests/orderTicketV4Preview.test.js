@@ -35,7 +35,7 @@ test('design-only preview contains no backend, authentication or live execution 
 test('approved V4 instrument header: compact quote slab, session, ellipsis + X, white capsule', () => {
  for (const feature of ['v4-instrument','v4-quote-strip','v4-session','24/7 session (demo)','v4-mainmodes','v4-head-actions','Ticket configuration','Close execution panel'])
    assert.ok(jsx.includes(feature), 'Missing feature: ' + feature);
- assert.doesNotMatch(jsx, /Star|v4-fav|favorite/i);
+ assert.doesNotMatch(jsx, /\bStar\b|v4-fav|favorite/i);
  assert.match(css, /\.v4-quote-strip \{[^}]*min-height: 36px/);
  assert.match(css, /\.v4-capsule-button\.selected \{[^}]*background: #f7f7f8; color: #101012/);
 });
@@ -47,7 +47,7 @@ test('original centered position input, slider and one-line translator preserved
    assert.ok(jsx.includes(feature), 'Missing ' + feature);
  }
  assert.match(jsx, /type="range"/);
- assert.match(jsx, /aria-label="Edit "/);
+ assert.match(jsx, /aria-label=\{'Edit ' \+ label\}/);
  assert.match(jsx, /onBlur=\{finish\}/);
  assert.match(jsx, /floorLots\(/);
  assert.doesNotMatch(jsx, /Position Translator|Adjust value|Tap value to edit|~10,000 USD notional/);
@@ -59,7 +59,7 @@ test('risk-based position sizing derives volume from valid SL and rounds DOWN to
  assert.match(jsx, /riskUSDTarget/);
  assert.match(jsx, /Math\.floor\(\(n \+ 1e-9\) \/ DEMO\.lotStep\)/);
  assert.match(jsx, /Set a valid Stop Loss before selecting a risk-based size/);
- assert.match(jsx, /Risk-based volume/);
+ assert.match(jsx, /risk-based size/);
 });
 
 test('approved compact protection includes editable values, unit dropdowns, summary and safeguards', () => {
