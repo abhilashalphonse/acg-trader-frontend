@@ -232,6 +232,47 @@ async function run(){
  if(!after.footerPinned)failed.push('Compact execution footer not pinned');
  if(!ticket.querySelector('input[aria-label="Take Profit value"]') || !ticket.querySelector('input[aria-label="Stop Loss value"]'))
    failed.push('Density pass cannot display enabled SL and TP');
+ // Typography comparison: same 330px dock and same prices with only
+ // the approved font/hierarchy CSS toggled. Ensure the CTA text is not clipped.
+ const typography=()=>{
+   const value=selector=>{
+     const el=ticket.querySelector(selector);
+     const c=getComputedStyle(el);
+     return {size:parseFloat(c.fontSize),weight:Number(c.fontWeight),lineHeight:c.lineHeight,
+       family:c.fontFamily,clientWidth:el.clientWidth,scrollWidth:el.scrollWidth};
+   };
+   return {
+     symbol:value('.v4-symbol strong'),
+     subtitle:value('.v4-symbol span'),
+     price:value('.v4-trade-actions button strong'),
+     label:value('.v4-trade-actions button span'),
+     quote:value('.v4-quote-strip strong'),
+     sizingTab:value('.v4-position-modes .v4-capsule-button'),
+     ticks:value('.v4-scale'),
+     footerHeight:Math.round(ticket.querySelector('.v4-execution-footer').getBoundingClientRect().height),
+     width:Math.round(ticket.getBoundingClientRect().width),
+     footerPinned:Math.abs(ticket.querySelector('.v4-execution-footer').getBoundingClientRect().bottom-ticket.getBoundingClientRect().bottom)<2,
+   };
+ };
+ ticket.classList.add('v4-typography-baseline');
+ await sleep(100);
+ const oldType=typography();
+ ticket.classList.remove('v4-typography-baseline');
+ await sleep(120);
+ const newType=typography();
+ if(oldType.symbol.size!==14||newType.symbol.size!==18)failed.push('Instrument font hierarchy not 14 to 18px');
+ if(oldType.label.size!==10||newType.label.size!==13)failed.push('Buy/Sell label not 10 to 13px');
+ if(oldType.price.size!==14||newType.price.size!==18)failed.push('Execution price not 14 to 18px');
+ if(newType.ticks.size!==10||newType.sizingTab.size!==11)failed.push('Secondary label readability regression');
+ if(newType.width!==330||!newType.footerPinned)failed.push('Hierarchy refinement changed dock geometry');
+ if(newType.price.scrollWidth>newType.price.clientWidth+1)failed.push('Execution price clipped at 330px');
+ if(newType.symbol.scrollWidth>newType.symbol.clientWidth+1)failed.push('Instrument symbol clipped at 330px');
+ const fontFaces=[];
+ document.fonts.forEach(face=>{if(face.family.toLowerCase().includes('inter'))fontFaces.push({family:face.family,status:face.status,weight:face.weight});});
+ const typeEvidence=document.createElement('output');
+ typeEvidence.id='v4-typography-metrics';
+ typeEvidence.textContent=JSON.stringify({before:oldType,after:newType,fontFaces});
+ document.body.appendChild(typeEvidence);
  if(new URLSearchParams(window.location.search).get('density')==='before')
    ticket.classList.add('v4-density-baseline');
  const qa=document.createElement('output');
@@ -239,6 +280,6 @@ async function run(){
  qa.textContent=JSON.stringify({before,after});
  document.body.appendChild(qa);
  status.textContent=failed.length?'FAIL: '+failed.join(' | ')
-   :'V4_SMOKE_PASS 330px density before-after chart-draft no-execution';
+   :'V4_SMOKE_PASS 330px hierarchy 14to18 action 14to18 font chart-draft no-execution';
 }
 run().catch(error=>{document.getElementById('v4-smoke-status').textContent='FAIL: '+error.message;});
