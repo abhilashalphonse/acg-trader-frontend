@@ -274,3 +274,16 @@
   border-color: #29292D !important;
 }
 /* Price movement, risk states and colored Buy/Sell actions remain intentional. */
+
+/* Match the drawing rail's top/bottom breathing room without changing
+   mobile layouts or the active tool/scroll behavior. */
+.acg-desktop-v3 .acg-desktop-drawing-rail {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior-y: contain;
+}
+.acg-desktop-v3 .acg-desktop-drawing-rail::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
