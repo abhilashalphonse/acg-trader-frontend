@@ -368,3 +368,55 @@
   max-width: 100%;
 }
 /* Sizing/action controls retain legible native proportions at the 330px dock. */
+
+/*
+ * V4 TERMINAL TYPOGRAPHY NORMALIZATION
+ *
+ * Align the ticket to the already compact 11–14px terminal toolbar/rail.
+ * This is intentionally typography and CTA-height ONLY: no grid widths,
+ * button placement, chart handling, desktop dock sizing or order semantics.
+ * .v4-terminal-type-baseline exists only for same-viewport browser QA.
+ */
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline):not(.v4-terminal-type-baseline) .v4-symbol strong {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.3;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline):not(.v4-terminal-type-baseline) .v4-symbol span {
+  font-size: 11px;
+  font-weight: 400;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline):not(.v4-terminal-type-baseline) .v4-instrument { min-height: 32px; }
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline):not(.v4-terminal-type-baseline) .v4-hero-value,
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline):not(.v4-terminal-type-baseline) .v4-hero-input input {
+  font-size: 19px !important;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline):not(.v4-terminal-type-baseline) .v4-trade-actions button {
+  min-height: 52px;
+  padding: 7px 8px;
+  gap: 3px;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline):not(.v4-terminal-type-baseline) .v4-trade-actions button span {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline):not(.v4-terminal-type-baseline) .v4-trade-actions button strong {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline):not(.v4-terminal-type-baseline) .v4-quote-strip strong { font-size: 12px; font-weight: 600; }
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline):not(.v4-terminal-type-baseline) .v4-mainmodes .v4-capsule-button { font-weight: 500; }
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline):not(.v4-terminal-type-baseline) .v4-mainmodes .v4-capsule-button.selected { font-weight: 600; }
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline):not(.v4-terminal-type-baseline) .v4-position-modes .v4-capsule-button.selected { font-weight: 600; }
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline):not(.v4-terminal-type-baseline) .v4-section-heading { font-weight: 600; }
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline):not(.v4-terminal-type-baseline) .v4-exit-heading strong,
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline):not(.v4-terminal-type-baseline) .v4-ratio-slab strong,
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline):not(.v4-terminal-type-baseline) .v4-margin-summary strong {
+  font-weight: 600;
+}
