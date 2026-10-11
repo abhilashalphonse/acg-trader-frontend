@@ -76,8 +76,8 @@ test('desktop drawing rail uses symmetrical insets and retains scrolling', () =>
   const chartArea = source('src/components/trading-v2/ChartArea.jsx');
   const theme = source('src/components/trading-v2/desktop/DesktopTerminal.theme.css');
   const desktopRail = chartArea.match(/const toolbarClass = drawingToolbarOverlay[\s\S]*?\n  return \(/)?.[0] || '';
-  assert.equal((desktopRail.match(/acg-desktop-drawing-rail my-2/g) || []).length, 2);
-  assert.match(desktopRail, /acg-desktop-drawing-rail my-2[^']*overflow-y-auto/);
+  assert.equal((desktopRail.match(/acg-desktop-drawing-rail my-0/g) || []).length, 2);
+  assert.match(desktopRail, /acg-desktop-drawing-rail my-0[^']*overflow-y-auto/);
   assert.match(theme, /\.acg-desktop-v3 \.acg-desktop-drawing-rail::\-webkit-scrollbar/);
   assert.match(theme, /scrollbar-width: none/);
   assert.match(desktopRail, /acg-mobile-reference-drawing-rail mx-0\.5 my-1/);
@@ -87,4 +87,19 @@ test('desktop positions headers sit close to their tabs without changing the 44p
   const positions = source('src/components/trading-v2/PositionsPanel.jsx');
   assert.match(positions, /flex h-\[44px\] items-center justify-between/);
   assert.match(positions, /grid-cols-\[1\.25fr_\.65fr_[^"'\n]+?\] items-center border-b border-white\/\[0\.06\] px-3 pb-1 pt-0\.5/);
+});
+
+test('desktop workspace is edge-aligned without outer vertical gutters', () => {
+  const desktop = source('src/components/trading-v2/DesktopTerminal.jsx');
+  assert.match(desktop, /acg-terminal acg-desktop-v3 relative flex h-dvh min-h-0 flex-col gap-0 overflow-hidden bg-black px-1 pt-1 pb-0/);
+  assert.match(desktop, /relative grid h-full min-h-0 min-w-0 gap-x-1 gap-y-0 bg-black/);
+  assert.match(desktop, /gridTemplateRows: `minmax\(0, 1fr\) \$\{dockHeight\}px`/);
+});
+
+test('desktop Positions empty state fills remaining dock area and keeps mobile view independent', () => {
+  const positions = source('src/components/trading-v2/PositionsPanel.jsx');
+  assert.match(positions, /acg-desktop-positions acg-dock-v3 flex h-full min-h-0 flex-col/);
+  assert.match(positions, /tab === 'positions' && desktopDense && \([\s\S]*?<div className="flex min-w-\[1120px\] flex-1 flex-col">/);
+  assert.match(positions, /!positions\.length && <div className="grid min-h-\[110px\] flex-1 place-items-center/);
+  assert.match(positions, /: 'mt-3 overflow-visible'/);
 });

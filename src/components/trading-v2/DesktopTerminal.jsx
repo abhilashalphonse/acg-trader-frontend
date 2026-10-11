@@ -916,7 +916,7 @@ export default function DesktopTerminal({
   };
 
   return (
-    <div ref={shellRef} className="acg-terminal acg-desktop-v3 relative flex h-dvh min-h-0 flex-col gap-1 overflow-hidden bg-black p-1 text-[#E6EDF3]">
+    <div ref={shellRef} className="acg-terminal acg-desktop-v3 relative flex h-dvh min-h-0 flex-col gap-0 overflow-hidden bg-black px-1 pt-1 pb-0 text-[#E6EDF3]">
       {notice && <div className="acg-motion-notice absolute right-3 top-[66px] z-[120] flex max-w-[390px] items-center gap-3 rounded-md border border-white/[0.06] bg-[#101010]/95 px-3 py-2.5 text-[10px] font-semibold text-[#E6EDF3] shadow-[0_16px_48px_rgba(0,0,0,.45)]"><span>{notice}</span><button type="button" onClick={() => setNotice('')} className="grid size-6 place-items-center rounded-md text-[#8094a7]"><X size={13}/></button></div>}
 
 
@@ -1100,7 +1100,7 @@ export default function DesktopTerminal({
 
       <div className="min-h-0 flex-1">
         <div
-          className="relative grid h-full min-h-0 min-w-0 gap-x-1 gap-y-1 bg-black transition-[grid-template-columns,grid-template-rows] duration-300 ease-out"
+          className="relative grid h-full min-h-0 min-w-0 gap-x-1 gap-y-0 bg-black transition-[grid-template-columns,grid-template-rows] duration-300 ease-out"
           style={{
             gridTemplateColumns: `minmax(0, 1fr) ${sidebarContentWidth}px ${sidebarRailWidth}px`,
             gridTemplateRows: `minmax(0, 1fr) ${dockHeight}px`,
