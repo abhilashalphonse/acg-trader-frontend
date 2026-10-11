@@ -393,7 +393,7 @@ export default function PositionsPanel({
                         ))}
                       </div>
                     )}
-                    <div className="grid grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-white/[0.06] px-3 py-1.5 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#647586]">
+                    <div className="grid grid-cols-[1.25fr_.65fr_.75fr_.9fr_.9fr_.9fr_.9fr_.9fr_.7fr_170px] items-center border-b border-white/[0.06] px-3 pb-1 pt-0.5 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#647586]">
                       <span>Symbol</span><span>Side</span><span>Size</span><span>Entry</span><span>Current</span><span>S/L</span><span>T/P</span><span className="text-right">P&amp;L</span><span className="text-right">P&amp;L %</span><span className="text-right">Actions</span>
                     </div>
                     {!positions.length && <div className="grid h-[110px] place-items-center text-center text-[10px] text-[#6F8191]"><div><b className="block text-[#A1AFBC]">No open positions</b><span className="mt-1 block">Market executions will appear here</span></div></div>}

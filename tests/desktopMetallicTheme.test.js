@@ -71,3 +71,20 @@ test('desktop chart-black visual refinement leaves execution colors and mobile l
   assert.match(page, /<FrontendSheet desktop type=\{overlay\}/);
   assert.match(page, /<PositionsPanel key=\{\x60positions-/);
 });
+
+test('desktop drawing rail uses symmetrical insets and retains scrolling', () => {
+  const chartArea = source('src/components/trading-v2/ChartArea.jsx');
+  const theme = source('src/components/trading-v2/desktop/DesktopTerminal.theme.css');
+  const desktopRail = chartArea.match(/const toolbarClass = drawingToolbarOverlay[\s\S]*?\n  return \(/)?.[0] || '';
+  assert.equal((desktopRail.match(/acg-desktop-drawing-rail my-2/g) || []).length, 2);
+  assert.match(desktopRail, /acg-desktop-drawing-rail my-2[^']*overflow-y-auto/);
+  assert.match(theme, /\.acg-desktop-v3 \.acg-desktop-drawing-rail::\-webkit-scrollbar/);
+  assert.match(theme, /scrollbar-width: none/);
+  assert.match(desktopRail, /acg-mobile-reference-drawing-rail mx-0\.5 my-1/);
+});
+
+test('desktop positions headers sit close to their tabs without changing the 44px tab bar', () => {
+  const positions = source('src/components/trading-v2/PositionsPanel.jsx');
+  assert.match(positions, /flex h-\[44px\] items-center justify-between/);
+  assert.match(positions, /grid-cols-\[1\.25fr_\.65fr_[^"'\n]+?\] items-center border-b border-white\/\[0\.06\] px-3 pb-1 pt-0\.5/);
+});
