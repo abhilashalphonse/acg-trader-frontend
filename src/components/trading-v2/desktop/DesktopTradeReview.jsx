@@ -168,7 +168,7 @@ export default function DesktopTradeReview({
           </div>
 
           <div className="flex shrink-0 gap-1 overflow-x-auto px-2 pb-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {FILTERS.map(([id, label]) => <button key={id} type="button" onClick={() => setFilter(id)} className={`h-6 shrink-0 rounded border px-2 text-[8px] font-semibold ${filter === id ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#6F8191]'}`}>{label}</button>)}
+            {FILTERS.map(([id, label]) => <button key={id} type="button" onClick={() => setFilter(id)} className={`h-6 shrink-0 rounded border px-2 text-[8px] font-semibold ${filter === id ? 'border-[#55595F] bg-[#25282B] text-[#CCD1D6]' : 'border-white/[0.06] text-[#6F8191]'}`}>{label}</button>)}
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
@@ -181,7 +181,7 @@ export default function DesktopTradeReview({
               const risk = numeric(riskEvent?.plannedRisk);
               const rValue = risk && risk > 0 ? Number(trade.pnl) / risk : null;
               return (
-                <button key={trade.id} type="button" onClick={() => setSelectedId(String(trade.id))} className={`grid w-full grid-cols-[1fr_auto] items-center border-b border-white/[0.06] px-2.5 py-2 text-left ${active ? 'border-l-[3px] border-[#53c7ff] bg-[#081118]' : 'border-l-[3px] border-transparent hover:bg-white/[0.018]'}`}>
+                <button key={trade.id} type="button" onClick={() => setSelectedId(String(trade.id))} className={`grid w-full grid-cols-[1fr_auto] items-center border-b border-white/[0.06] px-2.5 py-2 text-left ${active ? 'border-l border-[#CCD1D6] bg-[#1C1E21]' : 'border-l border-transparent hover:bg-white/[0.018]'}`}>
                   <span className="flex min-w-0 items-center gap-2"><InstrumentAvatar instrument={inst} size={22}/><span className="min-w-0"><span className="flex items-center gap-1.5"><b className="truncate text-[11px] font-semibold text-[#E6EDF3]">{trade.symbol}</b><small className={`text-[8px] font-semibold ${trade.side === 'BUY' ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{directionLabel(trade.side)}</small></span><small className="mt-0.5 block truncate text-[8px] text-[#6F8191]">{Number(trade.volume || 0).toFixed(2)} lots · {rValue == null ? durationText(trade.openedAtIso, trade.closedAtIso) : `${rValue >= 0 ? '+' : ''}${rValue.toFixed(2)}R · ${durationText(trade.openedAtIso, trade.closedAtIso)}`}</small></span></span>
                   <span className="flex items-center gap-1"><b className={`font-mono text-[10px] ${positive ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{money(trade.pnl, trade.pnlCurrency)}</b><ChevronRight size={10} className="text-[#44515D]"/></span>
                 </button>
@@ -227,7 +227,7 @@ export default function DesktopTradeReview({
                 </div>
                 <div className="mt-4 grid grid-cols-[auto_1fr_auto] items-center gap-3">
                   <div><span className="block text-[6px] uppercase text-[#6F8191]">Entry</span><b className="mt-1 block font-mono text-[9px] text-[#E6EDF3]">{formatInstrumentPrice(selected.entry, instrument)}</b></div>
-                  <div className="relative h-px bg-white/[0.12]"><span className="absolute left-0 top-1/2 size-2 -translate-y-1/2 rounded-full bg-[#63caff]"/><span className="absolute right-0 top-1/2 size-2 -translate-y-1/2 rounded-full bg-[#dfe8ef]"/></div>
+                  <div className="relative h-px bg-white/[0.12]"><span className="absolute left-0 top-1/2 size-2 -translate-y-1/2 rounded-full bg-[#CBD0D5]"/><span className="absolute right-0 top-1/2 size-2 -translate-y-1/2 rounded-full bg-[#dfe8ef]"/></div>
                   <div className="text-right"><span className="block text-[6px] uppercase text-[#6F8191]">Exit</span><b className="mt-1 block font-mono text-[9px] text-[#E6EDF3]">{formatInstrumentPrice(selected.closePrice, instrument)}</b></div>
                 </div>
                 <div className="mt-3 rounded border border-white/[0.06] bg-[#07090B] px-3 py-2 text-[6.5px] leading-3 text-[#6F8191]">Historical candle playback is not fabricated here. This view only shows executions recorded by the server; full candle replay can be added once historical candles are wired to the review window.</div>
@@ -235,13 +235,13 @@ export default function DesktopTradeReview({
 
               <div className="mt-4 grid grid-cols-[1fr_260px] gap-3">
                 <div className="rounded-lg border border-white/[0.06] bg-black p-3">
-                  <div className="flex items-center justify-between"><strong className="text-[9px] text-[#E6EDF3]">Review notes</strong><button type="button" onClick={() => onSelectSymbol(selected.symbol)} className="text-[9px] font-semibold text-[#59C7FF]">Open symbol</button></div>
+                  <div className="flex items-center justify-between"><strong className="text-[9px] text-[#E6EDF3]">Review notes</strong><button type="button" onClick={() => onSelectSymbol(selected.symbol)} className="text-[9px] font-semibold text-[#CCD1D6]">Open symbol</button></div>
                   <textarea value={selectedMeta.note || ''} onChange={event => updateMeta({ note: event.target.value })} placeholder="What went well? What would you change?" className="mt-2 min-h-[84px] w-full resize-none rounded border border-white/[0.06] bg-[#07090B] p-3 text-[10px] leading-5 text-[#cbd6df] outline-none placeholder:text-[#44515D]"/>
                 </div>
                 <div className="rounded-lg border border-white/[0.06] bg-black p-3">
-                  <div className="flex items-center gap-1.5"><Tag size={11} className="text-[#59C7FF]"/><strong className="text-[9px] text-[#E6EDF3]">Review tags</strong></div>
+                  <div className="flex items-center gap-1.5"><Tag size={11} className="text-[#CCD1D6]"/><strong className="text-[9px] text-[#E6EDF3]">Review tags</strong></div>
                   <div className="mt-2 text-[6px] font-black uppercase tracking-[0.07em] text-[#6F8191]">Setup</div>
-                  <div className="mt-1 flex flex-wrap gap-1">{['A+', 'Scalp', 'Trend', 'News'].map(tag => { const active = tags.includes(tag); return <button key={tag} type="button" onClick={() => updateMeta({ tags: active ? tags.filter(item => item !== tag) : [...tags, tag] })} className={`rounded border px-2 py-1 text-[8px] font-semibold ${active ? 'border-[#315b72] bg-[#0d1a22] text-[#59C7FF]' : 'border-white/[0.06] text-[#6F8191]'}`}>{tag}</button>; })}</div>
+                  <div className="mt-1 flex flex-wrap gap-1">{['A+', 'Scalp', 'Trend', 'News'].map(tag => { const active = tags.includes(tag); return <button key={tag} type="button" onClick={() => updateMeta({ tags: active ? tags.filter(item => item !== tag) : [...tags, tag] })} className={`rounded border px-2 py-1 text-[8px] font-semibold ${active ? 'border-[#55595F] bg-[#25282B] text-[#CCD1D6]' : 'border-white/[0.06] text-[#6F8191]'}`}>{tag}</button>; })}</div>
                   <div className="mt-2 text-[6px] font-black uppercase tracking-[0.07em] text-[#6F8191]">Behavior</div>
                   <div className="mt-1 flex flex-wrap gap-1">{['FOMO', 'Revenge', 'Overtrade'].map(tag => { const active = tags.includes(tag); return <button key={tag} type="button" onClick={() => updateMeta({ tags: active ? tags.filter(item => item !== tag) : [...tags, tag] })} className={`rounded border px-2 py-1 text-[7px] font-bold ${active ? 'border-[#6d2d37] bg-[#210b10] text-[#FF6F7A]' : 'border-white/[0.06] text-[#6F8191]'}`}>{tag}</button>; })}</div>
                 </div>
@@ -250,7 +250,7 @@ export default function DesktopTradeReview({
               <div className="mt-4 rounded-lg border border-white/[0.06] bg-black p-3">
                 <div className="flex items-center justify-between"><strong className="text-[9px] text-[#E6EDF3]">Position timeline</strong><span className="text-[8px] text-[#6F8191]">{timeline.length} events</span></div>
                 <div className="mt-2">
-                  {!timeline.length ? <div className="py-5 text-center text-[7px] text-[#6F8191]">No execution events were recorded for this position.</div> : timeline.map(event => <div key={event.key} className="grid grid-cols-[72px_60px_1fr] border-t border-white/[0.06] py-2 text-[8px]"><span className="font-mono text-[#6F8191]">{event.time}</span><span className={event.source === 'server' ? 'font-bold text-[#59C7FF]' : 'font-bold text-[#A1AFBC]'}>{event.source === 'server' ? 'SERVER' : 'JOURNAL'}</span><span className="text-[#A1AFBC]">{event.message}</span></div>)}
+                  {!timeline.length ? <div className="py-5 text-center text-[7px] text-[#6F8191]">No execution events were recorded for this position.</div> : timeline.map(event => <div key={event.key} className="grid grid-cols-[72px_60px_1fr] border-t border-white/[0.06] py-2 text-[8px]"><span className="font-mono text-[#6F8191]">{event.time}</span><span className={event.source === 'server' ? 'font-bold text-[#CCD1D6]' : 'font-bold text-[#A1AFBC]'}>{event.source === 'server' ? 'SERVER' : 'JOURNAL'}</span><span className="text-[#A1AFBC]">{event.message}</span></div>)}
                 </div>
               </div>
             </div>
