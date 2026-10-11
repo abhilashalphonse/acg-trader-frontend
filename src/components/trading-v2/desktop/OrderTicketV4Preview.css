@@ -169,3 +169,41 @@
  .v4-topbar { max-width: 540px; }
 }
 @media (prefers-reduced-motion: reduce) { .v4-page * { transition: none!important; } }
+
+/* Market / Pending only — crisp white capsule on chart-black track.
+   Matches the approved reference without altering any other segmented controls. */
+.v4-mainmodes {
+  height: 39px;
+  padding: 3px;
+  gap: 3px;
+  background: #101113;
+  border: 1px solid #292a2d;
+  border-radius: 999px;
+  box-shadow: none;
+}
+.v4-mainmodes .v4-pick {
+  min-width: 0;
+  height: 31px;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 999px;
+  color: #a8a9b0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 12px !important;
+  font-weight: 600;
+  line-height: 1.2;
+  transition: background-color 130ms ease, color 130ms ease;
+}
+.v4-mainmodes .v4-pick:hover:not(.is-on) {
+  color: #f4f4f6;
+  background: #1b1c1f;
+}
+.v4-mainmodes .v4-pick.is-on,
+.v4-mainmodes .v4-pick.is-on:hover {
+  background: #f7f7f8;
+  color: #0b0c0e;
+  border: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .24);
+  font-weight: 700;
+}
