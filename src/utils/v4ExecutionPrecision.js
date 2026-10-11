@@ -75,6 +75,9 @@ export function resolveV4PositionSizing({ mode, amount, plan, account, instrumen
   if (!V4_POSITION_MODES.includes(mode)) return fail('UNSUPPORTED_MODE', 'Unknown position sizing mode.');
   const value = finitePositive(amount);
   if (!value) return fail('INVALID_AMOUNT', 'Enter a positive sizing value.');
+  const bid = finitePositive(instrument?.bid);
+  const ask = finitePositive(instrument?.ask);
+  if (!bid || !ask || ask < bid) return fail('QUOTE_UNAVAILABLE', 'Executable bid/ask is unavailable.');
   const spec = instrumentVolumeSpec(instrument);
   if (!spec) return fail('INSTRUMENT_VOLUME_UNKNOWN', 'Instrument volume limits are unavailable.');
   const ref = orderReference(plan, instrument);
@@ -146,8 +149,18 @@ export function resolveV4PositionSizing({ mode, amount, plan, account, instrumen
     return fail('INVALID_VOLUME', 'No valid instrument volume was calculated.');
   }
 
+  // Align the displayed risk/margin and the actual order's execution price.
+  // Market orders include the instrument's volume-band liquidity spread.
+  // Pending orders use the pending entry (or stop-limit execution limit leg).
+  const marketPrice = ref.plan.pending
+    ? reference
+    : finitePositive(estimateExecutionPrice(instrument, ref.plan.side, lots)?.price);
+  if (!ref.plan.pending && !marketPrice) {
+    return fail('EXECUTION_PRICE_UNAVAILABLE', 'Modeled executable price is unavailable.');
+  }
   const referenceForCalculations = mode.startsWith('risk')
-    ? (sizing?.riskPlan?.entry || sizing?.plan?.entry || reference) : reference;
+    ? (finitePositive(sizing?.riskPlan?.entry) || finitePositive(sizing?.plan?.entry) || marketPrice)
+    : marketPrice;
   const margin = estimateRequiredMargin(referenceForCalculations, lots, instrument, account);
   const openingRequirement = estimateOpeningRequirement(referenceForCalculations, lots, instrument, account);
 
@@ -190,7 +203,7 @@ export function resolveV4PositionSizing({ mode, amount, plan, account, instrumen
     freeAfter: freeMargin - openingRequirement,
     notionalQuote,
     notionalAccount,
-    notionalAccountPercent: notionalAccount != null && equity ? notionalAccount / equity * 100 : null,
+    notionalAccountPercent: notionalAccount != null && finitePositive(account?.balance) ? notionalAccount / Number(account.balance) * 100 : null,
     lossAtStop,
     grossProfitAtTarget,
     actualRiskPercent: Number.isFinite(lossAtStop) && equity ? lossAtStop / equity * 100 : null,
