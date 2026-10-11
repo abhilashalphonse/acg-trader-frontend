@@ -98,7 +98,7 @@ export default function DesktopMultiChart({
               onMouseDown={() => activateCell(index, timeframe, symbol, cellIndicators)}
             >
               {!singleChart && (
-                <div className="flex items-center gap-1.5 border-b border-white/[0.06] bg-[#07090B] px-1.5">
+                <div className="flex items-center gap-1.5 border-b border-white/[0.06] bg-[#09090B] px-1.5">
                   <InstrumentAvatar instrument={instrument} size={18}/>
                   <select
                     value={symbol || ''}
@@ -111,7 +111,7 @@ export default function DesktopMultiChart({
                     className="max-w-[120px] bg-transparent text-[10px] font-semibold text-[#E6EDF3] outline-none"
                     aria-label={`Chart ${index + 1} symbol`}
                   >
-                    {markets.map(item => <option key={item.symbol} value={item.symbol} className="bg-[#0C1013]">{item.displaySymbol || item.symbol}</option>)}
+                    {markets.map(item => <option key={item.symbol} value={item.symbol} className="bg-[#111113]">{item.displaySymbol || item.symbol}</option>)}
                   </select>
                   <select
                     value={timeframe}
@@ -124,7 +124,7 @@ export default function DesktopMultiChart({
                     className="ml-auto bg-transparent font-mono text-[9px] font-semibold text-[#6F8191] outline-none"
                     aria-label={`Chart ${index + 1} timeframe`}
                   >
-                    {TIMEFRAMES.map(tf => <option key={tf} value={tf} className="bg-[#0C1013]">{tf}</option>)}
+                    {TIMEFRAMES.map(tf => <option key={tf} value={tf} className="bg-[#111113]">{tf}</option>)}
                   </select>
                   <span className="rounded bg-white/[0.04] px-1.5 py-0.5 text-[7px] font-bold text-[#6F8191]" title="Indicators on this chart">ƒx {cellIndicators.length}</span>
                   <span className={`size-1.5 rounded-full ${instrument?.live ? 'bg-[#42D7A1]' : instrument?.isStale ? 'bg-[#E7BD58]' : 'bg-[#4a5967]'}`}/>
