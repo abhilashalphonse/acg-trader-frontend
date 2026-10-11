@@ -4,16 +4,23 @@ import { readFileSync } from 'node:fs';
 
 const read = p => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 
-test('unauthenticated V4 preview is an opt-in build-only route', () => {
+test('V4 preview has its own Firebase PR-only HTML and React entry point', () => {
  const main = read('src/main.jsx');
+ const preview = read('src/previewOrderTicketMain.jsx');
+ const html = read('preview-order-ticket.html');
  const pr = read('.github/workflows/firebase-hosting-pull-request.yml');
  const prod = read('.github/workflows/firebase-hosting-live.yml');
- assert.match(main, /import\.meta\.env\.VITE_ACG_V4_DESIGN_PREVIEW === 'true'/);
- assert.match(main, /window\.location\.pathname === '\/preview\/order-ticket'/);
- assert.match(main, /isIsolatedTicketPreview\s*\?\s*<React\.Suspense/);
  assert.match(main, /<SessionGate>/);
- assert.match(pr, /VITE_ACG_V4_DESIGN_PREVIEW: 'true'/);
- assert.doesNotMatch(prod, /VITE_ACG_V4_DESIGN_PREVIEW/);
+ assert.doesNotMatch(main, /OrderTicketV4Preview/);
+ assert.match(preview, /import OrderTicketV4Preview/);
+ assert.match(preview, /createRoot\(document\.getElementById\('root'\)\)/);
+ assert.doesNotMatch(preview, /AuthProvider|SessionGate|TradingProvider|\.\/App\.jsx/);
+ assert.match(html, /ACG Trader V4 Execution Design Preview/);
+ assert.match(html, /\/src\/previewOrderTicketMain\.jsx/);
+ assert.doesNotMatch(html, /Loading ACG Trader/);
+ assert.match(pr, /cp preview-order-ticket\.html index\.html/);
+ assert.match(pr, /grep -q 'ACG Trader V4 Execution Design Preview' dist\/index\.html/);
+ assert.doesNotMatch(prod, /preview-order-ticket|VITE_ACG_V4_DESIGN_PREVIEW/);
 });
 
 test('V4 design studio has no live-data, auth or execution dependencies', () => {
