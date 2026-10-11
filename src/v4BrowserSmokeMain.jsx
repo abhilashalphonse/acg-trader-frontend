@@ -129,6 +129,16 @@ async function run(){
  addTp?.click();
  await sleep(150);
  if(!ticket.querySelector('input[aria-label="Take Profit value"]'))failed.push('Chart TP toggle failed to update ticket');
+ if(chart.querySelector('[title="Add TP"]'))failed.push('Activated TP shortcut stayed on entry row');
+ if(!chart.querySelector('[aria-label="Clear TP"]'))failed.push('Activated TP has no independent removable price line');
+ // Removing the independent line returns its entry shortcut and updates
+ // the same V4 ticket; this is an edit to a draft, not an execution.
+ chart.querySelector('[aria-label="Clear TP"]')?.click();
+ await sleep(150);
+ if(!chart.querySelector('[title="Add TP"]'))failed.push('Removed TP did not return to entry row');
+ if(ticket.querySelector('input[aria-label="Take Profit value"]'))failed.push('Removed TP remained active in ticket');
+ if(chart.querySelector('[title="Add SL"]'))failed.push('Active risk SL remained on entry row');
+ if(!chart.querySelector('[aria-label="Clear SL"]'))failed.push('Active risk SL line not removable');
  const slDrag=chart.querySelector('[aria-label="Drag SL"]');
  if(!slDrag)failed.push('Chart SL drag handle missing');
  else {
