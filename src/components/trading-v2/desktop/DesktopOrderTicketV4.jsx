@@ -49,6 +49,32 @@ function EditNumber({ value, label, onCommit, digits=4 }) {
     : <button className="v4-hero-value" type="button" aria-label={'Edit '+label} onClick={open}>{fmt(value,digits===2?2:digits)}</button>}
   </div>;
 }
+function PendingPriceInput({label,price,instrument,disabled,onCommit,onNotice}) {
+  const [editing,setEditing]=useState(false);
+  const [draft,setDraft]=useState('');
+  const cancel=useRef(false);
+  const rendered=formatInstrumentPrice(price,instrument,'');
+  const begin=()=>{cancel.current=false;setDraft(rendered);setEditing(true);};
+  const finish=()=>{
+    if (!cancel.current) {
+      const requested=Number(draft);
+      if (draft.trim()==='' || !Number.isFinite(requested) || requested<=0) {
+        onNotice('Enter a valid positive pending price.');
+      } else if (String(rendered)!==draft.trim()) {
+        // Patch is normalized once by the existing trade-plan adapter.
+        onCommit(requested);
+      }
+    }
+    setEditing(false);
+  };
+  return <input type="text" inputMode="decimal" aria-label={label} disabled={disabled}
+    value={editing?draft:rendered}
+    onFocus={begin} onChange={e=>setDraft(e.target.value)} onBlur={finish}
+    onKeyDown={e=>{
+      if(e.key==='Enter')e.currentTarget.blur();
+      if(e.key==='Escape'){cancel.current=true;e.currentTarget.blur();}
+    }}/>;
+}
 function ProtectionCard({field,active,onToggle,unit,onUnit,plan,market,account,lots,sizingMode,onPrice,onNotice}) {
   const title = field==='sl'?'Stop Loss':'Take Profit';
   const rawPrice=positive(plan?.[field]);
@@ -351,12 +377,12 @@ export default function DesktopOrderTicketV4({
         <Capsule label="Pending type" options={[[ 'limit','Limit'],['stop','Stop'],['stop-limit','Stop Limit']]}
           active={orderType} onChange={setPendingType}/>
         <label className="v4-inline-setting">Entry price
-          <input type="number" aria-label="Pending entry price" disabled={!tradePlan}
-            value={effective?.entry??''} onChange={e=>{if(e.target.value!=='')onTradePlanChange({entry:Number(e.target.value),stage:'ready'});}}/>
+          <PendingPriceInput label="Pending entry price" price={effective?.entry} instrument={market} disabled={!tradePlan}
+            onCommit={entry=>onTradePlanChange({entry,stage:'ready'})} onNotice={notice}/>
         </label>
         {orderType==='stop-limit'&&<label className="v4-inline-setting">Limit price
-          <input type="number" aria-label="Stop-limit execution price" disabled={!tradePlan}
-            value={effective?.limitPrice??''} onChange={e=>{if(e.target.value!=='')onTradePlanChange({limitPrice:Number(e.target.value),stage:'ready'});}}/>
+          <PendingPriceInput label="Stop-limit execution price" price={effective?.limitPrice} instrument={market} disabled={!tradePlan}
+            onCommit={limitPrice=>onTradePlanChange({limitPrice,stage:'ready'})} onNotice={notice}/>
         </label>}
       </div>}
       <div className="v4-position v4-block">
