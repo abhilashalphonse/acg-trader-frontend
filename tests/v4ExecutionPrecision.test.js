@@ -1,0 +1,169 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { resolveV4PositionSizing, V4_POSITION_MODES } from '../src/utils/v4ExecutionPrecision.js';
+
+const instrument = Object.freeze({
+  symbol: 'BTCUSD',
+  assetClass: 'CRYPTO',
+  bid: 83001.02, ask: 83020.98,
+  tickSize: 0.01,
+  pipSize: 0.01,
+  volumeStep: 0.01,
+  minVolume: 0.01, maxVolume: 10,
+  contractSize: 1, defaultLeverage: 10,
+  pnlCurrency: 'USD', quoteCurrency: 'USD', marginCurrency: 'USD',
+  commissionPerLotPerSide: 0,
+});
+const account = Object.freeze({currency: 'USD', balance: 100000, equity: 100000, freeMargin: 20000, leverage: 10});
+const plan = Object.freeze({symbol:'BTCUSD',side:'buy',pending:false,orderType:'market',entry:83020.98,sl:82220.98,tp:84620.98});
+const run = (mode, amount, options={}) => resolveV4PositionSizing({mode,amount,plan,account,instrument,...options});
+const near = (actual,expected,tolerance=0.00001) => assert.ok(Math.abs(actual-expected)<=tolerance,expected+' ≈ '+actual);
+
+test('V4 exposes exactly the four approved sizing input modes', () => {
+ assert.deepEqual(V4_POSITION_MODES, ['lots','margin','riskPercent','riskUSD']);
+});
+
+test('Lots mode maps into the existing lots contract and reports quote-currency exposure', () => {
+ const result = run('lots',0.1);
+ assert.equal(result.canExecute,true);
+ assert.equal(result.backendSizingMode,'lots');
+ assert.equal(result.manualLots,0.1);
+ assert.equal(result.riskPercent,null);
+ near(result.referencePrice,83020.98);
+ near(result.margin,830.2098);
+ near(result.openingRequirement,830.2098);
+ near(result.freeAfter,19169.7902);
+ near(result.notionalQuote,8302.098);
+ near(result.notionalAccountPercent,8.302098);
+ near(result.lossAtStop,80);
+ near(result.grossProfitAtTarget,160);
+});
+
+test('Margin $ converts into allowed lots without exceeding the margin budget', () => {
+ const result = run('margin',830.21);
+ assert.equal(result.canExecute,true);
+ assert.equal(result.backendSizingMode,'lots');
+ assert.equal(result.lots,0.1);
+ assert.ok(result.margin<=830.21);
+ assert.ok(result.openingRequirement>=result.margin);
+});
+
+test('Margin $ fails rather than silently selecting min lots above the budget', () => {
+ const result=run('margin',1);
+ assert.equal(result.canExecute,false);
+ assert.equal(result.code,'MARGIN_BELOW_MIN_VOLUME');
+});
+
+test('Margin mode takes actual volume bands into account instead of simple notional division', () => {
+ const withBand={...instrument,spreadProfile:{volumeBands:[{upTo:0.05,extraPoints:0},{upTo:null,extraPoints:200000}]}};
+ const result=run('margin',830.21,{instrument:withBand});
+ assert.equal(result.canExecute,true);
+ assert.ok(result.lots<0.1);
+ assert.ok(result.margin<=830.21+1e-8);
+});
+
+test('Risk % uses the authoritative fee-inclusive risk-sizing engine', () => {
+ const result = run('riskPercent',0.08);
+ assert.equal(result.canExecute,true);
+ assert.equal(result.backendSizingMode,'risk');
+ assert.equal(result.riskPercent,0.08);
+ assert.equal(result.manualLots,null);
+ near(result.lots,0.1);
+ near(result.lossAtStop,80);
+ near(result.actualRiskPercent,0.08);
+});
+
+test('Risk USD converts into risk percentage from live equity (not balance)', () => {
+ const result=run('riskUSD',80);
+ assert.equal(result.canExecute,true);
+ near(result.riskPercent,0.08);
+ near(result.lots,0.1);
+ const change=run('riskUSD',80,{account:{...account,equity:50000}});
+ near(change.riskPercent,0.16);
+});
+
+test('Risk calculations include entry and exit commission; never round volume up', () => {
+ const withFees={...instrument,commissionPerLotPerSide:5};
+ const result=run('riskUSD',80,{instrument:withFees});
+ assert.equal(result.canExecute,true);
+ assert.equal(result.lots,0.09);
+ assert.ok(result.lossAtStop<=80);
+ near(result.lossAtStop,72.9);
+ assert.ok(result.openingRequirement>result.margin);
+});
+
+test('Risk modes require a stop loss and valid side geometry', () => {
+ const missing=run('riskUSD',50,{plan:{...plan,sl:null}});
+ assert.equal(missing.canExecute,false);
+ assert.equal(missing.code,'STOP_REQUIRED');
+ const invalid=run('riskPercent',0.5,{plan:{...plan,sl:84000}});
+ assert.equal(invalid.canExecute,false);
+ assert.equal(invalid.code,'INVALID_STOP_GEOMETRY');
+});
+
+test('Risk sizing fails safely for cross-currency PnL rather than applying USD math', () => {
+ const result=run('riskUSD',100,{instrument:{...instrument,pnlCurrency:'JPY'}});
+ assert.equal(result.canExecute,false);
+ assert.equal(result.code,'RISK_CONVERSION_UNKNOWN');
+});
+
+test('Margin input fails safely without an account-currency margin conversion', () => {
+ const result=run('margin',200,{instrument:{...instrument,marginCurrency:'INR'}});
+ assert.equal(result.canExecute,false);
+ assert.equal(result.code,'MARGIN_CONVERSION_UNKNOWN');
+});
+
+test('Unverified account free margin blocks execution even when sizes calculate', () => {
+ const result=run('lots',0.1,{account:{...account,freeMargin:null}});
+ assert.equal(result.canExecute,false);
+ assert.equal(result.code,'OPENING_REQUIREMENT_UNKNOWN');
+});
+
+test('Insufficient free margin blocks regardless of sizing mode', () => {
+ const result=run('lots',0.1,{account:{...account,freeMargin:100}});
+ assert.equal(result.canExecute,false);
+ assert.equal(result.code,'INSUFFICIENT_MARGIN');
+});
+
+test('Stop Limit uses executable limit leg for risk and margin, not trigger leg', () => {
+ const pending={...plan,pending:true,orderType:'stop-limit',entry:84000,limitPrice:84100,sl:83300,tp:85700};
+ const result=run('lots',0.1,{plan:pending});
+ assert.equal(result.canExecute,true);
+ near(result.referencePrice,84100);
+ near(result.lossAtStop,80);
+ near(result.grossProfitAtTarget,160);
+});
+
+test('SELL risk geometry and projections are not long-only', () => {
+ const result=run('riskPercent',0.08,{plan:{...plan,side:'sell',sl:83801.02,tp:81401.02}});
+ assert.equal(result.canExecute,true);
+ near(result.lots,0.1);
+ near(result.actualRiskPercent,0.08);
+});
+
+test('Volume below minimum, beyond maximum or without limits never silently executes', () => {
+ for(const n of [0.001,100]) {
+  const r=run('lots',n);
+  assert.equal(r.canExecute,false);
+  assert.equal(r.code,'VOLUME_OUT_OF_RANGE');
+ }
+ const r=run('lots',0.1,{instrument:{...instrument,maxVolume:null}});
+ assert.equal(r.canExecute,false);
+ assert.equal(r.code,'INSTRUMENT_VOLUME_UNKNOWN');
+});
+
+test('Bad plan or non-positive sizing cannot be represented as executable', () => {
+ assert.equal(run('lots',0).code,'INVALID_AMOUNT');
+ assert.equal(run('margin',5,{plan:{...plan,side:null}}).code,'ENTRY_UNAVAILABLE');
+ assert.equal(run('riskUSD',20,{plan:{...plan,side:null}}).code,'ENTRY_UNAVAILABLE');
+ assert.equal(run('unknown',5).code,'UNSUPPORTED_MODE');
+});
+
+test('Risk below min or above maximum remains blocked by existing engine limits', () => {
+ const tiny=run('riskUSD',0.1);
+ assert.equal(tiny.canExecute,false);
+ assert.equal(tiny.code,'MIN_VOLUME');
+ const huge=run('riskUSD',100000);
+ assert.equal(huge.canExecute,false);
+ assert.equal(huge.code,'MAX_VOLUME');
+});
