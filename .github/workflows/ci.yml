@@ -30,10 +30,3 @@ jobs:
       - name: Browser V4 330px and double-click smoke
         if: ${{ github.event_name == 'pull_request' }}
         run: node scripts/v4-browser-smoke.mjs
-      - name: Preserve same-viewport V4 before/after screenshots
-        if: ${{ github.event_name == 'pull_request' && github.head_ref == 'design/v4-compact-density-audit' && always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: v4-density-before-after
-          path: outputs/v4-density/*.png
-          if-no-files-found: warn
