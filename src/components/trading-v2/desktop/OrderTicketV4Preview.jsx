@@ -1,179 +1,347 @@
-import React, { useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, Info, Minus, Plus, Star, Check, SlidersHorizontal, Crosshair, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bitcoin, ChevronDown, ChevronUp, CheckCircle2, Circle, Ellipsis, X, Minus, Plus, ArrowRight, Info, RotateCcw } from 'lucide-react';
 import './OrderTicketV4Preview.css';
 
-// This component is an isolated, synthetic-data design preview. It deliberately
-// imports no auth, market-data, orders, account APIs, sockets, or trade handlers.
-const QUOTES = Object.freeze({ bid: 83001.02, ask: 83020.98, symbol: 'BTC/USD', tick: 0.01, minLots: 0.01, step: 0.01, leverage: 50, contractSize: 1 });
-const DEMO_ACCOUNT = Object.freeze({ balance: 10000, equity: 10000, currency: 'USD', commissionPerLot: 0 });
-const RR_PRESETS = [1, 1.5, 2, 3];
-const LOT_PRESETS = [0.01, 0.05, 0.1, 0.25, 0.5];
-const RISK_PRESETS = [0.25, 0.5, 1, 2];
-const isFinitePositive = n => Number.isFinite(Number(n)) && Number(n) > 0;
-const num = (n, places = 2) => Number.isFinite(n) ? Number(n).toLocaleString('en-US', { minimumFractionDigits: places, maximumFractionDigits: places }) : '—';
-const usd = n => Number.isFinite(n) ? (n < 0 ? '−' : '') + '$' + num(Math.abs(n)) : '—';
-const bounded = (n, min, max) => Math.min(max, Math.max(min, n));
-const toLots = n => Number.isFinite(n) && n > 0 ? Math.max(0, Math.floor((n + 1e-9) / QUOTES.step) * QUOTES.step) : 0;
+// Isolated, synthetic-data design preview; no auth, feeds, orders, sockets or APIs.
+const DEMO = Object.freeze({
+  symbol: 'BTC/USD', name: 'Bitcoin / US Dollar',
+  bid: 83001.02, ask: 83020.98, tick: 1, contractSize: 1,
+  lotStep: 0.01, minLots: 0.01, leverage: 10,
+  balance: 100000, equity: 100000, commissionPerLot: 0,
+});
+const MODES = [
+  { id: 'lots', label: 'Lots', min: 0.01, max: 1, step: 0.01, marks: ['0.01', '0.25', '0.50', '0.75', '1.00'] },
+  { id: 'margin', label: 'Margin $', min: 0, max: 10000, step: 50, marks: ['$0', '$2.5k', '$5k', '$7.5k', '$10k'] },
+  { id: 'riskPercent', label: 'Risk %', min: 0, max: 2, step: 0.01, marks: ['0%', '0.5%', '1%', '1.5%', '2%'] },
+  { id: 'riskUSD', label: 'Risk USD', min: 0, max: 500, step: 10, marks: ['$0', '$125', '$250', '$375', '$500'] },
+];
+const EXIT_UNITS = [
+  { id: 'price', label: 'Price' },
+  { id: 'ticks', label: 'Ticks' },
+  { id: 'percent', label: '% Price' },
+  { id: 'usd', label: 'USD' },
+  { id: 'balance', label: '% Balance' },
+];
+const fmt = (n, d = 2) => Number.isFinite(n) ? Number(n).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }) : '—';
+const money = n => Number.isFinite(n) ? '$' + fmt(n) : '—';
+const floorLots = n => Number.isFinite(n) && n >= DEMO.minLots
+  ? Math.floor((n + 1e-9) / DEMO.lotStep) * DEMO.lotStep : 0;
+const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+const isRiskSizing = mode => mode === 'riskPercent' || mode === 'riskUSD';
+const riskSide = (side, kind) => side === 'buy'
+  ? (kind === 'sl' ? -1 : 1) : (kind === 'sl' ? 1 : -1);
 
-function Tip({ text }) { return <span className="v4-tip" title={text} aria-label={text}><Info size={12}/></span>; }
-function Pick({ active, onClick, children, disabled, title }) {
-  return <button type="button" className={'v4-pick' + (active ? ' is-on' : '')} onClick={onClick} disabled={disabled} title={title} aria-pressed={active}>{children}</button>;
-}
-function Stat({ label, value, detail }) {
-  return <div className="v4-stat"><div className="v4-label">{label}</div><strong className="v4-stat-value">{value}</strong>{detail ? <small>{detail}</small> : null}</div>;
-}
-function NumericInput({ value, onChange, step = 1, min = 0, max = Infinity, label, suffix }) {
-  const valueNumber = Number(value);
-  const applyDelta = delta => { const next = bounded((Number.isFinite(valueNumber) ? valueNumber : 0) + delta, min, max); onChange(Number(next.toFixed(8))); };
-  return <div className="v4-number">
-    <button type="button" aria-label={'Decrease ' + label} onClick={() => applyDelta(-step)}><Minus size={14}/></button>
-    <input aria-label={label} type="number" min={min} max={Number.isFinite(max) ? max : undefined} step="any" value={Number.isFinite(value) ? value : ''} onChange={e => { if (e.target.value === '') { onChange(NaN); return; } onChange(Number(e.target.value)); }} />
-    {suffix && <span className="v4-number-unit">{suffix}</span>}
-    <button type="button" aria-label={'Increase ' + label} onClick={() => applyDelta(step)}><Plus size={14}/></button>
+function Capsule({ options, value, onChange, className = '', ariaLabel }) {
+  return <div className={'v4-capsule ' + className} role="group" aria-label={ariaLabel}>
+    {options.map(o => <button key={o.id} type="button" className={'v4-capsule-button' + (o.id === value ? ' selected' : '')}
+      aria-pressed={o.id === value} onClick={() => onChange(o.id)}>{o.label}</button>)}
   </div>;
 }
-function Exit({ type, on, toggle, price, setPrice, entry, side, lots, riskMode }) {
-  const isStop = type === 'sl';
-  const distance = Number.isFinite(price) ? Math.abs(price - entry) : NaN;
-  const outcome = on && Number.isFinite(distance) ? distance * lots * QUOTES.contractSize : NaN;
-  const [unit, setUnit] = useState('ticks');
-  const distanceTicks = Number.isFinite(distance) ? Math.round(distance / QUOTES.tick) : NaN;
-  const moveDistance = next => {
-    if (!isFinitePositive(next)) return;
-    const d = Number(next) * (unit === 'ticks' ? QUOTES.tick : 1);
-    setPrice(Number((entry + (isStop ? (side === 'buy' ? -d : d) : (side === 'buy' ? d : -d))).toFixed(2)));
+function CloseableNumber({ value, onCommit, label, maxChars = 12 }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const start = () => { setDraft(String(Number.isFinite(value) ? Number(value.toFixed(4)) : '')); setEditing(true); };
+  const finish = () => {
+    if (draft.trim() !== '' && Number.isFinite(Number(draft)) && Number(draft) >= 0) onCommit(Number(draft));
+    setEditing(false);
   };
-  const meaningful = isStop ? 'Projected loss at stop (not guaranteed)' : 'Projected profit at target (not guaranteed)';
-  return <div className={'v4-exit' + (on ? ' is-enabled' : '')}>
-    <div className="v4-exit-top"><button className={'v4-switch' + (on ? ' is-on' : '')} type="button" role="switch" aria-checked={on} aria-label={isStop ? 'Enable stop loss' : 'Enable take profit'} onClick={toggle}><span/></button><strong>{isStop ? 'Stop Loss' : 'Take Profit'}</strong><Tip text={meaningful}/></div>
-    <label className="v4-field-label">Price</label>
-    <NumericInput value={price} onChange={setPrice} step={5} min={1} label={isStop ? 'Stop loss price' : 'Take profit price'} />
-    <label className="v4-field-label">Distance</label>
-    <div className="v4-distance">
-      <input aria-label={isStop ? 'Stop loss distance' : 'Take profit distance'} type="number" min="0" step="any" disabled={!on} value={on && Number.isFinite(distance) ? (unit === 'ticks' ? distanceTicks : Number(distance.toFixed(2))) : ''} onChange={e => moveDistance(Number(e.target.value))}/>
-      <select aria-label={isStop ? 'Stop loss distance unit' : 'Take profit distance unit'} value={unit} onChange={e => setUnit(e.target.value)}><option value="ticks">Ticks</option><option value="price">Price Δ</option></select>
-    </div>
-    <div className="v4-projection"><span>{isStop ? 'Est. loss' : 'Est. profit'}</span><strong title={meaningful}>{on ? usd(isStop ? -outcome : outcome) : '—'}</strong></div>
-    <div className="v4-projection v4-mini"><span>Account impact</span><span>{on && Number.isFinite(outcome) ? num(outcome / DEMO_ACCOUNT.equity * 100) + '%' : '—'}</span></div>
-    {riskMode && isStop && !on && <div className="v4-warning-inline">Enable SL to calculate risk size</div>}
+  return <div className="v4-hero-input">
+    {editing
+      ? <input aria-label={label} autoFocus inputMode="decimal" type="text" value={draft}
+        onChange={e => setDraft(e.target.value)} onBlur={finish} onKeyDown={e => {
+          if (e.key === 'Enter') e.currentTarget.blur();
+          if (e.key === 'Escape') { setDraft(''); setEditing(false); }
+        }} />
+      : <button type="button" aria-label={'Edit ' + label} title="Click to edit" onClick={start} className="v4-hero-value"
+        data-maxchars={maxChars}>{Number.isFinite(value) ? fmt(value) : '—'}</button>}
   </div>;
 }
-function Ticket({ initialMode = 'market', compact = false, label }) {
+function ExitEditor({ kind, enabled, onToggle, unit, onUnit, price, entry, lots, onPrice, side, financialInputLocked }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const label = kind === 'sl' ? 'Stop Loss' : 'Take Profit';
+  const d = Math.abs(entry - price);
+  const valid = enabled && Number.isFinite(price) && price > 0 && (price - entry) * riskSide(side, kind) > 0;
+  const financial = Number.isFinite(lots) && lots >= DEMO.minLots ? d * lots * DEMO.contractSize : NaN;
+  const value = unit === 'price' ? price : unit === 'ticks' ? d / DEMO.tick
+    : unit === 'percent' ? d / entry * 100
+    : unit === 'usd' ? financial : financial / DEMO.equity * 100;
+  const labelFor = u => u === 'usd' ? (kind === 'sl' ? 'Risk USD' : 'Profit USD')
+    : u === 'balance' ? (kind === 'sl' ? 'Risk % Bal.' : 'Profit % Bal.')
+      : EXIT_UNITS.find(x => x.id === u)?.label || u;
+  const convert = raw => {
+    const n = Number(raw);
+    if (raw.trim() === '' || !Number.isFinite(n) || n < 0) return;
+    if (financialInputLocked && kind === 'sl' && (unit === 'usd' || unit === 'balance')) return;
+    const distance = unit === 'ticks' ? n * DEMO.tick
+      : unit === 'percent' ? n * entry / 100
+      : unit === 'usd' ? n / (lots * DEMO.contractSize)
+      : unit === 'balance' ? n * DEMO.equity / (100 * lots * DEMO.contractSize) : 0;
+    const newPrice = unit === 'price' ? n : entry + riskSide(side, kind) * distance;
+    if (Number.isFinite(newPrice) && newPrice > 0) onPrice(Number(newPrice.toFixed(2)));
+  };
+  const shown = Number.isFinite(value) ? String(Number(value.toFixed(unit === 'ticks' ? 0 : (unit === 'percent' || unit === 'balance') ? 4 : 2))) : '';
+  return <div className={'v4-exit-card' + (enabled ? '' : ' is-disabled')}>
+    <div className="v4-exit-heading">
+      <strong>{label}</strong>
+      <button type="button" className="v4-exit-toggle" onClick={onToggle} aria-label={(enabled ? 'Disable ' : 'Enable ') + label}
+        aria-pressed={enabled}>
+        {enabled ? <CheckCircle2 size={20} fill="#F2F2F4" color="#F2F2F4" className="v4-check-on" /> : <Circle size={20} color="#898990"/>}
+        <span>{enabled ? 'Enabled' : 'Disabled'}</span>
+      </button>
+    </div>
+    {enabled && <>
+      <div className="v4-exit-controls">
+        <input type="text" inputMode="decimal" aria-label={label + ' value'} value={editing ? draft : shown}
+          onFocus={() => { setDraft(shown); setEditing(true); }}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={() => { if (editing) convert(draft); setEditing(false); }}
+          onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { setEditing(false); e.currentTarget.blur(); } }}
+          disabled={financialInputLocked && kind === 'sl' && (unit === 'usd' || unit === 'balance')}
+        />
+        <div className="v4-select-wrap">
+          <select aria-label={label + ' input unit'} value={unit} onChange={e => { onUnit(e.target.value); setEditing(false); }}>
+            {EXIT_UNITS.map(o => <option key={o.id} value={o.id}
+              disabled={kind === 'sl' && financialInputLocked && (o.id === 'usd' || o.id === 'balance')}>
+              {labelFor(o.id)}
+            </option>)}
+          </select>
+          <ChevronDown size={15}/>
+        </div>
+      </div>
+      <div className="v4-exit-result">
+        <span>Price {fmt(price)}</span>
+        <strong>{valid ? money(financial) + ' · ' + fmt(financial / DEMO.equity * 100) + '%' : '—'}</strong>
+      </div>
+      {!valid && <div className="v4-validation">Set a valid {label.toLowerCase()} on the {kind === 'sl' ? 'loss' : 'profit'} side.</div>}
+    </>}
+  </div>;
+}
+function Ticket({ initialMode = 'market', compact = false }) {
   const [mode, setMode] = useState(initialMode);
+  const [pendingType, setPendingType] = useState('limit');
+  const [pendingEntry, setPendingEntry] = useState(82950);
+  const [stopLimitPrice, setStopLimitPrice] = useState(82945);
   const [side, setSide] = useState('buy');
-  const [orderType, setOrderType] = useState('limit');
-  const [sizing, setSizing] = useState('lots');
-  const [lotsInput, setLotsInput] = useState(0.12);
-  const [riskUSD, setRiskUSD] = useState(100);
-  const [riskPercent, setRiskPercent] = useState(1);
-  const [entryPrice, setEntryPrice] = useState(83150);
-  const [slOn, setSlOn] = useState(true);
-  const [tpOn, setTpOn] = useState(true);
-  const [stopPrice, setStopPrice] = useState(82220.98);
+  const [sizeMode, setSizeMode] = useState('lots');
+  const [lotTarget, setLotTarget] = useState(0.10);
+  const [marginTarget, setMarginTarget] = useState(830.21);
+  const [riskPercentTarget, setRiskPercentTarget] = useState(0.08);
+  const [riskUSDTarget, setRiskUSDTarget] = useState(80);
+  const [slEnabled, setSlEnabled] = useState(true);
+  const [tpEnabled, setTpEnabled] = useState(true);
+  const [slPrice, setSlPrice] = useState(82220.98);
   const [tpPrice, setTpPrice] = useState(84620.98);
-  const [advanced, setAdvanced] = useState(true);
+  const [slUnit, setSlUnit] = useState('ticks');
+  const [tpUnit, setTpUnit] = useState('ticks');
+  const [advanced, setAdvanced] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [closed, setClosed] = useState(false);
   const [expiry, setExpiry] = useState('GTC');
   const [expiryDate, setExpiryDate] = useState('');
-  const [limitPrice, setLimitPrice] = useState(83145);
-  const [toast, setToast] = useState('');
-  const entry = mode === 'pending' ? entryPrice : (side === 'buy' ? QUOTES.ask : QUOTES.bid);
-  const slDistance = Number.isFinite(stopPrice) ? Math.abs(entry - stopPrice) : NaN;
-  const tpDistance = Number.isFinite(tpPrice) ? Math.abs(tpPrice - entry) : NaN;
-  const targetRisk = sizing === 'usd' ? riskUSD : DEMO_ACCOUNT.equity * riskPercent / 100;
-  const derivedLots = slOn && isFinitePositive(slDistance) && isFinitePositive(targetRisk) ? toLots(targetRisk / (slDistance * QUOTES.contractSize)) : NaN;
-  const lots = sizing === 'lots' ? lotsInput : derivedLots;
-  const validLots = isFinitePositive(lots) && lots >= QUOTES.minLots;
-  const spread = QUOTES.ask - QUOTES.bid;
-  const referencePrice = mode === 'pending' && orderType === 'stop-limit' ? limitPrice : entry;
-  const notional = validLots && isFinitePositive(referencePrice) ? lots * referencePrice * QUOTES.contractSize : NaN;
-  const margin = Number.isFinite(notional) ? notional / QUOTES.leverage : NaN;
-  const freeAfter = Number.isFinite(margin) ? DEMO_ACCOUNT.equity - margin : NaN;
-  const spreadCost = validLots ? spread * lots * QUOTES.contractSize : NaN;
-  const estimatedCommission = validLots ? lots * DEMO_ACCOUNT.commissionPerLot : NaN;
-  const stopLoss = slOn && validLots && Number.isFinite(slDistance) ? slDistance * lots * QUOTES.contractSize : NaN;
-  const reward = tpOn && validLots && Number.isFinite(tpDistance) ? tpDistance * lots * QUOTES.contractSize : NaN;
-  const ratio = slOn && tpOn && isFinitePositive(slDistance) ? tpDistance / slDistance : NaN;
-  const stopDirectionOkay = side === 'buy' ? stopPrice < entry : stopPrice > entry;
-  const tpDirectionOkay = side === 'buy' ? tpPrice > entry : tpPrice < entry;
-  const reasons = [
-    !validLots && 'Select a valid position size',
-    sizing !== 'lots' && !slOn && 'Stop Loss required to calculate risk-based size',
-    slOn && !stopDirectionOkay && 'Stop Loss must be on the loss side of entry',
-    tpOn && !tpDirectionOkay && 'Take Profit must be on the profit side of entry',
-    Number.isFinite(freeAfter) && freeAfter < 0 && 'Insufficient demo margin',
-    mode === 'pending' && orderType === 'stop-limit' && !isFinitePositive(limitPrice) && 'Enter a valid stop-limit price',
-    mode === 'pending' && expiry === 'SPECIFIED' && !expiryDate && 'Select an expiry date/time',
+  const [notice, setNotice] = useState('');
+  const entry = mode === 'market' ? (side === 'buy' ? DEMO.ask : DEMO.bid) : pendingEntry;
+  const slDistance = slEnabled && (slPrice - entry) * riskSide(side, 'sl') > 0 ? Math.abs(entry - slPrice) : NaN;
+  const tpDistance = tpEnabled && (tpPrice - entry) * riskSide(side, 'tp') > 0 ? Math.abs(tpPrice - entry) : NaN;
+  const lots = floorLots(sizeMode === 'lots' ? lotTarget
+    : sizeMode === 'margin' ? marginTarget * DEMO.leverage / (entry * DEMO.contractSize)
+      : Number.isFinite(slDistance) && slDistance > 0
+        ? (sizeMode === 'riskPercent' ? DEMO.equity * riskPercentTarget / 100 : riskUSDTarget)
+          / (slDistance * DEMO.contractSize) : NaN);
+  const validLots = lots >= DEMO.minLots;
+  const exposure = validLots ? lots * entry * DEMO.contractSize : NaN;
+  const margin = Number.isFinite(exposure) ? exposure / DEMO.leverage : NaN;
+  const freeAfter = Number.isFinite(margin) ? DEMO.equity - margin : NaN;
+  const risk = slEnabled && validLots && Number.isFinite(slDistance) ? lots * slDistance * DEMO.contractSize : NaN;
+  const reward = tpEnabled && validLots && Number.isFinite(tpDistance) ? lots * tpDistance * DEMO.contractSize : NaN;
+  const rr = Number.isFinite(risk) && risk > 0 && Number.isFinite(reward) ? reward / risk : NaN;
+  const value = sizeMode === 'lots' ? lotTarget : sizeMode === 'margin' ? marginTarget
+    : sizeMode === 'riskPercent' ? riskPercentTarget : riskUSDTarget;
+  const conf = MODES.find(x => x.id === sizeMode);
+  const setValue = n => {
+    if (!Number.isFinite(n) || n < 0) return;
+    if (sizeMode === 'lots') setLotTarget(floorLots(clamp(n, DEMO.minLots, 100)) || DEMO.minLots);
+    else if (sizeMode === 'margin') setMarginTarget(n);
+    else if (sizeMode === 'riskPercent') setRiskPercentTarget(n);
+    else setRiskUSDTarget(n);
+  };
+  const selectMode = m => {
+    if (isRiskSizing(m) && !Number.isFinite(slDistance)) {
+      setNotice('Set a valid Stop Loss before selecting a risk-based size.');
+      return;
+    }
+    // Convert the CURRENT position before selecting the new input anchor.
+    if (m === 'lots') setLotTarget(lots || DEMO.minLots);
+    if (m === 'margin') setMarginTarget(Number.isFinite(margin) ? margin : 0);
+    if (m === 'riskPercent') setRiskPercentTarget(Number.isFinite(risk) ? risk / DEMO.equity * 100 : 0);
+    if (m === 'riskUSD') setRiskUSDTarget(Number.isFinite(risk) ? risk : 0);
+    if (isRiskSizing(m) && (slUnit === 'usd' || slUnit === 'balance')) setSlUnit('ticks');
+    setSizeMode(m);
+    setNotice('');
+  };
+  const setExitUnit = (kind, u) => {
+    if (kind === 'sl' && isRiskSizing(sizeMode) && (u === 'usd' || u === 'balance')) {
+      setNotice('Use Price, Ticks or % Price for SL when position volume is risk-based.');
+      return;
+    }
+    kind === 'sl' ? setSlUnit(u) : setTpUnit(u);
+    setNotice('');
+  };
+  const selectSide = newSide => {
+    const newEntry = mode === 'market' ? (newSide === 'buy' ? DEMO.ask : DEMO.bid) : pendingEntry;
+    const distSL = Math.abs(slPrice - entry), distTP = Math.abs(tpPrice - entry);
+    setSlPrice(Number((newEntry + riskSide(newSide, 'sl') * distSL).toFixed(2)));
+    setTpPrice(Number((newEntry + riskSide(newSide, 'tp') * distTP).toFixed(2)));
+    setSide(newSide);
+    setNotice('Preview direction changed to ' + newSide.toUpperCase() + '. No order was sent.');
+  };
+  const changeOrderMode = newMode => {
+    const newEntry = newMode === 'market' ? (side === 'buy' ? DEMO.ask : DEMO.bid) : pendingEntry;
+    const dSL = Math.abs(slPrice - entry), dTP = Math.abs(tpPrice - entry);
+    setSlPrice(Number((newEntry + riskSide(side, 'sl') * dSL).toFixed(2)));
+    setTpPrice(Number((newEntry + riskSide(side, 'tp') * dTP).toFixed(2)));
+    setMode(newMode);
+    setNotice('');
+  };
+  const onPendingType = next => {
+    const reference = side === 'buy' ? DEMO.ask : DEMO.bid;
+    const p = (next === 'limit') ? reference + (side === 'buy' ? -70 : 70)
+      : reference + (side === 'buy' ? 130 : -130);
+    const dSL = Math.abs(slPrice - entry), dTP = Math.abs(tpPrice - entry);
+    setPendingEntry(Number(p.toFixed(2)));
+    setSlPrice(Number((p + riskSide(side, 'sl') * dSL).toFixed(2)));
+    setTpPrice(Number((p + riskSide(side, 'tp') * dTP).toFixed(2)));
+    setStopLimitPrice(Number((p + (side === 'buy' ? 5 : -5)).toFixed(2)));
+    setPendingType(next);
+  };
+  const formatted = m => {
+    if (!Number.isFinite(lots) || !validLots) return 'Set SL to calculate size';
+    if (m === 'lots') return <>{fmt(lots)} lots <ArrowRight size={13}/> ~{money(exposure)} <span>({fmt(exposure / DEMO.balance * 100)}%)</span></>;
+    if (m === 'margin') return <>{money(margin)} margin <ArrowRight size={13}/> {fmt(lots)} lots <span>({fmt(margin / DEMO.balance * 100)}% bal)</span></>;
+    if (m === 'riskPercent') return <>{fmt(risk / DEMO.equity * 100)}% risk <ArrowRight size={13}/> {money(risk)} <span>({fmt(lots)} lots)</span></>;
+    return <>{money(risk)} risk <ArrowRight size={13}/> {fmt(lots)} lots <span>({fmt(risk / DEMO.equity * 100)}%)</span></>;
+  };
+  const warnings = [
+    !validLots && 'Volume is below the minimum lot step.',
+    slEnabled && !Number.isFinite(slDistance) && 'Set SL on the loss side of the entry.',
+    tpEnabled && !Number.isFinite(tpDistance) && 'Set TP on the profit side of the entry.',
+    Number.isFinite(freeAfter) && freeAfter < 0 && 'Insufficient demo free margin.',
+    mode === 'pending' && (!Number.isFinite(pendingEntry) || pendingEntry <= 0) && 'Enter a valid pending entry price.',
+    mode === 'pending' && expiry === 'GTD' && !expiryDate && 'Select the pending order expiry.',
   ].filter(Boolean);
-  const chooseSide = next => {
-    const newEntry = mode === 'pending' ? entryPrice : (next === 'buy' ? QUOTES.ask : QUOTES.bid);
-    const distSL = isFinitePositive(slDistance) ? slDistance : 800;
-    const distTP = isFinitePositive(tpDistance) ? tpDistance : 1600;
-    setSide(next);
-    setStopPrice(Number((newEntry + (next === 'buy' ? -distSL : distSL)).toFixed(2)));
-    setTpPrice(Number((newEntry + (next === 'buy' ? distTP : -distTP)).toFixed(2)));
+  const showButton = btnSide => {
+    selectSide(btnSide);
+    setNotice((btnSide === 'buy' ? 'BUY' : 'SELL') + ' preview only. No order was sent.');
   };
-  const applyRR = multiplier => {
-    if (!slOn || !isFinitePositive(slDistance)) { setToast('Enable Stop Loss to set a risk/reward ratio.'); return; }
-    setTpOn(true);
-    const p = entry + (side === 'buy' ? 1 : -1) * slDistance * multiplier;
-    setTpPrice(Number(p.toFixed(2)));
-  };
-  const commitPreview = action => setToast(action + ' is a visual demo only. No order was sent.');
-  const themeSize = compact ? ' compact' : '';
-  return <section className={'v4-ticket' + themeSize} aria-label={(label || 'ACG') + ' demo execution ticket'}>
-    <header className="v4-heading"><div className="v4-coin" aria-hidden="true">₿</div><div className="v4-headnames"><strong>BTC/USD <ChevronDown size={15}/></strong><small>Bitcoin / US Dollar</small></div><button className="v4-fav" type="button" aria-label="Add to favorites" onClick={() => setToast('Favorite selection is not saved in demo.')}><Star size={19}/></button></header>
-    <div className="v4-quote">
-      <Stat label="Bid" value={num(QUOTES.bid)}/><Stat label="Ask" value={num(QUOTES.ask)}/>
-      <div className="v4-stat"><div className="v4-label">Spread</div><strong className="v4-stat-value">{num(spread)}</strong><small>Indicative</small></div>
-    </div>
-    <div className="v4-section v4-modes"><div className="v4-segment v4-mainmodes"><Pick active={mode === 'market'} onClick={() => setMode('market')}>Market</Pick><Pick active={mode === 'pending'} onClick={() => setMode('pending')}>Pending</Pick></div><p>{mode === 'market' ? 'Execute at current quote · demo' : 'Prepare an order at your chosen entry price'}</p></div>
-    {mode === 'pending' && <div className="v4-section v4-pending">
-      <div className="v4-section-head"><strong>Order type</strong><div className="v4-segment"><Pick active={orderType === 'limit'} onClick={() => setOrderType('limit')}>Limit</Pick><Pick active={orderType === 'stop'} onClick={() => setOrderType('stop')}>Stop</Pick><Pick active={orderType === 'stop-limit'} onClick={() => setOrderType('stop-limit')}>Stop Limit</Pick></div></div>
-      <label className="v4-field-label">Entry price</label><NumericInput label="Pending entry price" value={entryPrice} onChange={setEntryPrice} step={5} min={1}/>
-      {orderType === 'stop-limit' && <><label className="v4-field-label">Limit price</label><NumericInput label="Stop-limit limit price" value={limitPrice} onChange={setLimitPrice} step={5} min={1}/></>}
-    </div>}
-    <div className="v4-section v4-sizing">
-      <div className="v4-section-head"><strong>Position size <Tip text="Choose volume or target risk. Risk modes derive volume from your stop distance."/></strong><div className="v4-segment"><Pick active={sizing === 'lots'} onClick={() => setSizing('lots')}>Lots</Pick><Pick active={sizing === 'usd'} onClick={() => setSizing('usd')}>Risk $</Pick><Pick active={sizing === 'percent'} onClick={() => setSizing('percent')}>Risk %</Pick></div></div>
-      {sizing === 'lots'
-        ? <><NumericInput label="Position size in lots" value={lotsInput} onChange={setLotsInput} min={0.01} step={0.01} suffix="lots"/><div className="v4-presets">{LOT_PRESETS.map(v => <Pick key={v} active={Math.abs(lotsInput-v)<0.001} onClick={()=>setLotsInput(v)}>{num(v)}</Pick>)}</div></>
-        : <><NumericInput label={sizing === 'usd' ? 'Maximum risk in USD' : 'Account risk percent'} value={sizing === 'usd' ? riskUSD : riskPercent} onChange={sizing === 'usd' ? setRiskUSD : setRiskPercent} min={0.01} step={sizing === 'usd'?10:0.25} suffix={sizing === 'usd'?'USD':'%'}/><div className="v4-presets">{RISK_PRESETS.map(v => <Pick key={v} active={sizing === 'percent' ? Math.abs(riskPercent-v)<0.001 : Math.abs(riskUSD - DEMO_ACCOUNT.equity*v/100) <0.01} onClick={()=>{setRiskPercent(v);setRiskUSD(DEMO_ACCOUNT.equity*v/100);}}>{v}%</Pick>)}</div><div className="v4-calc-size"><span>{slOn ? 'Calculated volume' : 'Enable SL to calculate volume'}</span><strong>{validLots ? num(lots) + ' lots' : '—'}</strong></div></>}
-      <div className="v4-summary"><div><span>Notional value</span><strong>{usd(notional)}</strong></div><div><span>Margin required</span><strong>{usd(margin)}</strong></div><div><span>Free after</span><strong>{usd(freeAfter)}</strong></div></div>
-    </div>
-    <div className="v4-section">
-      <div className="v4-section-head"><strong>Exits / Protection <Tip text="Stop/target values update risk and volume; a stop does not guarantee final fill."/></strong><button type="button" className="v4-chartlink" onClick={() => setToast('Chart-linked SL/TP comes with live-terminal integration after design approval.')}><Crosshair size={13}/> Chart</button></div>
-      <div className="v4-exit-grid">
-        <Exit type="sl" on={slOn} toggle={()=>setSlOn(v=>!v)} price={stopPrice} setPrice={setStopPrice} entry={entry} lots={validLots?lots:NaN} side={side} riskMode={sizing!=='lots'}/>
-        <Exit type="tp" on={tpOn} toggle={()=>setTpOn(v=>!v)} price={tpPrice} setPrice={setTpPrice} entry={entry} lots={validLots?lots:NaN} side={side} riskMode={false}/>
+  if (closed) return <section className="v4-ticket v4-closed">
+    <p>Execution panel closed in the preview.</p>
+    <button type="button" onClick={() => setClosed(false)}>Reopen execution panel</button>
+  </section>;
+  return <section className={'v4-ticket v4-baseline' + (compact ? ' compact' : '')} aria-label="ACG Trader demo execution ticket">
+    <div className="v4-ticket-body">
+      <header className="v4-instrument">
+        <div className="v4-coin"><Bitcoin size={24} strokeWidth={2.5}/></div>
+        <div className="v4-symbol"><strong>{DEMO.symbol} <ChevronDown size={14}/></strong><span>{DEMO.name}</span></div>
+        <div className="v4-head-actions">
+          <button type="button" aria-label="Ticket configuration" title="Ticket configuration" onClick={() => setSettingsOpen(v => !v)}><Ellipsis size={20}/></button>
+          <button type="button" aria-label="Close execution panel" title="Close execution panel" onClick={() => setClosed(true)}><X size={19}/></button>
+        </div>
+      </header>
+      {settingsOpen && <div className="v4-settings">
+        <div>Ticket configuration</div>
+        <label><span>Expand Advanced</span><input type="checkbox" checked={advanced} onChange={e => setAdvanced(e.target.checked)}/></label>
+        <span>Preview only · Nothing saved</span>
+      </div>}
+      <div className="v4-session"><span><i/>Market Open</span><span>24/7 session (demo)</span></div>
+      <div className="v4-quote-strip">
+        <span>Bid <strong>{fmt(DEMO.bid)}</strong></span><span>Ask <strong>{fmt(DEMO.ask)}</strong></span>
+        <span>Spr <strong>{fmt(DEMO.ask - DEMO.bid)}</strong></span>
       </div>
-      <div className="v4-rr"><div className="v4-section-head"><strong>Risk / Reward <Tip text="Presets calculate TP from the stop distance and order direction."/></strong><div className="v4-small-ratio">R:R {num(ratio, 1)}</div></div><div className="v4-presets v4-rr-presets">{RR_PRESETS.map(v => <Pick key={v} active={Number.isFinite(ratio) && Math.abs(ratio-v)<0.01} onClick={()=>applyRR(v)}>1:{v}</Pick>)}</div><div className="v4-rr-stats"><Stat label="Risk" value={usd(stopLoss)}/><Stat label="Reward" value={usd(reward)}/><Stat label="R:R" value={Number.isFinite(ratio)?'1:'+num(ratio,1):'—'}/></div></div>
+      <Capsule className="v4-mainmodes" ariaLabel="Order entry type"
+        options={[{ id: 'market', label: 'Market' }, { id: 'pending', label: 'Pending' }]} value={mode} onChange={changeOrderMode}/>
+      {mode === 'pending' && <div className="v4-pending v4-block">
+        <Capsule ariaLabel="Pending order type" options={[{id:'limit',label:'Limit'},{id:'stop',label:'Stop'},{id:'stop-limit',label:'Stop Limit'}]}
+          value={pendingType} onChange={onPendingType}/>
+        <label className="v4-inline-setting">Entry price <input aria-label="Pending entry price" type="number" value={pendingEntry}
+          onChange={e => setPendingEntry(Number(e.target.value))} /></label>
+        {pendingType === 'stop-limit' && <label className="v4-inline-setting">Limit price <input aria-label="Stop-limit execution price"
+          type="number" value={stopLimitPrice} onChange={e => setStopLimitPrice(Number(e.target.value))}/></label>}
+      </div>}
+      <div className="v4-position v4-block">
+        <div className="v4-section-heading"><span>POSITION</span><span title="Instrument leverage (read-only)">{DEMO.leverage}x <ChevronDown size={13}/></span></div>
+        <Capsule className="v4-position-modes" ariaLabel="Position sizing mode" options={MODES} value={sizeMode} onChange={selectMode}/>
+        <div className="v4-amount">
+          <button type="button" aria-label="Decrease position size" onClick={() => setValue(Number((Math.max(conf.min, value - conf.step)).toFixed(4)))}><Minus size={18}/></button>
+          <CloseableNumber key={sizeMode} label={conf.label + ' sizing value'} value={value} onCommit={setValue}/>
+          <button type="button" aria-label="Increase position size" onClick={() => setValue(Number((value + conf.step).toFixed(4)))}><Plus size={18}/></button>
+        </div>
+        <div className="v4-slider">
+          <input aria-label={conf.label + ' slider'} type="range" min={conf.min} max={conf.max} step={conf.step}
+            value={clamp(Number.isFinite(value) ? value : conf.min, conf.min, conf.max)}
+            onChange={e => setValue(Number(e.target.value))}
+            style={{ '--fill': ((clamp(Number.isFinite(value) ? value : conf.min, conf.min, conf.max) - conf.min) / (conf.max - conf.min) * 100) + '%' }}/>
+          <div className="v4-scale">{conf.marks.map((m,i)=><span key={i}>{m}</span>)}</div>
+        </div>
+        <div className="v4-translation" title="Lots mode percent shows notional exposure as a percentage of account balance">{formatted(sizeMode)}</div>
+      </div>
+      <div className="v4-exits v4-block">
+        <div className="v4-section-heading"><span>EXITS / PROTECTION</span><ChevronUp size={15}/></div>
+        <ExitEditor kind="sl" enabled={slEnabled} onToggle={() => setSlEnabled(v => !v)}
+          unit={slUnit} onUnit={u => setExitUnit('sl', u)} price={slPrice} onPrice={setSlPrice} entry={entry}
+          lots={lots} side={side} financialInputLocked={isRiskSizing(sizeMode)}/>
+        <ExitEditor kind="tp" enabled={tpEnabled} onToggle={() => setTpEnabled(v => !v)}
+          unit={tpUnit} onUnit={u => setExitUnit('tp', u)} price={tpPrice} onPrice={setTpPrice} entry={entry}
+          lots={lots} side={side} financialInputLocked={false}/>
+        <div className="v4-ratio-slab">
+          <div><span>Risk / Reward</span><strong>{Number.isFinite(rr) ? '1:' + fmt(rr) : '—'}</strong></div>
+          <div><span>Position volume</span><strong>{validLots ? fmt(lots) + ' lots' : '—'}</strong></div>
+        </div>
+      </div>
+      <div className="v4-block">
+        <button type="button" className="v4-disclosure" aria-expanded={advanced} onClick={() => setAdvanced(v => !v)}>ADVANCED {advanced ? <ChevronUp size={15}/> : <ChevronDown size={15}/>}</button>
+        {advanced && <div className="v4-advanced-content">
+          {mode === 'pending' && <>
+            <label>Time in force <select value={expiry} onChange={e => setExpiry(e.target.value)}>
+              <option value="GTC">GTC</option><option value="DAY">Day</option><option value="GTD">Custom</option></select></label>
+            {expiry === 'GTD' && <label>Expiry <input aria-label="Expiry date and time" type="datetime-local" value={expiryDate} onChange={e => setExpiryDate(e.target.value)}/></label>}
+          </>}
+          <div><span>Instrument leverage</span><strong>{DEMO.leverage}x</strong></div>
+          <div><span>Indicative spread cost</span><strong>{validLots ? money((DEMO.ask - DEMO.bid)*lots*DEMO.contractSize) : '—'}</strong></div>
+          <div><span>Estimated commission</span><strong>{validLots ? money(lots*DEMO.commissionPerLot) : '—'}</strong></div>
+          <p>Spread is reflected in the executable Buy/Ask and Sell/Bid prices and is not charged twice.</p>
+        </div>}
+      </div>
+      {(warnings.length > 0 || notice) && <div className="v4-notice" role="status">{warnings[0] || notice}<button type="button" aria-label="Dismiss" onClick={() => setNotice('')}><X size={13}/></button></div>}
     </div>
-    <div className="v4-section v4-advanced"><button type="button" className="v4-expand" onClick={()=>setAdvanced(v=>!v)} aria-expanded={advanced}><strong>Advanced</strong>{advanced?<ChevronUp size={15}/>:<ChevronDown size={15}/>}</button>{advanced && <div className="v4-advanced-content">
-      {mode==='pending' && <div className="v4-info-row"><span>Time in force</span><select value={expiry} onChange={e=>setExpiry(e.target.value)} aria-label="Time in force"><option value="GTC">GTC</option><option value="TODAY">Today</option><option value="SPECIFIED">Custom</option></select></div>}
-      {mode==='pending' && expiry==='SPECIFIED' && <div className="v4-info-row"><span>Expiry</span><input type="datetime-local" aria-label="Order expiry" value={expiryDate} onChange={e=>setExpiryDate(e.target.value)}/></div>}
-      <div className="v4-info-row"><span>Instrument leverage</span><strong>1:{QUOTES.leverage} <Tip text="Read-only sample leverage. Actual instrument leverage is set by ACG Trader rules."/></strong></div>
-      <div className="v4-info-row"><span>Indicative spread value</span><strong>{usd(spreadCost)}</strong></div>
-      <div className="v4-info-row"><span>Est. commission</span><strong>{usd(estimatedCommission)}</strong></div>
-      <p className="v4-advanced-note">Spread is already reflected by the Buy/Ask and Sell/Bid quotes. It is not added again to margin or projected P&amp;L.</p>
-    </div>}</div>
-    {reasons.length>0 && <div className="v4-notice" role="status"><AlertCircle size={14}/><span>{reasons[0]}</span></div>}
-    <div className="v4-sticky"><div className="v4-footer-stats"><Stat label="Margin required" value={usd(margin)}/><Stat label="Free after" value={usd(freeAfter)}/></div>
-      <div className="v4-actions"><button className="v4-sell" type="button" onClick={()=>{chooseSide('sell');commitPreview('Sell');}}><span>{mode==='market'?'SELL':'SELL '+orderType.toUpperCase().replace('-',' ')}</span><strong>{num(mode==='market'?QUOTES.bid:entryPrice)}</strong></button><button className="v4-buy" type="button" onClick={()=>{chooseSide('buy');commitPreview('Buy');}}><span>{mode==='market'?'BUY':'BUY '+orderType.toUpperCase().replace('-',' ')}</span><strong>{num(mode==='market'?QUOTES.ask:entryPrice)}</strong></button></div>
-      <div className="v4-preview-footer"><span><Check size={11}/> DEMO / NO EXECUTION</span><span>Illustrative quotes · {side.toUpperCase()} selected</span></div>
+    <div className="v4-execution-footer">
+      <div className="v4-margin-summary"><div><span>Required margin</span><strong>{money(margin)}</strong></div><div><span>Free after</span><strong>{money(freeAfter)}</strong></div></div>
+      <div className="v4-trade-actions">
+        <button type="button" className="v4-sell" onClick={() => showButton('sell')}><span>{mode === 'market' ? 'SELL' : 'SELL ' + pendingType.toUpperCase().replace('-', ' ')}</span><strong>{fmt(mode === 'market' ? DEMO.bid : pendingEntry)}</strong></button>
+        <button type="button" className="v4-buy" onClick={() => showButton('buy')}><span>{mode === 'market' ? 'BUY' : 'BUY ' + pendingType.toUpperCase().replace('-', ' ')}</span><strong>{fmt(mode === 'market' ? DEMO.ask : pendingEntry)}</strong></button>
+      </div>
+      <div className="v4-safety">DEMO / NO EXECUTION · Synthetic market values</div>
     </div>
-    {toast && <div className="v4-toast" role="status" onClick={()=>setToast('')}><span>{toast}</span><button type="button" onClick={()=>setToast('')} aria-label="Dismiss notification">×</button></div>}
   </section>;
 }
 export default function OrderTicketV4Preview() {
- const [width,setWidth] = useState('reference');
- const [view,setView] = useState('compare');
- const [revision,setRevision] = useState(0);
- const narrow = width==='compact';
- return <main className="v4-page">
-   <div className="v4-topbar"><div><span className="v4-eyebrow">ACG TRADER · DESIGN STUDIO</span><h1>Execution V4 <small>Preview only</small></h1><p>Metallic black · Silver selections · Buy/Sell color only</p></div><div className="v4-toolbar"><div className="v4-segment"><Pick active={width==='reference'} onClick={()=>setWidth('reference')}>Reference</Pick><Pick active={width==='compact'} onClick={()=>setWidth('compact')}>330px dock</Pick></div><div className="v4-segment"><Pick active={view==='compare'} onClick={()=>setView('compare')}>Compare</Pick><Pick active={view==='market'} onClick={()=>setView('market')}>Market</Pick><Pick active={view==='pending'} onClick={()=>setView('pending')}>Pending</Pick></div><button type="button" className="v4-reset" onClick={()=>setRevision(n=>n+1)}>Reset demo</button></div></div>
-   <div className={'v4-demo-grid '+(narrow?' is-compact ':'')+(view==='compare'?' is-compare':' is-single')} key={revision}>
-    {(view==='compare'||view==='market') && <div className="v4-display"><div className="v4-panel-label">MARKET MODE</div><Ticket initialMode="market" compact={narrow} label="Market"/></div>}
-    {(view==='compare'||view==='pending') && <div className="v4-display"><div className="v4-panel-label">PENDING MODE</div><Ticket initialMode="pending" compact={narrow} label="Pending"/></div>}
-   </div>
-   <footer className="v4-page-note"><SlidersHorizontal size={14}/> Review the selection behavior, spacing, and responsiveness. All figures are local demo calculations; no account, authentication session, quote feed, or execution APIs are used.</footer>
- </main>;
+  const [width, setWidth] = useState('compact');
+  const [view, setView] = useState('compare');
+  const [revision, setRevision] = useState(0);
+  const compact = width === 'compact';
+  return <main className="v4-page">
+    <div className="v4-topbar">
+      <div><span className="v4-eyebrow">ACG TRADER / DESIGN STUDIO</span><h1>Execution V4 <small>Baseline 1</small></h1>
+        <p>Chart-black · metallic graphite · white selection · real 330px dock</p></div>
+      <div className="v4-toolbar">
+        <Capsule ariaLabel="Ticket width" options={[{id:'compact',label:'330px dock'},{id:'reference',label:'Expanded'}]} value={width} onChange={setWidth}/>
+        <Capsule ariaLabel="Preview mode" options={[{id:'compare',label:'Compare'},{id:'market',label:'Market'},{id:'pending',label:'Pending'}]} value={view} onChange={setView}/>
+        <button className="v4-reset" type="button" onClick={() => setRevision(v => v + 1)}><RotateCcw size={13}/> Reset</button>
+      </div>
+    </div>
+    <div key={revision} className={'v4-demo-grid ' + (compact ? 'is-compact ' : 'is-expanded ') + (view === 'compare' ? 'is-compare' : 'is-single')}>
+      {(view === 'compare' || view === 'market') && <div className="v4-display"><div className="v4-panel-label">MARKET MODE</div><Ticket initialMode="market" compact={compact}/></div>}
+      {(view === 'compare' || view === 'pending') && <div className="v4-display"><div className="v4-panel-label">PENDING MODE</div><Ticket initialMode="pending" compact={compact}/></div>}
+    </div>
+    <footer className="v4-page-note"><Info size={13}/> No real orders, sessions, positions, market data feeds or API connections. Numeric outcomes use a synthetic $100,000 account, 10x leverage, one BTC per lot and $1 tick size. Risk is illustrative and does not include slippage or gaps.</footer>
+  </main>;
 }
