@@ -116,8 +116,9 @@ export function v4ExitPriceFromInput({
       instrument, c.side, field,
     );
   } else {
-    const budget = unit === 'usd' ? value : value * positive(account?.equity) / 100;
-    if (!Number.isFinite(budget)) return fail('EQUITY_UNAVAILABLE', 'Account equity is unavailable.');
+    const equity = positive(account?.equity);
+    if (unit === 'balance' && !equity) return fail('EQUITY_UNAVAILABLE', 'Account equity is unavailable.');
+    const budget = unit === 'usd' ? value : value * equity / 100;
     price = priceForMoney(budget, c, field, instrument, account);
   }
 
