@@ -86,13 +86,13 @@ export default function DesktopWorkspaceMenu({ snapshot, onApply = () => {} }) {
           {workspaces.map(item => (
             <div key={item.id} className="group flex items-center gap-1 rounded hover:bg-white/[0.025]">
               <button type="button" onClick={() => { onApply(item); setOpen(false); }} className="flex min-w-0 flex-1 items-center gap-2 px-2 py-2 text-left">
-                <span className="grid size-5 place-items-center rounded border border-white/[0.06] bg-black text-[#59C7FF]"><Check size={10}/></span>
+                <span className="grid size-5 place-items-center rounded border border-white/[0.06] bg-black text-[#CCD1D6]"><Check size={10}/></span>
                 <span className="min-w-0"><b className="block truncate text-[10px] font-semibold text-[#E6EDF3]">{item.name}</b><small className="mt-0.5 block text-[8px] text-[#6F8191]">{item.builtIn ? 'Built-in preset' : 'Saved workspace'}</small></span>
               </button>
               {!item.builtIn && <button type="button" onClick={() => remove(item.id)} className="grid size-7 place-items-center text-[#6F8191] opacity-0 transition hover:text-[#FF6F7A] group-hover:opacity-100" aria-label={`Delete ${item.name}`}><Trash2 size={11}/></button>}
             </div>
           ))}
-          <button type="button" onClick={saveCurrent} className="mt-1 flex h-9 w-full items-center justify-center gap-1.5 rounded border border-[#315b72] bg-[#0d1a22] text-[9px] font-semibold text-[#59C7FF]"><Save size={11}/>Save current workspace</button>
+          <button type="button" onClick={saveCurrent} className="mt-1 flex h-9 w-full items-center justify-center gap-1.5 rounded border border-[#55595F] bg-[#25282B] text-[9px] font-semibold text-[#CCD1D6]"><Save size={11}/>Save current workspace</button>
           <div className="mt-1 flex items-center gap-1 px-1 text-[8px] text-[#44515D]"><Plus size={9}/>Up to 12 custom workspaces are stored locally.</div>
         </div>
       )}
