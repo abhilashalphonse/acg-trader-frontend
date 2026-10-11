@@ -1454,7 +1454,7 @@ export default function TradingTerminalV2({
         />
         <ExecutionStatus event={executionEvent} instrument={market} onDismiss={() => setExecutionEvent(null)} />
         {helpOpen && <HelpCenter desktop onClose={() => setHelpOpen(false)} symbol={activeSymbol} timeframe={timeframe} />}
-        {overlay && <FrontendSheet type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} watchlists={watchlists} onSelectSymbol={symbol => { selectSymbol(symbol); setOverlay(null); }} onOpenHelp={openHelp} {...indicatorSheetProps} />}
+        {overlay && <FrontendSheet desktop type={overlay} onClose={() => setOverlay(null)} markets={markets} activeSymbol={activeSymbol} watchlists={watchlists} onSelectSymbol={symbol => { selectSymbol(symbol); setOverlay(null); }} onOpenHelp={openHelp} {...indicatorSheetProps} />}
       </>
     );
   }
