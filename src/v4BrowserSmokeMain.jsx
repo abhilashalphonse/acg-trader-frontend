@@ -218,6 +218,9 @@ async function run(){
      footerPinned:Math.abs(node('.v4-execution-footer').getBoundingClientRect().bottom-ticket.getBoundingClientRect().bottom)<2,
    };
  };
+ // Test the previous compact-density/typography baselines independently
+ // of the newly approved terminal normalization rules.
+ ticket.classList.add('v4-terminal-type-baseline');
  ticket.classList.add('v4-density-baseline');
  await sleep(80);
  const before=metrics();
@@ -273,6 +276,7 @@ async function run(){
  typeEvidence.id='v4-typography-metrics';
  typeEvidence.textContent=JSON.stringify({before:oldType,after:newType,fontFaces});
  document.body.appendChild(typeEvidence);
+ ticket.classList.remove('v4-terminal-type-baseline');
  // Relative to the full terminal, the previously enlarged 18px
  // symbol and CTA prices should normalize to 15px, with the 330px
  // geometry, visible execution footer and chart draft unchanged.
