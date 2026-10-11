@@ -342,6 +342,7 @@ export default function DesktopTerminal({
   onOpenHelp = () => {},
   exposureAllowed = true,
   exposureBlockReason = 'New exposure is temporarily unavailable',
+  executionCommandPending = false,
   riskGuardSettings = null,
   onRiskGuardSettingsChange = () => {},
   readOnly = false,
@@ -847,7 +848,7 @@ export default function DesktopTerminal({
       setNotice(exposureBlockReason || 'New exposure is unavailable until account, valuation and market state are live.');
       return;
     }
-    onManualOrder(order, options);
+    return onManualOrder(order, options);
   };
 
   const openMarketPanel = (mode = 'markets', focusSearch = false) => {
@@ -1221,6 +1222,7 @@ export default function DesktopTerminal({
                           orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan}
                           onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan}
                           onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} onNotice={setNotice}
+                          executionCommandPending={executionCommandPending}
                           onCloseTicket={() => setDesktopLayout(current => ({ ...current, sidebarCollapsed: true }))}
                         />
                       ) : (
