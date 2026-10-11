@@ -9,6 +9,7 @@ if(!chrome)throw new Error('V4 browser smoke requires Chrome/Chromium on the CI 
 
 const server=spawn('npm',['run','dev','--','--host','127.0.0.1','--port','4176','--strictPort'],{
  stdio:['ignore','pipe','pipe'],
+ detached:true, // isolate Vite subprocess tree for guaranteed cleanup
 });
 let output='';
 server.stdout.on('data',buf=>{output+=String(buf);});
@@ -40,5 +41,7 @@ try{
  }
  console.log(marker);
 }finally{
- server.kill('SIGTERM');
+ try{process.kill(-server.pid,'SIGTERM');}catch{server.kill('SIGTERM');}
+ server.stdout.destroy();
+ server.stderr.destroy();
 }
