@@ -91,6 +91,14 @@ async function run(){
    if(f.bottom>p.bottom+1||f.bottom<p.bottom-5)failed.push('footer not pinned');
  }
  if(!selected||getComputedStyle(selected).backgroundColor!=='rgb(247, 247, 248)')failed.push('white capsule missing');
+ // The instrument's hard 1000-lot cap must not be a direct track axis.
+ const slider=ticket.querySelector('input[aria-label="Position size slider"]');
+ const ticks=Array.from(ticket.querySelectorAll('.v4-scale span'));
+ const affordableCap=Number(ticks[ticks.length-1]?.textContent?.replaceAll(',',''));
+ if(slider?.max!=='1000')failed.push('Normalized logarithmic Lots slider range missing');
+ if(!(affordableCap>0.1&&affordableCap<10))failed.push('Slider did not use affordable lot cap: '+affordableCap);
+ if(!ticket.querySelector('.v4-translation')?.textContent?.includes('BTC'))failed.push('BTC quantity missing');
+ if(!ticket.querySelector('.v4-translation')?.textContent?.includes(String.fromCharCode(36)))failed.push('USD exposure missing');
  const buy=ticket.querySelector('button.v4-buy');
  if(!buy){failed.push('Buy button missing');status.textContent='FAIL: '+failed.join(' | ');return;}
  buy.click();buy.click();

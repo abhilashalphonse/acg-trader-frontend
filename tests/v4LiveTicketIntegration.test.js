@@ -107,6 +107,15 @@ test('Audit bug regression: selecting BTC/USD opens existing Markets panel',()=>
  assert.match(css,/\.v4-symbol-button \{/);
 });
 
+test('BTC quantity and affordable nonlinear lots slider are isolated to V4',()=>{
+ assert.match(component,/deriveV4AffordableVolume\(/);
+ assert.match(component,/v4LotsFromTrack\(Number\(e\.target\.value\),lotRange\)/);
+ assert.match(component,/v4TrackFromLots\(selectedValue,lotRange\)/);
+ assert.match(component,/v4CryptoQuantity\(volume,market\)/);
+ assert.match(component,/Insufficient free margin — reduce position size\./);
+ const legacy=read('src/components/trading-v2/desktop/DesktopOrderTicket.jsx');
+ assert.doesNotMatch(legacy,/deriveV4AffordableVolume/);
+});
 test('Audit bug regression: Margin slider domain does not derive from current margin',()=>{
  assert.match(component,/marginBudget,setMarginBudget/);
  assert.match(component,/setMarginBudget\(value\)/);
