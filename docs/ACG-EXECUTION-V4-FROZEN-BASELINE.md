@@ -137,6 +137,52 @@ the live terminal. Any visual restructuring requires explicit new approval.
   market/pending Buy/Sell, account policy, price unit editor, chart drag,
   330px layout, focus and reconnection, then gather backend evidence.
 
+### M2 automated acceptance evidence and current staging blocker — 2026-10-11
+
+Verified:
+- Frontend CI passed lint, unit/regression tests and Vite build on the
+  M2 branch (GitHub Actions PR #90).
+- Real Chromium CI smoke passed: 330px live component, correct white
+  selected pill, independently scrollable body, bottom-pinned execution
+  footer and one synthetic order callback from rapid Buy double-click.
+  Browser smoke fixture sends no API requests.
+- Firebase preview channel PR #90 was published at
+  https://acg-trader--pr-90-ois6tr16.web.app/ with the V4 flag enabled
+  and Railway STAGING API/WebSocket URLs, not production.
+- GitHub workflow checks against STAGING /health/live and /health/ready
+  returned HTTP success.
+- Risk, margin and protection helpers have tests for volume band spreads,
+  Buy/Sell sizing, stop-limit limit-leg reference, fees, lot increments,
+  cross-currency fail-closed, and balance vs equity semantics.
+
+**BLOCKED — authenticated staging browser acceptance:** The PR Firebase
+origin https://acg-trader--pr-90-ois6tr16.web.app is **not allowed by
+Railway STAGING CORS**, proven by PR preview workflow's Origin-header gate
+on 2026-10-11. The backend app has an explicit env.corsOrigins allowlist.
+STAGING currently has no CORS_ORIGINS service variable and backend code
+defaults to http://localhost:5173. Staging preview login/trading API requests
+must not be claimed to work yet. The last successfully published preview
+is a layout/build artifact, **not a validated staging trading terminal**.
+Subsequent PR preview deployment is intentionally blocked until CORS passes.
+
+Railway STAGING also has an unrelated existing pending Stage 6 patch with
+**eight staged changes**, including its predeploy acceptance script and
+test-job environment variables. We **did not modify, accept, deploy or
+discard** that patch.
+
+Remediation gate:
+1. Add the exact V4 PR Firebase Origin to STAGING CORS_ORIGINS while
+   preserving other authorized staging Origins (not production-wide '*').
+2. Deploy the STAGING CORS change **independently of the eight pending Stage 6
+   changes**, or wait for the Stage 6 patch to be repaired, reviewed and
+   safely accepted. Do not accidentally activate the pending predeploy job.
+3. Re-run PR #90 Firebase pipeline: health/readiness, CORS Origin match,
+   V4-staging bundle isolation and deploy.
+4. Only after the above, authenticate against STAGING with a controlled
+   simulated account and complete Market/Pending/order-protection lifecycle
+   tests, backend execution audit logs, instrument-currency checks and visual
+   330px regression. Do not use a live production customer account.
+
 ### M3: Functional and regression acceptance (NOT STARTED)
 
 - Market Buy/Sell manual and protected, V1/V2 mandatory/optional stops.
