@@ -20,6 +20,7 @@ import { estimatePositionPnlAtPrice, positionDistancePips } from '../../utils/tr
 import { buildOpenPositionSummary } from '../../utils/openPositionPresentation.js';
 import { positionCloseAvailability } from '../../utils/marketExecutionAvailability.js';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
+import './PositionsPanel.desktop.css';
 import SharePositionSheet from './SharePositionSheet.jsx';
 
 const tabs = [
@@ -269,15 +270,15 @@ export default function PositionsPanel({
   };
 
   return (
-    <section className={`${desktopDense ? `acg-desktop-positions h-full ${collapsed || compactDock ? 'overflow-hidden' : 'overflow-auto'}` : 'mt-3 overflow-visible'} border-y border-white/[0.06] bg-black`}>
+    <section className={`${desktopDense ? `acg-desktop-positions acg-dock-v3 h-full ${collapsed || compactDock ? 'overflow-hidden' : 'overflow-auto'}` : 'mt-3 overflow-visible'} border-y border-white/[0.06] bg-black`}>
       {desktopDense ? (
-        <div className="flex h-[44px] items-center justify-between gap-2 border-b border-white/[0.06] px-2">
+        <div className="flex h-[44px] items-center justify-between gap-2 border-b border-[#292C30] bg-[#0A0B0D] px-2">
           <div className="flex h-full min-w-0 items-stretch gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {tabs.map(item => (
-              <button key={item.id} type="button" onClick={() => setTab(item.id)} className={`relative flex h-full shrink-0 items-center gap-1.5 px-2 text-[10px] font-bold ${tab === item.id ? 'text-[#F4F6F8]' : 'text-[#7B8792] hover:text-[#C7D0D8]'}`}>
+              <button key={item.id} type="button" onClick={() => setTab(item.id)} className={`relative flex h-full shrink-0 items-center gap-1.5 px-2 text-[10px] font-semibold ${tab === item.id ? 'text-[#F1F2F3]' : 'text-[#989DA4] hover:text-[#D0D2D6]'}`}>
                 <span>{item.id === 'orders' ? 'Pending' : item.label}</span>
-                <span key={`${item.id}-${counts[item.id]}`} className="acg-motion-count grid min-w-5 place-items-center rounded-md bg-[#14171B] px-1.5 py-0.5 text-[9px] font-black text-[#C2CBD3]">{counts[item.id]}</span>
-                {tab === item.id && <span className="acg-active-underline absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-[#195be1]" />}
+                <span key={`${item.id}-${counts[item.id]}`} className="acg-motion-count grid min-w-5 place-items-center rounded bg-[#1C1E21] px-1.5 py-0.5 text-[9px] font-semibold text-[#C1C6CC]">{counts[item.id]}</span>
+                {tab === item.id && <span className="acg-active-underline absolute bottom-0 left-2 right-2 h-px bg-[#CED1D5]" />}
               </button>
             ))}
           </div>
@@ -349,7 +350,7 @@ export default function PositionsPanel({
               <button
                 type="button"
                 onClick={onToggleExpanded}
-                className={`grid size-8 place-items-center rounded-md border bg-[#0B0D10] transition ${expanded ? 'border-[#195be1]/60 text-[#195be1]' : 'border-white/[0.09] text-[#8C99A5] hover:bg-white/[0.03] hover:text-white'}`}
+                className={`grid size-8 place-items-center rounded-md border bg-[#0B0D10] transition ${expanded ? 'border-[#60646A] text-[#E6E8EB]' : 'border-white/[0.09] text-[#8C99A5] hover:bg-white/[0.03] hover:text-white'}`}
                 title={expanded ? "Restore workspace" : "Expand positions workspace"}
                 aria-label={expanded ? "Restore workspace" : "Expand positions workspace"}
               >
@@ -564,7 +565,48 @@ export default function PositionsPanel({
                   </div>
                 )}
           
-                {tab === 'history' && (
+
+                {tab === 'history' && desktopDense && (
+                  <div className="min-h-0 w-full overflow-x-auto [scrollbar-width:thin]">
+                    {!positionHistory.length ? (
+                      <div className="grid h-[96px] place-items-center text-[10px] text-[#989DA4]">Closed positions will appear here</div>
+                    ) : (
+                      <div className="min-w-[1050px]">
+                        <div className="grid grid-cols-[minmax(170px,1.5fr)_65px_76px_105px_105px_145px_145px_90px] items-center gap-x-2 border-b border-[#2A2D31] bg-[#0A0B0D] px-3 py-2 text-[9px] font-medium text-[#9299A2]">
+                          <span>Symbol</span>
+                          <span>Type</span>
+                          <span>Size</span>
+                          <span>Open Price</span>
+                          <span>Close Price</span>
+                          <span>Open Time</span>
+                          <span>Close Time</span>
+                          <span className="text-right">P&amp;L</span>
+                        </div>
+                        {positionHistory.map((item, index) => {
+                          const instrument = instrumentForSymbol(markets, item.symbol);
+                          return (
+                            <div key={String(item.id) + '-' + index} className="grid min-h-[44px] grid-cols-[minmax(170px,1.5fr)_65px_76px_105px_105px_145px_145px_90px] items-center gap-x-2 border-b border-[#202326] px-3 py-1.5 text-[10px] text-[#D1D4D9] last:border-b-0 hover:bg-[#121416]">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <InstrumentAvatar instrument={instrument} size={18}/>
+                                <strong className="truncate text-[11px] font-semibold text-[#F0F1F3]" title={formatSymbol(item.symbol)}>{formatSymbol(item.symbol)}</strong>
+                                <span className="max-w-[98px] truncate rounded bg-[#1C1E21] px-1.5 py-0.5 text-[9px] font-medium text-[#B9BEC6]" title={String(item.closeType || 'Closed')}>{item.closeType || 'Closed'}</span>
+                              </div>
+                              <span className="text-[10px] font-medium text-[#BDC2C9]">{String(item.side || '—').toUpperCase()}</span>
+                              <span className="font-mono tabular-nums">{Number.isFinite(Number(item.volume)) ? Number(item.volume).toFixed(2) : '—'}</span>
+                              <span className="truncate font-mono tabular-nums" title={formatInstrumentPrice(item.entry, instrument)}>{formatInstrumentPrice(item.entry, instrument)}</span>
+                              <span className="truncate font-mono tabular-nums" title={formatInstrumentPrice(item.closePrice, instrument)}>{formatInstrumentPrice(item.closePrice, instrument)}</span>
+                              <span className="truncate text-[#9EA4AC]" title={String(item.openedAt || '')}>{item.openedAt || '—'}</span>
+                              <span className="truncate text-[#9EA4AC]" title={String(item.closedAt || '')}>{item.closedAt || '—'}</span>
+                              <strong className={Number(item.pnl) > 0 ? 'text-right font-mono text-[11px] font-semibold tabular-nums text-[#42D7A1]' : Number(item.pnl) < 0 ? 'text-right font-mono text-[11px] font-semibold tabular-nums text-[#FF6F7A]' : 'text-right font-mono text-[11px] font-semibold tabular-nums text-[#DFE2E5]'}>{formatPnl(item.pnl, item.pnlCurrency || accountCurrency)}</strong>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {tab === 'history' && !desktopDense && (
                   <div className="space-y-1.5 p-2">
                     {!positionHistory.length ? <div className="grid h-[122px] place-items-center text-[10px] font-medium text-[#6F8191]">Closed positions will appear here</div> : positionHistory.map((item, index) => <div key={`${item.id}-${index}`} className="flex items-center justify-between border-b border-white/[0.06] bg-black px-3 py-2.5 last:border-b-0"><div><div className="flex items-center gap-1.5"><InstrumentAvatar instrument={instrumentForSymbol(markets, item.symbol)} size={22}/><strong className="text-[11px] text-[#f5f5f5]">{formatSymbol(item.symbol)}</strong><span className="rounded-md bg-[#0C1013] px-1.5 py-1 text-[8px] font-bold text-[#A1AFBC]">{item.closeType || 'Closed'}</span></div><p className="mt-1 text-[8px] text-[#6F8191]">{item.side} · {Number(item.volume).toFixed(2)} lots · {item.closedAt}</p></div><b className={`text-[11px] font-semibold ${Number(item.pnl) >= 0 ? 'text-[#42D7A1]' : 'text-[#FF6F7A]'}`}>{formatPnl(item.pnl)}</b></div>)}
                   </div>
