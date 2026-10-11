@@ -142,3 +142,22 @@
 .acg-desktop-v3 .acg-v3-watchlist .acg-motion-row:focus-within {
   box-shadow: inset 1px 0 #cbd0d6;
 }
+
+/* Chart order-entry projections can remain distinguishable in graphite rather
+   than the old bright-blue glow. Underlying line coordinates and order behavior
+   stay untouched. */
+.acg-desktop-v3 [class*="bg-[#0b2f66]"] {
+  background: #1c2024 !important;
+  border-color: #656c74 !important;
+  color: #f2f4f6 !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+.acg-desktop-v3 [class*="bg-[#1f5fc4]"] {
+  background: #4b525a !important;
+  border-color: #818991 !important;
+}
+.acg-desktop-v3 [class*="border-[#2f7df4]"],
+.acg-desktop-v3 [class*="border-[#3b78d8]"] {
+  border-color: #929aa3 !important;
+}
