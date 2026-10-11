@@ -3,13 +3,13 @@
    subtree; it does not change canvas painting, trading data, or mobile UI. */
 .acg-desktop-v3 {
   --acg-v3-black: #000000;
-  --acg-v3-canvas: #050607;
-  --acg-v3-panel: #0b0c0e;
-  --acg-v3-control: #101214;
-  --acg-v3-elevated: #181a1d;
-  --acg-v3-selected: #25282b;
-  --acg-v3-line: #292d31;
-  --acg-v3-strong-line: #44484e;
+  --acg-v3-canvas: #09090B;
+  --acg-v3-panel: #09090B;
+  --acg-v3-control: #111113;
+  --acg-v3-elevated: #171719;
+  --acg-v3-selected: #222225;
+  --acg-v3-line: #262628;
+  --acg-v3-strong-line: #4D4D52;
   --acg-v3-white: #f2f3f5;
   --acg-v3-silver: #cbd0d6;
   --acg-v3-muted: #9da4ac;
@@ -30,11 +30,11 @@
   backdrop-filter: none !important;
 }
 .acg-desktop-v3 .acg-desktop-market-strip {
-  background: #08090b !important;
+  background: #09090B !important;
 }
 .acg-desktop-v3 .acg-desktop-chart-toolbar .terminal-toolbar-group {
-  background: #090a0c !important;
-  border: 1px solid #272a2e !important;
+  background: #101012 !important;
+  border: 1px solid #262628 !important;
   border-radius: 7px !important;
   box-shadow: none !important;
 }
@@ -62,20 +62,20 @@
   border-radius: 7px !important;
 }
 .acg-desktop-v3 .acg-mobile-drawing-tool:not(.acg-mobile-drawing-tool-selected):hover {
-  background: #191b1e !important;
+  background: #18181B !important;
 }
 /* Desktop menus, account switcher, layout presets, chart settings, indicator
    panels, and review use the same subdued popover language. */
 .acg-desktop-v3 .acg-motion-popover,
 .acg-desktop-v3 .acg-v3-popover {
-  background: #101113 !important;
-  border: 1px solid #30343a !important;
+  background: #111113 !important;
+  border: 1px solid #29292D !important;
   border-radius: 8px !important;
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.32) !important;
   backdrop-filter: none !important;
 }
 .acg-desktop-v3 :is(.acg-motion-popover,.acg-v3-popover) button:hover:not(:disabled) {
-  background-color: #202226;
+  background-color: #1C1C20;
 }
 /* Main desktop selection/focus is neutral; action colors are owned by
    the separately scoped execution ticket's Buy and Sell buttons. */
@@ -112,12 +112,12 @@
 /* Chart drawing rail and overlays: neutral graphite selection without
    changing tool selection logic, order drag mechanics, or chart price data. */
 .acg-desktop-v3 aside[aria-label="Drawing tools"] {
-  background: #08090b !important;
-  border-color: #2b2e32 !important;
+  background: #09090B !important;
+  border-color: #262628 !important;
   box-shadow: none !important;
 }
 .acg-desktop-v3 aside[aria-label="Drawing tools"] button[class*="bg-[#10202a]"] {
-  background: #25282b !important;
+  background: #222225 !important;
   box-shadow: none !important;
   --tw-ring-color: #656b71 !important;
 }
@@ -131,13 +131,13 @@
 /* The existing pending-order chart annotations must remain accessible; only
    their decorative bright-blue containers become neutral graphite. */
 .acg-desktop-v3 .acg-v3-review-body {
-  background: #0a0b0d !important;
+  background: #09090B !important;
   border: 1px solid #31353a !important;
   border-radius: 9px !important;
   box-shadow: 0 16px 40px rgb(0 0 0 / 0.35) !important;
 }
 .acg-desktop-v3 .acg-v3-watchlist .acg-motion-row:hover {
-  background: #17191c;
+  background: #141416;
 }
 .acg-desktop-v3 .acg-v3-watchlist .acg-motion-row:focus-within {
   box-shadow: inset 1px 0 #cbd0d6;
@@ -147,7 +147,7 @@
    than the old bright-blue glow. Underlying line coordinates and order behavior
    stay untouched. */
 .acg-desktop-v3 [class*="bg-[#0b2f66]"] {
-  background: #1c2024 !important;
+  background: #1B1B1F !important;
   border-color: #656c74 !important;
   color: #f2f4f6 !important;
   backdrop-filter: none !important;
@@ -165,8 +165,8 @@
 /* Desktop-only full-screen dialogs are siblings of DesktopTerminal.
    They opt in via explicit classes, so mobile sheets retain their styles. */
 .acg-v3-sheet > section {
-  background: #0b0c0e !important;
-  border-color: #30343a !important;
+  background: #09090B !important;
+  border-color: #29292D !important;
   box-shadow: 0 15px 40px rgb(0 0 0 / .40) !important;
 }
 .acg-v3-sheet [class*="border-[#62cbff]"],
@@ -178,7 +178,7 @@
 .acg-v3-sheet [class*="bg-[#195be1]"],
 .acg-v3-help [class*="bg-[#195be1]"],
 .acg-v3-help [class*="bg-[#13213e]"] {
-  background: #292d32 !important;
+  background: #242427 !important;
   box-shadow: none !important;
 }
 .acg-v3-sheet [class*="text-[#69cfff]"],
@@ -192,7 +192,7 @@
 }
 .acg-v3-sheet [class*="bg-[#62cbff]"],
 .acg-v3-help [class*="bg-[#182640]"] {
-  background: #292d32 !important;
+  background: #242427 !important;
 }
 .acg-v3-sheet :is(button,input,textarea,select):focus-visible,
 .acg-v3-help :is(button,input,textarea,select):focus-visible {
@@ -200,11 +200,11 @@
   outline-offset: -2px;
 }
 .acg-v3-help section[role="dialog"] {
-  background: #0b0c0e !important;
-  border-color: #30343a !important;
+  background: #09090B !important;
+  border-color: #29292D !important;
   border-radius: 10px !important;
   box-shadow: 0 16px 36px rgb(0 0 0 / .45) !important;
 }
 .acg-v3-help [class*="accent-[#195be1]"] { accent-color: #cbd0d6 !important; }
 .acg-v3-help [class*="hover:border-[#195be1]"]:hover { border-color: #777e85 !important; }
-.acg-v3-help [class*="hover:bg-[#192029]"]:hover { background: #1b1e21 !important; }
+.acg-v3-help [class*="hover:bg-[#192029]"]:hover { background: #18181B !important; }
