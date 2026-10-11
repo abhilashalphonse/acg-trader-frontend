@@ -9,6 +9,7 @@ import { estimateRequiredMargin, estimateLossAtStopWithCosts, effectiveLeverage,
 import { resolveV4PositionSizing } from '../../../utils/v4ExecutionPrecision.js';
 import { v4ExitPriceFromInput, v4ExitValueFromPrice } from '../../../utils/v4ProtectionPrecision.js';
 import { estimateExecutionPrice } from '../../../utils/executionPricing.js';
+import { deriveV4AffordableVolume, v4LotsFromTrack, v4TrackFromLots, v4CryptoQuantity } from '../../../utils/v4SliderSizing.js';
 import './DesktopOrderTicketV4.css';
 
 // This is a PRODUCTION PRESENTATION ADAPTER, gated off by default in DesktopTerminal.
@@ -358,9 +359,11 @@ export default function DesktopOrderTicketV4({
   // Starting a risk plan does NOT submit an order. Its first SL and
   // estimated volume are calculated after Buy/Sell sets the direction.
   const canTrade=canStartPlan&&(requiresPlan||(financialVerified&&Boolean(volume)));
-  const executionDisabledReason=!financialVerified
-    ? 'Opening margin, fees, and free margin must be verified before V4 execution.'
-    : !volume?'Position size is not executable.':null;
+  const executionDisabledReason=Number.isFinite(freeAfter)&&freeAfter<0
+    ? 'Insufficient free margin — reduce position size.'
+    : !financialVerified
+      ? 'Opening margin, fees, and free margin must be verified before V4 execution.'
+      : !volume?'Position size is not executable.':null;
   const submitOnce=callback=>{
     if(submittingRef.current || executionCommandPending)return;
     submittingRef.current=true;
@@ -425,9 +428,13 @@ export default function DesktopOrderTicketV4({
     }
     field==='sl'?setSlUnit(u):setTpUnit(u);
   };
+  const cryptoQuantity=v4CryptoQuantity(volume,market);
+  const volumeLabel=cryptoQuantity
+    ?fmt(cryptoQuantity.quantity,Math.max(2,lotPrecision))+' '+cryptoQuantity.unit
+    :fmt(volume,lotPrecision)+' lots';
   const translation=()=>{
     if(!volume)return '—';
-    if(uiMode==='lots')return <>{fmt(volume,lotPrecision)} lots <ArrowRight size={13}/> {Number.isFinite(notional)?'~'+money(notional,currency):'—'} <span>{Number.isFinite(notional)&&accountBalance?'('+fmt(notional/accountBalance*100)+'% balance)':'Balance conversion unavailable'}</span></>;
+    if(uiMode==='lots')return <>{volumeLabel} <ArrowRight size={13}/> {Number.isFinite(notional)?'~'+money(notional,currency):'—'} <span>{Number.isFinite(notional)&&accountBalance?'('+fmt(notional/accountBalance*100)+'% balance)':'Balance conversion unavailable'}</span></>;
     if(uiMode==='margin')return <>{money(margin,currency)} margin <ArrowRight size={13}/> {fmt(volume,lotPrecision)} lots <span>{accountBalance&&Number.isFinite(margin)?'('+fmt(margin/accountBalance*100)+'% balance)':''}</span></>;
     if(uiMode==='riskPercent')return <>{Number.isFinite(risk)&&accountValid?fmt(risk/Number(account.equity)*100)+'% risk':'—'} <ArrowRight size={13}/> {money(risk,currency)} <span>({fmt(volume,lotPrecision)} lots)</span></>;
     return <>{money(risk,currency)} risk <ArrowRight size={13}/> {fmt(volume,lotPrecision)} lots <span>{Number.isFinite(risk)&&accountValid?'('+fmt(risk/Number(account.equity)*100)+'% equity)':''}</span></>;
@@ -435,6 +442,17 @@ export default function DesktopOrderTicketV4({
   // Slider bounds are instrument/account limits, never a function of the
   // value being dragged. The old "current margin * 4" feedback loop
   // repeatedly rescaled the track after every lot-step conversion.
+  const affordable=useMemo(()=>deriveV4AffordableVolume({
+    instrument:market,account,side:effective?.side||draftSide,
+    pending:Boolean(effective?.pending),
+    referencePrice:planRef,
+  }),[market,account,effective?.side,effective?.pending,draftSide,planRef]);
+  const lotRange={
+    minLots:affordable.minLots||min,
+    maxLots:affordable.affordableLots,
+    step,
+  };
+  const lotsTrackEnabled=affordable.valid&&Number(affordable.affordableLots)>=min;
   const baseSliderQuote=positive(market?.ask)||positive(market?.bid);
   const minMargin=baseSliderQuote?estimateRequiredMargin(baseSliderQuote,min,market,account):null;
   const maxMargin=baseSliderQuote?estimateRequiredMargin(baseSliderQuote,max,market,account):null;
@@ -447,6 +465,15 @@ export default function DesktopOrderTicketV4({
       uiMode==='riskPercent'?5:positive(account?.equity)?Number(account.equity)*0.05:100;
   const slideStep=uiMode==='lots'?step:uiMode==='margin'?1:uiMode==='riskPercent'?0.01:1;
   const slideValue=Number.isFinite(selectedValue)?Math.max(slideMin,Math.min(slideMax,selectedValue)):slideMin;
+  // Only the Lots track uses the affordability-aware logarithmic scale.
+  // The editable numerical input still accepts the full instrument range.
+  const trackMin=uiMode==='lots'?0:slideMin;
+  const trackMax=uiMode==='lots'?1000:slideMax;
+  const trackStep=uiMode==='lots'?1:slideStep;
+  const trackValue=uiMode==='lots'?v4TrackFromLots(selectedValue,lotRange):slideValue;
+  const trackMarks=[0,.25,.5,.75,1].map(p=>uiMode==='lots'
+    ?v4LotsFromTrack(p*1000,lotRange)
+    :slideMin+(slideMax-slideMin)*p);
   // Keep local editing state when quotes move; committed value is read from
   // live account/plan state. Never freeze financial values at first render.
   return <section className="v4-live-scope v4-ticket" aria-label="ACG Trader V4 live execution ticket">
@@ -498,10 +525,19 @@ export default function DesktopOrderTicketV4({
           <button type="button" aria-label="Increase position value" onClick={()=>applySize(Number(selectedValue||0)+slideStep)}><Plus size={18}/></button>
         </div>
         <div className="v4-slider">
-          <input type="range" aria-label="Position size slider" min={slideMin} max={slideMax} step={slideStep}
-            value={slideValue} onChange={e=>applySize(Number(e.target.value))}
-            style={{'--fill':((slideValue-slideMin)/(slideMax-slideMin)*100)+'%'}}/>
-          <div className="v4-scale">{[0,.25,.5,.75,1].map((p,i)=><span key={i}>{fmt(slideMin+(slideMax-slideMin)*p,uiMode==='lots'?2:0)}</span>)}</div>
+          <input type="range" aria-label="Position size slider" min={trackMin} max={trackMax} step={trackStep}
+            disabled={uiMode==='lots'&&!lotsTrackEnabled}
+            value={trackValue} onChange={e=>{
+              const requested=uiMode==='lots'
+                ?v4LotsFromTrack(Number(e.target.value),lotRange)
+                :Number(e.target.value);
+              if(requested!=null)applySize(requested);
+            }}
+            style={{'--fill':((trackValue-trackMin)/Math.max(1e-8,trackMax-trackMin)*100)+'%'}}/>
+          <div className="v4-scale">{trackMarks.map((mark,i)=><span key={i}>{mark!=null?fmt(mark,uiMode==='lots'?2:0):'—'}</span>)}</div>
+          {uiMode==='lots'&&!lotsTrackEnabled&&<span className="v4-slider-hint" role="status">
+            {affordable.valid?'Minimum volume exceeds available margin.':'Affordable range cannot be verified.'}
+          </span>}
         </div>
         <div className="v4-translation">{translation()}</div>
       </div>
@@ -515,7 +551,7 @@ export default function DesktopOrderTicketV4({
           lots={volume} sizingMode={uiMode} onPrice={price=>onTradePlanChange({tp:price,activeField:'tp',stage:'ready'})} onNotice={notice}/>
         <div className="v4-ratio-slab">
           <div><span>Risk / Reward</span><strong>{Number.isFinite(rr)?'1:'+fmt(rr):'—'}</strong></div>
-          <div><span>Position volume</span><strong>{volume?fmt(volume,lotPrecision)+' lots':'—'}</strong></div>
+          <div><span>Position volume</span><strong>{volume?volumeLabel:'—'}</strong></div>
         </div>
       </div>
       <div className="v4-block">
