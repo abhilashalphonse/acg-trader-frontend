@@ -21,6 +21,7 @@ const tradingProfiles = [
 export default function FrontendSheet({
   type,
   onClose,
+  desktop = false,
   markets = [],
   activeSymbol,
   onSelectSymbol = () => {},
@@ -182,7 +183,7 @@ export default function FrontendSheet({
   const isMarketSheet = type === 'search' || type === 'instruments' || type === 'markets';
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/55 px-2 backdrop-blur-[2px]" onMouseDown={onClose}>
+    <div className={desktop ? "acg-v3-sheet fixed inset-0 z-[100] flex items-center justify-center bg-black/75 px-4" : "fixed inset-0 z-[100] flex items-end justify-center bg-black/55 px-2 backdrop-blur-[2px]"} onMouseDown={onClose}>
       <section
         ref={sheetRef}
         role="dialog"
@@ -192,7 +193,7 @@ export default function FrontendSheet({
         tabIndex={-1}
         onKeyDown={handleSheetKeyDown}
         onMouseDown={event => event.stopPropagation()}
-        className={`${isMarketSheet ? 'flex h-[84dvh] min-h-0 flex-col bg-black' : isIndicators ? 'max-h-[90dvh] bg-[#080808]' : 'max-h-[84dvh] bg-[#080808]'} mb-[max(8px,env(safe-area-inset-bottom))] w-full max-w-[444px] overflow-hidden rounded-[24px] border border-white/[0.08] shadow-[0_30px_90px_rgba(0,0,0,.65)]`}
+        className={`${isMarketSheet ? 'flex h-[84dvh] min-h-0 flex-col bg-black' : isIndicators ? 'max-h-[90dvh] bg-[#080808]' : 'max-h-[84dvh] bg-[#080808]'} ${desktop ? 'mb-0 max-w-[560px] rounded-[10px] border-[#30343A] shadow-[0_15px_40px_rgba(0,0,0,.4)]' : 'mb-[max(8px,env(safe-area-inset-bottom))] max-w-[444px] rounded-[24px] border-white/[0.08] shadow-[0_30px_90px_rgba(0,0,0,.65)]'} w-full overflow-hidden border`}
       >
         <header className={`flex shrink-0 items-start justify-between gap-3 border-b border-white/[0.08] ${isMarketSheet ? 'bg-black px-4 pb-4 pt-4' : 'px-4 py-3.5'}`}><div><h2 className={`${isMarketSheet ? 'text-[20px] tracking-[-0.035em]' : 'text-[15px]'} font-black text-[#f3f7fb]`}>{titleMap[type] || 'ACG Trader'}</h2><p className={`${isMarketSheet ? 'mt-1 text-[9px] text-[#718397]' : 'mt-0.5 text-[9px] text-[#6e8195]'}`}>{isIndicators ? 'Technical studies · live chart' : type === 'more' ? 'Profiles, preferences and shortcuts' : type === 'platform' ? 'Terminal preferences and trading profiles' : type === 'notifications' ? 'Terminal and risk alerts' : type === 'profile' ? 'Trading account summary' : type === 'help' ? 'Using ACG Trader' : 'Markets and terminal tools'}</p></div><button type="button" onClick={onClose} className="grid size-9 place-items-center rounded-md border border-white/[0.08] bg-[#101010] text-[#93a6b8]"><X size={17}/></button></header>
         <div className={`${isMarketSheet ? 'flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-3 pt-2' : isIndicators ? 'max-h-[calc(90dvh-70px)] overflow-y-auto p-3' : 'max-h-[calc(84dvh-70px)] overflow-y-auto p-3'} [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
