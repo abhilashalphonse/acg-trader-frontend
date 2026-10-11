@@ -170,6 +170,7 @@ export default function DesktopOrderTicketV4({
     && market?.isStale!==true && market?.sessionOpen!==false
     && !['WAITING','STALE','DISCONNECTED','ERROR','DISABLED','CLOSED','UNAVAILABLE','SUBSCRIPTION_ERROR'].includes(String(market?.marketState||'').toUpperCase());
   const accountValid=account && positive(account?.equity);
+  const accountBalance=positive(account?.balance);
   const hasSl=tradePlan?positive(effective?.sl)!==null:wantSl;
   const hasTp=tradePlan?positive(effective?.tp)!==null:wantTp;
   const effectiveLots=useMemo(()=>{
@@ -337,10 +338,10 @@ export default function DesktopOrderTicketV4({
   };
   const translation=()=>{
     if(!volume)return '—';
-    if(uiMode==='lots')return <>{fmt(volume,lotPrecision)} lots <ArrowRight size={13}/> {Number.isFinite(notional)?'~'+money(notional,currency):'—'} <span>{Number.isFinite(notional)&&accountValid?'('+fmt(notional/Number(account.equity)*100)+'%)':'Currency conversion unavailable'}</span></>;
-    if(uiMode==='margin')return <>{money(margin,currency)} margin <ArrowRight size={13}/> {fmt(volume,lotPrecision)} lots <span>{accountValid&&Number.isFinite(margin)?'('+fmt(margin/Number(account.equity)*100)+'% equity)':''}</span></>;
+    if(uiMode==='lots')return <>{fmt(volume,lotPrecision)} lots <ArrowRight size={13}/> {Number.isFinite(notional)?'~'+money(notional,currency):'—'} <span>{Number.isFinite(notional)&&accountBalance?'('+fmt(notional/accountBalance*100)+'% balance)':'Balance conversion unavailable'}</span></>;
+    if(uiMode==='margin')return <>{money(margin,currency)} margin <ArrowRight size={13}/> {fmt(volume,lotPrecision)} lots <span>{accountBalance&&Number.isFinite(margin)?'('+fmt(margin/accountBalance*100)+'% balance)':''}</span></>;
     if(uiMode==='riskPercent')return <>{Number.isFinite(risk)&&accountValid?fmt(risk/Number(account.equity)*100)+'% risk':'—'} <ArrowRight size={13}/> {money(risk,currency)} <span>({fmt(volume,lotPrecision)} lots)</span></>;
-    return <>{money(risk,currency)} risk <ArrowRight size={13}/> {fmt(volume,lotPrecision)} lots <span>{Number.isFinite(risk)&&accountValid?'('+fmt(risk/Number(account.equity)*100)+'%)':''}</span></>;
+    return <>{money(risk,currency)} risk <ArrowRight size={13}/> {fmt(volume,lotPrecision)} lots <span>{Number.isFinite(risk)&&accountValid?'('+fmt(risk/Number(account.equity)*100)+'% equity)':''}</span></>;
   };
   const slideMin=uiMode==='lots'?min:uiMode==='margin'?0:0;
   const slideMax=uiMode==='lots'?Math.max(min+step,Math.min(max,Math.max(min+step,Number(lots)*4||min+step))):
