@@ -1230,6 +1230,7 @@ export default function DesktopTerminal({
                           onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan}
                           onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} onNotice={setNotice}
                           executionCommandPending={executionCommandPending}
+                          onOpenMarkets={() => openMarketPanel('markets', true)}
                           onCloseTicket={() => setDesktopLayout(current => ({ ...current, sidebarCollapsed: true }))}
                         />
                       ) : (
