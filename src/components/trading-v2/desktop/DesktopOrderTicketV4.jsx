@@ -249,13 +249,20 @@ export default function DesktopOrderTicketV4({
     }
     const plan=effective||fakePlanForIndicative;
     const result=resolveV4PositionSizing({mode:uiMode,amount:value,plan,account,instrument:market});
-    if(!result.canExecute){notice(result.message||'Unable to calculate position size');return;}
     if(uiMode==='margin'){
+      if(!result.canExecute){notice(result.message||'Unable to calculate position size');return;}
       onLotsChange(result.lots);onSizingModeChange('lots');
       if(tradePlan)onTradePlanChange({sizingMode:'lots',manualLots:result.lots,stage:'ready'});
     }else{
-      onRiskPercentChange(result.riskPercent);onSizingModeChange('risk');
-      if(tradePlan)onTradePlanChange({sizingMode:'risk',manualLots:result.lots,stage:'ready'});
+      // A trader must be able to lower an unaffordable risk budget.
+      // Persist the requested risk even if its current volume is blocked;
+      // the ticket keeps execution disabled until the backend preview passes.
+      const equity=positive(account?.equity);
+      if(!equity){notice('Account equity is unavailable.');return;}
+      const percent=uiMode==='riskUSD'?value/equity*100:value;
+      onRiskPercentChange(percent);onSizingModeChange('risk');
+      if(tradePlan)onTradePlanChange({sizingMode:'risk',manualLots:result.canExecute?result.lots:null,stage:'ready'});
+      if(!result.canExecute)notice(result.message||'Risk budget cannot be executed at this SL.');
     }
   };
   const changeSizing=next=>{
