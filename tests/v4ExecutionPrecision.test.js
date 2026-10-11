@@ -62,6 +62,31 @@ test('Margin mode takes actual volume bands into account instead of simple notio
  assert.ok(result.margin<=830.21+1e-8);
 });
 
+test('Market lots use volume-band executable price for margin, risk and exposure',()=>{
+ const withBand={...instrument,spreadProfile:{volumeBands:[{upTo:0.05,extraPoints:0},{upTo:null,extraPoints:10000}]}};
+ const result=run('lots',0.1,{instrument:withBand});
+ assert.equal(result.canExecute,true);
+ near(result.referencePrice,83120.98);
+ near(result.margin,831.2098);
+ near(result.lossAtStop,90);
+ near(result.grossProfitAtTarget,150);
+ near(result.notionalQuote,8312.098);
+});
+
+test('notional exposure percent uses balance while risk percent uses equity',()=>{
+ const a={...account,balance:200000,equity:50000};
+ const r=run('lots',0.1,{account:a});
+ assert.equal(r.canExecute,true);
+ near(r.notionalAccountPercent,8302.098/200000*100);
+ near(r.actualRiskPercent,80/50000*100);
+});
+
+test('unknown executable quote blocks even a pending limit plan from sizing',()=>{
+ const bad=run('lots',0.1,{instrument:{...instrument,ask:null}});
+ assert.equal(bad.canExecute,false);
+ assert.equal(bad.code,'QUOTE_UNAVAILABLE');
+});
+
 test('Risk % uses the authoritative fee-inclusive risk-sizing engine', () => {
  const result = run('riskPercent',0.08);
  assert.equal(result.canExecute,true);
