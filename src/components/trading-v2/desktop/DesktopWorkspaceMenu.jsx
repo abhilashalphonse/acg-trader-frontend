@@ -81,7 +81,7 @@ export default function DesktopWorkspaceMenu({ snapshot, onApply = () => {} }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-9 z-[90] w-[230px] overflow-hidden rounded-md border border-white/[0.10] bg-[#0C1013] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+        <div className="acg-v3-popover absolute right-0 top-9 z-[90] w-[230px] overflow-hidden rounded-md border border-white/[0.10] bg-[#0C1013] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
           <div className="px-1 pb-1 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#6F8191]">Layout presets</div>
           {workspaces.map(item => (
             <div key={item.id} className="group flex items-center gap-1 rounded hover:bg-white/[0.025]">
