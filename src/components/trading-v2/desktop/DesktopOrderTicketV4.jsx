@@ -147,6 +147,7 @@ export default function DesktopOrderTicketV4({
   onStartPlan=()=>{},onCancelPlan=()=>{},onExecutePlan=()=>{},
   onManualOrder=()=>{},onTradePlanChange=()=>{},onNotice=()=>{},
   exposureAllowed=true,exposureBlockReason='New exposure unavailable',
+  executionCommandPending=false,
   onCloseTicket=()=>{},
 }) {
   const [uiMode,setUiMode]=useState(sizingMode==='risk'?'riskPercent':'lots');
@@ -156,6 +157,8 @@ export default function DesktopOrderTicketV4({
   const [wantTp,setWantTp]=useState(false);
   const [advanced,setAdvanced]=useState(false);
   const [menuOpen,setMenuOpen]=useState(false);
+  const submittingRef=useRef(false);
+  const [localSubmitting,setLocalSubmitting]=useState(false);
   // A chart-loaded risk plan can change the native mode independently.
   useEffect(()=>{if(tradePlan?.sizingMode==='risk')setUiMode(current=>
     current==='lots'||current==='margin'?'riskPercent':current);
@@ -298,12 +301,29 @@ export default function DesktopOrderTicketV4({
     }
   };
   const financialVerified=Number.isFinite(requirement)&&Number.isFinite(freeAfter)&&freeAfter>=0;
-  const canTrade=Boolean(market?.symbol&&validMarket&&exposureAllowed&&financialVerified&&volume);
+  const canTrade=Boolean(market?.symbol&&validMarket&&exposureAllowed&&financialVerified&&volume&&!executionCommandPending&&!localSubmitting);
   const executionDisabledReason=!financialVerified
     ? 'Opening margin, fees, and free margin must be verified before V4 execution.'
     : !volume?'Position size is not executable.':null;
+  const submitOnce=callback=>{
+    if(submittingRef.current || executionCommandPending)return;
+    submittingRef.current=true;
+    setLocalSubmitting(true);
+    try {
+      Promise.resolve(callback()).catch(error=>{
+        notice(error?.message || 'Execution failed');
+      }).finally(()=>{
+        submittingRef.current=false;
+        setLocalSubmitting(false);
+      });
+    } catch (error) {
+      submittingRef.current=false;
+      setLocalSubmitting(false);
+      notice(error?.message || 'Execution failed');
+    }
+  };
   const place=side=>{
-    if(!canTrade){notice(!exposureAllowed?exposureBlockReason:executionDisabledReason||'Waiting for executable market quote.');return;}
+    if(!canTrade){if(!executionCommandPending&&!localSubmitting)notice(!exposureAllowed?exposureBlockReason:executionDisabledReason||'Waiting for executable market quote.');return;}
     if(!tradePlan){
       if(family==='pending'||activeMode==='risk'||wantSl||wantTp||capabilities.stopLossRequiredForManualLots){
         const protection=(wantSl||capabilities.stopLossRequiredForManualLots||activeMode==='risk')
@@ -312,7 +332,7 @@ export default function DesktopOrderTicketV4({
         notice('Review the chart-linked order, then press '+side.toUpperCase()+' again to execute.');
         return;
       }
-      onManualOrder({side,symbol:market.symbol,lots:normalLots(lots),price:side==='buy'?market.ask:market.bid});
+      submitOnce(()=>onManualOrder({side,symbol:market.symbol,lots:normalLots(lots),price:side==='buy'?market.ask:market.bid}));
       return;
     }
     if(tradePlan?.editingOrderId && String(tradePlan.side).toLowerCase()!==side){
@@ -328,7 +348,7 @@ export default function DesktopOrderTicketV4({
     if(!validation.valid){notice(validation.message||'Invalid trade plan.');return;}
     // Use the established parent execution with its client Risk Guard enabled.
     // Parent backend also validates permissions, funds, quotes and funded risk.
-    onExecutePlan();
+    submitOnce(()=>onExecutePlan());
   };
   const changeExitUnit=(field,u)=>{
     if(field==='sl'&&activeMode==='risk'&&['usd','balance'].includes(u)){
