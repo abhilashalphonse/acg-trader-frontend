@@ -207,7 +207,7 @@ async function run(){
    const node=selector=>ticket.querySelector(selector);
    const height=selector=>Math.round((node(selector)?.getBoundingClientRect().height||0)*10)/10;
    return {
-     ticketWidth:height('.v4-ticket'),
+     ticketWidth:Math.round(ticket.getBoundingClientRect().width),
      amountHeight:height('.v4-amount'),
      heroFont:parseFloat(getComputedStyle(node('.v4-hero-value')).fontSize),
      exitHeight:height('.v4-exit-card'),
@@ -224,6 +224,7 @@ async function run(){
  ticket.classList.remove('v4-density-baseline');
  await sleep(80);
  const after=metrics();
+ if(before.ticketWidth!==330 || after.ticketWidth!==330)failed.push('V4 width changed during density comparison');
  if(before.amountHeight!==58 || after.amountHeight!==44)failed.push('Sizing control density mismatch');
  if(before.heroFont!==27 || after.heroFont!==21)failed.push('Sizing typography mismatch');
  if(!(after.bodyScrollHeight<before.bodyScrollHeight-55))
