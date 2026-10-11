@@ -198,7 +198,46 @@ async function run(){
  if(counters.drafts!==countBeforePending+1)failed.push('Pending slider did not create chart draft');
  if(!chart.querySelector('[aria-label="Drag pending entry"]'))failed.push('Pending chart entry drag missing');
  if(counters.planned!==0)failed.push('Pending slider unexpectedly sent order');
+ // Compare actual computed CSS and content height in the SAME 330x620
+ // viewport with SL and TP enabled. This ensures we are shrinking visual
+ // density, not trading semantics, and protecting the pinned footer.
+ chart.querySelector('[title="Add TP"]')?.click();
+ await sleep(160);
+ const metrics=()=>{
+   const node=selector=>ticket.querySelector(selector);
+   const height=selector=>Math.round((node(selector)?.getBoundingClientRect().height||0)*10)/10;
+   return {
+     ticketWidth:height('.v4-ticket'),
+     amountHeight:height('.v4-amount'),
+     heroFont:parseFloat(getComputedStyle(node('.v4-hero-value')).fontSize),
+     exitHeight:height('.v4-exit-card'),
+     quoteHeight:height('.v4-quote-strip'),
+     marginSummaryHeight:height('.v4-margin-summary'),
+     footerHeight:height('.v4-execution-footer'),
+     bodyScrollHeight:node('.v4-ticket-body')?.scrollHeight||0,
+     footerPinned:Math.abs(node('.v4-execution-footer').getBoundingClientRect().bottom-ticket.getBoundingClientRect().bottom)<2,
+   };
+ };
+ ticket.classList.add('v4-density-baseline');
+ await sleep(80);
+ const before=metrics();
+ ticket.classList.remove('v4-density-baseline');
+ await sleep(80);
+ const after=metrics();
+ if(before.amountHeight!==58 || after.amountHeight!==44)failed.push('Sizing control density mismatch');
+ if(before.heroFont!==27 || after.heroFont!==21)failed.push('Sizing typography mismatch');
+ if(!(after.bodyScrollHeight<before.bodyScrollHeight-55))
+   failed.push('Compact ticket did not meaningfully reduce vertical space');
+ if(!after.footerPinned)failed.push('Compact execution footer not pinned');
+ if(!ticket.querySelector('input[aria-label="Take Profit value"]') || !ticket.querySelector('input[aria-label="Stop Loss value"]'))
+   failed.push('Density pass cannot display enabled SL and TP');
+ if(new URLSearchParams(window.location.search).get('density')==='before')
+   ticket.classList.add('v4-density-baseline');
+ const qa=document.createElement('output');
+ qa.id='v4-density-metrics';
+ qa.textContent=JSON.stringify({before,after});
+ document.body.appendChild(qa);
  status.textContent=failed.length?'FAIL: '+failed.join(' | ')
-   :'V4_SMOKE_PASS 330px chart-draft slider-first Margin Risk SL-TP reverse cancel Pending no-execution';
+   :'V4_SMOKE_PASS 330px density before-after chart-draft no-execution';
 }
 run().catch(error=>{document.getElementById('v4-smoke-status').textContent='FAIL: '+error.message;});
