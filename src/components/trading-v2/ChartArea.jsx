@@ -525,7 +525,7 @@ function PendingOrderOverlay({
   );
 }
 
-function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, instrument, lots = 0.1, accountCurrency = 'USD', account = null, riskPercent = 0.5, orderExecutionPreview = null, showEntry = true, mobileStyle = false }) {
+export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, instrument, lots = 0.1, accountCurrency = 'USD', account = null, riskPercent = 0.5, orderExecutionPreview = null, showEntry = true, mobileStyle = false }) {
   const layerRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [preview, setPreview] = useState({});
