@@ -44,10 +44,23 @@ function validGeometry(price, c) {
   return Number.isFinite(price) && price > 0 && (price - c.entry) * c.direction > 0;
 }
 
+function normalizeStableProtection(price, c, field, instrument) {
+  // Floating arithmetic can put an exact tick a few ulps below its legal
+  // integer unit (e.g. price 82220.98 / 0.01). Treat only numerical drift
+  // within 0.0000001 ticks as exact; all true fractional prices still use
+  // the existing side-aware protection rounding.
+  const units = price / c.tick;
+  const nearest = Math.round(units);
+  if (Number.isSafeInteger(nearest) && Math.abs(units - nearest) <= 1e-7) {
+    return nearest * c.tick;
+  }
+  return normalizeProtectionPrice(price, instrument, c.side, field);
+}
+
 function priceForTicks(n, c, field, instrument) {
   if (!Number.isSafeInteger(n) || n < 1) return null;
   const proposed = c.entry + c.direction * n * c.tick;
-  const normalized = normalizeProtectionPrice(proposed, instrument, c.side, field);
+  const normalized = normalizeStableProtection(proposed, c, field, instrument);
   return validGeometry(normalized, c) ? normalized : null;
 }
 
@@ -106,14 +119,14 @@ export function v4ExitPriceFromInput({
   }
 
   let price;
-  if (unit === 'price') price = normalizeProtectionPrice(value, instrument, c.side, field);
+  if (unit === 'price') price = normalizeStableProtection(value, c, field, instrument);
   else if (unit === 'ticks') {
     if (!Number.isSafeInteger(value)) return fail('FRACTIONAL_TICK', 'Ticks must be a whole number.');
     price = priceForTicks(value, c, field, instrument);
   } else if (unit === 'percent') {
-    price = normalizeProtectionPrice(
+    price = normalizeStableProtection(
       c.entry + c.direction * c.entry * value / 100,
-      instrument, c.side, field,
+      c, field, instrument,
     );
   } else {
     const equity = positive(account?.equity);
