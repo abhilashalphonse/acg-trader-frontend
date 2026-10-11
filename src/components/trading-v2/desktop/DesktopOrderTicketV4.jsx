@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronUp, CheckCircle2, Circle, Ellipsis, X, Minus, Plus, ArrowRight } from 'lucide-react';
 import InstrumentAvatar from '../InstrumentAvatar.jsx';
 import { formatInstrumentPrice, instrumentPipSize } from '../../../utils/instrumentFormatting.js';
 import { normalizePriceToTick, normalizeProtectionPrice, normalizeVolumeToStep } from '../../../utils/tradingCommandNormalization.js';
-import { createDefaultTradePlan, defaultPlannerStopDistance, effectiveTradePlan, validateTradePlanForExecution } from '../../../utils/tradePlanExecution.js';
+import { effectiveTradePlan, validateTradePlanForExecution } from '../../../utils/tradePlanExecution.js';
 import { deriveAccountCapabilities } from '../../../utils/accountCapabilities.js';
-import { estimateRequiredMargin, estimateLossAtStopWithCosts, effectiveLeverage, estimateOpeningRequirement, riskSizingSupported } from '../../../utils/tradingRisk.js';
+import { estimateRequiredMargin, estimateLossAtStopWithCosts, effectiveLeverage, estimateOpeningRequirement, riskSizingSupported, defaultPlannerStopDistance } from '../../../utils/tradingRisk.js';
 import { resolveV4PositionSizing } from '../../../utils/v4ExecutionPrecision.js';
 import { v4ExitPriceFromInput, v4ExitValueFromPrice } from '../../../utils/v4ProtectionPrecision.js';
 import './DesktopOrderTicketV4.css';
