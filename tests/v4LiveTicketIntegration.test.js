@@ -49,7 +49,7 @@ test('Four-mode UI dispatches to existing fee-aware adapter, not preview math',(
  for(const mode of ["'lots','Lots'","'margin','Margin $'","'riskPercent','Risk %'","'riskUSD','Risk USD'"])
   assert.ok(component.includes(mode),'missing '+mode);
  assert.match(component,/resolveV4PositionSizing\(\{mode:uiMode,amount:value,plan,account,instrument:market\}\)/);
- assert.match(component,/onRiskPercentChange\(result\.riskPercent\)/);
+ assert.match(component,/onRiskPercentChange\(percent\)/);
  assert.match(component,/onLotsChange\(result\.lots\)/);
  assert.match(component,/riskSizingSupported\(market,currency\)/);
  assert.match(component,/normalizeVolumeToStep/);
