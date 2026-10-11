@@ -1,0 +1,40 @@
+/* V3 metallic-black treatment is strictly scoped to the desktop positions dock. */
+.acg-dock-v3 {
+  --acg-dock-canvas: #050607;
+  --acg-dock-panel: #0a0b0d;
+  --acg-dock-metal: #1c1e21;
+  --acg-dock-divider: #292d31;
+  --acg-dock-silver: #ced1d5;
+  background: var(--acg-dock-canvas);
+  color: #e9ebee;
+  border-color: var(--acg-dock-divider) !important;
+  box-shadow: none;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+.acg-dock-v3 .acg-active-underline {
+  background: var(--acg-dock-silver) !important;
+  border-radius: 0 !important;
+}
+.acg-dock-v3 [class*="bg-[#195be1]"] {
+  background-color: var(--acg-dock-silver) !important;
+}
+.acg-dock-v3 [class*="border-[#195be1]"] {
+  border-color: #5b6067 !important;
+}
+.acg-dock-v3 [class*="text-[#195be1]"] {
+  color: var(--acg-dock-silver) !important;
+}
+.acg-dock-v3 .acg-motion-popover {
+  background: #101214 !important;
+  border-color: #30343a !important;
+  box-shadow: 0 8px 22px rgb(0 0 0 / 0.32) !important;
+  backdrop-filter: none !important;
+}
+.acg-dock-v3 button:focus-visible {
+  outline: 1px solid var(--acg-dock-silver);
+  outline-offset: -2px;
+}
+.acg-dock-v3 .acg-motion-count {
+  box-shadow: none;
+}
