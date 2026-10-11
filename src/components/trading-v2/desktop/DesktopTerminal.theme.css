@@ -208,3 +208,69 @@
 .acg-v3-help [class*="accent-[#195be1]"] { accent-color: #cbd0d6 !important; }
 .acg-v3-help [class*="hover:border-[#195be1]"]:hover { border-color: #777e85 !important; }
 .acg-v3-help [class*="hover:bg-[#192029]"]:hover { background: #18181B !important; }
+
+
+/* V3 chart-black unification
+   The rendered chart uses #09090B. Primary desktop surfaces share that exact
+   color; #111113 is reserved for controls, #222225 for selected controls. */
+.acg-desktop-v3 {
+  --acg-v3-chart-black: #09090B;
+  --terminal-surface: var(--acg-v3-chart-black);
+  --terminal-surface-raised: #111113;
+  --terminal-surface-active: #222225;
+  --terminal-accent: #CBD0D6;
+}
+.acg-desktop-v3 .acg-desktop-market-strip,
+.acg-desktop-v3 .acg-motion-side-panel,
+.acg-desktop-v3 aside[aria-label="Desktop panel dock"],
+.acg-desktop-v3 .acg-desktop-dock-shell,
+.acg-desktop-v3 .acg-exec-root,
+.acg-desktop-v3 .acg-dock-v3,
+.acg-desktop-v3 .acg-v3-watchlist {
+  background: var(--acg-v3-chart-black) !important;
+}
+.acg-desktop-v3 .acg-dock-v3 > div:first-child,
+.acg-desktop-v3 .acg-v3-watchlist > div:first-child,
+.acg-desktop-v3 .acg-v3-watchlist [class*="bg-[#080a0c]"],
+.acg-desktop-v3 .acg-dock-v3 [class*="bg-[#0A0B0D]"] {
+  background: var(--acg-v3-chart-black) !important;
+}
+.acg-desktop-v3 .acg-desktop-chart-toolbar .terminal-toolbar-group {
+  background: #111113 !important;
+  border-color: #262628 !important;
+}
+.acg-desktop-v3 .acg-desktop-market-strip [class*="bg-[#080808]"],
+.acg-desktop-v3 .acg-desktop-chart-toolbar button[class*="bg-[#171719]"],
+.acg-desktop-v3 .acg-desktop-chart-toolbar button[class*="bg-[#222225]"] {
+  background: #111113 !important;
+}
+/* Silver-gray typography; no blue tint in passive labels. */
+.acg-desktop-v3 [class~="text-[#6F8191]"],
+.acg-desktop-v3 [class~="text-[#7F8D99]"],
+.acg-desktop-v3 [class~="text-[#A1AFBC]"],
+.acg-desktop-v3 [class~="text-[#8996a1]"] {
+  color: #9C9DA3 !important;
+}
+.acg-desktop-v3 .acg-active-underline {
+  background: #D0D0D4 !important;
+}
+.acg-desktop-v3 aside[aria-label="Drawing tools"] button[class*="ring-[#195be1]"],
+.acg-desktop-v3 aside[aria-label="Drawing tools"] .acg-mobile-drawing-tool-selected {
+  background: #222225 !important;
+  color: #ECECEF !important;
+  border-color: #5A5A60 !important;
+  box-shadow: inset 0 0 0 1px #55555C !important;
+  --tw-ring-color: #55555C !important;
+}
+/* Separate menus from the chart only by depth and a hairline border. */
+.acg-desktop-v3 .acg-motion-popover,
+.acg-desktop-v3 .acg-v3-popover {
+  background: #111113 !important;
+  border-color: #29292D !important;
+}
+.acg-v3-sheet > section,
+.acg-v3-help section[role="dialog"] {
+  background: #09090B !important;
+  border-color: #29292D !important;
+}
+/* Price movement, risk states and colored Buy/Sell actions remain intentional. */
