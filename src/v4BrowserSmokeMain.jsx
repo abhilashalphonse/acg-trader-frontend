@@ -273,6 +273,45 @@ async function run(){
  typeEvidence.id='v4-typography-metrics';
  typeEvidence.textContent=JSON.stringify({before:oldType,after:newType,fontFaces});
  document.body.appendChild(typeEvidence);
+ // Relative to the full terminal, the previously enlarged 18px
+ // symbol and CTA prices should normalize to 15px, with the 330px
+ // geometry, visible execution footer and chart draft unchanged.
+ const terminalType=()=>{
+   const style=selector=>{
+     const e=ticket.querySelector(selector);
+     const c=getComputedStyle(e);
+     return {px:parseFloat(c.fontSize),weight:Number(c.fontWeight),
+       width:e.clientWidth,scrollWidth:e.scrollWidth};
+   };
+   return {
+     symbol:style('.v4-symbol strong'),
+     hero:style('.v4-hero-value'),
+     actionLabel:style('.v4-trade-actions button span'),
+     actionPrice:style('.v4-trade-actions button strong'),
+     actionHeight:Math.round(ticket.querySelector('.v4-trade-actions button').getBoundingClientRect().height),
+     width:Math.round(ticket.getBoundingClientRect().width),
+     footerPinned:Math.abs(ticket.querySelector('.v4-execution-footer').getBoundingClientRect().bottom-ticket.getBoundingClientRect().bottom)<2,
+   };
+ };
+ ticket.classList.add('v4-terminal-type-baseline');
+ await sleep(75);
+ const terminalBefore=terminalType();
+ ticket.classList.remove('v4-terminal-type-baseline');
+ await sleep(75);
+ const terminalAfter=terminalType();
+ if(terminalBefore.symbol.px!==18||terminalAfter.symbol.px!==15)failed.push('Symbol not normalized 18→15px');
+ if(terminalBefore.hero.px!==21||terminalAfter.hero.px!==19)failed.push('Position value not normalized 21→19px');
+ if(terminalBefore.actionLabel.px!==13||terminalAfter.actionLabel.px!==11)failed.push('Action label not normalized 13→11px');
+ if(terminalBefore.actionPrice.px!==18||terminalAfter.actionPrice.px!==15)failed.push('Execution price not normalized 18→15px');
+ if(terminalBefore.actionHeight<60||terminalAfter.actionHeight!==52)failed.push('Action height not normalized to 52px');
+ if(terminalAfter.width!==330||!terminalAfter.footerPinned)failed.push('Terminal typography changed ticket geometry');
+ if(terminalAfter.actionPrice.scrollWidth>terminalAfter.actionPrice.width+1)failed.push('Execution price clipped after normalization');
+ if(terminalAfter.symbol.scrollWidth>terminalAfter.symbol.width+1)failed.push('Symbol clipped after normalization');
+ if(terminalAfter.symbol.weight!==600||terminalAfter.actionLabel.weight!==600)failed.push('Primary label weight not terminal-like');
+ const normalizationEvidence=document.createElement('output');
+ normalizationEvidence.id='v4-terminal-typography-metrics';
+ normalizationEvidence.textContent=JSON.stringify({before:terminalBefore,after:terminalAfter});
+ document.body.appendChild(normalizationEvidence);
  if(new URLSearchParams(window.location.search).get('density')==='before')
    ticket.classList.add('v4-density-baseline');
  const qa=document.createElement('output');
@@ -280,6 +319,6 @@ async function run(){
  qa.textContent=JSON.stringify({before,after});
  document.body.appendChild(qa);
  status.textContent=failed.length?'FAIL: '+failed.join(' | ')
-   :'V4_SMOKE_PASS 330px hierarchy 14to18 action 14to18 font chart-draft no-execution';
+   :'V4_SMOKE_PASS 330px terminal typography 18to15 CTA 52px chart-draft no-execution';
 }
 run().catch(error=>{document.getElementById('v4-smoke-status').textContent='FAIL: '+error.message;});
