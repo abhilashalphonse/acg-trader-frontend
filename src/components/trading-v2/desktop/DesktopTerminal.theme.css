@@ -108,3 +108,37 @@
 @media (prefers-reduced-motion: reduce) {
   .acg-desktop-v3 button { transition-duration: 0ms !important; }
 }
+
+/* Chart drawing rail and overlays: neutral graphite selection without
+   changing tool selection logic, order drag mechanics, or chart price data. */
+.acg-desktop-v3 aside[aria-label="Drawing tools"] {
+  background: #08090b !important;
+  border-color: #2b2e32 !important;
+  box-shadow: none !important;
+}
+.acg-desktop-v3 aside[aria-label="Drawing tools"] button[class*="bg-[#10202a]"] {
+  background: #25282b !important;
+  box-shadow: none !important;
+  --tw-ring-color: #656b71 !important;
+}
+.acg-desktop-v3 aside[aria-label="Drawing tools"] button[class*="text-[#195be1]"],
+.acg-desktop-v3 aside[aria-label="Drawing tools"] span[class*="text-[#195be1]"] {
+  color: #cbd0d6 !important;
+}
+.acg-desktop-v3 aside[aria-label="Drawing tools"] span[class*="bg-[#195be1]"] {
+  background: #cbd0d6 !important;
+}
+/* The existing pending-order chart annotations must remain accessible; only
+   their decorative bright-blue containers become neutral graphite. */
+.acg-desktop-v3 .acg-v3-review-body {
+  background: #0a0b0d !important;
+  border: 1px solid #31353a !important;
+  border-radius: 9px !important;
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.35) !important;
+}
+.acg-desktop-v3 .acg-v3-watchlist .acg-motion-row:hover {
+  background: #17191c;
+}
+.acg-desktop-v3 .acg-v3-watchlist .acg-motion-row:focus-within {
+  box-shadow: inset 1px 0 #cbd0d6;
+}
