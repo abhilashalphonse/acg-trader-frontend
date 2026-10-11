@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap");
+
 /* Production V4 styling derived from approved frozen baseline fa73c3db.
  * All selectors are V4-prefixed; the live legacy ticket remains unaffected. */
 .v4-live-scope { width:100%; min-width:0; height:100%; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI",sans-serif; }
@@ -256,3 +258,113 @@
   border-radius: 8px;
 }
 .v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-trade-actions button strong { font-size: 14px; }
+
+/*
+ * V4 TYPOGRAPHY & HIERARCHY — approved 2026-10-11
+ *
+ * This overrides only the opted-in LIVE V4 ticket's visual presentation.
+ * No new markup, calculations, chart gestures, mobile or execution change.
+ * Explicit Google Fonts Inter stylesheet loads the specified real weights.
+ * Arial is a reliable fallback if the font provider is blocked/offline.
+ *
+ * On the synthetic browser fixture, .v4-typography-baseline disables only
+ * these refinements to permit direct same-viewport before/after comparison.
+ */
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) {
+  font-family: "Inter", Arial, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  font-optical-sizing: auto;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) .v4-symbol strong {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.012em;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) .v4-symbol span {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.25;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) .v4-instrument {
+  min-height: 36px;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) .v4-symbol-button {
+  min-width: 0;
+  overflow: hidden;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) .v4-symbol strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) .v4-symbol strong svg {
+  flex: 0 0 auto;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) .v4-quote-strip > span {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) .v4-quote-strip strong {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) .v4-position-modes .v4-capsule-button {
+  font-size: 11px;
+  font-weight: 500;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) .v4-position-modes .v4-capsule-button.selected {
+  font-weight: 700;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) .v4-scale {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) .v4-translation {
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) .v4-translation span {
+  font-weight: 400;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) .v4-hero-value,
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) .v4-hero-input input {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) .v4-exit-heading strong,
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) .v4-ratio-slab strong,
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) .v4-margin-summary strong {
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) .v4-trade-actions button {
+  min-height: 60px;
+  padding: 9px 10px;
+  gap: 4px;
+  justify-content: center;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) .v4-trade-actions button span {
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.v4-ticket.v4-live-scope:not(.v4-typography-baseline) .v4-trade-actions button strong {
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  max-width: 100%;
+}
+/* Sizing/action controls retain legible native proportions at the 330px dock. */
