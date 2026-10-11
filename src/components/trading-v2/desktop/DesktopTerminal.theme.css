@@ -287,3 +287,39 @@
   width: 0;
   height: 0;
 }
+
+
+/* Edge-to-edge desktop workspace: the previous card radii visually left black
+   wedges at the toolbar/header, chart/dock seam, and viewport bottom even
+   after the grid's row gap was removed. Keep a single one-pixel divider. */
+.acg-desktop-v3 .acg-desktop-market-strip {
+  border: 0 !important;
+  border-bottom: 1px solid #29292d !important;
+  border-radius: 0 !important;
+}
+.acg-desktop-v3 .acg-desktop-drawing-rail {
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+  border-left: 0 !important;
+  border-radius: 0 !important;
+}
+.acg-desktop-v3 .acg-desktop-chart-frame,
+.acg-desktop-v3 .acg-desktop-chart-inner {
+  border-radius: 0 !important;
+}
+.acg-desktop-v3 .acg-motion-side-panel,
+.acg-desktop-v3 aside[aria-label="Desktop panel dock"] {
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+  border-radius: 0 !important;
+}
+.acg-desktop-v3 .acg-desktop-dock-shell {
+  border: 0 !important;
+  border-top: 1px solid #29292d !important;
+  border-radius: 0 !important;
+}
+.acg-desktop-v3 .acg-dock-v3 {
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+  border-radius: 0 !important;
+}
