@@ -78,6 +78,19 @@ test('Frozen V4 layout and guardrails use graphite, white pills, pinned executio
  assert.match(css, /\.v4-buy \{ background: #195be1/);
 });
 
+test('V4 prevents duplicate click submissions and tracks actual command pending state',()=>{
+ const parent=read('src/pages/TradingTerminalV2.jsx');
+ assert.match(parent,/executionCommandPending=\{trading\.commandState\.pending === true\}/);
+ assert.match(parent,/return runMarketExecution\(\{/);
+ assert.match(desktop,/executionCommandPending=\{executionCommandPending\}/);
+ assert.match(desktop,/return onManualOrder\(order, options\)/);
+ assert.match(component,/submittingRef=useRef\(false\)/);
+ assert.match(component,/!executionCommandPending&&!localSubmitting/);
+ assert.match(component,/submitOnce\(\(\)=>onExecutePlan\(\)\)/);
+ assert.match(component,/submitOnce\(\(\)=>onManualOrder\(/);
+ assert.match(component,/Promise\.resolve\(callback\(\)\)/);
+});
+
 test('Mobile execution and protected preview remain separate entry points',()=>{
  const main=read('src/main.jsx');
  assert.doesNotMatch(main,/DesktopOrderTicketV4/);
