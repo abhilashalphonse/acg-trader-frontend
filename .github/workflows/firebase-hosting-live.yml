@@ -16,6 +16,9 @@ env:
   VITE_ACG_TRADER_API_BASE: https://acg-trader-backend-production.up.railway.app
   VITE_ACG_TRADER_WS_URL: wss://acg-trader-backend-production.up.railway.app/v1/ws
   VITE_ACG_TRADER_HTTP_TIMEOUT_MS: 10000
+  # V4 remains OFF globally; only explicit ?acg_v4_audit=1 sessions
+  # show the draft ticket while the normal execution UI stays intact.
+  VITE_ACG_EXECUTION_V4_ENABLED: 'true'
   VITE_ACG_FUNDED_SUPPORT_BASE_URL: ${{ secrets.VITE_ACG_FUNDED_SUPPORT_BASE_URL }}
   VITE_GIT_SHA: ${{ github.sha }}
 
@@ -39,6 +42,13 @@ jobs:
 
       - name: Build production frontend
         run: npm run build
+
+      - name: Assert V4 is gated behind explicit production audit opt-in
+        run: |
+          set -euo pipefail
+          grep -qrF 'acg_v4_audit' dist/assets
+          grep -qrF 'ACG Trader V4 live execution ticket' dist/assets
+          echo 'Audit-only V4 is bundled; default legacy ticket remains the live path.'
 
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0

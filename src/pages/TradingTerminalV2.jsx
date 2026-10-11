@@ -1210,7 +1210,7 @@ export default function TradingTerminalV2({
     }
 
     const executionPrice = estimateExecutionPrice(instrument, order.side, executionLots)?.price;
-    void runMarketExecution({
+    return runMarketExecution({
       side: order.side,
       executionLots,
       symbol: order.symbol,
@@ -1448,6 +1448,7 @@ export default function TradingTerminalV2({
           onOpenHelp={openHelp}
           exposureAllowed={exposure.allowed}
           exposureBlockReason={exposure.reason}
+          executionCommandPending={trading.commandState.pending === true}
           riskGuardSettings={riskGuardSettings}
           onRiskGuardSettingsChange={setRiskGuardSettings}
           readOnly={readOnly}
