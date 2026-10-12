@@ -1408,6 +1408,7 @@ export default function ChartArea({
   onCancelPositionProtection = () => {},
   selectedPositionId = null,
   onSelectPosition = () => {},
+  onSelectPending = () => {},
   onClosePosition = () => {},
   historicalPosition = null,
   onClearHistoricalPosition = () => {},
@@ -1770,7 +1771,7 @@ export default function ChartArea({
           onRequestPositionProtection={onRequestPositionProtection}
           onCancelPositionProtection={onCancelPositionProtection}
           onPositionProtectionDraftChange={onPositionProtectionDraftChange}
-          onSelectPosition={onSelectPosition} onClosePosition={onClosePosition}
+          onSelectPosition={onSelectPosition} onSelectPending={onSelectPending} onClosePosition={onClosePosition}
           onCancelPending={onCancelPending}
         />}
 
