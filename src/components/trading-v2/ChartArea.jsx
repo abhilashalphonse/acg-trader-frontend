@@ -598,7 +598,7 @@ export function PendingOrderOverlay({
   );
 }
 
-export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, instrument, lots = 0.1, accountCurrency = 'USD', account = null, riskPercent = 0.5, orderExecutionPreview = null, showEntry = true, mobileStyle = false }) {
+export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, instrument, lots = 0.1, accountCurrency = 'USD', account = null, riskPercent = 0.5, orderExecutionPreview = null, showEntry = true, mobileStyle = false, desktopStyle = false }) {
   const layerRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [preview, setPreview] = useState({});
@@ -886,7 +886,8 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
   // A market entry is read-only; pending orders keep their drag handles.
   const desktopPendingStyle = Boolean(
     showEntry && !mobileStyle && (
-      (plan.pending && Object.prototype.hasOwnProperty.call(plan, 'desktopPendingDraft'))
+      desktopStyle
+      || (plan.pending && Object.prototype.hasOwnProperty.call(plan, 'desktopPendingDraft'))
       || plan.source === 'v4-slider'
     )
   );
@@ -1522,6 +1523,7 @@ export default function ChartArea({
           account={account}
           riskPercent={riskPercent}
           orderExecutionPreview={orderExecutionPreview}
+          desktopStyle={desktopEnhanced && !mobileOverlayStyle}
         />
         {positionProtectionDraft && (
           <TradePlanOverlay
