@@ -34,6 +34,16 @@ test('Production build enables audit-only bundle but keeps default legacy UI',()
  assert.match(desktop,/<DesktopOrderTicket key=/);
 });
 
+test('V4 presents a single Market/Limit/Stop selector without exposing new Stop Limit creation',()=>{
+ assert.match(component,/const entryOptions=\[\['market','Market'\],\['limit','Limit'\],\['stop','Stop'\]\]/);
+ assert.match(component,/<Capsule className="v4-mainmodes v4-order-types" label="Order type" options=\{entryOptions\}/);
+ assert.doesNotMatch(component,/label="Pending type"/);
+ assert.doesNotMatch(component,/\['stop-limit','Stop Limit'\]/);
+ assert.match(component,/orderType==='stop-limit'&&tradePlan\?\.editingOrderId/);
+ assert.match(component,/if\(orderType==='stop-limit'&&!tradePlan\?\.editingOrderId\)onOrderTypeChange\('stop'\)/);
+ assert.match(component,/if\(tradePlan\?\.editingOrderId\)/);
+});
+
 test('V4 uses real market/account/plan props, not synthetic preview values',()=>{
  assert.match(component,/market,account=\{\}/);
  assert.match(component,/tradePlan,/);
