@@ -186,7 +186,7 @@ export default function V4FullTerminalOrders({
     if (objectType === 'pending') {
       const order = pendingOrders.find(item => String(item.id) === String(id) &&
         String(item.symbol).toUpperCase() === String(symbol).toUpperCase() &&
-        String(item.status || 'PENDING').toUpperCase() === 'PENDING');
+        ['PENDING','ACCEPTED','TRIGGERED'].includes(String(item.status || 'PENDING').toUpperCase()));
       if (!order || accepted.some(level => level.objectType==='pending' &&
         level.objectId===String(id) && level.kind===kind)) return;
       // Match the existing trade planner's protective distance and rounding.
