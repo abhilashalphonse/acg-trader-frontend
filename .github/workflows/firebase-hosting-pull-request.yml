@@ -32,7 +32,7 @@ jobs:
         run: npm ci
 
       - name: Verify V4 STAGING Trader readiness
-        if: ${{ github.event.pull_request.number == 90 }}
+        if: ${{ (github.event.pull_request.number == 90 || github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels') }}
         run: |
           set -euo pipefail
           base='https://discerning-presence-staging.up.railway.app'
@@ -41,6 +41,8 @@ jobs:
           echo 'Staging Trader live and readiness checks returned HTTP success.'
 
       - name: Verify STAGING CORS allows the V4 Firebase preview
+        # The original known origin only belongs to PR #90.
+        # The chart-order preview origin is checked after Firebase supplies its URL.
         if: ${{ github.event.pull_request.number == 90 }}
         run: |
           set -euo pipefail
@@ -56,23 +58,23 @@ jobs:
       - name: Build preview
         run: npm run build
         env:
-          # PR #90 is a controlled V4 integration preview against STAGING only.
+          # The chart-order feature branch also builds against STAGING; never test new chart actions against production.
           # Every other PR retains its original endpoints and legacy UI.
-          VITE_ACG_TRADER_API_BASE: ${{ github.event.pull_request.number == 90 && 'https://discerning-presence-staging.up.railway.app' || secrets.VITE_ACG_TRADER_API_BASE }}
-          VITE_ACG_TRADER_WS_URL: ${{ github.event.pull_request.number == 90 && 'wss://discerning-presence-staging.up.railway.app/v1/ws' || secrets.VITE_ACG_TRADER_WS_URL }}
-          VITE_ACG_EXECUTION_V4_ENABLED: ${{ github.event.pull_request.number == 90 && 'true' || 'false' }}
+          VITE_ACG_TRADER_API_BASE: ${{ (github.event.pull_request.number == 90 || github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels') && 'https://discerning-presence-staging.up.railway.app' || secrets.VITE_ACG_TRADER_API_BASE }}
+          VITE_ACG_TRADER_WS_URL: ${{ (github.event.pull_request.number == 90 || github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels') && 'wss://discerning-presence-staging.up.railway.app/v1/ws' || secrets.VITE_ACG_TRADER_WS_URL }}
+          VITE_ACG_EXECUTION_V4_ENABLED: ${{ (github.event.pull_request.number == 90 || github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels') && 'true' || 'false' }}
           VITE_ACG_TRADER_HTTP_TIMEOUT_MS: 10000
           VITE_ACG_FUNDED_SUPPORT_BASE_URL: ${{ secrets.VITE_ACG_FUNDED_SUPPORT_STAGING_BASE_URL }}
           VITE_GIT_SHA: ${{ github.event.pull_request.head.sha }}
 
       - name: Verify V4 PR staging isolation
-        if: ${{ github.event.pull_request.number == 90 }}
+        if: ${{ (github.event.pull_request.number == 90 || github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels') }}
         run: |
           test -d dist/assets
           # Vite includes the baked API/WS targets in the client bundle.
           grep -qrF 'discerning-presence-staging.up.railway.app' dist/assets
           grep -qrF 'ACG Trader V4 live execution ticket' dist/assets
-          echo 'V4 PR #90 built against staged Trader API only; no production deploy.'
+          echo 'Isolated V4 preview built against STAGING Trader API; no production deployment.'
 
       - name: Deploy preview channel
         uses: FirebaseExtended/action-hosting-deploy@v0
@@ -82,3 +84,38 @@ jobs:
           projectId: acg-trader
           channelId: pr-${{ github.event.pull_request.number }}
           expires: 7d
+
+      - name: Verify chart-order preview Origin against STAGING CORS
+        if: ${{ github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels' }}
+        run: |
+          set -euo pipefail
+          origin='https://acg-trader--pr-97-v1thyrgt.web.app'
+          base='https://discerning-presence-staging.up.railway.app'
+          headers="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 20 --dump-header - --output /dev/null --header "Origin: $origin" "$base/health/live")"
+          if ! printf '%s\n' "$headers" | grep -qiF "access-control-allow-origin: $origin"; then
+            echo '::error::STAGING backend does not currently allow chart-order Firebase preview Origin. Do not run authenticated trading acceptance on this preview.'
+            exit 1
+          fi
+          # Exercise the browser's actual POST/PATCH preflight contract for
+          # pending creation and amendment, without sending trading commands.
+          for case in 'POST /v1/trading/orders/pending' 'PATCH /v1/trading/orders/chart-order-check'; do
+            method="${case%% *}"
+            path="${case#* }"
+            preflight="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 20 \
+              --request OPTIONS --dump-header - --output /dev/null \
+              --header "Origin: $origin" \
+              --header "Access-Control-Request-Method: $method" \
+              --header 'Access-Control-Request-Headers: authorization,content-type' \
+              "$base$path")"
+            printf '%s\n' "$preflight" | grep -qiF "access-control-allow-origin: $origin" || {
+              echo "::error::STAGING CORS preflight rejected $method $path Origin"; exit 1;
+            }
+            printf '%s\n' "$preflight" | grep -qiF 'access-control-allow-credentials: true' || {
+              echo "::error::STAGING CORS credentials not allowed for $method $path"; exit 1;
+            }
+            printf '%s\n' "$preflight" | grep -Ei '^access-control-allow-methods:' | grep -qi "$method" || {
+              echo "::error::STAGING CORS method $method not allowed for $path"; exit 1;
+            }
+          done
+          echo 'Confirmed chart-order Firebase preview Origin and POST/PATCH preflights are allowed by STAGING Trader.'
+

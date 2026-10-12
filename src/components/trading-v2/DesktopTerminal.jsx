@@ -46,16 +46,17 @@ import { effectiveTradePlan } from '../../utils/tradePlanExecution.js';
 import { resolveExecutionPreview } from '../../utils/executionPricing.js';
 import { validateOpenPositionProtection } from '../../utils/openPositionPresentation.js';
 import { loadDesktopChartSettings, normalizeDesktopChartSettings, saveDesktopChartSettings } from '../../utils/desktopChartSettings.js';
+import { isChartOrderAuditEnabled } from '../../utils/chartOrderPresentation.js';
 
 // Explicit opt-in only. Disabled in all existing builds unless configured.
 // ACG V4 is an owner-initiated production audit, not a global ticket rollout.
  // The approved baseline may be inspected in the live site using
  // ?acg_v4_audit=1. Without BOTH the deployment flag and this opt-in,
  // every existing customer continues to receive the legacy execution ticket.
-const V4_DESKTOP_EXECUTION_ENABLED =
-  import.meta.env.VITE_ACG_EXECUTION_V4_ENABLED === 'true'
-  && typeof window !== 'undefined'
-  && new URLSearchParams(window.location.search).get('acg_v4_audit') === '1';
+const V4_DESKTOP_EXECUTION_ENABLED = isChartOrderAuditEnabled(
+  import.meta.env.VITE_ACG_EXECUTION_V4_ENABLED,
+  typeof window !== 'undefined' ? window.location.search : '',
+);
 
 const timeframes = [['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], ['1H', '1H'], ['4H', '4H'], ['1D', '1D'], ['1W', '1W']];
 
@@ -1122,6 +1123,7 @@ export default function DesktopTerminal({
             <div className="min-h-0 min-w-0 bg-black p-0">
               <DesktopMultiChart
                 compactContext={positionsExpanded}
+                chartOrderV4={V4_DESKTOP_EXECUTION_ENABLED}
                 chartSettings={chartSettings}
                 config={multiChart}
                 onChange={setMultiChart}

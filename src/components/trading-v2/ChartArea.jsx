@@ -7,6 +7,7 @@ import { positionCloseAvailability } from '../../utils/marketExecutionAvailabili
 import { estimateLossAtStopWithCosts, estimatePositionPnlAtPrice, estimateStopRisk, positionDistancePips } from '../../utils/tradingRisk.js';
 import { resolveExecutionPreview } from '../../utils/executionPricing.js';
 import { effectiveTradePlan } from '../../utils/tradePlanExecution.js';
+import { chartEntryReference, chartLineStyle, chartPriceChangePercent, chartEstimateCurrencySupported } from '../../utils/chartOrderPresentation.js';
 import { DRAWING_TOOL_GROUPS, DRAWING_TOOL_LABELS } from '../../utils/drawingTools.js';
 import { DRAWING_TOOL_ICONS } from './DrawingToolIcons.jsx';
 import { chartTimezoneLabel, formatChartClock } from '../../utils/desktopChartSettings.js';
@@ -60,7 +61,58 @@ function formatPositionLots(value) {
   return numeric.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
 }
 
-function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instrument, selectedPositionId = null, onSelectPosition = () => {}, onClosePosition = () => {} }) {
+// Single desktop label treatment shared by draft, accepted pending and live position levels.
+// Visual status changes the line style; we intentionally do not add "planned" wording.
+function ChartLevelBadge({ label, price, amount = null, percent = null, color = '#aab8c5', onPointerDown, onClick, onRemove, removeLabel = 'Remove level', tooltip = null }) {
+  const isInteractive = Boolean(onPointerDown || onClick);
+  return (
+    <div
+      className={`pointer-events-auto absolute right-[70px] top-1/2 z-20 flex h-7 max-w-[calc(100%-84px)] -translate-y-1/2 items-center gap-2 overflow-hidden rounded-[5px] border bg-[#111419]/96 px-2 font-mono text-[10px] font-semibold tabular-nums shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
+      style={{ borderColor: `${color}aa` }}
+      onPointerDown={onPointerDown}
+      onClick={onClick}
+      title={tooltip || undefined}
+      role={isInteractive ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onClick(event); } } : undefined}
+    >
+      <span aria-hidden="true" className="shrink-0 text-[11px] tracking-[-2px] text-[#788592]">⠿</span>
+      <span className="shrink-0 font-sans font-semibold" style={{ color }}>{label}</span>
+      {price != null && <span className="shrink-0 text-[#e5ebf0]">{price}</span>}
+      {amount != null && <span className="shrink-0 rounded-[3px] px-1.5 py-0.5" style={{ color, backgroundColor: `${color}1b` }}>{amount}</span>}
+      {percent != null && <span className="shrink-0 font-sans font-medium text-[#919ba6]">{Number(percent).toFixed(2)}%</span>}
+      {onRemove && <button type="button" className="ml-0.5 grid size-5 shrink-0 place-items-center rounded text-[#9aa5af] hover:bg-white/10 hover:text-white" aria-label={removeLabel} onPointerDown={event => event.stopPropagation()} onClick={event => { event.preventDefault(); event.stopPropagation(); onRemove(); }}>×</button>}
+    </div>
+  );
+}
+
+// Reusable compact order row: direction → absent TP/SL shortcuts → size → type → close.
+// Existing protections move to their own draggable levels, restoring shortcuts when removed.
+function ChartOrderEntryRow({ side, type, lots, color, showTp = false, showSl = false, onTp, onSl, onCancel, onPointerDown, onClick, cancelLabel, title }) {
+  const interactive = Boolean(onClick || onPointerDown);
+  return (
+    <div
+      className={`pointer-events-auto absolute right-[70px] top-1/2 z-20 flex h-7 max-w-[calc(100%-84px)] -translate-y-1/2 items-center overflow-hidden rounded-[5px] border bg-[#111419]/96 font-mono text-[10px] font-semibold tabular-nums text-[#e4e9ed] shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
+      style={{ borderColor: `${color}aa` }}
+      title={title || undefined}
+      onPointerDown={onPointerDown}
+      onClick={onClick}
+      role={interactive ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onClick(event); } } : undefined}
+    >
+      <span className="px-2 font-sans font-bold" style={{ color }}>{side}</span>
+      {showTp && <button type="button" aria-label="Add TP" title="Add TP" className="h-full border-l border-white/10 px-1.5 text-[9px] text-[#35d79d] hover:bg-white/[0.06]" onPointerDown={event => event.stopPropagation()} onClick={event => { event.preventDefault(); event.stopPropagation(); onTp?.(); }}>TP</button>}
+      {showSl && <button type="button" aria-label="Add SL" title="Add SL" className="h-full border-l border-white/10 px-1.5 text-[9px] text-[#ff5968] hover:bg-white/[0.06]" onPointerDown={event => event.stopPropagation()} onClick={event => { event.preventDefault(); event.stopPropagation(); onSl?.(); }}>SL</button>}
+      <span className="border-l border-white/10 px-2">{Number.isFinite(lots) ? formatPositionLots(lots) : '—'}</span>
+      <span className="whitespace-nowrap border-l border-white/10 px-2 font-sans text-[9px] text-[#9eadbb]">{type}</span>
+      <button type="button" aria-label={cancelLabel || 'Cancel order'} className="grid h-full w-7 shrink-0 place-items-center border-l border-white/10 text-[13px] text-[#a6b1bc] hover:bg-white/[0.06] hover:text-white"
+        onPointerDown={event => event.stopPropagation()} onClick={event => { event.preventDefault(); event.stopPropagation(); onCancel?.(); }}>×</button>
+    </div>
+  );
+}
+
+function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instrument, selectedPositionId = null, onSelectPosition = () => {}, onClosePosition = () => {}, desktopStyle = false }) {
   const [, forceLayout] = useState(0);
   const closeAvailability = positionCloseAvailability(instrument);
   const closeDisabled = !closeAvailability.allowed;
@@ -68,7 +120,7 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
   const activePositions = useMemo(
     () => (Array.isArray(positions) ? positions : []).filter(position =>
       String(position?.symbol || '').toUpperCase() === String(symbol || '').toUpperCase()
-      && Number.isFinite(Number(position?.entry ?? position?.entryPrice))
+      && validPlanPrice(position?.entry ?? position?.entryPrice) != null
     ),
     [positions, symbol],
   );
@@ -91,21 +143,27 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
         const pnl = Number(position.pnl);
         const currency = position?.pnlCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || 'USD';
         const lots = Number(position.volume ?? position.lots);
-        const signedLots = `${isBuy ? '' : '-'}${formatPositionLots(lots)}`;
         const lineColor = isBuy ? '#12b996' : '#ef5664';
+        const signedLots = `${isBuy ? '' : '-'}${formatPositionLots(lots)}`;
         const quantityBackground = isBuy ? '#087a62' : '#8f2734';
         const closeColor = isBuy ? '#35d7b0' : '#ff7883';
-        const pnlColor = Number.isFinite(pnl)
-          ? pnl < 0
-            ? '#ff5968'
-            : pnl > 0
-              ? '#55dfa9'
-              : '#eef4f2'
-          : '#eef4f2';
+        const pnlColor = Number.isFinite(pnl) ? pnl < 0 ? '#ff5968' : pnl > 0 ? '#55dfa9' : '#eef4f2' : '#eef4f2';
 
         return (
           <div key={position.id || `${side}-${entry}-${lots}`} className="absolute left-0 right-0" style={{ top: y }}>
             <div className="relative border-t" style={{ borderColor: lineColor }}>
+              {desktopStyle ? (
+              <ChartLevelBadge
+                label={`${side} ${formatPositionLots(lots)} lots`}
+                price={formatInstrumentPrice(entry, instrument)}
+                amount={Number.isFinite(pnl) ? formatPositionPnl(pnl, currency) : null}
+                color={lineColor}
+                tooltip={closeDisabled ? closeAvailability.reason : 'Live position: click to select; × closes at market when permitted.'}
+                onClick={event => { event.stopPropagation(); onSelectPosition(position.id); }}
+                onRemove={closeDisabled ? null : () => onClosePosition(position.id, 100)}
+                removeLabel={`Close ${side} ${position.symbol || symbol} position`}
+              />
+              ) : (
               <div
                 role="button"
                 tabIndex={0}
@@ -120,35 +178,24 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
                 style={{ borderColor: lineColor }}
                 aria-label={`Select ${side} ${position.symbol || symbol} position`}
               >
-                <span
-                  className="flex min-w-[30px] items-center justify-center border-r px-2 text-white"
-                  style={{ backgroundColor: quantityBackground, borderColor: `${lineColor}80` }}
-                >
+                <span className="flex min-w-[30px] items-center justify-center border-r px-2 text-white"
+                  style={{ backgroundColor: quantityBackground, borderColor: `${lineColor}80` }}>
                   {signedLots}
                 </span>
-                <span
-                  className="flex min-w-[72px] items-center justify-center border-r px-2"
-                  style={{ color: pnlColor, borderColor: `${lineColor}55` }}
-                >
+                <span className="flex min-w-[72px] items-center justify-center border-r px-2"
+                  style={{ color: pnlColor, borderColor: `${lineColor}55` }}>
                   {formatPositionPnl(pnl, currency)}
                 </span>
-                <button
-                  type="button"
-                  disabled={closeDisabled}
-                  onClick={event => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    if (closeDisabled) return;
-                    void onClosePosition(position.id, 100);
-                  }}
+                <button type="button" disabled={closeDisabled}
+                  onClick={event => { event.preventDefault(); event.stopPropagation(); if (!closeDisabled) void onClosePosition(position.id, 100); }}
                   className="grid w-7 place-items-center text-[13px] leading-none transition hover:bg-white/[0.05] active:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-30"
                   style={{ color: closeColor }}
                   aria-label={`Close ${side} ${position.symbol || symbol} position`}
-                  title={closeDisabled ? closeAvailability.reason : 'Close position'}
-                >
+                  title={closeDisabled ? closeAvailability.reason : 'Close position'}>
                   ×
                 </button>
               </div>
+              )}
               <span
                 className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums text-white shadow-[0_3px_10px_rgba(0,0,0,.28)]"
                 style={{ borderColor: lineColor, backgroundColor: isBuy ? '#0aa06f' : '#d94250' }}
@@ -210,7 +257,7 @@ function ClosedPositionChartOverlay({ symbol, position = null, coordinateApi, in
   );
 }
 
-function PendingOrderOverlay({
+export function PendingOrderOverlay({
   symbol,
   orders = [],
   coordinateApi,
@@ -220,6 +267,8 @@ function PendingOrderOverlay({
   onCancel = () => {},
   onMove = () => {},
   desktopStyle = false,
+  account = null,
+  accountCurrency = 'USD',
 }) {
   const layerRef = useRef(null);
   const placedDragRef = useRef({ orderId: null, field: null, startY: null, moved: false });
@@ -233,7 +282,7 @@ function PendingOrderOverlay({
     () => (Array.isArray(orders) ? orders : []).filter(order =>
       String(order?.symbol || '').toUpperCase() === String(symbol || '').toUpperCase()
       && String(order?.id || '') !== String(hiddenOrderId || '')
-      && Number.isFinite(Number(order?.entry))
+      && validPlanPrice(order?.entry) != null
     ),
     [hiddenOrderId, orders, symbol],
   );
@@ -291,7 +340,7 @@ function PendingOrderOverlay({
         });
       };
 
-      if (converted == null) {
+      if (converted == null || !moved) {
         clearPreview();
         return;
       }
@@ -324,19 +373,45 @@ function PendingOrderOverlay({
 
   const renderProtectionLine = (order, kind, color, label) => {
     const previewKey = `${order.id}:${kind}`;
-    const source = Object.prototype.hasOwnProperty.call(previewPrices, previewKey)
+    const source = !desktopStyle && Object.prototype.hasOwnProperty.call(previewPrices, previewKey)
       ? previewPrices[previewKey]
       : order?.[kind];
-    const price = Number(source);
-    if (!Number.isFinite(price)) return null;
+    const price = validPlanPrice(source);
+    if (price == null) return null;
     const y = coordinateApi.priceToY(price);
     if (!Number.isFinite(y)) return null;
     return (
       <div key={`${order.id}:${kind}`} className="pointer-events-none absolute left-0 right-0 z-[18]" style={{ top: y }}>
-        <div className="relative border-t border-dotted" style={{ borderColor: `${color}99` }}>
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 rounded-[4px] border bg-[#09090b]/94 px-1.5 py-0.5 text-[8px] font-black" style={{ borderColor: `${color}70`, color }}>
-            {label}
-          </span>
+        <div className={desktopStyle ? 'relative border-t' : 'relative border-t border-dotted'} style={{ borderColor: `${color}99` }}>
+          {desktopStyle ? (
+            <ChartLevelBadge
+              label={kind === 'sl' ? 'Stop loss' : 'Take profit'}
+              price={formatInstrumentPrice(price, instrument)}
+              color={color}
+              amount={(() => {
+                if (!chartEstimateCurrencySupported(instrument, accountCurrency)) return null;
+                const base = chartEntryReference({ pending: true, orderType: order.orderType, entry: order.entry, limitPrice: order.limitPrice });
+                const lots = Number(order.volume ?? order.lots);
+                if (base == null || !Number.isFinite(lots) || lots <= 0) return null;
+                const estimated = kind === 'sl'
+                  ? estimateLossAtStopWithCosts({ ...order, entry: base, sl: price }, lots, instrument, account)
+                  : estimateStopRisk({ ...order, entry: base, sl: price }, lots, instrument, accountCurrency);
+                return Number.isFinite(estimated) ? formatPositionPnl(kind === 'sl' ? -estimated : estimated, accountCurrency) : null;
+              })()}
+              percent={chartPriceChangePercent(chartEntryReference({ pending: true, orderType: order.orderType, entry: order.entry, limitPrice: order.limitPrice }), price)}
+              tooltip="Pending-order P&L is an estimate. Stop-limit fills can be better than the limit bound."
+              onPointerDown={event => {
+                event.preventDefault();
+                event.stopPropagation();
+                placedDragRef.current = { orderId: order.id, field: kind, startY: Number(event.clientY), moved: false };
+                setDraggingOrderId(order.id);
+                setDraggingField(kind);
+              }}
+              onClick={event => { event.stopPropagation(); if (!consumeSuppressedPlacedClick(order.id, kind)) onModify(order.id, kind); }}
+              onRemove={() => onMove(order.id, null, kind)}
+              removeLabel={`Remove pending ${label}`}
+            />
+          ) : <span className="absolute left-3 top-1/2 -translate-y-1/2 rounded-[4px] border bg-[#09090b]/94 px-1.5 py-0.5 text-[8px] font-black" style={{ borderColor: `${color}70`, color }}>{label}</span>}
           <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 font-mono text-[8px] font-bold tabular-nums" style={{ borderColor: `${color}88`, backgroundColor: kind === 'sl' ? '#5b1721' : '#0b4b37', color: '#ffffff' }}>
             {formatInstrumentPrice(price, instrument)}
           </span>
@@ -347,6 +422,7 @@ function PendingOrderOverlay({
               onPointerDown={event => {
                 event.preventDefault();
                 event.stopPropagation();
+                placedDragRef.current = { orderId: order.id, field: kind, startY: Number(event.clientY), moved: false };
                 setDraggingOrderId(order.id);
                 setDraggingField(kind);
               }}
@@ -360,21 +436,31 @@ function PendingOrderOverlay({
 
   return (
     <div ref={layerRef} className="pointer-events-none absolute inset-0 z-[28] overflow-hidden">
+      {desktopStyle && activeOrders.length === 1 && activeOrders.map(order => {
+        const anchor = chartEntryReference({ pending: true, orderType: order.orderType, entry: order.entry, limitPrice: order.limitPrice });
+        const at = coordinateApi.priceToY(anchor);
+        if (!Number.isFinite(at)) return null;
+        return ['sl', 'tp'].map(field => {
+          const y = coordinateApi.priceToY(Number(order[field]));
+          if (!Number.isFinite(y) || !Number.isFinite(Number(order[field])) || Number(order[field]) <= 0) return null;
+          return <div key={`pending-zone:${field}`} className="pointer-events-none absolute left-[44%] right-0"
+            style={{ top: Math.min(y, at), height: Math.abs(y - at), background: field === 'sl' ? 'rgba(187,48,65,0.10)' : 'rgba(28,143,106,0.10)' }} />;
+        });
+      })}
       {activeOrders.flatMap(order => {
-        const rawEntry = Number(order.entry);
+        const rawEntry = validPlanPrice(order.entry);
         const entryPreviewKey = `${order.id}:entry`;
         const entry = Object.prototype.hasOwnProperty.call(previewPrices, entryPreviewKey)
-          ? Number(previewPrices[entryPreviewKey])
+          ? (validPlanPrice(previewPrices[entryPreviewKey]) ?? rawEntry)
           : rawEntry;
         const y = coordinateApi.priceToY(entry);
         if (!Number.isFinite(y)) return [];
         const side = String(order.side || '').toUpperCase();
         const type = String(order.orderType || '').replace('-', ' ').toUpperCase();
         const lots = Number(order.volume ?? order.lots);
-        const secondary = order.orderType === 'stop-limit' && Number.isFinite(Number(order.limitPrice))
-          ? Number(order.limitPrice)
-          : null;
+        const secondary = order.orderType === 'stop-limit' ? validPlanPrice(order.limitPrice) : null;
         const secondaryY = secondary == null ? null : coordinateApi.priceToY(secondary);
+        const triggerTone = ['stop', 'stop-limit'].includes(order.orderType) ? '#d7a455' : '#acbac7';
         const beginPlacedDrag = (event, field = 'entry') => {
           if (!desktopStyle) return;
           event.preventDefault();
@@ -391,7 +477,24 @@ function PendingOrderOverlay({
 
         return [
           <div key={`${order.id}:entry`} className="pointer-events-none absolute left-0 right-0 z-[21]" style={{ top: y }}>
-            <div className="relative border-t border-dotted border-[#2f7df4]/90">
+            <div className={desktopStyle ? 'relative border-t' : 'relative border-t border-dotted border-[#2f7df4]/90'} style={desktopStyle ? { borderColor: triggerTone } : undefined}>
+              {desktopStyle ? (
+                <ChartOrderEntryRow
+                  side={side}
+                  type={type}
+                  lots={lots}
+                  color={triggerTone}
+                  showTp={validPlanPrice(order.tp) == null}
+                  showSl={validPlanPrice(order.sl) == null}
+                  onTp={() => onModify(order.id, 'tp')}
+                  onSl={() => onModify(order.id, 'sl')}
+                  onCancel={() => onCancel(order.id)}
+                  onPointerDown={event => beginPlacedDrag(event, 'entry')}
+                  onClick={event => { event.stopPropagation(); if (!consumeSuppressedPlacedClick(order.id, 'entry')) onModify(order.id); }}
+                  cancelLabel={`Cancel ${side} ${type} pending order`}
+                  title={order.orderType === 'stop-limit' ? 'Drag stop trigger; the limit execution boundary moves with it.' : 'Drag entry to amend accepted pending order.'}
+                />
+              ) : (
               <div
                 role="button"
                 tabIndex={0}
@@ -415,7 +518,7 @@ function PendingOrderOverlay({
                     <button
                       type="button"
                       onPointerDown={event => {
-                        if (!Number.isFinite(Number(order?.tp))) {
+                        if (!(validPlanPrice(order?.tp) != null)) {
                           event.stopPropagation();
                           return;
                         }
@@ -427,7 +530,7 @@ function PendingOrderOverlay({
                         if (consumeSuppressedPlacedClick(order.id, 'tp')) return;
                         onModify(order.id, 'tp');
                       }}
-                      className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[9px] transition ${Number.isFinite(Number(order?.tp)) ? 'text-[#2aa37f]' : 'text-[#23876b] hover:text-[#35d79d]'}`}
+                      className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[9px] transition ${(validPlanPrice(order?.tp) != null) ? 'text-[#2aa37f]' : 'text-[#23876b] hover:text-[#35d79d]'}`}
                       aria-label="Add or edit take profit"
                       title="Add / edit TP"
                     >
@@ -436,7 +539,7 @@ function PendingOrderOverlay({
                     <button
                       type="button"
                       onPointerDown={event => {
-                        if (!Number.isFinite(Number(order?.sl))) {
+                        if (!(validPlanPrice(order?.sl) != null)) {
                           event.stopPropagation();
                           return;
                         }
@@ -448,7 +551,7 @@ function PendingOrderOverlay({
                         if (consumeSuppressedPlacedClick(order.id, 'sl')) return;
                         onModify(order.id, 'sl');
                       }}
-                      className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[9px] transition ${Number.isFinite(Number(order?.sl)) ? 'text-[#d45a64]' : 'text-[#b64f59] hover:text-[#e36a74]'}`}
+                      className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[9px] transition ${(validPlanPrice(order?.sl) != null) ? 'text-[#d45a64]' : 'text-[#b64f59] hover:text-[#e36a74]'}`}
                       aria-label="Add or edit stop loss"
                       title="Add / edit SL"
                     >
@@ -490,7 +593,8 @@ function PendingOrderOverlay({
                   ×
                 </button>
               </div>
-              <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border border-[#2d68bd] bg-[#1f5fc4] px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums text-white shadow-[0_3px_10px_rgba(0,0,0,.28)]">
+              )}
+              <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums text-white shadow-[0_3px_10px_rgba(0,0,0,.28)]" style={desktopStyle ? { borderColor: triggerTone, backgroundColor: '#22272d', color: triggerTone } : { borderColor: '#2d68bd', backgroundColor: '#1f5fc4' }}>
                 {formatInstrumentPrice(entry, instrument)}
               </span>
               {desktopStyle && (
@@ -510,10 +614,25 @@ function PendingOrderOverlay({
           </div>,
           secondaryY != null && Number.isFinite(secondaryY) ? (
             <div key={`${order.id}:limit`} className="pointer-events-none absolute left-0 right-0 z-[19]" style={{ top: secondaryY }}>
-              <div className="relative border-t border-dashed border-[#b58cff]/70">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 rounded border border-[#6f5b93]/70 bg-black/90 px-1.5 py-0.5 text-[8px] font-bold text-[#c8aaff]">
-                  LIMIT {formatInstrumentPrice(secondary, instrument)}
-                </span>
+              <div className={desktopStyle ? 'relative border-t border-[#b58cff]/80' : 'relative border-t border-dashed border-[#b58cff]/70'}>
+                {desktopStyle ? (
+                  <ChartLevelBadge
+                    label="Limit"
+                    price={formatInstrumentPrice(secondary, instrument)}
+                    color="#b58cff"
+                    tooltip="Sell: minimum acceptable fill. Buy: maximum acceptable fill. Actual execution can be more favorable."
+                    onPointerDown={event => beginPlacedDrag(event, 'limitPrice')}
+                    onClick={event => { event.stopPropagation(); if (!consumeSuppressedPlacedClick(order.id, 'limitPrice')) onModify(order.id); }}
+                  />
+                ) : (
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 rounded border border-[#6f5b93]/70 bg-black/90 px-1.5 py-0.5 text-[8px] font-bold text-[#c8aaff]">
+                    LIMIT {formatInstrumentPrice(secondary, instrument)}
+                  </span>
+                )}
+                {desktopStyle && <span className="absolute right-[56px] top-1/2 -translate-y-1/2 rounded-[4px] border border-[#b58cff]/80 bg-[#21182e] px-1.5 py-0.5 font-mono text-[9px] font-bold text-[#d8bdff] lg:right-2">{formatInstrumentPrice(secondary, instrument)}</span>}
+                {desktopStyle && <button type="button" aria-label="Drag pending stop-limit limit price"
+                  onPointerDown={event => beginPlacedDrag(event, 'limitPrice')}
+                  className="pointer-events-auto absolute left-[235px] right-[58px] top-1/2 h-8 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent" />}
               </div>
             </div>
           ) : null,
@@ -521,11 +640,33 @@ function PendingOrderOverlay({
           renderProtectionLine(order, 'tp', '#35d79d', 'TP'),
         ].filter(Boolean);
       })}
+      {desktopStyle && Object.entries(previewPrices).map(([key, requested]) => {
+        const fieldSeparator = key.lastIndexOf(':');
+        if (fieldSeparator < 0) return null;
+        const orderId = key.slice(0, fieldSeparator);
+        const field = key.slice(fieldSeparator + 1);
+        const order = activeOrders.find(item => String(item.id) === orderId);
+        const level = Number(requested);
+        const y = coordinateApi.priceToY(level);
+        if (!order || !Number.isFinite(level) || level <= 0 || !Number.isFinite(y)) return null;
+        const color = field === 'sl' ? '#ff5968' : field === 'tp' ? '#35d79d' : field === 'limitPrice' ? '#b58cff' : '#d7a455';
+        const label = field === 'sl' ? 'Stop loss' : field === 'tp' ? 'Take profit' : field === 'limitPrice' ? 'Limit' : String(order.orderType || '').toLowerCase().includes('stop') ? 'Stop' : 'Entry';
+        return (
+          <div key={`pending-preview:${key}`} className="pointer-events-none absolute left-0 right-0 z-[29]" style={{ top: y }}>
+            <div className={chartLineStyle({ preview: true }) === 'dotted' ? 'relative border-t-2 border-dotted' : 'relative border-t'} style={{ borderColor: color }}>
+              <ChartLevelBadge label={label} price={formatInstrumentPrice(level, instrument)} color={color} tooltip="Drag preview: changes are not active until the server accepts them." />
+              <span className="absolute right-[56px] top-1/2 -translate-y-1/2 rounded border px-1.5 py-0.5 font-mono text-[9px] font-semibold lg:right-2" style={{ borderColor: color, backgroundColor: '#111419', color }}>
+                {formatInstrumentPrice(level, instrument)}
+              </span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, instrument, lots = 0.1, accountCurrency = 'USD', account = null, riskPercent = 0.5, orderExecutionPreview = null, showEntry = true, mobileStyle = false }) {
+export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, instrument, lots = 0.1, accountCurrency = 'USD', account = null, riskPercent = 0.5, orderExecutionPreview = null, showEntry = true, mobileStyle = false, desktopStyle = false }) {
   const layerRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [preview, setPreview] = useState({});
@@ -611,7 +752,8 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
   const liveEntry = sourcePrice('entry');
   const liveSl = sourcePrice('sl');
   const liveTp = sourcePrice('tp');
-  const livePlan = { ...plan, entry: liveEntry, sl: liveSl, tp: liveTp };
+  const liveLimit = sourcePrice('limitPrice');
+  const livePlan = { ...plan, entry: liveEntry, limitPrice: liveLimit, sl: liveSl, tp: liveTp };
   // With no uncommitted chart drag, display the exact same resolved size
   // as the ticket; both derive from the current executable market quote.
   const dragPreviewActive = ['entry', 'sl', 'tp', 'limitPrice']
@@ -638,14 +780,38 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
     : null;
   const lotLabel = Number.isFinite(displayLots) ? `${displayLots.toFixed(Math.max(2, Number(instrument?.volumeStep) < 0.01 ? 3 : 2))} lot` : '— lot';
   const lotCompact = Number.isFinite(displayLots) ? formatPositionLots(displayLots) : '—';
-  const rewardTop = entryY != null && tpY != null ? Math.min(entryY, tpY) : null;
-  const rewardHeight = entryY != null && tpY != null ? Math.abs(entryY - tpY) : 0;
-  const riskTop = entryY != null && slY != null ? Math.min(entryY, slY) : null;
-  const riskHeight = entryY != null && slY != null ? Math.abs(entryY - slY) : 0;
+  // A stop-limit may activate at its stop trigger but fills no worse than its
+  // limit bound. The shaded preview must agree with risk/margin references.
+  const riskReference = chartEntryReference({ pending: plan.pending, orderType: plan.orderType, entry: liveEntry, limitPrice: liveLimit });
+  const riskReferenceY = riskReference != null ? coordinateApi.priceToY(riskReference) : entryY;
+  const rewardTop = riskReferenceY != null && tpY != null ? Math.min(riskReferenceY, tpY) : null;
+  const rewardHeight = riskReferenceY != null && tpY != null ? Math.abs(riskReferenceY - tpY) : 0;
+  const riskTop = riskReferenceY != null && slY != null ? Math.min(riskReferenceY, slY) : null;
+  const riskHeight = riskReferenceY != null && slY != null ? Math.abs(riskReferenceY - slY) : 0;
 
   const line = (kind, field, color, label, value, draggable) => {
     const top = yFor(field);
     if (top == null) return null;
+
+    // Stop-limit has two independent chart handles. The limit boundary is
+    // a compact secondary level, not the oversized generic price tool.
+    if (desktopStyle && kind === 'limit' && !mobileStyle && showEntry && plan.pending) {
+      const formatted = formatInstrumentPrice(sourcePrice(field), instrument);
+      return <div className="pointer-events-none absolute left-0 right-0 z-30" style={{ top }}>
+        <div className="relative border-t border-dotted border-[#b58cff]/90">
+          <ChartLevelBadge label="Limit" price={formatted} color="#b58cff"
+            tooltip="Execution boundary. Buy: maximum fill price; Sell: minimum fill price."
+            onPointerDown={event => {
+              event.preventDefault(); event.stopPropagation();
+              setDragging('limit'); onChange({ stage: 'dragging-limit' });
+            }} />
+          <span className="absolute right-[56px] top-1/2 -translate-y-1/2 rounded border border-[#b58cff]/80 bg-[#21182e] px-1.5 py-0.5 font-mono text-[9px] font-semibold text-[#d6baff] lg:right-2">{formatted}</span>
+          <button type="button" aria-label="Drag stop-limit execution price"
+            onPointerDown={event => { event.preventDefault(); event.stopPropagation(); setDragging('limit'); onChange({ stage: 'dragging-limit' }); }}
+            className="pointer-events-auto absolute left-[235px] right-[56px] top-1/2 h-8 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent" />
+        </div>
+      </div>;
+    }
 
     if (positionProtectionMode) {
       if (activeProtectionField && kind !== activeProtectionField) return null;
@@ -707,7 +873,7 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
       );
     }
 
-    if (!mobileStyle && showEntry && (kind === 'sl' || kind === 'tp')) {
+    if (desktopStyle && !mobileStyle && showEntry && (kind === 'sl' || kind === 'tp')) {
       const projected = kind === 'sl'
         ? (Number.isFinite(liveRisk) ? -Math.abs(liveRisk) : null)
         : (Number.isFinite(liveReward) ? Math.abs(liveReward) : null);
@@ -719,38 +885,22 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
       return (
         <div className="absolute left-0 right-0 z-30" style={{ top }}>
           <div className="relative border-t border-dotted" style={{ borderColor: `${mutedColor}b5` }}>
-            <div
+            <ChartLevelBadge
+              label={kind === 'sl' ? 'Stop loss' : 'Take profit'}
+              price={formatInstrumentPrice(sourcePrice(field), instrument)}
+              amount={chartEstimateCurrencySupported(instrument, accountCurrency) ? projectedText : null}
+              percent={chartPriceChangePercent(riskReference, sourcePrice(field))}
+              color={mutedColor}
+              tooltip="Estimated P&L before execution; the actual fill can differ."
               onPointerDown={event => {
                 event.preventDefault();
                 event.stopPropagation();
                 setDragging(kind);
                 onChange({ activeField: kind, stage: `dragging-${kind}` });
               }}
-              className="pointer-events-auto absolute left-3 top-1/2 z-10 flex h-7 -translate-y-1/2 cursor-ns-resize items-stretch overflow-hidden rounded-[5px] border border-dotted bg-[#09090b]/96 font-mono text-[9px] font-medium tabular-nums shadow-[0_4px_14px_rgba(0,0,0,.28)]"
-              style={{ borderColor: `${mutedColor}b5`, color: '#d8dee5' }}
-            >
-              <span className="flex min-w-[34px] items-center justify-center px-2">{label}</span>
-              <span className="flex min-w-[44px] items-center justify-center border-l border-dotted px-2" style={{ borderColor: `${mutedColor}70` }}>{lotCompact}</span>
-              <span className="flex min-w-[82px] items-center justify-center border-l border-dotted px-2" style={{ borderColor: `${mutedColor}70`, color: mutedColor }}>{projectedText}</span>
-              <button
-                type="button"
-                onPointerDown={event => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                }}
-                onClick={event => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onChange({ [field]: null, activeField: null, stage: 'ready' });
-                }}
-                className="grid w-8 place-items-center border-l border-dotted text-[13px] font-normal text-[#8d98a3] transition hover:bg-white/[0.04] hover:text-white"
-                style={{ borderColor: `${mutedColor}70` }}
-                aria-label={`Clear ${label}`}
-                title={`Remove ${label}`}
-              >
-                ×
-              </button>
-            </div>
+              onRemove={() => onChange({ [field]: null, activeField: null, stage: 'ready' })}
+              removeLabel={`Clear ${label}`}
+            />
 
             <span
               className="absolute right-[56px] top-1/2 z-10 -translate-y-1/2 rounded-[4px] border border-dotted bg-[#09090b]/96 px-1.5 py-0.5 font-mono text-[9px] font-medium tabular-nums lg:right-2"
@@ -802,12 +952,7 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
     : (isBuy ? 'BUY' : 'SELL');
   // Reuse the established inline TP/SL/entry controls for V4 market drafts.
   // A market entry is read-only; pending orders keep their drag handles.
-  const desktopPendingStyle = Boolean(
-    showEntry && !mobileStyle && (
-      (plan.pending && Object.prototype.hasOwnProperty.call(plan, 'desktopPendingDraft'))
-      || plan.source === 'v4-slider'
-    )
-  );
+  const desktopPendingStyle = Boolean(showEntry && !mobileStyle && desktopStyle);
 
   const requestDesktopProtection = kind => {
     if (sourcePrice(kind) != null) {
@@ -840,86 +985,28 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
   };
 
   const desktopPendingEntry = desktopPendingStyle && entryY != null ? (
-    <div className="absolute left-0 right-0 z-30" style={{ top: entryY }}>
-      <div className="relative border-t border-dotted border-[#3b78d8]/90">
-        <div className="pointer-events-auto absolute left-3 top-1/2 z-10 flex h-7 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border border-dotted border-[#3b78d8]/80 bg-[#09090b]/96 font-mono text-[9px] font-medium tabular-nums shadow-[0_4px_14px_rgba(0,0,0,.28)]">
-          {/* TP and SL are independent entry shortcuts only when absent.
-              Activating either creates its own line, so its shortcut
-              disappears here until that line is removed. */}
-          {liveTp == null && (
-            <button
-              type="button"
-              onPointerDown={event => event.stopPropagation()}
-              onClick={event => {
-                event.preventDefault();
-                event.stopPropagation();
-                requestDesktopProtection('tp');
-              }}
-              className="min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[#23876b] transition hover:text-[#35d79d]"
-              aria-label="Add TP"
-              title="Add TP"
-            >
-              TP
-            </button>
-          )}
-          {liveSl == null && (
-            <button
-              type="button"
-              onPointerDown={event => event.stopPropagation()}
-              onClick={event => {
-                event.preventDefault();
-                event.stopPropagation();
-                requestDesktopProtection('sl');
-              }}
-              className="min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[#b64f59] transition hover:text-[#e36a74]"
-              aria-label="Add SL"
-              title="Add SL"
-            >
-              SL
-            </button>
-          )}
-          <span
-            onPointerDown={event => { if (plan.pending) beginProjectedDrag(event, 'entry'); }}
-            className={`flex min-w-[46px] items-center justify-center border-r border-dotted border-[#3b78d8]/55 px-2 text-[#d9e1e8] ${plan.pending ? 'cursor-ns-resize' : ''}`}
-            title={plan.pending ? 'Drag pending entry price' : 'Draft volume, not submitted'}
-          >
-            {Number.isFinite(displayLots) ? displayLots.toFixed(Math.max(2, Number(instrument?.volumeStep) < 0.01 ? 3 : 2)) : '—'}
-          </span>
-          <span
-            onPointerDown={event => { if (plan.pending) beginProjectedDrag(event, 'entry'); }}
-            className={`flex min-w-[84px] items-center justify-center border-r border-dotted border-[#3b78d8]/55 px-2 ${plan.pending ? 'cursor-ns-resize' : ''} ${isBuy ? 'text-[#35d79d]' : 'text-[#d45a64]'}`}
-            title={plan.pending ? 'Drag pending entry price' : 'Unsubmitted draft'}
-          >
-            {entryLabel}
-          </span>
-          <button
-            type="button"
-            onPointerDown={event => {
-              event.preventDefault();
-              event.stopPropagation();
-            }}
-            onClick={event => {
-              event.preventDefault();
-              event.stopPropagation();
-              onCancel();
-            }}
-            className="grid w-8 place-items-center text-[13px] text-[#8995a0] transition hover:bg-white/[0.04] hover:text-white"
-            aria-label={plan?.editingOrderId ? 'Cancel pending order' : 'Cancel draft'}
-            title={plan?.editingOrderId ? 'Cancel pending order' : 'Cancel draft'}
-          >
-            ×
-          </button>
-        </div>
-        <span className="absolute right-[56px] top-1/2 z-10 -translate-y-1/2 rounded-[4px] border border-dotted border-[#3b78d8]/80 bg-[#113f86]/95 px-1.5 py-0.5 font-mono text-[9px] font-semibold tabular-nums text-white lg:right-2">
+    <div className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: entryY }}>
+      <div className="relative border-t border-dotted" style={{ borderColor: plan.pending && ['stop', 'stop-limit'].includes(plan.orderType) ? '#d7a455' : '#b8c4ce' }}>
+        <ChartOrderEntryRow
+          side={isBuy ? 'BUY' : 'SELL'}
+          type={String(plan.orderType || 'market').replace('-', ' ').toUpperCase()}
+          lots={displayLots}
+          color={plan.pending && ['stop', 'stop-limit'].includes(plan.orderType) ? '#d7a455' : '#b8c4ce'}
+          showTp={liveTp == null}
+          showSl={liveSl == null}
+          onTp={() => requestDesktopProtection('tp')}
+          onSl={() => requestDesktopProtection('sl')}
+          onCancel={onCancel}
+          onPointerDown={plan.pending ? event => beginProjectedDrag(event, 'entry') : undefined}
+          cancelLabel={plan?.editingOrderId ? 'Close pending order edit' : 'Cancel draft'}
+          title={plan.orderType === 'stop-limit' ? 'Draft stop trigger. Limit is an independent price boundary.' : 'Unsubmitted chart order draft.'}
+        />
+        <span className="absolute right-[56px] top-1/2 z-10 -translate-y-1/2 rounded-[4px] border bg-[#171d23] px-1.5 py-0.5 font-mono text-[9px] font-semibold lg:right-2"
+          style={{ borderColor: plan.pending && ['stop', 'stop-limit'].includes(plan.orderType) ? '#d7a455' : '#b8c4ce', color: plan.pending && ['stop', 'stop-limit'].includes(plan.orderType) ? '#e6b76a' : '#d4e0ec' }}>
           {formatInstrumentPrice(sourcePrice('entry'), instrument)}
         </span>
-        <button
-          type="button"
-          aria-label={plan.pending ? 'Drag pending entry' : 'Draft entry price'}
-          disabled={!plan.pending}
-          onPointerDown={event => { if (plan.pending) beginProjectedDrag(event, 'entry'); }}
-          className={`pointer-events-auto absolute left-[235px] right-[56px] top-1/2 z-0 h-8 -translate-y-1/2 touch-none bg-transparent lg:right-2 ${plan.pending ? 'cursor-ns-resize' : 'cursor-default'}`}
-        />
+        {plan.pending && <button type="button" aria-label="Drag pending entry" onPointerDown={event => beginProjectedDrag(event, 'entry')}
+          className="pointer-events-auto absolute left-[235px] right-[56px] top-1/2 z-0 h-7 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent" />}
       </div>
     </div>
   ) : null;
@@ -967,7 +1054,7 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
   );
 }
 
-function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, instrument, onUpdatePosition = () => {}, onRemoveProtection = () => {}, onRequestProtectionChange = null, selectedPositionId = null, onSelectPosition = () => {}, mobileStyle = false }) {
+function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, instrument, onUpdatePosition = () => {}, onRemoveProtection = () => {}, onRequestProtectionChange = null, selectedPositionId = null, onSelectPosition = () => {}, mobileStyle = false, desktopStyle = false }) {
   const layerRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [preview, setPreview] = useState({});
@@ -1052,9 +1139,9 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
 
   const renderLine = (position, kind, color, label) => {
     const key = `${position.id}:${kind}`;
-    const source = Object.prototype.hasOwnProperty.call(preview, key) ? preview[key] : position[kind];
-    const price = Number(source);
-    if (!Number.isFinite(price)) return null;
+    const source = !desktopStyle && Object.prototype.hasOwnProperty.call(preview, key) ? preview[key] : position[kind];
+    const price = validPlanPrice(source);
+    if (price == null) return null;
     const y = coordinateApi.priceToY(price);
     if (!Number.isFinite(y)) return null;
 
@@ -1075,7 +1162,21 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
       return (
         <div key={key} className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: y }}>
           <div className="relative h-px" style={{ backgroundColor: color }}>
-            <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 text-[8px] font-black" style={{ borderColor: `${color}88`, backgroundColor: 'rgba(8,8,8,0.92)', color }}>{label}</span>
+            {desktopStyle ? (
+            <ChartLevelBadge
+              label={kind === 'sl' ? 'Stop loss' : 'Take profit'}
+              price={displayPrice(price)}
+              amount={chartEstimateCurrencySupported(instrument, currency) && Number.isFinite(projectedPnl) ? formatPositionPnl(projectedPnl, currency) : null}
+              percent={chartPriceChangePercent(position.entry ?? position.entryPrice, price)}
+              color={color}
+              tooltip="Estimated P&L at this protection level, excluding possible slippage and costs."
+              onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onSelectPosition(position.id); setDragging({ positionId: position.id, kind }); }}
+              onClick={event => { event.stopPropagation(); onSelectPosition(position.id); }}
+            />
+            ) : (
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 text-[8px] font-black"
+                style={{ borderColor: `${color}88`, backgroundColor: 'rgba(8,8,8,0.92)', color }}>{label}</span>
+            )}
             <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 text-[8px] font-bold tabular-nums text-white" style={{ borderColor: `${color}88`, backgroundColor: kind === 'sl' ? '#5b1721' : '#0b4b37' }}>{previewText}</span>
             <button
               type="button"
@@ -1147,10 +1248,38 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
 
   return (
     <div ref={layerRef} className="pointer-events-none absolute inset-0 z-[24] overflow-hidden">
+      {desktopStyle && !mobileStyle && activePositions.filter(position => String(position.id) === String(selectedPositionId)).flatMap(position => {
+        const entry = coordinateApi.priceToY(Number(position.entry ?? position.entryPrice));
+        if (!Number.isFinite(entry)) return [];
+        return ['sl', 'tp'].map(kind => {
+          const price = Number(position[kind]);
+          const y = coordinateApi.priceToY(price);
+          if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(y)) return null;
+          return <div key={`position-zone:${position.id}:${kind}`} className="pointer-events-none absolute left-[44%] right-0"
+            style={{ top: Math.min(y, entry), height: Math.abs(y - entry), background: kind === 'sl' ? 'rgba(187,48,65,0.10)' : 'rgba(28,143,106,0.10)' }} />;
+        });
+      })}
       {activePositions.flatMap(position => [
         renderLine(position, 'tp', '#35d79d', 'TP'),
         renderLine(position, 'sl', '#ff5968', 'SL'),
       ])}
+      {desktopStyle && !mobileStyle && Object.entries(preview).map(([key, candidate]) => {
+        const index = key.lastIndexOf(':');
+        if (index < 0) return null;
+        const positionId = key.slice(0, index);
+        const kind = key.slice(index + 1);
+        if (!activePositions.some(position => String(position.id) === positionId)) return null;
+        const price = Number(candidate);
+        const y = coordinateApi.priceToY(price);
+        if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(y)) return null;
+        const color = kind === 'sl' ? '#ff5968' : '#35d79d';
+        return <div key={`protection-preview:${key}`} className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: y }}>
+          <div className="relative border-t-2 border-dotted" style={{ borderColor: color }}>
+            <ChartLevelBadge label={kind === 'sl' ? 'Stop loss' : 'Take profit'} price={formatInstrumentPrice(price, instrument)} color={color} tooltip="Preview only until the update is accepted." />
+            <span className="absolute right-[56px] top-1/2 -translate-y-1/2 rounded border px-1.5 py-0.5 font-mono text-[9px] lg:right-2" style={{ borderColor: color, color, backgroundColor: '#111419' }}>{formatInstrumentPrice(price, instrument)}</span>
+          </div>
+        </div>;
+      })}
     </div>
   );
 }
@@ -1191,6 +1320,7 @@ export default function ChartArea({
   onMovePending = () => {},
   onCancelTradePlan = () => {},
   desktopEnhanced = false,
+  chartOrderV4 = false,
   compactContext = false,
   chartSettings = null,
   onToggleIndicator = () => {},
@@ -1445,10 +1575,9 @@ export default function ChartArea({
         <TradePlanOverlay
           plan={tradePlan}
           onChange={onTradePlanChange}
-          onCancel={() => {
-            if (tradePlan?.editingOrderId) onCancelPending(tradePlan.editingOrderId);
-            else onCancelTradePlan();
-          }}
+          // Closing a modification draft must never cancel the live pending order.
+          // Actual accepted-order cancellation remains on its separate placed row.
+          onCancel={onCancelTradePlan}
           coordinateApi={coordinateApi}
           instrument={instrument}
           lots={tradePlanLots}
@@ -1456,6 +1585,7 @@ export default function ChartArea({
           account={account}
           riskPercent={riskPercent}
           orderExecutionPreview={orderExecutionPreview}
+          desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle}
         />
         {positionProtectionDraft && (
           <TradePlanOverlay
@@ -1472,8 +1602,8 @@ export default function ChartArea({
           />
         )}
         <ClosedPositionChartOverlay symbol={symbol} position={historicalPosition} coordinateApi={coordinateApi} instrument={instrument} onClear={onClearHistoricalPosition} />
-        {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} onMove={onMovePending} desktopStyle={desktopEnhanced && !mobileOverlayStyle} />}
-        <OpenPositionEntryOverlay symbol={symbol} positions={positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} />
+        {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} onMove={onMovePending} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} account={account} accountCurrency={accountCurrency} />}
+        <OpenPositionEntryOverlay symbol={symbol} positions={positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} />
         <OpenPositionProtectionOverlay
           symbol={symbol}
           positions={positions.filter(position =>
@@ -1488,6 +1618,7 @@ export default function ChartArea({
           selectedPositionId={selectedPositionId}
           onSelectPosition={onSelectPosition}
           mobileStyle={mobileOverlayStyle}
+          desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle}
         />
 
         {desktopEnhanced && !compactContext && (

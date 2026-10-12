@@ -1,6 +1,7 @@
 // CI-only real Chromium smoke: synthetic V4 callbacks, no credentials or API.
 import { spawn, spawnSync } from 'node:child_process';
 import process from 'node:process';
+import { mkdirSync, existsSync } from 'node:fs';
 import { setTimeout as pause } from 'node:timers/promises';
 
 const url='http://127.0.0.1:4176/v4-browser-smoke.html';
@@ -41,6 +42,20 @@ try{
      '; page '+html.slice(-1300));
  }
  console.log(marker);
+ // Capture all three synthetic surfaces (ticket, draft chart, accepted
+ // Stop Limit chart). Artifact is review evidence, not a live-account proof.
+ mkdirSync('artifacts', { recursive: true });
+ const screenshotPath='artifacts/chart-order-qa.png';
+ const shot=spawnSync(chrome,[
+   '--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage',
+   '--hide-scrollbars','--no-first-run','--disable-background-networking',
+   '--window-size=1740,960','--virtual-time-budget=9500',
+   '--screenshot='+screenshotPath,url,
+ ],{encoding:'utf8',timeout:30000,maxBuffer:1024*1024});
+ if(shot.status!==0 || !existsSync(screenshotPath)) {
+   throw new Error('Chromium screenshot evidence unavailable: '+String(shot.stderr||'').slice(-800));
+ }
+ console.log('CHART_ORDER_VISUAL_ARTIFACT '+screenshotPath);
 }finally{
  try{process.kill(-server.pid,'SIGTERM');}catch{server.kill('SIGTERM');}
  server.stdout.destroy();

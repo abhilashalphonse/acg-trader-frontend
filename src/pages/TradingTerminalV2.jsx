@@ -20,6 +20,7 @@ import {defaultPlannerStopDistance, estimateOpeningRequirement, estimateStopRisk
 import { exposureAvailability } from '../utils/exposureAvailability.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../utils/instrumentFormatting.js';
 import { normalizeTradePlanPatch } from '../utils/tradePlanNormalization.js';
+import { buildChartPendingAmendment, isActiveChartProtection } from '../utils/pendingOrderChartMove.js';
 import { DEFAULT_RISK_GUARD_SETTINGS, evaluateRiskGuard } from '../utils/riskGuard.js';
 import { createDefaultTradePlan, effectiveTradePlan, validateTradePlanForExecution } from '../utils/tradePlanExecution.js';
 import { estimateExecutionPrice, resolveExecutionPreview } from '../utils/executionPricing.js';
@@ -1243,30 +1244,12 @@ export default function TradingTerminalV2({
   const movePendingOrder = async (id, nextPrice, field = 'entry') => {
     const order = pendingOrders.find(item => String(item.id) === String(id));
     if (!order) return;
-    const numericPrice = Number(nextPrice);
-    if (!Number.isFinite(numericPrice) || numericPrice <= 0) return;
+    const clearingProtection = nextPrice === null && (field === 'sl' || field === 'tp');
+    const numericPrice = clearingProtection ? null : Number(nextPrice);
+    if (!clearingProtection && (!Number.isFinite(numericPrice) || numericPrice <= 0)) return;
 
-    const replacement = {
-      entry: order.entry,
-      volume: order.volume ?? order.lots,
-      stopLoss: order.sl,
-      takeProfit: order.tp,
-      timeInForce: order.expiration || 'GTC',
-      expiresAt: order.expiresAt || null,
-    };
-
-    if (field === 'sl') replacement.stopLoss = numericPrice;
-    else if (field === 'tp') replacement.takeProfit = numericPrice;
-    else {
-      replacement.entry = numericPrice;
-      if (
-        String(order.orderType || '').toLowerCase() === 'stop-limit'
-        && Number.isFinite(Number(order.entry))
-        && Number.isFinite(Number(order.limitPrice))
-      ) {
-        replacement.limitPrice = Number(order.limitPrice) + (numericPrice - Number(order.entry));
-      }
-    }
+    const replacement = buildChartPendingAmendment(order, numericPrice, field);
+    if (!replacement) return;
 
     try {
       await trading.replacePendingOrder(id, replacement);
@@ -1275,7 +1258,7 @@ export default function TradingTerminalV2({
         field,
         price: numericPrice,
       });
-      showNotice(field === 'entry' ? 'Pending price updated' : `${field.toUpperCase()} updated`);
+      showNotice(clearingProtection ? `${field.toUpperCase()} removed` : field === 'entry' ? 'Pending price updated' : `${field === 'limitPrice' ? 'LIMIT' : field.toUpperCase()} updated`);
     } catch (error) {
       handleTradingError(error, `Move ${order.symbol} pending ${field}`);
     }
@@ -1303,7 +1286,7 @@ export default function TradingTerminalV2({
 
     if (isDesktop && ['sl', 'tp'].includes(protectionField)) {
       nextPlan.activeField = protectionField;
-      if (!Number.isFinite(Number(nextPlan[protectionField])) && Number.isFinite(fillReference) && Number.isFinite(distance)) {
+      if (!isActiveChartProtection(nextPlan[protectionField]) && Number.isFinite(fillReference) && fillReference > 0 && Number.isFinite(distance) && distance > 0) {
         const rawProtection = protectionField === 'sl'
           ? (side === 'sell' ? fillReference + distance : fillReference - distance)
           : (side === 'sell' ? fillReference - distance * 2 : fillReference + distance * 2);

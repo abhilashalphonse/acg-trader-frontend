@@ -220,7 +220,7 @@ export default function DesktopOrderTicketV4({
   const quoteState=market?.sessionOpen===false||String(market?.marketState||'').toUpperCase()==='CLOSED'?'Market Closed'
     :validMarket?'Market Open':'Quote Unavailable';
   const sessionHint=market?.sessionOpen===false?'Trading paused':validMarket?'Live prices':'Waiting for quotes';
-  const modeOptions=[['market','Market'],['pending','Pending']];
+  const entryOptions=[['market','Market'],['limit','Limit'],['stop','Stop']];
   const notice=message=>onNotice(message);
   const normalLots=value=>normalizeVolumeToStep(value,market,{rounding:'nearest'});
   const fakePlanForIndicative={
@@ -306,13 +306,6 @@ export default function DesktopOrderTicketV4({
     }
     setUiMode(next);
   };
-  const setFamily=next=>{
-    if(next===family)return;
-    if(tradePlan)onCancelPlan();
-    onOrderTypeChange(next==='market'?'market':'limit');
-    setWantSl(false);setWantTp(false);
-    if(next==='pending')notice('Choose Buy or Sell to create a chart-linked pending order.');
-  };
   const setPendingType=next=>{
     if(tradePlan?.editingOrderId){notice('Finish or cancel editing the existing pending order before changing its type.');return;}
     onOrderTypeChange(next);
@@ -329,6 +322,28 @@ export default function DesktopOrderTicketV4({
       onTradePlanChange(patch);
     }
   };
+  const selectOrderType=next=>{
+    if(!entryOptions.some(([id])=>id===next) || next===orderType)return;
+    if(tradePlan?.editingOrderId){
+      notice('Finish or cancel editing the existing pending order before changing its type.');
+      return;
+    }
+    // Switching between market and pending modes must discard an incompatible
+    // chart draft, never submit it. The existing trade engine remains in charge.
+    if(next==='market'||orderType==='market'||orderType==='stop-limit'){
+      if(tradePlan)onCancelPlan();
+      onOrderTypeChange(next);
+      setWantSl(false);setWantTp(false);
+      if(next!=='market')notice('Choose Buy or Sell to create a chart-linked pending order.');
+      return;
+    }
+    setPendingType(next);
+  };
+  // The current UI may load an existing Stop Limit for modification, but
+  // must never inadvertently offer a new Stop Limit after that edit is closed.
+  useEffect(()=>{
+    if(orderType==='stop-limit'&&!tradePlan?.editingOrderId)onOrderTypeChange('stop');
+  },[orderType,tradePlan?.editingOrderId,onOrderTypeChange]);
   const defaultProtect=(field)=>{
     const side=String(effective?.side||'').toLowerCase();
     const entry=planRef||positive(effective?.entry);
@@ -501,18 +516,19 @@ export default function DesktopOrderTicketV4({
         <span>Ask <strong>{formatInstrumentPrice(market?.ask,market)}</strong></span>
         <span>Spr <strong>{positive(market?.ask)&&positive(market?.bid)?formatSpreadDisplay(market.bid,market.ask,market):'—'}</strong></span>
       </div>
-      <Capsule className="v4-mainmodes" label="Order entry type" options={modeOptions} active={family} onChange={setFamily}/>
+      <Capsule className="v4-mainmodes v4-order-types" label="Order type" options={entryOptions} active={orderType} onChange={selectOrderType}/>
       {family==='pending'&&<div className="v4-pending v4-block">
-        <Capsule label="Pending type" options={[[ 'limit','Limit'],['stop','Stop'],['stop-limit','Stop Limit']]}
-          active={orderType} onChange={setPendingType}/>
-        <label className="v4-inline-setting">Entry price
-          <PendingPriceInput label="Pending entry price" price={effective?.entry} instrument={market} disabled={!tradePlan}
+        {orderType==='stop-limit'&&tradePlan?.editingOrderId&&
+          <span className="v4-pending-note">Editing an existing Stop Limit order</span>}
+        <label className="v4-inline-setting">{orderType==='stop-limit'?'Stop trigger':'Entry price'}
+          <PendingPriceInput label={orderType==='stop-limit'?'Stop trigger price':'Pending entry price'} price={effective?.entry} instrument={market} disabled={!tradePlan}
             onCommit={entry=>onTradePlanChange({entry,stage:'ready'})} onNotice={notice}/>
         </label>
         {orderType==='stop-limit'&&<label className="v4-inline-setting">Limit price
           <PendingPriceInput label="Stop-limit execution price" price={effective?.limitPrice} instrument={market} disabled={!tradePlan}
             onCommit={limitPrice=>onTradePlanChange({limitPrice,stage:'ready'})} onNotice={notice}/>
         </label>}
+        {orderType==='stop-limit'&&<span className="v4-pending-note">The stop price activates a limit order. The limit is the maximum buy / minimum sell execution price; fills are not guaranteed.</span>}
       </div>}
       <div className="v4-position v4-block">
         <div className="v4-section-heading"><span>POSITION</span><span>{Number.isFinite(effectiveLeverage(account,market))?fmt(effectiveLeverage(account,market),0)+'x':'—'} <ChevronDown size={13}/></span></div>

@@ -30,3 +30,10 @@ jobs:
       - name: Browser V4 330px and double-click smoke
         if: ${{ github.event_name == 'pull_request' }}
         run: node scripts/v4-browser-smoke.mjs
+      - name: Upload in-chart visual QA screenshot
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: chart-order-qa
+          path: artifacts/chart-order-qa.png
+          retention-days: 7
