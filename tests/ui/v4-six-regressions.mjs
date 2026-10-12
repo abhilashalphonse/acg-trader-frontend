@@ -351,8 +351,8 @@ try{
  await manage.waitFor();
  assert.equal(await page.locator('[data-qa-unified-position-sidebar]').count(),1);
  assert.equal(await page.getByRole('heading',{name:'Open Position'}).count(),0);
- assert.equal(await manage.getByRole('button',{name:/^(BUY|SELL)\\b/}).count(),0);
- assert.match(await manage.innerText(),/EXITS \\/ PROTECTION/);
+ assert.equal(await manage.getByRole('button',{name:/^(BUY|SELL)/}).count(),0);
+ assert.ok((await manage.innerText()).includes('EXITS / PROTECTION'));
  assert.match(await manage.innerText(),/Manage Position/);
  // No TP exists after the previous direct-× regression.
  assert.equal(await page.evaluate(()=>window.v4QA.positions[0].tp),null);
