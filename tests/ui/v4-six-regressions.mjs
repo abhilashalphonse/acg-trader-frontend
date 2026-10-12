@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
 import process from 'node:process';
+import { readFileSync } from 'node:fs';
 const { chromium }=createRequire(import.meta.url)('playwright');
 const browser=await chromium.launch({headless:true,channel:'chrome',args:['--no-sandbox']});
 const page=await browser.newPage({viewport:{width:1320,height:850}});
@@ -26,6 +27,18 @@ const drag=async (selector,dy)=>{
 const end=async()=>{await page.mouse.up();await wait();};
 try{
  await page.goto('http://127.0.0.1:5174/v4-six-fixes-audit.html',{waitUntil:'networkidle'});
+ // DesktopMultiChart is the production wrapper between DesktopTerminal and
+ // ChartArea. Assert the full prop chain; the isolated fixture alone missed
+ // the originally reported full-terminal Sell Limit selection failure.
+ const multi=readFileSync('src/components/trading-v2/desktop/DesktopMultiChart.jsx','utf8');
+ const terminal=readFileSync('src/components/trading-v2/DesktopTerminal.jsx','utf8');
+ const chartArea=readFileSync('src/components/trading-v2/ChartArea.jsx','utf8');
+ ok(multi.includes('onSelectPending={onSelectPending}'),'DesktopMultiChart must forward pending selection to ChartArea');
+ ok(multi.includes('onPendingOrderDraftChange={isActive ? onPendingOrderDraftChange'),'DesktopMultiChart must forward pending draft change');
+ ok(multi.includes('pendingOrderDraft={isActive ? pendingOrderDraft : null}'),'DesktopMultiChart must forward pending draft state');
+ ok(terminal.includes('onSelectPending={selectPending}'),'DesktopTerminal must connect exact pending selection');
+ ok(terminal.includes("'ACCEPTED','TRIGGERED'"),'selection must recognize backend-active order statuses');
+ ok(chartArea.includes('onSelectPosition={onSelectPosition} onSelectPending={onSelectPending}'),'ChartArea must forward selection to V4FullTerminalOrders');
  const entry=badge('pending:o1:entry');
  const tp=badge('pending:o1:tp');
  await entry.waitFor();
@@ -33,6 +46,8 @@ try{
  eq(await page.locator('[data-v4-chart-badge]').count(),1,'original approved market badge present');
  eq(await page.locator('[data-v4-chart-badge] [data-v4-position-direction]').innerText(),'BUY');
  eq(await entry.locator('[data-v4-pending-type]').innerText(),'LIMIT');
+ eq(await page.evaluate(()=>window.v4QA.orders[0].status),'ACCEPTED');
+ eq(await page.evaluate(()=>window.v4QA.orders[1].status),'TRIGGERED');
 
  // Click selects an existing pending order; a click never arms an edit.
  await tp.locator('[data-v4-drag-handle]').click();
@@ -42,7 +57,13 @@ try{
  eq(await page.locator('[data-v4-manage-pending="o1"]').count(),1,'correct Limit order is selected');
  eq(await page.locator('[data-v4-manage-position]').count(),0,'pending selection must not open position manager');
  eq(await page.locator('[data-v4-manage-pending="o1"] .v4-exit-card').count(),2);
- eq(await page.locator('[data-v4-manage-pending="o1"] .v4-capsule').count(),1);
+ eq(await page.locator('[data-v4-manage-pending="o1"] .v4-capsule').count(),0,
+   'Pending manager does not repeat a New Order switch when Back and Close exist');
+ eq(await page.locator('[data-v4-manage-pending="o1"] .v4-session').count(),0,
+   'Pending manager does not repeat the status row');
+ eq(await page.locator('[data-v4-manage-pending="o1"] .v4-quote-strip').count(),0,
+   'Pending manager uses order details instead of repeating entry and status in a quote strip');
+ eq(await page.locator('[data-v4-manage-pending="o1"] .v4-symbol .v4-manage-header-context').count(),1);
 
  // Press/release without crossing the drag threshold must preserve the order.
  const grip=tp.locator('[data-v4-drag-handle]');
@@ -127,7 +148,8 @@ try{
 
  // Pending-order panel can add/modify protections without Buy/Sell controls.
  const pending=page.locator('[data-v4-manage-pending="o2"]');
- await pending.locator('button:has-text("New Order")').count();
+ eq(await pending.getByRole('button',{name:'New Order'}).count(),0,
+  'Pending context relies on Back/Close rather than redundant mode switch');
  eq(await pending.getByRole('button',{name:/^(BUY|SELL) /}).count(),0);
  ok((await pending.innerText()).includes('Estimated margin on fill'));
  await pending.getByRole('button',{name:'Cancel Order'}).click();
@@ -166,6 +188,13 @@ try{
  ok((await manage.innerText()).includes('EXITS / PROTECTION'));
  ok((await manage.innerText()).includes('Estimated margin'));
  eq(await manage.locator('.v4-exit-card').count(),2);
+ eq(await manage.locator('.v4-session').count(),0,'no duplicate position status row');
+ eq(await manage.locator('.v4-capsule').count(),0,'no Open Position/New Order switch in manager');
+ eq(await manage.locator('.v4-instrument .v4-manage-header-context').count(),1,'single contextual side/status line');
+ eq(await manage.locator('.v4-quote-strip').count(),1,'retain compact prices and return');
+ eq(await manage.locator('.v4-quote-strip > span').count(),3);
+ eq(await manage.locator('.v4-section-heading').first().innerText(),'POSITION');
+ eq(await manage.getByRole('button',{name:'Back to new order'}).count(),1);
  eq(await manage.locator('.v4-manage-new-order').count(),0,'no redundant bottom New Order');
  eq(await manage.locator('.v4-manage-close').count(),1,'idle footer is Close Position');
  eq(await manage.getByRole('button',{name:'Confirm position protection'}).count(),0,'no Confirm without a draft');
