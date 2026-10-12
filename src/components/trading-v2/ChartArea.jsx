@@ -63,11 +63,15 @@ function formatPositionLots(value) {
 
 // Single desktop label treatment shared by draft, accepted pending and live position levels.
 // Visual status changes the line style; we intentionally do not add "planned" wording.
-function ChartLevelBadge({ label, price, amount = null, percent = null, color = '#aab8c5', onPointerDown, onClick, onRemove, removeLabel = 'Remove level', tooltip = null }) {
+function ChartLevelBadge({ label, price, amount = null, percent = null, color = '#aab8c5', onPointerDown, onClick, onRemove, removeLabel = 'Remove level', tooltip = null, placement = 'above' }) {
   const isInteractive = Boolean(onPointerDown || onClick);
+  const offset = placement === 'below' ? 'top-[8px]' : placement === 'above' ? 'top-[-36px]' : 'top-1/2 -translate-y-1/2';
   return (
+    <>
+    {placement !== 'center' && <span aria-hidden="true" className={`pointer-events-none absolute right-[82px] z-10 h-2 border-l ${placement === 'below' ? 'top-0' : 'bottom-0'}`} style={{ borderColor: `${color}aa` }} />}
     <div
-      className={`pointer-events-auto absolute right-[70px] top-1/2 z-20 flex h-7 max-w-[calc(100%-84px)] -translate-y-1/2 items-center gap-2 overflow-hidden rounded-[5px] border bg-[#111419]/96 px-2 font-mono text-[10px] font-semibold tabular-nums shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
+      data-chart-level-placement={placement}
+      className={`pointer-events-auto absolute right-[70px] z-20 flex h-7 max-w-[calc(100%-84px)] items-center gap-2 overflow-hidden rounded-[5px] border bg-[#111419]/96 px-2 font-mono text-[10px] font-semibold tabular-nums shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm ${offset} ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
       style={{ borderColor: `${color}aa` }}
       onPointerDown={onPointerDown}
       onClick={onClick}
@@ -83,6 +87,7 @@ function ChartLevelBadge({ label, price, amount = null, percent = null, color = 
       {percent != null && <span className="shrink-0 font-sans font-medium text-[#919ba6]">{Number(percent).toFixed(2)}%</span>}
       {onRemove && <button type="button" className="ml-0.5 grid size-5 shrink-0 place-items-center rounded text-[#9aa5af] hover:bg-white/10 hover:text-white" aria-label={removeLabel} onPointerDown={event => event.stopPropagation()} onClick={event => { event.preventDefault(); event.stopPropagation(); onRemove(); }}>×</button>}
     </div>
+    </>
   );
 }
 
@@ -91,8 +96,11 @@ function ChartLevelBadge({ label, price, amount = null, percent = null, color = 
 function ChartOrderEntryRow({ side, type, lots, color, showTp = false, showSl = false, onTp, onSl, onCancel, onPointerDown, onClick, cancelLabel, title }) {
   const interactive = Boolean(onClick || onPointerDown);
   return (
+    <>
+    <span aria-hidden="true" className="pointer-events-none absolute right-[82px] bottom-0 z-10 h-2 border-l" style={{ borderColor: `${color}aa` }} />
     <div
-      className={`pointer-events-auto absolute right-[70px] top-1/2 z-20 flex h-7 max-w-[calc(100%-84px)] -translate-y-1/2 items-center overflow-hidden rounded-[5px] border bg-[#111419]/96 font-mono text-[10px] font-semibold tabular-nums text-[#e4e9ed] shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
+      data-chart-order-entry-placement="above"
+      className={`pointer-events-auto absolute right-[70px] top-[-36px] z-20 flex h-7 max-w-[calc(100%-84px)] items-center overflow-hidden rounded-[5px] border bg-[#111419]/96 font-mono text-[10px] font-semibold tabular-nums text-[#e4e9ed] shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
       style={{ borderColor: `${color}aa` }}
       title={title || undefined}
       onPointerDown={onPointerDown}
@@ -109,6 +117,7 @@ function ChartOrderEntryRow({ side, type, lots, color, showTp = false, showSl = 
       <button type="button" aria-label={cancelLabel || 'Cancel order'} className="grid h-full w-7 shrink-0 place-items-center border-l border-white/10 text-[13px] text-[#a6b1bc] hover:bg-white/[0.06] hover:text-white"
         onPointerDown={event => event.stopPropagation()} onClick={event => { event.preventDefault(); event.stopPropagation(); onCancel?.(); }}>×</button>
     </div>
+    </>
   );
 }
 
@@ -385,6 +394,7 @@ export function PendingOrderOverlay({
         <div className={desktopStyle ? 'relative border-t' : 'relative border-t border-dotted'} style={{ borderColor: `${color}99` }}>
           {desktopStyle ? (
             <ChartLevelBadge
+              placement={kind === 'tp' ? 'below' : 'above'}
               label={kind === 'sl' ? 'Stop loss' : 'Take profit'}
               price={formatInstrumentPrice(price, instrument)}
               color={color}
@@ -654,7 +664,7 @@ export function PendingOrderOverlay({
         return (
           <div key={`pending-preview:${key}`} className="pointer-events-none absolute left-0 right-0 z-[29]" style={{ top: y }}>
             <div className={chartLineStyle({ preview: true }) === 'dotted' ? 'relative border-t-2 border-dotted' : 'relative border-t'} style={{ borderColor: color }}>
-              <ChartLevelBadge label={label} price={formatInstrumentPrice(level, instrument)} color={color} tooltip="Drag preview: changes are not active until the server accepts them." />
+              <ChartLevelBadge placement={field === 'tp' ? 'below' : 'above'} label={label} price={formatInstrumentPrice(level, instrument)} color={color} tooltip="Drag preview: changes are not active until the server accepts them." />
               <span className="absolute right-[56px] top-1/2 -translate-y-1/2 rounded border px-1.5 py-0.5 font-mono text-[9px] font-semibold lg:right-2" style={{ borderColor: color, backgroundColor: '#111419', color }}>
                 {formatInstrumentPrice(level, instrument)}
               </span>
@@ -886,6 +896,7 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
         <div className="absolute left-0 right-0 z-30" style={{ top }}>
           <div className="relative border-t border-dotted" style={{ borderColor: `${mutedColor}b5` }}>
             <ChartLevelBadge
+              placement={kind === 'tp' ? 'below' : 'above'}
               label={kind === 'sl' ? 'Stop loss' : 'Take profit'}
               price={formatInstrumentPrice(sourcePrice(field), instrument)}
               amount={chartEstimateCurrencySupported(instrument, accountCurrency) ? projectedText : null}
@@ -1164,6 +1175,7 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
           <div className="relative h-px" style={{ backgroundColor: color }}>
             {desktopStyle ? (
             <ChartLevelBadge
+              placement={kind === 'tp' ? 'below' : 'above'}
               label={kind === 'sl' ? 'Stop loss' : 'Take profit'}
               price={displayPrice(price)}
               amount={chartEstimateCurrencySupported(instrument, currency) && Number.isFinite(projectedPnl) ? formatPositionPnl(projectedPnl, currency) : null}
@@ -1275,7 +1287,7 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
         const color = kind === 'sl' ? '#ff5968' : '#35d79d';
         return <div key={`protection-preview:${key}`} className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: y }}>
           <div className="relative border-t-2 border-dotted" style={{ borderColor: color }}>
-            <ChartLevelBadge label={kind === 'sl' ? 'Stop loss' : 'Take profit'} price={formatInstrumentPrice(price, instrument)} color={color} tooltip="Preview only until the update is accepted." />
+            <ChartLevelBadge placement={kind === 'tp' ? 'below' : 'above'} label={kind === 'sl' ? 'Stop loss' : 'Take profit'} price={formatInstrumentPrice(price, instrument)} color={color} tooltip="Preview only until the update is accepted." />
             <span className="absolute right-[56px] top-1/2 -translate-y-1/2 rounded border px-1.5 py-0.5 font-mono text-[9px] lg:right-2" style={{ borderColor: color, color, backgroundColor: '#111419' }}>{formatInstrumentPrice(price, instrument)}</span>
           </div>
         </div>;
