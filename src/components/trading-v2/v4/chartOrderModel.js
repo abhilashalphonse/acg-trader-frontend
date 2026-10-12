@@ -43,8 +43,8 @@ export function projectV4AcceptedLevels({ accountId, symbol, positions = [], pen
     if (String(order.status || 'PENDING').toUpperCase() !== 'PENDING') continue;
     const id = order.id ?? order.orderId;
     const side = order.side;
-    const type = String(order.orderType || order.type || '').toLowerCase().replace('_', '-');
-    add('pending', id, 'entry', order.entry ?? order.stopPrice ?? order.limitPrice, side, { orderType: type });
+    const type = String(order.orderType || order.type || '').toLowerCase().replaceAll('_', '-');
+    add('pending', id, 'entry', order.entry ?? order.stopPrice ?? order.limitPrice, side, { orderType: type, volume: order.volume ?? order.lots ?? null });
     if (type === 'stop-limit') add('pending', id, 'limitPrice', order.limitPrice, side, { orderType: type });
     add('pending', id, 'sl', order.sl ?? order.stopLoss, side, { orderType: type });
     add('pending', id, 'tp', order.tp ?? order.takeProfit, side, { orderType: type });
@@ -75,11 +75,21 @@ export function v4MissingProtections(levels, positionEntryId) {
   return ['tp', 'sl'].filter(kind => !existing.has(kind));
 }
 
+/** The same missing-protection shortcuts apply only to placed pending orders. */
+export function v4MissingPendingProtections(levels, pendingEntryId) {
+  const entry = (levels || []).find(level =>
+    level.id === pendingEntryId && level.kind === 'entry' && level.objectType === 'pending');
+  if (!entry) return [];
+  const kinds = new Set((levels || []).filter(level => level.objectType === 'pending' &&
+    level.accountId === entry.accountId && level.objectId === entry.objectId).map(level=>level.kind));
+  return ['tp','sl'].filter(kind=>!kinds.has(kind));
+}
+
 /** Return a safe explicit action, never a silent direct mutation. */
 export function v4ProtectionAction(levels, levelId, type) {
   const level = (levels || []).find(item => item.id === levelId);
-  if (!level || !(['sl', 'tp'].includes(level.kind) || (level.objectType === 'pending' && level.kind === 'entry'))) return null;
-  if (type === 'remove') return level.kind === 'entry' ? null : Object.freeze({ state: V4_ORDER_VISUAL_STATES.REMOVE,
+  if (!level || !(['sl', 'tp'].includes(level.kind) || (level.objectType === 'pending' && ['entry','limitPrice'].includes(level.kind)))) return null;
+  if (type === 'remove') return !['sl','tp'].includes(level.kind) ? null : Object.freeze({ state: V4_ORDER_VISUAL_STATES.REMOVE,
     accountId: level.accountId, objectType: level.objectType, objectId: level.objectId, kind: level.kind, confirmedPrice: level.price });
   if (type === 'edit') return Object.freeze({ state: V4_ORDER_VISUAL_STATES.DRAFT,
     accountId: level.accountId, objectType: level.objectType, objectId: level.objectId, kind: level.kind, levelId, proposedPrice: level.price, confirmedPrice: level.price });
@@ -139,8 +149,8 @@ export function projectV4DraftGroup(acceptedLevels, draft) {
   const kind = source?.kind || draft.kind;
   const matchedSource = source || accepted.find(level => level.accountId === owner.accountId &&
     level.objectType === owner.objectType && level.objectId === owner.objectId && level.kind === kind);
-  if (!['entry', 'sl', 'tp'].includes(kind)) return { accepted, preview: null, connector: null };
-  if (!matchedSource && kind === 'entry') return { accepted, preview: null, connector: null };
+  if (!['entry', 'limitPrice', 'sl', 'tp'].includes(kind)) return { accepted, preview: null, connector: null };
+  if (!matchedSource && ['entry','limitPrice'].includes(kind)) return { accepted, preview: null, connector: null };
   if (draft.accountId != null && String(draft.accountId) !== owner.accountId) return { accepted, preview: null, connector: null };
   if (draft.objectId != null && String(draft.objectId) !== owner.objectId) return { accepted, preview: null, connector: null };
   const id = matchedSource?.id || v4LevelId({ accountId: owner.accountId, objectType: owner.objectType, objectId: owner.objectId, kind });
@@ -151,7 +161,20 @@ export function projectV4DraftGroup(acceptedLevels, draft) {
   });
   const entry = accepted.find(level => level.accountId === owner.accountId &&
     level.objectType === owner.objectType && level.objectId === owner.objectId && level.kind === 'entry');
-  return { accepted, preview, connector: entry && kind !== 'entry' ?
+  // Stop-Limit trigger amendments move both trigger and limit leg by one
+  // delta in the existing backend replacement contract. The secondary
+  // dotted leg is a preview only; both accepted solid lines stay fixed.
+  const acceptedLimit = kind === 'entry' && owner.objectType === 'pending' &&
+    owner.orderType === 'stop-limit'
+    ? accepted.find(level=>level.accountId===owner.accountId &&
+      level.objectType==='pending' && level.objectId===owner.objectId &&
+      level.kind==='limitPrice') : null;
+  const secondaryPreview = acceptedLimit ? Object.freeze({
+    ...acceptedLimit, id:acceptedLimit.id+':preview', sourceLevelId:acceptedLimit.id,
+    price:Number((acceptedLimit.price + preview.price - entry.price).toPrecision(12)),
+    state:V4_ORDER_VISUAL_STATES.PREVIEW, lineStyle:'dotted',
+  }) : null;
+  return { accepted, preview, secondaryPreview, connector: entry && kind !== 'entry' ?
     Object.freeze({ fromPrice: entry.price, toPrice: preview.price, lineStyle: 'dotted',
       objectId: owner.objectId, kind }) : null };
 }
