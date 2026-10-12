@@ -131,7 +131,7 @@ export default function V4ChartOrderLayer({
       const pendingLimit = level.objectType==='pending' && level.kind==='limitPrice';
       const pendingOrder = (pendingEntry || pendingLimit) ? pendingOrders.find(item=>String(item.id)===level.objectId) : null;
       const pendingEditing = pendingEntry && edit?.objectType==='pending' && String(edit.objectId)===level.objectId;
-      const pendingMissing = missing.filter(kind=>!(pendingEditing && edit?.kind===kind));
+      const pendingMissing = readOnly ? [] : missing.filter(kind=>!(pendingEditing && edit?.kind===kind));
       const editingAcceptedProtection = (marketProtection || pendingLimit) &&
         (ghost?.sourceLevelId === level.id || secondaryPreview?.sourceLevelId === level.id);
       const projection = marketProtection ? projectedPositionProtection(level) : null;
@@ -250,15 +250,16 @@ export default function V4ChartOrderLayer({
       <div className="absolute left-0 right-0 border-t border-dotted" style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost)}}/>
       <div data-v4-draft-badge
         onPointerDown={event=>beginDrag(event,ghost,true)}
-        className={`pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] -translate-y-1/2 items-center rounded-[5px] border font-mono text-[10px] tabular-nums text-white shadow-[0_3px_12px_rgba(0,0,0,.36)] ${ghost.objectType==='position' ? 'gap-0 cursor-ns-resize touch-none border-dotted backdrop-blur-sm' : 'gap-1 cursor-ns-resize touch-none bg-[#111419]/95 px-1.5'}`}
+        className={`pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] -translate-y-1/2 items-center rounded-[5px] border font-mono text-[10px] tabular-nums text-white shadow-[0_3px_12px_rgba(0,0,0,.36)] ${['tp','sl'].includes(ghost.kind) ? 'gap-0 cursor-ns-resize touch-none border-dotted bg-[#09090b]' : 'gap-1 cursor-ns-resize touch-none border-dotted bg-[#09090b] px-1.5'}`}
         style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost),
-          backgroundColor:ghost.objectType==='position'?protectionTheme(ghost.kind).background:undefined}}>
-        {ghost.objectType==='position' && ['tp','sl'].includes(ghost.kind) ? (() => {
+          backgroundColor:'#09090b'}}>
+        {['tp','sl'].includes(ghost.kind) ? (() => {
           const projection = projectedPositionProtection(ghost);
-          const entry = accepted.find(value => value.objectType==='position' &&
+          const entry = accepted.find(value => value.objectType===ghost.objectType &&
             value.objectId===ghost.objectId && value.kind==='entry');
-          const percent = entry && Number(entry.price)>0
-            ? Math.abs((ghost.price / entry.price - 1) * 100).toFixed(2)+'%' : '—';
+          const reference = projection.reference ?? entry?.price;
+          const percent = Number(reference)>0
+            ? Math.abs((ghost.price / reference - 1) * 100).toFixed(2)+'%' : '—';
           return <>
             <span data-v4-drag-handle="draft" aria-label={`Drag draft ${ghost.kind.toUpperCase()}`}
               className="shrink-0 cursor-ns-resize touch-none px-1.5 text-[11px] tracking-[-2px] text-[#7c8994]">⠿</span>
@@ -270,15 +271,15 @@ export default function V4ChartOrderLayer({
               className="grid h-7 w-6 shrink-0 place-items-center border-l border-white/10 text-[#9aa4ae] hover:bg-white/[0.06] disabled:opacity-50">×</button>
           </>;
         })() : <>
-          <span style={{color:colorFor(ghost)}}>{ghost.kind==='sl'?'Stop loss':ghost.kind==='tp'?'Take profit':'Pending entry'}</span>
+          <span data-v4-pending-draft-kind style={{color:colorFor(ghost)}}>{ghost.kind==='limitPrice'?'Limit price':ghost.objectType==='pending'?'Draft '+(ghost.orderType==='stop-limit'?'stop trigger':'limit entry'):'Pending entry'}</span>
           <span>{priceLabel(ghost.price,formatPrice)}</span>
-          <div data-v4-chart-actions data-v4-actions-location="draft" className="ml-1 flex shrink-0 items-center gap-1 whitespace-nowrap border-l border-white/15 pl-1" aria-label="Draft level actions">
+          {ghost.objectType!=='pending' && <div data-v4-chart-actions data-v4-actions-location="draft" className="ml-1 flex shrink-0 items-center gap-1 whitespace-nowrap border-l border-white/15 pl-1" aria-label="Draft level actions">
             <button type="button" disabled={saving} aria-label="Discard chart edit" onClick={()=>onCancelEdit?.()} className="rounded border border-[#515b66] bg-[#14171c] px-2 py-1 text-[#e4e8ed]">Discard</button>
             <button type="button" disabled={saving || !onSaveEdit} aria-label="Confirm chart edit" onClick={()=>onSaveEdit?.(edit)} className="rounded px-2 py-1 font-semibold text-white disabled:opacity-50" style={{background:ghost.kind==='tp'?'#148968':ghost.kind==='sl'?'#bd4353':'#2469b5'}}>{saving?'Confirming…':'Confirm'}</button>
-          </div>
+          </div>}
         </>}
       </div>
-      {ghost.objectType==='position' && <span data-v4-protection-draft-price
+      {['position','pending'].includes(ghost.objectType) && <span data-v4-protection-draft-price
         className="pointer-events-none absolute right-[56px] -translate-y-1/2 rounded-[4px] border border-dotted bg-[#09090b]/96 px-1.5 py-0.5 font-mono text-[9px] font-semibold lg:right-2"
         style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost),color:colorFor(ghost)}}>
         {priceLabel(ghost.price,formatPrice)}
