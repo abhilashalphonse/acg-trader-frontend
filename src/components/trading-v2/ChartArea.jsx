@@ -246,6 +246,8 @@ function PendingOrderOverlay({
   onCancel = () => {},
   onMove = () => {},
   desktopStyle = false,
+  account = null,
+  accountCurrency = 'USD',
 }) {
   const layerRef = useRef(null);
   const placedDragRef = useRef({ orderId: null, field: null, startY: null, moved: false });
@@ -317,7 +319,7 @@ function PendingOrderOverlay({
         });
       };
 
-      if (converted == null) {
+      if (converted == null || !moved) {
         clearPreview();
         return;
       }
@@ -350,7 +352,7 @@ function PendingOrderOverlay({
 
   const renderProtectionLine = (order, kind, color, label) => {
     const previewKey = `${order.id}:${kind}`;
-    const source = Object.prototype.hasOwnProperty.call(previewPrices, previewKey)
+    const source = !desktopStyle && Object.prototype.hasOwnProperty.call(previewPrices, previewKey)
       ? previewPrices[previewKey]
       : order?.[kind];
     const price = Number(source);
@@ -359,10 +361,34 @@ function PendingOrderOverlay({
     if (!Number.isFinite(y)) return null;
     return (
       <div key={`${order.id}:${kind}`} className="pointer-events-none absolute left-0 right-0 z-[18]" style={{ top: y }}>
-        <div className="relative border-t border-dotted" style={{ borderColor: `${color}99` }}>
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 rounded-[4px] border bg-[#09090b]/94 px-1.5 py-0.5 text-[8px] font-black" style={{ borderColor: `${color}70`, color }}>
-            {label}
-          </span>
+        <div className={desktopStyle ? 'relative border-t' : 'relative border-t border-dotted'} style={{ borderColor: `${color}99` }}>
+          {desktopStyle ? (
+            <ChartLevelBadge
+              label={kind === 'sl' ? 'Stop loss' : 'Take profit'}
+              price={formatInstrumentPrice(price, instrument)}
+              color={color}
+              amount={(() => {
+                if (!chartEstimateCurrencySupported(instrument, accountCurrency)) return null;
+                const base = chartEntryReference({ pending: true, orderType: order.orderType, entry: order.entry, limitPrice: order.limitPrice });
+                const lots = Number(order.volume ?? order.lots);
+                if (base == null || !Number.isFinite(lots) || lots <= 0) return null;
+                const estimated = kind === 'sl'
+                  ? estimateLossAtStopWithCosts({ ...order, entry: base, sl: price }, lots, instrument, account)
+                  : estimateStopRisk({ ...order, entry: base, sl: price }, lots, instrument, accountCurrency);
+                return Number.isFinite(estimated) ? formatPositionPnl(kind === 'sl' ? -estimated : estimated, accountCurrency) : null;
+              })()}
+              percent={chartPriceChangePercent(chartEntryReference({ pending: true, orderType: order.orderType, entry: order.entry, limitPrice: order.limitPrice }), price)}
+              tooltip="Pending-order P&L is an estimate. Stop-limit fills can be better than the limit bound."
+              onPointerDown={event => {
+                event.preventDefault();
+                event.stopPropagation();
+                placedDragRef.current = { orderId: order.id, field: kind, startY: Number(event.clientY), moved: false };
+                setDraggingOrderId(order.id);
+                setDraggingField(kind);
+              }}
+              onClick={event => { event.stopPropagation(); if (!consumeSuppressedPlacedClick(order.id, kind)) onModify(order.id, kind); }}
+            />
+          ) : <span className="absolute left-3 top-1/2 -translate-y-1/2 rounded-[4px] border bg-[#09090b]/94 px-1.5 py-0.5 text-[8px] font-black" style={{ borderColor: `${color}70`, color }}>{label}</span>}
           <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 font-mono text-[8px] font-bold tabular-nums" style={{ borderColor: `${color}88`, backgroundColor: kind === 'sl' ? '#5b1721' : '#0b4b37', color: '#ffffff' }}>
             {formatInstrumentPrice(price, instrument)}
           </span>
@@ -373,6 +399,7 @@ function PendingOrderOverlay({
               onPointerDown={event => {
                 event.preventDefault();
                 event.stopPropagation();
+                placedDragRef.current = { orderId: order.id, field: kind, startY: Number(event.clientY), moved: false };
                 setDraggingOrderId(order.id);
                 setDraggingField(kind);
               }}
