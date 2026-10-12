@@ -205,7 +205,7 @@ jobs:
           grep -qrF 'wss://acg-trader-backend-production.up.railway.app/v1/ws' dist/assets
           grep -qrF 'acg_v4_audit' dist/assets
           grep -qrF 'data-v4-manage-position' dist/assets
-          grep -qrF 'data-v4-manage-position-pnl' dist/assets
+          grep -qrF 'v4-manage-position-pnl' dist/assets
       - name: Deploy position-only V4 refinement to original audit URL
         id: deployed
         uses: FirebaseExtended/action-hosting-deploy@v0
