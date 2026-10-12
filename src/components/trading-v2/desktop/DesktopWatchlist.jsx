@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronUp, GripVertical, ListFilter, MoreHorizontal, Plus, Search, Settings2, Star, X } from 'lucide-react';
 import InstrumentAvatar from '../InstrumentAvatar.jsx';
+import './DesktopMarketsV4.css';
 import { formatInstrumentPrice, instrumentPipSize } from '../../../utils/instrumentFormatting.js';
 import { isChartOrderAuditEnabled } from '../../../utils/chartOrderPresentation.js';
 import { selectV4Markets, v4MarketPricePresentation } from '../../../utils/v4MarketsDiscovery.js';
@@ -517,47 +518,57 @@ export default function DesktopWatchlist({
           {COMMODITY_VIEWS.map(([id,label])=><button key={id} type="button" aria-pressed={commodityView===id}
             onClick={()=>setCommodityView(id)} className={`min-h-7 rounded-md px-2.5 text-[10px] ${commodityView===id?'bg-[#303035] font-semibold text-white':'text-[#92949E] hover:bg-[#242427] hover:text-white'}`}>{label}</button>)}
         </nav>}
-        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable] [scrollbar-width:thin]" tabIndex={0} aria-label="Market instruments">
-          {!rows.length&&<div className="grid min-h-32 place-items-center px-5 text-center text-[11px] text-[#888D98]">
-            {search?'No instruments match this search and category.':marketView==='recent'?'Recently viewed instruments appear here.':'No instruments in this category.'}
+        <div ref={scrollRef} data-v4-market-scroll data-market-layout={v4Category==='forex'?'forex':['stocks','crypto'].includes(v4Category)?'last':'mixed'}
+          className="acg-v4-markets-list min-h-0 flex-1 overflow-y-auto overscroll-contain outline-none" tabIndex={0} aria-label="Market instruments">
+          <div className="acg-v4-market-column-header" data-v4-market-header>
+            <span className="acg-v4-market-col-instrument">INSTRUMENT</span>
+            {['stocks','crypto'].includes(v4Category)?(
+              <span className="acg-v4-market-col-last-label">LAST</span>
+            ):(
+              <>
+                <span className="acg-v4-market-col-bid-label">{v4Category==='forex'?'BID':'BID / LAST'}</span>
+                <span className="acg-v4-market-col-ask-label">ASK</span>
+              </>
+            )}
+            <span className="acg-v4-market-col-change-label">CHG %</span>
+          </div>
+          {!rows.length&&<div className="grid min-h-32 place-items-center px-5 text-center text-[11px] text-[#9A9AA5]">
+            {search?'No instruments match this search and category.':v4Category==='favorites'?'Star an instrument in the chart header to add it to Favorites.':marketView==='recent'?'Recently viewed instruments appear here.':'No instruments in this category.'}
           </div>}
           {rows.map(item=>{
             const selected=item.symbol===activeSymbol;
-            const isWatched=watchlists?.isWatched?.(item.symbol)===true;
             const status=statusFor(item);
             const forex=assetCategory(item)==='forex';
             const presentation=v4MarketPricePresentation(item,forex);
+            const dayChangeTone=presentation.changeValue==null?'is-unavailable':presentation.changeValue>0?'is-positive':presentation.changeValue<0?'is-negative':'is-neutral';
+            const subtitle=forex
+              ? (status.label==='LIVE'?`Spread ${presentation.spread}`:`${status.label} · ${presentation.spread}`)
+              : (status.label==='LIVE'?(item.name||categoryLabel(item)):status.label);
             return (
-              <div key={item.symbol} ref={node=>{if(node)rowRefs.current.set(item.symbol,node);else rowRefs.current.delete(item.symbol);}}
-                data-market-symbol={item.symbol} data-market-selected={selected?'true':'false'}
-                className={`flex min-h-[66px] items-stretch border-b border-white/[0.06] transition-colors ${selected?'border-l-2 border-l-[#E2E3E7] bg-[#232327]':'border-l-2 border-l-transparent hover:bg-[#18181B]'}`}>
-                <button type="button" onClick={()=>selectInstrument(item.symbol)} aria-label={`Open ${displaySymbol(item.symbol)} chart`}
-                  className="flex min-w-0 flex-1 items-center justify-between gap-2 py-2 pl-2.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#C6C8CF]">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <InstrumentAvatar instrument={item} size={26}/>
-                    <span className="min-w-0">
-                      <strong className="block truncate text-[11px] font-semibold tracking-[-0.01em] text-[#E9EAF0]">{commodityDisplaySymbol(item)||item.displaySymbol||displaySymbol(item.symbol)}</strong>
-                      <span className="mt-0.5 flex min-w-0 items-center gap-1 truncate text-[9px] text-[#898C96]">
-                        <span className={`inline-block size-1.5 shrink-0 rounded-full ${status.label==='LIVE'?'bg-[#42D7A1]':status.label==='STALE'?'bg-[#E7BD58]':status.label==='QUOTE UNAVAILABLE'?'bg-[#FF6F7A]':'bg-[#676D78]'}`}/>
-                        <span className="truncate">{status.label==='LIVE'?(item.name||categoryLabel(item)):status.label}</span>
-                      </span>
+              <div key={item.symbol}
+                ref={node=>{if(node)rowRefs.current.set(item.symbol,node);else rowRefs.current.delete(item.symbol);}}
+                className="acg-v4-market-row-wrap"
+                data-market-symbol={item.symbol} data-market-selected={selected?'true':'false'}>
+                <button type="button" className="acg-v4-market-row"
+                  onClick={()=>selectInstrument(item.symbol)}
+                  aria-current={selected?'true':undefined}
+                  aria-label={`Open ${displaySymbol(item.symbol)} chart`}>
+                  <span className="acg-v4-market-instrument">
+                    <span className="acg-v4-market-avatar"><InstrumentAvatar instrument={item} size={23}/></span>
+                    <span className="acg-v4-market-instrument-text">
+                      <strong className="acg-v4-market-symbol">{commodityDisplaySymbol(item)||item.displaySymbol||displaySymbol(item.symbol)}</strong>
+                      <small className="acg-v4-market-subtitle" title={subtitle}>{subtitle}</small>
                     </span>
                   </span>
-                  {forex?<span className="flex shrink-0 flex-col items-end gap-0.5 text-right">
-                    <span className="flex gap-2 font-mono text-[10px] font-semibold tabular-nums text-[#D3D6DE]">
-                      <span><span className="mr-1 text-[9px] font-normal text-[#898C96]">B</span>{presentation.bid}</span>
-                      <span><span className="mr-1 text-[9px] font-normal text-[#898C96]">A</span>{presentation.ask}</span>
-                    </span>
-                    <small className="text-[9px] tabular-nums text-[#8B8E99]">Spread {presentation.spread}</small>
-                  </span>:<span className="flex shrink-0 flex-col items-end gap-0.5 text-right">
-                    <strong className="font-mono text-[11px] font-semibold tabular-nums text-[#E7E8EF]">{presentation.last}</strong>
-                    <span className={`font-mono text-[10px] tabular-nums ${presentation.changeValue==null?'text-[#8B8E99]':presentation.changeValue>=0?'text-[#42D7A1]':'text-[#FF6F7A]'}`}>{presentation.change}</span>
-                  </span>}
-                </button>
-                <button type="button" onClick={()=>toggleWatch(item)} aria-label={isWatched?`Remove ${item.symbol} from watchlist`:`Add ${item.symbol} to watchlist`}
-                  title={isWatched?'Remove from watchlist':'Add to watchlist'} aria-pressed={isWatched}
-                  className={`grid w-8 shrink-0 place-items-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#A8ABB5] ${isWatched?'text-[#E3E4E8]':'text-[#777B85] hover:text-[#E3E4E8]'}`}>
-                  <Star size={14} fill={isWatched?'currentColor':'none'}/>
+                  {forex?(
+                    <>
+                      <span className="acg-v4-market-price acg-v4-market-bid" title={`Bid ${presentation.bid}`} data-v4-bid>{presentation.bid}</span>
+                      <span className="acg-v4-market-price acg-v4-market-ask" title={`Ask ${presentation.ask}`} data-v4-ask>{presentation.ask}</span>
+                    </>
+                  ):(
+                    <span className="acg-v4-market-price acg-v4-market-last" title={`Last ${presentation.last}`} data-v4-last>{presentation.last}</span>
+                  )}
+                  <span className={`acg-v4-market-change ${dayChangeTone}`} data-v4-change title={`Daily change ${presentation.change}`}>{presentation.change}</span>
                 </button>
               </div>
             );
