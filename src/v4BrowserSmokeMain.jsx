@@ -226,6 +226,11 @@ async function run(){
  if(acceptedTP?.dataset.v4LineState!=='solid'||acceptedSL?.dataset.v4LineState!=='solid')
    failed.push('Standalone accepted price level is not solid');
  if(entries.length!==4)failed.push('All four live positions must retain individual badges including overlapping entries');
+ const axisPriceLabels=Array.from(v4.querySelectorAll('[data-v4-price-label]'))
+   .map(label=>label.getBoundingClientRect()).sort((a,b)=>a.top-b.top);
+ for(let i=1;i<axisPriceLabels.length;i++)
+   if(axisPriceLabels[i].top<axisPriceLabels[i-1].bottom-1)
+     failed.push('Independent V4 order-price labels overlap on right axis');
  const overlapping=[v4.querySelector('[data-v4-price-line="position:position-smoke-a:entry"] [data-v4-badge]'),
    v4.querySelector('[data-v4-price-line="position:position-overlap:entry"] [data-v4-badge]')];
  if(overlapping.every(Boolean)){
