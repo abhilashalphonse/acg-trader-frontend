@@ -149,15 +149,30 @@ export default function V4ChartOrderLayer({
     })()}
     {!readOnly && ghost && coordinateApi?.priceToY && Number.isFinite(coordinateApi.priceToY(ghost.price)) && <div data-v4-preview={ghost.id}>
       <div className="absolute left-0 right-0 border-t border-dotted" style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost)}}/>
-      <div data-v4-draft-badge className="pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] -translate-y-1/2 items-center gap-1 rounded-[5px] border bg-[#111419]/95 px-1.5 font-mono text-[10px] text-white shadow-lg"
+      <div data-v4-draft-badge className={`pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] -translate-y-1/2 items-center rounded-[5px] border font-mono text-[10px] text-white shadow-lg ${ghost.objectType==='position' ? 'gap-0 border-dotted bg-[#09090b]/96' : 'gap-1 bg-[#111419]/95 px-1.5'}`}
         style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost)}}>
-        <span style={{color:colorFor(ghost)}}>{ghost.kind==='sl'?'Stop loss':ghost.kind==='tp'?'Take profit':'Pending entry'}</span>
-        <span>{priceLabel(ghost.price,formatPrice)}</span>
-        <div data-v4-chart-actions className="ml-1 flex shrink-0 items-center gap-1 whitespace-nowrap border-l border-white/15 pl-1" aria-label="Draft level actions">
-          <button type="button" disabled={saving} aria-label="Discard chart edit" onClick={()=>onCancelEdit?.()} className="rounded border border-[#515b66] bg-[#14171c] px-2 py-1 text-[#e4e8ed]">Discard</button>
-          <button type="button" disabled={saving || !onSaveEdit} aria-label="Confirm chart edit" onClick={()=>onSaveEdit?.(edit)} className="rounded px-2 py-1 font-semibold text-white disabled:opacity-50" style={{background:ghost.kind==='tp'?'#148968':ghost.kind==='sl'?'#bd4353':'#2469b5'}}>{saving?'Confirming…':'Confirm'}</button>
-        </div>
+        {ghost.objectType==='position' && ['tp','sl'].includes(ghost.kind) ? (() => {
+          const projection = projectedPositionProtection(ghost);
+          return <>
+            <span className="shrink-0 border-r border-dotted border-white/20 px-2 py-1 font-medium" style={{color:colorFor(ghost)}}>{projection.volume}</span>
+            <span className="shrink-0 px-2 py-1 font-medium" style={{color:colorFor(ghost)}}>{projection.amount}</span>
+            <button type="button" aria-label="Discard protection draft" disabled={saving} onClick={()=>onCancelEdit?.()}
+              className="grid h-7 w-7 shrink-0 place-items-center border-l border-dotted border-white/20 text-[#9aa4ae] disabled:opacity-50">×</button>
+          </>;
+        })() : <>
+          <span style={{color:colorFor(ghost)}}>{ghost.kind==='sl'?'Stop loss':ghost.kind==='tp'?'Take profit':'Pending entry'}</span>
+          <span>{priceLabel(ghost.price,formatPrice)}</span>
+          <div data-v4-chart-actions data-v4-actions-location="draft" className="ml-1 flex shrink-0 items-center gap-1 whitespace-nowrap border-l border-white/15 pl-1" aria-label="Draft level actions">
+            <button type="button" disabled={saving} aria-label="Discard chart edit" onClick={()=>onCancelEdit?.()} className="rounded border border-[#515b66] bg-[#14171c] px-2 py-1 text-[#e4e8ed]">Discard</button>
+            <button type="button" disabled={saving || !onSaveEdit} aria-label="Confirm chart edit" onClick={()=>onSaveEdit?.(edit)} className="rounded px-2 py-1 font-semibold text-white disabled:opacity-50" style={{background:ghost.kind==='tp'?'#148968':ghost.kind==='sl'?'#bd4353':'#2469b5'}}>{saving?'Confirming…':'Confirm'}</button>
+          </div>
+        </>}
       </div>
+      {ghost.objectType==='position' && <span data-v4-protection-draft-price
+        className="pointer-events-none absolute right-[56px] -translate-y-1/2 rounded-[4px] border border-dotted bg-[#09090b]/96 px-1.5 py-0.5 font-mono text-[9px] font-semibold lg:right-2"
+        style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost),color:colorFor(ghost)}}>
+        {priceLabel(ghost.price,formatPrice)}
+      </span>}
     </div>}
     {overflow.length>0&&<span className="pointer-events-auto absolute bottom-2 right-[148px] rounded bg-[#202329] px-2 py-1 text-[10px] text-gray-300"
       data-v4-overflow-count={overflow.length}>{overflow.length} more levels outside badge area</span>}
