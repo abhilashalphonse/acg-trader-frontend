@@ -1,3 +1,10 @@
+// Explicit null removes a protection; nullish coalescing would silently drop it.
+export function pendingProtectionPatchValue(replacement, canonical, shorthand) {
+  if (Object.prototype.hasOwnProperty.call(replacement || {}, canonical)) return replacement[canonical];
+  if (Object.prototype.hasOwnProperty.call(replacement || {}, shorthand)) return replacement[shorthand];
+  return undefined;
+}
+
 // Optional protection inputs: null, absent, empty and zero are all disabled.
 export function isActiveChartProtection(value) {
   return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) && Number(value) > 0;
