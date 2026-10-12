@@ -8,7 +8,7 @@ import { formatInstrumentPrice } from '../../../utils/instrumentFormatting.js';
 export default function V4FullTerminalOrders({
   account, symbol, instrument, positions = [], pendingOrders = [],
   coordinateApi, height, positionProtectionDraft, isNewOrderPlanning = false,
-  renderPositionEntries = null,
+  renderPositionEntries = null, hoveredPositionId = null,
   onUpdatePosition, onRemovePositionProtection, onMovePending,
   onRequestPositionProtection, onCancelPositionProtection,
   onSelectPosition, onClosePosition, onCancelPending,
@@ -161,7 +161,7 @@ export default function V4FullTerminalOrders({
   };
 
   const chartEditActions = !isNewOrderPlanning && activeEdit?.objectType === 'position'
-    ? { positionId: activeEdit.objectId, saving,
+    ? { positionId: activeEdit.objectId, kind: activeEdit.kind, saving,
         onConfirm: () => confirm(activeEdit), onDiscard: discard }
     : null;
 
@@ -173,7 +173,7 @@ export default function V4FullTerminalOrders({
       formatPrice={value => formatInstrumentPrice(value, instrument)}
       formatVolume={value => Number(value).toFixed(2) + ' lots'}
       formatPnl={value => Number.isFinite(Number(value)) ? Number(value).toFixed(2) + ' ' + (account?.currency || 'USD') : '—'}
-      edit={activeEdit} saving={saving}
+      edit={activeEdit} saving={saving} hoveredPositionId={hoveredPositionId}
       hidePositionEntries readOnly={isNewOrderPlanning}
       instrument={instrument} accountCurrency={account?.currency || 'USD'}
       onBeginEdit={isNewOrderPlanning ? null : begin} onChangeEdit={isNewOrderPlanning ? null : setEdit}
