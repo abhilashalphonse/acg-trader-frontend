@@ -8,18 +8,18 @@ const items=[
  {symbol:'BTCUSD',assetClass:'CRYPTO',last:101000,changePercent:-4,volume:15},
  {symbol:'USDCAD',assetClass:'FOREX',bid:1.32,ask:1.321,pipSize:'0.0001',name:'US Dollar / Canadian Dollar'},
 ];
-test('Markets V4 preserves category while searching by symbol or name',()=>{
+test('Markets V4 searches every category by symbol or name',()=>{
  assert.deepEqual(selectV4Markets({markets:items,category:'forex',search:'cad',view:'all'}).map(i=>i.symbol),['AUDCAD','USDCAD']);
  assert.deepEqual(selectV4Markets({markets:items,category:'forex',search:'AUD/CAD',view:'all'}).map(i=>i.symbol),['AUDCAD']);
- assert.deepEqual(selectV4Markets({markets:items,category:'stocks',search:'cad',view:'all'}),[]);
+ assert.deepEqual(selectV4Markets({markets:items,category:'stocks',search:'cad',view:'all'}).map(i=>i.symbol),['AUDCAD','USDCAD']);
 });
 test('Markets V4 popular mode ranks known symbols without hiding other categories',()=>{
  const a=selectV4Markets({markets:items,category:'forex',view:'popular',popularSymbols:['EURUSD','USDCAD']});
  assert.deepEqual(a.map(i=>i.symbol),['EURUSD','USDCAD','AUDCAD']);
 });
 test('Markets V4 sort, recents and unavailable symbols do not manufacture values',()=>{
- assert.deepEqual(selectV4Markets({markets:items,view:'movers'}).map(i=>i.symbol).slice(0,2),['BTCUSD','EURUSD']);
- assert.deepEqual(selectV4Markets({markets:items,view:'recent',recent:['AUDCAD','AAPL']}).map(i=>i.symbol),['AUDCAD','AAPL']);
+ assert.deepEqual(selectV4Markets({markets:items,category:'favorites',watched:items.map(i=>i.symbol),view:'movers'}).map(i=>i.symbol).slice(0,2),['BTCUSD','EURUSD']);
+ assert.deepEqual(selectV4Markets({markets:items,category:'favorites',watched:items.map(i=>i.symbol),view:'recent',recent:['AUDCAD','AAPL']}).map(i=>i.symbol),['AUDCAD','AAPL']);
  assert.equal(v4MarketPricePresentation({...items[0],isStale:true},true).bid,'—');
  assert.equal(v4MarketPricePresentation(items[0],true).spread,'2.0p');
  assert.equal(v4MarketPricePresentation(items[2],false).change,'+0.45%');
