@@ -66,7 +66,7 @@ function formatPositionLots(value) {
 // Visual status changes the line style; we intentionally do not add "planned" wording.
 // Reserve 148px at the chart's right edge for the price scale plus
 // live BID/ASK titles. The separate price markers retain their exact line.
-function ChartLevelBadge({ label, price, amount = null, percent = null, color = '#aab8c5', onPointerDown, onClick, onRemove, removeLabel = 'Remove level', tooltip = null, prefix = null, groupActive = false, onGroupEnter, onGroupLeave, entryActions = null }) {
+function ChartLevelBadge({ label, price, amount = null, percent = null, color = '#aab8c5', onPointerDown, onClick, onRemove, removeLabel = 'Remove level', tooltip = null, prefix = null, groupActive = false, onGroupEnter, onGroupLeave, entryActions = null, positionSide = null, positionSize = null, amountColor = null }) {
   const isInteractive = Boolean(onPointerDown || onClick);
   const badge = (
     <div
@@ -86,9 +86,12 @@ function ChartLevelBadge({ label, price, amount = null, percent = null, color = 
     >
       <span aria-hidden="true" className="shrink-0 text-[11px] tracking-[-2px] text-[#788592]">⠿</span>
       {prefix}
-      <span className="shrink-0 font-sans font-semibold" style={{ color }}>{label}</span>
+      {positionSide ? <>
+        <span data-v4-position-direction className="shrink-0 font-sans text-[10px] font-bold tracking-[0.01em]" style={{color}}>{positionSide}</span>
+        <span data-v4-position-size className="shrink-0 font-mono text-[10px] font-medium tabular-nums text-[#dbe2e7]">{positionSize}</span>
+      </> : <span className="shrink-0 font-sans font-semibold" style={{ color }}>{label}</span>}
       {price != null && <span className="shrink-0 text-[#e5ebf0]">{price}</span>}
-      {amount != null && <span className={`${onRemove ? 'min-w-0 truncate px-1' : 'shrink-0 px-1.5'} rounded-[3px] py-0.5`} style={{ color, backgroundColor: `${color}1b` }}>{amount}</span>}
+      {amount != null && <span data-v4-position-pnl={positionSide ? 'true' : undefined} className={`${onRemove ? 'min-w-0 truncate px-1.5' : 'shrink-0 px-1.5'} rounded-[3px] py-0.5 font-mono font-semibold tabular-nums`} style={{ color:amountColor || color, backgroundColor: `${amountColor || color}1a` }}>{amount}</span>}
       {percent != null && <span className={`${onRemove ? 'min-w-0 truncate' : 'shrink-0'} font-sans font-medium text-[#919ba6]`}>{Number(percent).toFixed(2)}%</span>}
       {onRemove && <button type="button" className="absolute right-1 top-1/2 z-30 grid size-5 -translate-y-1/2 place-items-center rounded text-[#9aa5af] hover:bg-white/10 hover:text-white" aria-label={removeLabel} onPointerDown={event => event.stopPropagation()} onClick={event => { event.preventDefault(); event.stopPropagation(); onRemove(); }}>×</button>}
     </div>
@@ -98,10 +101,10 @@ function ChartLevelBadge({ label, price, amount = null, percent = null, color = 
     <div data-v4-chart-actions data-v4-actions-location="position-entry" className="pointer-events-auto flex shrink-0 items-center gap-1 whitespace-nowrap">
       <button type="button" disabled={entryActions.saving} aria-label="Discard chart edit"
         onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); entryActions.onDiscard?.(); }}
-        className="h-7 rounded-[4px] border border-[#77818b]/80 bg-[#111419]/95 px-2.5 font-mono text-[10px] font-semibold text-[#e4e8ed] hover:bg-[#23272d] disabled:opacity-50">Discard</button>
+        className="h-7 rounded-[4px] border border-[#5d6771]/80 bg-[#14171b]/96 px-2.5 font-mono text-[10px] font-semibold text-[#e2e7ec] transition-colors hover:bg-[#242a30] disabled:opacity-50">Discard</button>
       <button type="button" disabled={entryActions.saving} aria-label="Confirm chart edit"
         onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); entryActions.onConfirm?.(); }}
-        className="h-7 rounded-[4px] border px-2.5 font-mono text-[10px] font-semibold text-white hover:brightness-110 disabled:opacity-50" style={{ backgroundColor:color, borderColor:color }}>{entryActions.saving ? 'Confirming…' : 'Confirm'}</button>
+        className="h-7 rounded-[4px] border px-2.5 font-mono text-[10px] font-semibold text-white transition-[filter] hover:brightness-110 disabled:opacity-50" style={{ backgroundColor:color, borderColor:color }}>{entryActions.saving ? 'Confirming…' : 'Confirm'}</button>
     </div>
     {badge}
   </div>;
@@ -191,6 +194,8 @@ export function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi
               {desktopStyle ? (
               <ChartLevelBadge
                 label={`${side} ${formatPositionLots(lots)}`}
+                positionSide={side}
+                positionSize={formatPositionLots(lots)}
                 price={null}
                 prefix={prefix}
                 entryActions={chartEditActions && String(chartEditActions.positionId) === String(position.id) ? chartEditActions : null}
@@ -198,6 +203,7 @@ export function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi
                 onGroupEnter={() => onHoverPosition(String(position.id))}
                 onGroupLeave={() => onHoverPosition(null)}
                 amount={Number.isFinite(pnl) ? formatPositionPnl(pnl, currency) : null}
+                amountColor={pnlColor}
                 color={lineColor}
                 tooltip={closeDisabled ? closeAvailability.reason : 'Live position: click to select; × closes at market when permitted.'}
                 onClick={event => { event.stopPropagation(); onSelectPosition(position.id); }}
