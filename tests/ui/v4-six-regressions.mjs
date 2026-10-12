@@ -170,13 +170,20 @@ try{
  assert.equal(await page.locator('[data-v4-accepted-shade]').count(),0,
    'confirmed TP and SL must leave the chart background black');
  // Hovering the original position badge must connect its accepted entry, TP and SL.
- await originalPositionBadge.hover();
- await page.locator('[data-v4-hover-group="p1"]').waitFor();
+ // The compact original position badge may share vertical space with a
+ // displaced protection chip. Hover its unobstructed lower edge directly.
+ const entryBox=await originalPositionBadge.boundingBox();
+ await page.mouse.move(entryBox.x+entryBox.width-35,entryBox.y+entryBox.height-2);
+ await page.locator('[data-v4-hover-group="p1"]').waitFor({timeout:3000});
  assert.equal(await page.locator('[data-v4-hover-connector-point]').count(),3,
-   'hover must show connectors at the position entry, TP and SL prices');
+   'hover must show entry, TP and SL relationship points');
  await page.mouse.move(50,50);
- assert.equal(await page.locator('[data-v4-hover-group="p1"]').count(),0,
-   'hover guide must disappear when pointer leaves original position badge');
+ await page.waitForFunction(()=>document.querySelectorAll('[data-v4-hover-group="p1"]').length===0);
+ // Hovering either accepted protection must reveal the same ownership link.
+ await page.locator('[data-v4-badge="qa-account:position:p1:tp"]').hover();
+ await page.locator('[data-v4-hover-group="p1"]').waitFor({timeout:3000});
+ assert.equal(await page.locator('[data-v4-hover-connector-point]').count(),3);
+ await page.mouse.move(50,50);
  const tpGrip=page.locator('[data-v4-drag-handle="qa-account:position:p1:tp"]');
  const tpBounds=await tpGrip.boundingBox();
  const acceptedTpLine=page.locator('[data-v4-accepted-line="qa-account:position:p1:tp"]');
