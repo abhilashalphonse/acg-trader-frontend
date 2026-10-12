@@ -6,6 +6,7 @@ import './styles/acg-pure-black.css';
 import { createRoot } from 'react-dom/client';
 import { createPortal } from 'react-dom';
 import DesktopOrderTicketV4 from './components/trading-v2/desktop/DesktopOrderTicketV4.jsx';
+import V4ChartOrderLayer from './components/trading-v2/v4/V4ChartOrderLayer.jsx';
 import { TradePlanOverlay, PendingOrderOverlay, OpenPositionEntryOverlay, OpenPositionProtectionOverlay, OpenPositionGroupGuide } from './components/trading-v2/ChartArea.jsx';
 import { createDefaultTradePlan } from './utils/tradePlanExecution.js';
 
@@ -159,6 +160,48 @@ createRoot(document.getElementById('protection-draft-fixture')).render(<>
   />
 </>);
 
+
+const v4Calls={updates:[],removals:[],pendingMoves:[],cancels:0};
+function IndependentChartFixture(){
+ const [positions,setPositions]=useState(openPositions);
+ const [pending,setPending]=useState([{...pendingOrder,id:'v4-pending-sell',symbol:'BTCUSD',orderType:'stop-limit',entry:83100,limitPrice:83130,sl:83350,tp:82700},
+  {...buyPendingOrder,id:'v4-pending-buy',symbol:'BTCUSD',entry:82900,sl:82550,tp:83400}]);
+ const [protectionDraft,setProtectionDraft]=useState(null);
+ return <V4ChartOrderLayer
+  symbol="BTCUSD" coordinateApi={coordinateApi} instrument={DEMO}
+  account={ACCOUNT} accountCurrency="USD"
+  positions={positions} pendingOrders={pending} positionProtectionDraft={protectionDraft}
+  selectedPositionId="position-smoke-a"
+  onUpdatePosition={async (id,patch)=>{
+   v4Calls.updates.push({id,patch});
+   setPositions(current=>current.map(p=>p.id===id?{...p,...patch}:p));
+   return true;
+  }}
+  onRemovePositionProtection={async (id,field)=>{
+   v4Calls.removals.push({id,field});
+   setPositions(current=>current.map(p=>p.id===id?{...p,[field]:null}:p));
+   return true;
+  }}
+  onMovePending={async (id,price,field)=>{
+   v4Calls.pendingMoves.push({id,price,field});
+   setPending(current=>current.map(p=>p.id===id?{...p,[field]:price}:p));
+   return true;
+  }}
+  onRequestPositionProtection={(id,field)=>{
+   const p=positions.find(p=>p.id===id);
+   if(p)setProtectionDraft({...p,source:'open-position',positionId:id,activeField:field,[field]:field==='sl'?p.entry-250:p.entry+250});
+  }}
+  onPositionProtectionDraftChange={patch=>setProtectionDraft(current=>current?{...current,...patch}:null)}
+  onCancelPositionProtection={()=>{v4Calls.cancels++;setProtectionDraft(null);}}
+  onApplyPositionProtection={async()=>{
+   if(!protectionDraft)return false;
+   setPositions(current=>current.map(p=>p.id===protectionDraft.positionId?{...p,[protectionDraft.activeField]:protectionDraft[protectionDraft.activeField]}:p));
+   setProtectionDraft(null);return true;
+  }}
+ />;
+}
+createRoot(document.getElementById('v4-independent-chart-fixture')).render(<IndependentChartFixture/>);
+
 const sleep=milliseconds=>new Promise(resolve=>setTimeout(resolve,milliseconds));
 const findMode=(ticket,text)=>Array.from(ticket.querySelectorAll('.v4-position-modes button'))
   .find(button=>button.textContent.trim()===text);
@@ -171,6 +214,71 @@ async function run(){
  if(!ticket){status.textContent='FAIL: V4 ticket missing';return;}
  // Accepted stop-limit must draw two independent SOLID price levels,
  // and show a temporary DOTTED ghost while its LIMIT leg is dragged.
+ const v4=document.getElementById('v4-independent-chart-fixture');
+ const v4Layer=v4.querySelector('[data-v4-independent-order-layer]');
+ if(!v4Layer)failed.push('Standalone V4 chart-order layer missing');
+ const acceptedTP=v4.querySelector('[data-v4-price-line="position:position-smoke-a:tp"]');
+ const acceptedSL=v4.querySelector('[data-v4-price-line="position:position-smoke-a:sl"]');
+ const entries=Array.from(v4.querySelectorAll('[data-v4-badge-owner="position"]')).filter(x=>x.textContent.includes('SELL')||x.textContent.includes('BUY'));
+ if(!acceptedTP||!acceptedSL)failed.push('Accepted standalone TP/SL missing');
+ if(acceptedTP?.dataset.v4LineState!=='solid'||acceptedSL?.dataset.v4LineState!=='solid')
+   failed.push('Standalone accepted price level is not solid');
+ if(entries.length!==3)failed.push('All three live position entries must retain individual badges');
+ const sellV4=entries.find(x=>x.textContent.includes('SELL'));
+ if(sellV4?.textContent.includes('+TP')||sellV4?.textContent.includes('+SL'))
+   failed.push('Attached protections duplicated on standalone entry badge');
+ sellV4?.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));
+ await sleep(65);
+ if(v4.querySelector('[data-v4-hover-group]')?.dataset.v4HoverGroup!=='position-smoke-a')
+   failed.push('Standalone hover did not connect selected position');
+ sellV4?.dispatchEvent(new MouseEvent('mouseout',{bubbles:true}));
+ await sleep(65);
+ const originalSl=v4.querySelector('[data-v4-price-line="position:position-smoke-a:sl"]');
+ const slBadge=originalSl?.querySelector('[data-v4-badge]');
+ if(!slBadge)failed.push('Standalone accepted SL badge missing');
+ else {
+   const bounds=v4.getBoundingClientRect(),startY=bounds.top+coordinateApi.priceToY(83200);
+   const down={bubbles:true,pointerId:25,clientY:startY};
+   slBadge.dispatchEvent(new PointerEvent('pointerdown',down));
+   window.dispatchEvent(new PointerEvent('pointermove',{...down,clientY:startY-20}));
+   await sleep(75);
+   window.dispatchEvent(new PointerEvent('pointerup',{...down,clientY:startY-20}));
+   await sleep(90);
+   if(v4Calls.updates.length!==0)failed.push('SL drag auto-submitted without Save');
+   if(!v4.querySelector('[data-v4-edit-preview="position:position-smoke-a:sl"]'))
+     failed.push('SL drag missing dotted review preview');
+   if(v4.querySelector('[data-v4-price-line="position:position-smoke-a:sl"]')?.dataset.v4LineState!=='solid')
+     failed.push('Drag replaced accepted solid SL line');
+   const review=v4.querySelector('[aria-label="Review sl edit"]');
+   if(!review||!Array.from(review.querySelectorAll('button')).some(b=>b.textContent==='Save')
+     ||!Array.from(review.querySelectorAll('button')).some(b=>b.textContent==='Cancel'))
+     failed.push('Released SL drag must show Save/Cancel');
+   Array.from(review?.querySelectorAll('button')||[]).find(b=>b.textContent==='Cancel')?.click();
+   await sleep(90);
+   if(v4Calls.updates.length||v4.querySelector('[data-v4-edit-preview]'))
+     failed.push('Cancel SL drag mutated server or retained ghost');
+ }
+ // Accepted removal requires a separate confirmation, not an immediate update.
+ const tpBadge=v4.querySelector('[data-v4-price-line="position:position-smoke-a:tp"] [data-v4-badge]');
+ tpBadge?.querySelector('[aria-label="Remove Take profit"]')?.click();
+ await sleep(90);
+ if(!v4.querySelector('[aria-label="Confirm protection removal"]'))
+   failed.push('Confirmed TP removal must prompt for confirmation');
+ if(v4Calls.removals.length)failed.push('TP removed before confirmation');
+ Array.from(v4.querySelectorAll('[aria-label="Confirm protection removal"] button')).find(b=>b.textContent==='Cancel')?.click();
+ await sleep(70);
+ if(v4Calls.removals.length)failed.push('Cancel TP removal still mutated protection');
+ tpBadge?.querySelector('[aria-label="Remove Take profit"]')?.click();
+ await sleep(65);
+ Array.from(v4.querySelectorAll('[aria-label="Confirm protection removal"] button')).find(b=>b.textContent==='Confirm removal')?.click();
+ await sleep(100);
+ if(v4Calls.removals.length!==1||v4Calls.removals[0].field!=='tp')
+   failed.push('Confirmed TP removal not routed by exact position ID');
+ if(v4.querySelector('[data-v4-price-line="position:position-smoke-a:tp"]'))
+   failed.push('Confirmed TP removal did not reconcile authoritative position state');
+ if(!Array.from(v4.querySelectorAll('[data-v4-badge-owner="position"]'))
+   .find(x=>x.textContent.includes('SELL'))?.textContent.includes('+TP'))
+   failed.push('Removed TP did not restore missing +TP control');
  const pendingChart=document.getElementById('pending-chart-fixture');
  pendingChart.style.width='435px';
  const liveChart=document.getElementById('position-chart-fixture');
