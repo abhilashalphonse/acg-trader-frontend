@@ -120,17 +120,18 @@ jobs:
           echo 'Confirmed chart-order Firebase preview Origin and POST/PATCH preflights are allowed by STAGING Trader.'
 
 
-  # Owner audit URL is the existing Firebase live origin, but this branch is
-  # never merged by the audit job. Only the query-gated V4 chart uses new UI.
-  # Default users continue through V3. PR #107 is the only allowed source.
-  v4-audit-live:
+  # RECOVERY ONLY: restore the stable main frontend to live Hosting.
+  # Keep PR #107 in draft; never deploy its experimental chart build here.
+  restore-stable-live:
     if: ${{ github.event.pull_request.number == 107 && github.event.pull_request.head.repo.full_name == github.repository }}
     needs: preview
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Checkout audit branch
+      - name: Checkout stable main branch
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -141,17 +142,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Verify audit-only integration boundary
+      - name: Verify known-good recovery source
         run: |
           set -euo pipefail
-          grep -q 'v4AuditLayer = desktopEnhanced && chartOrderV4 && !mobileOverlayStyle' src/components/trading-v2/ChartArea.jsx
-          grep -q 'v4AuditLayer && <V4FullTerminalOrders' src/components/trading-v2/ChartArea.jsx
-          grep -q '!v4AuditLayer && <OpenPositionEntryOverlay' src/components/trading-v2/ChartArea.jsx
-          grep -q "!v4AuditLayer && !tradePlan" src/components/trading-v2/ChartArea.jsx
-          grep -q 'new URLSearchParams(search).get' src/utils/chartOrderPresentation.js
-          echo 'V4 remains opt-in behind the existing ?acg_v4_audit=1 gate.'
+          test ! -e src/components/trading-v2/v4/V4FullTerminalOrders.jsx
+          grep -q 'isChartOrderAuditEnabled' src/components/trading-v2/DesktopTerminal.jsx
+          echo 'Deploying stable main source, not the V4 rebuild branch.'
 
-      - name: Run audit regression gate
+      - name: Run stable frontend regression gate
         run: npm run check
         env:
           VITE_ACG_TRADER_API_BASE: ${{ secrets.VITE_ACG_TRADER_API_BASE }}
@@ -161,7 +159,7 @@ jobs:
           VITE_ACG_FUNDED_SUPPORT_BASE_URL: ${{ secrets.VITE_ACG_FUNDED_SUPPORT_STAGING_BASE_URL }}
           VITE_GIT_SHA: ${{ github.event.pull_request.head.sha }}
 
-      - name: Deploy audit-gated full terminal to existing Firebase URL
+      - name: Restore stable frontend on existing Firebase live URL
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
