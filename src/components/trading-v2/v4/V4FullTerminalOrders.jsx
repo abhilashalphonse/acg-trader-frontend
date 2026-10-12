@@ -8,6 +8,7 @@ import { formatInstrumentPrice } from '../../../utils/instrumentFormatting.js';
 export default function V4FullTerminalOrders({
   account, symbol, instrument, positions = [], pendingOrders = [],
   coordinateApi, height, positionProtectionDraft, isNewOrderPlanning = false,
+  renderPositionEntries = null,
   onUpdatePosition, onRemovePositionProtection, onMovePending,
   onRequestPositionProtection, onCancelPositionProtection,
   onSelectPosition, onClosePosition, onCancelPending,
@@ -159,7 +160,13 @@ export default function V4FullTerminalOrders({
     }
   };
 
+  const chartEditActions = !isNewOrderPlanning && activeEdit?.objectType === 'position'
+    ? { positionId: activeEdit.objectId, saving,
+        onConfirm: () => confirm(activeEdit), onDiscard: discard }
+    : null;
+
   return <>
+    {renderPositionEntries?.(chartEditActions)}
     <V4ChartOrderLayer accountId={accountId} symbol={symbol}
       positions={positions} pendingOrders={pendingOrders}
       coordinateApi={coordinateApi} height={height}
@@ -168,6 +175,7 @@ export default function V4FullTerminalOrders({
       formatPnl={value => Number.isFinite(Number(value)) ? Number(value).toFixed(2) + ' ' + (account?.currency || 'USD') : '—'}
       edit={activeEdit} saving={saving}
       hidePositionEntries readOnly={isNewOrderPlanning}
+      instrument={instrument} accountCurrency={account?.currency || 'USD'}
       onBeginEdit={isNewOrderPlanning ? null : begin} onChangeEdit={isNewOrderPlanning ? null : setEdit}
       onSaveEdit={isNewOrderPlanning ? null : confirm} onCancelEdit={isNewOrderPlanning ? null : discard}
       onAddProtection={isNewOrderPlanning ? null : beginProtection}
