@@ -86,6 +86,32 @@ function ChartLevelBadge({ label, price, amount = null, percent = null, color = 
   );
 }
 
+// Reusable compact order row: direction → absent TP/SL shortcuts → size → type → close.
+// Existing protections move to their own draggable levels, restoring shortcuts when removed.
+function ChartOrderEntryRow({ side, type, lots, color, showTp = false, showSl = false, onTp, onSl, onCancel, onPointerDown, onClick, cancelLabel, title }) {
+  const interactive = Boolean(onClick || onPointerDown);
+  return (
+    <div
+      className={`pointer-events-auto absolute right-[70px] top-1/2 z-20 flex h-7 max-w-[calc(100%-84px)] -translate-y-1/2 items-center overflow-hidden rounded-[5px] border bg-[#111419]/96 font-mono text-[10px] font-semibold tabular-nums text-[#e4e9ed] shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
+      style={{ borderColor: `${color}aa` }}
+      title={title || undefined}
+      onPointerDown={onPointerDown}
+      onClick={onClick}
+      role={interactive ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onClick(event); } } : undefined}
+    >
+      <span className="px-2 font-sans font-bold" style={{ color }}>{side}</span>
+      {showTp && <button type="button" aria-label="Add TP" title="Add TP" className="h-full border-l border-white/10 px-1.5 text-[9px] text-[#35d79d] hover:bg-white/[0.06]" onPointerDown={event => event.stopPropagation()} onClick={event => { event.preventDefault(); event.stopPropagation(); onTp?.(); }}>TP</button>}
+      {showSl && <button type="button" aria-label="Add SL" title="Add SL" className="h-full border-l border-white/10 px-1.5 text-[9px] text-[#ff5968] hover:bg-white/[0.06]" onPointerDown={event => event.stopPropagation()} onClick={event => { event.preventDefault(); event.stopPropagation(); onSl?.(); }}>SL</button>}
+      <span className="border-l border-white/10 px-2">{Number.isFinite(lots) ? formatPositionLots(lots) : '—'}</span>
+      <span className="whitespace-nowrap border-l border-white/10 px-2 font-sans text-[9px] text-[#9eadbb]">{type}</span>
+      <button type="button" aria-label={cancelLabel || 'Cancel order'} className="grid h-full w-7 shrink-0 place-items-center border-l border-white/10 text-[13px] text-[#a6b1bc] hover:bg-white/[0.06] hover:text-white"
+        onPointerDown={event => event.stopPropagation()} onClick={event => { event.preventDefault(); event.stopPropagation(); onCancel?.(); }}>×</button>
+    </div>
+  );
+}
+
 function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instrument, selectedPositionId = null, onSelectPosition = () => {}, onClosePosition = () => {}, desktopStyle = false }) {
   const [, forceLayout] = useState(0);
   const closeAvailability = positionCloseAvailability(instrument);
@@ -451,16 +477,20 @@ export function PendingOrderOverlay({
           <div key={`${order.id}:entry`} className="pointer-events-none absolute left-0 right-0 z-[21]" style={{ top: y }}>
             <div className={desktopStyle ? 'relative border-t' : 'relative border-t border-dotted border-[#2f7df4]/90'} style={desktopStyle ? { borderColor: triggerTone } : undefined}>
               {desktopStyle ? (
-                <ChartLevelBadge
-                  label={`${side} ${type}`}
-                  price={formatInstrumentPrice(entry, instrument)}
-                  amount={Number.isFinite(lots) ? `${formatPositionLots(lots)} lots` : null}
+                <ChartOrderEntryRow
+                  side={side}
+                  type={type}
+                  lots={lots}
                   color={triggerTone}
-                  tooltip={order.orderType === 'stop-limit' ? 'Stop trigger. The separate limit line is the acceptable execution boundary.' : 'Accepted pending order. Drag to amend; click to modify.'}
+                  showTp={validPlanPrice(order.tp) == null}
+                  showSl={validPlanPrice(order.sl) == null}
+                  onTp={() => onModify(order.id, 'tp')}
+                  onSl={() => onModify(order.id, 'sl')}
+                  onCancel={() => onCancel(order.id)}
                   onPointerDown={event => beginPlacedDrag(event, 'entry')}
                   onClick={event => { event.stopPropagation(); if (!consumeSuppressedPlacedClick(order.id, 'entry')) onModify(order.id); }}
-                  onRemove={() => onCancel(order.id)}
-                  removeLabel={`Cancel ${side} ${type} pending order`}
+                  cancelLabel={`Cancel ${side} ${type} pending order`}
+                  title={order.orderType === 'stop-limit' ? 'Drag stop trigger; the limit execution boundary moves with it.' : 'Drag entry to amend accepted pending order.'}
                 />
               ) : (
               <div
@@ -961,27 +991,22 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
   const desktopPendingEntry = desktopPendingStyle && entryY != null ? (
     <div className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: entryY }}>
       <div className="relative border-t border-dotted" style={{ borderColor: plan.pending && ['stop', 'stop-limit'].includes(plan.orderType) ? '#d7a455' : '#b8c4ce' }}>
-        {(liveSl == null || liveTp == null) && (
-          <div className="pointer-events-auto absolute left-3 top-1/2 z-20 flex h-7 -translate-y-1/2 items-center gap-1">
-            {liveTp == null && <button type="button" aria-label="Add TP" title="Add TP"
-              onClick={event => { event.preventDefault(); event.stopPropagation(); requestDesktopProtection('tp'); }}
-              className="h-6 rounded border border-[#24735d]/70 bg-[#0a1714] px-2 text-[9px] font-semibold text-[#35d79d]">TP +</button>}
-            {liveSl == null && <button type="button" aria-label="Add SL" title="Add SL"
-              onClick={event => { event.preventDefault(); event.stopPropagation(); requestDesktopProtection('sl'); }}
-              className="h-6 rounded border border-[#863b49]/70 bg-[#1a0c10] px-2 text-[9px] font-semibold text-[#ff5968]">SL +</button>}
-          </div>
-        )}
-        <ChartLevelBadge
-          label={entryLabel}
-          price={formatInstrumentPrice(sourcePrice('entry'), instrument)}
-          amount={Number.isFinite(displayLots) ? `${lotCompact} lots` : null}
+        <ChartOrderEntryRow
+          side={isBuy ? 'BUY' : 'SELL'}
+          type={String(plan.orderType || 'market').replace('-', ' ').toUpperCase()}
+          lots={displayLots}
           color={plan.pending && ['stop', 'stop-limit'].includes(plan.orderType) ? '#d7a455' : '#b8c4ce'}
-          tooltip={plan.orderType === 'stop-limit' ? 'Stop trigger. Limit is a separate execution-price boundary.' : 'Draft order. Drag pending entry to change the requested price.'}
+          showTp={liveTp == null}
+          showSl={liveSl == null}
+          onTp={() => requestDesktopProtection('tp')}
+          onSl={() => requestDesktopProtection('sl')}
+          onCancel={onCancel}
           onPointerDown={plan.pending ? event => beginProjectedDrag(event, 'entry') : undefined}
-          onRemove={onCancel}
-          removeLabel={plan?.editingOrderId ? 'Cancel pending order' : 'Cancel draft'}
+          cancelLabel={plan?.editingOrderId ? 'Close pending order edit' : 'Cancel draft'}
+          title={plan.orderType === 'stop-limit' ? 'Draft stop trigger. Limit is an independent price boundary.' : 'Unsubmitted chart order draft.'}
         />
-        <span className="absolute right-[56px] top-1/2 z-10 -translate-y-1/2 rounded-[4px] border bg-[#171d23] px-1.5 py-0.5 font-mono text-[9px] font-semibold lg:right-2" style={{ borderColor: plan.pending && ['stop', 'stop-limit'].includes(plan.orderType) ? '#d7a455' : '#b8c4ce', color: plan.pending && ['stop', 'stop-limit'].includes(plan.orderType) ? '#e6b76a' : '#d4e0ec' }}>
+        <span className="absolute right-[56px] top-1/2 z-10 -translate-y-1/2 rounded-[4px] border bg-[#171d23] px-1.5 py-0.5 font-mono text-[9px] font-semibold lg:right-2"
+          style={{ borderColor: plan.pending && ['stop', 'stop-limit'].includes(plan.orderType) ? '#d7a455' : '#b8c4ce', color: plan.pending && ['stop', 'stop-limit'].includes(plan.orderType) ? '#e6b76a' : '#d4e0ec' }}>
           {formatInstrumentPrice(sourcePrice('entry'), instrument)}
         </span>
         {plan.pending && <button type="button" aria-label="Drag pending entry" onPointerDown={event => beginProjectedDrag(event, 'entry')}
@@ -1548,10 +1573,9 @@ export default function ChartArea({
         <TradePlanOverlay
           plan={tradePlan}
           onChange={onTradePlanChange}
-          onCancel={() => {
-            if (tradePlan?.editingOrderId) onCancelPending(tradePlan.editingOrderId);
-            else onCancelTradePlan();
-          }}
+          // Closing a modification draft must never cancel the live pending order.
+          // Actual accepted-order cancellation remains on its separate placed row.
+          onCancel={onCancelTradePlan}
           coordinateApi={coordinateApi}
           instrument={instrument}
           lots={tradePlanLots}
