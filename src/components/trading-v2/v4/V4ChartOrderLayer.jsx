@@ -1,0 +1,89 @@
+import React, { useMemo, useState } from 'react';
+import {
+  projectV4AcceptedLevels, projectV4Edit, placeV4Badges,
+  v4MissingProtections, v4ProtectionAction,
+} from './chartOrderModel.js';
+
+// An intentionally separate V4-only renderer: no imports from ChartArea or
+// legacy plan/pending/position overlays. Future phases connect real chart
+// coordinates and command handlers after authenticated staging acceptance.
+const COLORS = Object.freeze({ sl:'#ee5465', tp:'#16c590', buy:'#17b899', sell:'#ee596a', neutral:'#aab6c2' });
+const priceLabel = (value, formatPrice) => formatPrice ? formatPrice(value) : String(value);
+
+export default function V4ChartOrderLayer({
+  accountId, symbol, positions = [], pendingOrders = [], coordinateApi,
+  height = 480, formatPrice, formatVolume, formatPnl,
+  edit = null, saving = false, onBeginEdit, onSaveEdit, onCancelEdit,
+  onConfirmRemoval, onAddProtection,
+}) {
+  const [removeLevel, setRemoveLevel] = useState(null);
+  const [hoveredId, setHoveredId] = useState(null);
+  const accepted = useMemo(() => projectV4AcceptedLevels({accountId,symbol,positions,pendingOrders}),
+    [accountId,symbol,positions,pendingOrders]);
+  const { ghost } = projectV4Edit(accepted, edit);
+  const acceptedWithCoordinates = coordinateApi?.priceToY
+    ? accepted.map(level => ({...level,y:coordinateApi.priceToY(level.price)})).filter(level=>Number.isFinite(level.y))
+    : [];
+  const { placements, overflow } = placeV4Badges(acceptedWithCoordinates, { minY: 14, maxY:height-14, badgeHeight:28, gap:5 });
+  const placed = new Map(placements.map(level=>[level.id,level]));
+  const colorFor = level => level.kind==='sl' ? COLORS.sl : level.kind==='tp' ? COLORS.tp
+    : level.objectType==='position' && level.kind==='entry' ? COLORS.neutral
+    : level.side==='BUY' ? COLORS.buy : COLORS.sell;
+  const selected = removeLevel && accepted.find(level=>level.id===removeLevel);
+  const canRemove = Boolean(onConfirmRemoval);
+
+  return <div className="pointer-events-none absolute inset-0 z-[36] overflow-hidden" data-v4-isolated-layer
+    style={{ height }}>
+    {acceptedWithCoordinates.map(level=>{
+      const color=colorFor(level);
+      const location=placed.get(level.id);
+      const editing=ghost?.sourceLevelId===level.id;
+      const groupId=level.accountId+':'+level.objectType+':'+level.objectId;
+      const highlighted=hoveredId===groupId;
+      const missing=level.objectType==='position' && level.kind==='entry' ? v4MissingProtections(accepted,level.id) : [];
+      return <React.Fragment key={level.id}>
+        <div data-v4-accepted-line={level.id} className="pointer-events-none absolute left-0 right-0 border-t"
+          style={{top:level.y,borderColor:color,opacity:highlighted?1:0.7}}/>
+        {location && !editing && <div data-v4-badge={level.id}
+          onMouseEnter={()=>setHoveredId(groupId)} onMouseLeave={()=>setHoveredId(null)}
+          onFocus={()=>setHoveredId(groupId)} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setHoveredId(null);}}
+          className="pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] items-center gap-1 overflow-hidden rounded-[5px] border bg-[#111419]/95 px-1.5 font-mono text-[10px] text-white shadow-lg"
+          style={{top:location.badgeTop,borderColor:color,boxShadow:highlighted?'0 0 10px rgba(215,223,231,.18)':undefined}}>
+          <span className="shrink-0 font-semibold" style={{color}}>{level.kind==='sl'?'Stop loss':level.kind==='tp'?'Take profit':level.side+' '+(level.objectType==='pending'?' '+(level.orderType||'').toUpperCase():'')}</span>
+          {level.kind==='entry' && level.objectType==='position' && <span className="shrink-0 text-gray-300">{formatVolume?.(level.volume) ?? level.volume}</span>}
+          {level.kind!=='entry' && <span className="shrink-0">{priceLabel(level.price,formatPrice)}</span>}
+          {level.kind==='entry' && level.objectType==='position' && formatPnl && <span className="truncate" style={{color}}>{formatPnl(level.pnl)}</span>}
+          {missing.map(kind=><button key={kind} type="button" onClick={()=>onAddProtection?.(level.objectId,kind)}
+            className="shrink-0 rounded-[3px] border border-gray-600 px-1" aria-label={`Add ${kind.toUpperCase()}`}>+${kind.toUpperCase()}</button>)}
+          {(['sl','tp'].includes(level.kind))&&onBeginEdit&&<button type="button" className="shrink-0 px-1"
+            aria-label={`Edit ${level.kind.toUpperCase()}`} onClick={()=>onBeginEdit(v4ProtectionAction(accepted,level.id,'edit'))}>Edit</button>}
+          {(['sl','tp'].includes(level.kind))&&canRemove&&<button type="button" aria-label={`Confirm removal of ${level.kind.toUpperCase()}`}
+            className="shrink-0 px-1" onClick={()=>setRemoveLevel(level.id)}>×</button>}
+        </div>}
+        {location?.displaced && !editing && <div className="pointer-events-none absolute right-[140px] w-px bg-[#98a7b6]/70"
+          style={{top:Math.min(level.y,location.badgeTop+14),height:Math.abs(level.y-(location.badgeTop+14))}}
+          aria-hidden="true"/>}
+      </React.Fragment>;
+    })}
+    {ghost && coordinateApi?.priceToY && Number.isFinite(coordinateApi.priceToY(ghost.price)) && <div data-v4-preview={ghost.sourceLevelId}>
+      <div className="absolute left-0 right-0 border-t border-dotted" style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost)}}/>
+      <div className="pointer-events-auto absolute right-[148px] flex h-7 -translate-y-1/2 items-center gap-2 rounded-[5px] border bg-[#111419]/95 px-2 text-[10px]"
+        style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost)}}>
+        <span style={{color:colorFor(ghost)}}>{ghost.kind==='sl'?'Stop loss':'Take profit'}</span>
+        <span>{priceLabel(ghost.price,formatPrice)}</span>
+        <button disabled={saving} type="button" onClick={()=>onSaveEdit?.(edit)}>Save</button>
+        <button disabled={saving} type="button" onClick={()=>onCancelEdit?.()}>Cancel</button>
+      </div>
+    </div>}
+    {overflow.length>0&&<span className="pointer-events-auto absolute bottom-2 right-[148px] rounded bg-[#202329] px-2 py-1 text-[10px] text-gray-300"
+      data-v4-overflow-count={overflow.length}>{overflow.length} more levels outside badge area</span>}
+    {selected && <div role="dialog" aria-modal="true" aria-label={`Confirm remove ${selected.kind.toUpperCase()}`}
+      className="pointer-events-auto absolute bottom-3 right-[148px] z-[60] flex max-w-[300px] flex-col gap-2 rounded-md border border-gray-600 bg-[#111419] p-3 text-[11px] text-white">
+      <span>Remove {selected.kind.toUpperCase()} at {priceLabel(selected.price,formatPrice)}?</span>
+      <div className="flex gap-2">
+        <button type="button" disabled={saving} onClick={()=>setRemoveLevel(null)}>Cancel</button>
+        <button type="button" disabled={saving} onClick={()=>{onConfirmRemoval?.(v4ProtectionAction(accepted,selected.id,'remove'));setRemoveLevel(null);}}>Confirm removal</button>
+      </div>
+    </div>}
+  </div>;
+}
