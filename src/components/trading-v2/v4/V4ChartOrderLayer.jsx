@@ -86,6 +86,18 @@ export default function V4ChartOrderLayer({
   const selected = removeLevel && accepted.find(level=>level.id===removeLevel);
   const canRemove = Boolean(onConfirmRemoval);
   const [cancelPendingId, setCancelPendingId] = useState(null);
+  const protectionTheme = kind => kind === 'tp'
+    ? {background:'#101a18', positive:'rgba(22,197,144,0.17)', shade:'rgba(22,134,95,0.055)'}
+    : {background:'#1b1115', positive:'rgba(238,84,101,0.17)', shade:'rgba(175,55,70,0.055)'};
+  // All accepted risk/reward areas derive from authoritative levels only.
+  // Draft shading below is independently owned and disappears on Discard/switch.
+  const acceptedProtectionShades = acceptedWithCoordinates.flatMap(level => {
+    if (level.objectType !== 'position' || !['tp','sl'].includes(level.kind)) return [];
+    const entry = acceptedWithCoordinates.find(item => item.objectType === 'position' &&
+      item.objectId === level.objectId && item.accountId === level.accountId && item.kind === 'entry');
+    if (!entry) return [];
+    return [{id:level.id,kind:level.kind,top:Math.min(entry.y,level.y),height:Math.abs(entry.y-level.y)}];
+  });
   const beginDrag = (event, level, isPreview = false) => {
     if (readOnly || !onChangeEdit || saving || !coordinateApi?.yToPrice) return;
     if (!isPreview && !onBeginEdit) return;
@@ -109,6 +121,10 @@ export default function V4ChartOrderLayer({
 
   return <div className="pointer-events-none absolute inset-0 z-[36] overflow-hidden" data-v4-isolated-layer
     style={{ height }}>
+    {acceptedProtectionShades.map(area=><div key={area.id} data-v4-accepted-shade={area.kind}
+      className="pointer-events-none absolute left-[42%] right-[148px]" aria-hidden="true"
+      style={{top:area.top,height:area.height,
+        background:`linear-gradient(90deg, transparent 0%, ${protectionTheme(area.kind).shade} 100%)`}}/>)}
     {displayedLevels.map(level=>{
       const color=colorFor(level);
       const location=placed.get(level.id);
@@ -123,19 +139,21 @@ export default function V4ChartOrderLayer({
         ? Math.abs((level.price / entryLevel.price - 1) * 100).toFixed(2)+'%' : '—';
       return <React.Fragment key={level.id}>
         <div data-v4-accepted-line={level.id} className="pointer-events-none absolute left-0 right-0 border-t"
-          style={{top:level.y,borderColor:color,opacity:highlighted?1:0.7}}/>
+          style={{top:level.y,borderColor:color,opacity:highlighted?0.9:0.66}}/>
         {location && <div data-v4-badge={level.id}
           onPointerDown={event=>beginDrag(event,level)} onMouseEnter={()=>setHoveredId(groupId)} onMouseLeave={()=>setHoveredId(null)}
           onFocus={()=>setHoveredId(groupId)} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setHoveredId(null);}}
-          className={`pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] items-center ${marketProtection ? 'gap-0 bg-[#09090b]/96' : 'gap-1 bg-[#111419]/95 px-1.5'} overflow-hidden rounded-[5px] border font-mono text-[10px] text-white shadow-lg`}
-          style={{top:location.badgeTop,borderColor:color,boxShadow:highlighted?'0 0 10px rgba(215,223,231,.18)':undefined}}>
+          className={`pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] items-center ${marketProtection ? 'gap-0 tabular-nums backdrop-blur-sm' : 'gap-1 bg-[#111419]/95 px-1.5'} overflow-hidden rounded-[5px] border font-mono text-[10px] text-white shadow-[0_3px_12px_rgba(0,0,0,.36)] transition-[box-shadow]`}
+          style={{top:location.badgeTop,borderColor:marketProtection?color+'aa':color,
+            backgroundColor:marketProtection?protectionTheme(level.kind).background:undefined,
+            boxShadow:highlighted?'0 0 10px rgba(215,223,231,.12)':undefined}}>
           {marketProtection ? <>
             <span data-v4-drag-handle={level.id} aria-label={`Drag ${level.kind.toUpperCase()} level`}
-              className="shrink-0 cursor-ns-resize touch-none px-1.5 text-[#7c8994]" title={`Drag ${level.kind.toUpperCase()}`}>⠿</span>
+              className="shrink-0 cursor-ns-resize touch-none px-1.5 text-[11px] tracking-[-2px] text-[#7c8994]" title={`Drag ${level.kind.toUpperCase()}`}>⠿</span>
             <span className="shrink-0 whitespace-nowrap font-sans text-[10px] font-semibold" style={{color}}>{level.kind==='tp'?'Take profit':'Stop loss'}</span>
-            <span className="shrink-0 px-1.5 text-[#e5ebf0]">{protectionPriceLabel(level.price,formatPrice)}</span>
-            <span className="shrink-0 rounded-[3px] px-1.5 py-0.5 font-semibold" style={{color,backgroundColor:color+'22'}}>{projection.amount}</span>
-            <span className="shrink-0 pr-1 font-sans text-[9px] text-[#919ba6]">{percent}</span>
+            <span className="shrink-0 px-1.5 font-mono font-semibold tabular-nums text-[#e5ebf0]">{protectionPriceLabel(level.price,formatPrice)}</span>
+            <span className="shrink-0 rounded-[3px] px-1.5 py-0.5 font-mono font-semibold tabular-nums" style={{color,backgroundColor:protectionTheme(level.kind).positive}}>{projection.amount}</span>
+            <span className="shrink-0 pr-1.5 font-sans text-[9px] font-medium tabular-nums text-[#929ba4]">{percent}</span>
           </> : <span className="shrink-0 font-semibold" style={{color}}>{level.kind==='sl'?'Stop loss':level.kind==='tp'?'Take profit':level.side+' '+(level.objectType==='pending'?' '+(level.orderType||'').toUpperCase():'')}</span>}
           {level.kind==='entry' && level.objectType==='position' && <span className="shrink-0 text-gray-300">{formatVolume?.(level.volume) ?? level.volume}</span>}
           {level.kind!=='entry' && !marketProtection && <span className="shrink-0">{priceLabel(level.price,formatPrice)}</span>}
@@ -148,7 +166,7 @@ export default function V4ChartOrderLayer({
           {(['sl','tp'].includes(level.kind) || (level.objectType==='pending' && level.kind==='entry'))&&onBeginEdit&&!marketProtection&&<button type="button" className="shrink-0 px-1"
             aria-label={`Edit ${level.kind.toUpperCase()}`} onClick={()=>onBeginEdit(v4ProtectionAction(accepted,level.id,'edit'))}>Edit</button>}
           {(['sl','tp'].includes(level.kind))&&canRemove&&<button type="button" aria-label={`Confirm removal of ${level.kind.toUpperCase()}`}
-            className={marketProtection ? 'grid h-7 w-7 shrink-0 place-items-center border-l border-dotted border-white/20 text-[#99a6b0]' : 'shrink-0 px-1'} onClick={()=>setRemoveLevel(level.id)}>×</button>}
+            className={marketProtection ? 'grid h-7 w-6 shrink-0 place-items-center border-l border-white/10 text-[#99a6b0] hover:bg-white/[0.06] hover:text-white' : 'shrink-0 px-1'} onClick={()=>setRemoveLevel(level.id)}>×</button>}
         </div>}
         {marketProtection && <div data-v4-accepted-protection-price={level.id}
           className="pointer-events-none absolute right-[56px] flex -translate-y-1/2 items-center gap-1.5 lg:right-2"
@@ -182,15 +200,16 @@ export default function V4ChartOrderLayer({
       if (!Number.isFinite(y1) || !Number.isFinite(y2)) return null;
       return <div data-v4-draft-shade={ghost.kind} className="pointer-events-none absolute left-[42%] right-[148px]" style={{
         top:Math.min(y1,y2),height:Math.abs(y1-y2),
-        background:ghost.kind==='tp'?'rgba(22,134,95,0.12)':'rgba(175,55,70,0.12)'
+        background:ghost.kind==='tp'?'linear-gradient(90deg, transparent 0%, rgba(22,134,95,0.09) 100%)':'linear-gradient(90deg, transparent 0%, rgba(175,55,70,0.09) 100%)'
       }}/>;
     })()}
     {!readOnly && ghost && coordinateApi?.priceToY && Number.isFinite(coordinateApi.priceToY(ghost.price)) && <div data-v4-preview={ghost.id}>
       <div className="absolute left-0 right-0 border-t border-dotted" style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost)}}/>
       <div data-v4-draft-badge
         onPointerDown={event=>beginDrag(event,ghost,true)}
-        className={`pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] -translate-y-1/2 items-center rounded-[5px] border font-mono text-[10px] text-white shadow-lg ${ghost.objectType==='position' ? 'gap-0 cursor-ns-resize touch-none border-dotted bg-[#09090b]/96' : 'gap-1 cursor-ns-resize touch-none bg-[#111419]/95 px-1.5'}`}
-        style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost)}}>
+        className={`pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] -translate-y-1/2 items-center rounded-[5px] border font-mono text-[10px] tabular-nums text-white shadow-[0_3px_12px_rgba(0,0,0,.36)] ${ghost.objectType==='position' ? 'gap-0 cursor-ns-resize touch-none border-dotted backdrop-blur-sm' : 'gap-1 cursor-ns-resize touch-none bg-[#111419]/95 px-1.5'}`}
+        style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost),
+          backgroundColor:ghost.objectType==='position'?protectionTheme(ghost.kind).background:undefined}}>
         {ghost.objectType==='position' && ['tp','sl'].includes(ghost.kind) ? (() => {
           const projection = projectedPositionProtection(ghost);
           const entry = accepted.find(value => value.objectType==='position' &&
@@ -199,13 +218,13 @@ export default function V4ChartOrderLayer({
             ? Math.abs((ghost.price / entry.price - 1) * 100).toFixed(2)+'%' : '—';
           return <>
             <span data-v4-drag-handle="draft" aria-label={`Drag draft ${ghost.kind.toUpperCase()}`}
-              className="shrink-0 cursor-ns-resize touch-none px-1.5 text-[#7c8994]">⠿</span>
+              className="shrink-0 cursor-ns-resize touch-none px-1.5 text-[11px] tracking-[-2px] text-[#7c8994]">⠿</span>
             <span className="shrink-0 whitespace-nowrap font-sans text-[10px] font-semibold" style={{color:colorFor(ghost)}}>{ghost.kind==='tp'?'Take profit':'Stop loss'}</span>
-            <span className="shrink-0 px-1.5 text-[#e5ebf0]">{protectionPriceLabel(ghost.price,formatPrice)}</span>
-            <span className="shrink-0 rounded-[3px] px-1.5 py-0.5 font-semibold" style={{color:colorFor(ghost),backgroundColor:colorFor(ghost)+'22'}}>{projection.amount}</span>
-            <span className="shrink-0 pr-1 font-sans text-[9px] text-[#919ba6]">{percent}</span>
+            <span className="shrink-0 px-1.5 font-mono font-semibold tabular-nums text-[#e5ebf0]">{protectionPriceLabel(ghost.price,formatPrice)}</span>
+            <span className="shrink-0 rounded-[3px] px-1.5 py-0.5 font-mono font-semibold tabular-nums" style={{color:colorFor(ghost),backgroundColor:protectionTheme(ghost.kind).positive}}>{projection.amount}</span>
+            <span className="shrink-0 pr-1.5 font-sans text-[9px] font-medium tabular-nums text-[#929ba4]">{percent}</span>
             <button type="button" aria-label="Discard protection draft" disabled={saving} onClick={()=>onCancelEdit?.()}
-              className="grid h-7 w-7 shrink-0 place-items-center border-l border-dotted border-white/20 text-[#9aa4ae] disabled:opacity-50">×</button>
+              className="grid h-7 w-6 shrink-0 place-items-center border-l border-white/10 text-[#9aa4ae] hover:bg-white/[0.06] disabled:opacity-50">×</button>
           </>;
         })() : <>
           <span style={{color:colorFor(ghost)}}>{ghost.kind==='sl'?'Stop loss':ghost.kind==='tp'?'Take profit':'Pending entry'}</span>
