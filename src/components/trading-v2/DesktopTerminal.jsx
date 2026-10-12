@@ -1122,6 +1122,7 @@ export default function DesktopTerminal({
             <div className="min-h-0 min-w-0 bg-black p-0">
               <DesktopMultiChart
                 compactContext={positionsExpanded}
+                chartOrderV4={V4_DESKTOP_EXECUTION_ENABLED}
                 chartSettings={chartSettings}
                 config={multiChart}
                 onChange={setMultiChart}
