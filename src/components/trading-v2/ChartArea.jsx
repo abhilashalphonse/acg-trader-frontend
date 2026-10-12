@@ -94,7 +94,7 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
   const activePositions = useMemo(
     () => (Array.isArray(positions) ? positions : []).filter(position =>
       String(position?.symbol || '').toUpperCase() === String(symbol || '').toUpperCase()
-      && Number.isFinite(Number(position?.entry ?? position?.entryPrice))
+      && validPlanPrice(position?.entry ?? position?.entryPrice) != null
     ),
     [positions, symbol],
   );
@@ -218,7 +218,7 @@ export function PendingOrderOverlay({
     () => (Array.isArray(orders) ? orders : []).filter(order =>
       String(order?.symbol || '').toUpperCase() === String(symbol || '').toUpperCase()
       && String(order?.id || '') !== String(hiddenOrderId || '')
-      && Number.isFinite(Number(order?.entry))
+      && validPlanPrice(order?.entry) != null
     ),
     [hiddenOrderId, orders, symbol],
   );
@@ -312,8 +312,8 @@ export function PendingOrderOverlay({
     const source = !desktopStyle && Object.prototype.hasOwnProperty.call(previewPrices, previewKey)
       ? previewPrices[previewKey]
       : order?.[kind];
-    const price = Number(source);
-    if (!Number.isFinite(price)) return null;
+    const price = validPlanPrice(source);
+    if (price == null) return null;
     const y = coordinateApi.priceToY(price);
     if (!Number.isFinite(y)) return null;
     return (
@@ -382,19 +382,17 @@ export function PendingOrderOverlay({
         });
       })}
       {activeOrders.flatMap(order => {
-        const rawEntry = Number(order.entry);
+        const rawEntry = validPlanPrice(order.entry);
         const entryPreviewKey = `${order.id}:entry`;
         const entry = Object.prototype.hasOwnProperty.call(previewPrices, entryPreviewKey)
-          ? Number(previewPrices[entryPreviewKey])
+          ? (validPlanPrice(previewPrices[entryPreviewKey]) ?? rawEntry)
           : rawEntry;
         const y = coordinateApi.priceToY(entry);
         if (!Number.isFinite(y)) return [];
         const side = String(order.side || '').toUpperCase();
         const type = String(order.orderType || '').replace('-', ' ').toUpperCase();
         const lots = Number(order.volume ?? order.lots);
-        const secondary = order.orderType === 'stop-limit' && Number.isFinite(Number(order.limitPrice))
-          ? Number(order.limitPrice)
-          : null;
+        const secondary = order.orderType === 'stop-limit' ? validPlanPrice(order.limitPrice) : null;
         const secondaryY = secondary == null ? null : coordinateApi.priceToY(secondary);
         const triggerTone = ['stop', 'stop-limit'].includes(order.orderType) ? '#d7a455' : '#acbac7';
         const beginPlacedDrag = (event, field = 'entry') => {
@@ -450,7 +448,7 @@ export function PendingOrderOverlay({
                     <button
                       type="button"
                       onPointerDown={event => {
-                        if (!Number.isFinite(Number(order?.tp))) {
+                        if (!(validPlanPrice(order?.tp) != null)) {
                           event.stopPropagation();
                           return;
                         }
@@ -462,7 +460,7 @@ export function PendingOrderOverlay({
                         if (consumeSuppressedPlacedClick(order.id, 'tp')) return;
                         onModify(order.id, 'tp');
                       }}
-                      className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[9px] transition ${Number.isFinite(Number(order?.tp)) ? 'text-[#2aa37f]' : 'text-[#23876b] hover:text-[#35d79d]'}`}
+                      className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[9px] transition ${(validPlanPrice(order?.tp) != null) ? 'text-[#2aa37f]' : 'text-[#23876b] hover:text-[#35d79d]'}`}
                       aria-label="Add or edit take profit"
                       title="Add / edit TP"
                     >
@@ -471,7 +469,7 @@ export function PendingOrderOverlay({
                     <button
                       type="button"
                       onPointerDown={event => {
-                        if (!Number.isFinite(Number(order?.sl))) {
+                        if (!(validPlanPrice(order?.sl) != null)) {
                           event.stopPropagation();
                           return;
                         }
@@ -483,7 +481,7 @@ export function PendingOrderOverlay({
                         if (consumeSuppressedPlacedClick(order.id, 'sl')) return;
                         onModify(order.id, 'sl');
                       }}
-                      className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[9px] transition ${Number.isFinite(Number(order?.sl)) ? 'text-[#d45a64]' : 'text-[#b64f59] hover:text-[#e36a74]'}`}
+                      className={`min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[9px] transition ${(validPlanPrice(order?.sl) != null) ? 'text-[#d45a64]' : 'text-[#b64f59] hover:text-[#e36a74]'}`}
                       aria-label="Add or edit stop loss"
                       title="Add / edit SL"
                     >
@@ -1083,8 +1081,8 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
   const renderLine = (position, kind, color, label) => {
     const key = `${position.id}:${kind}`;
     const source = mobileStyle && Object.prototype.hasOwnProperty.call(preview, key) ? preview[key] : position[kind];
-    const price = Number(source);
-    if (!Number.isFinite(price)) return null;
+    const price = validPlanPrice(source);
+    if (price == null) return null;
     const y = coordinateApi.priceToY(price);
     if (!Number.isFinite(y)) return null;
 
