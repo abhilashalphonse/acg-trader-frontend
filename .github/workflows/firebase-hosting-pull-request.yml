@@ -118,3 +118,22 @@ jobs:
             }
           done
           echo 'Confirmed chart-order Firebase preview Origin and POST/PATCH preflights are allowed by STAGING Trader.'
+
+  live-startup-smoke:
+    if: ${{ github.event.pull_request.number == 107 && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout diagnostics branch
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install read-only browser test runner
+        run: npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - name: Verify deployed ACG Trader startup without credentials
+        run: node tests/ui/live-startup-diagnostic.mjs
