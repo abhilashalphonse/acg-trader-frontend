@@ -14,7 +14,7 @@ export default function V4FullTerminalOrders({
   onUpdatePosition, onRemovePositionProtection, onMovePending,
   onRequestPositionProtection, onCancelPositionProtection,
   onPositionProtectionDraftChange,
-  onSelectPosition, onClosePosition, onCancelPending,
+  onSelectPosition, onSelectPending, onClosePosition, onCancelPending,
 }) {
   const accountId = account?.id == null ? null : String(account.id);
   const [edit, setEdit] = useState(null);
@@ -304,6 +304,7 @@ export default function V4FullTerminalOrders({
       onAddProtection={isNewOrderPlanning ? null : beginProtection}
       onRemoveProtection={isNewOrderPlanning ? null : remove}
       onSelectPosition={isNewOrderPlanning ? null : onSelectPosition}
+      onSelectPending={isNewOrderPlanning ? null : onSelectPending}
       onClosePosition={isNewOrderPlanning ? null : onClosePosition}
       onCancelPending={isNewOrderPlanning ? null : onCancelPending}/>
     {!isNewOrderPlanning && error && <div role="alert" data-v4-chart-error
