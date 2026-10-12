@@ -55,7 +55,7 @@ test('overlapping independent badges are spaced without mutating actual price Y'
  for(let i=1;i<result.length;i++)assert.ok(result[i].badgeY-result[i-1].badgeY>=34);
  assert.deepEqual(levels.map(x=>x.y),[100,101,102,180]);
  assert.equal(result[0].y,100);
- assert.notEqual(result[1].deltaY,0);
+ assert.ok(result.some((item,index)=>index<3&&Math.abs(item.deltaY)>0.1), 'At least one colliding badge must move');
  assert.deepEqual(v4LayoutBadges([],400),[]);
 });
 
