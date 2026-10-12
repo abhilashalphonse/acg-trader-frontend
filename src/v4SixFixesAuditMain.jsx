@@ -23,6 +23,7 @@ function App(){
  const [orders,setOrders]=useState(originalOrders);
  const [parentDraft,setParentDraft]=useState(null);
  const [planning,setPlanning]=useState(false);
+ const [hoveredPositionId,setHoveredPositionId]=useState(null);
  const [commands,setCommands]=useState([]);
  const coordinateApi=useMemo(()=>({priceToY:toY,yToPrice:fromY,subscribe:()=>()=>{}}),[]);
  const record=(kind,id,field,price)=>setCommands(c=>[...c,{kind,id,field,price}]);
@@ -55,13 +56,14 @@ function App(){
    </div>
   <div className="relative w-full overflow-hidden rounded border border-[#444]" style={{height:580}}
     data-v4-full-terminal-fixture>
-    <V4FullTerminalOrders isNewOrderPlanning={planning}
+    <V4FullTerminalOrders isNewOrderPlanning={planning} hoveredPositionId={hoveredPositionId}
       renderPositionEntries={(chartEditActions, requestProtection) => (
         <OpenPositionEntryOverlay symbol={SYMBOL} positions={positions} coordinateApi={coordinateApi}
           instrument={{tickSize:1,tickValue:1,quoteCurrency:'USD',displaySymbol:'BTCUSD',sessionOpen:true,marketDataAvailable:true}}
           selectedPositionId={'p1'} onSelectPosition={()=>{}} onClosePosition={()=>{}}
           onRequestPositionProtection={planning ? null : requestProtection}
-          chartEditActions={chartEditActions} desktopStyle/>
+          chartEditActions={chartEditActions}
+          hoveredPositionId={hoveredPositionId} onHoverPosition={setHoveredPositionId} desktopStyle/>
       )}
       account={ACCOUNT} symbol={SYMBOL} instrument={{tickSize:1,tickValue:1,quoteCurrency:'USD',displaySymbol:'BTCUSD'}}
       positions={positions} pendingOrders={orders}
