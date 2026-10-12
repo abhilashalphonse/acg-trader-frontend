@@ -1259,8 +1259,10 @@ export default function TradingTerminalV2({
         price: numericPrice,
       });
       showNotice(clearingProtection ? `${field.toUpperCase()} removed` : field === 'entry' ? 'Pending price updated' : `${field === 'limitPrice' ? 'LIMIT' : field.toUpperCase()} updated`);
+      return true;
     } catch (error) {
       handleTradingError(error, `Move ${order.symbol} pending ${field}`);
+      return false;
     }
   };
 
