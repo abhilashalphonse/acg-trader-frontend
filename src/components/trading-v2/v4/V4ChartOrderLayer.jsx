@@ -285,6 +285,20 @@ export default function V4ChartOrderLayer({
         {priceLabel(ghost.price,formatPrice)}
       </span>}
     </div>}
+    {!readOnly && secondaryPreview && coordinateApi?.priceToY &&
+      Number.isFinite(coordinateApi.priceToY(secondaryPreview.price)) && <div
+      data-v4-secondary-preview={secondaryPreview.id} className="pointer-events-none absolute inset-0">
+      <div data-v4-secondary-dotted-line className="absolute left-0 right-0 border-t border-dotted border-[#b69adc]/75"
+        style={{top:coordinateApi.priceToY(secondaryPreview.price)}}/>
+      <div data-v4-secondary-draft-badge
+        className="absolute right-[148px] flex h-7 -translate-y-1/2 items-center gap-1 rounded-[5px] border border-dotted border-[#b69adc]/80 bg-[#09090b] px-2 font-mono text-[10px] text-[#d2baf0]"
+        style={{top:coordinateApi.priceToY(secondaryPreview.price)}}>
+        <span className="font-sans font-semibold">Limit price · preview</span>
+        <span className="font-mono font-semibold tabular-nums text-white">{protectionPriceLabel(secondaryPreview.price,formatPrice)}</span>
+      </div>
+      <div className="absolute right-[56px] -translate-y-1/2 rounded-[4px] border border-dotted border-[#b69adc]/80 bg-[#09090b] px-1.5 py-0.5 font-mono text-[9px] text-[#d2baf0]"
+        style={{top:coordinateApi.priceToY(secondaryPreview.price)}}>{priceLabel(secondaryPreview.price,formatPrice)}</div>
+    </div>}
     {overflow.length>0&&<span className="pointer-events-auto absolute bottom-2 right-[148px] rounded bg-[#202329] px-2 py-1 text-[10px] text-gray-300"
       data-v4-overflow-count={overflow.length}>{overflow.length} more levels outside badge area</span>}
     {!readOnly && cancelPendingId && <div role="dialog" aria-modal="true" aria-label="Confirm cancel pending order"
