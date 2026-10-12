@@ -162,16 +162,30 @@ export default function V4ChartOrderLayer({
             <span className="shrink-0 px-1.5 font-mono font-semibold tabular-nums text-[#e5ebf0]">{protectionPriceLabel(level.price,formatPrice)}</span>
             <span className="shrink-0 rounded-[3px] px-1.5 py-0.5 font-mono font-semibold tabular-nums" style={{color,backgroundColor:protectionTheme(level.kind).positive}}>{projection.amount}</span>
             <span className="shrink-0 pr-1.5 font-sans text-[9px] font-medium tabular-nums text-[#929ba4]">{percent}</span>
-          </> : <span className="shrink-0 font-semibold" style={{color}}>{level.kind==='sl'?'Stop loss':level.kind==='tp'?'Take profit':level.side+' '+(level.objectType==='pending'?' '+(level.orderType||'').toUpperCase():'')}</span>}
+          </> : pendingEntry ? <>
+            <span data-v4-pending-grip={level.id} className="shrink-0 cursor-ns-resize touch-none text-[11px] tracking-[-2px] text-[#7c8994]" title="Drag placed entry">⠿</span>
+            {pendingMissing.map(kind=><button key={kind} type="button"
+              aria-label={['Add',kind.toUpperCase(),'to',pendingSide,pendingLabel,'order'].join(' ')}
+              className="shrink-0 rounded-[3px] border border-white/10 px-1 py-0.5 text-[9px] text-[#aeb7c0] hover:border-white/25 hover:text-white"
+              onPointerDown={event=>event.stopPropagation()}
+              onClick={event=>{event.stopPropagation();onAddProtection?.(level.objectId,kind,'pending');}}>+{kind.toUpperCase()}</button>)}
+            <span data-v4-pending-side className="shrink-0 font-sans font-bold" style={{color}}>{pendingSide}</span>
+            <span data-v4-pending-size className="shrink-0 tabular-nums text-[#dbe2e7]">{pendingSize}</span>
+            <span data-v4-pending-type className="shrink-0 rounded-[3px] bg-white/[0.055] px-1.5 py-0.5 font-sans text-[9px] font-semibold text-[#aeb7c0]">{pendingLabel}</span>
+          </> : pendingLimit ? <>
+            <span data-v4-drag-handle={level.id} className="shrink-0 cursor-ns-resize touch-none px-1.5 text-[11px] tracking-[-2px] text-[#7c8994]">⠿</span>
+            <span className="shrink-0 font-sans font-semibold" style={{color}}>Limit price</span>
+          </> : <span className="shrink-0 font-semibold" style={{color}}>{level.kind==='sl'?'Stop loss':level.kind==='tp'?'Take profit':level.side}</span>}
           {level.kind==='entry' && level.objectType==='position' && <span className="shrink-0 text-gray-300">{formatVolume?.(level.volume) ?? level.volume}</span>}
-          {level.kind!=='entry' && !marketProtection && <span className="shrink-0">{priceLabel(level.price,formatPrice)}</span>}
+          {pendingLimit && <span className="shrink-0 px-1.5 font-mono font-semibold tabular-nums text-[#e5ebf0]">{protectionPriceLabel(level.price,formatPrice)}</span>}
+          {level.kind!=='entry' && !marketProtection && !pendingLimit && <span className="shrink-0">{priceLabel(level.price,formatPrice)}</span>}
           {level.kind==='entry' && level.objectType==='position' && formatPnl && <span className="truncate" style={{color}}>{formatPnl(level.pnl)}</span>}
           {level.kind==='entry' && level.objectType==='position' && onSelectPosition && <button type="button" aria-label="Select position" onClick={()=>onSelectPosition(level.objectId)} className="shrink-0 px-1 text-gray-300">Select</button>}
           {level.kind==='entry' && level.objectType==='position' && onClosePosition && <button type="button" aria-label="Close position" onClick={()=>onClosePosition(level.objectId, 100)} className="shrink-0 px-1 text-gray-300">×</button>}
           {level.kind==='entry' && level.objectType==='pending' && onCancelPending && <button type="button" aria-label="Cancel pending order" onClick={()=>setCancelPendingId(level.id)} className="shrink-0 px-1 text-gray-300">×</button>}
-          {missing.map(kind=><button key={kind} type="button" onClick={()=>onAddProtection?.(level.objectId,kind)}
+          {level.objectType==='position' && missing.map(kind=><button key={kind} type="button" onClick={()=>onAddProtection?.(level.objectId,kind,'position')}
             className="shrink-0 rounded-[3px] border border-gray-600 px-1" aria-label={`Add ${kind.toUpperCase()}`}>+{kind.toUpperCase()}</button>)}
-          {(['sl','tp'].includes(level.kind) || (level.objectType==='pending' && level.kind==='entry'))&&onBeginEdit&&!marketProtection&&<button type="button" className="shrink-0 px-1"
+          {(['sl','tp'].includes(level.kind) || (level.objectType==='pending' && level.kind==='entry'))&&onBeginEdit&&!marketProtection&&!pendingEntry&&<button type="button" className="shrink-0 px-1"
             aria-label={`Edit ${level.kind.toUpperCase()}`} onClick={()=>onBeginEdit(v4ProtectionAction(accepted,level.id,'edit'))}>Edit</button>}
           {(['sl','tp'].includes(level.kind))&&canRemove&&<button type="button"
             aria-label={`Remove ${level.kind.toUpperCase()}`}
