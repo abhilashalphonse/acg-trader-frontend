@@ -70,14 +70,16 @@ export default function V4ChartOrderLayer({
       className="pointer-events-none absolute right-[135px] border-l border-dotted border-[#a8b5bd]/60"
       style={{top:Math.min(coordinateApi.priceToY(connector.fromPrice),coordinateApi.priceToY(connector.toPrice)),
         height:Math.abs(coordinateApi.priceToY(connector.fromPrice)-coordinateApi.priceToY(connector.toPrice))}} />}
-    {ghost && coordinateApi?.priceToY && Number.isFinite(coordinateApi.priceToY(ghost.price)) && <div data-v4-preview={ghost.sourceLevelId}>
+    {ghost && coordinateApi?.priceToY && Number.isFinite(coordinateApi.priceToY(ghost.price)) && <div data-v4-preview={ghost.id}>
       <div className="absolute left-0 right-0 border-t border-dotted" style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost)}}/>
       <div className="pointer-events-auto absolute right-[148px] flex h-7 -translate-y-1/2 items-center gap-2 rounded-[5px] border bg-[#111419]/95 px-2 text-[10px]"
         style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost)}}>
         <span style={{color:colorFor(ghost)}}>{ghost.kind==='sl'?'Stop loss':ghost.kind==='tp'?'Take profit':'Pending entry'}</span>
         <span>{priceLabel(ghost.price,formatPrice)}</span>
-        <button disabled={saving} type="button" onClick={()=>onSaveEdit?.(edit)}>Save</button>
-        <button disabled={saving} type="button" onClick={()=>onCancelEdit?.()}>Cancel</button>
+        <div data-v4-chart-actions className="absolute right-[calc(100%+8px)] top-1/2 flex -translate-y-1/2 items-center gap-1 whitespace-nowrap">
+          <button type="button" disabled={saving} aria-label="Discard chart edit" onClick={()=>onCancelEdit?.()} className="rounded border border-[#515b66] bg-[#14171c] px-2 py-1 text-[#e4e8ed]">Discard</button>
+          <button type="button" disabled={saving || !onSaveEdit} aria-label="Confirm chart edit" onClick={()=>onSaveEdit?.(edit)} className="rounded px-2 py-1 font-semibold text-white disabled:opacity-50" style={{background:ghost.kind==='tp'?'#148968':ghost.kind==='sl'?'#bd4353':'#2469b5'}}>{saving?'Confirming…':'Confirm'}</button>
+        </div>
       </div>
     </div>}
     {overflow.length>0&&<span className="pointer-events-auto absolute bottom-2 right-[148px] rounded bg-[#202329] px-2 py-1 text-[10px] text-gray-300"
