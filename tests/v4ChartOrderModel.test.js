@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   V4_ORDER_VISUAL_STATES, v4LevelId, projectV4AcceptedLevels,
-  projectV4Edit, v4MissingProtections, v4ProtectionAction, placeV4Badges,
+  projectV4Edit, projectV4DraftGroup, v4EditCommand, v4MissingProtections, v4ProtectionAction, placeV4Badges,
 } from '../src/components/trading-v2/v4/chartOrderModel.js';
 
 const accountId = 'test-account';
@@ -95,4 +95,55 @@ test('missing quote/coordinate data never produces a fabricated accepted level',
     { id: 'bad', symbol, status:'OPEN', entry:-2, sl:Infinity },
   ] });
   assert.deepEqual(levels, []);
+});
+
+test('regression screenshots 1–2: TP draft belongs to one pending order, without a duplicate entry', () => {
+  const accepted = example();
+  const draft = { accountId, objectType: 'pending', objectId: 'o1', kind: 'sl', proposedPrice: 83000 };
+  const group = projectV4DraftGroup(accepted, draft);
+  assert.equal(group.preview.kind, 'sl');
+  assert.equal(group.preview.sourceLevelId, null);
+  assert.equal(group.connector.fromPrice, 82500);
+  assert.equal(group.connector.toPrice, 83000);
+  assert.equal(group.connector.lineStyle, 'dotted');
+  assert.equal(group.accepted.filter(l=>l.objectId==='o1' && l.kind==='entry').length, 1);
+  assert.equal(group.accepted.some(l=>l.objectId==='o1' && l.kind==='sl'), false);
+});
+
+test('regression screenshot 3: pending entry accepted price stays fixed while dragged preview moves', () => {
+  const accepted = example();
+  const id = v4LevelId({accountId,objectType:'pending',objectId:'o1',kind:'entry'});
+  assert.equal(v4ProtectionAction(accepted,id,'edit')?.state, 'DRAFT');
+  const group = projectV4DraftGroup(accepted,{levelId:id,proposedPrice:82400});
+  assert.equal(group.preview.price,82400);
+  assert.equal(group.preview.lineStyle,'dotted');
+  assert.equal(group.connector,null);
+  assert.equal(group.accepted.find(l=>l.id===id).price,82500);
+  assert.equal(group.accepted.find(l=>l.id===id).lineStyle,'solid');
+  assert.equal(group.accepted.filter(l=>l.id===id).length,1);
+});
+
+test('regression screenshot 4: unconfirmed TP drafts receive dotted provisional connectors', () => {
+  const accepted = example();
+  const group = projectV4DraftGroup(accepted,{
+    accountId,objectType:'position',objectId:'p2',kind:'sl',proposedPrice:83000,
+  });
+  assert.equal(group.connector?.fromPrice,83900);
+  assert.equal(group.connector?.toPrice,83000);
+  assert.equal(group.preview?.kind,'sl');
+});
+
+test('drag release cannot amend accepted financial state; only Save emits request intent', () => {
+  const draft={accountId,objectId:'o1',kind:'entry',levelId:'test-account:pending:o1:entry',proposedPrice:82400};
+  assert.equal(v4EditCommand(draft,'release'),null);
+  assert.deepEqual(v4EditCommand(draft,'cancel'),{type:'CANCEL_LOCAL_EDIT'});
+  assert.equal(v4EditCommand(draft,'save')?.type,'REQUEST_SAVE');
+  assert.equal(v4EditCommand({...draft,proposedPrice:-1},'save'),null);
+});
+
+test('cross-account draft cannot borrow an accepted chart group',()=>{
+  const accepted=example();
+  const group=projectV4DraftGroup(accepted,{accountId:'foreign',objectType:'pending',objectId:'o1',kind:'tp',proposedPrice:81000});
+  assert.equal(group.preview,null);
+  assert.equal(group.connector,null);
 });
