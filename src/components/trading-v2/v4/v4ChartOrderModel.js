@@ -128,18 +128,31 @@ export function v4LayoutBadges(entries, chartHeight, { rowHeight = 28, gap = 6, 
   const maxY = height - inset - half;
   const step = rowHeight + gap;
   const sorted = entries.filter(item => Number.isFinite(Number(item.y)))
-    .slice().sort((a,b) => a.y - b.y || String(a.key).localeCompare(String(b.key)));
-  const placed = sorted.map((item,i) => ({...item, badgeY: Math.max(Number(item.y), i ? 0 : minY)}));
-  for (let i=1;i<placed.length;i++) placed[i].badgeY = Math.max(placed[i].badgeY, placed[i-1].badgeY + step);
-  if (Number.isFinite(maxY) && placed.length) {
-    let overflow = placed[placed.length-1].badgeY - maxY;
-    if (overflow > 0) for (const item of placed) item.badgeY -= overflow;
-    if (placed[0].badgeY < minY) {
-      const underflow = minY - placed[0].badgeY;
-      for (const item of placed) item.badgeY += underflow;
+    .slice().sort((a,b) => Number(a.y) - Number(b.y) || String(a.key).localeCompare(String(b.key)));
+  // Least-squares collision placement. Isotonic regression on
+  // (priceY - index*step) distributes displacement above and below the
+  // cluster rather than pushing every subsequent badge down the chart.
+  const blocks = [];
+  sorted.forEach((item,index) => {
+    const target = Number(item.y) - index*step;
+    blocks.push({ start:index, end:index, total:target, count:1, mean:target });
+    while (blocks.length>1 && blocks[blocks.length-2].mean>blocks[blocks.length-1].mean) {
+      const right=blocks.pop(),left=blocks.pop();
+      const total=left.total+right.total, count=left.count+right.count;
+      blocks.push({start:left.start,end:right.end,total,count,mean:total/count});
     }
+  });
+  const badgeY = Array(sorted.length);
+  for(const block of blocks)for(let index=block.start;index<=block.end;index++)
+    badgeY[index]=block.mean+index*step;
+  if (badgeY.length && maxY>=minY && (sorted.length-1)*step<=maxY-minY) {
+    const low=badgeY[0],high=badgeY[badgeY.length-1];
+    const shift=Math.max(minY-low,Math.min(0,maxY-high));
+    for(let index=0;index<badgeY.length;index++)badgeY[index]+=shift;
   }
-  return placed.map(item => ({...item, deltaY: item.badgeY - Number(item.y)}));
+  return sorted.map((item,index)=>({
+    ...item,badgeY:badgeY[index],deltaY:badgeY[index]-Number(item.y),
+  }));
 }
 
 export function v4ValidEditPrice(value) { return positive(value); }
