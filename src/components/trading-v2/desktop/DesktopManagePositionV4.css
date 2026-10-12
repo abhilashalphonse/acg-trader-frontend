@@ -148,3 +148,48 @@
   .v4-ticket.v4-manage-position .v4-manage-position-pnl strong { font-size: 12px; }
   .v4-ticket.v4-manage-position .v4-quote-strip strong { font-size: 10px; }
 }
+
+/* Position and pending management ONLY. No selector reaches the new-order ticket. */
+.v4-ticket.v4-manage-position .v4-manage-actions {
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;
+  padding:8px 0 0;
+}
+.v4-ticket.v4-manage-position .v4-manage-actions > button,
+.v4-ticket.v4-manage-position .v4-manage-action-options > button {
+  min-width:0;min-height:33px;padding:6px 5px;border-radius:6px;
+  border:1px solid #38383d;background:#171719;color:#d0d1d8;
+  font-size:10px;font-weight:600;
+}
+.v4-ticket.v4-manage-position .v4-manage-actions button:disabled {
+  opacity:.4;cursor:not-allowed;
+}
+.v4-ticket.v4-manage-position .v4-manage-action-options {
+  grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;
+}
+.v4-ticket.v4-manage-position .v4-manage-action-options > button { flex:1 1 auto; }
+.v4-ticket.v4-manage-position .v4-manage-trade-actions > .v4-manage-close {
+  grid-column:1/-1;color:#f28a94;background:#1b1013;border:1px solid #6a323c;
+}
+.v4-ticket.v4-manage-position .v4-manage-close-dialog {
+  display:grid;gap:10px;padding:12px;margin-top:8px;
+  border:1px solid #694049;background:#171214;color:#e9d4d6;border-radius:9px;
+  font-size:12px;
+}
+.v4-ticket.v4-manage-position .v4-manage-close-dialog > div {display:flex;gap:8px;}
+.v4-ticket.v4-manage-position .v4-manage-close-dialog button {
+  flex:1;min-height:34px;border-radius:6px;padding:7px;
+  color:#f1e6e8;background:#292024;border:1px solid #584148;
+  font-size:11px;font-weight:600;
+}
+.v4-ticket.v4-manage-position .v4-manage-close-dialog button:last-child {
+  background:#7a2939;border-color:#a13d50;color:#fff;
+}
+.v4-ticket.v4-manage-pending .v4-manage-order-price {
+  display:flex;justify-content:space-between;align-items:center;gap:8px;
+  padding:7px 1px;color:#a7a7af;font-size:11px;
+}
+.v4-ticket.v4-manage-pending .v4-manage-order-price input {
+  width:52%;height:33px;min-width:0;padding:4px 8px;
+  border-radius:7px;border:1px solid #333339;background:#19191c;
+  color:#e8e8eb;text-align:right;font-family:ui-monospace,monospace;font-size:12px;
+}
