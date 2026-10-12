@@ -170,7 +170,7 @@ export function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi
                 aria-label={`Add ${kind.toUpperCase()} to ${side} position`}
                 className="rounded-[3px] border border-white/15 px-1 py-0.5 text-[#9aa5af] hover:bg-white/10"
                 onPointerDown={event => event.stopPropagation()}
-                onClick={event => { event.stopPropagation(); onRequestPositionProtection(position.id, kind); }}>+${kind.toUpperCase()}</button> : null;
+                onClick={event => { event.stopPropagation(); onRequestPositionProtection(position.id, kind); }}>+{kind.toUpperCase()}</button> : null;
           })}
         </span>;
 
