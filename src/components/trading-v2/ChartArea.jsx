@@ -428,6 +428,7 @@ function PendingOrderOverlay({
           ? Number(order.limitPrice)
           : null;
         const secondaryY = secondary == null ? null : coordinateApi.priceToY(secondary);
+        const triggerTone = ['stop', 'stop-limit'].includes(order.orderType) ? '#d7a455' : '#acbac7';
         const beginPlacedDrag = (event, field = 'entry') => {
           if (!desktopStyle) return;
           event.preventDefault();
@@ -444,7 +445,20 @@ function PendingOrderOverlay({
 
         return [
           <div key={`${order.id}:entry`} className="pointer-events-none absolute left-0 right-0 z-[21]" style={{ top: y }}>
-            <div className="relative border-t border-dotted border-[#2f7df4]/90">
+            <div className={desktopStyle ? 'relative border-t' : 'relative border-t border-dotted border-[#2f7df4]/90'} style={desktopStyle ? { borderColor: triggerTone } : undefined}>
+              {desktopStyle ? (
+                <ChartLevelBadge
+                  label={`${side} ${type}`}
+                  price={formatInstrumentPrice(entry, instrument)}
+                  amount={Number.isFinite(lots) ? `${formatPositionLots(lots)} lots` : null}
+                  color={triggerTone}
+                  tooltip={order.orderType === 'stop-limit' ? 'Stop trigger. The separate limit line is the acceptable execution boundary.' : 'Accepted pending order. Drag to amend; click to modify.'}
+                  onPointerDown={event => beginPlacedDrag(event, 'entry')}
+                  onClick={event => { event.stopPropagation(); if (!consumeSuppressedPlacedClick(order.id, 'entry')) onModify(order.id); }}
+                  onRemove={() => onCancel(order.id)}
+                  removeLabel={`Cancel ${side} ${type} pending order`}
+                />
+              ) : (
               <div
                 role="button"
                 tabIndex={0}
@@ -543,7 +557,8 @@ function PendingOrderOverlay({
                   ×
                 </button>
               </div>
-              <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border border-[#2d68bd] bg-[#1f5fc4] px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums text-white shadow-[0_3px_10px_rgba(0,0,0,.28)]">
+              )}
+              <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums text-white shadow-[0_3px_10px_rgba(0,0,0,.28)]" style={desktopStyle ? { borderColor: triggerTone, backgroundColor: '#22272d', color: triggerTone } : { borderColor: '#2d68bd', backgroundColor: '#1f5fc4' }}>
                 {formatInstrumentPrice(entry, instrument)}
               </span>
               {desktopStyle && (
@@ -563,10 +578,25 @@ function PendingOrderOverlay({
           </div>,
           secondaryY != null && Number.isFinite(secondaryY) ? (
             <div key={`${order.id}:limit`} className="pointer-events-none absolute left-0 right-0 z-[19]" style={{ top: secondaryY }}>
-              <div className="relative border-t border-dashed border-[#b58cff]/70">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 rounded border border-[#6f5b93]/70 bg-black/90 px-1.5 py-0.5 text-[8px] font-bold text-[#c8aaff]">
-                  LIMIT {formatInstrumentPrice(secondary, instrument)}
-                </span>
+              <div className={desktopStyle ? 'relative border-t border-[#b58cff]/80' : 'relative border-t border-dashed border-[#b58cff]/70'}>
+                {desktopStyle ? (
+                  <ChartLevelBadge
+                    label="Limit"
+                    price={formatInstrumentPrice(secondary, instrument)}
+                    color="#b58cff"
+                    tooltip="Sell: minimum acceptable fill. Buy: maximum acceptable fill. Actual execution can be more favorable."
+                    onPointerDown={event => beginPlacedDrag(event, 'limitPrice')}
+                    onClick={event => { event.stopPropagation(); if (!consumeSuppressedPlacedClick(order.id, 'limitPrice')) onModify(order.id); }}
+                  />
+                ) : (
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 rounded border border-[#6f5b93]/70 bg-black/90 px-1.5 py-0.5 text-[8px] font-bold text-[#c8aaff]">
+                    LIMIT {formatInstrumentPrice(secondary, instrument)}
+                  </span>
+                )}
+                {desktopStyle && <span className="absolute right-[56px] top-1/2 -translate-y-1/2 rounded-[4px] border border-[#b58cff]/80 bg-[#21182e] px-1.5 py-0.5 font-mono text-[9px] font-bold text-[#d8bdff] lg:right-2">{formatInstrumentPrice(secondary, instrument)}</span>}
+                {desktopStyle && <button type="button" aria-label="Drag pending stop-limit limit price"
+                  onPointerDown={event => beginPlacedDrag(event, 'limitPrice')}
+                  className="pointer-events-auto absolute left-[235px] right-[58px] top-1/2 h-8 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent" />}
               </div>
             </div>
           ) : null,
