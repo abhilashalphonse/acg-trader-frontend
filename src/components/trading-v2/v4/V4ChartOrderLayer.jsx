@@ -55,8 +55,8 @@ function Badge({level,offset=0,instrument,account,currency,hovered,selected,
     data-v4-badge={level.key}
     data-v4-badge-owner={level.owner}
     data-v4-badge-state={isDraft?'draft':'accepted'}
-    className={'pointer-events-auto absolute right-[148px] z-30 flex h-[27px] max-w-[calc(100%-162px)] -translate-y-1/2 items-center gap-1 overflow-hidden rounded-[4px] border bg-[#111419]/95 pl-2 pr-7 font-mono text-[10px] font-semibold tabular-nums text-[#d6e0e8] shadow-[0_3px_12px_rgba(0,0,0,.32)] backdrop-blur-sm '+(hovered||selected?'ring-1 ring-white/30':'')}
-    style={{top:offset,borderColor:color+'a5'}}
+    className={'pointer-events-auto absolute z-30 flex h-[27px] -translate-y-1/2 items-center gap-1 overflow-hidden rounded-[4px] border bg-[#111419]/95 pl-2 pr-7 font-mono text-[10px] font-semibold tabular-nums text-[#d6e0e8] shadow-[0_3px_12px_rgba(0,0,0,.32)] backdrop-blur-sm '+(hovered||selected?'ring-1 ring-white/30':'')}
+    style={{top:offset,borderColor:color+'a5',left:'max(8px, calc(100% - 406px))',maxWidth:'min(258px, calc(100% - 162px))'}}
     role="group" tabIndex={0} aria-label={label+' '+formatInstrumentPrice(level.price,instrument)}
     onMouseEnter={()=>onEnter(level)} onMouseLeave={onExit}
     onFocus={()=>onEnter(level)} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))onExit();}}
