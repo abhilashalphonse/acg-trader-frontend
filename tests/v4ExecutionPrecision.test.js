@@ -192,3 +192,22 @@ test('Risk below min or above maximum remains blocked by existing engine limits'
  assert.equal(huge.canExecute,false);
  assert.equal(huge.code,'MAX_VOLUME');
 });
+
+test('Fresh USDCAD unlocks USD-denominated margin-budget sizing for AUD/CAD, stale FX blocks it',()=>{
+ const now=Date.now();
+ const pair={symbol:'AUDCAD',assetClass:'FOREX',bid:0.99395,ask:0.99401,
+   quoteCurrency:'CAD',marginCurrency:'CAD',pnlCurrency:'CAD',
+   contractSize:100000,tickSize:0.00001,volumeStep:0.01,minVolume:0.01,maxVolume:10,defaultLeverage:100};
+ const fx={symbol:'USDCAD',bid:1.376,ask:1.377,receivedAtMs:now,subscribed:true,
+   live:true,isStale:false,sessionOpen:true};
+ const a={...account,leverage:100,conversionMarkets:[fx]};
+ const p={symbol:'AUDCAD',side:'buy',pending:false,orderType:'market',entry:0.99401,sl:null,tp:null};
+ const valid=resolveV4PositionSizing({mode:'margin',amount:10,plan:p,account:a,instrument:pair});
+ assert.equal(valid.canExecute,true,JSON.stringify(valid));
+ assert.ok(valid.margin<=10+1e-7);
+ assert.equal(valid.backendSizingMode,'lots');
+ const blocked=resolveV4PositionSizing({mode:'margin',amount:10,plan:p,
+   account:{...a,conversionMarkets:[{...fx,receivedAtMs:now-12000}]},instrument:pair});
+ assert.equal(blocked.canExecute,false);
+ assert.equal(blocked.code,'MARGIN_CONVERSION_UNKNOWN');
+});

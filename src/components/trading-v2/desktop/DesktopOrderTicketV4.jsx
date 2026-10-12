@@ -177,10 +177,17 @@ export default function DesktopOrderTicketV4({
   // Initial protection toggles only apply to one chart plan.
   useEffect(()=>{if(tradePlan?.symbol){setWantSl(false);setWantTp(false);}},[tradePlan?.symbol]);
   const currency=account?.currency||'USD';
-  const previewAccount=useMemo(()=>({...account,conversionMarkets}),[account,conversionMarkets]);
   const fxRequired=String(market?.marginCurrency||market?.quoteCurrency||'').toUpperCase()!==String(currency).toUpperCase();
+  const [fxFreshnessTick,setFxFreshnessTick]=useState(0);
+  useEffect(()=>{
+    if(!fxRequired)return undefined;
+    const timer=window.setInterval(()=>setFxFreshnessTick(t=>t+1),2000);
+    return()=>window.clearInterval(timer);
+  },[fxRequired]);
+  const previewAccount=useMemo(()=>({...account,conversionMarkets}),[account,conversionMarkets]);
   const fxReady=!fxRequired||Number.isFinite(convertFreshFx(1,
     market?.marginCurrency||market?.quoteCurrency,currency,conversionMarkets));
+  void fxFreshnessTick;
   const fxQuoteSymbols=conversionQuoteSymbolsForInstrument(market,conversionMarkets,currency);
   const fxMessage='Live '+String(market?.marginCurrency||market?.quoteCurrency||'FX').toUpperCase()+
     ' → '+currency+' conversion unavailable'+(fxQuoteSymbols.length?' · waiting for '+fxQuoteSymbols.join(' / '):'')+'.';
