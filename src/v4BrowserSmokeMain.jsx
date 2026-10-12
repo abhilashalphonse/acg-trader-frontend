@@ -140,7 +140,7 @@ createRoot(document.getElementById('protection-draft-fixture')).render(<>
   />
 </>);
 
-const sleep=milliseconds=>new Promise(resolve=>setTimeout(resolve);
+const sleep=milliseconds=>new Promise(resolve=>setTimeout(resolve,milliseconds));
 const findMode=(ticket,text)=>Array.from(ticket.querySelectorAll('.v4-position-modes button'))
   .find(button=>button.textContent.trim()===text);
 async function run(){
@@ -164,7 +164,7 @@ async function run(){
  for(const [badge,name] of [[draftTp,'TP'],[draftSl,'SL']]){
    if(!badge)continue;
    const caption=badge.textContent;
-   if(!/\\d{5}\\.\\d{2}/.test(caption)||!caption.includes('USD')||!caption.includes('%'))
+   if(!/\d{5}\.\d{2}/.test(caption)||!caption.includes('USD')||!caption.includes('%'))
      failed.push(name+' draft badge missing price, estimated P&L or percentage');
    if(!badge.parentElement?.classList.contains('border-dotted'))
      failed.push(name+' open-position draft line was not dotted');
