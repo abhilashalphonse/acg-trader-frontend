@@ -8,7 +8,7 @@
 const positive = value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) && Number(value) > 0;
 const identity = value => value == null ? null : String(value);
 export const V4_ORDER_VISUAL_STATES = Object.freeze({
-  DRAFT: 'DRAFT', ACCEPTED: 'ACCEPTED', PREVIEW: 'PREVIEW', SAVING: 'SAVING', CONFIRM_REMOVE: 'CONFIRM_REMOVE',
+  DRAFT: 'DRAFT', ACCEPTED: 'ACCEPTED', PREVIEW: 'PREVIEW', SAVING: 'SAVING', REMOVE: 'REMOVE',
 });
 
 export function v4LevelId({ accountId, objectType, objectId, kind }) {
@@ -79,7 +79,7 @@ export function v4MissingProtections(levels, positionEntryId) {
 export function v4ProtectionAction(levels, levelId, type) {
   const level = (levels || []).find(item => item.id === levelId);
   if (!level || !(['sl', 'tp'].includes(level.kind) || (level.objectType === 'pending' && level.kind === 'entry'))) return null;
-  if (type === 'remove') return level.kind === 'entry' ? null : Object.freeze({ state: V4_ORDER_VISUAL_STATES.CONFIRM_REMOVE,
+  if (type === 'remove') return level.kind === 'entry' ? null : Object.freeze({ state: V4_ORDER_VISUAL_STATES.REMOVE,
     accountId: level.accountId, objectType: level.objectType, objectId: level.objectId, kind: level.kind, confirmedPrice: level.price });
   if (type === 'edit') return Object.freeze({ state: V4_ORDER_VISUAL_STATES.DRAFT,
     accountId: level.accountId, objectType: level.objectType, objectId: level.objectId, kind: level.kind, levelId, proposedPrice: level.price, confirmedPrice: level.price });
