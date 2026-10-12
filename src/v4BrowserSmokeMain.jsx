@@ -271,10 +271,11 @@ async function run(){
  if(counters.planned!==0)failed.push('Direction switch executed a trade');
  // Pending slider drafts keep their normal draggable entry and same
  // protections; switching order type must not place an order.
- const pendingMode=Array.from(ticket.querySelectorAll('.v4-mainmodes button'))
-   .find(b=>b.textContent.trim()==='Pending');
- pendingMode?.click();
+ const limitMode=Array.from(ticket.querySelectorAll('[aria-label="Order type"] button'))
+   .find(b=>b.textContent.trim()==='Limit');
+ limitMode?.click();
  await sleep(170);
+ if(limitMode?.getAttribute('aria-pressed')!=='true')failed.push('Limit selector did not activate');
  const countBeforePending=counters.drafts;
  ticket.querySelector('button[aria-label="Increase position value"]')?.click();
  await sleep(200);
