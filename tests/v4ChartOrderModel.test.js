@@ -147,3 +147,24 @@ test('cross-account draft cannot borrow an accepted chart group',()=>{
   assert.equal(group.preview,null);
   assert.equal(group.connector,null);
 });
+
+test('TP draft discard and switching to SL never retain a stale TP projection', () => {
+ const levels=example();
+ const tp=projectV4DraftGroup(levels,{accountId,objectType:'position',objectId:'p2',kind:'tp',proposedPrice:85000});
+ assert.equal(tp.preview.kind,'tp');
+ const cleared=projectV4DraftGroup(levels,null);
+ assert.equal(cleared.preview,null);
+ assert.equal(cleared.connector,null);
+ const sl=projectV4DraftGroup(levels,{accountId,objectType:'position',objectId:'p2',kind:'sl',proposedPrice:83000});
+ assert.equal(sl.preview.kind,'sl');
+ assert.equal(sl.connector.kind,'sl');
+ assert.equal(sl.accepted.some(x=>x.objectId==='p2' && x.kind==='sl'),false);
+});
+
+test('chart Discard never executes an amendment, Confirm creates explicit intent', () => {
+ const draft={accountId,objectType:'position',objectId:'p2',kind:'sl',proposedPrice:83000};
+ assert.deepEqual(v4EditCommand(draft,'discard'),{type:'CANCEL_LOCAL_EDIT'});
+ assert.equal(v4EditCommand(draft,'release'),null);
+ assert.equal(v4EditCommand(draft,'confirm')?.type,'REQUEST_SAVE');
+ assert.deepEqual(v4EditCommand({...draft,proposedPrice:0},'discard'),{type:'CANCEL_LOCAL_EDIT'});
+});
