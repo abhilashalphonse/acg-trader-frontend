@@ -161,9 +161,9 @@ createRoot(document.getElementById('protection-draft-fixture')).render(<>
 </>);
 
 
-const v4Calls={updates:[],removals:[],pendingMoves:[],cancels:0};
+const v4Calls={updates:[],removals:[],pendingMoves:[],cancels:0,rejectNext:false};
 function IndependentChartFixture(){
- const [positions,setPositions]=useState(openPositions);
+ const [positions,setPositions]=useState([...openPositions,{...openPositions[0],id:'position-overlap',side:'buy',volume:0.04,sl:null,tp:null}]);
  const [pending,setPending]=useState([{...pendingOrder,id:'v4-pending-sell',symbol:'BTCUSD',orderType:'stop-limit',entry:83100,limitPrice:83130,sl:83350,tp:82700},
   {...buyPendingOrder,id:'v4-pending-buy',symbol:'BTCUSD',entry:82900,sl:82550,tp:83400}]);
  const [protectionDraft,setProtectionDraft]=useState(null);
@@ -174,6 +174,7 @@ function IndependentChartFixture(){
   selectedPositionId="position-smoke-a"
   onUpdatePosition={async (id,patch)=>{
    v4Calls.updates.push({id,patch});
+   if(v4Calls.rejectNext){v4Calls.rejectNext=false;return false;}
    setPositions(current=>current.map(p=>p.id===id?{...p,...patch}:p));
    return true;
   }}
@@ -223,7 +224,15 @@ async function run(){
  if(!acceptedTP||!acceptedSL)failed.push('Accepted standalone TP/SL missing');
  if(acceptedTP?.dataset.v4LineState!=='solid'||acceptedSL?.dataset.v4LineState!=='solid')
    failed.push('Standalone accepted price level is not solid');
- if(entries.length!==3)failed.push('All three live position entries must retain individual badges');
+ if(entries.length!==4)failed.push('All four live positions must retain individual badges including overlapping entries');
+ const overlapping=[v4.querySelector('[data-v4-price-line="position:position-smoke-a:entry"] [data-v4-badge]'),
+   v4.querySelector('[data-v4-price-line="position:position-overlap:entry"] [data-v4-badge]')];
+ if(overlapping.every(Boolean)){
+   const top=overlapping.map(b=>b.getBoundingClientRect().top);
+   if(Math.abs(top[0]-top[1])<28)failed.push('Overlapping position badges collide');
+   const lines=overlapping.map(b=>b.closest('[data-v4-price-line]').getBoundingClientRect().top);
+   if(Math.abs(lines[0]-lines[1])>1)failed.push('Collision resolution moved an authoritative entry price line');
+ }
  const sellV4=entries.find(x=>x.textContent.includes('SELL'));
  if(sellV4?.textContent.includes('+TP')||sellV4?.textContent.includes('+SL'))
    failed.push('Attached protections duplicated on standalone entry badge');
@@ -257,6 +266,34 @@ async function run(){
    await sleep(90);
    if(v4Calls.updates.length||v4.querySelector('[data-v4-edit-preview]'))
      failed.push('Cancel SL drag mutated server or retained ghost');
+   // A rejected save may show an error but cannot move the accepted solid line.
+   const dragAgain=()=>{
+     const currentBadge=v4.querySelector('[data-v4-price-line="position:position-smoke-a:sl"] [data-v4-badge]');
+     currentBadge?.dispatchEvent(new PointerEvent('pointerdown',down));
+     window.dispatchEvent(new PointerEvent('pointermove',{...down,clientY:startY-24}));
+     window.dispatchEvent(new PointerEvent('pointerup',{...down,clientY:startY-24}));
+   };
+   v4Calls.rejectNext=true;
+   dragAgain();
+   await sleep(120);
+   Array.from(v4.querySelectorAll('[aria-label="Review sl edit"] button')).find(b=>b.textContent==='Save')?.click();
+   await sleep(150);
+   if(!v4.querySelector('[data-v4-edit-preview]')||v4Calls.updates.length!==1)
+     failed.push('Rejected SL save must retain dotted draft for correction');
+   if(!v4.querySelector('[aria-label="Review sl edit"] [role="alert"]'))
+     failed.push('Rejected save lacks error message');
+   if(!v4.querySelector('[data-v4-price-line="position:position-smoke-a:sl"] [data-v4-badge]')?.textContent.includes('83200'))
+     failed.push('Rejected save changed accepted SL badge');
+   Array.from(v4.querySelectorAll('[aria-label="Review sl edit"] button')).find(b=>b.textContent==='Cancel')?.click();
+   await sleep(80);
+   dragAgain();
+   await sleep(120);
+   Array.from(v4.querySelectorAll('[aria-label="Review sl edit"] button')).find(b=>b.textContent==='Save')?.click();
+   await sleep(140);
+   if(v4Calls.updates.length!==2||v4.querySelector('[data-v4-edit-preview]'))
+     failed.push('Accepted SL Save must submit once and clear preview');
+   if(v4.querySelector('[data-v4-price-line="position:position-smoke-a:sl"]')?.getAttribute('data-v4-line-state')!=='solid')
+     failed.push('Saved protection did not reconcile as solid');
  }
  // Accepted removal requires a separate confirmation, not an immediate update.
  const tpBadge=v4.querySelector('[data-v4-price-line="position:position-smoke-a:tp"] [data-v4-badge]');
