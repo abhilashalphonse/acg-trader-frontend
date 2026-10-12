@@ -166,6 +166,8 @@ const MARKETS_QA=[
  {symbol:'AUDCAD',displaySymbol:'AUD/CAD',name:'Australian Dollar / Canadian Dollar',assetClass:'FOREX',bid:0.99395,ask:0.99401,mid:0.99398,pipSize:0.0001,changePercent:-0.3,volume:20,marketState:'LIVE',live:true,subscribed:true,sessionOpen:true},
  {symbol:'AAPL',displaySymbol:'AAPL',name:'Apple',assetClass:'EQUITY',last:218.25,changePercent:1.25,volume:400,marketState:'LIVE',live:true,subscribed:true,sessionOpen:true},
  {symbol:'BTCUSD',displaySymbol:'BTCUSD',name:'Bitcoin',assetClass:'CRYPTO',last:80000,changePercent:-2.1,volume:300,marketState:'LIVE',live:true,subscribed:true,sessionOpen:true},
+ {symbol:'RELIANCE',displaySymbol:'RELIANCE',name:'Reliance Industries',assetClass:'EQUITY',quoteCurrency:'INR',timezone:'Asia/Kolkata',last:1251.25,changePercent:0.81,volume:820,marketState:'CLOSED',sessionOpen:false},
+ {symbol:'NIFTY',displaySymbol:'NIFTY',name:'NIFTY 50',assetClass:'INDEX',quoteCurrency:'INR',timezone:'Asia/Kolkata',last:25511.1,changePercent:-0.3,volume:30,marketState:'CLOSED',sessionOpen:false},
 ];
 function V4MarketsQA(){
  const [mode,setMode]=useState('markets');
@@ -186,7 +188,8 @@ function V4MarketsQA(){
   moveSymbol:()=>{},
  }),[symbols]);
  window.v4MarketsQA={get selected(){return selected;},get saved(){return saved;},
-  get viewed(){return viewed;},get subscribedSymbols(){return activeSubs;},get mode(){return mode;}};
+  get viewed(){return viewed;},get subscribedSymbols(){return activeSubs;},get mode(){return mode;},
+  setMode};
  return <DesktopWatchlist markets={MARKETS_QA} activeSymbol={selected} mode={mode}
   onSelectSymbol={symbol=>{setSelected(symbol);setViewed(list=>[...list,symbol]);}}
   onModeChange={setMode} onClose={()=>setMode('watchlist')}

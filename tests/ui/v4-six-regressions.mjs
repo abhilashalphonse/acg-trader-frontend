@@ -34,41 +34,75 @@ try{
  // DesktopMultiChart is the production wrapper between DesktopTerminal and
  // ChartArea. Assert the full prop chain; the isolated fixture alone missed
  // the originally reported full-terminal Sell Limit selection failure.
- // Opt-in Markets V4 uses the production DesktopWatchlist entrypoint.
+ // Opt-in Markets V4 exercises production component and existing watchlist callbacks.
  const markets=page.locator('#v4-markets-fixture');
  const discovery=markets.locator('[data-v4-markets-panel]');
  await discovery.waitFor();
- eq(await discovery.count(),1,'V4 Markets discovery renders only in audit mode');
- eq(await markets.getByRole('heading',{name:'Markets'}).count(),1,'Markets title has single hierarchy');
- eq(await markets.getByRole('textbox',{name:'Search markets'}).count(),1,'single Markets search field');
- eq(await markets.locator('[data-market-symbol]').count(),4,'all discovery rows are visible');
+ eq(await discovery.count(),1,'Unified V4 Markets renders only in owner-audit mode');
+ eq(await markets.getByRole('heading',{name:'Markets'}).count(),1,'one compact Markets title');
+ eq(await markets.getByRole('button',{name:'Favorites',exact:true}).count(),1,'Favorites star is in category row');
+ eq(await markets.getByRole('button',{name:'All',exact:true}).count(),1);
+ eq(await markets.getByRole('button',{name:'Forex',exact:true}).count(),1);
+ eq(await markets.getByRole('button',{name:'Commodities',exact:true}).count(),1);
+ eq(await markets.getByRole('button',{name:'Stocks',exact:true}).count(),1);
+ eq(await markets.getByRole('button',{name:'Crypto',exact:true}).count(),1);
+ eq(await markets.getByRole('button',{name:'Indices',exact:true}).count(),0,'Indices no longer occupy category row');
+ eq(await markets.getByRole('button',{name:'India',exact:true}).count(),0,'India is a Stocks subcategory, not a main tab');
+ eq(await markets.getByRole('button',{name:'Watchlist',exact:true}).count(),0,'no separate Watchlist tab');
+ eq(await markets.getByText('Popular markets',{exact:true}).count(),0,'repeated Popular markets section removed');
+ eq(await markets.getByRole('combobox',{name:'Market sort'}).count(),0,'sort select removed from header');
+ eq(await markets.getByRole('button',{name:'Search markets',exact:true}).count(),1,'search icon by close');
+ eq(await markets.getByRole('button',{name:'Market options'}).count(),1,'sort moved into three-dot menu');
+ eq(await markets.getByRole('button',{name:'Close markets panel'}).count(),1);
+ eq(await markets.getByRole('textbox',{name:'Search markets input'}).isVisible(),false,'search hidden by default');
+ eq(await markets.locator('[data-market-symbol]').count(),6,'All contains every available instrument');
  ok((await markets.locator('[data-market-symbol="AUDCAD"]').innerText()).includes('Spread'),
-   'Forex row prioritizes Bid/Ask/Spread');
+   'Forex row retains Bid/Ask/Spread');
  await markets.getByRole('button',{name:'Forex',exact:true}).click();
- eq(await markets.locator('[data-market-symbol]').count(),2,'Forex category filters instruments');
- await markets.getByRole('textbox',{name:'Search markets'}).fill('AUD/CAD');
- eq(await markets.locator('[data-market-symbol]').count(),1,'search remains inside selected category');
+ eq(await markets.locator('[data-market-symbol]').count(),2,'Forex filters correct symbols');
+ await markets.getByRole('button',{name:'Search markets',exact:true}).click();
+ eq(await markets.getByRole('textbox',{name:'Search markets input'}).isVisible(),true,'search opens only on demand');
+ await markets.getByRole('textbox',{name:'Search markets input'}).fill('AUD/CAD');
+ eq(await markets.locator('[data-market-symbol]').count(),1,'category stays active when searching');
  eq(await markets.locator('[data-market-symbol="AUDCAD"]').count(),1,'slash formatted cross-pair matches');
  await markets.getByRole('button',{name:'Open AUD/CAD chart'}).click();
- eq(await page.evaluate(()=>window.v4MarketsQA.selected),'AUDCAD','row switches selected chart symbol');
+ eq(await page.evaluate(()=>window.v4MarketsQA.selected),'AUDCAD','chart selection unchanged');
  await markets.getByRole('button',{name:'Add AUDCAD to watchlist'}).click();
- ok(await page.evaluate(()=>window.v4MarketsQA.saved.includes('AUDCAD')),'star saves to existing Watchlist');
- eq(await markets.locator('[data-market-symbol="AUDCAD"] [aria-pressed="true"]').count(),1,'star reflects saved state');
- await markets.getByRole('button',{name:'Clear market search'}).click();
+ ok(await page.evaluate(()=>window.v4MarketsQA.saved.includes('AUDCAD')),'existing Watchlist save callback unchanged');
+ await markets.getByRole('button',{name:'Close search'}).click();
+ eq(await markets.getByRole('textbox',{name:'Search markets input'}).isVisible(),false,'search closes after review');
+ eq(await markets.locator('[data-market-symbol]').count(),2,'closing search clears hidden filter');
+ await markets.getByRole('button',{name:'Favorites',exact:true}).click();
+ eq(await markets.locator('[data-market-symbol]').count(),2,'Favorites shows existing starred instruments across categories');
+ eq(await markets.locator('[data-market-symbol="EURUSD"]').count(),1);
+ eq(await markets.locator('[data-market-symbol="AUDCAD"]').count(),1);
+ await markets.getByRole('button',{name:'Market options'}).click();
+ eq(await markets.getByRole('menu',{name:'Sort markets'}).count(),1,'three-dot sort menu opens');
+ await markets.getByRole('menuitemradio',{name:'A–Z'}).click();
+ eq(await markets.getByRole('menu',{name:'Sort markets'}).count(),0,'sort menu dismisses on selection');
  await markets.getByRole('button',{name:'Stocks',exact:true}).click();
- eq(await markets.locator('[data-market-symbol="AAPL"]').count(),1,'Stocks category filters correctly');
- eq(await markets.locator('[data-market-symbol="AUDCAD"]').count(),0,'Forex excluded from Stocks');
+ eq(await markets.getByRole('navigation',{name:'Stock markets'}).count(),1,'Stocks shows country submenu');
+ eq(await markets.getByRole('button',{name:'US',exact:true}).count(),1);
+ eq(await markets.getByRole('button',{name:'India',exact:true}).count(),1);
+ eq(await markets.locator('[data-market-symbol="AAPL"]').count(),1,'US stocks shows US equities');
+ eq(await markets.locator('[data-market-symbol="NIFTY"]').count(),0,'India index is not mislabeled a stock');
  ok((await markets.locator('[data-market-symbol="AAPL"]').innerText()).includes('+1.25%'),
-   'equity row prioritizes Last and daily change');
- await markets.getByRole('button',{name:'Watchlist',exact:true}).click();
- eq(await page.evaluate(()=>window.v4MarketsQA.mode),'watchlist','Markets->Watchlist navigation preserved');
- eq(await markets.locator('[data-v4-markets-panel]').count(),0,'Watchlist retains old panel DOM');
- eq(await markets.getByRole('button',{name:'Markets',exact:true}).count(),1,'legacy Watchlist can return to Markets');
- await markets.getByRole('button',{name:'Markets',exact:true}).click();
- eq(await markets.locator('[data-v4-markets-panel]').count(),1,'Watchlist->Markets navigation preserved');
+   'equity row presentation unchanged');
+ await markets.getByRole('button',{name:'India',exact:true}).click();
+ eq(await markets.locator('[data-market-symbol="RELIANCE"]').count(),1,'India stocks shows Indian equities');
+ eq(await markets.locator('[data-market-symbol="NIFTY"]').count(),0,'Stocks India excludes indices');
+ await markets.getByRole('button',{name:'All',exact:true}).click();
+ eq(await markets.locator('[data-market-symbol="NIFTY"]').count(),1,'index remains available under All');
+ await page.evaluate(()=>window.v4MarketsQA.setMode('watchlist'));
+ eq(await markets.locator('[data-v4-markets-panel]').count(),1,'Watchlist route renders same unified Markets panel');
+ eq(await markets.getByRole('button',{name:'Favorites',exact:true}).getAttribute('aria-pressed'),'true',
+   'legacy Watchlist entry activates Favorites');
+ eq(await markets.locator('[data-market-symbol]').count(),2,'legacy Watchlist entry preserves saved symbols');
+ await markets.getByRole('button',{name:'All',exact:true}).click();
+ eq(await page.evaluate(()=>window.v4MarketsQA.mode),'markets','changing from Favorites to All restores Markets route');
  const marketsWidth=await markets.evaluate(el=>({client:el.clientWidth,scroll:el.scrollWidth}));
- ok(marketsWidth.scroll<=marketsWidth.client+1,'V4 Markets does not overflow a 340px desktop dock');
- ok(!errors.length,'Markets interactions create no browser errors');
+ ok(marketsWidth.scroll<=marketsWidth.client+1,'V4 Markets header and rows fit 340px dock');
+ ok(!errors.length,'Markets header interactions create no JS errors');
  // All V4 Markets interactions use existing symbol/watchlist callbacks only; no orders submitted.
  const multi=readFileSync('src/components/trading-v2/desktop/DesktopMultiChart.jsx','utf8');
  const terminal=readFileSync('src/components/trading-v2/DesktopTerminal.jsx','utf8');
