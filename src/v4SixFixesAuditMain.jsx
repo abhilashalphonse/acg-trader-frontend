@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import V4FullTerminalOrders from './components/trading-v2/v4/V4FullTerminalOrders.jsx';
 import { OpenPositionEntryOverlay } from './components/trading-v2/ChartArea.jsx';
+import { buildChartPendingAmendment } from './utils/pendingOrderChartMove.js';
 import './index.css';
 import './styles/acg-pure-black.css';
 
@@ -15,6 +16,8 @@ const originalPositions=[
 const originalOrders=[
  {id:'o1',symbol:SYMBOL,status:'PENDING',side:'SELL',orderType:'limit',
   entry:84400,volume:0.01,sl:null,tp:82100},
+ {id:'o2',symbol:SYMBOL,status:'PENDING',side:'SELL',orderType:'stop-limit',
+  entry:81600,limitPrice:81400,volume:0.02,sl:null,tp:null},
 ];
 const toY=price=>50+(86000-Number(price))/12;
 const fromY=y=>86000-(Number(y)-50)*12;
@@ -36,9 +39,15 @@ function App(){
    return true;
  };
  const movePending=async(id,price,field)=>{
+   const current=orders.find(v=>v.id===id);
+   const patch=buildChartPendingAmendment(current,price,field);
+   if(!patch) return false;
    record('pending',id,field,price);
    await new Promise(resolve=>setTimeout(resolve,80));
-   setOrders(values=>values.map(v=>v.id===id?{...v,[field]:price}:v));
+   setOrders(values=>values.map(v=>v.id===id?{
+     ...v,entry:patch.entry,limitPrice:patch.limitPrice ?? v.limitPrice,
+     sl:patch.stopLoss,tp:patch.takeProfit,
+   }:v));
    return true;
  };
  const removeProtection=async(id,kind)=>{
