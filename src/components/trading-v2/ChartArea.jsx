@@ -795,7 +795,7 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
 
     // Stop-limit has two independent chart handles. The limit boundary is
     // a compact secondary level, not the oversized generic price tool.
-    if (kind === 'limit' && !mobileStyle && showEntry && plan.pending) {
+    if (desktopStyle && kind === 'limit' && !mobileStyle && showEntry && plan.pending) {
       const formatted = formatInstrumentPrice(sourcePrice(field), instrument);
       return <div className="pointer-events-none absolute left-0 right-0 z-30" style={{ top }}>
         <div className="relative border-t border-dotted border-[#b58cff]/90">
@@ -873,7 +873,7 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
       );
     }
 
-    if (!mobileStyle && showEntry && (kind === 'sl' || kind === 'tp')) {
+    if (desktopStyle && !mobileStyle && showEntry && (kind === 'sl' || kind === 'tp')) {
       const projected = kind === 'sl'
         ? (Number.isFinite(liveRisk) ? -Math.abs(liveRisk) : null)
         : (Number.isFinite(liveReward) ? Math.abs(liveReward) : null);
@@ -952,13 +952,7 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
     : (isBuy ? 'BUY' : 'SELL');
   // Reuse the established inline TP/SL/entry controls for V4 market drafts.
   // A market entry is read-only; pending orders keep their drag handles.
-  const desktopPendingStyle = Boolean(
-    showEntry && !mobileStyle && (
-      desktopStyle
-      || (plan.pending && Object.prototype.hasOwnProperty.call(plan, 'desktopPendingDraft'))
-      || plan.source === 'v4-slider'
-    )
-  );
+  const desktopPendingStyle = Boolean(showEntry && !mobileStyle && desktopStyle);
 
   const requestDesktopProtection = kind => {
     if (sourcePrice(kind) != null) {
@@ -1060,7 +1054,7 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
   );
 }
 
-function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, instrument, onUpdatePosition = () => {}, onRemoveProtection = () => {}, onRequestProtectionChange = null, selectedPositionId = null, onSelectPosition = () => {}, mobileStyle = false }) {
+function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, instrument, onUpdatePosition = () => {}, onRemoveProtection = () => {}, onRequestProtectionChange = null, selectedPositionId = null, onSelectPosition = () => {}, mobileStyle = false, desktopStyle = false }) {
   const layerRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [preview, setPreview] = useState({});
@@ -1145,7 +1139,7 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
 
   const renderLine = (position, kind, color, label) => {
     const key = `${position.id}:${kind}`;
-    const source = mobileStyle && Object.prototype.hasOwnProperty.call(preview, key) ? preview[key] : position[kind];
+    const source = !desktopStyle && Object.prototype.hasOwnProperty.call(preview, key) ? preview[key] : position[kind];
     const price = validPlanPrice(source);
     if (price == null) return null;
     const y = coordinateApi.priceToY(price);
@@ -1168,6 +1162,7 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
       return (
         <div key={key} className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: y }}>
           <div className="relative h-px" style={{ backgroundColor: color }}>
+            {desktopStyle ? (
             <ChartLevelBadge
               label={kind === 'sl' ? 'Stop loss' : 'Take profit'}
               price={displayPrice(price)}
@@ -1178,6 +1173,10 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
               onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onSelectPosition(position.id); setDragging({ positionId: position.id, kind }); }}
               onClick={event => { event.stopPropagation(); onSelectPosition(position.id); }}
             />
+            ) : (
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 text-[8px] font-black"
+                style={{ borderColor: `${color}88`, backgroundColor: 'rgba(8,8,8,0.92)', color }}>{label}</span>
+            )}
             <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 text-[8px] font-bold tabular-nums text-white" style={{ borderColor: `${color}88`, backgroundColor: kind === 'sl' ? '#5b1721' : '#0b4b37' }}>{previewText}</span>
             <button
               type="button"
@@ -1249,7 +1248,7 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
 
   return (
     <div ref={layerRef} className="pointer-events-none absolute inset-0 z-[24] overflow-hidden">
-      {!mobileStyle && activePositions.filter(position => String(position.id) === String(selectedPositionId)).flatMap(position => {
+      {desktopStyle && !mobileStyle && activePositions.filter(position => String(position.id) === String(selectedPositionId)).flatMap(position => {
         const entry = coordinateApi.priceToY(Number(position.entry ?? position.entryPrice));
         if (!Number.isFinite(entry)) return [];
         return ['sl', 'tp'].map(kind => {
@@ -1264,7 +1263,7 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
         renderLine(position, 'tp', '#35d79d', 'TP'),
         renderLine(position, 'sl', '#ff5968', 'SL'),
       ])}
-      {!mobileStyle && Object.entries(preview).map(([key, candidate]) => {
+      {desktopStyle && !mobileStyle && Object.entries(preview).map(([key, candidate]) => {
         const index = key.lastIndexOf(':');
         if (index < 0) return null;
         const positionId = key.slice(0, index);
@@ -1321,6 +1320,7 @@ export default function ChartArea({
   onMovePending = () => {},
   onCancelTradePlan = () => {},
   desktopEnhanced = false,
+  chartOrderV4 = false,
   compactContext = false,
   chartSettings = null,
   onToggleIndicator = () => {},
@@ -1585,7 +1585,7 @@ export default function ChartArea({
           account={account}
           riskPercent={riskPercent}
           orderExecutionPreview={orderExecutionPreview}
-          desktopStyle={desktopEnhanced && !mobileOverlayStyle}
+          desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle}
         />
         {positionProtectionDraft && (
           <TradePlanOverlay
@@ -1602,8 +1602,8 @@ export default function ChartArea({
           />
         )}
         <ClosedPositionChartOverlay symbol={symbol} position={historicalPosition} coordinateApi={coordinateApi} instrument={instrument} onClear={onClearHistoricalPosition} />
-        {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} onMove={onMovePending} desktopStyle={desktopEnhanced && !mobileOverlayStyle} account={account} accountCurrency={accountCurrency} />}
-        <OpenPositionEntryOverlay symbol={symbol} positions={positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} desktopStyle={desktopEnhanced && !mobileOverlayStyle} />
+        {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} onMove={onMovePending} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} account={account} accountCurrency={accountCurrency} />}
+        <OpenPositionEntryOverlay symbol={symbol} positions={positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} />
         <OpenPositionProtectionOverlay
           symbol={symbol}
           positions={positions.filter(position =>
@@ -1618,6 +1618,7 @@ export default function ChartArea({
           selectedPositionId={selectedPositionId}
           onSelectPosition={onSelectPosition}
           mobileStyle={mobileOverlayStyle}
+          desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle}
         />
 
         {desktopEnhanced && !compactContext && (
