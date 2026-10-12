@@ -24,3 +24,19 @@ test('Markets V4 sort, recents and unavailable symbols do not manufacture values
  assert.equal(v4MarketPricePresentation(items[0],true).spread,'2.0p');
  assert.equal(v4MarketPricePresentation(items[2],false).change,'+0.45%');
 });
+
+test('Favorites is the existing saved Watchlist subset across markets and categories',()=>{
+ assert.deepEqual(selectV4Markets({markets:items,category:'favorites',watched:['AAPL','AUDCAD'],view:'all'}).map(i=>i.symbol),['AAPL','AUDCAD']);
+ assert.deepEqual(selectV4Markets({markets:items,category:'favorites',watched:[],view:'all'}),[]);
+});
+test('Global Stocks US / India submenus split equities without putting India indices into Stocks',()=>{
+ const rows=[...items,
+  {symbol:'RELIANCE',assetClass:'EQUITY',timezone:'Asia/Kolkata',quoteCurrency:'INR',name:'Reliance'},
+  {symbol:'NIFTY',assetClass:'INDEX',timezone:'Asia/Kolkata',quoteCurrency:'INR',name:'NIFTY 50'},
+  {symbol:'SAP',assetClass:'EQUITY',listingCountry:'DE',quoteCurrency:'EUR',name:'SAP'},
+ ];
+ assert.deepEqual(selectV4Markets({markets:rows,category:'stocks',stockCountry:'us',view:'all'}).map(x=>x.symbol),['AAPL']);
+ assert.deepEqual(selectV4Markets({markets:rows,category:'stocks',stockCountry:'india',view:'all'}).map(x=>x.symbol),['RELIANCE']);
+ assert.deepEqual(selectV4Markets({markets:rows,category:'all',search:'NIFTY',view:'all'}).map(x=>x.symbol),['NIFTY']);
+ assert.deepEqual(selectV4Markets({markets:rows,category:'all',search:'SAP',view:'all'}).map(x=>x.symbol),['SAP']);
+});

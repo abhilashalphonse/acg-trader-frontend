@@ -6,13 +6,30 @@ const number=v=>v===null||v===undefined||v===''?null:Number.isFinite(Number(v))?
 const change=item=>number(item?.changePercent??item?.percentChange??item?.changePct??item?.dailyChangePercent??item?.dayChangePercent);
 const volume=item=>number(item?.volume??item?.dayVolume??item?.sessionVolume);
 const category=item=>isCommodityInstrument(item)?'commodities':marketCategoryId(item);
+const isEquity=item=>['EQUITY','STOCK','STOCKS'].includes(String(item?.assetClass||'').toUpperCase());
+export function v4StockListingCountry(item) {
+  if(!isEquity(item))return null;
+  if(category(item)==='india')return 'india';
+  const raw=String(item?.listingCountry||item?.countryCode||item?.exchangeCountry||item?.country||item?.marketCountry||'').trim().toLowerCase();
+  if(['in','ind','india'].includes(raw))return 'india';
+  if(['us','usa','united states','united states of america'].includes(raw))return 'us';
+  if(raw)return null; // Do not mislabel future European/Asian shares as US.
+  return category(item)==='stocks'?'us':null; // Current non-India catalog is US-listed.
+}
 const searchable=item=>[` ${item.symbol||''}`,item.displaySymbol,item.name,item.assetClass,commoditySearchTerms(item)].filter(Boolean).join(' ').toLowerCase();
 const compareSymbol=(a,b)=>String(a?.symbol||'').localeCompare(String(b?.symbol||''));
 
-export function selectV4Markets({markets=[],category:selected='all',commodityView='all',search='',view='popular',recent=[],popularSymbols=[]}={}) {
+export function selectV4Markets({markets=[],category:selected='all',commodityView='all',stockCountry='us',watched=[],search='',view='popular',recent=[],popularSymbols=[]}={}) {
   const q=search.trim().toLowerCase().replaceAll('/','');
   let rows=markets.filter(item=>item?.marketDataAvailable!==false);
-  if(selected!=='all')rows=rows.filter(item=>category(item)===selected);
+  if(selected==='favorites'){
+    const saved=new Set(watched);
+    rows=rows.filter(item=>saved.has(item.symbol));
+  } else if(selected==='stocks'){
+    rows=rows.filter(item=>v4StockListingCountry(item)===stockCountry);
+  } else if(selected!=='all'){
+    rows=rows.filter(item=>category(item)===selected);
+  }
   if(selected==='commodities'&&commodityView!=='all')rows=rows.filter(item=>commoditySubgroup(item)===commodityView);
   if(q)rows=rows.filter(item=>searchable(item).replaceAll('/','').includes(q));
   const popular=new Map(popularSymbols.map((symbol,index)=>[symbol,index]));

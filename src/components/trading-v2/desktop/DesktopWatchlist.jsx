@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronUp, GripVertical, ListFilter, Plus, Search, Settings2, Star, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, GripVertical, ListFilter, MoreHorizontal, Plus, Search, Settings2, Star, X } from 'lucide-react';
 import InstrumentAvatar from '../InstrumentAvatar.jsx';
 import { formatInstrumentPrice, instrumentPipSize } from '../../../utils/instrumentFormatting.js';
 import { isChartOrderAuditEnabled } from '../../../utils/chartOrderPresentation.js';
@@ -30,6 +30,13 @@ const MARKET_VIEWS = [
   ['movers', 'Movers'],
   ['active', 'Active'],
   ['recent', 'Recent'],
+];
+const V4_MARKET_CATEGORIES = [
+  ['all','All'],
+  ['forex','Forex'],
+  ['commodities','Commodities'],
+  ['stocks','Stocks'],
+  ['crypto','Crypto'],
 ];
 const CATEGORY_OPTIONS = [
   ['all', 'All'],
@@ -213,6 +220,10 @@ export default function DesktopWatchlist({
   const [prefs, setPrefs] = useState(loadPrefs);
   const [dragSymbol, setDragSymbol] = useState(null);
   const [category, setCategory] = useState('all');
+  const [stockCountry, setStockCountry] = useState('us');
+  const [v4SearchOpen, setV4SearchOpen] = useState(false);
+  const [v4SortOpen, setV4SortOpen] = useState(false);
+  const v4SortRef = useRef(null);
   const [commodityView, setCommodityView] = useState('all');
   const [marketView, setMarketView] = useState(V4_MARKETS_AUDIT ? 'popular' : 'all');
   const [sort, setSort] = useState({ key: 'symbol', direction: 'asc' });
@@ -234,6 +245,17 @@ export default function DesktopWatchlist({
   }, [activeSymbol]);
 
   const watched = useMemo(() => new Set(watchlists?.activeSymbols || []), [watchlists?.activeSymbols]);
+  const v4Category = V4_MARKETS_AUDIT && mode === 'watchlist' ? 'favorites' : category;
+  useEffect(() => {
+    if(!V4_MARKETS_AUDIT || !v4SearchOpen)return;
+    searchRef?.current?.focus();
+  },[v4SearchOpen,searchRef]);
+  useEffect(() => {
+    if(!v4SortOpen)return undefined;
+    const outside=e=>{if(!v4SortRef.current?.contains(e.target))setV4SortOpen(false);};
+    document.addEventListener('pointerdown',outside);
+    return()=>document.removeEventListener('pointerdown',outside);
+  },[v4SortOpen]);
   const availableMarkets = useMemo(
     () => markets.filter(item => item?.marketDataAvailable !== false),
     [markets],
@@ -244,9 +266,9 @@ export default function DesktopWatchlist({
   }, [availableMarkets]);
 
   const rows = useMemo(() => {
-    if (V4_MARKETS_AUDIT && mode === 'markets') return selectV4Markets({
-      markets: availableMarkets, category, commodityView, search,
-      view: marketView, recent, popularSymbols: POPULAR_SYMBOLS,
+    if (V4_MARKETS_AUDIT && (mode === 'markets' || mode === 'watchlist')) return selectV4Markets({
+      markets: availableMarkets, category: v4Category, commodityView, stockCountry,
+      watched: [...watched], search, view: marketView, recent, popularSymbols: POPULAR_SYMBOLS,
     });
     const query = search.trim().toLowerCase();
     let base = mode === 'markets'
@@ -294,7 +316,7 @@ export default function DesktopWatchlist({
     }
 
     return base;
-  }, [availableMarkets, category, commodityView, marketView, mode, recent, search, sort, watched]);
+  }, [availableMarkets, category, commodityView, stockCountry, v4Category, marketView, mode, recent, search, sort, watched]);
 
   const rowSymbolKey = rows.map(item => item.symbol).join('|');
 
@@ -410,64 +432,91 @@ export default function DesktopWatchlist({
   };
 
 
-  // V4 Markets discovery is opt-in only. The legacy Markets and Watchlist
-  // DOM/workflows below remain untouched for non-audit sessions.
-  if (V4_MARKETS_AUDIT && mode === 'markets') {
-    const categoryName=CATEGORY_OPTIONS.find(([id])=>id===category)?.[1]||'All';
-    const viewName=MARKET_VIEWS.find(([id])=>id===marketView)?.[1]||'All';
+  // The V4 audit combines the legacy Watchlist and Markets routes into one
+  // discovery surface. Watchlist data, row callbacks, and old non-audit UI remain intact.
+  if (V4_MARKETS_AUDIT && (mode === 'markets' || mode === 'watchlist')) {
+    const changeV4Category=id=>{
+      setCategory(id);
+      setCommodityView('all');
+      if(id==='stocks')setStockCountry('us');
+      if(mode==='watchlist' && id!=='favorites')onModeChange('markets');
+    };
+    const closeSearch=()=>{setSearch('');setV4SearchOpen(false);};
     return (
       <section data-v4-markets-panel aria-label="Markets discovery"
-        className="acg-v3-watchlist flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[#09090B]"
+        className="acg-v3-watchlist relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[#09090B]"
         onKeyDown={onKeyDown}>
-        <header className="flex min-h-12 shrink-0 items-center justify-between border-b border-white/[0.07] px-3">
-          <div className="flex min-w-0 items-center gap-2">
-            <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-[#F2F2F4]">Markets</h2>
-            <span className="rounded-md bg-[#202023] px-1.5 py-0.5 text-[10px] tabular-nums text-[#9B9BA3]">{availableMarkets.length}</span>
-          </div>
+        <header className="relative flex min-h-12 shrink-0 items-center justify-between border-b border-white/[0.07] px-3">
+          <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-[#F2F2F4]">Markets</h2>
           <div className="flex items-center gap-1">
-            <button type="button" onClick={()=>onModeChange('watchlist')}
-              className="h-8 rounded-md px-2.5 text-[11px] font-medium text-[#BBC0CA] hover:bg-[#242427] hover:text-white">
-              Watchlist
+            <button type="button" aria-label="Search markets" aria-expanded={v4SearchOpen}
+              onClick={()=>{if(v4SearchOpen)closeSearch();else setV4SearchOpen(true);}}
+              className={`grid size-8 place-items-center rounded-md hover:bg-[#242427] hover:text-white ${v4SearchOpen?'text-[#F2F2F4]':'text-[#9A9BA4]'}`}>
+              <Search size={15}/>
             </button>
+            <div className="relative" ref={v4SortRef}>
+              <button type="button" aria-label="Market options" aria-expanded={v4SortOpen}
+                aria-controls="v4-market-sort-options" onClick={()=>setV4SortOpen(open=>!open)}
+                className={`grid size-8 place-items-center rounded-md hover:bg-[#242427] hover:text-white ${v4SortOpen?'text-[#F2F2F4]':'text-[#9A9BA4]'}`}>
+                <MoreHorizontal size={16}/>
+              </button>
+              {v4SortOpen&&<div id="v4-market-sort-options" role="menu" aria-label="Sort markets"
+                onKeyDown={event=>{if(event.key==='Escape'){event.stopPropagation();setV4SortOpen(false);}}}
+                className="absolute right-0 top-9 z-50 w-40 overflow-hidden rounded-lg border border-[#37373D] bg-[#1A1A1E] p-1.5 shadow-[0_12px_36px_rgba(0,0,0,.6)]">
+                <div className="px-2 py-1.5 text-[10px] font-semibold text-[#8C8F9A]">SORT BY</div>
+                {MARKET_VIEWS.map(([id,label])=><button key={id} type="button" role="menuitemradio" aria-checked={marketView===id}
+                  onClick={()=>{setMarketView(id);setV4SortOpen(false);}}
+                  className={`flex min-h-8 w-full items-center justify-between rounded-md px-2 text-left text-[11px] ${marketView===id?'bg-[#303035] font-semibold text-[#F2F2F4]':'text-[#ADB0BB] hover:bg-[#27272C] hover:text-white'}`}>
+                  {id==='all'?'A–Z':id==='movers'?'Top movers':id==='active'?'Most active':label}
+                  {marketView===id&&<span aria-hidden="true" className="size-1.5 rounded-full bg-[#E4E5E9]"/>}
+                </button>)}
+              </div>}
+            </div>
             <button type="button" onClick={onClose} title="Close markets panel" aria-label="Close markets panel"
               className="grid size-8 place-items-center rounded-md text-[#9A9BA4] hover:bg-[#242427] hover:text-white">
               <X size={15}/>
             </button>
           </div>
         </header>
-        <div className="shrink-0 px-3 pb-2 pt-3">
-          <label className="flex h-9 items-center gap-2 rounded-lg border border-[#33343A] bg-[#17171A] px-2.5 text-[#888D98] focus-within:border-[#777A85]">
-            <Search size={15} className="shrink-0"/>
-            <input ref={searchRef} aria-label="Search markets" value={search}
-              onChange={event=>setSearch(event.target.value)} placeholder="Search instruments..."
-              className="w-full min-w-0 bg-transparent text-[11px] text-[#F2F2F4] outline-none placeholder:text-[#777C87]"/>
-            {search && <button type="button" aria-label="Clear market search" onClick={()=>setSearch('')} className="grid size-6 shrink-0 place-items-center rounded-md hover:bg-[#29292D]"><X size={13}/></button>}
+        <div className={`shrink-0 overflow-hidden transition-[height,opacity] duration-150 ${v4SearchOpen?'h-14 opacity-100':'h-0 opacity-0'}`}>
+          <label className="mx-3 mt-2 flex h-9 items-center gap-2 rounded-lg border border-[#33343A] bg-[#17171A] px-2.5 text-[#888D98] focus-within:border-[#777A85]">
+            <Search size={14} className="shrink-0"/>
+            <input ref={searchRef} aria-label="Search markets input" value={search}
+              onChange={event=>setSearch(event.target.value)}
+              onFocus={()=>setV4SearchOpen(true)}
+              onKeyDown={event=>{if(event.key==='Escape'){event.stopPropagation();closeSearch();}}}
+              tabIndex={v4SearchOpen?0:-1} aria-hidden={!v4SearchOpen}
+              placeholder="Search instruments..."
+              className="min-w-0 flex-1 bg-transparent text-[11px] text-[#F2F2F4] outline-none placeholder:text-[#777C87]"/>
+            {search&&<button type="button" aria-label="Clear market search" onClick={()=>setSearch('')}
+              className="grid size-6 shrink-0 place-items-center rounded-md hover:bg-[#29292D]"><X size={13}/></button>}
+            <button type="button" aria-label="Close search" onClick={closeSearch}
+              className="grid size-6 shrink-0 place-items-center rounded-md hover:bg-[#29292D]"><X size={13}/></button>
           </label>
         </div>
-        <nav aria-label="Asset categories" className="flex shrink-0 gap-1 overflow-x-auto border-b border-white/[0.06] px-3 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {availableCategories.map(([id,label])=><button key={id} type="button" aria-pressed={category===id}
-            onClick={()=>{setCategory(id);setCommodityView('all');}}
-            className={`min-h-8 shrink-0 rounded-lg px-2.5 text-[10px] font-semibold transition-colors ${category===id?'bg-[#F2F2F4] text-[#161619]':'bg-[#1A1A1D] text-[#A2A3AD] hover:bg-[#29292E] hover:text-[#F2F2F4]'}`}>
-            {label}
-          </button>)}
-        </nav>
-        {category==='commodities'&&<div className="flex shrink-0 gap-1 border-b border-white/[0.06] px-3 py-1.5" aria-label="Commodity category">
+        <div className="flex shrink-0 items-center gap-1 border-b border-white/[0.06] pl-3 pr-2 py-2">
+          <button type="button" aria-label="Favorites" title="Favorites" aria-pressed={v4Category==='favorites'}
+            onClick={()=>changeV4Category('favorites')}
+            className={`grid size-8 shrink-0 place-items-center rounded-lg transition-colors ${v4Category==='favorites'?'bg-[#F2F2F4] text-[#161619]':'bg-[#1A1A1D] text-[#A2A3AD] hover:bg-[#29292E] hover:text-white'}`}>
+            <Star size={14} fill={v4Category==='favorites'?'currentColor':'none'}/>
+          </button>
+          <nav aria-label="Asset categories"
+            className="flex min-w-0 flex-1 gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {V4_MARKET_CATEGORIES.map(([id,label])=><button key={id} type="button" aria-pressed={v4Category===id}
+              onClick={()=>changeV4Category(id)}
+              className={`min-h-8 shrink-0 rounded-lg px-2.5 text-[10px] font-semibold transition-colors ${v4Category===id?'bg-[#F2F2F4] text-[#161619]':'bg-[#1A1A1D] text-[#A2A3AD] hover:bg-[#29292E] hover:text-[#F2F2F4]'}`}>
+              {label}
+            </button>)}
+          </nav>
+        </div>
+        {v4Category==='stocks'&&<nav aria-label="Stock markets" className="flex shrink-0 gap-1.5 border-b border-white/[0.06] px-3 py-2">
+          {[['us','US'],['india','India']].map(([id,label])=><button type="button" key={id} aria-pressed={stockCountry===id}
+            onClick={()=>setStockCountry(id)} className={`min-h-7 rounded-md px-3 text-[10px] font-medium ${stockCountry===id?'bg-[#303035] text-[#F2F2F4]':'text-[#9497A2] hover:bg-[#242427] hover:text-white'}`}>{label}</button>)}
+        </nav>}
+        {v4Category==='commodities'&&<nav aria-label="Commodity categories" className="flex shrink-0 gap-1.5 border-b border-white/[0.06] px-3 py-2">
           {COMMODITY_VIEWS.map(([id,label])=><button key={id} type="button" aria-pressed={commodityView===id}
-            onClick={()=>setCommodityView(id)} className={`rounded-md px-2 py-1 text-[10px] ${commodityView===id?'bg-[#303036] font-semibold text-white':'text-[#92949E] hover:text-white'}`}>{label}</button>)}
-        </div>}
-        <div className="flex min-h-10 shrink-0 items-center justify-between gap-2 border-b border-white/[0.06] px-3">
-          <span className="min-w-0 truncate text-[10px] font-semibold text-[#ABADB6]">
-            {search.trim()?'Search results':marketView==='recent'?'Recently viewed':marketView==='movers'?'Top movers':marketView==='active'?'Most active':marketView==='popular'?'Popular '+(category==='all'?'markets':categoryName):categoryName}
-            <span className="ml-1.5 font-normal tabular-nums text-[#70737E]">{rows.length}</span>
-          </span>
-          <label className="flex shrink-0 items-center gap-1 text-[10px] text-[#8C9099]">
-            <span>Sort</span>
-            <select aria-label="Market sort" value={marketView} onChange={event=>setMarketView(event.target.value)}
-              className="max-w-24 cursor-pointer rounded-md border border-[#303036] bg-[#19191C] px-1.5 py-1 text-[10px] font-medium text-[#DADCE2] outline-none focus:border-[#777A85]">
-              {MARKET_VIEWS.map(([id,label])=><option key={id} value={id}>{id==='all'?'A–Z':label}</option>)}
-            </select>
-          </label>
-        </div>
+            onClick={()=>setCommodityView(id)} className={`min-h-7 rounded-md px-2.5 text-[10px] ${commodityView===id?'bg-[#303035] font-semibold text-white':'text-[#92949E] hover:bg-[#242427] hover:text-white'}`}>{label}</button>)}
+        </nav>}
         <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable] [scrollbar-width:thin]" tabIndex={0} aria-label="Market instruments">
           {!rows.length&&<div className="grid min-h-32 place-items-center px-5 text-center text-[11px] text-[#888D98]">
             {search?'No instruments match this search and category.':marketView==='recent'?'Recently viewed instruments appear here.':'No instruments in this category.'}
