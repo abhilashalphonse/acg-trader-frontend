@@ -160,19 +160,17 @@ export function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi
         const pnlColor = Number.isFinite(pnl) ? pnl < 0 ? '#ff5968' : pnl > 0 ? '#55dfa9' : '#eef4f2' : '#eef4f2';
         const protection = chartPositionProtections(position);
         const groupActive = hoveredPositionId != null && String(hoveredPositionId) === String(position.id);
-        const prefix = <span className="flex shrink-0 items-center gap-0.5 font-sans text-[9px]">
-          {['tp', 'sl'].map(kind => {
-            const active = protection[kind];
-            const tone = kind === 'tp' ? '#35d79d' : '#ff5968';
-            return active ? <span key={kind} data-attached-protection={kind} title={`Active ${kind.toUpperCase()}`}
-              className="rounded-[3px] border px-1 py-0.5 font-bold" style={{ color: tone, borderColor: `${tone}70`, backgroundColor: `${tone}15` }}>{kind.toUpperCase()}</span>
-              : typeof onRequestPositionProtection === 'function' ? <button key={kind} type="button" title={`Add ${kind.toUpperCase()}`}
-                aria-label={`Add ${kind.toUpperCase()} to ${side} position`}
-                className="rounded-[3px] border border-white/15 px-1 py-0.5 text-[#9aa5af] hover:bg-white/10"
-                onPointerDown={event => event.stopPropagation()}
-                onClick={event => { event.stopPropagation(); onRequestPositionProtection(position.id, kind); }}>+{kind.toUpperCase()}</button> : null;
-          })}
-        </span>;
+        // Only missing protection appears on the entry badge. Once attached,
+        // SL/TP owns an independent draggable level with its own remove action.
+        const absentProtections = ['tp', 'sl'].filter(kind => !protection[kind]);
+        const prefix = absentProtections.length && typeof onRequestPositionProtection === 'function'
+          ? <span className="flex shrink-0 items-center gap-0.5 font-sans text-[9px]">
+            {absentProtections.map(kind => <button key={kind} type="button" title={`Add ${kind.toUpperCase()}`}
+              aria-label={`Add ${kind.toUpperCase()} to ${side} position`}
+              className="rounded-[3px] border border-white/15 px-1 py-0.5 text-[#9aa5af] hover:bg-white/10"
+              onPointerDown={event => event.stopPropagation()}
+              onClick={event => { event.stopPropagation(); onRequestPositionProtection(position.id, kind); }}>+{kind.toUpperCase()}</button>)}
+          </span> : null;
 
         return (
           <div key={position.id || `${side}-${entry}-${lots}`} className="absolute left-0 right-0" style={{ top: y }}>
@@ -934,8 +932,8 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
                 setDragging(kind);
                 onChange({ activeField: kind, stage: `dragging-${kind}` });
               }}
-              onRemove={() => onChange({ [field]: null, activeField: null, stage: 'ready' })}
-              removeLabel={`Clear ${label}`}
+              onRemove={desktopPositionProtectionMode ? onCancel : () => onChange({ [field]: null, activeField: null, stage: 'ready' })}
+              removeLabel={desktopPositionProtectionMode ? `Cancel ${label} edit` : `Clear ${label}`}
             />
 
             <span
@@ -1372,6 +1370,7 @@ export default function ChartArea({
   onUpdatePosition = () => {},
   onRemovePositionProtection = () => {},
   onRequestPositionProtection = null,
+  onCancelPositionProtection = () => {},
   selectedPositionId = null,
   onSelectPosition = () => {},
   onClosePosition = () => {},
@@ -1659,6 +1658,7 @@ export default function ChartArea({
           <TradePlanOverlay
             plan={positionProtectionDraft}
             onChange={onPositionProtectionDraftChange}
+            onCancel={onCancelPositionProtection}
             coordinateApi={coordinateApi}
             instrument={instrument}
             lots={Number(positionProtectionDraft.manualLots) || tradePlanLots}
@@ -1684,6 +1684,7 @@ export default function ChartArea({
           onUpdatePosition={onUpdatePosition}
           onRemoveProtection={onRemovePositionProtection}
           onRequestProtectionChange={onRequestPositionProtection}
+          editingProtection={positionProtectionDraft}
           selectedPositionId={selectedPositionId}
           hoveredPositionId={hoveredPositionId}
           onHoverPosition={setHoveredPositionId}
