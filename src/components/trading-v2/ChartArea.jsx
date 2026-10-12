@@ -1742,11 +1742,11 @@ export default function ChartArea({
         )}
 
         {v4AuditLayer && <V4FullTerminalOrders
-          renderPositionEntries={chartEditActions => (
+          renderPositionEntries={(chartEditActions, beginProtection) => (
             <OpenPositionEntryOverlay symbol={symbol} positions={positions}
               coordinateApi={coordinateApi} instrument={instrument}
               selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition}
-              onClosePosition={onClosePosition} onRequestPositionProtection={onRequestPositionProtection}
+              onClosePosition={onClosePosition} onRequestPositionProtection={beginProtection}
               hoveredPositionId={hoveredPositionId} onHoverPosition={setHoveredPositionId}
               desktopStyle chartEditActions={chartEditActions}/>
           )}
