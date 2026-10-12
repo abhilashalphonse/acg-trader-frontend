@@ -52,6 +52,7 @@ export default function DesktopMultiChart({
   onPositionProtectionDraftChange = () => {},
   onRemovePositionProtection = () => {},
   onRequestPositionProtection = null,
+  onCancelPositionProtection = () => {},
   selectedPositionId = null,
   onSelectPosition = () => {},
   onClosePosition = () => {},
@@ -163,6 +164,7 @@ export default function DesktopMultiChart({
                   positionProtectionDraft={isActive && String(positionProtectionDraft?.symbol || '').toUpperCase() === String(symbol || '').toUpperCase() ? positionProtectionDraft : null}
                   onPositionProtectionDraftChange={isActive ? onPositionProtectionDraftChange : () => {}}
                   onRemovePositionProtection={onRemovePositionProtection}
+                  onCancelPositionProtection={isActive ? onCancelPositionProtection : () => {}}
                   onRequestPositionProtection={isActive ? onRequestPositionProtection : null}
                   selectedPositionId={selectedPositionId}
                   onSelectPosition={onSelectPosition}
