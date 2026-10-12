@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Eye, EyeOff, RotateCcw, ScanLine, Magnet, Lock, Unlock, Pin } from 'lucide-react';
 import TradingChart from '../TradingChart.jsx';
+import V4ChartOrderLayer from './v4/V4ChartOrderLayer.jsx';
 import DrawingLayer from './DrawingLayer.jsx';
 import { formatInstrumentPrice, formatSpreadDisplay, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 import { positionCloseAvailability } from '../../utils/marketExecutionAvailability.js';
@@ -1384,6 +1385,8 @@ export default function ChartArea({
   onRemovePositionProtection = () => {},
   onRequestPositionProtection = null,
   onCancelPositionProtection = () => {},
+  onApplyPositionProtection = null,
+  positionProtectionSaving = false,
   selectedPositionId = null,
   onSelectPosition = () => {},
   onClosePosition = () => {},
@@ -1652,6 +1655,23 @@ export default function ChartArea({
           showHistoryControls={!mobileReference && (!drawingToolbarOverlay || toolbarVisible)}
           preserveChartCrosshair={desktopEnhanced && !compactContext}
         />}
+        {desktopEnhanced && chartOrderV4 && !mobileOverlayStyle ? (
+          <V4ChartOrderLayer
+            symbol={symbol} coordinateApi={coordinateApi} instrument={instrument}
+            positions={positions} pendingOrders={pendingOrders} tradePlan={tradePlan}
+            positionProtectionDraft={positionProtectionDraft} selectedPositionId={selectedPositionId}
+            account={account} accountCurrency={accountCurrency}
+            onTradePlanChange={onTradePlanChange} onCancelTradePlan={onCancelTradePlan}
+            onModifyPending={onModifyPending} onMovePending={onMovePending} onCancelPending={onCancelPending}
+            onUpdatePosition={onUpdatePosition} onRemovePositionProtection={onRemovePositionProtection}
+            onRequestPositionProtection={onRequestPositionProtection}
+            onPositionProtectionDraftChange={onPositionProtectionDraftChange}
+            onCancelPositionProtection={onCancelPositionProtection}
+            onApplyPositionProtection={onApplyPositionProtection}
+            positionProtectionSaving={positionProtectionSaving}
+            onSelectPosition={onSelectPosition} onClosePosition={onClosePosition}
+          />
+        ) : (<>
         <TradePlanOverlay
           plan={tradePlan}
           onChange={onTradePlanChange}
@@ -1714,6 +1734,7 @@ export default function ChartArea({
           />
         )}
 
+        </>)}
         {desktopEnhanced && !compactContext && (
           <div className="absolute right-[74px] top-2 z-30 flex items-center gap-1">
             <div className="pointer-events-none mr-1 flex h-7 items-center rounded-md border border-white/[0.06] bg-black/86 px-2.5 text-[9px] font-medium tabular-nums text-[#7E8994] backdrop-blur-sm">
