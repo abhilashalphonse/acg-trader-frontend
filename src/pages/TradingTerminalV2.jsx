@@ -1243,13 +1243,13 @@ export default function TradingTerminalV2({
 
   const movePendingOrder = async (id, nextPrice, field = 'entry') => {
     const order = pendingOrders.find(item => String(item.id) === String(id));
-    if (!order) return;
+    if (!order) return false;
     const clearingProtection = nextPrice === null && (field === 'sl' || field === 'tp');
     const numericPrice = clearingProtection ? null : Number(nextPrice);
-    if (!clearingProtection && (!Number.isFinite(numericPrice) || numericPrice <= 0)) return;
+    if (!clearingProtection && (!Number.isFinite(numericPrice) || numericPrice <= 0)) return false;
 
     const replacement = buildChartPendingAmendment(order, numericPrice, field);
-    if (!replacement) return;
+    if (!replacement) return false;
 
     try {
       await trading.replacePendingOrder(id, replacement);
@@ -1259,8 +1259,10 @@ export default function TradingTerminalV2({
         price: numericPrice,
       });
       showNotice(clearingProtection ? `${field.toUpperCase()} removed` : field === 'entry' ? 'Pending price updated' : `${field === 'limitPrice' ? 'LIMIT' : field.toUpperCase()} updated`);
+      return true;
     } catch (error) {
       handleTradingError(error, `Move ${order.symbol} pending ${field}`);
+      return false;
     }
   };
 
