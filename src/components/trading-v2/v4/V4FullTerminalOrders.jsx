@@ -7,7 +7,7 @@ import { formatInstrumentPrice } from '../../../utils/instrumentFormatting.js';
 // the existing store; drafts exist locally and never optimistically mutate it.
 export default function V4FullTerminalOrders({
   account, symbol, instrument, positions = [], pendingOrders = [],
-  coordinateApi, height, positionProtectionDraft,
+  coordinateApi, height, positionProtectionDraft, isNewOrderPlanning = false,
   onUpdatePosition, onRemovePositionProtection, onMovePending,
   onRequestPositionProtection, onCancelPositionProtection,
   onSelectPosition, onClosePosition, onCancelPending,
@@ -39,7 +39,7 @@ export default function V4FullTerminalOrders({
       kind: parent.activeField, proposedPrice: Number(parent[parent.activeField]),
     };
   }, [positionProtectionDraft, symbol, accountId]);
-  const activeEdit = edit || parentEdit;
+  const activeEdit = isNewOrderPlanning ? null : edit || parentEdit;
 
   // Acknowledge only the matching server/store snapshot. Never paint a local
   // confirmed line while the backend still reports the original price.
@@ -68,14 +68,22 @@ export default function V4FullTerminalOrders({
     return () => window.clearTimeout(timer);
   }, [awaiting]);
 
+  useEffect(() => {
+    if (!isNewOrderPlanning) return;
+    setEdit(null);
+    setAwaiting(null);
+    setSaving(false);
+    setError('');
+  }, [isNewOrderPlanning]);
+
   const begin = useCallback(value => {
-    if (!value || saving) return;
+    if (!value || saving || isNewOrderPlanning) return;
     // Switching levels replaces every draft visual from the previous edit.
     setEdit({ ...value, proposedPrice: value.proposedPrice ?? value.confirmedPrice });
     setError('');
     setAwaiting(null);
     if (parentEdit) onCancelPositionProtection?.();
-  }, [parentEdit, onCancelPositionProtection, saving]);
+  }, [parentEdit, onCancelPositionProtection, saving, isNewOrderPlanning]);
 
   const discard = () => {
     if (saving) return;
@@ -86,13 +94,13 @@ export default function V4FullTerminalOrders({
   };
 
   const beginProtection = (id, kind) => {
-    if (saving) return;
+    if (saving || isNewOrderPlanning) return;
     discard();
     onRequestPositionProtection?.(id, kind);
   };
 
   const confirm = async draft => {
-    if (!draft || saving || !accountId) return;
+    if (!draft || saving || !accountId || isNewOrderPlanning) return;
     const objectType = draft.objectType;
     const objectId = String(draft.objectId || '');
     const kind = draft.kind;
@@ -159,17 +167,20 @@ export default function V4FullTerminalOrders({
       formatVolume={value => Number(value).toFixed(2) + ' lots'}
       formatPnl={value => Number.isFinite(Number(value)) ? Number(value).toFixed(2) + ' ' + (account?.currency || 'USD') : '—'}
       edit={activeEdit} saving={saving}
-      onBeginEdit={begin} onChangeEdit={setEdit}
-      onSaveEdit={confirm} onCancelEdit={discard}
-      onAddProtection={beginProtection} onConfirmRemoval={remove}
-      onSelectPosition={onSelectPosition} onClosePosition={onClosePosition}
-      onCancelPending={onCancelPending}/>
-    {error && <div role="alert" data-v4-chart-error
+      hidePositionEntries readOnly={isNewOrderPlanning}
+      onBeginEdit={isNewOrderPlanning ? null : begin} onChangeEdit={isNewOrderPlanning ? null : setEdit}
+      onSaveEdit={isNewOrderPlanning ? null : confirm} onCancelEdit={isNewOrderPlanning ? null : discard}
+      onAddProtection={isNewOrderPlanning ? null : beginProtection}
+      onConfirmRemoval={isNewOrderPlanning ? null : remove}
+      onSelectPosition={isNewOrderPlanning ? null : onSelectPosition}
+      onClosePosition={isNewOrderPlanning ? null : onClosePosition}
+      onCancelPending={isNewOrderPlanning ? null : onCancelPending}/>
+    {!isNewOrderPlanning && error && <div role="alert" data-v4-chart-error
       className="pointer-events-auto absolute bottom-12 right-[148px] z-[70] max-w-[360px] rounded border border-[#a34556] bg-[#221116]/95 p-2 text-[11px] text-white">
       {error}
       <button type="button" className="ml-3 underline" onClick={discard}>Discard</button>
     </div>}
-    {awaiting && <div role="status" className="pointer-events-none absolute bottom-3 right-[148px] z-[70] rounded bg-[#15191e]/95 px-2 py-1 text-[10px] text-white">
+    {!isNewOrderPlanning && awaiting && <div role="status" className="pointer-events-none absolute bottom-3 right-[148px] z-[70] rounded bg-[#15191e]/95 px-2 py-1 text-[10px] text-white">
       Waiting for confirmed server price…
     </div>}
   </>;
