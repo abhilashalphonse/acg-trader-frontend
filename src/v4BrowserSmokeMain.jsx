@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createPortal } from 'react-dom';
 import DesktopOrderTicketV4 from './components/trading-v2/desktop/DesktopOrderTicketV4.jsx';
-import { TradePlanOverlay } from './components/trading-v2/ChartArea.jsx';
+import { TradePlanOverlay, PendingOrderOverlay } from './components/trading-v2/ChartArea.jsx';
 import { createDefaultTradePlan } from './utils/tradePlanExecution.js';
 
 const DEMO=Object.freeze({
@@ -24,7 +24,22 @@ const coordinateApi={
  yToPrice:y=>83000+(300-y)*10,
  subscribe:()=>()=>{},
 };
-const counters={manual:0,planned:0,drafts:0,markets:0,notice:''};
+const pendingInstrument={
+  symbol:'GBPUSD', tickSize:0.00001, pipSize:0.0001, tickValue:1,
+  contractSize:100000, volumeStep:0.01, quoteCurrency:'USD', pnlCurrency:'USD',
+};
+const pendingCoordinates={
+  priceToY:price=>300-(price-1.322)*25000,
+  yToPrice:y=>1.322+(300-y)/25000,
+  subscribe:()=>()=>{},
+};
+const pendingOrder={
+  id:'pending-smoke-1',symbol:'GBPUSD',side:'sell',orderType:'stop-limit',
+  status:'pending',entry:1.32345,limitPrice:1.32038,sl:1.32590,tp:1.31726,
+  volume:0.10,expiration:'GTC',
+};
+
+const counters={manual:0,planned:0,drafts:0,markets:0,pendingMoves:[],notice:''};
 function Fixture(){
  const [lots,setLots]=useState(0.1);
  const [sizing,setSizing]=useState('lots');
@@ -68,6 +83,19 @@ function Fixture(){
  </>;
 }
 createRoot(document.getElementById('root')).render(<Fixture/>);
+createRoot(document.getElementById('pending-chart-fixture')).render(
+  <PendingOrderOverlay
+    symbol="GBPUSD"
+    instrument={pendingInstrument}
+    coordinateApi={pendingCoordinates}
+    orders={[pendingOrder]}
+    desktopStyle
+    account={ACCOUNT}
+    accountCurrency="USD"
+    onMove={(orderId, nextPrice, field) => { counters.pendingMoves.push({ orderId, nextPrice, field }); }}
+  />
+);
+
 
 const sleep=milliseconds=>new Promise(resolve=>setTimeout(resolve,milliseconds));
 const findMode=(ticket,text)=>Array.from(ticket.querySelectorAll('.v4-position-modes button'))
@@ -79,6 +107,30 @@ async function run(){
  const ticket=root.querySelector('[aria-label="ACG Trader V4 live execution ticket"]');
  const chart=document.getElementById('chart-fixture');
  if(!ticket){status.textContent='FAIL: V4 ticket missing';return;}
+ // Accepted stop-limit must draw two independent SOLID price levels,
+ // and show a temporary DOTTED ghost while its LIMIT leg is dragged.
+ const pendingChart=document.getElementById('pending-chart-fixture');
+ const pendingLines=pendingChart.querySelectorAll('.relative.border-t:not(.border-dotted):not(.border-dashed)');
+ if(pendingLines.length<4)failed.push('Accepted stop-limit levels are not all solid: '+pendingLines.length);
+ const limitHandle=pendingChart.querySelector('[aria-label="Drag pending stop-limit limit price"]');
+ if(!limitHandle)failed.push('Independent stop-limit execution-price handle missing');
+ else {
+   const rect=pendingChart.getBoundingClientRect();
+   const initialY=pendingCoordinates.priceToY(pendingOrder.limitPrice);
+   const pointerOptions={bubbles:true,pointerId:1,clientY:rect.top+initialY};
+   limitHandle.dispatchEvent(new PointerEvent('pointerdown',pointerOptions));
+   await sleep(80);
+   window.dispatchEvent(new PointerEvent('pointermove',{...pointerOptions,clientY:rect.top+initialY-22}));
+   await sleep(90);
+   if(!pendingChart.querySelector('.border-dotted'))failed.push('Dragging accepted limit did not show dotted preview');
+   window.dispatchEvent(new PointerEvent('pointerup',{...pointerOptions,clientY:rect.top+initialY-22}));
+   await sleep(90);
+   const amend=counters.pendingMoves[0];
+   if(counters.pendingMoves.length!==1 || amend?.field!=='limitPrice' || amend?.orderId!==pendingOrder.id
+      || Math.abs(Number(amend?.nextPrice)-pendingOrder.limitPrice)<0.00001){
+     failed.push('Limit drag did not amend the independent stop-limit execution price');
+   }
+ }
  const body=ticket.querySelector('.v4-ticket-body');
  const footer=ticket.querySelector('.v4-execution-footer');
  const selected=ticket.querySelector('.v4-mainmodes .v4-capsule-button.selected');
