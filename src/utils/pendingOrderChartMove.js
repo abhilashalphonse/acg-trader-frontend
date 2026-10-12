@@ -1,7 +1,8 @@
 // Pure chart-edit projection. The backend remains authoritative for every amendment.
 export function buildChartPendingAmendment(order, nextPrice, field = 'entry') {
-  const value = Number(nextPrice);
-  if (!order || !Number.isFinite(value) || value <= 0) return null;
+  const removal = nextPrice === null && (field === 'sl' || field === 'tp');
+  const value = removal ? null : Number(nextPrice);
+  if (!order || (!removal && (!Number.isFinite(value) || value <= 0))) return null;
   const existingEntry = Number(order.entry);
   const existingLimit = Number(order.limitPrice);
   const stopLimit = String(order.orderType || '').toLowerCase() === 'stop-limit';
@@ -13,8 +14,8 @@ export function buildChartPendingAmendment(order, nextPrice, field = 'entry') {
     timeInForce: order.expiration || 'GTC',
     expiresAt: order.expiresAt || null,
   };
-  if (field === 'sl') replacement.stopLoss = value;
-  else if (field === 'tp') replacement.takeProfit = value;
+  if (field === 'sl') replacement.stopLoss = removal ? null : value;
+  else if (field === 'tp') replacement.takeProfit = removal ? null : value;
   else if (field === 'limitPrice') {
     if (!stopLimit) return null;
     replacement.limitPrice = value;
