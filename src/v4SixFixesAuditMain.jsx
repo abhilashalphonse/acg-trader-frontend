@@ -55,12 +55,15 @@ function App(){
    </div>
   <div className="relative w-full overflow-hidden rounded border border-[#444]" style={{height:580}}
     data-v4-full-terminal-fixture>
-    <OpenPositionEntryOverlay symbol={SYMBOL} positions={positions} coordinateApi={coordinateApi}
-      instrument={{tickSize:1,displaySymbol:'BTCUSD',sessionOpen:true,marketDataAvailable:true}}
-      selectedPositionId={'p1'} onSelectPosition={()=>{}} onClosePosition={()=>{}}
-      onRequestPositionProtection={planning ? null : beginProtection} desktopStyle/>
     <V4FullTerminalOrders isNewOrderPlanning={planning}
-      account={ACCOUNT} symbol={SYMBOL} instrument={{tickSize:1,displaySymbol:'BTCUSD'}}
+      renderPositionEntries={chartEditActions => (
+        <OpenPositionEntryOverlay symbol={SYMBOL} positions={positions} coordinateApi={coordinateApi}
+          instrument={{tickSize:1,tickValue:1,displaySymbol:'BTCUSD',sessionOpen:true,marketDataAvailable:true}}
+          selectedPositionId={'p1'} onSelectPosition={()=>{}} onClosePosition={()=>{}}
+          onRequestPositionProtection={planning ? null : beginProtection}
+          chartEditActions={chartEditActions} desktopStyle/>
+      )}
+      account={ACCOUNT} symbol={SYMBOL} instrument={{tickSize:1,tickValue:1,displaySymbol:'BTCUSD'}}
       positions={positions} pendingOrders={orders}
       coordinateApi={coordinateApi} height={580}
       positionProtectionDraft={parentDraft}
