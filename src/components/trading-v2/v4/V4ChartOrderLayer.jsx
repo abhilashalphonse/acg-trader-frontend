@@ -114,7 +114,7 @@ export default function V4ChartOrderLayer({
           {level.kind==='entry' && level.objectType==='pending' && onCancelPending && <button type="button" aria-label="Cancel pending order" onClick={()=>setCancelPendingId(level.id)} className="shrink-0 px-1 text-gray-300">×</button>}
           {missing.map(kind=><button key={kind} type="button" onClick={()=>onAddProtection?.(level.objectId,kind)}
             className="shrink-0 rounded-[3px] border border-gray-600 px-1" aria-label={`Add ${kind.toUpperCase()}`}>+{kind.toUpperCase()}</button>)}
-          {(['sl','tp'].includes(level.kind) || (level.objectType==='pending' && level.kind==='entry'))&&onBeginEdit&&<button type="button" className="shrink-0 px-1"
+          {(['sl','tp'].includes(level.kind) || (level.objectType==='pending' && level.kind==='entry'))&&onBeginEdit&&!marketProtection&&<button type="button" className="shrink-0 px-1"
             aria-label={`Edit ${level.kind.toUpperCase()}`} onClick={()=>onBeginEdit(v4ProtectionAction(accepted,level.id,'edit'))}>Edit</button>}
           {(['sl','tp'].includes(level.kind))&&canRemove&&<button type="button" aria-label={`Confirm removal of ${level.kind.toUpperCase()}`}
             className={marketProtection ? 'grid h-7 w-7 shrink-0 place-items-center border-l border-dotted border-white/20 text-[#99a6b0]' : 'shrink-0 px-1'} onClick={()=>setRemoveLevel(level.id)}>×</button>}
