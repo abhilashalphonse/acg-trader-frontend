@@ -252,8 +252,100 @@ try{
  assert.equal(await page.getByRole('dialog',{name:/Confirm remove/i}).count(),0);
  await page.waitForFunction(()=>window.v4QA.orders[0].tp == null);
  assert.equal(await pendingTp.count(),0);
+
+ // 11. Placed Limit uses the same +SL/TP, compact chip and Confirm/Discard semantics.
+ const limitEntry=page.locator('[data-v4-badge="qa-account:pending:o1:entry"]');
+ assert.equal(await limitEntry.locator('[data-v4-pending-side]').innerText(),'SELL');
+ assert.equal(await limitEntry.locator('[data-v4-pending-type]').innerText(),'LIMIT');
+ assert.equal(await limitEntry.locator('[data-v4-pending-size]').innerText(),'0.01');
+ await limitEntry.locator('button[aria-label="Add SL to SELL LIMIT order"]').click();
+ assert.equal(await page.locator('[data-v4-pending-chart-actions]').count(),1);
+ assert.equal(await page.locator('[data-v4-draft-badge]').count(),1);
+ assert.match(await page.locator('[data-v4-draft-badge]').innerText(),/Stop loss/);
+ assert.equal(await limitEntry.locator('button[aria-label="Add SL to SELL LIMIT order"]').count(),0);
+ assert.equal(await page.evaluate(()=>window.v4QA.orders[0].sl),null);
+ await page.getByRole('button',{name:'Confirm chart edit'}).click();
+ await page.waitForFunction(()=>window.v4QA.orders[0].sl!=null);
+ await page.waitForFunction(()=>document.querySelectorAll('[data-v4-preview]').length===0);
+ assert.equal(await page.locator('[data-v4-badge="qa-account:pending:o1:sl"]').count(),1);
+ assert.equal(await page.locator('[data-v4-badge="qa-account:pending:o1:sl"]').evaluate(node=>getComputedStyle(node).backgroundColor),'rgb(9, 9, 11)');
+
+ // 12. Stop-Limit's trigger and limit boundary are not the same accepted price.
+ const trigger=page.locator('[data-v4-badge="qa-account:pending:o2:entry"]');
+ const boundary=page.locator('[data-v4-badge="qa-account:pending:o2:limitPrice"]');
+ await trigger.waitFor();
+ await boundary.waitFor();
+ assert.equal(await trigger.locator('[data-v4-pending-type]').innerText(),'STOP LIMIT');
+ assert.equal(await trigger.locator('[data-v4-pending-side]').innerText(),'SELL');
+ assert.equal(await page.evaluate(()=>window.v4QA.orders[1].entry),81600);
+ assert.equal(await page.evaluate(()=>window.v4QA.orders[1].limitPrice),81400);
+ assert.equal(await page.locator('[data-v4-accepted-line="qa-account:pending:o2:entry"]').count(),1);
+ assert.equal(await page.locator('[data-v4-accepted-line="qa-account:pending:o2:limitPrice"]').count(),1);
+
+ // 13. Dragging the execution bound changes only the limit, not the stop trigger.
+ const boundGrip=boundary.locator('[data-v4-drag-handle]');
+ const boundBox=await boundGrip.boundingBox();
+ await page.mouse.move(boundBox.x+boundBox.width/2,boundBox.y+boundBox.height/2);
+ await page.mouse.down();
+ await page.mouse.move(boundBox.x+boundBox.width/2,boundBox.y+boundBox.height/2+24,{steps:8});
+ await page.mouse.up();
+ assert.equal(await page.locator('[data-v4-pending-chart-actions]').count(),1);
+ assert.equal(await page.locator('[data-v4-draft-connector]').count(),1);
+ assert.equal(await page.locator('[data-v4-badge="qa-account:pending:o2:limitPrice"]').count(),0);
+ assert.equal(await page.locator('[data-v4-accepted-line="qa-account:pending:o2:limitPrice"]').count(),1);
+ assert.equal(await page.locator('[data-v4-secondary-preview]').count(),0);
+ assert.equal(await page.evaluate(()=>window.v4QA.orders[1].limitPrice),81400);
+ await page.getByRole('button',{name:'Confirm chart edit'}).click();
+ await page.waitForFunction(()=>window.v4QA.orders[1].limitPrice!==81400);
+ await page.waitForFunction(()=>document.querySelectorAll('[data-v4-preview]').length===0);
+ assert.equal(await page.evaluate(()=>window.v4QA.orders[1].entry),81600);
+ const limitOnlyPrice=await page.evaluate(()=>window.v4QA.orders[1].limitPrice);
+
+ // 14. Dragging stop trigger moves trigger and boundary in lockstep, but
+ // both accepted lines stay immutable until Confirm and both store levels ACK.
+ const stopGrip=trigger.locator('[data-v4-pending-grip]');
+ const stopBox=await stopGrip.boundingBox();
+ const acceptedStopY=await page.locator('[data-v4-accepted-line="qa-account:pending:o2:entry"]').evaluate(n=>n.style.top);
+ const acceptedBoundY=await page.locator('[data-v4-accepted-line="qa-account:pending:o2:limitPrice"]').evaluate(n=>n.style.top);
+ await page.mouse.move(stopBox.x+stopBox.width/2,stopBox.y+stopBox.height/2);
+ await page.mouse.down();
+ await page.mouse.move(stopBox.x+stopBox.width/2,stopBox.y+stopBox.height/2-36,{steps:8});
+ await page.mouse.up();
+ assert.equal(await page.locator('[data-v4-secondary-preview]').count(),1,
+  'Stop-Limit trigger drag must preview shifted execution boundary');
+ assert.equal(await page.locator('[data-v4-secondary-dotted-line]').count(),1);
+ assert.equal(await page.locator('[data-v4-pending-chart-actions]').count(),1);
+ assert.equal(await page.locator('[data-v4-accepted-line="qa-account:pending:o2:entry"]').evaluate(n=>n.style.top),acceptedStopY);
+ assert.equal(await page.locator('[data-v4-accepted-line="qa-account:pending:o2:limitPrice"]').evaluate(n=>n.style.top),acceptedBoundY);
+ assert.equal(await page.evaluate(()=>window.v4QA.orders[1].entry),81600);
+ assert.equal(await page.evaluate(()=>window.v4QA.orders[1].limitPrice),limitOnlyPrice);
+ await page.getByRole('button',{name:'Confirm chart edit'}).click();
+ await page.waitForFunction(()=>window.v4QA.orders[1].entry!==81600);
+ await page.waitForFunction(()=>document.querySelectorAll('[data-v4-preview]').length===0);
+ const stopResult=await page.evaluate(()=>window.v4QA.orders[1]);
+ assert.ok(Math.abs((stopResult.entry-81600)-(stopResult.limitPrice-limitOnlyPrice))<0.001,
+  'backend confirmation must preserve Stop-Limit trigger-to-limit separation');
+
+ // 15. Pending Stop-Limit +TP is a provisional black chip and Discard removes
+ // it completely without changing accepted financial state.
+ const stopTp=trigger.locator('button[aria-label="Add TP to SELL STOP LIMIT order"]');
+ await stopTp.click();
+ assert.equal(await page.locator('[data-v4-pending-chart-actions]').count(),1);
+ assert.equal(await page.locator('[data-v4-draft-shade]').count(),0);
+ assert.equal(await page.locator('[data-v4-draft-badge]').evaluate(n=>getComputedStyle(n).backgroundColor),'rgb(9, 9, 11)');
+ assert.equal(await page.evaluate(()=>window.v4QA.orders[1].tp),null);
+ await page.getByRole('button',{name:'Discard chart edit'}).click();
+ assert.equal(await page.locator('[data-v4-preview]').count(),0);
+ assert.equal(await page.evaluate(()=>window.v4QA.orders[1].tp),null);
+ assert.equal(await stopTp.count(),1);
+
+ // 16. New Limit/Stop-Limit planning remains in the existing execution workflow.
+ await page.getByRole('button',{name:'Start new limit plan'}).click();
+ assert.equal(await page.locator('[data-v4-pending-chart-actions]').count(),0);
+ assert.equal(await page.locator('[data-v4-chart-actions]').count(),0);
+ await page.getByRole('button',{name:'Finish planning'}).click();
  assert.deepEqual(errors,[],'no uncaught browser errors');
- console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks:38,commands:await page.evaluate(()=>window.v4QA.commands)}));
+ console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks:54,commands:await page.evaluate(()=>window.v4QA.commands)}));
 }catch(error){
  console.error('SIX_V4_REGRESSIONS_FAIL',error);
  process.exitCode=1;
