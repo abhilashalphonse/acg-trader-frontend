@@ -1,10 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronUp, GripVertical, ListFilter, Plus, Search, Settings2, Star, X } from 'lucide-react';
 import InstrumentAvatar from '../InstrumentAvatar.jsx';
-import { instrumentPipSize } from '../../../utils/instrumentFormatting.js';
+import { formatInstrumentPrice, instrumentPipSize } from '../../../utils/instrumentFormatting.js';
+import { isChartOrderAuditEnabled } from '../../../utils/chartOrderPresentation.js';
+import { selectV4Markets, v4MarketPricePresentation } from '../../../utils/v4MarketsDiscovery.js';
 import { marketCategoryId, marketVenue } from '../../../utils/marketClassification.js';
 import { commodityDisplaySymbol, commoditySearchTerms, commoditySubgroup, isCommodityInstrument } from '../../../utils/commodityPresentation.js';
 
+const V4_MARKETS_AUDIT = isChartOrderAuditEnabled(
+  import.meta.env.VITE_ACG_EXECUTION_V4_ENABLED,
+  typeof window !== 'undefined' ? window.location.search : '',
+);
 const PREFS_KEY = 'acg-trader-desktop-watchlist-v1';
 const RECENT_KEY = 'acg-trader-recent-markets-v1';
 const COLUMN_OPTIONS = [
@@ -208,7 +214,7 @@ export default function DesktopWatchlist({
   const [dragSymbol, setDragSymbol] = useState(null);
   const [category, setCategory] = useState('all');
   const [commodityView, setCommodityView] = useState('all');
-  const [marketView, setMarketView] = useState('all');
+  const [marketView, setMarketView] = useState(V4_MARKETS_AUDIT ? 'popular' : 'all');
   const [sort, setSort] = useState({ key: 'symbol', direction: 'asc' });
   const [recent, setRecent] = useState(loadRecent);
   const rowRefs = useRef(new Map());
@@ -238,6 +244,10 @@ export default function DesktopWatchlist({
   }, [availableMarkets]);
 
   const rows = useMemo(() => {
+    if (V4_MARKETS_AUDIT && mode === 'markets') return selectV4Markets({
+      markets: availableMarkets, category, commodityView, search,
+      view: marketView, recent, popularSymbols: POPULAR_SYMBOLS,
+    });
     const query = search.trim().toLowerCase();
     let base = mode === 'markets'
       ? availableMarkets
@@ -398,6 +408,115 @@ export default function DesktopWatchlist({
     selectInstrument(symbol);
     rowRefs.current.get(symbol)?.scrollIntoView?.({ block: 'nearest' });
   };
+
+
+  // V4 Markets discovery is opt-in only. The legacy Markets and Watchlist
+  // DOM/workflows below remain untouched for non-audit sessions.
+  if (V4_MARKETS_AUDIT && mode === 'markets') {
+    const categoryName=CATEGORY_OPTIONS.find(([id])=>id===category)?.[1]||'All';
+    const viewName=MARKET_VIEWS.find(([id])=>id===marketView)?.[1]||'All';
+    return (
+      <section data-v4-markets-panel aria-label="Markets discovery"
+        className="acg-v3-watchlist flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[#09090B]"
+        onKeyDown={onKeyDown}>
+        <header className="flex min-h-12 shrink-0 items-center justify-between border-b border-white/[0.07] px-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-[#F2F2F4]">Markets</h2>
+            <span className="rounded-md bg-[#202023] px-1.5 py-0.5 text-[10px] tabular-nums text-[#9B9BA3]">{availableMarkets.length}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button type="button" onClick={()=>onModeChange('watchlist')}
+              className="h-8 rounded-md px-2.5 text-[11px] font-medium text-[#BBC0CA] hover:bg-[#242427] hover:text-white">
+              Watchlist
+            </button>
+            <button type="button" onClick={onClose} title="Close markets panel" aria-label="Close markets panel"
+              className="grid size-8 place-items-center rounded-md text-[#9A9BA4] hover:bg-[#242427] hover:text-white">
+              <X size={15}/>
+            </button>
+          </div>
+        </header>
+        <div className="shrink-0 px-3 pb-2 pt-3">
+          <label className="flex h-9 items-center gap-2 rounded-lg border border-[#33343A] bg-[#17171A] px-2.5 text-[#888D98] focus-within:border-[#777A85]">
+            <Search size={15} className="shrink-0"/>
+            <input ref={searchRef} aria-label="Search markets" value={search}
+              onChange={event=>setSearch(event.target.value)} placeholder="Search instruments..."
+              className="w-full min-w-0 bg-transparent text-[11px] text-[#F2F2F4] outline-none placeholder:text-[#777C87]"/>
+            {search && <button type="button" aria-label="Clear market search" onClick={()=>setSearch('')} className="grid size-6 shrink-0 place-items-center rounded-md hover:bg-[#29292D]"><X size={13}/></button>}
+          </label>
+        </div>
+        <nav aria-label="Asset categories" className="flex shrink-0 gap-1 overflow-x-auto border-b border-white/[0.06] px-3 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {availableCategories.map(([id,label])=><button key={id} type="button" aria-pressed={category===id}
+            onClick={()=>{setCategory(id);setCommodityView('all');}}
+            className={`min-h-8 shrink-0 rounded-lg px-2.5 text-[10px] font-semibold transition-colors ${category===id?'bg-[#F2F2F4] text-[#161619]':'bg-[#1A1A1D] text-[#A2A3AD] hover:bg-[#29292E] hover:text-[#F2F2F4]'}`}>
+            {label}
+          </button>)}
+        </nav>
+        {category==='commodities'&&<div className="flex shrink-0 gap-1 border-b border-white/[0.06] px-3 py-1.5" aria-label="Commodity category">
+          {COMMODITY_VIEWS.map(([id,label])=><button key={id} type="button" aria-pressed={commodityView===id}
+            onClick={()=>setCommodityView(id)} className={`rounded-md px-2 py-1 text-[10px] ${commodityView===id?'bg-[#303036] font-semibold text-white':'text-[#92949E] hover:text-white'}`}>{label}</button>)}
+        </div>}
+        <div className="flex min-h-10 shrink-0 items-center justify-between gap-2 border-b border-white/[0.06] px-3">
+          <span className="min-w-0 truncate text-[10px] font-semibold text-[#ABADB6]">
+            {search.trim()?'Search results':marketView==='recent'?'Recently viewed':marketView==='movers'?'Top movers':marketView==='active'?'Most active':marketView==='popular'?'Popular '+(category==='all'?'markets':categoryName):categoryName}
+            <span className="ml-1.5 font-normal tabular-nums text-[#70737E]">{rows.length}</span>
+          </span>
+          <label className="flex shrink-0 items-center gap-1 text-[10px] text-[#8C9099]">
+            <span>Sort</span>
+            <select aria-label="Market sort" value={marketView} onChange={event=>setMarketView(event.target.value)}
+              className="max-w-24 cursor-pointer rounded-md border border-[#303036] bg-[#19191C] px-1.5 py-1 text-[10px] font-medium text-[#DADCE2] outline-none focus:border-[#777A85]">
+              {MARKET_VIEWS.map(([id,label])=><option key={id} value={id}>{id==='all'?'A–Z':label}</option>)}
+            </select>
+          </label>
+        </div>
+        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable] [scrollbar-width:thin]" tabIndex={0} aria-label="Market instruments">
+          {!rows.length&&<div className="grid min-h-32 place-items-center px-5 text-center text-[11px] text-[#888D98]">
+            {search?'No instruments match this search and category.':marketView==='recent'?'Recently viewed instruments appear here.':'No instruments in this category.'}
+          </div>}
+          {rows.map(item=>{
+            const selected=item.symbol===activeSymbol;
+            const isWatched=watchlists?.isWatched?.(item.symbol)===true;
+            const status=statusFor(item);
+            const forex=assetCategory(item)==='forex';
+            const presentation=v4MarketPricePresentation(item,forex);
+            return (
+              <div key={item.symbol} ref={node=>{if(node)rowRefs.current.set(item.symbol,node);else rowRefs.current.delete(item.symbol);}}
+                data-market-symbol={item.symbol} data-market-selected={selected?'true':'false'}
+                className={`flex min-h-[66px] items-stretch border-b border-white/[0.06] transition-colors ${selected?'border-l-2 border-l-[#E2E3E7] bg-[#232327]':'border-l-2 border-l-transparent hover:bg-[#18181B]'}`}>
+                <button type="button" onClick={()=>selectInstrument(item.symbol)} aria-label={`Open ${displaySymbol(item.symbol)} chart`}
+                  className="flex min-w-0 flex-1 items-center justify-between gap-2 py-2 pl-2.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#C6C8CF]">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <InstrumentAvatar instrument={item} size={26}/>
+                    <span className="min-w-0">
+                      <strong className="block truncate text-[11px] font-semibold tracking-[-0.01em] text-[#E9EAF0]">{commodityDisplaySymbol(item)||item.displaySymbol||displaySymbol(item.symbol)}</strong>
+                      <span className="mt-0.5 flex min-w-0 items-center gap-1 truncate text-[9px] text-[#898C96]">
+                        <span className={`inline-block size-1.5 shrink-0 rounded-full ${status.label==='LIVE'?'bg-[#42D7A1]':status.label==='STALE'?'bg-[#E7BD58]':status.label==='QUOTE UNAVAILABLE'?'bg-[#FF6F7A]':'bg-[#676D78]'}`}/>
+                        <span className="truncate">{status.label==='LIVE'?(item.name||categoryLabel(item)):status.label}</span>
+                      </span>
+                    </span>
+                  </span>
+                  {forex?<span className="flex shrink-0 flex-col items-end gap-0.5 text-right">
+                    <span className="flex gap-2 font-mono text-[10px] font-semibold tabular-nums text-[#D3D6DE]">
+                      <span><span className="mr-1 text-[9px] font-normal text-[#898C96]">B</span>{presentation.bid}</span>
+                      <span><span className="mr-1 text-[9px] font-normal text-[#898C96]">A</span>{presentation.ask}</span>
+                    </span>
+                    <small className="text-[9px] tabular-nums text-[#8B8E99]">Spread {presentation.spread}</small>
+                  </span>:<span className="flex shrink-0 flex-col items-end gap-0.5 text-right">
+                    <strong className="font-mono text-[11px] font-semibold tabular-nums text-[#E7E8EF]">{presentation.last}</strong>
+                    <span className={`font-mono text-[10px] tabular-nums ${presentation.changeValue==null?'text-[#8B8E99]':presentation.changeValue>=0?'text-[#42D7A1]':'text-[#FF6F7A]'}`}>{presentation.change}</span>
+                  </span>}
+                </button>
+                <button type="button" onClick={()=>toggleWatch(item)} aria-label={isWatched?`Remove ${item.symbol} from watchlist`:`Add ${item.symbol} to watchlist`}
+                  title={isWatched?'Remove from watchlist':'Add to watchlist'} aria-pressed={isWatched}
+                  className={`grid w-8 shrink-0 place-items-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#A8ABB5] ${isWatched?'text-[#E3E4E8]':'text-[#777B85] hover:text-[#E3E4E8]'}`}>
+                  <Star size={14} fill={isWatched?'currentColor':'none'}/>
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <div className="acg-v3-watchlist flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden" onKeyDown={onKeyDown}>
