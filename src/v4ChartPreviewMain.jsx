@@ -31,10 +31,10 @@ function App() {
     if(!payload) return;
     const delta=payload.confirmedPrice*0.004*(payload.levelId.endsWith(':sl')?1:-1);
     setEdit({levelId:payload.levelId,proposedPrice:Number((payload.confirmedPrice+delta).toFixed(1))});
-    setNotice('Edit is local. Click Save to update this synthetic preview.');
+    setNotice('Edit is local. Confirm or Discard directly on the chart.');
   };
   const save = draft => {
-    const [account,objectType,id,kind]=String(draft.levelId).split(':');
+    const [account,objectType,id,kind]=draft.levelId ? String(draft.levelId).split(':') : [draft.accountId,draft.objectType,draft.objectId,draft.kind];
     if(account!==DEMO_ACCOUNT)return;
     if(objectType==='pending' && kind==='entry') {
       setOrders(current=>current.map(o=>o.id===id?{...o,entry:Number(draft.proposedPrice)}:o));
@@ -56,8 +56,8 @@ function App() {
     const p=positions.find(x=>x.id===id);
     if(!p)return;
     const price=p.entry*(kind==='sl'?(p.side==='BUY'?0.98:1.02):(p.side==='BUY'?1.02:0.98));
-    setPositions(current=>current.map(x=>x.id===id?{...x,[kind]:Number(price.toFixed(1))}:x));
-    setNotice('Synthetic level added; backend flow still needs wiring.');
+    setEdit({accountId:DEMO_ACCOUNT,objectType:'position',objectId:id,kind,proposedPrice:Number(price.toFixed(1))});
+    setNotice('Draft protection. Confirm or Discard on the chart.');
   };
   const candles=Array.from({length:34},(_,i)=>{
     const open=83500+Math.sin(i*1.31)*550+Math.cos(i*0.57)*170;
@@ -104,13 +104,12 @@ function App() {
           <span className="text-[#aeb7c1]">Proposed price</span>
           <input type="number" step="0.1" className="w-[112px] rounded bg-[#252b31] px-2 py-1 text-white"
             value={edit.proposedPrice} onChange={e=>setEdit(x=>x?{...x,proposedPrice:e.target.value}:x)}/>
-          <button type="button" className="rounded bg-white px-2 py-1 text-black" onClick={()=>save(edit)}>Save</button>
-          <button type="button" className="rounded border border-[#56616c] px-2 py-1" onClick={()=>setEdit(null)}>Cancel</button>
+
         </div>}
       </div>
       <p className="max-w-3xl text-[11px] leading-relaxed text-[#a4afb8]">
         This page verifies isolated rendering, state separation and spacing only. Full badge fidelity,
-        actual pointer drag, backend Save/Cancel, real quote rail and authenticated staging tests are
+        actual pointer drag, backend Confirm/Discard, real quote rail and authenticated staging tests are
         required before connecting it to the live chart or updating your production V4 audit view.
       </p>
     </div>
