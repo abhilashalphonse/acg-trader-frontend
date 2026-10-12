@@ -1,3 +1,9 @@
+// Owner audit is never enabled by a query parameter alone. Both the
+// production build switch and explicit URL opt-in must be present.
+export function isChartOrderAuditEnabled(buildFlag, search = '') {
+  return buildFlag === 'true' && new URLSearchParams(search).get('acg_v4_audit') === '1';
+}
+
 // Presentation-only contracts for in-chart order levels. Trading decisions stay on the server.
 export function chartLineStyle({ draft = false, preview = false } = {}) {
   return draft || preview ? 'dotted' : 'solid';
