@@ -52,7 +52,7 @@ test('Favorites sections are grouped by market with asset-specific price columns
  const all=[...items,
    {symbol:'XAUUSD',assetClass:'METAL',name:'Gold',bid:2601,ask:2601.2},
    {symbol:'NIFTY',assetClass:'INDEX',timezone:'Asia/Kolkata',name:'NIFTY 50'},
-   {symbol:'UNKNOWN',assetClass:'OTHER',name:'Unknown'},
+   {symbol:'UNKNOWN',assetClass:'MYSTERY',name:'Unknown'},
  ];
  const selection=selectV4Markets({markets:all,category:'favorites',watched:['EURUSD','XAUUSD','AAPL','BTCUSD','NIFTY','UNKNOWN'],view:'all'});
  const sections=buildV4MarketSections(selection,{category:'favorites'});

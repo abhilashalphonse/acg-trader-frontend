@@ -22,10 +22,15 @@ const V4_MARKET_GROUPS = [
   ['crypto','Crypto'],['indices','Indices'],['other','Other'],
 ];
 export function v4MarketGroupForInstrument(item){
-  if(isCommodityInstrument(item))return 'commodities';
+  // Indian market classification describes venue, not the financial product.
+  // Group all countries' indices as Indices, equity as Stocks, FX as Forex.
   if(isEquity(item))return 'stocks';
-  const kind=category(item);
-  return ['forex','crypto','indices'].includes(kind)?kind:'other';
+  const asset=String(item?.assetClass||'').toUpperCase();
+  if(['INDEX','INDICES'].includes(asset))return 'indices';
+  if(['FOREX','FX'].includes(asset))return 'forex';
+  if(asset==='CRYPTO')return 'crypto';
+  if(isCommodityInstrument(item))return 'commodities';
+  return 'other';
 }
 export function buildV4MarketSections(rows,{category:selected='forex',search=''}={}){
   const grouped=selected==='favorites'||Boolean(search.trim());
