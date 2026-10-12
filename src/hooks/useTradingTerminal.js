@@ -10,6 +10,7 @@ import {
   pendingPriceDirection,
 } from '../utils/tradingCommandNormalization.js';
 import { executeWithOrderReconciliation } from '../utils/executionReconciliation.js';
+import { pendingProtectionPatchValue } from '../utils/pendingOrderChartMove.js';
 import { resolveActiveAccountId, resolveCommandAccountId, resolveLifecycleReplacement } from '../utils/accountLifecycleRouting.js';
 import {
   calculateLocalPositionValuation,
@@ -606,8 +607,8 @@ export function useTradingTerminal(markets = []) {
       volume: String(normalizeVolumeToStep(replacement.volume ?? replacement.lots ?? existing.volume, instrument)),
       limitPrice: normalizedType === 'LIMIT' ? entry : normalizedType === 'STOP_LIMIT' ? limit : undefined,
       stopPrice: normalizedType === 'STOP' || normalizedType === 'STOP_LIMIT' ? entry : undefined,
-      stopLoss: normalizeProtectionPrice(replacement.stopLoss ?? replacement.sl, instrument, normalizedSide, 'sl'),
-      takeProfit: normalizeProtectionPrice(replacement.takeProfit ?? replacement.tp, instrument, normalizedSide, 'tp'),
+      stopLoss: normalizeProtectionPrice(pendingProtectionPatchValue(replacement, 'stopLoss', 'sl'), instrument, normalizedSide, 'sl'),
+      takeProfit: normalizeProtectionPrice(pendingProtectionPatchValue(replacement, 'takeProfit', 'tp'), instrument, normalizedSide, 'tp'),
       riskBudget: replacement.riskBudget === undefined ? undefined : replacement.riskBudget,
       timeInForce: tif,
       expiresAt: tif === 'SPECIFIED'
