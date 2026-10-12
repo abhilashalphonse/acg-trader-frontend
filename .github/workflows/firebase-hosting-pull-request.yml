@@ -41,7 +41,9 @@ jobs:
           echo 'Staging Trader live and readiness checks returned HTTP success.'
 
       - name: Verify STAGING CORS allows the V4 Firebase preview
-        if: ${{ (github.event.pull_request.number == 90 || github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels') }}
+        # The original known origin only belongs to PR #90.
+        # The chart-order preview origin is checked after Firebase supplies its URL.
+        if: ${{ github.event.pull_request.number == 90 }}
         run: |
           set -euo pipefail
           origin='https://acg-trader--pr-90-ois6tr16.web.app'
@@ -72,7 +74,7 @@ jobs:
           # Vite includes the baked API/WS targets in the client bundle.
           grep -qrF 'discerning-presence-staging.up.railway.app' dist/assets
           grep -qrF 'ACG Trader V4 live execution ticket' dist/assets
-          echo 'V4 PR #90 built against staged Trader API only; no production deploy.'
+          echo 'Isolated V4 preview built against STAGING Trader API; no production deployment.'
 
       - name: Deploy preview channel
         uses: FirebaseExtended/action-hosting-deploy@v0
