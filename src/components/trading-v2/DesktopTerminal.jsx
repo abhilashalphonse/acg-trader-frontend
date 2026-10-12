@@ -396,6 +396,14 @@ export default function DesktopTerminal({
   const [objectManagerOpen, setObjectManagerOpen] = useState(false);
   const [multiChart, setMultiChart] = useState(() => loadMultiChart(activeSymbol, timeframe, indicators));
   const selectedPosition = positions.find(position => String(position?.id) === String(selectedPositionId)) || null;
+  const lastManagedAccountId = useRef(activeAccountId);
+  useEffect(() => {
+    if (lastManagedAccountId.current === activeAccountId) return;
+    lastManagedAccountId.current = activeAccountId;
+    setSelectedPositionId(null);
+    setPositionEditRequest(null);
+    onCancelPositionProtection();
+  }, [activeAccountId]);
   const groupedAccounts = accountGroups(accounts);
 
   useEffect(() => {
@@ -419,6 +427,13 @@ export default function DesktopTerminal({
     }
     const position = positions.find(item => String(item?.id) === String(id));
     if (!position) return;
+    if (positionProtectionDraft && String(positionProtectionDraft.positionId) !== String(position.id)) {
+      if (positionProtectionSaving) {
+        setNotice('Wait for the current protection update before selecting another position.');
+        return;
+      }
+      onCancelPositionProtection();
+    }
     setSelectedPositionId(position.id);
     setPositionEditRequest(null);
     // Chart and dock selection reveal the same Trade sidebar; a new position
