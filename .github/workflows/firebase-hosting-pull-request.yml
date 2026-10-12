@@ -137,3 +137,46 @@ jobs:
         run: npm install --no-save --no-audit --no-fund playwright@1.56.1
       - name: Verify deployed ACG Trader startup without credentials
         run: node tests/ui/live-startup-diagnostic.mjs
+
+  # One-shot incident recovery: deploy the exact stable main source with
+  # canonical production API and WSS URLs. Never use the misconfigured secret.
+  restore-correct-production-config:
+    if: ${{ github.event.pull_request.number == 107 && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout stable main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build canonical production configuration
+        run: npm run build
+        env:
+          VITE_ACG_TRADER_API_BASE: https://acg-trader-backend-production.up.railway.app
+          VITE_ACG_TRADER_WS_URL: wss://acg-trader-backend-production.up.railway.app/v1/ws
+          VITE_ACG_TRADER_HTTP_TIMEOUT_MS: 10000
+          VITE_ACG_EXECUTION_V4_ENABLED: 'true'
+          VITE_ACG_FUNDED_SUPPORT_BASE_URL: ${{ secrets.VITE_ACG_FUNDED_SUPPORT_BASE_URL }}
+          VITE_GIT_SHA: ${{ github.event.pull_request.base.sha }}
+      - name: Assert production socket protocol
+        run: |
+          set -euo pipefail
+          grep -qrF 'wss://acg-trader-backend-production.up.railway.app/v1/ws' dist/assets
+          if grep -qrF 'Invalid VITE_ACG_TRADER_WS_URL: https://' dist/assets; then
+            echo '::error::Invalid HTTPS WebSocket URL detected'
+            exit 1
+          fi
+          echo 'Canonical production WSS endpoint embedded in frontend.'
+      - name: Restore Firebase live with corrected socket
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ACG_TRADER }}
+          projectId: acg-trader
+          channelId: live
