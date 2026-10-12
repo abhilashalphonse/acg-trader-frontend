@@ -55,6 +55,10 @@ export default function DesktopMultiChart({
   onCancelPositionProtection = () => {},
   selectedPositionId = null,
   onSelectPosition = () => {},
+  onSelectPending = () => {},
+  pendingOrderDraft = null,
+  onPendingOrderDraftChange = () => {},
+  onCancelPendingOrderDraft = () => {},
   onClosePosition = () => {},
 }) {
   const layout = [1,2,4].includes(Number(config?.layout)) ? Number(config.layout) : 1;
@@ -168,6 +172,10 @@ export default function DesktopMultiChart({
                   onRequestPositionProtection={isActive ? onRequestPositionProtection : null}
                   selectedPositionId={selectedPositionId}
                   onSelectPosition={onSelectPosition}
+                  onSelectPending={onSelectPending}
+                  pendingOrderDraft={isActive ? pendingOrderDraft : null}
+                  onPendingOrderDraftChange={isActive ? onPendingOrderDraftChange : () => {}}
+                  onCancelPendingOrderDraft={isActive ? onCancelPendingOrderDraft : () => {}}
                   onClosePosition={onClosePosition}
                   indicators={cellIndicators}
                   onToggleIndicator={instanceId => {
