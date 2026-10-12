@@ -176,7 +176,7 @@ export function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi
 
         return (
           <div key={position.id || `${side}-${entry}-${lots}`} className="absolute left-0 right-0" style={{ top: y }}>
-            <div className="relative border-t" style={{ borderColor: lineColor }}>
+            <div className="relative border-t transition-[box-shadow] duration-150" style={{ borderColor: lineColor, boxShadow: desktopStyle && groupActive ? `0 0 8px ${lineColor}90` : undefined }}>
               {desktopStyle ? (
               <ChartLevelBadge
                 label={`${side} ${formatPositionLots(lots)}`}
@@ -1192,7 +1192,7 @@ export function OpenPositionProtectionOverlay({ symbol, positions = [], coordina
 
       return (
         <div key={key} className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: y }}>
-          <div className="relative h-px" style={{ backgroundColor: color }}>
+          <div className="relative h-px transition-[box-shadow] duration-150" style={{ backgroundColor: color, boxShadow: groupActive ? `0 0 8px ${color}90` : undefined }}>
             {desktopStyle ? (
             <ChartLevelBadge
               label={kind === 'sl' ? 'Stop loss' : 'Take profit'}
