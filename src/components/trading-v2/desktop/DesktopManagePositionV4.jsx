@@ -3,7 +3,8 @@ import { ArrowLeft, ChevronDown, ChevronUp, X } from 'lucide-react';
 import InstrumentAvatar from '../InstrumentAvatar.jsx';
 import './DesktopManagePositionV4.css';
 import { formatInstrumentPrice } from '../../../utils/instrumentFormatting.js';
-import { estimatePositionPnlAtPrice } from '../../../utils/tradingRisk.js';
+import { estimatePositionPnlAtPrice, estimateRequiredMargin } from '../../../utils/tradingRisk.js';
+import { positionCloseAvailability } from '../../../utils/marketExecutionAvailability.js';
 import { validateOpenPositionProtection } from '../../../utils/openPositionPresentation.js';
 import { ProtectionCard } from './DesktopOrderTicketV4.jsx';
 
@@ -21,7 +22,9 @@ export default function DesktopManagePositionV4({
   position, instrument, account = {}, protectionDraft, protectionSaving=false,
   onBeginProtection=()=>false, onProtectionDraftChange=()=>{},
   onApplyProtection=async()=>false, onCancelProtection=()=>{},
-  onUpdateProtection=async()=>false, onDismiss=()=>{},
+  onUpdateProtection=async()=>false, onClosePosition=async()=>false,
+  onBreakEven=async()=>false, onSetTrailing=async()=>false,
+  onDismiss=()=>{},
   onNotice=()=>{}, readOnly=false,
 }) {
   const [slUnit,setSlUnit]=useState('price');
@@ -30,6 +33,9 @@ export default function DesktopManagePositionV4({
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
   const [pendingRemoval,setPendingRemoval]=useState(null);
+  const [closeRequest,setCloseRequest]=useState(null);
+  const [trailOpen,setTrailOpen]=useState(false);
+  const [actionBusy,setActionBusy]=useState(false);
   const match=Boolean(protectionDraft &&
     String(protectionDraft.positionId)===String(position?.id) &&
     String(protectionDraft.symbol).toUpperCase()===String(position?.symbol).toUpperCase());
@@ -56,8 +62,15 @@ export default function DesktopManagePositionV4({
   const tpPnl=tp==null?null:estimatePositionPnlAtPrice({...position,entry},tp,instrument);
   const rr=Number.isFinite(slPnl)&&slPnl<0&&Number.isFinite(tpPnl)&&tpPnl>0
     ? Math.abs(tpPnl/slPnl):null;
-  const working=busy||protectionSaving;
-  useEffect(()=>{setBusy(false);setError('');setPendingRemoval(null);},[position?.id]);
+  const closeAvailability=positionCloseAvailability(instrument);
+  const canClose=!readOnly&&closeAvailability.allowed;
+  const marginAccepted=valid(position?.usedMargin??position?.marginUsed??position?.margin);
+  const marginEstimate=marginAccepted==null?estimateRequiredMargin(entry,volume,instrument,account):null;
+  const displayedMargin=marginAccepted??(Number.isFinite(marginEstimate)?marginEstimate:null);
+  const marginLabel=marginAccepted!=null?'Margin used':'Estimated margin';
+  const canBreakEven=entry!=null&&Number.isFinite(price)&&(side==='BUY'?price>entry:price<entry);
+  const working=busy||protectionSaving||actionBusy;
+  useEffect(()=>{setBusy(false);setActionBusy(false);setError('');setPendingRemoval(null);setCloseRequest(null);setTrailOpen(false);},[position?.id]);
   const start=field=>{
     if(readOnly||working)return false;
     setError('');
@@ -100,6 +113,25 @@ export default function DesktopManagePositionV4({
   };
   const discard=()=>{if(working)return;onCancelProtection();setError('');};
   const leave=()=>{if(working)return;discard();onDismiss();};
+  const act=async(fn,message)=>{
+    if(working||readOnly)return;
+    setActionBusy(true);setError('');
+    try {
+      const ok=await fn();
+      if(ok===false) setError(message||'Action was not accepted.');
+    } catch(e){setError(e?.message||message||'Action failed.');}
+    finally{setActionBusy(false);}
+  };
+  const close=percent=>{
+    if(!canClose){setError(closeAvailability.reason||'Position close is not available.');return;}
+    setCloseRequest(percent);
+  };
+  const confirmClose=async()=>{
+    const percent=closeRequest;
+    if(percent==null||!canClose||working)return;
+    await act(async()=>onClosePosition(position.id,percent),'Position close was not accepted.');
+    setCloseRequest(null);
+  };
   return <section className="v4-ticket v4-live-scope v4-manage-position"
     aria-label="Manage open position" data-v4-manage-position={positionId}>
     <div className="v4-ticket-body">
@@ -180,20 +212,41 @@ export default function DesktopManagePositionV4({
           onPrice={value=>setPrice('tp',value)} onNotice={onNotice}/>
         <div className="v4-ratio-slab">
           <div><span>Risk / Reward</span><strong>{rr!=null?'1:'+number(rr):'—'}</strong></div>
-          <div><span>Position volume</span><strong>{volume?number(volume,4)+' lots':'—'}</strong></div>
+          <div><span>{marginLabel}</span><strong>{displayedMargin!=null?number(displayedMargin)+' '+(account?.currency||'USD'):'—'}</strong></div>
         </div>
       </div>
 
       <div className="v4-block">
         <button type="button" className="v4-disclosure" aria-expanded={advanced}
           onClick={()=>setAdvanced(open=>!open)}>
-          ADVANCED {advanced?<ChevronUp size={15}/>:<ChevronDown size={15}/>}
+          POSITION ACTIONS {advanced?<ChevronUp size={15}/>:<ChevronDown size={15}/>}
         </button>
-        {advanced&&<div className="v4-advanced-content" data-v4-manage-advanced>
-          <div><span>Position ID</span><strong title={positionId}>{positionId||'—'}</strong></div>
-          {openedDate&&<div><span>Opened</span><strong>{openedDate}</strong></div>}
-          <div><span>Entry price</span><strong>{formatInstrumentPrice(entry,instrument)}</strong></div>
-          <div><span>Current price</span><strong>{formatInstrumentPrice(price,instrument)}</strong></div>
+        {advanced&&<div data-v4-manage-advanced className="v4-manage-actions">
+          <button type="button" disabled={readOnly||working||!canBreakEven||Boolean(match)}
+            title={!canBreakEven?'Break-even requires a favorable price move.':'Set stop loss to entry'}
+            onClick={()=>act(()=>onBreakEven(position.id),'Could not move stop loss to break-even.')}>
+            Break-even
+          </button>
+          <button type="button" disabled={readOnly||working||Boolean(match)}
+            onClick={()=>setTrailOpen(open=>!open)}>
+            {position.trailingEnabled?'Trailing stop · '+(position.trailingPips||5)+' pips':'Trailing SL'}
+          </button>
+          <button type="button" disabled={!canClose||working||Boolean(match)} onClick={()=>close(50)}>
+            Partial close
+          </button>
+          {trailOpen&&<div className="v4-manage-action-options" data-v4-trailing-options>
+            {[5,10,20].map(pips=><button type="button" key={pips} disabled={readOnly||working}
+              onClick={()=>{setTrailOpen(false);act(()=>onSetTrailing(position.id,true,pips),'Trailing stop was not accepted.');}}>
+              {pips} pips</button>)}
+            {position.trailingEnabled&&<button type="button" disabled={readOnly||working}
+              onClick={()=>{setTrailOpen(false);act(()=>onSetTrailing(position.id,false,position.trailingPips||5),'Could not disable trailing stop.');}}>
+              Disable</button>}
+          </div>}
+          <div className="v4-manage-action-options" data-v4-partial-close-options>
+            {[25,50,75].map(percent=><button type="button" key={percent}
+              disabled={!canClose||working||Boolean(match)} onClick={()=>close(percent)}>
+              Close {percent}%</button>)}
+          </div>
         </div>}
       </div>
       {pendingRemoval&&<div className="v4-notice" role="status">Removing {pendingRemoval.toUpperCase()}…</div>}
@@ -207,7 +260,7 @@ export default function DesktopManagePositionV4({
       <div className="v4-margin-summary v4-manage-footer-summary">
         <div><span>Floating P&amp;L</span><strong className={Number(pnl)>=0?'v4-manage-long':'v4-manage-short'}>
           {signed(pnl,currency)}</strong></div>
-        <div><span>Position volume</span><strong>{volume?number(volume,4)+' lots':'—'}</strong></div>
+        <div><span>{marginLabel}</span><strong>{displayedMargin!=null?number(displayedMargin)+' '+(account?.currency||'USD'):'—'}</strong></div>
       </div>
       <div className="v4-trade-actions v4-manage-trade-actions">
         {match ? <>
@@ -219,9 +272,18 @@ export default function DesktopManagePositionV4({
             onClick={confirm} disabled={working||readOnly} aria-label="Confirm position protection">
             {working?'Confirming…':'Confirm'}
           </button>
-        </> : <button type="button" className="v4-manage-new-order"
-          onClick={leave} disabled={working}>New Order</button>}
+        </> : <button type="button" className="v4-manage-close"
+          onClick={()=>close(100)} disabled={working||!canClose}
+          title={!canClose?closeAvailability.reason:'Close selected position'}>
+          Close Position
+        </button>}
       </div>
+      {closeRequest!=null&&<div role="dialog" aria-label="Confirm position close"
+        className="v4-manage-close-dialog">
+        <span>{closeRequest===100?'Close the full position?':'Close '+closeRequest+'% of this position?'}</span>
+        <div><button type="button" disabled={working} onClick={()=>setCloseRequest(null)}>Keep Position</button>
+          <button type="button" disabled={working} onClick={confirmClose}>Confirm Close</button></div>
+      </div>}
     </div>
   </section>;
 }
