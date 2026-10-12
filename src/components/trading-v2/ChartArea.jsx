@@ -768,6 +768,26 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
     const top = yFor(field);
     if (top == null) return null;
 
+    // Stop-limit has two independent chart handles. The limit boundary is
+    // a compact secondary level, not the oversized generic price tool.
+    if (kind === 'limit' && !mobileStyle && showEntry && plan.pending) {
+      const formatted = formatInstrumentPrice(sourcePrice(field), instrument);
+      return <div className="pointer-events-none absolute left-0 right-0 z-30" style={{ top }}>
+        <div className="relative border-t border-dotted border-[#b58cff]/90">
+          <ChartLevelBadge label="Limit" price={formatted} color="#b58cff"
+            tooltip="Execution boundary. Buy: maximum fill price; Sell: minimum fill price."
+            onPointerDown={event => {
+              event.preventDefault(); event.stopPropagation();
+              setDragging('limit'); onChange({ stage: 'dragging-limit' });
+            }} />
+          <span className="absolute right-[56px] top-1/2 -translate-y-1/2 rounded border border-[#b58cff]/80 bg-[#21182e] px-1.5 py-0.5 font-mono text-[9px] font-semibold text-[#d6baff] lg:right-2">{formatted}</span>
+          <button type="button" aria-label="Drag stop-limit execution price"
+            onPointerDown={event => { event.preventDefault(); event.stopPropagation(); setDragging('limit'); onChange({ stage: 'dragging-limit' }); }}
+            className="pointer-events-auto absolute left-[235px] right-[56px] top-1/2 h-8 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent" />
+        </div>
+      </div>;
+    }
+
     if (positionProtectionMode) {
       if (activeProtectionField && kind !== activeProtectionField) return null;
       const projected = kind === 'sl'
@@ -945,86 +965,33 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
   };
 
   const desktopPendingEntry = desktopPendingStyle && entryY != null ? (
-    <div className="absolute left-0 right-0 z-30" style={{ top: entryY }}>
-      <div className="relative border-t border-dotted border-[#3b78d8]/90">
-        <div className="pointer-events-auto absolute left-3 top-1/2 z-10 flex h-7 -translate-y-1/2 items-stretch overflow-hidden rounded-[5px] border border-dotted border-[#3b78d8]/80 bg-[#09090b]/96 font-mono text-[9px] font-medium tabular-nums shadow-[0_4px_14px_rgba(0,0,0,.28)]">
-          {/* TP and SL are independent entry shortcuts only when absent.
-              Activating either creates its own line, so its shortcut
-              disappears here until that line is removed. */}
-          {liveTp == null && (
-            <button
-              type="button"
-              onPointerDown={event => event.stopPropagation()}
-              onClick={event => {
-                event.preventDefault();
-                event.stopPropagation();
-                requestDesktopProtection('tp');
-              }}
-              className="min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[#23876b] transition hover:text-[#35d79d]"
-              aria-label="Add TP"
-              title="Add TP"
-            >
-              TP
-            </button>
-          )}
-          {liveSl == null && (
-            <button
-              type="button"
-              onPointerDown={event => event.stopPropagation()}
-              onClick={event => {
-                event.preventDefault();
-                event.stopPropagation();
-                requestDesktopProtection('sl');
-              }}
-              className="min-w-[34px] border-r border-dotted border-[#3b78d8]/55 px-2 text-[#b64f59] transition hover:text-[#e36a74]"
-              aria-label="Add SL"
-              title="Add SL"
-            >
-              SL
-            </button>
-          )}
-          <span
-            onPointerDown={event => { if (plan.pending) beginProjectedDrag(event, 'entry'); }}
-            className={`flex min-w-[46px] items-center justify-center border-r border-dotted border-[#3b78d8]/55 px-2 text-[#d9e1e8] ${plan.pending ? 'cursor-ns-resize' : ''}`}
-            title={plan.pending ? 'Drag pending entry price' : 'Draft volume, not submitted'}
-          >
-            {Number.isFinite(displayLots) ? displayLots.toFixed(Math.max(2, Number(instrument?.volumeStep) < 0.01 ? 3 : 2)) : '—'}
-          </span>
-          <span
-            onPointerDown={event => { if (plan.pending) beginProjectedDrag(event, 'entry'); }}
-            className={`flex min-w-[84px] items-center justify-center border-r border-dotted border-[#3b78d8]/55 px-2 ${plan.pending ? 'cursor-ns-resize' : ''} ${isBuy ? 'text-[#35d79d]' : 'text-[#d45a64]'}`}
-            title={plan.pending ? 'Drag pending entry price' : 'Unsubmitted draft'}
-          >
-            {entryLabel}
-          </span>
-          <button
-            type="button"
-            onPointerDown={event => {
-              event.preventDefault();
-              event.stopPropagation();
-            }}
-            onClick={event => {
-              event.preventDefault();
-              event.stopPropagation();
-              onCancel();
-            }}
-            className="grid w-8 place-items-center text-[13px] text-[#8995a0] transition hover:bg-white/[0.04] hover:text-white"
-            aria-label={plan?.editingOrderId ? 'Cancel pending order' : 'Cancel draft'}
-            title={plan?.editingOrderId ? 'Cancel pending order' : 'Cancel draft'}
-          >
-            ×
-          </button>
-        </div>
-        <span className="absolute right-[56px] top-1/2 z-10 -translate-y-1/2 rounded-[4px] border border-dotted border-[#3b78d8]/80 bg-[#113f86]/95 px-1.5 py-0.5 font-mono text-[9px] font-semibold tabular-nums text-white lg:right-2">
+    <div className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: entryY }}>
+      <div className="relative border-t border-dotted" style={{ borderColor: plan.pending && ['stop', 'stop-limit'].includes(plan.orderType) ? '#d7a455' : '#b8c4ce' }}>
+        {(liveSl == null || liveTp == null) && (
+          <div className="pointer-events-auto absolute left-3 top-1/2 z-20 flex h-7 -translate-y-1/2 items-center gap-1">
+            {liveTp == null && <button type="button" aria-label="Add TP" title="Add Take profit"
+              onClick={event => { event.preventDefault(); event.stopPropagation(); requestDesktopProtection('tp'); }}
+              className="h-6 rounded border border-[#24735d]/70 bg-[#0a1714] px-2 text-[9px] font-semibold text-[#35d79d]">TP +</button>}
+            {liveSl == null && <button type="button" aria-label="Add SL" title="Add Stop loss"
+              onClick={event => { event.preventDefault(); event.stopPropagation(); requestDesktopProtection('sl'); }}
+              className="h-6 rounded border border-[#863b49]/70 bg-[#1a0c10] px-2 text-[9px] font-semibold text-[#ff5968]">SL +</button>}
+          </div>
+        )}
+        <ChartLevelBadge
+          label={entryLabel}
+          price={formatInstrumentPrice(sourcePrice('entry'), instrument)}
+          amount={Number.isFinite(displayLots) ? `${lotCompact} lots` : null}
+          color={plan.pending && ['stop', 'stop-limit'].includes(plan.orderType) ? '#d7a455' : '#b8c4ce'}
+          tooltip={plan.orderType === 'stop-limit' ? 'Stop trigger. Limit is a separate execution-price boundary.' : 'Draft order. Drag pending entry to change the requested price.'}
+          onPointerDown={plan.pending ? event => beginProjectedDrag(event, 'entry') : undefined}
+          onRemove={onCancel}
+          removeLabel={plan?.editingOrderId ? 'Cancel pending order' : 'Cancel draft'}
+        />
+        <span className="absolute right-[56px] top-1/2 z-10 -translate-y-1/2 rounded-[4px] border bg-[#171d23] px-1.5 py-0.5 font-mono text-[9px] font-semibold lg:right-2" style={{ borderColor: plan.pending && ['stop', 'stop-limit'].includes(plan.orderType) ? '#d7a455' : '#b8c4ce', color: plan.pending && ['stop', 'stop-limit'].includes(plan.orderType) ? '#e6b76a' : '#d4e0ec' }}>
           {formatInstrumentPrice(sourcePrice('entry'), instrument)}
         </span>
-        <button
-          type="button"
-          aria-label={plan.pending ? 'Drag pending entry' : 'Draft entry price'}
-          disabled={!plan.pending}
-          onPointerDown={event => { if (plan.pending) beginProjectedDrag(event, 'entry'); }}
-          className={`pointer-events-auto absolute left-[235px] right-[56px] top-1/2 z-0 h-8 -translate-y-1/2 touch-none bg-transparent lg:right-2 ${plan.pending ? 'cursor-ns-resize' : 'cursor-default'}`}
-        />
+        {plan.pending && <button type="button" aria-label="Drag pending entry" onPointerDown={event => beginProjectedDrag(event, 'entry')}
+          className="pointer-events-auto absolute left-[235px] right-[56px] top-1/2 z-0 h-7 -translate-y-1/2 cursor-ns-resize touch-none bg-transparent" />}
       </div>
     </div>
   ) : null;
