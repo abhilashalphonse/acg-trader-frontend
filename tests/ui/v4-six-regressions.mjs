@@ -25,21 +25,23 @@ try{
  const positionRightEdgeBefore=positionRightBefore.x+positionRightBefore.width;
  assert.equal(await page.locator('button[aria-label="Add TP to BUY position"]').count(),1,
   'original inline market TP action must remain available');
- await pendingTp.getByRole('button',{name:'Edit TP'}).click();
+ await pendingTp.locator('[data-v4-drag-handle]').click();
  // 1. Exactly one accepted entry badge while TP edit exists.
  assert.equal(await entry.count(),1,'pending accepted entry must never duplicate');
  assert.equal(await page.locator('[data-v4-preview]').count(),1,'one preview only');
  const draftBadge=page.locator('[data-v4-draft-badge]');
- const inlineActions=draftBadge.locator('[data-v4-chart-actions]');
- assert.equal(await inlineActions.count(),1,'Confirm and Discard belong to the active draft badge');
- const badgeBounds=await draftBadge.boundingBox(), actionBounds=await inlineActions.boundingBox();
- assert.ok(actionBounds.x>=badgeBounds.x &&
-   actionBounds.x+actionBounds.width<=badgeBounds.x+badgeBounds.width+2,
-  'draft actions must be inside their active level, not floating at the position entry');
+ const inlineActions=page.locator('[data-v4-pending-chart-actions]');
+ assert.equal(await inlineActions.count(),1,'Pending order Confirm and Discard must attach to accepted entry');
+ const entryBounds=await entry.boundingBox(), actionBounds=await inlineActions.boundingBox();
+ assert.ok(actionBounds.x+actionBounds.width<=entryBounds.x+1,
+  'pending draft actions must be OUTSIDE to the left of its accepted entry badge');
+ assert.equal(await draftBadge.locator('[data-v4-chart-actions]').count(),0,
+  'pending draft itself must not contain extra Confirm/Discard');
  assert.equal(await page.locator('[data-v4-draft-connector]').count(),1,'draft TP connector');
  // 2. Pending order accepted solid badge & line remain while editing.
  assert.equal(await page.locator('[data-v4-accepted-line="qa-account:pending:o1:entry"]').count(),1);
- assert.equal(await page.locator('[data-v4-badge="qa-account:pending:o1:tp"]').count(),1);
+ assert.equal(await page.locator('[data-v4-badge="qa-account:pending:o1:tp"]').count(),0);
+ assert.equal(await page.locator('[data-v4-accepted-line="qa-account:pending:o1:tp"]').count(),1);
  // 3. No amendment on Discard, including shade cleanup.
  await page.getByRole('button',{name:'Discard chart edit'}).click();
  assert.equal(await page.locator('[data-v4-preview]').count(),0);
