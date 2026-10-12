@@ -1409,6 +1409,9 @@ export default function ChartArea({
   selectedPositionId = null,
   onSelectPosition = () => {},
   onSelectPending = () => {},
+  pendingOrderDraft = null,
+  onPendingOrderDraftChange = () => {},
+  onCancelPendingOrderDraft = () => {},
   onClosePosition = () => {},
   historicalPosition = null,
   onClearHistoricalPosition = () => {},
@@ -1765,6 +1768,9 @@ export default function ChartArea({
           positions={positions} pendingOrders={pendingOrders}
           coordinateApi={coordinateApi} height={v4ChartHeight}
           positionProtectionDraft={positionProtectionDraft}
+          pendingOrderDraft={pendingOrderDraft}
+          onPendingOrderDraftChange={onPendingOrderDraftChange}
+          onCancelPendingOrderDraft={onCancelPendingOrderDraft}
           onUpdatePosition={onUpdatePosition}
           onRemovePositionProtection={onRemovePositionProtection}
           onMovePending={onMovePending}
