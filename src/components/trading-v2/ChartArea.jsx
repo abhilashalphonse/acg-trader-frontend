@@ -66,12 +66,12 @@ function formatPositionLots(value) {
 // Visual status changes the line style; we intentionally do not add "planned" wording.
 // Reserve 148px at the chart's right edge for the price scale plus
 // live BID/ASK titles. The separate price markers retain their exact line.
-function ChartLevelBadge({ label, price, amount = null, percent = null, color = '#aab8c5', onPointerDown, onClick, onRemove, removeLabel = 'Remove level', tooltip = null, prefix = null, groupActive = false, onGroupEnter, onGroupLeave }) {
+function ChartLevelBadge({ label, price, amount = null, percent = null, color = '#aab8c5', onPointerDown, onClick, onRemove, removeLabel = 'Remove level', tooltip = null, prefix = null, groupActive = false, onGroupEnter, onGroupLeave, entryActions = null }) {
   const isInteractive = Boolean(onPointerDown || onClick);
-  return (
+  const badge = (
     <div
       data-v4-chart-badge
-      className={`pointer-events-auto absolute right-[148px] top-1/2 z-20 flex h-7 max-w-[calc(100%-162px)] -translate-y-1/2 items-center ${onRemove ? 'gap-1 pl-1 pr-7' : 'gap-1.5 px-1.5'} overflow-hidden rounded-[5px] border bg-[#111419]/96 font-mono text-[10px] font-semibold tabular-nums shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm transition-[box-shadow,background-color] ${groupActive ? 'bg-[#242b31]/98 ring-1 ring-white/35 shadow-[0_0_14px_rgba(240,247,255,.12)]' : ''} ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
+      className={`pointer-events-auto ${entryActions ? 'relative z-20' : 'absolute right-[148px] top-1/2 z-20 -translate-y-1/2'} flex h-7 max-w-[calc(100%-162px)] items-center ${onRemove ? 'gap-1 pl-1 pr-7' : 'gap-1.5 px-1.5'} overflow-hidden rounded-[5px] border bg-[#111419]/96 font-mono text-[10px] font-semibold tabular-nums shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm transition-[box-shadow,background-color] ${groupActive ? 'bg-[#242b31]/98 ring-1 ring-white/35 shadow-[0_0_14px_rgba(240,247,255,.12)]' : ''} ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
       style={{ borderColor: `${color}aa` }}
       onMouseEnter={onGroupEnter}
       onMouseLeave={onGroupLeave}
@@ -93,6 +93,18 @@ function ChartLevelBadge({ label, price, amount = null, percent = null, color = 
       {onRemove && <button type="button" className="absolute right-1 top-1/2 z-30 grid size-5 -translate-y-1/2 place-items-center rounded text-[#9aa5af] hover:bg-white/10 hover:text-white" aria-label={removeLabel} onPointerDown={event => event.stopPropagation()} onClick={event => { event.preventDefault(); event.stopPropagation(); onRemove(); }}>×</button>}
     </div>
   );
+  if (!entryActions) return badge;
+  return <div data-v4-position-action-anchor className="pointer-events-none absolute right-[148px] top-1/2 z-30 flex -translate-y-1/2 items-center gap-1.5">
+    <div data-v4-chart-actions data-v4-actions-location="position-entry" className="pointer-events-auto flex shrink-0 items-center gap-1 whitespace-nowrap">
+      <button type="button" disabled={entryActions.saving} aria-label="Discard chart edit"
+        onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); entryActions.onDiscard?.(); }}
+        className="h-7 rounded-[4px] border border-[#77818b]/80 bg-[#111419]/95 px-2.5 font-mono text-[10px] font-semibold text-[#e4e8ed] hover:bg-[#23272d] disabled:opacity-50">Discard</button>
+      <button type="button" disabled={entryActions.saving} aria-label="Confirm chart edit"
+        onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); entryActions.onConfirm?.(); }}
+        className="h-7 rounded-[4px] border border-[#f35e70]/80 bg-[#ee4055] px-2.5 font-mono text-[10px] font-semibold text-white hover:bg-[#f05569] disabled:opacity-50">{entryActions.saving ? 'Confirming…' : 'Confirm'}</button>
+    </div>
+    {badge}
+  </div>;
 }
 
 // Reusable compact order row: direction → absent TP/SL shortcuts → size → type → close.
@@ -123,7 +135,7 @@ function ChartOrderEntryRow({ side, type, lots, color, showTp = false, showSl = 
   );
 }
 
-export function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instrument, selectedPositionId = null, onSelectPosition = () => {}, onClosePosition = () => {}, onRequestPositionProtection = null, hoveredPositionId = null, onHoverPosition = () => {}, desktopStyle = false }) {
+export function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instrument, selectedPositionId = null, onSelectPosition = () => {}, onClosePosition = () => {}, onRequestPositionProtection = null, hoveredPositionId = null, onHoverPosition = () => {}, desktopStyle = false, chartEditActions = null }) {
   const [, forceLayout] = useState(0);
   const closeAvailability = positionCloseAvailability(instrument);
   const closeDisabled = !closeAvailability.allowed;
@@ -181,6 +193,7 @@ export function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi
                 label={`${side} ${formatPositionLots(lots)}`}
                 price={null}
                 prefix={prefix}
+                entryActions={chartEditActions && String(chartEditActions.positionId) === String(position.id) ? chartEditActions : null}
                 groupActive={groupActive}
                 onGroupEnter={() => onHoverPosition(String(position.id))}
                 onGroupLeave={() => onHoverPosition(null)}
@@ -1699,7 +1712,7 @@ export default function ChartArea({
         )}
         <ClosedPositionChartOverlay symbol={symbol} position={historicalPosition} coordinateApi={coordinateApi} instrument={instrument} onClear={onClearHistoricalPosition} />
         {!v4AuditLayer && !tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle ? null : tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} onMove={onMovePending} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} account={account} accountCurrency={accountCurrency} />}
-        <OpenPositionEntryOverlay symbol={symbol} positions={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle ? positions : positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} onRequestPositionProtection={onRequestPositionProtection} hoveredPositionId={hoveredPositionId} onHoverPosition={setHoveredPositionId} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} />
+        {!v4AuditLayer && <OpenPositionEntryOverlay symbol={symbol} positions={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle ? positions : positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} onRequestPositionProtection={onRequestPositionProtection} hoveredPositionId={hoveredPositionId} onHoverPosition={setHoveredPositionId} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} />}
         {!v4AuditLayer && <OpenPositionProtectionOverlay
           symbol={symbol}
           positions={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle ? positions : positions.filter(position =>
@@ -1729,6 +1742,14 @@ export default function ChartArea({
         )}
 
         {v4AuditLayer && <V4FullTerminalOrders
+          renderPositionEntries={chartEditActions => (
+            <OpenPositionEntryOverlay symbol={symbol} positions={positions}
+              coordinateApi={coordinateApi} instrument={instrument}
+              selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition}
+              onClosePosition={onClosePosition} onRequestPositionProtection={onRequestPositionProtection}
+              hoveredPositionId={hoveredPositionId} onHoverPosition={setHoveredPositionId}
+              desktopStyle chartEditActions={chartEditActions}/>
+          )}
           isNewOrderPlanning={Boolean(tradePlan && !tradePlan.editingOrderId)}
           account={account} symbol={symbol} instrument={instrument}
           positions={positions} pendingOrders={pendingOrders}
