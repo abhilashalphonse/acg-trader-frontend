@@ -26,41 +26,63 @@ export default function V4ChartOrderLayer({
   height = 480, formatPrice, formatVolume, formatPnl, instrument = null, accountCurrency = 'USD',
   hidePositionEntries = false, readOnly = false, hoveredPositionId = null,
   edit = null, saving = false, removingLevelId = null, onBeginEdit, onChangeEdit, onSaveEdit, onCancelEdit,
-  onRemoveProtection, onAddProtection, onSelectPosition, onClosePosition, onCancelPending,
+  onRemoveProtection, onAddProtection, onSelectPosition, onSelectPending, onClosePosition, onCancelPending,
 }) {
   const drag = useRef(null);
-  useEffect(() => { drag.current = null; }, [accountId, symbol, readOnly]);
+  const [dragPreview,setDragPreview]=useState(null);
+  const recentDrag = useRef(0);
+  useEffect(() => { drag.current = null; setDragPreview(null); }, [accountId, symbol, readOnly]);
   useEffect(() => {
     const onMove = event => {
-      if (!drag.current || !coordinateApi?.yToPrice || !onChangeEdit) return;
-      const dy = event.clientY - drag.current.startY;
-      if (Math.abs(dy) < 4 && !drag.current.started) return;
-      drag.current.started = true;
-      const rawPrice = coordinateApi.yToPrice(drag.current.startChartY + dy);
-      const tick = Number(instrument?.tickSize);
-      const nextPrice = Number.isFinite(tick) && tick > 0
-        ? Math.round(rawPrice / tick) * tick
-        : rawPrice;
-      if (Number.isFinite(nextPrice) && nextPrice > 0) {
-        onChangeEdit({ ...drag.current.draft, proposedPrice: Number(nextPrice.toPrecision(12)) });
+      const current=drag.current;
+      if (!current || !coordinateApi?.yToPrice) return;
+      const dy=event.clientY-current.startY;
+      if (Math.abs(dy)<4 && !current.started) return;
+      const raw=coordinateApi.yToPrice(current.startChartY+dy);
+      const tick=Number(instrument?.tickSize);
+      const price=Number.isFinite(tick)&&tick>0?Math.round(raw/tick)*tick:raw;
+      if (!(Number.isFinite(price) && price>0)) return;
+      const next=Number(price.toPrecision(12));
+      const tolerance=Number.isFinite(tick)&&tick>0?tick*0.5:1e-8;
+      current.started=true;
+      if(Math.abs(next-current.draft.confirmedPrice)<=tolerance){
+        current.next=null;
+        setDragPreview(null);
+      }else{
+        current.next={...current.draft,proposedPrice:next};
+        setDragPreview(current.next);
       }
     };
-    const end = () => { drag.current = null; };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', end);
-    window.addEventListener('pointercancel', end);
-    return () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', end);
-      window.removeEventListener('pointercancel', end);
+    const onEnd = event => {
+      const current=drag.current;
+      if(!current)return;
+      drag.current=null;
+      setDragPreview(null);
+      if(current.started)recentDrag.current=Date.now();
+      if(event?.type==='pointercancel')return;
+      // Only release after a price change creates an edit. Merely clicking a
+      // badge never creates local chart actions or a backend amendment.
+      if(current.next){
+        onBeginEdit?.(current.next);
+        onChangeEdit?.(current.next);
+      }
     };
-  }, [coordinateApi, onChangeEdit, instrument?.tickSize]);
+    window.addEventListener('pointermove',onMove);
+    window.addEventListener('pointerup',onEnd);
+    window.addEventListener('pointercancel',onEnd);
+    return()=>{
+      window.removeEventListener('pointermove',onMove);
+      window.removeEventListener('pointerup',onEnd);
+      window.removeEventListener('pointercancel',onEnd);
+    };
+  },[coordinateApi,onBeginEdit,onChangeEdit,instrument?.tickSize]);
   const [hoveredId, setHoveredId] = useState(null);
   const [, requestCoordinates] = useState(0);
   useEffect(() => coordinateApi?.subscribe?.(() => requestCoordinates(value => value + 1)), [coordinateApi]);
   const accepted = useMemo(() => projectV4AcceptedLevels({accountId,symbol,positions,pendingOrders}),
     [accountId,symbol,positions,pendingOrders]);
-  const { preview: ghost, secondaryPreview, connector } = projectV4DraftGroup(accepted, edit);
+  const visibleEdit=dragPreview || edit;
+  const { preview: ghost, secondaryPreview, connector }=projectV4DraftGroup(accepted,visibleEdit);
   const acceptedWithCoordinates = coordinateApi?.priceToY
     ? accepted.map(level => ({...level,y:coordinateApi.priceToY(level.price)})).filter(level=>Number.isFinite(level.y))
     : [];
@@ -96,25 +118,27 @@ export default function V4ChartOrderLayer({
     : {background:'#09090b', positive:'rgba(238,84,101,0.17)'};
   const hoveredGroupId = hoveredId || (hoveredPositionId != null && accountId != null
     ? accountId + ':position:' + String(hoveredPositionId) : null);
-  const beginDrag = (event, level, isPreview = false) => {
-    if (readOnly || !onChangeEdit || saving || !coordinateApi?.yToPrice) return;
-    if (!isPreview && !onBeginEdit) return;
-    if (!(level.objectType === 'pending' && ['entry','limitPrice'].includes(level.kind)) && !['sl','tp'].includes(level.kind)) return;
-    if (event.button !== 0 || event.target.closest('button')) return;
-    const levelY = coordinateApi.priceToY(level.price);
-    if (!Number.isFinite(levelY)) return;
+  const beginDrag = (event, level, isPreview=false) => {
+    if(readOnly||!onChangeEdit||saving||!coordinateApi?.yToPrice)return;
+    if(!isPreview&&!onBeginEdit)return;
+    if(!(level.objectType==='pending'&&['entry','limitPrice'].includes(level.kind))&&!['sl','tp'].includes(level.kind))return;
+    if(event.button!==0||event.target.closest('button'))return;
+    const startingPrice=Number(isPreview ? level.confirmedPrice ?? edit?.confirmedPrice ?? level.price : level.price);
+    const levelY=coordinateApi.priceToY(level.price);
+    if(!Number.isFinite(levelY))return;
     event.preventDefault();
     event.stopPropagation();
-    const draft = isPreview ? {
-      accountId: level.accountId, objectType: level.objectType, objectId: level.objectId,
-      kind: level.kind, levelId: level.sourceLevelId || undefined, ...edit,
-      proposedPrice: level.price,
-    } : {
-      accountId: level.accountId, objectType: level.objectType,
-      objectId: level.objectId, kind: level.kind, levelId: level.id, proposedPrice: level.price,
+    const draft={
+      accountId:level.accountId,objectType:level.objectType,objectId:level.objectId,
+      kind:level.kind,levelId:isPreview?level.sourceLevelId:level.id,
+      confirmedPrice:startingPrice,proposedPrice:level.price,
     };
-    drag.current = { draft, startY:event.clientY, startChartY:levelY, started:false };
-    if (!isPreview) onBeginEdit(draft);
+    drag.current={draft,startY:event.clientY,startChartY:levelY,started:false,next:null};
+  };
+  const selectOwner=(event,level)=>{
+    if(event.target.closest('button')||Date.now()-recentDrag.current<450)return;
+    if(level.objectType==='position')onSelectPosition?.(level.objectId);
+    else if(level.objectType==='pending')onSelectPending?.(level.objectId);
   };
 
   return <div className="pointer-events-none absolute inset-0 z-[36] overflow-hidden" data-v4-isolated-layer
@@ -132,14 +156,15 @@ export default function V4ChartOrderLayer({
       const pendingOrder = (pendingEntry || pendingLimit) ? pendingOrders.find(item=>String(item.id)===level.objectId) : null;
       const pendingEditing = pendingEntry && edit?.objectType==='pending' && String(edit.objectId)===level.objectId;
       const pendingMissing = readOnly ? [] : missing.filter(kind=>!(pendingEditing && edit?.kind===kind));
-      const editingAcceptedProtection = (marketProtection || pendingLimit) &&
-        (ghost?.sourceLevelId === level.id || secondaryPreview?.sourceLevelId === level.id);
-      const projection = marketProtection ? projectedPositionProtection(level) : null;
+      const movingAccepted = ghost?.sourceLevelId === level.id;
+      const displayed = movingAccepted ? {...level,price:ghost.price} : level;
+      const editingAcceptedProtection = false;
+      const projection = marketProtection ? projectedPositionProtection(displayed) : null;
       const entryLevel = marketProtection ? accepted.find(value => value.objectType===level.objectType &&
         value.objectId===level.objectId && value.kind==='entry') : null;
       const protectionBase = projection?.reference ?? entryLevel?.price;
       const percent = marketProtection && Number(protectionBase)>0
-        ? Math.abs((level.price / protectionBase - 1) * 100).toFixed(2)+'%' : '—';
+        ? Math.abs((displayed.price / protectionBase - 1) * 100).toFixed(2)+'%' : '—';
       const pendingLabel = String(pendingOrder?.orderType || level.orderType || 'limit')
         .replaceAll('_','-').toUpperCase().replaceAll('-',' ');
       const pendingSide = String(level.side || '').toUpperCase();
@@ -149,17 +174,19 @@ export default function V4ChartOrderLayer({
         <div data-v4-accepted-line={level.id} className="pointer-events-none absolute left-0 right-0 border-t"
           style={{top:level.y,borderColor:color,opacity:highlighted?0.9:0.66}}/>
         {location && !editingAcceptedProtection && <div data-v4-badge={level.id}
+          data-v4-selected-owner={level.objectType+':'+level.objectId}
+          onClick={event=>selectOwner(event,level)}
           onPointerDown={event=>beginDrag(event,level)} onMouseEnter={()=>setHoveredId(groupId)} onMouseLeave={()=>setHoveredId(null)}
           onFocus={()=>setHoveredId(groupId)} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setHoveredId(null);}}
           className={`pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] items-center ${marketProtection ? 'gap-0 tabular-nums backdrop-blur-sm' : pendingEntry ? 'gap-1 px-1.5' : pendingLimit ? 'gap-0' : 'gap-1 bg-[#111419]/95 px-1.5'} ${pendingEditing ? 'overflow-visible' : 'overflow-hidden'} rounded-[5px] border font-mono text-[10px] text-white shadow-[0_3px_12px_rgba(0,0,0,.36)] transition-[box-shadow]`}
-          style={{top:location.badgeTop,borderColor:marketProtection?color+'aa':color,
+          style={{top:movingAccepted ? coordinateApi.priceToY(ghost.price)-14 : location.badgeTop,borderColor:marketProtection?color+'aa':color,
             backgroundColor:marketProtection?protectionTheme(level.kind).background:(pendingEntry || pendingLimit ? '#09090b' : undefined),
             boxShadow:highlighted?'0 0 10px rgba(215,223,231,.12)':undefined}}>
           {marketProtection ? <>
             <span data-v4-drag-handle={level.id} aria-label={`Drag ${level.kind.toUpperCase()} level`}
               className="shrink-0 cursor-ns-resize touch-none px-1.5 text-[11px] tracking-[-2px] text-[#7c8994]" title={`Drag ${level.kind.toUpperCase()}`}>⠿</span>
             <span className="shrink-0 whitespace-nowrap font-sans text-[10px] font-semibold" style={{color}}>{level.kind==='tp'?'Take profit':'Stop loss'}</span>
-            <span className="shrink-0 px-1.5 font-mono font-semibold tabular-nums text-[#e5ebf0]">{protectionPriceLabel(level.price,formatPrice)}</span>
+            <span className="shrink-0 px-1.5 font-mono font-semibold tabular-nums text-[#e5ebf0]">{protectionPriceLabel(displayed.price,formatPrice)}</span>
             <span className="shrink-0 rounded-[3px] px-1.5 py-0.5 font-mono font-semibold tabular-nums" style={{color,backgroundColor:protectionTheme(level.kind).positive}}>{projection.amount}</span>
             <span className="shrink-0 pr-1.5 font-sans text-[9px] font-medium tabular-nums text-[#929ba4]">{percent}</span>
           </> : pendingEntry ? <>
@@ -178,7 +205,7 @@ export default function V4ChartOrderLayer({
           </> : <span className="shrink-0 font-semibold" style={{color}}>{level.kind==='sl'?'Stop loss':level.kind==='tp'?'Take profit':level.side}</span>}
           {level.kind==='entry' && level.objectType==='position' && <span className="shrink-0 text-gray-300">{formatVolume?.(level.volume) ?? level.volume}</span>}
           {pendingLimit && <span className="shrink-0 px-1.5 font-mono font-semibold tabular-nums text-[#e5ebf0]">{protectionPriceLabel(level.price,formatPrice)}</span>}
-          {level.kind!=='entry' && !marketProtection && !pendingLimit && <span className="shrink-0">{priceLabel(level.price,formatPrice)}</span>}
+          {level.kind!=='entry' && !marketProtection && !pendingLimit && <span className="shrink-0">{priceLabel(displayed.price,formatPrice)}</span>}
           {level.kind==='entry' && level.objectType==='position' && formatPnl && <span className="truncate" style={{color}}>{formatPnl(level.pnl)}</span>}
           {level.kind==='entry' && level.objectType==='position' && onSelectPosition && <button type="button" aria-label="Select position" onClick={()=>onSelectPosition(level.objectId)} className="shrink-0 px-1 text-gray-300">Select</button>}
           {level.kind==='entry' && level.objectType==='position' && onClosePosition && <button type="button" aria-label="Close position" onClick={()=>onClosePosition(level.objectId, 100)} className="shrink-0 px-1 text-gray-300">×</button>}
@@ -199,7 +226,7 @@ export default function V4ChartOrderLayer({
               const action = v4ProtectionAction(accepted,level.id,'remove');
               if(action) onRemoveProtection?.(action);
             }}>{removingLevelId===level.id ? '…' : '×'}</button>}
-          {pendingEditing && !readOnly && <div data-v4-pending-chart-actions data-v4-chart-actions
+          {pendingEditing && !dragPreview && !readOnly && <div data-v4-pending-chart-actions data-v4-chart-actions
             data-v4-actions-location="pending-entry"
             className="pointer-events-auto absolute right-[calc(100%+6px)] top-1/2 z-40 flex -translate-y-1/2 items-center gap-1 whitespace-nowrap"
             onPointerDown={event=>event.stopPropagation()}>
@@ -248,7 +275,7 @@ export default function V4ChartOrderLayer({
         height:Math.abs(coordinateApi.priceToY(connector.fromPrice)-coordinateApi.priceToY(connector.toPrice))}} />}
     {!readOnly && ghost && coordinateApi?.priceToY && Number.isFinite(coordinateApi.priceToY(ghost.price)) && <div data-v4-preview={ghost.id}>
       <div className="absolute left-0 right-0 border-t border-dotted" style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost)}}/>
-      <div data-v4-draft-badge
+      {!ghost.sourceLevelId && <div data-v4-draft-badge
         onPointerDown={event=>beginDrag(event,ghost,true)}
         className={`pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] -translate-y-1/2 items-center rounded-[5px] border font-mono text-[10px] tabular-nums text-white shadow-[0_3px_12px_rgba(0,0,0,.36)] ${['tp','sl'].includes(ghost.kind) ? 'gap-0 cursor-ns-resize touch-none border-dotted' : 'gap-1 cursor-ns-resize touch-none border-dotted px-1.5'}`}
         style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost),
@@ -278,7 +305,7 @@ export default function V4ChartOrderLayer({
             <button type="button" disabled={saving || !onSaveEdit} aria-label="Confirm chart edit" onClick={()=>onSaveEdit?.(edit)} className="rounded px-2 py-1 font-semibold text-white disabled:opacity-50" style={{background:ghost.kind==='tp'?'#148968':ghost.kind==='sl'?'#bd4353':'#2469b5'}}>{saving?'Confirming…':'Confirm'}</button>
           </div>}
         </>}
-      </div>
+      </div>}
       {['position','pending'].includes(ghost.objectType) && <span data-v4-protection-draft-price
         className="pointer-events-none absolute right-[56px] -translate-y-1/2 rounded-[4px] border border-dotted bg-[#09090b]/96 px-1.5 py-0.5 font-mono text-[9px] font-semibold lg:right-2"
         style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost),color:colorFor(ghost)}}>
