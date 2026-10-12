@@ -217,6 +217,7 @@ async function run(){
  // and show a temporary DOTTED ghost while its LIMIT leg is dragged.
  const v4=document.getElementById('v4-independent-chart-fixture');
  const v4Layer=v4.querySelector('[data-v4-independent-order-layer]');
+ if(Math.abs(v4.getBoundingClientRect().width-435)>1)failed.push('V4 visual QA chart was resized away from 435px');
  if(!v4Layer)failed.push('Standalone V4 chart-order layer missing');
  const acceptedTP=v4.querySelector('[data-v4-price-line="position:position-smoke-a:tp"]');
  const acceptedSL=v4.querySelector('[data-v4-price-line="position:position-smoke-a:sl"]');
