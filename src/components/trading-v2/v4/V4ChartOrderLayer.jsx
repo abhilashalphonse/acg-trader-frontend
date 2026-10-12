@@ -13,6 +13,7 @@ const priceLabel = (value, formatPrice) => formatPrice ? formatPrice(value) : St
 export default function V4ChartOrderLayer({
   accountId, symbol, positions = [], pendingOrders = [], coordinateApi,
   height = 480, formatPrice, formatVolume, formatPnl,
+  hidePositionEntries = false, readOnly = false,
   edit = null, saving = false, onBeginEdit, onChangeEdit, onSaveEdit, onCancelEdit,
   onConfirmRemoval, onAddProtection, onSelectPosition, onClosePosition, onCancelPending,
 }) {
@@ -57,7 +58,7 @@ export default function V4ChartOrderLayer({
   const canRemove = Boolean(onConfirmRemoval);
   const [cancelPendingId, setCancelPendingId] = useState(null);
   const beginDrag = (event, level) => {
-    if (!onBeginEdit || !onChangeEdit || saving || !coordinateApi?.yToPrice) return;
+    if (readOnly || !onBeginEdit || !onChangeEdit || saving || !coordinateApi?.yToPrice) return;
     if (!(level.objectType === 'pending' && level.kind === 'entry') && !['sl','tp'].includes(level.kind)) return;
     if (event.target.closest('button')) return;
     event.preventDefault();
@@ -71,6 +72,9 @@ export default function V4ChartOrderLayer({
   return <div className="pointer-events-none absolute inset-0 z-[36] overflow-hidden" data-v4-isolated-layer
     style={{ height }}>
     {acceptedWithCoordinates.map(level=>{
+      // The full terminal uses its original approved market-position entry badge.
+      // V4 does not duplicate that entry line or its controls.
+      if (hidePositionEntries && level.objectType === 'position' && level.kind === 'entry') return null;
       const color=colorFor(level);
       const location=placed.get(level.id);
       const groupId=level.accountId+':'+level.objectType+':'+level.objectId;
@@ -113,12 +117,12 @@ export default function V4ChartOrderLayer({
           className="pointer-events-none absolute right-[135px] border-l border-[#98a7b6]/35"
           style={{top:Math.min(entry.y,level.y),height:Math.abs(entry.y-level.y)}}/>);
     })()}
-    {connector && coordinateApi?.priceToY && Number.isFinite(coordinateApi.priceToY(connector.fromPrice)) && Number.isFinite(coordinateApi.priceToY(connector.toPrice)) && <div
+    {!readOnly && connector && coordinateApi?.priceToY && Number.isFinite(coordinateApi.priceToY(connector.fromPrice)) && Number.isFinite(coordinateApi.priceToY(connector.toPrice)) && <div
       data-v4-draft-connector={connector.objectId}
       className="pointer-events-none absolute right-[135px] border-l border-dotted border-[#a8b5bd]/60"
       style={{top:Math.min(coordinateApi.priceToY(connector.fromPrice),coordinateApi.priceToY(connector.toPrice)),
         height:Math.abs(coordinateApi.priceToY(connector.fromPrice)-coordinateApi.priceToY(connector.toPrice))}} />}
-    {ghost && connector && coordinateApi?.priceToY && (() => {
+    {!readOnly && ghost && connector && coordinateApi?.priceToY && (() => {
       const y1=coordinateApi.priceToY(connector.fromPrice), y2=coordinateApi.priceToY(connector.toPrice);
       if (!Number.isFinite(y1) || !Number.isFinite(y2)) return null;
       return <div data-v4-draft-shade={ghost.kind} className="pointer-events-none absolute left-[42%] right-[148px]" style={{
@@ -126,13 +130,13 @@ export default function V4ChartOrderLayer({
         background:ghost.kind==='tp'?'rgba(22,134,95,0.12)':'rgba(175,55,70,0.12)'
       }}/>;
     })()}
-    {ghost && coordinateApi?.priceToY && Number.isFinite(coordinateApi.priceToY(ghost.price)) && <div data-v4-preview={ghost.id}>
+    {!readOnly && ghost && coordinateApi?.priceToY && Number.isFinite(coordinateApi.priceToY(ghost.price)) && <div data-v4-preview={ghost.id}>
       <div className="absolute left-0 right-0 border-t border-dotted" style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost)}}/>
-      <div className="pointer-events-auto absolute right-[148px] flex h-7 -translate-y-1/2 items-center gap-2 rounded-[5px] border bg-[#111419]/95 px-2 text-[10px]"
+      <div data-v4-draft-badge className="pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] -translate-y-1/2 items-center gap-1 rounded-[5px] border bg-[#111419]/95 px-1.5 font-mono text-[10px] text-white shadow-lg"
         style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost)}}>
         <span style={{color:colorFor(ghost)}}>{ghost.kind==='sl'?'Stop loss':ghost.kind==='tp'?'Take profit':'Pending entry'}</span>
         <span>{priceLabel(ghost.price,formatPrice)}</span>
-        <div data-v4-chart-actions className="absolute right-[calc(100%+8px)] top-1/2 flex -translate-y-1/2 items-center gap-1 whitespace-nowrap">
+        <div data-v4-chart-actions className="ml-1 flex shrink-0 items-center gap-1 whitespace-nowrap border-l border-white/15 pl-1" aria-label="Draft level actions">
           <button type="button" disabled={saving} aria-label="Discard chart edit" onClick={()=>onCancelEdit?.()} className="rounded border border-[#515b66] bg-[#14171c] px-2 py-1 text-[#e4e8ed]">Discard</button>
           <button type="button" disabled={saving || !onSaveEdit} aria-label="Confirm chart edit" onClick={()=>onSaveEdit?.(edit)} className="rounded px-2 py-1 font-semibold text-white disabled:opacity-50" style={{background:ghost.kind==='tp'?'#148968':ghost.kind==='sl'?'#bd4353':'#2469b5'}}>{saving?'Confirming…':'Confirm'}</button>
         </div>
@@ -140,7 +144,7 @@ export default function V4ChartOrderLayer({
     </div>}
     {overflow.length>0&&<span className="pointer-events-auto absolute bottom-2 right-[148px] rounded bg-[#202329] px-2 py-1 text-[10px] text-gray-300"
       data-v4-overflow-count={overflow.length}>{overflow.length} more levels outside badge area</span>}
-    {cancelPendingId && <div role="dialog" aria-modal="true" aria-label="Confirm cancel pending order"
+    {!readOnly && cancelPendingId && <div role="dialog" aria-modal="true" aria-label="Confirm cancel pending order"
       className="pointer-events-auto absolute bottom-3 right-[148px] z-[60] flex max-w-[300px] flex-col gap-2 rounded-md border border-gray-600 bg-[#111419] p-3 text-[11px] text-white">
       <span>Cancel this pending order?</span>
       <div className="flex gap-2">
@@ -148,7 +152,7 @@ export default function V4ChartOrderLayer({
         <button type="button" disabled={saving} onClick={()=>{ const item=accepted.find(level=>level.id===cancelPendingId); if(item) onCancelPending?.(item.objectId); setCancelPendingId(null); }}>Confirm cancellation</button>
       </div>
     </div>}
-    {selected && <div role="dialog" aria-modal="true" aria-label={`Confirm remove ${selected.kind.toUpperCase()}`}
+    {!readOnly && selected && <div role="dialog" aria-modal="true" aria-label={`Confirm remove ${selected.kind.toUpperCase()}`}
       className="pointer-events-auto absolute bottom-3 right-[148px] z-[60] flex max-w-[300px] flex-col gap-2 rounded-md border border-gray-600 bg-[#111419] p-3 text-[11px] text-white">
       <span>Remove {selected.kind.toUpperCase()} at {priceLabel(selected.price,formatPrice)}?</span>
       <div className="flex gap-2">
