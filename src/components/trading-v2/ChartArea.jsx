@@ -101,7 +101,7 @@ function ChartLevelBadge({ label, price, amount = null, percent = null, color = 
         className="h-7 rounded-[4px] border border-[#77818b]/80 bg-[#111419]/95 px-2.5 font-mono text-[10px] font-semibold text-[#e4e8ed] hover:bg-[#23272d] disabled:opacity-50">Discard</button>
       <button type="button" disabled={entryActions.saving} aria-label="Confirm chart edit"
         onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); entryActions.onConfirm?.(); }}
-        className="h-7 rounded-[4px] border border-[#f35e70]/80 bg-[#ee4055] px-2.5 font-mono text-[10px] font-semibold text-white hover:bg-[#f05569] disabled:opacity-50">{entryActions.saving ? 'Confirming…' : 'Confirm'}</button>
+        className="h-7 rounded-[4px] border px-2.5 font-mono text-[10px] font-semibold text-white hover:brightness-110 disabled:opacity-50" style={{ backgroundColor:color, borderColor:color }}>{entryActions.saving ? 'Confirming…' : 'Confirm'}</button>
     </div>
     {badge}
   </div>;
