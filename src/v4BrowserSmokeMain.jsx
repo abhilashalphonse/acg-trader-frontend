@@ -191,10 +191,15 @@ async function run(){
  if(protectionDraft.querySelector('button .rounded-full')||protectionDraft.querySelector('button > .rounded-full'))
    failed.push('Legacy circular TP/SL drag handle still rendered in desktop V4');
  const allLiveRows=Array.from(liveChart.querySelectorAll('[data-v4-chart-badge]'));
- const entryBadges=allLiveRows.filter(b=>b.textContent.includes('SELL')||b.textContent.includes('BUY'));
- const sellEntry=entryBadges.find(b=>b.textContent.includes('SELL 0.01'));
- const buyEntry=entryBadges.find(b=>b.textContent.includes('BUY 0.02'));
- const unprotectedEntry=entryBadges.find(b=>b.textContent.includes('BUY 0.01'));
+ // Read semantic direction and quantity fields rather than relying on
+ // incidental whitespace between their separately styled elements.
+ const entryBadges=allLiveRows.filter(b=>b.querySelector('[data-v4-position-direction]'));
+ const positionEntry=(side,size)=>entryBadges.find(b=>
+   b.querySelector('[data-v4-position-direction]')?.textContent===side &&
+   b.querySelector('[data-v4-position-size]')?.textContent===size);
+ const sellEntry=positionEntry('SELL','0.01');
+ const buyEntry=positionEntry('BUY','0.02');
+ const unprotectedEntry=positionEntry('BUY','0.01');
  if(!sellEntry||!buyEntry||!unprotectedEntry)failed.push('Three independent live position badges missing');
  if(sellEntry?.querySelector('[data-attached-protection],button[aria-label^="Add "]'))
    failed.push('Fully protected position must leave TP and SL off the entry badge');
