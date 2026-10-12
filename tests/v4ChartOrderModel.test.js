@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   V4_ORDER_VISUAL_STATES, v4LevelId, projectV4AcceptedLevels,
-  projectV4Edit, projectV4DraftGroup, v4EditCommand, v4MissingProtections, v4ProtectionAction, placeV4Badges,
+  projectV4Edit, projectV4DraftGroup, v4EditCommand, v4MissingProtections, v4MissingPendingProtections, v4ProtectionAction, placeV4Badges,
 } from '../src/components/trading-v2/v4/chartOrderModel.js';
 
 const accountId = 'test-account';
@@ -167,4 +167,54 @@ test('chart Discard never executes an amendment, Confirm creates explicit intent
  assert.equal(v4EditCommand(draft,'release'),null);
  assert.equal(v4EditCommand(draft,'confirm')?.type,'REQUEST_SAVE');
  assert.deepEqual(v4EditCommand({...draft,proposedPrice:0},'discard'),{type:'CANCEL_LOCAL_EDIT'});
+});
+
+test('placed Limit and Stop-Limit orders have independent identities and missing protection shortcuts',()=>{
+ const levels=projectV4AcceptedLevels({accountId,symbol,positions:[],pendingOrders:[
+  {id:'lim',symbol,status:'PENDING',orderType:'limit',side:'BUY',entry:83500,volume:0.1,sl:null,tp:84000},
+  {id:'stl',symbol,status:'PENDING',orderType:'stop_limit',side:'SELL',entry:82500,limitPrice:82400,volume:0.2,sl:83000,tp:null},
+ ]});
+ const plain=levels.filter(level=>level.objectId==='lim');
+ const stop=levels.filter(level=>level.objectId==='stl');
+ assert.deepEqual(plain.map(level=>level.kind),['entry','tp']);
+ assert.deepEqual(stop.map(level=>level.kind),['entry','limitPrice','sl']);
+ assert.equal(stop.find(level=>level.kind==='entry').price,82500);
+ assert.equal(stop.find(level=>level.kind==='limitPrice').price,82400);
+ assert.equal(stop.find(level=>level.kind==='entry').orderType,'stop-limit');
+ assert.deepEqual(v4MissingPendingProtections(levels,'test-account:pending:lim:entry'),['sl']);
+ assert.deepEqual(v4MissingPendingProtections(levels,'test-account:pending:stl:entry'),['tp']);
+ assert.equal(v4ProtectionAction(levels,'test-account:pending:stl:limitPrice','edit')?.state,'DRAFT');
+ assert.equal(v4ProtectionAction(levels,'test-account:pending:stl:limitPrice','remove'),null);
+ assert.equal(v4ProtectionAction(levels,'test-account:pending:lim:entry','remove'),null);
+});
+
+test('Stop-Limit trigger drag previews both accepted prices moving in lockstep',()=>{
+ const levels=example();
+ const entry='test-account:pending:o1:entry';
+ const limit='test-account:pending:o1:limitPrice';
+ const out=projectV4DraftGroup(levels,{
+  accountId,objectType:'pending',objectId:'o1',levelId:entry,kind:'entry',proposedPrice:82630,
+ });
+ assert.equal(out.preview.price,82630);
+ assert.equal(out.preview.sourceLevelId,entry);
+ assert.equal(out.secondaryPreview.price,82530);
+ assert.equal(out.secondaryPreview.sourceLevelId,limit);
+ assert.equal(out.secondaryPreview.lineStyle,'dotted');
+ assert.equal(out.accepted.find(x=>x.id===entry).price,82500);
+ assert.equal(out.accepted.find(x=>x.id===limit).price,82400);
+ assert.equal(out.connector,null);
+});
+
+test('Stop-Limit execution-boundary drag never shifts accepted trigger',()=>{
+ const levels=example();
+ const limit='test-account:pending:o1:limitPrice';
+ const out=projectV4DraftGroup(levels,{
+  accountId,objectType:'pending',objectId:'o1',levelId:limit,kind:'limitPrice',proposedPrice:82325,
+ });
+ assert.equal(out.preview.kind,'limitPrice');
+ assert.equal(out.preview.price,82325);
+ assert.equal(out.secondaryPreview,null);
+ assert.equal(out.connector.kind,'limitPrice');
+ assert.equal(out.connector.fromPrice,82500);
+ assert.equal(out.accepted.find(x=>x.id===limit).price,82400);
 });
