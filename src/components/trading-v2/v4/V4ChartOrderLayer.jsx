@@ -26,7 +26,7 @@ export default function V4ChartOrderLayer({
   height = 480, formatPrice, formatVolume, formatPnl, instrument = null, accountCurrency = 'USD',
   hidePositionEntries = false, readOnly = false, hoveredPositionId = null,
   edit = null, saving = false, removingLevelId = null, onBeginEdit, onChangeEdit, onSaveEdit, onCancelEdit,
-  onConfirmRemoval, onAddProtection, onSelectPosition, onClosePosition, onCancelPending,
+  onRemoveProtection, onAddProtection, onSelectPosition, onClosePosition, onCancelPending,
 }) {
   const drag = useRef(null);
   useEffect(() => { drag.current = null; }, [accountId, symbol, readOnly]);
@@ -82,7 +82,7 @@ export default function V4ChartOrderLayer({
       ? '— ' + currency : (estimate >= 0 ? '+' : '-') + Math.abs(estimate).toFixed(2) + ' ' + currency;
     return { volume, amount };
   };
-  const canRemove = Boolean(onConfirmRemoval);
+  const canRemove = Boolean(onRemoveProtection);
   const [cancelPendingId, setCancelPendingId] = useState(null);
   const protectionTheme = kind => kind === 'tp'
     ? {background:'#09090b', positive:'rgba(22,197,144,0.17)'}
@@ -163,7 +163,7 @@ export default function V4ChartOrderLayer({
             onClick={event=>{
               event.stopPropagation();
               const action = v4ProtectionAction(accepted,level.id,'remove');
-              if(action) onConfirmRemoval?.(action);
+              if(action) onRemoveProtection?.(action);
             }}>{removingLevelId===level.id ? '…' : '×'}</button>}
         </div>}
         {marketProtection && <div data-v4-accepted-protection-price={level.id}
