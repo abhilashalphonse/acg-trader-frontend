@@ -1,3 +1,8 @@
+// Optional protection inputs: null, absent, empty and zero are all disabled.
+export function isActiveChartProtection(value) {
+  return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) && Number(value) > 0;
+}
+
 // Pure chart-edit projection. The backend remains authoritative for every amendment.
 export function buildChartPendingAmendment(order, nextPrice, field = 'entry') {
   const removal = nextPrice === null && (field === 'sl' || field === 'tp');
