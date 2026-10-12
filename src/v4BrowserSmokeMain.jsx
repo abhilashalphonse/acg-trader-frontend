@@ -132,6 +132,7 @@ async function run(){
  // Accepted stop-limit must draw two independent SOLID price levels,
  // and show a temporary DOTTED ghost while its LIMIT leg is dragged.
  const pendingChart=document.getElementById('pending-chart-fixture');
+ pendingChart.style.width='435px';
  const liveChart=document.getElementById('position-chart-fixture');
  const allLiveRows=Array.from(liveChart.querySelectorAll('[data-v4-chart-badge]'));
  const entryBadges=allLiveRows.filter(b=>b.textContent.includes('SELL')||b.textContent.includes('BUY'));
@@ -171,6 +172,13 @@ async function run(){
  await sleep(90);
  if(liveChart.querySelector('[data-v4-hover-group]'))failed.push('Hover connector remained after mouse leave');
  // Accepted entry and active protection lines remain solid; ghost only on edits.
+ const placedSell=pendingChart.querySelector('[data-v4-chart-entry][data-order-state="placed"]');
+ const placedBuy=Array.from(pendingChart.querySelectorAll('[data-v4-chart-entry][data-order-state="placed"]')).find(el=>el.textContent.includes('BUY'));
+ const sellBadge=Array.from(pendingChart.querySelectorAll('[data-v4-chart-entry]')).find(el=>el.textContent.includes('SELL'));
+ const sellRgb=sellBadge?getComputedStyle(sellBadge).borderTopColor:'';
+ const buyRgb=placedBuy?getComputedStyle(placedBuy).borderTopColor:'';
+ if(!placedSell || !sellBadge || sellRgb!=='rgb(239, 86, 100)')failed.push('Placed SELL Limit/Stop did not use confirmed sell red');
+ if(!placedBuy || buyRgb!=='rgb(18, 185, 150)')failed.push('Placed BUY Limit did not use confirmed buy green');
  const liveLines=liveChart.querySelectorAll('.relative.border-t:not(.border-dotted):not(.border-dashed)');
  if(liveLines.length<3)failed.push('Live entry lines not solid');
  if(liveChart.querySelector('.relative.border-t-dotted'))failed.push('Confirmed protection drawn as draft');
