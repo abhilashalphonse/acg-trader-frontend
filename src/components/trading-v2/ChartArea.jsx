@@ -7,6 +7,7 @@ import { positionCloseAvailability } from '../../utils/marketExecutionAvailabili
 import { estimateLossAtStopWithCosts, estimatePositionPnlAtPrice, estimateStopRisk, positionDistancePips } from '../../utils/tradingRisk.js';
 import { resolveExecutionPreview } from '../../utils/executionPricing.js';
 import { effectiveTradePlan } from '../../utils/tradePlanExecution.js';
+import { chartEntryReference, chartLineStyle, chartPriceChangePercent, chartEstimateCurrencySupported } from '../../utils/chartOrderPresentation.js';
 import { DRAWING_TOOL_GROUPS, DRAWING_TOOL_LABELS } from '../../utils/drawingTools.js';
 import { DRAWING_TOOL_ICONS } from './DrawingToolIcons.jsx';
 import { chartTimezoneLabel, formatChartClock } from '../../utils/desktopChartSettings.js';
@@ -58,6 +59,31 @@ function formatPositionLots(value) {
   if (!Number.isFinite(numeric)) return '—';
   if (Number.isInteger(numeric)) return String(numeric);
   return numeric.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+}
+
+// Single desktop label treatment shared by draft, accepted pending and live position levels.
+// Visual status changes the line style; we intentionally do not add "planned" wording.
+function ChartLevelBadge({ label, price, amount = null, percent = null, color = '#aab8c5', onPointerDown, onClick, onRemove, removeLabel = 'Remove level', tooltip = null }) {
+  const isInteractive = Boolean(onPointerDown || onClick);
+  return (
+    <div
+      className={`pointer-events-auto absolute right-[70px] top-1/2 z-20 flex h-7 max-w-[calc(100%-84px)] -translate-y-1/2 items-center gap-2 overflow-hidden rounded-[5px] border bg-[#111419]/96 px-2 font-mono text-[10px] font-semibold tabular-nums shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
+      style={{ borderColor: `${color}aa` }}
+      onPointerDown={onPointerDown}
+      onClick={onClick}
+      title={tooltip || undefined}
+      role={isInteractive ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onClick(event); } } : undefined}
+    >
+      <span aria-hidden="true" className="shrink-0 text-[11px] tracking-[-2px] text-[#788592]">⠿</span>
+      <span className="shrink-0 font-sans font-semibold" style={{ color }}>{label}</span>
+      {price != null && <span className="shrink-0 text-[#e5ebf0]">{price}</span>}
+      {amount != null && <span className="shrink-0 rounded-[3px] px-1.5 py-0.5" style={{ color, backgroundColor: `${color}1b` }}>{amount}</span>}
+      {percent != null && <span className="shrink-0 font-sans font-medium text-[#919ba6]">{Number(percent).toFixed(2)}%</span>}
+      {onRemove && <button type="button" className="ml-0.5 grid size-5 shrink-0 place-items-center rounded text-[#9aa5af] hover:bg-white/10 hover:text-white" aria-label={removeLabel} onPointerDown={event => event.stopPropagation()} onClick={event => { event.preventDefault(); event.stopPropagation(); onRemove(); }}>×</button>}
+    </div>
+  );
 }
 
 function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instrument, selectedPositionId = null, onSelectPosition = () => {}, onClosePosition = () => {} }) {
@@ -611,7 +637,8 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
   const liveEntry = sourcePrice('entry');
   const liveSl = sourcePrice('sl');
   const liveTp = sourcePrice('tp');
-  const livePlan = { ...plan, entry: liveEntry, sl: liveSl, tp: liveTp };
+  const liveLimit = sourcePrice('limitPrice');
+  const livePlan = { ...plan, entry: liveEntry, limitPrice: liveLimit, sl: liveSl, tp: liveTp };
   // With no uncommitted chart drag, display the exact same resolved size
   // as the ticket; both derive from the current executable market quote.
   const dragPreviewActive = ['entry', 'sl', 'tp', 'limitPrice']
@@ -638,10 +665,14 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
     : null;
   const lotLabel = Number.isFinite(displayLots) ? `${displayLots.toFixed(Math.max(2, Number(instrument?.volumeStep) < 0.01 ? 3 : 2))} lot` : '— lot';
   const lotCompact = Number.isFinite(displayLots) ? formatPositionLots(displayLots) : '—';
-  const rewardTop = entryY != null && tpY != null ? Math.min(entryY, tpY) : null;
-  const rewardHeight = entryY != null && tpY != null ? Math.abs(entryY - tpY) : 0;
-  const riskTop = entryY != null && slY != null ? Math.min(entryY, slY) : null;
-  const riskHeight = entryY != null && slY != null ? Math.abs(entryY - slY) : 0;
+  // A stop-limit may activate at its stop trigger but fills no worse than its
+  // limit bound. The shaded preview must agree with risk/margin references.
+  const riskReference = chartEntryReference({ pending: plan.pending, orderType: plan.orderType, entry: liveEntry, limitPrice: liveLimit });
+  const riskReferenceY = riskReference != null ? coordinateApi.priceToY(riskReference) : entryY;
+  const rewardTop = riskReferenceY != null && tpY != null ? Math.min(riskReferenceY, tpY) : null;
+  const rewardHeight = riskReferenceY != null && tpY != null ? Math.abs(riskReferenceY - tpY) : 0;
+  const riskTop = riskReferenceY != null && slY != null ? Math.min(riskReferenceY, slY) : null;
+  const riskHeight = riskReferenceY != null && slY != null ? Math.abs(riskReferenceY - slY) : 0;
 
   const line = (kind, field, color, label, value, draggable) => {
     const top = yFor(field);
@@ -719,38 +750,22 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
       return (
         <div className="absolute left-0 right-0 z-30" style={{ top }}>
           <div className="relative border-t border-dotted" style={{ borderColor: `${mutedColor}b5` }}>
-            <div
+            <ChartLevelBadge
+              label={kind === 'sl' ? 'Stop loss' : 'Take profit'}
+              price={formatInstrumentPrice(sourcePrice(field), instrument)}
+              amount={chartEstimateCurrencySupported(instrument, accountCurrency) ? projectedText : null}
+              percent={chartPriceChangePercent(riskReference, sourcePrice(field))}
+              color={mutedColor}
+              tooltip="Estimated P&L before execution; the actual fill can differ."
               onPointerDown={event => {
                 event.preventDefault();
                 event.stopPropagation();
                 setDragging(kind);
                 onChange({ activeField: kind, stage: `dragging-${kind}` });
               }}
-              className="pointer-events-auto absolute left-3 top-1/2 z-10 flex h-7 -translate-y-1/2 cursor-ns-resize items-stretch overflow-hidden rounded-[5px] border border-dotted bg-[#09090b]/96 font-mono text-[9px] font-medium tabular-nums shadow-[0_4px_14px_rgba(0,0,0,.28)]"
-              style={{ borderColor: `${mutedColor}b5`, color: '#d8dee5' }}
-            >
-              <span className="flex min-w-[34px] items-center justify-center px-2">{label}</span>
-              <span className="flex min-w-[44px] items-center justify-center border-l border-dotted px-2" style={{ borderColor: `${mutedColor}70` }}>{lotCompact}</span>
-              <span className="flex min-w-[82px] items-center justify-center border-l border-dotted px-2" style={{ borderColor: `${mutedColor}70`, color: mutedColor }}>{projectedText}</span>
-              <button
-                type="button"
-                onPointerDown={event => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                }}
-                onClick={event => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onChange({ [field]: null, activeField: null, stage: 'ready' });
-                }}
-                className="grid w-8 place-items-center border-l border-dotted text-[13px] font-normal text-[#8d98a3] transition hover:bg-white/[0.04] hover:text-white"
-                style={{ borderColor: `${mutedColor}70` }}
-                aria-label={`Clear ${label}`}
-                title={`Remove ${label}`}
-              >
-                ×
-              </button>
-            </div>
+              onRemove={() => onChange({ [field]: null, activeField: null, stage: 'ready' })}
+              removeLabel={`Clear ${label}`}
+            />
 
             <span
               className="absolute right-[56px] top-1/2 z-10 -translate-y-1/2 rounded-[4px] border border-dotted bg-[#09090b]/96 px-1.5 py-0.5 font-mono text-[9px] font-medium tabular-nums lg:right-2"
