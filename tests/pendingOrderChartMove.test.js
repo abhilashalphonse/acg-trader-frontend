@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildChartPendingAmendment } from '../src/utils/pendingOrderChartMove.js';
+import { buildChartPendingAmendment, isActiveChartProtection } from '../src/utils/pendingOrderChartMove.js';
 
 const order = { orderType: 'stop-limit', entry: 1.32345, limitPrice: 1.32038, sl: 1.32590, tp: 1.31726, volume: 0.10, expiration: 'GTC' };
 
@@ -34,4 +34,11 @@ test('removing placed SL/TP sends explicit null through the existing amendment c
   assert.equal(withoutTp.stopLoss, order.sl);
   assert.equal(buildChartPendingAmendment(order, null, 'entry'), null);
   assert.equal(buildChartPendingAmendment(order, null, 'limitPrice'), null);
+});
+
+test('missing or zero pending SL/TP prices are inactive; shortcut activation must create a valid level', () => {
+  for (const value of [null, undefined, '', 0, '0', Number.NaN, -0.1]) {
+    assert.equal(isActiveChartProtection(value), false);
+  }
+  assert.equal(isActiveChartProtection(1.3259), true);
 });
