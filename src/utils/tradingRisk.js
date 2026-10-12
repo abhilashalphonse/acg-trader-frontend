@@ -1,4 +1,5 @@
 import { normalizeVolumeToStep } from './tradingCommandNormalization.js';
+import { convertFreshFx } from './verifiedFxConversion.js';
 
 function accountCurrencyOf(accountCurrency) {
   return String(accountCurrency || '').trim().toUpperCase();
@@ -53,13 +54,15 @@ export function estimateRequiredMargin(price, lots, instrument, account) {
   const contractSize = finitePositive(instrument?.contractSize);
   const accountCurrency = accountCurrencyOf(account?.currency);
   const marginCurrency = String(instrument?.marginCurrency || instrument?.quoteCurrency || '').trim().toUpperCase();
-  if (!numericPrice || !numericLots || !contractSize || !accountCurrency || !marginCurrency || accountCurrency !== marginCurrency) return null;
+  if (!numericPrice || !numericLots || !contractSize || !accountCurrency || !marginCurrency) return null;
 
   const notional = numericPrice * contractSize * numericLots;
   const marginRate = finitePositive(instrument?.marginRate);
   const leverage = effectiveLeverage(account, instrument);
   const margin = marginRate ? notional * marginRate : leverage ? notional / leverage : null;
-  return Number.isFinite(margin) ? margin : null;
+  if (!Number.isFinite(margin)) return null;
+  return accountCurrency === marginCurrency ? margin
+    : convertFreshFx(margin,marginCurrency,accountCurrency,account?.conversionMarkets);
 }
 
 export function estimateCommission(price, lots, instrument, account) {
@@ -75,8 +78,12 @@ export function estimateCommission(price, lots, instrument, account) {
 
   const rate = Math.max(0, Number(instrument?.commissionRate) || 0);
   if (rate > 0) {
-    if (!numericPrice || !contractSize || !quoteCurrency || quoteCurrency !== accountCurrency) return null;
-    commission += numericPrice * contractSize * numericLots * rate;
+    if (!numericPrice || !contractSize || !quoteCurrency) return null;
+    const rateCharge = numericPrice * contractSize * numericLots * rate;
+    const converted = quoteCurrency === accountCurrency ? rateCharge
+      : convertFreshFx(rateCharge,quoteCurrency,accountCurrency,account?.conversionMarkets);
+    if (!Number.isFinite(converted)) return null;
+    commission += converted;
   }
 
   return Number.isFinite(commission) ? commission : null;
