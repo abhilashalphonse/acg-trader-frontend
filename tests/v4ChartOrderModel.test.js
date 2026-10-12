@@ -54,11 +54,11 @@ test('attached TP and SL never appear as duplicate entry chips', () => {
   assert.deepEqual(v4MissingProtections(levels.filter(level => level.kind !== 'tp'), first), ['tp']);
 });
 
-test('removing an accepted protection requires confirmation intent', () => {
+test('removing an accepted protection emits an immediate remove action', () => {
   const levels = example();
   const id = 'test-account:position:p1:tp';
   const action = v4ProtectionAction(levels, id, 'remove');
-  assert.equal(action.state, 'CONFIRM_REMOVE');
+  assert.equal(action.state, 'REMOVE');
   assert.equal(action.confirmedPrice, 81741);
   assert.equal(action.objectId, 'p1');
   assert.equal(v4ProtectionAction(levels, 'test-account:position:p1:entry', 'remove'), null);
