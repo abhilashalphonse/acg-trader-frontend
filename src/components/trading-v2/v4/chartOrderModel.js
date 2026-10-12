@@ -78,7 +78,7 @@ export function v4MissingProtections(levels, positionEntryId) {
 /** Return a safe explicit action, never a silent direct mutation. */
 export function v4ProtectionAction(levels, levelId, type) {
   const level = (levels || []).find(item => item.id === levelId);
-  if (!level || level.objectType !== 'position' || !['sl', 'tp'].includes(level.kind)) return null;
+  if (!level || !(['sl', 'tp'].includes(level.kind) || (level.objectType === 'pending' && level.kind === 'entry'))) return null;
   if (type === 'remove') return Object.freeze({ state: V4_ORDER_VISUAL_STATES.CONFIRM_REMOVE,
     accountId: level.accountId, objectId: level.objectId, kind: level.kind, confirmedPrice: level.price });
   if (type === 'edit') return Object.freeze({ state: V4_ORDER_VISUAL_STATES.DRAFT,
@@ -118,4 +118,48 @@ export function placeV4Badges(levels, { minY = 0, maxY, badgeHeight = 28, gap = 
     }
   }
   return { placements, overflow: ordered.slice(capacity).map(level => level.id) };
+}
+
+
+/**
+ * One chart owner per order/position ID. Drafts never replace server-accepted
+ * prices; new protection drafts are allowed even when no accepted TP/SL exists.
+ * No duplicated entry label is manufactured for a protection draft.
+ */
+export function projectV4DraftGroup(acceptedLevels, draft) {
+  const accepted = Array.isArray(acceptedLevels) ? acceptedLevels : [];
+  if (!draft || !positive(draft.proposedPrice)) return { accepted, preview: null, connector: null };
+  const source = accepted.find(level => level.id === draft.levelId);
+  const owner = source || accepted.find(level =>
+    level.accountId === String(draft.accountId) &&
+    level.objectType === draft.objectType &&
+    level.objectId === String(draft.objectId) &&
+    level.kind === 'entry');
+  if (!owner) return { accepted, preview: null, connector: null };
+  const kind = source?.kind || draft.kind;
+  if (!['entry', 'sl', 'tp'].includes(kind)) return { accepted, preview: null, connector: null };
+  if (!source && kind === 'entry') return { accepted, preview: null, connector: null };
+  if (draft.accountId != null && String(draft.accountId) !== owner.accountId) return { accepted, preview: null, connector: null };
+  if (draft.objectId != null && String(draft.objectId) !== owner.objectId) return { accepted, preview: null, connector: null };
+  const id = source?.id || v4LevelId({ accountId: owner.accountId, objectType: owner.objectType, objectId: owner.objectId, kind });
+  const preview = Object.freeze({
+    ...(source || owner), id: id + ':preview', sourceLevelId: source?.id ?? null,
+    kind, price: Number(draft.proposedPrice), state: V4_ORDER_VISUAL_STATES.PREVIEW,
+    lineStyle: 'dotted', objectId: owner.objectId, accountId: owner.accountId,
+  });
+  const entry = accepted.find(level => level.accountId === owner.accountId &&
+    level.objectType === owner.objectType && level.objectId === owner.objectId && level.kind === 'entry');
+  return { accepted, preview, connector: entry && kind !== 'entry' ?
+    Object.freeze({ fromPrice: entry.price, toPrice: preview.price, lineStyle: 'dotted',
+      objectId: owner.objectId, kind }) : null };
+}
+
+/** A local edit must not dispatch an amendment until Save is requested. */
+export function v4EditCommand(draft, action) {
+  if (!draft || !positive(draft.proposedPrice)) return null;
+  if (action === 'cancel') return Object.freeze({ type: 'CANCEL_LOCAL_EDIT' });
+  if (action !== 'save') return null;
+  return Object.freeze({ type: 'REQUEST_SAVE', levelId: draft.levelId ?? null,
+    accountId: draft.accountId ?? null, objectId: draft.objectId ?? null,
+    kind: draft.kind ?? null, proposedPrice: Number(draft.proposedPrice) });
 }
