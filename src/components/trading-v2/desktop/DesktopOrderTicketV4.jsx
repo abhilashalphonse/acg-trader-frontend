@@ -503,16 +503,17 @@ export default function DesktopOrderTicketV4({
       </div>
       <Capsule className="v4-mainmodes" label="Order entry type" options={modeOptions} active={family} onChange={setFamily}/>
       {family==='pending'&&<div className="v4-pending v4-block">
-        <Capsule label="Pending type" options={[[ 'limit','Limit'],['stop','Stop'],['stop-limit','Stop Limit']]}
+        <Capsule className="v4-pending-types" label="Pending type" options={[[ 'limit','Limit'],['stop','Stop'],['stop-limit','Stop Limit']]}
           active={orderType} onChange={setPendingType}/>
-        <label className="v4-inline-setting">Entry price
-          <PendingPriceInput label="Pending entry price" price={effective?.entry} instrument={market} disabled={!tradePlan}
+        <label className="v4-inline-setting">{orderType==='stop-limit'?'Stop trigger':'Entry price'}
+          <PendingPriceInput label={orderType==='stop-limit'?'Stop trigger price':'Pending entry price'} price={effective?.entry} instrument={market} disabled={!tradePlan}
             onCommit={entry=>onTradePlanChange({entry,stage:'ready'})} onNotice={notice}/>
         </label>
         {orderType==='stop-limit'&&<label className="v4-inline-setting">Limit price
           <PendingPriceInput label="Stop-limit execution price" price={effective?.limitPrice} instrument={market} disabled={!tradePlan}
             onCommit={limitPrice=>onTradePlanChange({limitPrice,stage:'ready'})} onNotice={notice}/>
         </label>}
+        {orderType==='stop-limit'&&<span className="v4-pending-note">The stop price activates a limit order. The limit is the maximum buy / minimum sell execution price; fills are not guaranteed.</span>}
       </div>}
       <div className="v4-position v4-block">
         <div className="v4-section-heading"><span>POSITION</span><span>{Number.isFinite(effectiveLeverage(account,market))?fmt(effectiveLeverage(account,market),0)+'x':'—'} <ChevronDown size={13}/></span></div>
