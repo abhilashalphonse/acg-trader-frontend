@@ -63,12 +63,14 @@ function formatPositionLots(value) {
 
 // Single desktop label treatment shared by draft, accepted pending and live position levels.
 // Visual status changes the line style; we intentionally do not add "planned" wording.
+// Reserve 148px at the chart's right edge for the price scale plus
+// live BID/ASK titles. The separate price markers retain their exact line.
 function ChartLevelBadge({ label, price, amount = null, percent = null, color = '#aab8c5', onPointerDown, onClick, onRemove, removeLabel = 'Remove level', tooltip = null }) {
   const isInteractive = Boolean(onPointerDown || onClick);
   return (
     <div
       data-v4-chart-badge
-      className={`pointer-events-auto absolute right-[92px] top-1/2 z-20 flex h-7 max-w-[calc(100%-106px)] -translate-y-1/2 items-center gap-2 overflow-hidden rounded-[5px] border bg-[#111419]/96 px-2 font-mono text-[10px] font-semibold tabular-nums shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
+      className={`pointer-events-auto absolute right-[148px] top-1/2 z-20 flex h-7 max-w-[calc(100%-162px)] -translate-y-1/2 items-center gap-2 overflow-hidden rounded-[5px] border bg-[#111419]/96 px-2 font-mono text-[10px] font-semibold tabular-nums shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
       style={{ borderColor: `${color}aa` }}
       onPointerDown={onPointerDown}
       onClick={onClick}
@@ -94,7 +96,7 @@ function ChartOrderEntryRow({ side, type, lots, color, showTp = false, showSl = 
   return (
     <div
       data-v4-chart-entry
-      className={`pointer-events-auto absolute right-[92px] top-1/2 z-20 flex h-7 max-w-[calc(100%-106px)] -translate-y-1/2 items-center overflow-hidden rounded-[5px] border bg-[#111419]/96 font-mono text-[10px] font-semibold tabular-nums text-[#e4e9ed] shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
+      className={`pointer-events-auto absolute right-[148px] top-1/2 z-20 flex h-7 max-w-[calc(100%-162px)] -translate-y-1/2 items-center overflow-hidden rounded-[5px] border bg-[#111419]/96 font-mono text-[10px] font-semibold tabular-nums text-[#e4e9ed] shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
       style={{ borderColor: `${color}aa` }}
       title={title || undefined}
       onPointerDown={onPointerDown}
