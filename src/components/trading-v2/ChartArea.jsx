@@ -408,6 +408,8 @@ export function PendingOrderOverlay({
                 setDraggingField(kind);
               }}
               onClick={event => { event.stopPropagation(); if (!consumeSuppressedPlacedClick(order.id, kind)) onModify(order.id, kind); }}
+              onRemove={() => onMove(order.id, null, kind)}
+              removeLabel={`Remove pending ${label}`}
             />
           ) : <span className="absolute left-3 top-1/2 -translate-y-1/2 rounded-[4px] border bg-[#09090b]/94 px-1.5 py-0.5 text-[8px] font-black" style={{ borderColor: `${color}70`, color }}>{label}</span>}
           <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 font-mono text-[8px] font-bold tabular-nums" style={{ borderColor: `${color}88`, backgroundColor: kind === 'sl' ? '#5b1721' : '#0b4b37', color: '#ffffff' }}>
