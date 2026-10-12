@@ -25,10 +25,9 @@ export default function V4ChartOrderLayer({
   accountId, symbol, positions = [], pendingOrders = [], coordinateApi,
   height = 480, formatPrice, formatVolume, formatPnl, instrument = null, accountCurrency = 'USD',
   hidePositionEntries = false, readOnly = false, hoveredPositionId = null,
-  edit = null, saving = false, onBeginEdit, onChangeEdit, onSaveEdit, onCancelEdit,
+  edit = null, saving = false, removingLevelId = null, onBeginEdit, onChangeEdit, onSaveEdit, onCancelEdit,
   onConfirmRemoval, onAddProtection, onSelectPosition, onClosePosition, onCancelPending,
 }) {
-  const [removeLevel, setRemoveLevel] = useState(null);
   const drag = useRef(null);
   useEffect(() => { drag.current = null; }, [accountId, symbol, readOnly]);
   useEffect(() => {
@@ -83,7 +82,6 @@ export default function V4ChartOrderLayer({
       ? '— ' + currency : (estimate >= 0 ? '+' : '-') + Math.abs(estimate).toFixed(2) + ' ' + currency;
     return { volume, amount };
   };
-  const selected = removeLevel && accepted.find(level=>level.id===removeLevel);
   const canRemove = Boolean(onConfirmRemoval);
   const [cancelPendingId, setCancelPendingId] = useState(null);
   const protectionTheme = kind => kind === 'tp'
@@ -155,8 +153,18 @@ export default function V4ChartOrderLayer({
             className="shrink-0 rounded-[3px] border border-gray-600 px-1" aria-label={`Add ${kind.toUpperCase()}`}>+{kind.toUpperCase()}</button>)}
           {(['sl','tp'].includes(level.kind) || (level.objectType==='pending' && level.kind==='entry'))&&onBeginEdit&&!marketProtection&&<button type="button" className="shrink-0 px-1"
             aria-label={`Edit ${level.kind.toUpperCase()}`} onClick={()=>onBeginEdit(v4ProtectionAction(accepted,level.id,'edit'))}>Edit</button>}
-          {(['sl','tp'].includes(level.kind))&&canRemove&&<button type="button" aria-label={`Confirm removal of ${level.kind.toUpperCase()}`}
-            className={marketProtection ? 'grid h-7 w-6 shrink-0 place-items-center border-l border-white/10 text-[#99a6b0] hover:bg-white/[0.06] hover:text-white' : 'shrink-0 px-1'} onClick={()=>setRemoveLevel(level.id)}>×</button>}
+          {(['sl','tp'].includes(level.kind))&&canRemove&&<button type="button"
+            aria-label={`Remove ${level.kind.toUpperCase()}`}
+            title={removingLevelId===level.id ? 'Removing…' : `Remove ${level.kind.toUpperCase()}`}
+            disabled={saving || Boolean(removingLevelId)}
+            data-v4-remove-protection={level.id}
+            className={marketProtection ? 'grid h-7 w-6 shrink-0 place-items-center border-l border-white/10 text-[#99a6b0] hover:bg-white/[0.06] hover:text-white disabled:cursor-wait disabled:opacity-50' : 'shrink-0 px-1 disabled:opacity-50'}
+            onPointerDown={event=>event.stopPropagation()}
+            onClick={event=>{
+              event.stopPropagation();
+              const action = v4ProtectionAction(accepted,level.id,'remove');
+              if(action) onConfirmRemoval?.(action);
+            }}>{removingLevelId===level.id ? '…' : '×'}</button>}
         </div>}
         {marketProtection && <div data-v4-accepted-protection-price={level.id}
           className="pointer-events-none absolute right-[56px] flex -translate-y-1/2 items-center gap-1.5 lg:right-2"
@@ -239,14 +247,6 @@ export default function V4ChartOrderLayer({
       <div className="flex gap-2">
         <button type="button" disabled={saving} onClick={()=>setCancelPendingId(null)}>Discard</button>
         <button type="button" disabled={saving} onClick={()=>{ const item=accepted.find(level=>level.id===cancelPendingId); if(item) onCancelPending?.(item.objectId); setCancelPendingId(null); }}>Confirm cancellation</button>
-      </div>
-    </div>}
-    {!readOnly && selected && <div role="dialog" aria-modal="true" aria-label={`Confirm remove ${selected.kind.toUpperCase()}`}
-      className="pointer-events-auto absolute bottom-3 right-[148px] z-[60] flex max-w-[300px] flex-col gap-2 rounded-md border border-gray-600 bg-[#111419] p-3 text-[11px] text-white">
-      <span>Remove {selected.kind.toUpperCase()} at {priceLabel(selected.price,formatPrice)}?</span>
-      <div className="flex gap-2">
-        <button type="button" disabled={saving} onClick={()=>setRemoveLevel(null)}>Cancel</button>
-        <button type="button" disabled={saving} onClick={()=>{onConfirmRemoval?.(v4ProtectionAction(accepted,selected.id,'remove'));setRemoveLevel(null);}}>Confirm removal</button>
       </div>
     </div>}
   </div>;
