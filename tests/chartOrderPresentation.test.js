@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chartLineStyle, chartEntryReference, chartPriceChangePercent, chartEstimateCurrencySupported } from '../src/utils/chartOrderPresentation.js';
+import { chartLineStyle, chartEntryReference, chartPriceChangePercent, chartEstimateCurrencySupported, isChartOrderAuditEnabled } from '../src/utils/chartOrderPresentation.js';
 
 test('draft or temporary edits use dotted levels while accepted orders and positions stay solid', () => {
   assert.equal(chartLineStyle({ draft: true }), 'dotted');
@@ -25,4 +25,13 @@ test('price distance is a price percentage rather than a percentage of equity', 
 test('cross-currency projected amounts are not mislabelled with account currency', () => {
   assert.equal(chartEstimateCurrencySupported({ quoteCurrency: 'USD' }, 'USD'), true);
   assert.equal(chartEstimateCurrencySupported({ quoteCurrency: 'INR' }, 'USD'), false);
+});
+
+test('V4 in-chart changes require both the deployment gate and exact audit URL flag', () => {
+  assert.equal(isChartOrderAuditEnabled('true', '?acg_v4_audit=1'), true);
+  assert.equal(isChartOrderAuditEnabled('false', '?acg_v4_audit=1'), false);
+  assert.equal(isChartOrderAuditEnabled(undefined, '?acg_v4_audit=1'), false);
+  assert.equal(isChartOrderAuditEnabled('true', ''), false);
+  assert.equal(isChartOrderAuditEnabled('true', '?acg_v4_audit=0'), false);
+  assert.equal(isChartOrderAuditEnabled('true', '?acg_v4_audit=1&foo=bar'), true);
 });
