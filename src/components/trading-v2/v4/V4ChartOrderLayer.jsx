@@ -11,6 +11,15 @@ import { chartEstimateCurrencySupported } from '../../../utils/chartOrderPresent
 // coordinates and command handlers after authenticated staging acceptance.
 const COLORS = Object.freeze({ sl:'#ee5465', tp:'#16c590', buy:'#17b899', sell:'#ee596a', neutral:'#aab6c2' });
 const priceLabel = (value, formatPrice) => formatPrice ? formatPrice(value) : String(value);
+// Keep the instrument's exact decimal precision while grouping large prices
+// the same way as the approved TP/SL reference chip.
+const protectionPriceLabel = (value, formatPrice) => {
+  const label = String(priceLabel(value, formatPrice));
+  const match = /^(-?)(\\d+)(\\.\\d+)?$/.exec(label);
+  return match
+    ? match[1] + Number(match[2]).toLocaleString('en-US') + (match[3] || '')
+    : label;
+};
 
 export default function V4ChartOrderLayer({
   accountId, symbol, positions = [], pendingOrders = [], coordinateApi,
@@ -124,7 +133,7 @@ export default function V4ChartOrderLayer({
             <span data-v4-drag-handle={level.id} aria-label={`Drag ${level.kind.toUpperCase()} level`}
               className="shrink-0 cursor-ns-resize touch-none px-1.5 text-[#7c8994]" title={`Drag ${level.kind.toUpperCase()}`}>⠿</span>
             <span className="shrink-0 whitespace-nowrap font-sans text-[10px] font-semibold" style={{color}}>{level.kind==='tp'?'Take profit':'Stop loss'}</span>
-            <span className="shrink-0 px-1.5 text-[#e5ebf0]">{priceLabel(level.price,formatPrice)}</span>
+            <span className="shrink-0 px-1.5 text-[#e5ebf0]">{protectionPriceLabel(level.price,formatPrice)}</span>
             <span className="shrink-0 rounded-[3px] px-1.5 py-0.5 font-semibold" style={{color,backgroundColor:color+'22'}}>{projection.amount}</span>
             <span className="shrink-0 pr-1 font-sans text-[9px] text-[#919ba6]">{percent}</span>
           </> : <span className="shrink-0 font-semibold" style={{color}}>{level.kind==='sl'?'Stop loss':level.kind==='tp'?'Take profit':level.side+' '+(level.objectType==='pending'?' '+(level.orderType||'').toUpperCase():'')}</span>}
@@ -192,7 +201,7 @@ export default function V4ChartOrderLayer({
             <span data-v4-drag-handle="draft" aria-label={`Drag draft ${ghost.kind.toUpperCase()}`}
               className="shrink-0 cursor-ns-resize touch-none px-1.5 text-[#7c8994]">⠿</span>
             <span className="shrink-0 whitespace-nowrap font-sans text-[10px] font-semibold" style={{color:colorFor(ghost)}}>{ghost.kind==='tp'?'Take profit':'Stop loss'}</span>
-            <span className="shrink-0 px-1.5 text-[#e5ebf0]">{priceLabel(ghost.price,formatPrice)}</span>
+            <span className="shrink-0 px-1.5 text-[#e5ebf0]">{protectionPriceLabel(ghost.price,formatPrice)}</span>
             <span className="shrink-0 rounded-[3px] px-1.5 py-0.5 font-semibold" style={{color:colorFor(ghost),backgroundColor:colorFor(ghost)+'22'}}>{projection.amount}</span>
             <span className="shrink-0 pr-1 font-sans text-[9px] text-[#919ba6]">{percent}</span>
             <button type="button" aria-label="Discard protection draft" disabled={saving} onClick={()=>onCancelEdit?.()}
