@@ -118,6 +118,27 @@ createRoot(document.getElementById('pending-chart-fixture')).render(
   />
 );
 createRoot(document.getElementById('position-chart-fixture')).render(<PositionFixture/>);
+// When adding/editing protection on an OPEN position, the temporary draft
+// should use the same rich V4 badge as an accepted protection, but remain dotted.
+const editBase={
+  positionId:'position-smoke-a', symbol:'BTCUSD', side:'sell',
+  source:'open-position', entry:83000, sl:83200, tp:82500,
+  sizingMode:'lots', pending:false, open:false, manualLots:0.01,
+};
+createRoot(document.getElementById('protection-draft-fixture')).render(<>
+  <TradePlanOverlay
+    plan={{...editBase,activeField:'tp',tp:82400,stage:'draft'}}
+    onChange={()=>{}} coordinateApi={coordinateApi} instrument={DEMO}
+    account={ACCOUNT} lots={0.01} accountCurrency="USD"
+    showEntry={false} desktopStyle
+  />
+  <TradePlanOverlay
+    plan={{...editBase,activeField:'sl',sl:83300,stage:'draft'}}
+    onChange={()=>{}} coordinateApi={coordinateApi} instrument={DEMO}
+    account={ACCOUNT} lots={0.01} accountCurrency="USD"
+    showEntry={false} desktopStyle
+  />
+</>);
 
 const sleep=milliseconds=>new Promise(resolve=>setTimeout(resolve,milliseconds));
 const findMode=(ticket,text)=>Array.from(ticket.querySelectorAll('.v4-position-modes button'))
@@ -134,6 +155,22 @@ async function run(){
  const pendingChart=document.getElementById('pending-chart-fixture');
  pendingChart.style.width='435px';
  const liveChart=document.getElementById('position-chart-fixture');
+ const protectionDraft=document.getElementById('protection-draft-fixture');
+ const draftBadges=Array.from(protectionDraft.querySelectorAll('[data-v4-chart-badge]'));
+ const draftTp=draftBadges.find(badge=>badge.textContent.includes('Take profit'));
+ const draftSl=draftBadges.find(badge=>badge.textContent.includes('Stop loss'));
+ if(draftBadges.length!==2||!draftTp||!draftSl)
+   failed.push('Open-position TP/SL edit does not render exactly one full rich badge per active draft');
+ for(const [badge,name] of [[draftTp,'TP'],[draftSl,'SL']]){
+   if(!badge)continue;
+   const caption=badge.textContent;
+   if(!/\d{5}\.\d{2}/.test(caption)||!caption.includes('USD')||!caption.includes('%'))
+     failed.push(name+' draft badge missing price, estimated P&L or percentage');
+   if(!badge.parentElement?.classList.contains('border-dotted'))
+     failed.push(name+' open-position draft line was not dotted');
+ }
+ if(protectionDraft.querySelector('button .rounded-full')||protectionDraft.querySelector('button > .rounded-full'))
+   failed.push('Legacy circular TP/SL drag handle still rendered in desktop V4');
  const allLiveRows=Array.from(liveChart.querySelectorAll('[data-v4-chart-badge]'));
  const entryBadges=allLiveRows.filter(b=>b.textContent.includes('SELL')||b.textContent.includes('BUY'));
  const sellEntry=entryBadges.find(b=>b.textContent.includes('SELL 0.01'));
