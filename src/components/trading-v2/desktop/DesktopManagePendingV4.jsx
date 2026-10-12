@@ -41,6 +41,7 @@ export default function DesktopManagePendingV4({
   const margin=positive(estimateRequiredMargin(execution,volume,instrument,account));
   const working=busy||Boolean(waiting);
   const status=String(order?.status||'PENDING').toUpperCase();
+  const isActiveOrder=['PENDING','ACCEPTED','TRIGGERED'].includes(status);
   const plan={side:side.toLowerCase(),entry:execution,sl,tp,symbol:order?.symbol,pending:true,
     sizingMode:'lots',manualLots:volume};
   useEffect(()=>{setBusy(false);setWaiting(null);setError('');setCancelConfirmation(false);},[order?.id,account?.id]);
@@ -65,7 +66,7 @@ export default function DesktopManagePendingV4({
   },[waiting]);
 
   const propose=(kind,raw)=>{
-    if(working||readOnly||status!=='PENDING')return;
+    if(working||readOnly||!isActiveOrder)return;
     const next=positive(raw);
     if(next==null)return;
     const price=Number(next.toPrecision(12));
@@ -196,7 +197,7 @@ export default function DesktopManagePendingV4({
           onClick={()=>{onDiscard();setError('');}}>Discard</button>
           <button type="button" className="v4-manage-confirm" disabled={working||readOnly}
             onClick={confirm}>{working?'Confirming…':'Confirm'}</button></>:
-          <button type="button" className="v4-manage-close" disabled={working||readOnly||status!=='PENDING'}
+          <button type="button" className="v4-manage-close" disabled={working||readOnly||!isActiveOrder}
             onClick={()=>setCancelConfirmation(true)}>Cancel Order</button>}
       </div>
       {cancelConfirmation&&<div role="dialog" aria-label="Confirm order cancellation" className="v4-manage-close-dialog">
