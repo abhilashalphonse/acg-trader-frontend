@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildChartPendingAmendment, isActiveChartProtection } from '../src/utils/pendingOrderChartMove.js';
+import { buildChartPendingAmendment, isActiveChartProtection, pendingProtectionPatchValue } from '../src/utils/pendingOrderChartMove.js';
 
 const order = { orderType: 'stop-limit', entry: 1.32345, limitPrice: 1.32038, sl: 1.32590, tp: 1.31726, volume: 0.10, expiration: 'GTC' };
 
@@ -41,4 +41,11 @@ test('missing or zero pending SL/TP prices are inactive; shortcut activation mus
     assert.equal(isActiveChartProtection(value), false);
   }
   assert.equal(isActiveChartProtection(1.3259), true);
+});
+
+test('explicit null protection is preserved through request construction', () => {
+  assert.equal(pendingProtectionPatchValue({ stopLoss: null, sl: 1.2 }, 'stopLoss', 'sl'), null);
+  assert.equal(pendingProtectionPatchValue({ takeProfit: null, tp: 1.5 }, 'takeProfit', 'tp'), null);
+  assert.equal(pendingProtectionPatchValue({ sl: 1.3 }, 'stopLoss', 'sl'), 1.3);
+  assert.equal(pendingProtectionPatchValue({}, 'stopLoss', 'sl'), undefined);
 });
