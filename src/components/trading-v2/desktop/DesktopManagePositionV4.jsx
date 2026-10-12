@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, ChevronDown, ChevronUp, X } from 'lucide-react';
+import InstrumentAvatar from '../InstrumentAvatar.jsx';
 import './DesktopManagePositionV4.css';
 import { formatInstrumentPrice } from '../../../utils/instrumentFormatting.js';
 import { estimatePositionPnlAtPrice } from '../../../utils/tradingRisk.js';
@@ -104,9 +105,9 @@ export default function DesktopManagePositionV4({
     <div className="v4-ticket-body">
       {/* Match the existing ticket header. Only the selected position context changes. */}
       <div className="v4-instrument">
-        <div className="v4-coin v4-manage-instrument-avatar" aria-hidden="true">
-          {String(position?.symbol||'').slice(0,2).toUpperCase()}
-        </div>
+        <span data-v4-manage-instrument-avatar className="shrink-0">
+          <InstrumentAvatar instrument={instrument} size={32}/>
+        </span>
         <div className="v4-symbol">
           <strong>{instrument?.displaySymbol || position?.symbol || '—'}</strong>
           <span>Open position · {side}</span>
