@@ -54,7 +54,7 @@ export default function V4ChartOrderLayer({
           {level.kind!=='entry' && <span className="shrink-0">{priceLabel(level.price,formatPrice)}</span>}
           {level.kind==='entry' && level.objectType==='position' && formatPnl && <span className="truncate" style={{color}}>{formatPnl(level.pnl)}</span>}
           {missing.map(kind=><button key={kind} type="button" onClick={()=>onAddProtection?.(level.objectId,kind)}
-            className="shrink-0 rounded-[3px] border border-gray-600 px-1" aria-label={`Add ${kind.toUpperCase()}`}>+${kind.toUpperCase()}</button>)}
+            className="shrink-0 rounded-[3px] border border-gray-600 px-1" aria-label={`Add ${kind.toUpperCase()}`}>+{kind.toUpperCase()}</button>)}
           {(['sl','tp'].includes(level.kind))&&onBeginEdit&&<button type="button" className="shrink-0 px-1"
             aria-label={`Edit ${level.kind.toUpperCase()}`} onClick={()=>onBeginEdit(v4ProtectionAction(accepted,level.id,'edit'))}>Edit</button>}
           {(['sl','tp'].includes(level.kind))&&canRemove&&<button type="button" aria-label={`Confirm removal of ${level.kind.toUpperCase()}`}
