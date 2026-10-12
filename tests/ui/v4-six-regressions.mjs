@@ -75,6 +75,7 @@ try{
  assert.ok(Math.abs(previewBox.y-positionBox.y)>20,'TP draft must have its own independent price level');
  assert.match(await page.locator('[data-v4-draft-badge]').innerText(),/0\\.01/);
  assert.ok(await page.locator('[data-v4-protection-draft-price]').count()===1);
+ assert.match(await page.locator('[data-v4-draft-badge]').innerText(),/[+]5[.]00 USD/,'TP draft should use projected P&L, not an unrelated price label');
  assert.equal(await page.locator('[data-v4-draft-shade="tp"]').count(),1);
  assert.equal(await page.locator('[data-v4-draft-connector]').count(),1);
  await page.locator('button[aria-label="Add SL to BUY position"]').click();
