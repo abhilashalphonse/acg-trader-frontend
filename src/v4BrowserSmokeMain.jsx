@@ -146,6 +146,26 @@ async function run(){
    if(f.bottom>p.bottom+1||f.bottom<p.bottom-5)failed.push('footer not pinned');
  }
  if(!selected||getComputedStyle(selected).backgroundColor!=='rgb(247, 247, 248)')failed.push('white capsule missing');
+ // A single order-type row replaces the old Market/Pending + Pending Type stack.
+ const orderRow=ticket.querySelector('[aria-label="Order type"]');
+ const orderButtons=Array.from(orderRow?.querySelectorAll('button')||[]);
+ if(orderButtons.map(button=>button.textContent.trim()).join('|')!=='Market|Limit|Stop')
+   failed.push('Expected one Market / Limit / Stop order selector');
+ if(ticket.querySelector('[aria-label="Pending type"]'))failed.push('Legacy nested pending selector still visible');
+ if(orderButtons.some(button=>button.textContent.includes('Stop Limit')))
+   failed.push('Stop Limit unexpectedly selectable for new orders');
+ orderButtons.find(button=>button.textContent.trim()==='Limit')?.click();
+ await sleep(100);
+ if(!ticket.querySelector('input[aria-label="Pending entry price"]'))
+   failed.push('Limit mode did not show pending entry price');
+ orderButtons.find(button=>button.textContent.trim()==='Stop')?.click();
+ await sleep(100);
+ if(!ticket.querySelector('input[aria-label="Pending entry price"]'))
+   failed.push('Stop mode did not show trigger entry price');
+ orderButtons.find(button=>button.textContent.trim()==='Market')?.click();
+ await sleep(100);
+ if(ticket.querySelector('input[aria-label="Pending entry price"]'))
+   failed.push('Market mode retained a pending entry input');
  // The instrument's hard 1000-lot cap must not be a direct track axis.
  const slider=ticket.querySelector('input[aria-label="Position size slider"]');
  const ticks=Array.from(ticket.querySelectorAll('.v4-scale span'));
