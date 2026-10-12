@@ -35,6 +35,7 @@ export default function DesktopManagePositionV4({
   const [pendingRemoval,setPendingRemoval]=useState(null);
   const [closeRequest,setCloseRequest]=useState(null);
   const [trailOpen,setTrailOpen]=useState(false);
+  const [partialOpen,setPartialOpen]=useState(false);
   const [actionBusy,setActionBusy]=useState(false);
   const match=Boolean(protectionDraft &&
     String(protectionDraft.positionId)===String(position?.id) &&
@@ -70,7 +71,7 @@ export default function DesktopManagePositionV4({
   const marginLabel=marginAccepted!=null?'Margin used':'Estimated margin';
   const canBreakEven=entry!=null&&Number.isFinite(price)&&(side==='BUY'?price>entry:price<entry);
   const working=busy||protectionSaving||actionBusy;
-  useEffect(()=>{setBusy(false);setActionBusy(false);setError('');setPendingRemoval(null);setCloseRequest(null);setTrailOpen(false);},[position?.id]);
+  useEffect(()=>{setBusy(false);setActionBusy(false);setError('');setPendingRemoval(null);setCloseRequest(null);setTrailOpen(false);setPartialOpen(false);},[position?.id]);
   const start=field=>{
     if(readOnly||working)return false;
     setError('');
@@ -129,8 +130,13 @@ export default function DesktopManagePositionV4({
   const confirmClose=async()=>{
     const percent=closeRequest;
     if(percent==null||!canClose||working)return;
-    await act(async()=>onClosePosition(position.id,percent),'Position close was not accepted.');
-    setCloseRequest(null);
+    setActionBusy(true);setError('');
+    try {
+      const ok=await onClosePosition(position.id,percent);
+      if(ok===false){setError('Position close was not accepted.');return;}
+      setCloseRequest(null);setPartialOpen(false);
+    } catch(e){setError(e?.message||'Position close was not accepted.');}
+    finally {setActionBusy(false);}
   };
   return <section className="v4-ticket v4-live-scope v4-manage-position"
     aria-label="Manage open position" data-v4-manage-position={positionId}>
@@ -161,7 +167,6 @@ export default function DesktopManagePositionV4({
       </div>
 
       <div className="v4-position v4-block">
-        <div className="v4-section-heading"><span>POSITION</span></div>
         <div className="v4-manage-position-values">
           <div className="v4-manage-position-size">
             <span className="v4-manage-stat-label">POSITION SIZE</span>
@@ -212,7 +217,10 @@ export default function DesktopManagePositionV4({
             onClick={()=>setTrailOpen(open=>!open)}>
             {position.trailingEnabled?'Trailing stop · '+(position.trailingPips||5)+' pips':'Trailing SL'}
           </button>
-          <button type="button" disabled={!canClose||working||Boolean(match)} onClick={()=>close(50)}>
+          <button type="button" disabled={!canClose||working||Boolean(match)}
+            aria-expanded={partialOpen} aria-controls="v4-partial-close-options"
+            className={partialOpen?'is-selected':''}
+            onClick={()=>{setTrailOpen(false);setPartialOpen(v=>!v);}}>
             Partial close
           </button>
           {trailOpen&&<div className="v4-manage-action-options" data-v4-trailing-options>
@@ -223,11 +231,11 @@ export default function DesktopManagePositionV4({
               onClick={()=>{setTrailOpen(false);act(()=>onSetTrailing(position.id,false,position.trailingPips||5),'Could not disable trailing stop.');}}>
               Disable</button>}
           </div>}
-          <div className="v4-manage-action-options" data-v4-partial-close-options>
+          {partialOpen&&<div id="v4-partial-close-options" className="v4-manage-action-options" data-v4-partial-close-options>
             {[25,50,75].map(percent=><button type="button" key={percent}
               disabled={!canClose||working||Boolean(match)} onClick={()=>close(percent)}>
               Close {percent}%</button>)}
-          </div>
+          </div>}
         </div>}
       </div>
       {pendingRemoval&&<div className="v4-notice" role="status">Removing {pendingRemoval.toUpperCase()}…</div>}
@@ -244,27 +252,25 @@ export default function DesktopManagePositionV4({
         <div><span>{marginLabel}</span><strong>{displayedMargin!=null?number(displayedMargin)+' '+(account?.currency||'USD'):'—'}</strong></div>
       </div>
       <div className="v4-trade-actions v4-manage-trade-actions">
-        {match ? <>
+        {closeRequest!=null?<div role="dialog" aria-label="Confirm position close"
+          className="v4-manage-inline-confirm">
+          <span className="v4-manage-confirm-hint">{closeRequest===100?'Close the full position?':'Close '+closeRequest+'% of this position?'}</span>
+          <div className="v4-manage-confirm-buttons">
+            <button type="button" className="v4-manage-discard" disabled={working}
+              onClick={()=>setCloseRequest(null)}>Cancel</button>
+            <button type="button" className="v4-manage-danger" disabled={working}
+              onClick={confirmClose}>{actionBusy?'Closing…':'Confirm Close'}</button>
+          </div>
+        </div>:match ? <>
           <button type="button" className="v4-manage-discard"
-            onClick={discard} disabled={working} aria-label="Discard position protection">
-            Discard
-          </button>
+            onClick={discard} disabled={working} aria-label="Discard position protection">Discard</button>
           <button type="button" className="v4-manage-confirm"
             onClick={confirm} disabled={working||readOnly} aria-label="Confirm position protection">
-            {working?'Confirming…':'Confirm'}
-          </button>
+            {working?'Confirming…':'Confirm'}</button>
         </> : <button type="button" className="v4-manage-close"
           onClick={()=>close(100)} disabled={working||!canClose}
-          title={!canClose?closeAvailability.reason:'Close selected position'}>
-          Close Position
-        </button>}
+          title={!canClose?closeAvailability.reason:'Close selected position'}>Close Position</button>}
       </div>
-      {closeRequest!=null&&<div role="dialog" aria-label="Confirm position close"
-        className="v4-manage-close-dialog">
-        <span>{closeRequest===100?'Close the full position?':'Close '+closeRequest+'% of this position?'}</span>
-        <div><button type="button" disabled={working} onClick={()=>setCloseRequest(null)}>Keep Position</button>
-          <button type="button" disabled={working} onClick={confirmClose}>Confirm Close</button></div>
-      </div>}
     </div>
   </section>;
 }

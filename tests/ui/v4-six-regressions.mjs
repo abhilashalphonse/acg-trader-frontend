@@ -115,6 +115,7 @@ try{
  eq(await page.locator('[data-v4-manage-position]').count(),0);
  eq(await page.locator('[data-v4-manage-pending="o2"] input[aria-label="Stop trigger price"]').count(),1);
  eq(await page.locator('[data-v4-manage-pending="o2"] input[aria-label="Limit boundary price"]').count(),1);
+ eq(await page.locator('[data-v4-manage-pending="o2"] .v4-manage-pending-metrics > div').count(),2);
 
  // Drag Stop-Limit trigger. The accepted trigger and limit remain solid while
  // two dotted proposed levels move in lockstep; no command until Confirm.
@@ -152,8 +153,16 @@ try{
   'Pending context relies on Back/Close rather than redundant mode switch');
  eq(await pending.getByRole('button',{name:/^(BUY|SELL) /}).count(),0);
  ok((await pending.innerText()).includes('Estimated margin on fill'));
+ eq(await pending.getByText('Order size',{exact:true}).count(),1,'pending size appears once');
+ eq(await pending.getByText('Estimated margin on fill',{exact:true}).count(),1,'pending margin appears once');
+ eq(await pending.getByText('Order status',{exact:true}).count(),0,'no duplicate status slab');
+ eq(await pending.getByText('ORDER ACTIONS',{exact:true}).count(),0,'no duplicate metadata disclosure');
+ eq(await pending.getByText('Order type',{exact:true}).count(),0,'order type is in header only');
+ eq(await pending.locator('.v4-ratio-slab').count(),0,'no redundant slab');
+ eq(await pending.locator('.v4-margin-summary').count(),0,'pending footer only shows actions');
  await pending.getByRole('button',{name:'Cancel Order'}).click();
  eq(await pending.getByRole('dialog',{name:'Confirm order cancellation'}).count(),1);
+ eq(await pending.locator('.v4-manage-close-dialog').count(),0,'no oversized pending confirmation');
  await pending.getByRole('button',{name:'Keep Order'}).click();
  eq(await page.evaluate(()=>window.v4QA.orders.length),2,'cancel confirmation can be dismissed');
 
@@ -193,7 +202,9 @@ try{
  eq(await manage.locator('.v4-instrument .v4-manage-header-context').count(),1,'single contextual side/status line');
  eq(await manage.locator('.v4-quote-strip').count(),1,'retain compact prices and return');
  eq(await manage.locator('.v4-quote-strip > span').count(),3);
- eq(await manage.locator('.v4-section-heading').first().innerText(),'POSITION');
+ eq(await manage.locator('.v4-section-heading').filter({hasText:/^POSITION$/}).count(),0,
+   'no redundant position heading');
+ eq(await manage.getByText('POSITION SIZE',{exact:true}).count(),1);
  eq(await manage.getByRole('button',{name:'Back to new order'}).count(),1);
  eq(await manage.locator('.v4-manage-new-order').count(),0,'no redundant bottom New Order');
  eq(await manage.locator('.v4-manage-close').count(),1,'idle footer is Close Position');
@@ -208,12 +219,23 @@ try{
  await manage.getByRole('button',{name:'Trailing SL'}).click();
  await manage.locator('[data-v4-trailing-options]').getByRole('button',{name:'10 pips'}).click();
  await page.waitForFunction(()=>window.v4QA.actionCommands.some(x=>x.kind==='trail'&&x.pips===10));
+ eq(await manage.locator('[data-v4-partial-close-options]').count(),0,
+   'percentage buttons hidden before partial close is requested');
  await manage.getByRole('button',{name:'Partial close'}).click();
+ eq(await manage.getByRole('dialog',{name:'Confirm position close'}).count(),0,
+   'Partial Close must not implicitly close 50%');
+ eq(await manage.locator('[data-v4-partial-close-options] button').count(),3);
+ eq(await page.evaluate(()=>window.v4QA.actionCommands.filter(x=>x.kind==='close').length),0);
+ await manage.getByRole('button',{name:'Close 25%'}).click();
  eq(await manage.getByRole('dialog',{name:'Confirm position close'}).count(),1);
- await manage.getByRole('button',{name:'Keep Position'}).click();
+ ok((await manage.getByRole('dialog',{name:'Confirm position close'}).innerText()).includes('25%'),
+   'confirm exact chosen percentage');
+ await manage.getByRole('button',{name:'Cancel',exact:true}).click();
  eq(await page.evaluate(()=>window.v4QA.actionCommands.filter(x=>x.kind==='close').length),0);
  await manage.locator('.v4-manage-close').click();
  eq(await manage.getByRole('dialog',{name:'Confirm position close'}).count(),1);
+ eq(await manage.locator('.v4-manage-close').count(),0,'Close Position CTA replaced during confirmation');
+ eq(await manage.locator('.v4-manage-close-dialog').count(),0,'no oversized close confirmation card');
  await manage.getByRole('button',{name:'Confirm Close'}).click();
  await page.waitForFunction(()=>window.v4QA.actionCommands.some(x=>x.kind==='close'&&x.percent===100));
 

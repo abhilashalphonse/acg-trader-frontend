@@ -149,40 +149,77 @@
   .v4-ticket.v4-manage-position .v4-quote-strip strong { font-size: 10px; }
 }
 
-/* Position and pending management ONLY. No selector reaches the new-order ticket. */
+/* Management-only controls share V4 Trade Execution density and geometry. */
 .v4-ticket.v4-manage-position .v4-manage-actions {
-  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;
-  padding:8px 0 0;
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;padding:5px 0 0;
 }
 .v4-ticket.v4-manage-position .v4-manage-actions > button,
 .v4-ticket.v4-manage-position .v4-manage-action-options > button {
-  min-width:0;min-height:33px;padding:6px 5px;border-radius:6px;
-  border:1px solid #38383d;background:#171719;color:#d0d1d8;
-  font-size:10px;font-weight:600;
+  min-width:0;min-height:34px;padding:7px 5px;border-radius:8px;
+  border:1px solid #3e3e44;background:#242427;color:#e8e8ed;
+  font-size:11px;font-weight:600;line-height:1.25;
 }
-.v4-ticket.v4-manage-position .v4-manage-actions button:disabled {
-  opacity:.4;cursor:not-allowed;
+.v4-ticket.v4-manage-position .v4-manage-actions button:hover:not(:disabled) {
+  background:#303035;border-color:#595960;
 }
+.v4-ticket.v4-manage-position .v4-manage-actions button:focus-visible,
+.v4-ticket.v4-manage-position .v4-manage-trade-actions button:focus-visible {
+  outline:2px solid #a5adb9;outline-offset:2px;
+}
+.v4-ticket.v4-manage-position .v4-manage-actions button.is-selected {
+  background:#303035;border-color:#8c8c96;color:#fff;
+}
+.v4-ticket.v4-manage-position .v4-manage-actions button:disabled {opacity:.4;cursor:not-allowed;}
 .v4-ticket.v4-manage-position .v4-manage-action-options {
-  grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;
+  grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;
 }
-.v4-ticket.v4-manage-position .v4-manage-action-options > button { flex:1 1 auto; }
 .v4-ticket.v4-manage-position .v4-manage-trade-actions > .v4-manage-close {
-  grid-column:1/-1;color:#f28a94;background:#1b1013;border:1px solid #6a323c;
+  grid-column:1/-1;color:#f19aa4;background:#252024;border:1px solid #514048;
 }
-.v4-ticket.v4-manage-position .v4-manage-close-dialog {
-  display:grid;gap:10px;padding:12px;margin-top:8px;
-  border:1px solid #694049;background:#171214;color:#e9d4d6;border-radius:9px;
-  font-size:12px;
+.v4-ticket.v4-manage-position .v4-manage-trade-actions > .v4-manage-close:hover:not(:disabled) {
+  background:#30252a;border-color:#76535f;
 }
-.v4-ticket.v4-manage-position .v4-manage-close-dialog > div {display:flex;gap:8px;}
-.v4-ticket.v4-manage-position .v4-manage-close-dialog button {
-  flex:1;min-height:34px;border-radius:6px;padding:7px;
-  color:#f1e6e8;background:#292024;border:1px solid #584148;
-  font-size:11px;font-weight:600;
+.v4-ticket.v4-manage-position .v4-manage-inline-confirm {
+  grid-column:1/-1;display:flex;flex-direction:column;gap:8px;min-width:0;
 }
-.v4-ticket.v4-manage-position .v4-manage-close-dialog button:last-child {
-  background:#7a2939;border-color:#a13d50;color:#fff;
+.v4-ticket.v4-manage-position .v4-manage-confirm-hint {
+  color:#bcbcc5;font-size:11px;line-height:1.35;
+}
+.v4-ticket.v4-manage-position .v4-manage-confirm-buttons {
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;
+}
+.v4-ticket.v4-manage-position .v4-manage-confirm-buttons > button {
+  min-height:42px;padding:8px;border-radius:8px;font-size:12px;font-weight:650;
+  line-height:1.2;align-items:center;justify-content:center;text-align:center;
+}
+.v4-ticket.v4-manage-position .v4-manage-danger {
+  color:#fff;background:#873749;border:1px solid #934355;
+}
+.v4-ticket.v4-manage-position .v4-manage-danger:hover:not(:disabled) {background:#9b4054;}
+.v4-ticket.v4-manage-position .v4-manage-confirm-buttons > button:disabled {
+  opacity:.45;cursor:not-allowed;
+}
+.v4-ticket.v4-manage-pending .v4-manage-pending-metrics {
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;
+  padding:9px 10px;background:#202023;border-radius:9px;
+}
+.v4-ticket.v4-manage-pending .v4-manage-pending-metrics > div {
+  min-width:0;display:flex;flex-direction:column;gap:5px;
+}
+.v4-ticket.v4-manage-pending .v4-manage-pending-metrics > div:last-child {
+  text-align:right;align-items:flex-end;
+}
+.v4-ticket.v4-manage-pending .v4-manage-pending-metrics span {
+  color:#aaabb4;font-size:10px;line-height:1.3;
+}
+.v4-ticket.v4-manage-pending .v4-manage-pending-metrics strong {
+  color:#f5f5f6;font-size:12px;font-weight:650;
+  font-variant-numeric:tabular-nums;overflow-wrap:anywhere;
+}
+@container (max-width:300px) {
+  .v4-ticket.v4-manage-position .v4-manage-actions {gap:5px;}
+  .v4-ticket.v4-manage-position .v4-manage-actions > button {font-size:10px;}
+  .v4-ticket.v4-manage-pending .v4-manage-pending-metrics {gap:6px;padding:8px;}
 }
 .v4-ticket.v4-manage-pending .v4-manage-order-price {
   display:flex;justify-content:space-between;align-items:center;gap:8px;

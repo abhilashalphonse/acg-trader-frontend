@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { ArrowLeft, ChevronUp, X } from 'lucide-react';
 import InstrumentAvatar from '../InstrumentAvatar.jsx';
 import { ProtectionCard } from './DesktopOrderTicketV4.jsx';
 import { formatInstrumentPrice } from '../../../utils/instrumentFormatting.js';
@@ -23,7 +23,6 @@ export default function DesktopManagePendingV4({
   const [waiting,setWaiting]=useState(null);
   const [error,setError]=useState('');
   const [cancelConfirmation,setCancelConfirmation]=useState(false);
-  const [advanced,setAdvanced]=useState(false);
   const [slUnit,setSlUnit]=useState('price');
   const [tpUnit,setTpUnit]=useState('price');
   const type=typeName(order?.orderType||order?.type);
@@ -134,14 +133,10 @@ export default function DesktopManagePendingV4({
           <button type="button" aria-label="Close pending editor" onClick={exit} disabled={working}><X size={19}/></button>
         </div>
       </div>
-      <div className="v4-position v4-block">
-        <div className="v4-section-heading"><span>ORDER DETAILS</span></div>
-        <div className="v4-manage-position-values">
-          <div className="v4-manage-position-size"><span className="v4-manage-stat-label">ORDER SIZE</span>
-            <div className="v4-manage-size-value">{pretty(volume)} <small>lots</small></div></div>
-          <div className="v4-manage-position-pnl"><span className="v4-manage-stat-label">{stopLimit?'STOP TRIGGER':'LIMIT ENTRY'}</span>
-            <strong>{formatInstrumentPrice(entry,instrument)}</strong></div>
-        </div>
+      <div className="v4-manage-pending-metrics" aria-label="Pending order sizing">
+        <div><span>Order size</span><strong>{pretty(volume)} lots</strong></div>
+        <div><span>Estimated margin on fill</span>
+          <strong>{margin==null?'—':margin.toFixed(2)+' '+(account.currency||'USD')}</strong></div>
       </div>
       <div className="v4-block">
         <div className="v4-section-heading"><span>ORDER PRICES</span><span>{active?'Unsaved draft':'Confirmed'}</span></div>
@@ -164,36 +159,27 @@ export default function DesktopManagePendingV4({
           onToggle={()=>switchProtection('tp')} unit={tpUnit} onUnit={setTpUnit} plan={plan}
           market={instrument} account={account} lots={volume} sizingMode="lots"
           onPrice={price=>propose('tp',price)} onNotice={onNotice}/>
-        <div className="v4-ratio-slab">
-          <div><span>Order status</span><strong>{status}</strong></div>
-          <div><span>Estimated margin on fill</span><strong>{margin==null?'—':margin.toFixed(2)+' '+(account.currency||'USD')}</strong></div>
-        </div>
-      </div>
-      <div className="v4-block">
-        <button type="button" className="v4-disclosure" aria-expanded={advanced}
-          onClick={()=>setAdvanced(v=>!v)}>ORDER ACTIONS {advanced?<ChevronUp size={15}/>:<ChevronDown size={15}/>}</button>
-        {advanced&&<div className="v4-advanced-content"><div><span>Order type</span><strong>{type.toUpperCase().replace('-',' ')}</strong></div>
-          <div><span>Status</span><strong>{status}</strong></div></div>}
       </div>
       {error&&<div role="alert" className="v4-notice">{error}</div>}
       {waiting&&<div role="status" className="v4-notice">Waiting for confirmed order price…</div>}
     </div>
     <div className="v4-execution-footer v4-manage-footer">
-      <div className="v4-margin-summary"><div><span>Order size</span><strong>{pretty(volume)} lots</strong></div>
-        <div><span>Estimated margin on fill</span><strong>{margin==null?'—':margin.toFixed(2)+' '+(account.currency||'USD')}</strong></div></div>
       <div className="v4-trade-actions v4-manage-trade-actions">
-        {active?<><button type="button" className="v4-manage-discard" disabled={working}
+        {cancelConfirmation?<div role="dialog" aria-label="Confirm order cancellation" className="v4-manage-inline-confirm">
+          <span className="v4-manage-confirm-hint">Cancel this pending order?</span>
+          <div className="v4-manage-confirm-buttons">
+            <button type="button" className="v4-manage-discard" disabled={working}
+              onClick={()=>setCancelConfirmation(false)}>Keep Order</button>
+            <button type="button" className="v4-manage-danger" disabled={working}
+              onClick={cancelOrder}>{busy?'Cancelling…':'Cancel Order'}</button>
+          </div>
+        </div>:active?<><button type="button" className="v4-manage-discard" disabled={working}
           onClick={()=>{onDiscard();setError('');}}>Discard</button>
           <button type="button" className="v4-manage-confirm" disabled={working||readOnly}
             onClick={confirm}>{working?'Confirming…':'Confirm'}</button></>:
           <button type="button" className="v4-manage-close" disabled={working||readOnly||!isActiveOrder}
             onClick={()=>setCancelConfirmation(true)}>Cancel Order</button>}
       </div>
-      {cancelConfirmation&&<div role="dialog" aria-label="Confirm order cancellation" className="v4-manage-close-dialog">
-        <span>Cancel this pending order?</span>
-        <div><button type="button" disabled={working} onClick={()=>setCancelConfirmation(false)}>Keep Order</button>
-          <button type="button" disabled={working} onClick={cancelOrder}>Cancel Order</button></div>
-      </div>}
     </div>
   </section>;
 }
