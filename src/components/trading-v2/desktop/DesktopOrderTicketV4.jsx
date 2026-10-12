@@ -77,7 +77,7 @@ function PendingPriceInput({label,price,instrument,disabled,onCommit,onNotice}) 
       if(e.key==='Escape'){cancel.current=true;e.currentTarget.blur();}
     }}/>;
 }
-function ProtectionCard({field,active,onToggle,unit,onUnit,plan,market,account,lots,sizingMode,onPrice,onNotice}) {
+export function ProtectionCard({field,active,onToggle,unit,onUnit,plan,market,account,lots,sizingMode,onPrice,onNotice,disabled=false}) {
   const title = field==='sl'?'Stop Loss':'Take Profit';
   const rawPrice=positive(plan?.[field]);
   const hasPlan=Boolean(plan?.side);
@@ -89,7 +89,7 @@ function ProtectionCard({field,active,onToggle,unit,onUnit,plan,market,account,l
   const [draft,setDraft]=useState('');
   const abort=useRef(false);
   const locked=field==='sl' && ['riskPercent','riskUSD'].includes(sizingMode) && ['usd','balance'].includes(unit);
-  const canEdit=active && hasPlan && !locked && projection?.valid===true;
+  const canEdit=active && !disabled && hasPlan && !locked && projection?.valid===true;
   const currentValue=projection?.valid ? projection.value : null;
   const labelFor=(id)=>{
     if(id==='usd')return field==='sl'?'Risk USD':'Profit USD';
@@ -109,7 +109,7 @@ function ProtectionCard({field,active,onToggle,unit,onUnit,plan,market,account,l
   return <div className={'v4-exit-card'+(!active?' is-disabled':'')}>
     <div className="v4-exit-heading">
       <strong>{title}</strong>
-      <button type="button" className="v4-exit-toggle" onClick={onToggle} aria-pressed={active}>
+      <button type="button" className="v4-exit-toggle" onClick={onToggle} disabled={disabled} aria-pressed={active}>
         {active?<CheckCircle2 size={20} fill="#F2F2F4" color="#F2F2F4" className="v4-check-on"/>
           :<Circle size={20} color="#898990"/>}
         <span>{active?'Enabled':'Disabled'}</span>
@@ -123,7 +123,7 @@ function ProtectionCard({field,active,onToggle,unit,onUnit,plan,market,account,l
           onChange={e=>setDraft(e.target.value)} onBlur={apply}
           onKeyDown={e=>{if(e.key==='Enter')e.currentTarget.blur();if(e.key==='Escape'){abort.current=true;e.currentTarget.blur();}}}/>
         <div className="v4-select-wrap">
-          <select aria-label={title+' input unit'} value={unit} onChange={e=>{onUnit(e.target.value);setFocused(false);}}>
+          <select aria-label={title+' input unit'} value={unit} disabled={disabled} onChange={e=>{onUnit(e.target.value);setFocused(false);}}>
             {exitUnits.map(([id])=><option key={id} value={id}
               disabled={field==='sl' && ['riskPercent','riskUSD'].includes(sizingMode) && ['usd','balance'].includes(id)}>
               {labelFor(id)}
