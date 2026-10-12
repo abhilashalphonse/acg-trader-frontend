@@ -75,6 +75,18 @@ export default function V4FullTerminalOrders({
     hadParentDraft.current = exists;
   }, [positionProtectionDraft, edit?.objectType, awaiting]);
 
+  const priorPendingDraft = useRef(null);
+  useEffect(()=>{
+    const previous=priorPendingDraft.current;
+    const now=pendingOrderDraft;
+    if(previous && !now && edit?.objectType==='pending' && !awaiting) {
+      setEdit(null);setError('');
+    }
+    if(previous && now && String(previous.objectId)!==String(now.objectId) &&
+      edit?.objectType==='pending')setEdit(null);
+    priorPendingDraft.current=now;
+  },[pendingOrderDraft, edit?.objectType, awaiting]);
+
   const parentEdit = useMemo(() => {
     const parent = positionProtectionDraft;
     if (!parent || !['tp', 'sl'].includes(parent.activeField) ||
