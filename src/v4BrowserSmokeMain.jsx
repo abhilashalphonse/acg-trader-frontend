@@ -286,7 +286,8 @@ async function run(){
      .some(b=>b.textContent.includes('Take profit')&&b.textContent.includes('82500')))
      failed.push('Removing confirmed TP did not clear its badge');
    const sellAfterRemove=Array.from(liveChart.querySelectorAll('[data-v4-chart-badge]'))
-     .find(b=>b.textContent.includes('SELL 0.01'));
+     .find(b=>b.querySelector('[data-v4-position-direction]')?.textContent==='SELL' &&
+       b.querySelector('[data-v4-position-size]')?.textContent==='0.01');
    if(!sellAfterRemove?.querySelector('[aria-label="Add TP to SELL position"]'))
      failed.push('Removing TP did not restore +TP on position row');
  }
