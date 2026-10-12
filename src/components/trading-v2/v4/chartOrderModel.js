@@ -156,9 +156,10 @@ export function projectV4DraftGroup(acceptedLevels, draft) {
 
 /** A local edit must not dispatch an amendment until Save is requested. */
 export function v4EditCommand(draft, action) {
-  if (!draft || !positive(draft.proposedPrice)) return null;
-  if (action === 'cancel') return Object.freeze({ type: 'CANCEL_LOCAL_EDIT' });
-  if (action !== 'save') return null;
+  if (!draft) return null;
+  if (action === 'cancel' || action === 'discard') return Object.freeze({ type: 'CANCEL_LOCAL_EDIT' });
+  if (!positive(draft.proposedPrice)) return null;
+  if (action !== 'save' && action !== 'confirm') return null;
   return Object.freeze({ type: 'REQUEST_SAVE', levelId: draft.levelId ?? null,
     accountId: draft.accountId ?? null, objectId: draft.objectId ?? null,
     kind: draft.kind ?? null, proposedPrice: Number(draft.proposedPrice) });
