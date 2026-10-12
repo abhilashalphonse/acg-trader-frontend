@@ -762,7 +762,10 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
   if (!plan || plan.open || !coordinateApi?.priceToY) return null;
   const isBuy = plan.side === 'buy';
   const positionProtectionMode = mobileStyle && !showEntry && plan?.source === 'open-position';
-  const activeProtectionField = positionProtectionMode && ['sl', 'tp'].includes(plan?.activeField)
+  // Desktop V4 edits on an existing position are drafts too: render the same
+  // detailed SL/TP badge as other V4 levels, never the legacy circular handle.
+  const desktopPositionProtectionMode = desktopStyle && !mobileStyle && !showEntry && plan?.source === 'open-position';
+  const activeProtectionField = (positionProtectionMode || desktopPositionProtectionMode) && ['sl', 'tp'].includes(plan?.activeField)
     ? plan.activeField
     : null;
   const sourcePrice = field => {
@@ -822,6 +825,9 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
   const line = (kind, field, color, label, value, draggable) => {
     const top = yFor(field);
     if (top == null) return null;
+    // Only the edited protection is a draft; untouched accepted SL/TP
+    // are rendered by OpenPositionProtectionOverlay as solid levels.
+    if (desktopPositionProtectionMode && activeProtectionField && kind !== activeProtectionField) return null;
 
     // Stop-limit has two independent chart handles. The limit boundary is
     // a compact secondary level, not the oversized generic price tool.
@@ -903,7 +909,7 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
       );
     }
 
-    if (desktopStyle && !mobileStyle && showEntry && (kind === 'sl' || kind === 'tp')) {
+    if (desktopStyle && !mobileStyle && (showEntry || desktopPositionProtectionMode) && (kind === 'sl' || kind === 'tp')) {
       const projected = kind === 'sl'
         ? (Number.isFinite(liveRisk) ? -Math.abs(liveRisk) : null)
         : (Number.isFinite(liveReward) ? Math.abs(liveReward) : null);
@@ -1661,6 +1667,7 @@ export default function ChartArea({
             riskPercent={riskPercent}
             showEntry={false}
             mobileStyle={mobileOverlayStyle}
+            desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle}
           />
         )}
         <ClosedPositionChartOverlay symbol={symbol} position={historicalPosition} coordinateApi={coordinateApi} instrument={instrument} onClear={onClearHistoricalPosition} />
