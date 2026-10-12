@@ -56,11 +56,11 @@ function App(){
   <div className="relative w-full overflow-hidden rounded border border-[#444]" style={{height:580}}
     data-v4-full-terminal-fixture>
     <V4FullTerminalOrders isNewOrderPlanning={planning}
-      renderPositionEntries={chartEditActions => (
+      renderPositionEntries={(chartEditActions, requestProtection) => (
         <OpenPositionEntryOverlay symbol={SYMBOL} positions={positions} coordinateApi={coordinateApi}
           instrument={{tickSize:1,tickValue:1,quoteCurrency:'USD',displaySymbol:'BTCUSD',sessionOpen:true,marketDataAvailable:true}}
           selectedPositionId={'p1'} onSelectPosition={()=>{}} onClosePosition={()=>{}}
-          onRequestPositionProtection={planning ? null : beginProtection}
+          onRequestPositionProtection={planning ? null : requestProtection}
           chartEditActions={chartEditActions} desktopStyle/>
       )}
       account={ACCOUNT} symbol={SYMBOL} instrument={{tickSize:1,tickValue:1,quoteCurrency:'USD',displaySymbol:'BTCUSD'}}
