@@ -6,7 +6,7 @@ import './styles/acg-pure-black.css';
 import { createRoot } from 'react-dom/client';
 import { createPortal } from 'react-dom';
 import DesktopOrderTicketV4 from './components/trading-v2/desktop/DesktopOrderTicketV4.jsx';
-import { TradePlanOverlay, PendingOrderOverlay } from './components/trading-v2/ChartArea.jsx';
+import { TradePlanOverlay, PendingOrderOverlay, OpenPositionEntryOverlay, OpenPositionProtectionOverlay, OpenPositionGroupGuide } from './components/trading-v2/ChartArea.jsx';
 import { createDefaultTradePlan } from './utils/tradePlanExecution.js';
 
 const DEMO=Object.freeze({
@@ -41,6 +41,25 @@ const pendingOrder={
   status:'pending',entry:1.32345,limitPrice:1.32038,sl:1.32590,tp:1.31726,
   volume:0.10,expiration:'GTC',
 };
+const buyPendingOrder={
+  id:'pending-smoke-buy',symbol:'GBPUSD',side:'buy',orderType:'limit',status:'pending',
+  entry:1.3211,sl:1.3190,tp:1.3240,volume:0.05,expiration:'GTC',
+};
+const openPositions=[
+  {id:'position-smoke-a',symbol:'BTCUSD',side:'sell',entry:83000,sl:83200,tp:82500,volume:0.01,pnl:-1.52,pnlCurrency:'USD'},
+  {id:'position-smoke-b',symbol:'BTCUSD',side:'buy',entry:83500,sl:null,tp:83700,volume:0.02,pnl:7.20,pnlCurrency:'USD'},
+  {id:'position-smoke-c',symbol:'BTCUSD',side:'buy',entry:83800,sl:null,tp:null,volume:0.01,pnl:0,pnlCurrency:'USD'},
+];
+function PositionFixture(){
+ const [hovered,setHovered]=useState(null);
+ return <>
+   <OpenPositionEntryOverlay symbol="BTCUSD" positions={openPositions} coordinateApi={coordinateApi} instrument={DEMO}
+     desktopStyle hoveredPositionId={hovered} onHoverPosition={setHovered} onRequestPositionProtection={()=>{}} />
+   <OpenPositionProtectionOverlay symbol="BTCUSD" positions={openPositions} coordinateApi={coordinateApi} instrument={DEMO}
+     desktopStyle hoveredPositionId={hovered} onHoverPosition={setHovered} />
+   <OpenPositionGroupGuide symbol="BTCUSD" positions={openPositions} hoveredPositionId={hovered} coordinateApi={coordinateApi} />
+ </>;
+}
 
 const counters={manual:0,planned:0,drafts:0,markets:0,pendingMoves:[],notice:''};
 function Fixture(){
@@ -91,14 +110,14 @@ createRoot(document.getElementById('pending-chart-fixture')).render(
     symbol="GBPUSD"
     instrument={pendingInstrument}
     coordinateApi={pendingCoordinates}
-    orders={[pendingOrder]}
+    orders={[pendingOrder,buyPendingOrder]}
     desktopStyle
     account={ACCOUNT}
     accountCurrency="USD"
     onMove={(orderId, nextPrice, field) => { counters.pendingMoves.push({ orderId, nextPrice, field }); }}
   />
 );
-
+createRoot(document.getElementById('position-chart-fixture')).render(<PositionFixture/>);
 
 const sleep=milliseconds=>new Promise(resolve=>setTimeout(resolve,milliseconds));
 const findMode=(ticket,text)=>Array.from(ticket.querySelectorAll('.v4-position-modes button'))
@@ -113,6 +132,57 @@ async function run(){
  // Accepted stop-limit must draw two independent SOLID price levels,
  // and show a temporary DOTTED ghost while its LIMIT leg is dragged.
  const pendingChart=document.getElementById('pending-chart-fixture');
+ pendingChart.style.width='435px';
+ const liveChart=document.getElementById('position-chart-fixture');
+ const allLiveRows=Array.from(liveChart.querySelectorAll('[data-v4-chart-badge]'));
+ const entryBadges=allLiveRows.filter(b=>b.textContent.includes('SELL')||b.textContent.includes('BUY'));
+ const sellEntry=entryBadges.find(b=>b.textContent.includes('SELL 0.01'));
+ const buyEntry=entryBadges.find(b=>b.textContent.includes('BUY 0.02'));
+ const unprotectedEntry=entryBadges.find(b=>b.textContent.includes('BUY 0.01'));
+ if(!sellEntry||!buyEntry||!unprotectedEntry)failed.push('Three independent live position badges missing');
+ if(sellEntry?.querySelectorAll('[data-attached-protection]').length!==2)failed.push('Both active SL/TP must have position chips');
+ if(buyEntry?.querySelectorAll('[data-attached-protection]').length!==1)failed.push('TP-only position chip missing');
+ if(unprotectedEntry?.querySelector('[data-attached-protection]'))failed.push('Unprotected position showed false attached chips');
+ if(!unprotectedEntry?.querySelector('[aria-label="Add SL to BUY position"]'))failed.push('Missing-SL add action absent');
+ const sellProtection=allLiveRows.find(b=>b.textContent.includes('Stop loss')&&b.textContent.includes('83200'));
+ if(!sellProtection)failed.push('Confirmed SL badge missing');
+ const showHover=async badge=>{
+   badge?.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));
+   await sleep(90);
+ };
+ await showHover(sellEntry);
+ if(liveChart.querySelector('[data-v4-hover-group]')?.getAttribute('data-v4-hover-group')!=='position-smoke-a')
+   failed.push('Hovering open SELL position did not show its connector');
+ if(liveChart.querySelectorAll('[data-v4-hover-group] .absolute.right-\\[138px\\]').length<2)
+   failed.push('Hover connector did not include linked SL/TP');
+ if(sellEntry?.className.includes('ring-white/35')!==true)failed.push('Position hover highlight missing');
+ await showHover(buyEntry);
+ if(liveChart.querySelector('[data-v4-hover-group]')?.getAttribute('data-v4-hover-group')!=='position-smoke-b')
+   failed.push('Hover group leaked across two positions');
+ if(liveChart.querySelectorAll('[data-v4-hover-group] .absolute.right-\\[138px\\]').length!==3)
+   failed.push('TP-only connector should contain one spine plus two nodes');
+ await showHover(unprotectedEntry);
+ if(liveChart.querySelector('[data-v4-hover-group]'))
+   failed.push('Unprotected entry showed connector');
+ const liveProtectionBadge=allLiveRows.find(b=>b.textContent.includes('Stop loss'));
+ await showHover(liveProtectionBadge);
+ if(liveChart.querySelector('[data-v4-hover-group]')?.getAttribute('data-v4-hover-group')!=='position-smoke-a')
+   failed.push('Hovering SL did not highlight parent position');
+ liveProtectionBadge?.dispatchEvent(new MouseEvent('mouseout',{bubbles:true,relatedTarget:null}));
+ await sleep(90);
+ if(liveChart.querySelector('[data-v4-hover-group]'))failed.push('Hover connector remained after mouse leave');
+ // Accepted entry and active protection lines remain solid; ghost only on edits.
+ const placedSell=pendingChart.querySelector('[data-v4-chart-entry][data-order-state="placed"]');
+ const placedBuy=Array.from(pendingChart.querySelectorAll('[data-v4-chart-entry][data-order-state="placed"]')).find(el=>el.textContent.includes('BUY'));
+ const sellBadge=Array.from(pendingChart.querySelectorAll('[data-v4-chart-entry]')).find(el=>el.textContent.includes('SELL'));
+ const sellRgb=sellBadge?getComputedStyle(sellBadge).borderTopColor:'';
+ const buyRgb=placedBuy?getComputedStyle(placedBuy).borderTopColor:'';
+ if(!placedSell || !sellBadge || !sellRgb.includes('239, 86, 100'))failed.push('Placed SELL Limit/Stop did not use confirmed sell red');
+ if(!placedBuy || !buyRgb.includes('18, 185, 150'))failed.push('Placed BUY Limit did not use confirmed buy green');
+ const liveLines=liveChart.querySelectorAll('.relative.border-t:not(.border-dotted):not(.border-dashed)');
+ if(liveLines.length<3)failed.push('Live entry lines not solid');
+ if(liveChart.querySelector('.relative.border-t-dotted'))failed.push('Confirmed protection drawn as draft');
+
  // Reproduce the reported 435px chart and reserve the full BID/ASK quote rail.
  // TradingChart paints BID/ASK via Lightweight Charts' canvas, so a DOM-only
  // price-marker check misses that overlap. Reserve a conservative 130px from

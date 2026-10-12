@@ -30,3 +30,24 @@ export function chartEstimateCurrencySupported(instrument, accountCurrency) {
   const quote = String(instrument?.pnlCurrency || instrument?.quoteCurrency || '').toUpperCase();
   return Boolean(currency && quote && currency === quote);
 }
+
+/** Position protection chips reflect server-accepted levels, not draft values. */
+export function chartPositionProtections(position) {
+  const valid = price => price !== null && price !== undefined && price !== '' && Number.isFinite(Number(price)) && Number(price) > 0;
+  return Object.freeze({ sl: valid(position?.sl), tp: valid(position?.tp) });
+}
+
+/** Accepted pending orders use side color independent of LIMIT vs STOP. */
+export function chartPlacedSideColor(side) {
+  return String(side || '').toUpperCase() === 'BUY' ? '#12b996' : '#ef5664';
+}
+
+/** Y coordinates for a hovered position's actual accepted price group. */
+export function chartPositionConnectorLevels(position, priceToY) {
+  if (!position || typeof priceToY !== 'function') return [];
+  const protections = chartPositionProtections(position);
+  const entryPrice = position.entry ?? position.entryPrice;
+  const keys = [['entry', entryPrice], ...(protections.sl ? [['sl', position.sl]] : []), ...(protections.tp ? [['tp', position.tp]] : [])];
+  return keys.map(([kind, price]) => ({ kind, y: priceToY(Number(price)) }))
+    .filter(level => Number.isFinite(level.y));
+}
