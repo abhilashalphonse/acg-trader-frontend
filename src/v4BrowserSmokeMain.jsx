@@ -151,15 +151,26 @@ async function run(){
  const orderButtons=Array.from(orderRow?.querySelectorAll('button')||[]);
  if(orderButtons.map(button=>button.textContent.trim()).join('|')!=='Market|Limit|Stop')
    failed.push('Expected one Market / Limit / Stop order selector');
+ // The selected Market / Limit / Stop tab should look like the rounded
+ // white Lots pill rather than the squared-off white tab regression.
+ const assertRoundedOrderType=mode=>{
+   const active=orderButtons.find(button=>button.textContent.trim()===mode);
+   const radius=parseFloat(active?getComputedStyle(active).borderTopLeftRadius:'');
+   if(!Number.isFinite(radius)||radius<15)
+     failed.push(mode+' active order tab lost rounded pill corners: '+radius);
+ };
+ assertRoundedOrderType('Market');
  if(ticket.querySelector('[aria-label="Pending type"]'))failed.push('Legacy nested pending selector still visible');
  if(orderButtons.some(button=>button.textContent.includes('Stop Limit')))
    failed.push('Stop Limit unexpectedly selectable for new orders');
  orderButtons.find(button=>button.textContent.trim()==='Limit')?.click();
  await sleep(100);
+ assertRoundedOrderType('Limit');
  if(!ticket.querySelector('input[aria-label="Pending entry price"]'))
    failed.push('Limit mode did not show pending entry price');
  orderButtons.find(button=>button.textContent.trim()==='Stop')?.click();
  await sleep(100);
+ assertRoundedOrderType('Stop');
  if(!ticket.querySelector('input[aria-label="Pending entry price"]'))
    failed.push('Stop mode did not show trigger entry price');
  orderButtons.find(button=>button.textContent.trim()==='Market')?.click();
