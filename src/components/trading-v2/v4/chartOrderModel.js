@@ -40,7 +40,7 @@ export function projectV4AcceptedLevels({ accountId, symbol, positions = [], pen
   }
   for (const order of pendingOrders || []) {
     if (!order || String(order.symbol || '').toUpperCase() !== target) continue;
-    if (String(order.status || 'PENDING').toUpperCase() !== 'PENDING') continue;
+    if (!['PENDING','ACCEPTED','TRIGGERED'].includes(String(order.status || 'PENDING').toUpperCase())) continue;
     const id = order.id ?? order.orderId;
     const side = order.side;
     const type = String(order.orderType || order.type || '').toLowerCase().replaceAll('_', '-');
