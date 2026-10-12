@@ -1659,11 +1659,11 @@ export default function ChartArea({
           />
         )}
         <ClosedPositionChartOverlay symbol={symbol} position={historicalPosition} coordinateApi={coordinateApi} instrument={instrument} onClear={onClearHistoricalPosition} />
-        {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} onMove={onMovePending} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} account={account} accountCurrency={accountCurrency} />}
-        <OpenPositionEntryOverlay symbol={symbol} positions={positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} onRequestPositionProtection={onRequestPositionProtection} hoveredPositionId={hoveredPositionId} onHoverPosition={setHoveredPositionId} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} />
+        {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle ? null : tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} onMove={onMovePending} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} account={account} accountCurrency={accountCurrency} />}
+        <OpenPositionEntryOverlay symbol={symbol} positions={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle ? positions : positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} onRequestPositionProtection={onRequestPositionProtection} hoveredPositionId={hoveredPositionId} onHoverPosition={setHoveredPositionId} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} />
         <OpenPositionProtectionOverlay
           symbol={symbol}
-          positions={positions.filter(position =>
+          positions={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle ? positions : positions.filter(position =>
             !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id))
             && !(positionProtectionDraft && String(positionProtectionDraft.positionId) === String(position?.id))
           )}
