@@ -48,14 +48,25 @@ export default function V4FullTerminalOrders({
     const actual = accepted.find(level => level.accountId === awaiting.accountId &&
       level.objectId === awaiting.objectId && level.objectType === awaiting.objectType &&
       level.kind === awaiting.kind);
-    if (actual && Math.abs(actual.price - awaiting.price) < 1e-8) {
+    const tick = Number(instrument?.tickSize);
+    const tolerance = Number.isFinite(tick) && tick > 0 ? Math.max(1e-8, tick * 0.51) : 1e-8;
+    if (actual && Math.abs(actual.price - awaiting.price) <= tolerance) {
       setAwaiting(null);
       setEdit(null);
       setSaving(false);
       setError('');
       onCancelPositionProtection?.();
     }
-  }, [accepted, awaiting, onCancelPositionProtection]);
+  }, [accepted, awaiting, onCancelPositionProtection, instrument?.tickSize]);
+  useEffect(() => {
+    if (!awaiting) return undefined;
+    const timer = window.setTimeout(() => {
+      setAwaiting(null);
+      setSaving(false);
+      setError('The server has not confirmed the new level. The accepted price is unchanged; refresh the account before retrying.');
+    }, 12000);
+    return () => window.clearTimeout(timer);
+  }, [awaiting]);
 
   const begin = useCallback(value => {
     if (!value || saving) return;
@@ -96,6 +107,13 @@ export default function V4FullTerminalOrders({
       : pendingOrders.find(item => String(item.id) === objectId && item.symbol === symbol);
     if (!owner || (objectType === 'position' && kind === 'entry')) {
       setError('This position or pending order is no longer available.');
+      return;
+    }
+    const original = accepted.find(level => level.objectType === objectType && level.objectId === objectId && level.kind === kind);
+    const tick = Number(instrument?.tickSize);
+    const halfTick = Number.isFinite(tick) && tick > 0 ? tick / 2 : 1e-8;
+    if (original && Math.abs(original.price - price) < halfTick) {
+      setError('Move the proposed level at least one tick before confirming.');
       return;
     }
     setSaving(true);
