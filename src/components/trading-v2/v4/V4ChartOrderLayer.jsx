@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
-  projectV4AcceptedLevels, projectV4Edit, placeV4Badges,
+  projectV4AcceptedLevels, projectV4DraftGroup, placeV4Badges,
   v4MissingProtections, v4ProtectionAction,
 } from './chartOrderModel.js';
 
@@ -20,7 +20,7 @@ export default function V4ChartOrderLayer({
   const [hoveredId, setHoveredId] = useState(null);
   const accepted = useMemo(() => projectV4AcceptedLevels({accountId,symbol,positions,pendingOrders}),
     [accountId,symbol,positions,pendingOrders]);
-  const { ghost } = projectV4Edit(accepted, edit);
+  const { preview: ghost, connector } = projectV4DraftGroup(accepted, edit);
   const acceptedWithCoordinates = coordinateApi?.priceToY
     ? accepted.map(level => ({...level,y:coordinateApi.priceToY(level.price)})).filter(level=>Number.isFinite(level.y))
     : [];
@@ -55,7 +55,7 @@ export default function V4ChartOrderLayer({
           {level.kind==='entry' && level.objectType==='position' && formatPnl && <span className="truncate" style={{color}}>{formatPnl(level.pnl)}</span>}
           {missing.map(kind=><button key={kind} type="button" onClick={()=>onAddProtection?.(level.objectId,kind)}
             className="shrink-0 rounded-[3px] border border-gray-600 px-1" aria-label={`Add ${kind.toUpperCase()}`}>+{kind.toUpperCase()}</button>)}
-          {(['sl','tp'].includes(level.kind))&&onBeginEdit&&<button type="button" className="shrink-0 px-1"
+          {(['sl','tp'].includes(level.kind) || (level.objectType==='pending' && level.kind==='entry'))&&onBeginEdit&&<button type="button" className="shrink-0 px-1"
             aria-label={`Edit ${level.kind.toUpperCase()}`} onClick={()=>onBeginEdit(v4ProtectionAction(accepted,level.id,'edit'))}>Edit</button>}
           {(['sl','tp'].includes(level.kind))&&canRemove&&<button type="button" aria-label={`Confirm removal of ${level.kind.toUpperCase()}`}
             className="shrink-0 px-1" onClick={()=>setRemoveLevel(level.id)}>×</button>}
@@ -65,11 +65,16 @@ export default function V4ChartOrderLayer({
           aria-hidden="true"/>}
       </React.Fragment>;
     })}
+    {connector && coordinateApi?.priceToY && Number.isFinite(coordinateApi.priceToY(connector.fromPrice)) && Number.isFinite(coordinateApi.priceToY(connector.toPrice)) && <div
+      data-v4-draft-connector={connector.objectId}
+      className="pointer-events-none absolute right-[135px] border-l border-dotted border-[#a8b5bd]/60"
+      style={{top:Math.min(coordinateApi.priceToY(connector.fromPrice),coordinateApi.priceToY(connector.toPrice)),
+        height:Math.abs(coordinateApi.priceToY(connector.fromPrice)-coordinateApi.priceToY(connector.toPrice))}} />}
     {ghost && coordinateApi?.priceToY && Number.isFinite(coordinateApi.priceToY(ghost.price)) && <div data-v4-preview={ghost.sourceLevelId}>
       <div className="absolute left-0 right-0 border-t border-dotted" style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost)}}/>
       <div className="pointer-events-auto absolute right-[148px] flex h-7 -translate-y-1/2 items-center gap-2 rounded-[5px] border bg-[#111419]/95 px-2 text-[10px]"
         style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost)}}>
-        <span style={{color:colorFor(ghost)}}>{ghost.kind==='sl'?'Stop loss':'Take profit'}</span>
+        <span style={{color:colorFor(ghost)}}>{ghost.kind==='sl'?'Stop loss':ghost.kind==='tp'?'Take profit':'Pending entry'}</span>
         <span>{priceLabel(ghost.price,formatPrice)}</span>
         <button disabled={saving} type="button" onClick={()=>onSaveEdit?.(edit)}>Save</button>
         <button disabled={saving} type="button" onClick={()=>onCancelEdit?.()}>Cancel</button>
