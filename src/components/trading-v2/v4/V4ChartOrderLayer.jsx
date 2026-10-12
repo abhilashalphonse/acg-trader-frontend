@@ -30,7 +30,7 @@ export default function V4ChartOrderLayer({
 }) {
   const drag = useRef(null);
   const [dragPreview,setDragPreview]=useState(null);
-  const recentDrag = useRef(0);
+  const recentDrag = useRef({levelId:null,at:0});
   useEffect(() => { drag.current = null; setDragPreview(null); }, [accountId, symbol, readOnly]);
   useEffect(() => {
     const onMove = event => {
@@ -58,7 +58,7 @@ export default function V4ChartOrderLayer({
       if(!current)return;
       drag.current=null;
       setDragPreview(null);
-      if(current.started)recentDrag.current=Date.now();
+      if(current.started)recentDrag.current={levelId:current.draft.levelId,at:Date.now()};
       if(event?.type==='pointercancel')return;
       // Only release after a price change creates an edit. Merely clicking a
       // badge never creates local chart actions or a backend amendment.
@@ -136,7 +136,8 @@ export default function V4ChartOrderLayer({
     drag.current={draft,startY:event.clientY,startChartY:levelY,started:false,next:null};
   };
   const selectOwner=(event,level)=>{
-    if(event.target.closest('button')||Date.now()-recentDrag.current<450)return;
+    if(event.target.closest('button')||
+      (level.id===recentDrag.current.levelId&&Date.now()-recentDrag.current.at<250))return;
     if(level.objectType==='position')onSelectPosition?.(level.objectId);
     else if(level.objectType==='pending')onSelectPending?.(level.objectId);
   };
