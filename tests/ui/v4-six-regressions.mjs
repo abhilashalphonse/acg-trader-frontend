@@ -16,6 +16,13 @@ try{
   'do not render a second prototype market-position entry badge');
  assert.equal(await page.locator('[data-v4-chart-badge]').count(),1,
   'original approved market-position entry badge must be present');
+ const originalPositionBadge=page.locator('[data-v4-chart-badge]');
+ assert.equal(await originalPositionBadge.locator('[data-v4-position-direction]').innerText(),'BUY');
+ assert.equal(await originalPositionBadge.locator('[data-v4-position-size]').innerText(),'0.01');
+ assert.match(await originalPositionBadge.locator('[data-v4-position-pnl]').innerText(),/3[.]50 USD/);
+ assert.equal(await originalPositionBadge.evaluate(el=>Math.round(el.getBoundingClientRect().height)),28);
+ const positionRightBefore=(await originalPositionBadge.boundingBox());
+ const positionRightEdgeBefore=positionRightBefore.x+positionRightBefore.width;
  assert.equal(await page.locator('button[aria-label="Add TP to BUY position"]').count(),1,
   'original inline market TP action must remain available');
  await pendingTp.getByRole('button',{name:'Edit TP'}).click();
@@ -69,6 +76,8 @@ try{
  const positionBadge=positionAnchor.locator('[data-v4-chart-badge]');
  const buttons=await entryActions.boundingBox(), positionBox=await positionBadge.boundingBox();
  assert.ok(buttons.x+buttons.width<=positionBox.x+1,'buttons must be OUTSIDE and LEFT of the position badge');
+ assert.ok(Math.abs(positionBox.x+positionBox.width-positionRightEdgeBefore)<2,
+   'Confirm/Discard must NOT shift or resize the main position badge');
  assert.ok(Math.abs((buttons.y+buttons.height/2)-(positionBox.y+positionBox.height/2))<2,
    'actions must remain on the position ENTRY line, not on the TP draft line');
  const previewBox=await page.locator('[data-v4-draft-badge]').boundingBox();
@@ -78,6 +87,9 @@ try{
  assert.match(await page.locator('[data-v4-draft-badge]').innerText(),/0[.]60%/);
  assert.ok(await page.locator('[data-v4-protection-draft-price]').count()===1);
  assert.match(await page.locator('[data-v4-draft-badge]').innerText(),/[+]5[.]00 USD/,'TP draft should use projected P&L, not an unrelated price label');
+ assert.equal(await page.locator('[data-v4-draft-badge]').evaluate(node=>Math.round(node.getBoundingClientRect().height)),28);
+ assert.equal(await page.locator('[data-v4-draft-badge]').evaluate(node=>getComputedStyle(node).backgroundColor),
+   'rgb(16, 26, 24)', 'draft TP badge must use approved dark-green metallic surface');
  assert.equal(await page.locator('[data-v4-draft-shade="tp"]').count(),1);
  assert.equal(await page.locator('[data-v4-draft-connector]').count(),1);
  // Newly created TP has a functioning drag grip. Its draft moves, but release
@@ -105,6 +117,12 @@ try{
  await page.locator('[data-v4-badge="qa-account:position:p1:sl"]').waitFor();
  await page.waitForFunction(()=>document.querySelectorAll('[data-v4-preview]').length===0);
  assert.equal(await page.evaluate(()=>window.v4QA.positions[0].sl),83400);
+ const acceptedSlBadge=page.locator('[data-v4-badge="qa-account:position:p1:sl"]');
+ assert.equal(await acceptedSlBadge.evaluate(node=>Math.round(node.getBoundingClientRect().height)),28);
+ assert.equal(await acceptedSlBadge.evaluate(node=>getComputedStyle(node).backgroundColor),
+   'rgb(27, 17, 21)', 'accepted SL must use approved restrained red surface');
+ assert.equal(await page.locator('[data-v4-accepted-shade="sl"]').count(),1,
+   'server-accepted SL shading must derive only from accepted position');
  // Existing accepted SL has the same drag affordance, with the accepted
  // server price and solid line unchanged until explicit confirmation.
  const acceptedSlLine=page.locator('[data-v4-accepted-line="qa-account:position:p1:sl"]');
@@ -132,6 +150,8 @@ try{
  await page.waitForFunction(()=>window.v4QA.commands.length===2);
  await page.locator('[data-v4-badge="qa-account:position:p1:tp"]').waitFor();
  await page.waitForFunction(()=>document.querySelectorAll('[data-v4-preview]').length===0);
+ assert.equal(await page.locator('[data-v4-accepted-shade="tp"]').count(),1);
+ assert.equal(await page.locator('[data-v4-accepted-shade="sl"]').count(),1);
  const tpGrip=page.locator('[data-v4-drag-handle="qa-account:position:p1:tp"]');
  const tpBounds=await tpGrip.boundingBox();
  const acceptedTpLine=page.locator('[data-v4-accepted-line="qa-account:position:p1:tp"]');
@@ -148,7 +168,7 @@ try{
  await page.getByRole('button',{name:'Discard chart edit'}).click();
  assert.equal(await page.locator('[data-v4-preview]').count(),0);
  assert.deepEqual(errors,[],'no uncaught browser errors');
- console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks:17,commands:await page.evaluate(()=>window.v4QA.commands)}));
+ console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks:22,commands:await page.evaluate(()=>window.v4QA.commands)}));
 }catch(error){
  console.error('SIX_V4_REGRESSIONS_FAIL',error);
  process.exitCode=1;
