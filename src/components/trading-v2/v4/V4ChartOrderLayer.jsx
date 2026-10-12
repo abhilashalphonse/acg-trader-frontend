@@ -24,7 +24,7 @@ const protectionPriceLabel = (value, formatPrice) => {
 export default function V4ChartOrderLayer({
   accountId, symbol, positions = [], pendingOrders = [], coordinateApi,
   height = 480, formatPrice, formatVolume, formatPnl, instrument = null, accountCurrency = 'USD',
-  hidePositionEntries = false, readOnly = false,
+  hidePositionEntries = false, readOnly = false, hoveredPositionId = null,
   edit = null, saving = false, onBeginEdit, onChangeEdit, onSaveEdit, onCancelEdit,
   onConfirmRemoval, onAddProtection, onSelectPosition, onClosePosition, onCancelPending,
 }) {
@@ -87,17 +87,10 @@ export default function V4ChartOrderLayer({
   const canRemove = Boolean(onConfirmRemoval);
   const [cancelPendingId, setCancelPendingId] = useState(null);
   const protectionTheme = kind => kind === 'tp'
-    ? {background:'#101a18', positive:'rgba(22,197,144,0.17)', shade:'rgba(22,134,95,0.055)'}
-    : {background:'#1b1115', positive:'rgba(238,84,101,0.17)', shade:'rgba(175,55,70,0.055)'};
-  // All accepted risk/reward areas derive from authoritative levels only.
-  // Draft shading below is independently owned and disappears on Discard/switch.
-  const acceptedProtectionShades = acceptedWithCoordinates.flatMap(level => {
-    if (level.objectType !== 'position' || !['tp','sl'].includes(level.kind)) return [];
-    const entry = acceptedWithCoordinates.find(item => item.objectType === 'position' &&
-      item.objectId === level.objectId && item.accountId === level.accountId && item.kind === 'entry');
-    if (!entry) return [];
-    return [{id:level.id,kind:level.kind,top:Math.min(entry.y,level.y),height:Math.abs(entry.y-level.y)}];
-  });
+    ? {background:'#09090b', positive:'rgba(22,197,144,0.17)'}
+    : {background:'#09090b', positive:'rgba(238,84,101,0.17)'};
+  const hoveredGroupId = hoveredId || (hoveredPositionId != null && accountId != null
+    ? accountId + ':position:' + String(hoveredPositionId) : null);
   const beginDrag = (event, level, isPreview = false) => {
     if (readOnly || !onChangeEdit || saving || !coordinateApi?.yToPrice) return;
     if (!isPreview && !onBeginEdit) return;
@@ -121,17 +114,14 @@ export default function V4ChartOrderLayer({
 
   return <div className="pointer-events-none absolute inset-0 z-[36] overflow-hidden" data-v4-isolated-layer
     style={{ height }}>
-    {acceptedProtectionShades.map(area=><div key={area.id} data-v4-accepted-shade={area.kind}
-      className="pointer-events-none absolute left-[42%] right-[148px]" aria-hidden="true"
-      style={{top:area.top,height:area.height,
-        background:`linear-gradient(90deg, transparent 0%, ${protectionTheme(area.kind).shade} 100%)`}}/>)}
     {displayedLevels.map(level=>{
       const color=colorFor(level);
       const location=placed.get(level.id);
       const groupId=level.accountId+':'+level.objectType+':'+level.objectId;
-      const highlighted=hoveredId===groupId;
+      const highlighted=hoveredGroupId===groupId;
       const missing=level.objectType==='position' && level.kind==='entry' ? v4MissingProtections(accepted,level.id) : [];
       const marketProtection = level.objectType==='position' && ['sl','tp'].includes(level.kind);
+      const editingAcceptedProtection = marketProtection && ghost?.sourceLevelId === level.id;
       const projection = marketProtection ? projectedPositionProtection(level) : null;
       const entryLevel = marketProtection ? accepted.find(value => value.objectType==='position' &&
         value.objectId===level.objectId && value.kind==='entry') : null;
@@ -140,7 +130,7 @@ export default function V4ChartOrderLayer({
       return <React.Fragment key={level.id}>
         <div data-v4-accepted-line={level.id} className="pointer-events-none absolute left-0 right-0 border-t"
           style={{top:level.y,borderColor:color,opacity:highlighted?0.9:0.66}}/>
-        {location && <div data-v4-badge={level.id}
+        {location && !editingAcceptedProtection && <div data-v4-badge={level.id}
           onPointerDown={event=>beginDrag(event,level)} onMouseEnter={()=>setHoveredId(groupId)} onMouseLeave={()=>setHoveredId(null)}
           onFocus={()=>setHoveredId(groupId)} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setHoveredId(null);}}
           className={`pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] items-center ${marketProtection ? 'gap-0 tabular-nums backdrop-blur-sm' : 'gap-1 bg-[#111419]/95 px-1.5'} overflow-hidden rounded-[5px] border font-mono text-[10px] text-white shadow-[0_3px_12px_rgba(0,0,0,.36)] transition-[box-shadow]`}
@@ -180,29 +170,29 @@ export default function V4ChartOrderLayer({
           aria-hidden="true"/>}
       </React.Fragment>;
     })}
-    {hoveredId && coordinateApi?.priceToY && (() => {
+    {hoveredGroupId && coordinateApi?.priceToY && (() => {
       const group=acceptedWithCoordinates.filter(level =>
-        level.accountId+':'+level.objectType+':'+level.objectId===hoveredId);
+        level.accountId+':'+level.objectType+':'+level.objectId===hoveredGroupId);
       const entry=group.find(level=>level.kind==='entry');
-      if (!entry) return null;
-      return group.filter(level=>['tp','sl'].includes(level.kind)).map(level=>
-        <div key={level.id} data-v4-confirmed-connector={level.id}
-          className="pointer-events-none absolute right-[135px] border-l border-[#98a7b6]/35"
-          style={{top:Math.min(entry.y,level.y),height:Math.abs(entry.y-level.y)}}/>);
+      const protections=group.filter(level=>['tp','sl'].includes(level.kind));
+      if (!entry || !protections.length) return null;
+      const ys=[entry.y,...protections.map(level=>level.y)];
+      return <div data-v4-hover-group={entry.objectId}
+        className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div data-v4-confirmed-connector={entry.objectId}
+          className="absolute right-[138px] w-px bg-[#b5c3ce]/75 shadow-[0_0_7px_rgba(195,214,229,.12)]"
+          style={{top:Math.min(...ys),height:Math.max(...ys)-Math.min(...ys)}}/>
+        {[entry,...protections].map(level=><div key={level.id}
+          data-v4-hover-connector-point={level.kind}
+          className="absolute right-[136px] size-[5px] -translate-y-1/2 rounded-full bg-[#b5c3ce]"
+          style={{top:level.y}}/>)}
+      </div>;
     })()}
     {!readOnly && connector && coordinateApi?.priceToY && Number.isFinite(coordinateApi.priceToY(connector.fromPrice)) && Number.isFinite(coordinateApi.priceToY(connector.toPrice)) && <div
       data-v4-draft-connector={connector.objectId}
       className="pointer-events-none absolute right-[135px] border-l border-dotted border-[#a8b5bd]/60"
       style={{top:Math.min(coordinateApi.priceToY(connector.fromPrice),coordinateApi.priceToY(connector.toPrice)),
         height:Math.abs(coordinateApi.priceToY(connector.fromPrice)-coordinateApi.priceToY(connector.toPrice))}} />}
-    {!readOnly && ghost && connector && coordinateApi?.priceToY && (() => {
-      const y1=coordinateApi.priceToY(connector.fromPrice), y2=coordinateApi.priceToY(connector.toPrice);
-      if (!Number.isFinite(y1) || !Number.isFinite(y2)) return null;
-      return <div data-v4-draft-shade={ghost.kind} className="pointer-events-none absolute left-[42%] right-[148px]" style={{
-        top:Math.min(y1,y2),height:Math.abs(y1-y2),
-        background:ghost.kind==='tp'?'linear-gradient(90deg, transparent 0%, rgba(22,134,95,0.09) 100%)':'linear-gradient(90deg, transparent 0%, rgba(175,55,70,0.09) 100%)'
-      }}/>;
-    })()}
     {!readOnly && ghost && coordinateApi?.priceToY && Number.isFinite(coordinateApi.priceToY(ghost.price)) && <div data-v4-preview={ghost.id}>
       <div className="absolute left-0 right-0 border-t border-dotted" style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost)}}/>
       <div data-v4-draft-badge
