@@ -353,7 +353,40 @@ try{
  assert.equal(await page.getByRole('heading',{name:'Open Position'}).count(),0);
  assert.equal(await manage.getByRole('button',{name:/^(BUY|SELL)/}).count(),0);
  assert.ok((await manage.innerText()).includes('EXITS / PROTECTION'));
- assert.match(await manage.innerText(),/Manage Position/);
+ assert.equal(await manage.locator('.v4-manage-summary').count(),0,
+   'six-stat grey card must be removed; do not introduce a second layout');
+ assert.equal(await manage.locator('.v4-instrument').count(),1);
+ assert.equal(await manage.locator('.v4-quote-strip').count(),1,
+   'position price summary reuses the ticket quote strip');
+ assert.equal(await manage.locator('.v4-capsule.v4-mainmodes').count(),1,
+   'manage context reuses the ticket mode capsule');
+ assert.equal(await manage.locator('.v4-position.v4-block').count(),1,
+   'position sizing/PNL remains in the execution panel POSITION slot');
+ assert.equal(await manage.locator('.v4-section-heading').count(),2);
+ assert.equal(await manage.locator('.v4-ratio-slab').count(),1);
+ assert.equal(await manage.locator('.v4-disclosure').count(),1);
+ assert.equal(await manage.locator('.v4-execution-footer').count(),1);
+ assert.equal(await manage.locator('.v4-margin-summary').count(),1);
+ assert.equal(await manage.locator('.v4-trade-actions').count(),1);
+ assert.equal(await manage.locator('.v4-exit-card').count(),2,
+   'must reuse the exact untouched V4 protection card components');
+ assert.equal(await manage.locator('.v4-manage-position-size').count(),1);
+ assert.equal(await manage.locator('.v4-manage-position-pnl').count(),1);
+ const managerBackground=await manage.evaluate(node=>getComputedStyle(node).backgroundColor);
+ assert.equal(managerBackground,'rgb(9, 9, 11)');
+ const mutedSummaryBox=await manage.locator('.v4-manage-position-values')
+   .evaluate(node=>getComputedStyle(node).backgroundColor);
+ assert.equal(mutedSummaryBox,'rgba(0, 0, 0, 0)',
+   'position volume and P&L must not introduce a new grey panel');
+ assert.equal(await manage.locator('[data-v4-manage-size]').innerText(),'0.0100 lots');
+ assert.match(await manage.locator('[data-v4-manage-entry]').innerText(),/84/);
+ assert.ok((await manage.locator('[data-v4-manage-return]').innerText()).endsWith('%'));
+ await manage.locator('.v4-disclosure').click();
+ assert.equal(await manage.locator('[data-v4-manage-advanced]').count(),1,
+   'advanced details use the existing disclosure rather than a new widget');
+ await manage.locator('.v4-disclosure').click();
+ assert.equal(await manage.locator('[data-v4-manage-advanced]').count(),0);
+ assert.equal(await manage.locator('[data-v4-context-active="position"]').innerText(),'Open Position');
  // No TP exists after the previous direct-× regression.
  assert.equal(await page.evaluate(()=>window.v4QA.positions[0].tp),null);
  const beforePanel=await page.evaluate(()=>window.v4QA.commands.length);
@@ -411,7 +444,7 @@ try{
  assert.equal(await page.evaluate(()=>window.v4QA.selectedPositionId),null);
  assert.equal(await page.locator('[data-v4-preview]').count(),0);
  assert.deepEqual(errors,[],'no uncaught browser errors');
- console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks:74,commands:await page.evaluate(()=>window.v4QA.commands)}));
+ console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks:94,commands:await page.evaluate(()=>window.v4QA.commands)}));
 }catch(error){
  console.error('SIX_V4_REGRESSIONS_FAIL',error);
  process.exitCode=1;
