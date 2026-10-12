@@ -1084,7 +1084,7 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
   );
 }
 
-function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, instrument, onUpdatePosition = () => {}, onRemoveProtection = () => {}, onRequestProtectionChange = null, selectedPositionId = null, onSelectPosition = () => {}, mobileStyle = false, desktopStyle = false }) {
+export function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, instrument, onUpdatePosition = () => {}, onRemoveProtection = () => {}, onRequestProtectionChange = null, selectedPositionId = null, onSelectPosition = () => {}, hoveredPositionId = null, onHoverPosition = () => {}, mobileStyle = false, desktopStyle = false }) {
   const layerRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [preview, setPreview] = useState({});
@@ -1179,6 +1179,7 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
     const currency = position?.pnlCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || 'USD';
     const selected = String(selectedPositionId) === String(position.id);
     const active = selected || (dragging?.positionId === position.id && dragging?.kind === kind);
+    const groupActive = desktopStyle && hoveredPositionId != null && String(hoveredPositionId) === String(position.id);
 
     if (!mobileStyle) {
       const displayPrice = value => formatInstrumentPrice(value, instrument);
@@ -1196,6 +1197,9 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
             <ChartLevelBadge
               label={kind === 'sl' ? 'Stop loss' : 'Take profit'}
               price={displayPrice(price)}
+              groupActive={groupActive}
+              onGroupEnter={() => onHoverPosition(String(position.id))}
+              onGroupLeave={() => onHoverPosition(null)}
               amount={chartEstimateCurrencySupported(instrument, currency) && Number.isFinite(projectedPnl) ? formatPositionPnl(projectedPnl, currency) : null}
               percent={chartPriceChangePercent(position.entry ?? position.entryPrice, price)}
               color={color}
@@ -1312,6 +1316,28 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
       })}
     </div>
   );
+}
+
+// Hover-only relation guide between the accepted entry and its confirmed
+// protections. Price values are never moved, and all layers are hit-test transparent.
+export function OpenPositionGroupGuide({ symbol, positions = [], hoveredPositionId, coordinateApi }) {
+  if (!hoveredPositionId || !coordinateApi?.priceToY) return null;
+  const position = positions.find(item =>
+    String(item?.id) === String(hoveredPositionId)
+    && String(item?.symbol || '').toUpperCase() === String(symbol || '').toUpperCase()
+  );
+  if (!position) return null;
+  const levels = chartPositionConnectorLevels(position, coordinateApi.priceToY);
+  if (!levels.some(item => item.kind !== 'entry') || !levels.some(item => item.kind === 'entry')) return null;
+  const ys = levels.map(item => item.y);
+  const top = Math.min(...ys), bottom = Math.max(...ys);
+  return <div className="pointer-events-none absolute inset-0 z-[36] overflow-hidden" aria-hidden="true" data-v4-hover-group={String(position.id)}>
+    <div className="absolute right-[138px] w-px bg-[#b5c3ce]/80 shadow-[0_0_7px_rgba(195,214,229,.20)] transition-opacity duration-150" style={{ top, height: Math.max(1, bottom - top) }} />
+    {levels.map(level => <div key={level.kind} className="absolute right-[138px] flex w-[10px] items-center justify-end" style={{ top: level.y, transform: 'translateY(-50%)' }}>
+      <span className="h-px w-[10px] bg-[#b5c3ce]/80" />
+      <span className="absolute right-[-2px] size-[5px] rounded-full bg-[#c8d6e0]" />
+    </div>)}
+  </div>;
 }
 
 export default function ChartArea({
