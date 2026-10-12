@@ -203,8 +203,55 @@ try{
  assert.equal(await page.locator('[data-v4-preview]').count(),0);
  assert.equal(await page.locator('[data-v4-badge="qa-account:position:p1:tp"]').count(),1,
    'accepted TP badge returns when edit is discarded');
+
+ // 7. × removes a confirmed TP immediately. No confirmation modal is mounted.
+ // Synchronous in-flight guard prevents duplicate API calls on rapid double click.
+ const tpRemove=page.locator('[data-v4-remove-protection="qa-account:position:p1:tp"]');
+ const removalCount=await page.evaluate(()=>window.v4QA.removalCalls);
+ await tpRemove.evaluate(node=>{node.click();node.click();});
+ assert.equal(await page.evaluate(()=>window.v4QA.removalCalls),removalCount+1,
+   'double clicking TP × must dispatch only one removal command');
+ assert.equal(await page.getByRole('dialog',{name:/Confirm remove/i}).count(),0,
+   'removing TP must not open a confirmation dialog');
+ assert.equal(await page.locator('[data-v4-accepted-line="qa-account:position:p1:tp"]').count(),1,
+   'confirmed TP line stays visible while server removal is pending');
+ assert.equal(await tpRemove.isDisabled(),true,'removing TP disables the × until backend acceptance');
+ await page.waitForFunction(()=>window.v4QA.positions[0].tp == null);
+ await page.waitForFunction(()=>document.querySelector('[data-v4-badge="qa-account:position:p1:tp"]')===null);
+ assert.equal(await page.locator('[data-v4-accepted-protection-price="qa-account:position:p1:tp"]').count(),0,
+   'confirmed TP price marker must also disappear after removal');
+ assert.equal(await page.locator('button[aria-label="Add TP to BUY position"]').count(),1,
+   'removal restores +TP on the original position badge');
+
+ // 8. Failed immediate SL removal must preserve accepted price and explain why.
+ await page.evaluate(()=>window.v4QA.rejectOneRemoval());
+ const slRemove=page.locator('[data-v4-remove-protection="qa-account:position:p1:sl"]');
+ const beforeSlRemoval=await page.evaluate(()=>window.v4QA.positions[0].sl);
+ await slRemove.click();
+ assert.equal(await page.getByRole('dialog',{name:/Confirm remove/i}).count(),0,
+   'removing SL must not open a confirmation dialog');
+ await page.locator('[data-v4-chart-error]').waitFor();
+ assert.match(await page.locator('[data-v4-chart-error]').innerText(),/Removal was not accepted/);
+ assert.equal(await page.evaluate(()=>window.v4QA.positions[0].sl),beforeSlRemoval,
+   'backend rejection must not erase the accepted SL');
+ assert.equal(await page.locator('[data-v4-badge="qa-account:position:p1:sl"]').count(),1,
+   'SL badge stays on-screen if removal failed');
+ assert.equal(await slRemove.isDisabled(),false,'retry must be available after a rejected removal');
+
+ // 9. Retry SL × executes once and removes the accepted level after backend ACK.
+ await slRemove.click();
+ await page.waitForFunction(()=>window.v4QA.positions[0].sl == null);
+ await page.waitForFunction(()=>document.querySelector('[data-v4-badge="qa-account:position:p1:sl"]')===null);
+ assert.equal(await page.locator('[data-v4-accepted-line="qa-account:position:p1:sl"]').count(),0);
+ assert.equal(await page.locator('button[aria-label="Add SL to BUY position"]').count(),1);
+
+ // 10. Placed pending-order TP × uses the same one-click removal behavior.
+ await pendingTp.locator('[data-v4-remove-protection]').click();
+ assert.equal(await page.getByRole('dialog',{name:/Confirm remove/i}).count(),0);
+ await page.waitForFunction(()=>window.v4QA.orders[0].tp == null);
+ assert.equal(await pendingTp.count(),0);
  assert.deepEqual(errors,[],'no uncaught browser errors');
- console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks:29,commands:await page.evaluate(()=>window.v4QA.commands)}));
+ console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks:38,commands:await page.evaluate(()=>window.v4QA.commands)}));
 }catch(error){
  console.error('SIX_V4_REGRESSIONS_FAIL',error);
  process.exitCode=1;
