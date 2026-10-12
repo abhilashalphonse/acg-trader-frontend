@@ -13,6 +13,10 @@ const eq=(a,b,message)=>{assert.equal(a,b,message);checks++;};
 const wait=()=>page.waitForTimeout(100);
 const badge=id=>page.locator('[data-v4-badge="qa-account:'+id+'"]');
 const accepted=id=>page.locator('[data-v4-accepted-line="qa-account:'+id+'"]');
+const visual=locator=>locator.evaluate(el=>{const s=getComputedStyle(el);return {
+  background:s.backgroundColor,color:s.color,height:Math.round(el.getBoundingClientRect().height),
+  radius:s.borderRadius
+};});
 const drag=async (selector,dy)=>{
   const grip=page.locator(selector);
   await grip.scrollIntoViewIfNeeded();
@@ -153,6 +157,8 @@ try{
   'Pending context relies on Back/Close rather than redundant mode switch');
  eq(await pending.getByRole('button',{name:/^(BUY|SELL) /}).count(),0);
  ok((await pending.innerText()).includes('Estimated margin on fill'));
+ const pendingCancelStyle=await visual(pending.locator('.v4-manage-close'));
+ eq(pendingCancelStyle.background,'rgb(23, 23, 26)','Pending Cancel Order uses the neutral black secondary style');
  eq(await pending.getByText('Order size',{exact:true}).count(),1,'pending size appears once');
  eq(await pending.getByText('Estimated margin on fill',{exact:true}).count(),1,'pending margin appears once');
  eq(await pending.getByText('Order status',{exact:true}).count(),0,'no duplicate status slab');
@@ -163,6 +169,10 @@ try{
  await pending.getByRole('button',{name:'Cancel Order'}).click();
  eq(await pending.getByRole('dialog',{name:'Confirm order cancellation'}).count(),1);
  eq(await pending.locator('.v4-manage-close-dialog').count(),0,'no oversized pending confirmation');
+ eq((await visual(pending.getByRole('button',{name:'Keep Order'}))).background,'rgb(23, 23, 26)',
+   'Keep Order uses black secondary button');
+ eq((await visual(pending.getByRole('button',{name:'Cancel Order',exact:true}))).background,'rgb(242, 242, 244)',
+   'explicit pending cancellation uses white primary button');
  await pending.getByRole('button',{name:'Keep Order'}).click();
  eq(await page.evaluate(()=>window.v4QA.orders.length),2,'cancel confirmation can be dismissed');
 
@@ -177,6 +187,10 @@ try{
    'pending sidebar input may only create a preview before Confirm');
  eq(await page.locator('[data-v4-preview]').count(),1,'pending panel uses chart dotted preview');
  eq(await pending.locator('.v4-manage-confirm').count(),1);
+ eq((await visual(pending.locator('.v4-manage-discard'))).background,'rgb(23, 23, 26)',
+   'pending draft Discard uses black secondary treatment');
+ eq((await visual(pending.locator('.v4-manage-confirm'))).background,'rgb(242, 242, 244)',
+   'pending draft Confirm uses white primary treatment');
  await pending.locator('.v4-manage-discard').click();
  await page.waitForFunction(()=>window.v4QA.pendingDraft==null);
  eq(await page.locator('[data-v4-preview]').count(),0,'pending panel Discard clears chart draft');
@@ -208,6 +222,10 @@ try{
  eq(await manage.getByRole('button',{name:'Back to new order'}).count(),1);
  eq(await manage.locator('.v4-manage-new-order').count(),0,'no redundant bottom New Order');
  eq(await manage.locator('.v4-manage-close').count(),1,'idle footer is Close Position');
+ const closeStyle=await visual(manage.locator('.v4-manage-close'));
+ eq(closeStyle.background,'rgb(242, 242, 244)','Close Position uses white execution-style CTA');
+ eq(closeStyle.color,'rgb(18, 18, 20)','Close Position uses dark text');
+ ok(closeStyle.height>=52,'Close Position keeps execution CTA geometry');
  eq(await manage.getByRole('button',{name:'Confirm position protection'}).count(),0,'no Confirm without a draft');
 
  // Actions use existing position callbacks and close confirmation.
@@ -236,6 +254,10 @@ try{
  eq(await manage.getByRole('dialog',{name:'Confirm position close'}).count(),1);
  eq(await manage.locator('.v4-manage-close').count(),0,'Close Position CTA replaced during confirmation');
  eq(await manage.locator('.v4-manage-close-dialog').count(),0,'no oversized close confirmation card');
+ eq((await visual(manage.getByRole('button',{name:'Cancel',exact:true}))).background,'rgb(23, 23, 26)',
+   'Close confirmation Cancel stays black');
+ eq((await visual(manage.getByRole('button',{name:'Confirm Close'}))).background,'rgb(242, 242, 244)',
+   'Confirm Close uses white primary button');
  await manage.getByRole('button',{name:'Confirm Close'}).click();
  await page.waitForFunction(()=>window.v4QA.actionCommands.some(x=>x.kind==='close'&&x.percent===100));
 
@@ -244,6 +266,10 @@ try{
  await page.locator('button[aria-label="Add TP to BUY position"]').click();
  await page.waitForFunction(()=>Boolean(window.v4QA.parentDraft));
  eq(await manage.getByRole('button',{name:'Confirm position protection'}).count(),1);
+ eq((await visual(manage.locator('.v4-manage-discard'))).background,'rgb(23, 23, 26)',
+   'Position protection Discard is black');
+ eq((await visual(manage.locator('.v4-manage-confirm'))).background,'rgb(242, 242, 244)',
+   'Position protection Confirm is white');
  eq(await page.locator('[data-v4-draft-badge]').count(),1);
  await manage.getByRole('button',{name:'Discard position protection'}).click();
  await page.waitForFunction(()=>window.v4QA.parentDraft==null);
