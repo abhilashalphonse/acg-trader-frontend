@@ -86,7 +86,7 @@ function ChartLevelBadge({ label, price, amount = null, percent = null, color = 
   );
 }
 
-function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instrument, selectedPositionId = null, onSelectPosition = () => {}, onClosePosition = () => {} }) {
+function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instrument, selectedPositionId = null, onSelectPosition = () => {}, onClosePosition = () => {}, desktopStyle = false }) {
   const [, forceLayout] = useState(0);
   const closeAvailability = positionCloseAvailability(instrument);
   const closeDisabled = !closeAvailability.allowed;
@@ -118,10 +118,15 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
         const currency = position?.pnlCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || 'USD';
         const lots = Number(position.volume ?? position.lots);
         const lineColor = isBuy ? '#12b996' : '#ef5664';
+        const signedLots = `${isBuy ? '' : '-'}${formatPositionLots(lots)}`;
+        const quantityBackground = isBuy ? '#087a62' : '#8f2734';
+        const closeColor = isBuy ? '#35d7b0' : '#ff7883';
+        const pnlColor = Number.isFinite(pnl) ? pnl < 0 ? '#ff5968' : pnl > 0 ? '#55dfa9' : '#eef4f2' : '#eef4f2';
 
         return (
           <div key={position.id || `${side}-${entry}-${lots}`} className="absolute left-0 right-0" style={{ top: y }}>
             <div className="relative border-t" style={{ borderColor: lineColor }}>
+              {desktopStyle ? (
               <ChartLevelBadge
                 label={`${side} ${formatPositionLots(lots)} lots`}
                 price={formatInstrumentPrice(entry, instrument)}
@@ -132,6 +137,39 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
                 onRemove={closeDisabled ? null : () => onClosePosition(position.id, 100)}
                 removeLabel={`Close ${side} ${position.symbol || symbol} position`}
               />
+              ) : (
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={event => { event.stopPropagation(); onSelectPosition(position.id); }}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onSelectPosition(position.id);
+                  }
+                }}
+                className={`pointer-events-auto absolute left-3 top-1/2 flex h-6 -translate-y-1/2 items-stretch overflow-hidden rounded-[4px] border bg-[#07110f]/98 font-mono text-[10px] font-bold tabular-nums text-[#f3faf7] shadow-[0_2px_8px_rgba(0,0,0,.32)] ${String(selectedPositionId) === String(position.id) ? 'ring-1 ring-white/20' : ''}`}
+                style={{ borderColor: lineColor }}
+                aria-label={`Select ${side} ${position.symbol || symbol} position`}
+              >
+                <span className="flex min-w-[30px] items-center justify-center border-r px-2 text-white"
+                  style={{ backgroundColor: quantityBackground, borderColor: `${lineColor}80` }}>
+                  {signedLots}
+                </span>
+                <span className="flex min-w-[72px] items-center justify-center border-r px-2"
+                  style={{ color: pnlColor, borderColor: `${lineColor}55` }}>
+                  {formatPositionPnl(pnl, currency)}
+                </span>
+                <button type="button" disabled={closeDisabled}
+                  onClick={event => { event.preventDefault(); event.stopPropagation(); if (!closeDisabled) void onClosePosition(position.id, 100); }}
+                  className="grid w-7 place-items-center text-[13px] leading-none transition hover:bg-white/[0.05] active:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-30"
+                  style={{ color: closeColor }}
+                  aria-label={`Close ${side} ${position.symbol || symbol} position`}
+                  title={closeDisabled ? closeAvailability.reason : 'Close position'}>
+                  ×
+                </button>
+              </div>
+              )}
               <span
                 className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums text-white shadow-[0_3px_10px_rgba(0,0,0,.28)]"
                 style={{ borderColor: lineColor, backgroundColor: isBuy ? '#0aa06f' : '#d94250' }}
@@ -1539,7 +1577,7 @@ export default function ChartArea({
         )}
         <ClosedPositionChartOverlay symbol={symbol} position={historicalPosition} coordinateApi={coordinateApi} instrument={instrument} onClear={onClearHistoricalPosition} />
         {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} onMove={onMovePending} desktopStyle={desktopEnhanced && !mobileOverlayStyle} account={account} accountCurrency={accountCurrency} />}
-        <OpenPositionEntryOverlay symbol={symbol} positions={positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} />
+        <OpenPositionEntryOverlay symbol={symbol} positions={positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} desktopStyle={desktopEnhanced && !mobileOverlayStyle} />
         <OpenPositionProtectionOverlay
           symbol={symbol}
           positions={positions.filter(position =>
