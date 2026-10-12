@@ -94,6 +94,7 @@ try{
  await markets.getByRole('button',{name:'All',exact:true}).click();
  eq(await markets.locator('[data-market-symbol="NIFTY"]').count(),1,'index remains available under All');
  await page.evaluate(()=>window.v4MarketsQA.setMode('watchlist'));
+ await page.waitForFunction(()=>document.querySelector('#v4-markets-fixture button[aria-label="Favorites"]')?.getAttribute('aria-pressed')==='true');
  eq(await markets.locator('[data-v4-markets-panel]').count(),1,'Watchlist route renders same unified Markets panel');
  eq(await markets.getByRole('button',{name:'Favorites',exact:true}).getAttribute('aria-pressed'),'true',
    'legacy Watchlist entry activates Favorites');
