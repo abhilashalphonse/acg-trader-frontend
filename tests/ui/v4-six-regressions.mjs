@@ -344,8 +344,73 @@ try{
  assert.equal(await page.locator('[data-v4-pending-chart-actions]').count(),0);
  assert.equal(await page.locator('[data-v4-chart-actions]').count(),0);
  await page.getByRole('button',{name:'Finish planning'}).click();
+ // 17. Chart selection opens the SAME V4 trade sidebar in Manage Position
+ // mode; Buy/Sell execution controls and the stacked drawer are absent.
+ await page.getByRole('button',{name:'Select open position'}).click();
+ const manage=page.locator('[data-v4-manage-position="p1"]');
+ await manage.waitFor();
+ assert.equal(await page.locator('[data-qa-unified-position-sidebar]').count(),1);
+ assert.equal(await page.getByRole('heading',{name:'Open Position'}).count(),0);
+ assert.equal(await manage.getByRole('button',{name:/^(BUY|SELL)\\b/}).count(),0);
+ assert.match(await manage.innerText(),/EXITS \\/ PROTECTION/);
+ assert.match(await manage.innerText(),/Manage Position/);
+ // No TP exists after the previous direct-× regression.
+ assert.equal(await page.evaluate(()=>window.v4QA.positions[0].tp),null);
+ const beforePanel=await page.evaluate(()=>window.v4QA.commands.length);
+ await manage.locator('.v4-exit-card').nth(1).getByRole('button',{name:/Disabled/}).click();
+ await page.waitForFunction(()=>Boolean(window.v4QA.parentDraft));
+ assert.equal(await page.locator('[data-v4-preview]').count(),1,
+   'starting TP in unified panel must render the same dotted chart preview');
+ assert.equal(await page.evaluate(()=>window.v4QA.commands.length),beforePanel,
+   'starting a protected draft may not send an execution command');
+ assert.equal(await manage.getByRole('button',{name:'Confirm position protection'}).count(),1);
+ await manage.getByRole('button',{name:'Discard position protection'}).click();
+ await page.waitForFunction(()=>window.v4QA.parentDraft==null);
+ assert.equal(await page.locator('[data-v4-preview]').count(),0,
+   'panel Discard must also remove chart TP preview');
+ assert.equal(await page.evaluate(()=>window.v4QA.positions[0].tp),null);
+
+ // 18. Panel creates a TP draft and confirms via existing position update.
+ await manage.locator('.v4-exit-card').nth(1).getByRole('button',{name:/Disabled/}).click();
+ const tpPanelInput=manage.getByRole('textbox',{name:'Take Profit value'});
+ await tpPanelInput.fill('84450');
+ await tpPanelInput.press('Tab');
+ await page.waitForFunction(()=>Number(window.v4QA.parentDraft?.tp)===84450);
+ assert.match(await page.locator('[data-v4-draft-badge]').innerText(),/84,450/);
+ await manage.getByRole('button',{name:'Confirm position protection'}).click();
+ await page.waitForFunction(()=>window.v4QA.positions[0].tp===84450);
+ await page.waitForFunction(()=>window.v4QA.parentDraft==null);
+ assert.equal(await page.locator('[data-v4-preview]').count(),0);
+ assert.equal(await page.locator('[data-v4-badge="qa-account:position:p1:tp"]').count(),1);
+
+ // 19. Dragging an accepted chart TP updates unified panel draft and
+ // releasing mouse does NOT save until the user confirms in that panel.
+ const grip=page.locator('[data-v4-drag-handle="qa-account:position:p1:tp"]');
+ const g=await grip.boundingBox();
+ const beforeDragCommands=await page.evaluate(()=>window.v4QA.commands.length);
+ await page.mouse.move(g.x+g.width/2,g.y+g.height/2);
+ await page.mouse.down();
+ await page.mouse.move(g.x+g.width/2,g.y+g.height/2-36,{steps:10});
+ await page.mouse.up();
+ await page.waitForFunction(()=>Boolean(window.v4QA.parentDraft));
+ assert.notEqual(await page.evaluate(()=>window.v4QA.parentDraft.tp),84450,
+   'TP drag must update shared draft used by panel inputs');
+ assert.equal(await page.evaluate(()=>window.v4QA.commands.length),beforeDragCommands);
+ assert.equal(await page.locator('[data-v4-preview]').count(),1);
+ assert.equal(await manage.getByRole('button',{name:'Confirm position protection'}).count(),1);
+ const draggedTp=await page.evaluate(()=>window.v4QA.parentDraft.tp);
+ await manage.getByRole('button',{name:'Confirm position protection'}).click();
+ await page.waitForFunction(expected=>window.v4QA.positions[0].tp===expected,draggedTp);
+ await page.waitForFunction(()=>window.v4QA.parentDraft==null);
+ assert.equal(await page.locator('[data-v4-preview]').count(),0);
+
+ // 20. Dismiss restores New Order; no leftover edit controls.
+ await manage.getByRole('button',{name:'Back to new order'}).click();
+ assert.equal(await page.locator('[data-v4-manage-position]').count(),0);
+ assert.equal(await page.evaluate(()=>window.v4QA.selectedPositionId),null);
+ assert.equal(await page.locator('[data-v4-preview]').count(),0);
  assert.deepEqual(errors,[],'no uncaught browser errors');
- console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks:54,commands:await page.evaluate(()=>window.v4QA.commands)}));
+ console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks:74,commands:await page.evaluate(()=>window.v4QA.commands)}));
 }catch(error){
  console.error('SIX_V4_REGRESSIONS_FAIL',error);
  process.exitCode=1;
