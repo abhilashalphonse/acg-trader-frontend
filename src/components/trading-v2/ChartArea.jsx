@@ -117,17 +117,7 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
         const pnl = Number(position.pnl);
         const currency = position?.pnlCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || 'USD';
         const lots = Number(position.volume ?? position.lots);
-        const signedLots = `${isBuy ? '' : '-'}${formatPositionLots(lots)}`;
         const lineColor = isBuy ? '#12b996' : '#ef5664';
-        const quantityBackground = isBuy ? '#087a62' : '#8f2734';
-        const closeColor = isBuy ? '#35d7b0' : '#ff7883';
-        const pnlColor = Number.isFinite(pnl)
-          ? pnl < 0
-            ? '#ff5968'
-            : pnl > 0
-              ? '#55dfa9'
-              : '#eef4f2'
-          : '#eef4f2';
 
         return (
           <div key={position.id || `${side}-${entry}-${lots}`} className="absolute left-0 right-0" style={{ top: y }}>
