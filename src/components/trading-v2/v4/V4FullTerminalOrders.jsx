@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import V4ChartOrderLayer from './V4ChartOrderLayer.jsx';
 import { projectV4AcceptedLevels } from './chartOrderModel.js';
 import { formatInstrumentPrice } from '../../../utils/instrumentFormatting.js';
+import { defaultPlannerStopDistance } from '../../../utils/tradingRisk.js';
+import { normalizeProtectionPrice } from '../../../utils/tradingCommandNormalization.js';
 
 // Runs ONLY behind the desktop V4 audit gate. Financial state is provided by
 // the existing store; drafts exist locally and never optimistically mutate it.
@@ -81,7 +83,11 @@ export default function V4FullTerminalOrders({
       level.kind === awaiting.kind);
     const tick = Number(instrument?.tickSize);
     const tolerance = Number.isFinite(tick) && tick > 0 ? Math.max(1e-8, tick * 0.51) : 1e-8;
-    if (actual && Math.abs(actual.price - awaiting.price) <= tolerance) {
+    const limitConfirmed = awaiting.expectedLimitPrice == null || accepted.some(level =>
+      level.accountId === awaiting.accountId && level.objectId === awaiting.objectId &&
+      level.objectType === 'pending' && level.kind === 'limitPrice' &&
+      Math.abs(level.price - awaiting.expectedLimitPrice) <= tolerance);
+    if (actual && Math.abs(actual.price - awaiting.price) <= tolerance && limitConfirmed) {
       setAwaiting(null);
       setEdit(null);
       setSaving(false);
@@ -124,8 +130,31 @@ export default function V4FullTerminalOrders({
     onCancelPositionProtection?.();
   };
 
-  const beginProtection = (id, kind) => {
-    if (saving || isNewOrderPlanning) return;
+  const beginProtection = (id, kind, objectType='position') => {
+    if (saving || isNewOrderPlanning || !['tp','sl'].includes(kind)) return;
+    if (objectType === 'pending') {
+      const order = pendingOrders.find(item => String(item.id) === String(id) &&
+        String(item.symbol).toUpperCase() === String(symbol).toUpperCase() &&
+        String(item.status || 'PENDING').toUpperCase() === 'PENDING');
+      if (!order || accepted.some(level => level.objectType==='pending' &&
+        level.objectId===String(id) && level.kind===kind)) return;
+      // Match the existing trade planner's protective distance and rounding.
+      // A Stop-Limit's execution boundary, not its trigger, is the risk basis.
+      const fillReference = String(order.orderType).toLowerCase().replaceAll('_','-') === 'stop-limit'
+        ? Number(order.limitPrice) : Number(order.entry);
+      const distance=defaultPlannerStopDistance(instrument,fillReference);
+      const side=String(order.side).toUpperCase();
+      if (!(fillReference>0) || !(distance>0) || !['BUY','SELL'].includes(side)) return;
+      const direction = (side==='BUY' ? 1 : -1) * (kind==='tp' ? 1 : -1);
+      const raw = fillReference + direction * distance * (kind==='tp' ? 2 : 1);
+      const proposedPrice=normalizeProtectionPrice(raw,instrument,side,kind);
+      if (!(Number(proposedPrice)>0)) return;
+      setEdit({accountId,objectType:'pending',objectId:String(id),kind,proposedPrice});
+      setAwaiting(null);
+      setError('');
+      onCancelPositionProtection?.();
+      return;
+    }
     discard();
     onRequestPositionProtection?.(id, kind);
   };
@@ -137,7 +166,7 @@ export default function V4FullTerminalOrders({
     const kind = draft.kind;
     const price = Number(draft.proposedPrice);
     if (draft.accountId !== accountId || !Number.isFinite(price) || price <= 0 ||
-        !objectId || !['sl','tp','entry'].includes(kind)) {
+        !objectId || !['sl','tp','entry','limitPrice'].includes(kind)) {
       setError('Invalid chart modification. Discard and try again.');
       return;
     }
@@ -146,6 +175,11 @@ export default function V4FullTerminalOrders({
       : pendingOrders.find(item => String(item.id) === objectId && item.symbol === symbol);
     if (!owner || (objectType === 'position' && kind === 'entry')) {
       setError('This position or pending order is no longer available.');
+      return;
+    }
+    if (kind === 'limitPrice' && (objectType !== 'pending' ||
+        String(owner.orderType || '').toLowerCase().replaceAll('_','-') !== 'stop-limit')) {
+      setError('Only placed Stop-Limit orders have a separate limit boundary.');
       return;
     }
     const original = accepted.find(level => level.objectType === objectType && level.objectId === objectId && level.kind === kind);
@@ -167,7 +201,12 @@ export default function V4FullTerminalOrders({
         return;
       }
       // The backend/store must confirm price before the dotted preview clears.
-      setAwaiting({ accountId, objectType, objectId, kind, price });
+      const acceptedLimit=accepted.find(level=>level.objectType==='pending' &&
+        level.objectId===objectId && level.kind==='limitPrice');
+      const expectedLimitPrice = kind==='entry' &&
+        String(owner.orderType || '').toLowerCase().replaceAll('_','-')==='stop-limit' &&
+        acceptedLimit && original ? Number((acceptedLimit.price+price-original.price).toPrecision(12)) : null;
+      setAwaiting({ accountId, objectType, objectId, kind, price, expectedLimitPrice });
     } catch (cause) {
       setError(cause?.message || 'Unable to confirm the chart modification.');
       setSaving(false);
