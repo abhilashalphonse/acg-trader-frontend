@@ -14,7 +14,7 @@ export default function V4ChartOrderLayer({
   accountId, symbol, positions = [], pendingOrders = [], coordinateApi,
   height = 480, formatPrice, formatVolume, formatPnl,
   edit = null, saving = false, onBeginEdit, onChangeEdit, onSaveEdit, onCancelEdit,
-  onConfirmRemoval, onAddProtection,
+  onConfirmRemoval, onAddProtection, onSelectPosition, onClosePosition, onCancelPending,
 }) {
   const [removeLevel, setRemoveLevel] = useState(null);
   const drag = useRef(null);
@@ -40,6 +40,8 @@ export default function V4ChartOrderLayer({
     };
   }, [coordinateApi, onChangeEdit]);
   const [hoveredId, setHoveredId] = useState(null);
+  const [, requestCoordinates] = useState(0);
+  useEffect(() => coordinateApi?.subscribe?.(() => requestCoordinates(value => value + 1)), [coordinateApi]);
   const accepted = useMemo(() => projectV4AcceptedLevels({accountId,symbol,positions,pendingOrders}),
     [accountId,symbol,positions,pendingOrders]);
   const { preview: ghost, connector } = projectV4DraftGroup(accepted, edit);
@@ -53,6 +55,7 @@ export default function V4ChartOrderLayer({
     : level.side==='BUY' ? COLORS.buy : COLORS.sell;
   const selected = removeLevel && accepted.find(level=>level.id===removeLevel);
   const canRemove = Boolean(onConfirmRemoval);
+  const [cancelPendingId, setCancelPendingId] = useState(null);
   const beginDrag = (event, level) => {
     if (!onBeginEdit || !onChangeEdit || saving || !coordinateApi?.yToPrice) return;
     if (!(level.objectType === 'pending' && level.kind === 'entry') && !['sl','tp'].includes(level.kind)) return;
@@ -86,6 +89,9 @@ export default function V4ChartOrderLayer({
           {level.kind==='entry' && level.objectType==='position' && <span className="shrink-0 text-gray-300">{formatVolume?.(level.volume) ?? level.volume}</span>}
           {level.kind!=='entry' && <span className="shrink-0">{priceLabel(level.price,formatPrice)}</span>}
           {level.kind==='entry' && level.objectType==='position' && formatPnl && <span className="truncate" style={{color}}>{formatPnl(level.pnl)}</span>}
+          {level.kind==='entry' && level.objectType==='position' && onSelectPosition && <button type="button" aria-label="Select position" onClick={()=>onSelectPosition(level.objectId)} className="shrink-0 px-1 text-gray-300">Select</button>}
+          {level.kind==='entry' && level.objectType==='position' && onClosePosition && <button type="button" aria-label="Close position" onClick={()=>onClosePosition(level.objectId, 100)} className="shrink-0 px-1 text-gray-300">×</button>}
+          {level.kind==='entry' && level.objectType==='pending' && onCancelPending && <button type="button" aria-label="Cancel pending order" onClick={()=>setCancelPendingId(level.id)} className="shrink-0 px-1 text-gray-300">×</button>
           {missing.map(kind=><button key={kind} type="button" onClick={()=>onAddProtection?.(level.objectId,kind)}
             className="shrink-0 rounded-[3px] border border-gray-600 px-1" aria-label={`Add ${kind.toUpperCase()}`}>+{kind.toUpperCase()}</button>)}
           {(['sl','tp'].includes(level.kind) || (level.objectType==='pending' && level.kind==='entry'))&&onBeginEdit&&<button type="button" className="shrink-0 px-1"
@@ -98,6 +104,16 @@ export default function V4ChartOrderLayer({
           aria-hidden="true"/>}
       </React.Fragment>;
     })}
+    {hoveredId && coordinateApi?.priceToY && (() => {
+      const group=acceptedWithCoordinates.filter(level =>
+        level.accountId+':'+level.objectType+':'+level.objectId===hoveredId);
+      const entry=group.find(level=>level.kind==='entry');
+      if (!entry) return null;
+      return group.filter(level=>['tp','sl'].includes(level.kind)).map(level=>
+        <div key={level.id} data-v4-confirmed-connector={level.id}
+          className="pointer-events-none absolute right-[135px] border-l border-[#98a7b6]/35"
+          style={{top:Math.min(entry.y,level.y),height:Math.abs(entry.y-level.y)}}/>);
+    })()}
     {connector && coordinateApi?.priceToY && Number.isFinite(coordinateApi.priceToY(connector.fromPrice)) && Number.isFinite(coordinateApi.priceToY(connector.toPrice)) && <div
       data-v4-draft-connector={connector.objectId}
       className="pointer-events-none absolute right-[135px] border-l border-dotted border-[#a8b5bd]/60"
@@ -125,6 +141,14 @@ export default function V4ChartOrderLayer({
     </div>}
     {overflow.length>0&&<span className="pointer-events-auto absolute bottom-2 right-[148px] rounded bg-[#202329] px-2 py-1 text-[10px] text-gray-300"
       data-v4-overflow-count={overflow.length}>{overflow.length} more levels outside badge area</span>}
+    {cancelPendingId && <div role="dialog" aria-modal="true" aria-label="Confirm cancel pending order"
+      className="pointer-events-auto absolute bottom-3 right-[148px] z-[60] flex max-w-[300px] flex-col gap-2 rounded-md border border-gray-600 bg-[#111419] p-3 text-[11px] text-white">
+      <span>Cancel this pending order?</span>
+      <div className="flex gap-2">
+        <button type="button" disabled={saving} onClick={()=>setCancelPendingId(null)}>Discard</button>
+        <button type="button" disabled={saving} onClick={()=>{ const item=accepted.find(level=>level.id===cancelPendingId); if(item) onCancelPending?.(item.objectId); setCancelPendingId(null); }}>Confirm cancellation</button>
+      </div>
+    </div>}
     {selected && <div role="dialog" aria-modal="true" aria-label={`Confirm remove ${selected.kind.toUpperCase()}`}
       className="pointer-events-auto absolute bottom-3 right-[148px] z-[60] flex max-w-[300px] flex-col gap-2 rounded-md border border-gray-600 bg-[#111419] p-3 text-[11px] text-white">
       <span>Remove {selected.kind.toUpperCase()} at {priceLabel(selected.price,formatPrice)}?</span>
