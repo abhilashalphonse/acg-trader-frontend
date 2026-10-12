@@ -431,7 +431,8 @@
 .v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-order-types .v4-capsule-button {
   min-height: 30px;
   font-size: 11px;
-  border-radius: 8px;
+  /* Match the full-pill active highlight used by the Lots sizing selector. */
+  border-radius: 999px;
 }
 .v4-ticket.v4-live-scope .v4-pending-note {
   display: block;
