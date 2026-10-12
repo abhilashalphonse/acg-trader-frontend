@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import V4ChartOrderLayer from './V4ChartOrderLayer.jsx';
 import { projectV4AcceptedLevels } from './chartOrderModel.js';
 import { formatInstrumentPrice } from '../../../utils/instrumentFormatting.js';
@@ -18,6 +18,8 @@ export default function V4FullTerminalOrders({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [awaiting, setAwaiting] = useState(null);
+  const [removing, setRemoving] = useState(null);
+  const removalRequest = useRef(null);
   const accepted = useMemo(() => projectV4AcceptedLevels({
     accountId, symbol, positions, pendingOrders,
   }), [accountId, symbol, positions, pendingOrders]);
@@ -26,8 +28,36 @@ export default function V4FullTerminalOrders({
   useEffect(() => {
     setEdit(null);
     setAwaiting(null);
+    setRemoving(null);
+    removalRequest.current = null;
+    setSaving(false);
     setError('');
   }, [accountId, symbol]);
+
+  // Clicking × is the removal command. Never optimistically erase accepted
+  // prices: clear the chip only when the authoritative account snapshot does.
+  useEffect(() => {
+    if (!removing) return;
+    const stillAccepted = accepted.some(level => level.id === removing.id);
+    if (!stillAccepted) {
+      removalRequest.current = null;
+      setRemoving(null);
+      setSaving(false);
+      setError('');
+    }
+  }, [accepted, removing]);
+  useEffect(() => {
+    if (!removing?.awaitingSnapshot) return undefined;
+    const request = removing;
+    const timeout = window.setTimeout(() => {
+      if (removalRequest.current !== request.token) return;
+      removalRequest.current = null;
+      setRemoving(null);
+      setSaving(false);
+      setError('The account has not confirmed TP/SL removal. The accepted level is unchanged; refresh before retrying.');
+    }, 12000);
+    return () => window.clearTimeout(timeout);
+  }, [removing]);
 
   const parentEdit = useMemo(() => {
     const parent = positionProtectionDraft;
@@ -145,18 +175,41 @@ export default function V4FullTerminalOrders({
   };
 
   const remove = async action => {
-    if (!action || saving || action.accountId !== accountId ||
-        !['sl','tp'].includes(action.kind)) return;
+    if (!action || saving || removalRequest.current || isNewOrderPlanning ||
+        action.accountId !== accountId || !['sl','tp'].includes(action.kind) ||
+        !['position','pending'].includes(action.objectType)) return;
+    // Reject stale or fabricated level targets: only an accepted level owned by
+    // the active chart account is eligible for one-click removal.
+    const level = accepted.find(item => item.accountId === accountId &&
+      item.objectType === action.objectType && item.objectId === String(action.objectId) &&
+      item.kind === action.kind);
+    if (!level) return;
+    const token = {};
+    removalRequest.current = token; // synchronous guard against double-clicks
+    setRemoving({ id: level.id, token, awaitingSnapshot: false });
     setSaving(true);
+    setError('');
     try {
       const result = action.objectType === 'position'
         ? await onRemovePositionProtection?.(action.objectId, action.kind)
         : await onMovePending?.(action.objectId, null, action.kind);
-      if (result === false || result == null) setError('Removal was not accepted; the original level remains.');
+      if (removalRequest.current !== token) return; // account may have changed
+      if (result === false || result == null) {
+        removalRequest.current = null;
+        setRemoving(null);
+        setSaving(false);
+        setError('Removal was not accepted; the original level remains.');
+      } else {
+        // A successful HTTP response is not sufficient confirmation. Only the
+        // incoming account snapshot may remove the accepted chart level.
+        setRemoving({ id: level.id, token, awaitingSnapshot: true });
+      }
     } catch (cause) {
-      setError(cause?.message || 'Could not remove the protection.');
-    } finally {
+      if (removalRequest.current !== token) return;
+      removalRequest.current = null;
+      setRemoving(null);
       setSaving(false);
+      setError(cause?.message || 'Could not remove the protection.');
     }
   };
 
@@ -173,7 +226,7 @@ export default function V4FullTerminalOrders({
       formatPrice={value => formatInstrumentPrice(value, instrument)}
       formatVolume={value => Number(value).toFixed(2) + ' lots'}
       formatPnl={value => Number.isFinite(Number(value)) ? Number(value).toFixed(2) + ' ' + (account?.currency || 'USD') : '—'}
-      edit={activeEdit} saving={saving} hoveredPositionId={hoveredPositionId}
+      edit={activeEdit} saving={saving} removingLevelId={removing?.id || null} hoveredPositionId={hoveredPositionId}
       hidePositionEntries readOnly={isNewOrderPlanning}
       instrument={instrument} accountCurrency={account?.currency || 'USD'}
       onBeginEdit={isNewOrderPlanning ? null : begin} onChangeEdit={isNewOrderPlanning ? null : setEdit}
