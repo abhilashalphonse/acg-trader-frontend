@@ -128,29 +128,18 @@ export default function DesktopManagePendingV4({
       <div className="v4-instrument">
         <span className="shrink-0"><InstrumentAvatar instrument={instrument} size={32}/></span>
         <div className="v4-symbol"><strong>{instrument?.displaySymbol||order.symbol}</strong>
-          <span>{side} · {type.toUpperCase().replace('-',' ')} · Pending</span></div>
+          <span className="v4-manage-header-context"><i className="v4-manage-status-dot"/><b className={side==='BUY'?'v4-manage-long':'v4-manage-short'}>{side}</b><span>· {type.toUpperCase().replace('-',' ')} · {status}</span></span></div>
         <div className="v4-head-actions">
           <button type="button" aria-label="Back to new order" onClick={exit} disabled={working}><ArrowLeft size={18}/></button>
           <button type="button" aria-label="Close pending editor" onClick={exit} disabled={working}><X size={19}/></button>
         </div>
       </div>
-      <div className="v4-session"><span><i className="v4-manage-live-indicator"/>Order pending</span>
-        <span>{side} · {status}</span></div>
-      <div className="v4-quote-strip" aria-label="Pending order prices">
-        <span>Entry / Trigger <strong>{formatInstrumentPrice(entry,instrument)}</strong></span>
-        <span>{stopLimit?'Limit price':'Type'} <strong>{stopLimit?formatInstrumentPrice(limit,instrument):'LIMIT'}</strong></span>
-        <span>Status <strong>{status}</strong></span>
-      </div>
-      <div className="v4-capsule v4-mainmodes v4-order-types v4-manage-modes" role="group">
-        <span className="v4-capsule-button selected">Pending Order</span>
-        <button type="button" className="v4-capsule-button" onClick={exit} disabled={working}>New Order</button>
-      </div>
       <div className="v4-position v4-block">
-        <div className="v4-section-heading"><span>PENDING ORDER</span><span>{type.toUpperCase().replace('-',' ')}</span></div>
+        <div className="v4-section-heading"><span>ORDER DETAILS</span></div>
         <div className="v4-manage-position-values">
           <div className="v4-manage-position-size"><span className="v4-manage-stat-label">ORDER SIZE</span>
             <div className="v4-manage-size-value">{pretty(volume)} <small>lots</small></div></div>
-          <div className="v4-manage-position-pnl"><span className="v4-manage-stat-label">ENTRY / TRIGGER</span>
+          <div className="v4-manage-position-pnl"><span className="v4-manage-stat-label">{stopLimit?'STOP TRIGGER':'LIMIT ENTRY'}</span>
             <strong>{formatInstrumentPrice(entry,instrument)}</strong></div>
         </div>
       </div>
