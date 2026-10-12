@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Eye, EyeOff, RotateCcw, ScanLine, Magnet, Lock, Unlock, Pin } from 'lucide-react';
 import TradingChart from '../TradingChart.jsx';
 import DrawingLayer from './DrawingLayer.jsx';
+import V4FullTerminalOrders from './v4/V4FullTerminalOrders.jsx';
 import { formatInstrumentPrice, formatSpreadDisplay, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 import { positionCloseAvailability } from '../../utils/marketExecutionAvailability.js';
 import { estimateLossAtStopWithCosts, estimatePositionPnlAtPrice, estimateStopRisk, positionDistancePips } from '../../utils/tradingRisk.js';
@@ -1417,6 +1418,19 @@ export default function ChartArea({
 }) {
   const [clockNow, setClockNow] = useState(() => new Date());
   const [coordinateApi, setCoordinateApi] = useState(null);
+  const v4AuditLayer = desktopEnhanced && chartOrderV4 && !mobileOverlayStyle;
+  const v4ChartContainerRef = useRef(null);
+  const [v4ChartHeight, setV4ChartHeight] = useState(480);
+  useEffect(() => {
+    if (!v4AuditLayer || !v4ChartContainerRef.current) return undefined;
+    const node = v4ChartContainerRef.current;
+    const update = () => setV4ChartHeight(node.clientHeight || 480);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [v4AuditLayer]);
+
   const [hoveredPositionId, setHoveredPositionId] = useState(null);
   const [showDrawings, setShowDrawings] = useState(true);
   const [drawingSnap, setDrawingSnap] = useState('off');
@@ -1601,7 +1615,7 @@ export default function ChartArea({
       )}
 
       <div className={`relative h-full min-h-0 min-w-0 overflow-hidden ${desktopEnhanced ? 'rounded-[10px] border border-white/[0.06] bg-[#080A0C] shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]' : 'bg-[#09090b]'}`}>
-        <div className={`relative h-full min-h-0 min-w-0 overflow-hidden ${desktopEnhanced ? 'rounded-[9px] bg-[#07090B]' : 'bg-[#09090b]'} ${drawingToolbarOverlay ? (toolbarVisible ? '' : 'pl-3') : ''} ${mobileReference ? 'pr-1' : ''}`}>
+        <div ref={v4ChartContainerRef} className={`relative h-full min-h-0 min-w-0 overflow-hidden ${desktopEnhanced ? 'rounded-[9px] bg-[#07090B]' : 'bg-[#09090b]'} ${drawingToolbarOverlay ? (toolbarVisible ? '' : 'pl-3') : ''} ${mobileReference ? 'pr-1' : ''}`}>
         <TradingChart
           symbol={symbol}
           instrument={instrument}
@@ -1653,7 +1667,7 @@ export default function ChartArea({
           preserveChartCrosshair={desktopEnhanced && !compactContext}
         />}
         <TradePlanOverlay
-          plan={tradePlan}
+          plan={v4AuditLayer && tradePlan?.editingOrderId ? null : tradePlan}
           onChange={onTradePlanChange}
           // Closing a modification draft must never cancel the live pending order.
           // Actual accepted-order cancellation remains on its separate placed row.
@@ -1667,7 +1681,7 @@ export default function ChartArea({
           orderExecutionPreview={orderExecutionPreview}
           desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle}
         />
-        {positionProtectionDraft && (
+        {positionProtectionDraft && !v4AuditLayer && (
           <TradePlanOverlay
             plan={positionProtectionDraft}
             onChange={onPositionProtectionDraftChange}
@@ -1684,9 +1698,9 @@ export default function ChartArea({
           />
         )}
         <ClosedPositionChartOverlay symbol={symbol} position={historicalPosition} coordinateApi={coordinateApi} instrument={instrument} onClear={onClearHistoricalPosition} />
-        {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle ? null : tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} onMove={onMovePending} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} account={account} accountCurrency={accountCurrency} />}
-        <OpenPositionEntryOverlay symbol={symbol} positions={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle ? positions : positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} onRequestPositionProtection={onRequestPositionProtection} hoveredPositionId={hoveredPositionId} onHoverPosition={setHoveredPositionId} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} />
-        <OpenPositionProtectionOverlay
+        {!v4AuditLayer && !tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle ? null : tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} onMove={onMovePending} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} account={account} accountCurrency={accountCurrency} />}
+        {!v4AuditLayer && <OpenPositionEntryOverlay symbol={symbol} positions={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle ? positions : positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} onRequestPositionProtection={onRequestPositionProtection} hoveredPositionId={hoveredPositionId} onHoverPosition={setHoveredPositionId} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} />}
+        {!v4AuditLayer && <OpenPositionProtectionOverlay
           symbol={symbol}
           positions={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle ? positions : positions.filter(position =>
             !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id))
@@ -1704,8 +1718,8 @@ export default function ChartArea({
           onSelectPosition={onSelectPosition}
           mobileStyle={mobileOverlayStyle}
           desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle}
-        />
-        {desktopEnhanced && chartOrderV4 && !mobileOverlayStyle && (
+        />}
+        {!v4AuditLayer && desktopEnhanced && chartOrderV4 && !mobileOverlayStyle && (
           <OpenPositionGroupGuide
             symbol={symbol}
             positions={positions}
@@ -1713,6 +1727,20 @@ export default function ChartArea({
             coordinateApi={coordinateApi}
           />
         )}
+
+        {v4AuditLayer && <V4FullTerminalOrders
+          account={account} symbol={symbol} instrument={instrument}
+          positions={positions} pendingOrders={pendingOrders}
+          coordinateApi={coordinateApi} height={v4ChartHeight}
+          positionProtectionDraft={positionProtectionDraft}
+          onUpdatePosition={onUpdatePosition}
+          onRemovePositionProtection={onRemovePositionProtection}
+          onMovePending={onMovePending}
+          onRequestPositionProtection={onRequestPositionProtection}
+          onCancelPositionProtection={onCancelPositionProtection}
+          onSelectPosition={onSelectPosition} onClosePosition={onClosePosition}
+          onCancelPending={onCancelPending}
+        />}
 
         {desktopEnhanced && !compactContext && (
           <div className="absolute right-[74px] top-2 z-30 flex items-center gap-1">
