@@ -49,7 +49,8 @@ export default function V4ChartOrderLayer({
   const acceptedWithCoordinates = coordinateApi?.priceToY
     ? accepted.map(level => ({...level,y:coordinateApi.priceToY(level.price)})).filter(level=>Number.isFinite(level.y))
     : [];
-  const { placements, overflow } = placeV4Badges(acceptedWithCoordinates, { minY: 14, maxY:height-14, badgeHeight:28, gap:5 });
+  const displayedLevels = acceptedWithCoordinates.filter(level => !(hidePositionEntries && level.objectType === 'position' && level.kind === 'entry'));
+  const { placements, overflow } = placeV4Badges(displayedLevels, { minY: 14, maxY:height-14, badgeHeight:28, gap:5 });
   const placed = new Map(placements.map(level=>[level.id,level]));
   const colorFor = level => level.kind==='sl' ? COLORS.sl : level.kind==='tp' ? COLORS.tp
     : level.objectType==='position' && level.kind==='entry' ? COLORS.neutral
@@ -71,10 +72,7 @@ export default function V4ChartOrderLayer({
 
   return <div className="pointer-events-none absolute inset-0 z-[36] overflow-hidden" data-v4-isolated-layer
     style={{ height }}>
-    {acceptedWithCoordinates.map(level=>{
-      // The full terminal uses its original approved market-position entry badge.
-      // V4 does not duplicate that entry line or its controls.
-      if (hidePositionEntries && level.objectType === 'position' && level.kind === 'entry') return null;
+    {displayedLevels.map(level=>{
       const color=colorFor(level);
       const location=placed.get(level.id);
       const groupId=level.accountId+':'+level.objectType+':'+level.objectId;
