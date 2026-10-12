@@ -1257,7 +1257,10 @@ export default function TradingTerminalV2({
 
     if (field === 'sl') replacement.stopLoss = numericPrice;
     else if (field === 'tp') replacement.takeProfit = numericPrice;
-    else {
+    else if (field === 'limitPrice' && String(order.orderType || '').toLowerCase() === 'stop-limit') {
+      // Only the execution limit changes; the stop trigger is independent.
+      replacement.limitPrice = numericPrice;
+    } else {
       replacement.entry = numericPrice;
       if (
         String(order.orderType || '').toLowerCase() === 'stop-limit'
