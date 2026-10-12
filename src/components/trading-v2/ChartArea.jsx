@@ -132,49 +132,16 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
         return (
           <div key={position.id || `${side}-${entry}-${lots}`} className="absolute left-0 right-0" style={{ top: y }}>
             <div className="relative border-t" style={{ borderColor: lineColor }}>
-              <div
-                role="button"
-                tabIndex={0}
+              <ChartLevelBadge
+                label={`${side} ${formatPositionLots(lots)} lots`}
+                price={formatInstrumentPrice(entry, instrument)}
+                amount={Number.isFinite(pnl) ? formatPositionPnl(pnl, currency) : null}
+                color={lineColor}
+                tooltip={closeDisabled ? closeAvailability.reason : 'Live position: click to select; × closes at market when permitted.'}
                 onClick={event => { event.stopPropagation(); onSelectPosition(position.id); }}
-                onKeyDown={event => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    onSelectPosition(position.id);
-                  }
-                }}
-                className={`pointer-events-auto absolute left-3 top-1/2 flex h-6 -translate-y-1/2 items-stretch overflow-hidden rounded-[4px] border bg-[#07110f]/98 font-mono text-[10px] font-bold tabular-nums text-[#f3faf7] shadow-[0_2px_8px_rgba(0,0,0,.32)] ${String(selectedPositionId) === String(position.id) ? 'ring-1 ring-white/20' : ''}`}
-                style={{ borderColor: lineColor }}
-                aria-label={`Select ${side} ${position.symbol || symbol} position`}
-              >
-                <span
-                  className="flex min-w-[30px] items-center justify-center border-r px-2 text-white"
-                  style={{ backgroundColor: quantityBackground, borderColor: `${lineColor}80` }}
-                >
-                  {signedLots}
-                </span>
-                <span
-                  className="flex min-w-[72px] items-center justify-center border-r px-2"
-                  style={{ color: pnlColor, borderColor: `${lineColor}55` }}
-                >
-                  {formatPositionPnl(pnl, currency)}
-                </span>
-                <button
-                  type="button"
-                  disabled={closeDisabled}
-                  onClick={event => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    if (closeDisabled) return;
-                    void onClosePosition(position.id, 100);
-                  }}
-                  className="grid w-7 place-items-center text-[13px] leading-none transition hover:bg-white/[0.05] active:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-30"
-                  style={{ color: closeColor }}
-                  aria-label={`Close ${side} ${position.symbol || symbol} position`}
-                  title={closeDisabled ? closeAvailability.reason : 'Close position'}
-                >
-                  ×
-                </button>
-              </div>
+                onRemove={closeDisabled ? null : () => onClosePosition(position.id, 100)}
+                removeLabel={`Close ${side} ${position.symbol || symbol} position`}
+              />
               <span
                 className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 font-mono text-[9px] font-bold tabular-nums text-white shadow-[0_3px_10px_rgba(0,0,0,.28)]"
                 style={{ borderColor: lineColor, backgroundColor: isBuy ? '#0aa06f' : '#d94250' }}
@@ -1124,7 +1091,7 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
 
   const renderLine = (position, kind, color, label) => {
     const key = `${position.id}:${kind}`;
-    const source = Object.prototype.hasOwnProperty.call(preview, key) ? preview[key] : position[kind];
+    const source = mobileStyle && Object.prototype.hasOwnProperty.call(preview, key) ? preview[key] : position[kind];
     const price = Number(source);
     if (!Number.isFinite(price)) return null;
     const y = coordinateApi.priceToY(price);
@@ -1147,7 +1114,16 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
       return (
         <div key={key} className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: y }}>
           <div className="relative h-px" style={{ backgroundColor: color }}>
-            <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 text-[8px] font-black" style={{ borderColor: `${color}88`, backgroundColor: 'rgba(8,8,8,0.92)', color }}>{label}</span>
+            <ChartLevelBadge
+              label={kind === 'sl' ? 'Stop loss' : 'Take profit'}
+              price={displayPrice(price)}
+              amount={chartEstimateCurrencySupported(instrument, currency) && Number.isFinite(projectedPnl) ? formatPositionPnl(projectedPnl, currency) : null}
+              percent={chartPriceChangePercent(position.entry ?? position.entryPrice, price)}
+              color={color}
+              tooltip="Estimated P&L at this protection level, excluding possible slippage and costs."
+              onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onSelectPosition(position.id); setDragging({ positionId: position.id, kind }); }}
+              onClick={event => { event.stopPropagation(); onSelectPosition(position.id); }}
+            />
             <span className="absolute right-[56px] top-1/2 lg:right-2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 text-[8px] font-bold tabular-nums text-white" style={{ borderColor: `${color}88`, backgroundColor: kind === 'sl' ? '#5b1721' : '#0b4b37' }}>{previewText}</span>
             <button
               type="button"
@@ -1219,10 +1195,38 @@ function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, 
 
   return (
     <div ref={layerRef} className="pointer-events-none absolute inset-0 z-[24] overflow-hidden">
+      {!mobileStyle && activePositions.filter(position => String(position.id) === String(selectedPositionId)).flatMap(position => {
+        const entry = coordinateApi.priceToY(Number(position.entry ?? position.entryPrice));
+        if (!Number.isFinite(entry)) return [];
+        return ['sl', 'tp'].map(kind => {
+          const price = Number(position[kind]);
+          const y = coordinateApi.priceToY(price);
+          if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(y)) return null;
+          return <div key={`position-zone:${position.id}:${kind}`} className="pointer-events-none absolute left-[44%] right-0"
+            style={{ top: Math.min(y, entry), height: Math.abs(y - entry), background: kind === 'sl' ? 'rgba(187,48,65,0.10)' : 'rgba(28,143,106,0.10)' }} />;
+        });
+      })}
       {activePositions.flatMap(position => [
         renderLine(position, 'tp', '#35d79d', 'TP'),
         renderLine(position, 'sl', '#ff5968', 'SL'),
       ])}
+      {!mobileStyle && Object.entries(preview).map(([key, candidate]) => {
+        const index = key.lastIndexOf(':');
+        if (index < 0) return null;
+        const positionId = key.slice(0, index);
+        const kind = key.slice(index + 1);
+        if (!activePositions.some(position => String(position.id) === positionId)) return null;
+        const price = Number(candidate);
+        const y = coordinateApi.priceToY(price);
+        if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(y)) return null;
+        const color = kind === 'sl' ? '#ff5968' : '#35d79d';
+        return <div key={`protection-preview:${key}`} className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: y }}>
+          <div className="relative border-t-2 border-dotted" style={{ borderColor: color }}>
+            <ChartLevelBadge label={kind === 'sl' ? 'Stop loss' : 'Take profit'} price={formatInstrumentPrice(price, instrument)} color={color} tooltip="Preview only until the update is accepted." />
+            <span className="absolute right-[56px] top-1/2 -translate-y-1/2 rounded border px-1.5 py-0.5 font-mono text-[9px] lg:right-2" style={{ borderColor: color, color, backgroundColor: '#111419' }}>{formatInstrumentPrice(price, instrument)}</span>
+          </div>
+        </div>;
+      })}
     </div>
   );
 }
