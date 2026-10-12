@@ -17,9 +17,9 @@ const originalPositions=[
  {id:'p2',symbol:'EURUSD',status:'OPEN',side:'SELL',entry:1.116,volume:0.01,pnl:0.15,sl:null,tp:null},
 ];
 const originalOrders=[
- {id:'o1',symbol:SYMBOL,status:'PENDING',side:'SELL',orderType:'limit',
+ {id:'o1',symbol:SYMBOL,status:'ACCEPTED',side:'SELL',orderType:'limit',
   entry:84400,volume:0.01,sl:null,tp:82100},
- {id:'o2',symbol:SYMBOL,status:'PENDING',side:'SELL',orderType:'stop-limit',
+ {id:'o2',symbol:SYMBOL,status:'TRIGGERED',side:'SELL',orderType:'stop-limit',
   entry:81600,limitPrice:81400,volume:0.02,sl:null,tp:null},
 ];
 const toY=price=>50+(86000-Number(price))/12;
