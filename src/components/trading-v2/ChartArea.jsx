@@ -7,7 +7,7 @@ import { positionCloseAvailability } from '../../utils/marketExecutionAvailabili
 import { estimateLossAtStopWithCosts, estimatePositionPnlAtPrice, estimateStopRisk, positionDistancePips } from '../../utils/tradingRisk.js';
 import { resolveExecutionPreview } from '../../utils/executionPricing.js';
 import { effectiveTradePlan } from '../../utils/tradePlanExecution.js';
-import { chartEntryReference, chartLineStyle, chartPriceChangePercent, chartEstimateCurrencySupported } from '../../utils/chartOrderPresentation.js';
+import { chartEntryReference, chartLineStyle, chartPriceChangePercent, chartEstimateCurrencySupported, chartPositionProtections, chartPlacedSideColor, chartPositionConnectorLevels } from '../../utils/chartOrderPresentation.js';
 import { DRAWING_TOOL_GROUPS, DRAWING_TOOL_LABELS } from '../../utils/drawingTools.js';
 import { DRAWING_TOOL_ICONS } from './DrawingToolIcons.jsx';
 import { chartTimezoneLabel, formatChartClock } from '../../utils/desktopChartSettings.js';
@@ -65,13 +65,17 @@ function formatPositionLots(value) {
 // Visual status changes the line style; we intentionally do not add "planned" wording.
 // Reserve 148px at the chart's right edge for the price scale plus
 // live BID/ASK titles. The separate price markers retain their exact line.
-function ChartLevelBadge({ label, price, amount = null, percent = null, color = '#aab8c5', onPointerDown, onClick, onRemove, removeLabel = 'Remove level', tooltip = null }) {
+function ChartLevelBadge({ label, price, amount = null, percent = null, color = '#aab8c5', onPointerDown, onClick, onRemove, removeLabel = 'Remove level', tooltip = null, prefix = null, groupActive = false, onGroupEnter, onGroupLeave }) {
   const isInteractive = Boolean(onPointerDown || onClick);
   return (
     <div
       data-v4-chart-badge
-      className={`pointer-events-auto absolute right-[148px] top-1/2 z-20 flex h-7 max-w-[calc(100%-162px)] -translate-y-1/2 items-center gap-2 overflow-hidden rounded-[5px] border bg-[#111419]/96 px-2 font-mono text-[10px] font-semibold tabular-nums shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
+      className={`pointer-events-auto absolute right-[148px] top-1/2 z-20 flex h-7 max-w-[calc(100%-162px)] -translate-y-1/2 items-center gap-1.5 overflow-hidden rounded-[5px] border bg-[#111419]/96 px-1.5 font-mono text-[10px] font-semibold tabular-nums shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm transition-[box-shadow,background-color] ${groupActive ? 'bg-[#242b31]/98 ring-1 ring-white/35 shadow-[0_0_14px_rgba(240,247,255,.12)]' : ''} ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
       style={{ borderColor: `${color}aa` }}
+      onMouseEnter={onGroupEnter}
+      onMouseLeave={onGroupLeave}
+      onFocus={onGroupEnter}
+      onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) onGroupLeave?.(); }}
       onPointerDown={onPointerDown}
       onClick={onClick}
       title={tooltip || undefined}
@@ -80,6 +84,7 @@ function ChartLevelBadge({ label, price, amount = null, percent = null, color = 
       onKeyDown={onClick ? event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onClick(event); } } : undefined}
     >
       <span aria-hidden="true" className="shrink-0 text-[11px] tracking-[-2px] text-[#788592]">⠿</span>
+      {prefix}
       <span className="shrink-0 font-sans font-semibold" style={{ color }}>{label}</span>
       {price != null && <span className="shrink-0 text-[#e5ebf0]">{price}</span>}
       {amount != null && <span className="shrink-0 rounded-[3px] px-1.5 py-0.5" style={{ color, backgroundColor: `${color}1b` }}>{amount}</span>}
@@ -91,11 +96,12 @@ function ChartLevelBadge({ label, price, amount = null, percent = null, color = 
 
 // Reusable compact order row: direction → absent TP/SL shortcuts → size → type → close.
 // Existing protections move to their own draggable levels, restoring shortcuts when removed.
-function ChartOrderEntryRow({ side, type, lots, color, showTp = false, showSl = false, onTp, onSl, onCancel, onPointerDown, onClick, cancelLabel, title }) {
+function ChartOrderEntryRow({ side, type, lots, color, showTp = false, showSl = false, onTp, onSl, onCancel, onPointerDown, onClick, cancelLabel, title, placed = false }) {
   const interactive = Boolean(onClick || onPointerDown);
   return (
     <div
       data-v4-chart-entry
+      data-order-state={placed ? 'placed' : 'draft'}
       className={`pointer-events-auto absolute right-[148px] top-1/2 z-20 flex h-7 max-w-[calc(100%-162px)] -translate-y-1/2 items-center overflow-hidden rounded-[5px] border bg-[#111419]/96 font-mono text-[10px] font-semibold tabular-nums text-[#e4e9ed] shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
       style={{ borderColor: `${color}aa` }}
       title={title || undefined}
