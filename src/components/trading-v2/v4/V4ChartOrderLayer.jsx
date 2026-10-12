@@ -1,15 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   projectV4AcceptedLevels, projectV4DraftGroup, placeV4Badges,
-  v4MissingProtections, v4ProtectionAction,
+  v4MissingProtections, v4MissingPendingProtections, v4ProtectionAction,
 } from './chartOrderModel.js';
 import { estimatePositionPnlAtPrice } from '../../../utils/tradingRisk.js';
-import { chartEstimateCurrencySupported } from '../../../utils/chartOrderPresentation.js';
+import { chartEstimateCurrencySupported, chartEntryReference } from '../../../utils/chartOrderPresentation.js';
 
 // An intentionally separate V4-only renderer: no imports from ChartArea or
 // legacy plan/pending/position overlays. Future phases connect real chart
 // coordinates and command handlers after authenticated staging acceptance.
-const COLORS = Object.freeze({ sl:'#ee5465', tp:'#16c590', buy:'#17b899', sell:'#ee596a', neutral:'#aab6c2' });
+const COLORS = Object.freeze({ sl:'#ee5465', tp:'#16c590', buy:'#17b899', sell:'#ee596a', neutral:'#aab6c2', limit:'#b69adc' });
 const priceLabel = (value, formatPrice) => formatPrice ? formatPrice(value) : String(value);
 // Keep the instrument's exact decimal precision while grouping large prices
 // the same way as the approved TP/SL reference chip.
@@ -60,7 +60,7 @@ export default function V4ChartOrderLayer({
   useEffect(() => coordinateApi?.subscribe?.(() => requestCoordinates(value => value + 1)), [coordinateApi]);
   const accepted = useMemo(() => projectV4AcceptedLevels({accountId,symbol,positions,pendingOrders}),
     [accountId,symbol,positions,pendingOrders]);
-  const { preview: ghost, connector } = projectV4DraftGroup(accepted, edit);
+  const { preview: ghost, secondaryPreview, connector } = projectV4DraftGroup(accepted, edit);
   const acceptedWithCoordinates = coordinateApi?.priceToY
     ? accepted.map(level => ({...level,y:coordinateApi.priceToY(level.price)})).filter(level=>Number.isFinite(level.y))
     : [];
@@ -68,19 +68,26 @@ export default function V4ChartOrderLayer({
   const { placements, overflow } = placeV4Badges(displayedLevels, { minY: 14, maxY:height-14, badgeHeight:28, gap:5 });
   const placed = new Map(placements.map(level=>[level.id,level]));
   const colorFor = level => level.kind==='sl' ? COLORS.sl : level.kind==='tp' ? COLORS.tp
+    : level.kind==='limitPrice' ? COLORS.limit
     : level.objectType==='position' && level.kind==='entry' ? COLORS.neutral
     : level.side==='BUY' ? COLORS.buy : COLORS.sell;
   const projectedPositionProtection = level => {
-    const position = positions.find(item => String(item.id) === String(level.objectId));
+    const isPending=level.objectType==='pending';
+    const order=isPending?pendingOrders.find(item=>String(item.id)===String(level.objectId)):null;
+    const position=isPending ? order : positions.find(item => String(item.id) === String(level.objectId));
+    const reference=isPending
+      ? chartEntryReference({pending:true,orderType:order?.orderType,entry:order?.entry,limitPrice:order?.limitPrice})
+      : null;
+    const projectedSource=isPending && position ? {...position,entry:reference} : position;
     const lots = Number(position?.volume ?? position?.lots);
     const volume = Number.isFinite(lots) ? String(Number(lots.toFixed(4))) : '—';
     const currency = String(accountCurrency || 'USD').toUpperCase();
     const estimate = chartEstimateCurrencySupported(instrument, currency)
-      ? estimatePositionPnlAtPrice(position, level.price, instrument)
+      ? estimatePositionPnlAtPrice(projectedSource, level.price, instrument)
       : null;
     const amount = estimate == null || !Number.isFinite(estimate)
       ? '— ' + currency : (estimate >= 0 ? '+' : '-') + Math.abs(estimate).toFixed(2) + ' ' + currency;
-    return { volume, amount };
+    return { volume, amount, reference };
   };
   const canRemove = Boolean(onRemoveProtection);
   const [cancelPendingId, setCancelPendingId] = useState(null);
@@ -92,7 +99,7 @@ export default function V4ChartOrderLayer({
   const beginDrag = (event, level, isPreview = false) => {
     if (readOnly || !onChangeEdit || saving || !coordinateApi?.yToPrice) return;
     if (!isPreview && !onBeginEdit) return;
-    if (!(level.objectType === 'pending' && level.kind === 'entry') && !['sl','tp'].includes(level.kind)) return;
+    if (!(level.objectType === 'pending' && ['entry','limitPrice'].includes(level.kind)) && !['sl','tp'].includes(level.kind)) return;
     if (event.button !== 0 || event.target.closest('button')) return;
     const levelY = coordinateApi.priceToY(level.price);
     if (!Number.isFinite(levelY)) return;
@@ -117,14 +124,22 @@ export default function V4ChartOrderLayer({
       const location=placed.get(level.id);
       const groupId=level.accountId+':'+level.objectType+':'+level.objectId;
       const highlighted=hoveredGroupId===groupId;
-      const missing=level.objectType==='position' && level.kind==='entry' ? v4MissingProtections(accepted,level.id) : [];
-      const marketProtection = level.objectType==='position' && ['sl','tp'].includes(level.kind);
-      const editingAcceptedProtection = marketProtection && ghost?.sourceLevelId === level.id;
+      const missing=level.kind==='entry' ? (level.objectType==='position' ? v4MissingProtections(accepted,level.id) :
+        v4MissingPendingProtections(accepted,level.id)) : [];
+      const marketProtection = ['sl','tp'].includes(level.kind);
+      const pendingEntry = level.objectType==='pending' && level.kind==='entry';
+      const pendingLimit = level.objectType==='pending' && level.kind==='limitPrice';
+      const pendingOrder = (pendingEntry || pendingLimit) ? pendingOrders.find(item=>String(item.id)===level.objectId) : null;
+      const pendingEditing = pendingEntry && edit?.objectType==='pending' && String(edit.objectId)===level.objectId;
+      const pendingMissing = missing.filter(kind=>!(pendingEditing && edit?.kind===kind));
+      const editingAcceptedProtection = (marketProtection || pendingLimit) &&
+        (ghost?.sourceLevelId === level.id || secondaryPreview?.sourceLevelId === level.id);
       const projection = marketProtection ? projectedPositionProtection(level) : null;
-      const entryLevel = marketProtection ? accepted.find(value => value.objectType==='position' &&
+      const entryLevel = marketProtection ? accepted.find(value => value.objectType===level.objectType &&
         value.objectId===level.objectId && value.kind==='entry') : null;
-      const percent = entryLevel && Number(entryLevel.price)>0
-        ? Math.abs((level.price / entryLevel.price - 1) * 100).toFixed(2)+'%' : '—';
+      const protectionBase = projection?.reference ?? entryLevel?.price;
+      const percent = marketProtection && Number(protectionBase)>0
+        ? Math.abs((level.price / protectionBase - 1) * 100).toFixed(2)+'%' : '—';
       return <React.Fragment key={level.id}>
         <div data-v4-accepted-line={level.id} className="pointer-events-none absolute left-0 right-0 border-t"
           style={{top:level.y,borderColor:color,opacity:highlighted?0.9:0.66}}/>
