@@ -44,6 +44,7 @@ try{
  await page.getByRole('button',{name:'Discard chart edit'}).click();
  assert.equal(await page.locator('[data-v4-preview]').count(),0);
  assert.equal(await page.locator('[data-v4-draft-shade]').count(),0);
+ assert.equal(await page.locator('[data-v4-accepted-shade]').count(),0, 'canvas remains free of accepted protection fills');
  assert.equal(await page.locator('[data-v4-draft-connector]').count(),0);
  assert.equal(await page.evaluate(()=>window.v4QA.commands.length),0);
  // A new limit order is a trade-plan draft. Its Buy/Sell execution is the
@@ -65,13 +66,17 @@ try{
  assert.equal(await page.locator('[data-v4-accepted-line="qa-account:pending:o1:entry"]').getAttribute('style'),before,'accepted line fixed');
  assert.equal(await page.locator('[data-v4-preview]').count(),1);
  await page.getByRole('button',{name:'Discard chart edit'}).click();
- // 5. TP to SL switching: only one draft shade exists and its type changes.
+ // 5. New TP/SL drafts hide the corresponding entry shortcut and never shade the canvas.
  await page.locator('button[aria-label="Add TP to BUY position"]').click();
  const entryActions=page.locator('[data-v4-position-action-anchor] [data-v4-chart-actions]');
  assert.equal(await entryActions.count(),1,'market Confirm / Discard must be beside approved position badge');
  assert.equal(await entryActions.getAttribute('data-v4-actions-location'),'position-entry');
  assert.equal(await page.locator('[data-v4-draft-badge] [data-v4-chart-actions]').count(),0,
    'TP draft badge must not contain Confirm / Discard');
+ assert.equal(await page.locator('button[aria-label="Add TP to BUY position"]').count(),0,
+   'active unconfirmed TP must not continue displaying +TP on the position badge');
+ assert.equal(await page.locator('button[aria-label="Add SL to BUY position"]').count(),1,
+   'unrelated missing SL remains available while creating TP');
  const positionAnchor=page.locator('[data-v4-position-action-anchor]');
  const positionBadge=positionAnchor.locator('[data-v4-chart-badge]');
  const buttons=await entryActions.boundingBox(), positionBox=await positionBadge.boundingBox();
@@ -89,8 +94,9 @@ try{
  assert.match(await page.locator('[data-v4-draft-badge]').innerText(),/[+]5[.]00 USD/,'TP draft should use projected P&L, not an unrelated price label');
  assert.equal(await page.locator('[data-v4-draft-badge]').evaluate(node=>Math.round(node.getBoundingClientRect().height)),28);
  assert.equal(await page.locator('[data-v4-draft-badge]').evaluate(node=>getComputedStyle(node).backgroundColor),
-   'rgb(16, 26, 24)', 'draft TP badge must use approved dark-green metallic surface');
- assert.equal(await page.locator('[data-v4-draft-shade="tp"]').count(),1);
+   'rgb(9, 9, 11)', 'draft TP badge must be black, not green');
+ assert.equal(await page.locator('[data-v4-draft-shade]').count(),0,
+   'there must be no colored planning canvas fill');
  assert.equal(await page.locator('[data-v4-draft-connector]').count(),1);
  // Newly created TP has a functioning drag grip. Its draft moves, but release
  // must never hit the command handler or move any server-accepted level.
@@ -107,8 +113,12 @@ try{
  assert.equal(await page.evaluate(()=>window.v4QA.commands.length),0,'new TP mouse release must not execute');
  assert.equal(await entryActions.count(),1,'position entry Confirm / Discard persists while dragging TP');
  await page.locator('button[aria-label="Add SL to BUY position"]').click();
- assert.equal(await page.locator('[data-v4-draft-shade="tp"]').count(),0,'stale green TP shade');
- assert.equal(await page.locator('[data-v4-draft-shade="sl"]').count(),1,'one red SL shade');
+ assert.equal(await page.locator('button[aria-label="Add SL to BUY position"]').count(),0,
+   'active unconfirmed SL must not continue displaying +SL on the position badge');
+ assert.equal(await page.locator('button[aria-label="Add TP to BUY position"]').count(),1,
+   'switch from TP to SL must restore +TP');
+ assert.equal(await page.locator('[data-v4-draft-shade]').count(),0,
+   'draft switch must not leave any chart canvas fill');
  assert.equal(await page.locator('[data-v4-preview]').count(),1);
  // 6. Chart-side Confirm updates only after backend stand-in resolution.
  assert.equal(await page.evaluate(()=>window.v4QA.commands.length),0);
@@ -120,9 +130,9 @@ try{
  const acceptedSlBadge=page.locator('[data-v4-badge="qa-account:position:p1:sl"]');
  assert.equal(await acceptedSlBadge.evaluate(node=>Math.round(node.getBoundingClientRect().height)),28);
  assert.equal(await acceptedSlBadge.evaluate(node=>getComputedStyle(node).backgroundColor),
-   'rgb(27, 17, 21)', 'accepted SL must use approved restrained red surface');
- assert.equal(await page.locator('[data-v4-accepted-shade="sl"]').count(),1,
-   'server-accepted SL shading must derive only from accepted position');
+   'rgb(9, 9, 11)', 'accepted SL badge must be black');
+ assert.equal(await page.locator('[data-v4-accepted-shade]').count(),0,
+   'confirmed SL must not paint a risk-area fill');
  // Existing accepted SL has the same drag affordance, with the accepted
  // server price and solid line unchanged until explicit confirmation.
  const acceptedSlLine=page.locator('[data-v4-accepted-line="qa-account:position:p1:sl"]');
@@ -138,8 +148,15 @@ try{
  assert.equal(await acceptedSlLine.getAttribute('style'),slAcceptedStyle,
   'accepted SL remains fixed while dotted preview is dragged');
  assert.equal(await page.locator('[data-v4-preview]').count(),1);
+ assert.equal(await page.locator('[data-v4-badge="qa-account:position:p1:sl"]').count(),0,
+   'existing SL full badge must hide while the distinct dotted draft is visible');
+ assert.equal(await page.locator('[data-v4-accepted-line="qa-account:position:p1:sl"]').count(),1,
+   'accepted SL price line must remain fixed and visible');
+ assert.equal(await page.locator('[data-v4-accepted-protection-price="qa-account:position:p1:sl"]').count(),1);
  assert.equal(await page.locator('[data-v4-position-action-anchor] [data-v4-chart-actions]').count(),1);
  await page.getByRole('button',{name:'Discard chart edit'}).click();
+ assert.equal(await page.locator('[data-v4-badge="qa-account:position:p1:sl"]').count(),1,
+   'accepted SL chip must return after Discard');
  assert.equal(await page.locator('[data-v4-preview]').count(),0);
  assert.equal(await page.evaluate(()=>window.v4QA.positions[0].sl),83400,
   'discarding accepted SL drag leaves server price unchanged');
@@ -150,8 +167,16 @@ try{
  await page.waitForFunction(()=>window.v4QA.commands.length===2);
  await page.locator('[data-v4-badge="qa-account:position:p1:tp"]').waitFor();
  await page.waitForFunction(()=>document.querySelectorAll('[data-v4-preview]').length===0);
- assert.equal(await page.locator('[data-v4-accepted-shade="tp"]').count(),1);
- assert.equal(await page.locator('[data-v4-accepted-shade="sl"]').count(),1);
+ assert.equal(await page.locator('[data-v4-accepted-shade]').count(),0,
+   'confirmed TP and SL must leave the chart background black');
+ // Hovering the original position badge must connect its accepted entry, TP and SL.
+ await originalPositionBadge.hover();
+ await page.locator('[data-v4-hover-group="p1"]').waitFor();
+ assert.equal(await page.locator('[data-v4-hover-connector-point]').count(),3,
+   'hover must show connectors at the position entry, TP and SL prices');
+ await page.mouse.move(50,50);
+ assert.equal(await page.locator('[data-v4-hover-group="p1"]').count(),0,
+   'hover guide must disappear when pointer leaves original position badge');
  const tpGrip=page.locator('[data-v4-drag-handle="qa-account:position:p1:tp"]');
  const tpBounds=await tpGrip.boundingBox();
  const acceptedTpLine=page.locator('[data-v4-accepted-line="qa-account:position:p1:tp"]');
@@ -165,10 +190,14 @@ try{
  assert.equal(await acceptedTpLine.evaluate(node=>node.style.top),tpTop,
   'accepted TP price coordinate remains fixed while dragging dotted preview');
  assert.equal(await page.locator('[data-v4-preview]').count(),1);
+ assert.equal(await page.locator('[data-v4-badge="qa-account:position:p1:tp"]').count(),0,
+   'existing TP full badge must hide while dotted preview is active');
  await page.getByRole('button',{name:'Discard chart edit'}).click();
  assert.equal(await page.locator('[data-v4-preview]').count(),0);
+ assert.equal(await page.locator('[data-v4-badge="qa-account:position:p1:tp"]').count(),1,
+   'accepted TP badge returns when edit is discarded');
  assert.deepEqual(errors,[],'no uncaught browser errors');
- console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks:22,commands:await page.evaluate(()=>window.v4QA.commands)}));
+ console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks:29,commands:await page.evaluate(()=>window.v4QA.commands)}));
 }catch(error){
  console.error('SIX_V4_REGRESSIONS_FAIL',error);
  process.exitCode=1;
