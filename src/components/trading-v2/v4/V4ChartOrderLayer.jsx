@@ -140,13 +140,18 @@ export default function V4ChartOrderLayer({
       const protectionBase = projection?.reference ?? entryLevel?.price;
       const percent = marketProtection && Number(protectionBase)>0
         ? Math.abs((level.price / protectionBase - 1) * 100).toFixed(2)+'%' : '—';
+      const pendingLabel = String(pendingOrder?.orderType || level.orderType || 'limit')
+        .replaceAll('_','-').toUpperCase().replaceAll('-',' ');
+      const pendingSide = String(level.side || '').toUpperCase();
+      const pendingVolume = Number(level.volume ?? pendingOrder?.volume ?? pendingOrder?.lots);
+      const pendingSize = Number.isFinite(pendingVolume) ? String(pendingVolume) : '—';
       return <React.Fragment key={level.id}>
         <div data-v4-accepted-line={level.id} className="pointer-events-none absolute left-0 right-0 border-t"
           style={{top:level.y,borderColor:color,opacity:highlighted?0.9:0.66}}/>
         {location && !editingAcceptedProtection && <div data-v4-badge={level.id}
           onPointerDown={event=>beginDrag(event,level)} onMouseEnter={()=>setHoveredId(groupId)} onMouseLeave={()=>setHoveredId(null)}
           onFocus={()=>setHoveredId(groupId)} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setHoveredId(null);}}
-          className={`pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] items-center ${marketProtection ? 'gap-0 tabular-nums backdrop-blur-sm' : 'gap-1 bg-[#111419]/95 px-1.5'} overflow-hidden rounded-[5px] border font-mono text-[10px] text-white shadow-[0_3px_12px_rgba(0,0,0,.36)] transition-[box-shadow]`}
+          className={`pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] items-center ${marketProtection ? 'gap-0 tabular-nums backdrop-blur-sm' : pendingEntry ? 'gap-1 bg-[#09090b] px-1.5' : pendingLimit ? 'gap-0 bg-[#09090b]' : 'gap-1 bg-[#111419]/95 px-1.5'} ${pendingEditing ? 'overflow-visible' : 'overflow-hidden'} rounded-[5px] border font-mono text-[10px] text-white shadow-[0_3px_12px_rgba(0,0,0,.36)] transition-[box-shadow]`}
           style={{top:location.badgeTop,borderColor:marketProtection?color+'aa':color,
             backgroundColor:marketProtection?protectionTheme(level.kind).background:undefined,
             boxShadow:highlighted?'0 0 10px rgba(215,223,231,.12)':undefined}}>
@@ -197,7 +202,7 @@ export default function V4ChartOrderLayer({
       const group=acceptedWithCoordinates.filter(level =>
         level.accountId+':'+level.objectType+':'+level.objectId===hoveredGroupId);
       const entry=group.find(level=>level.kind==='entry');
-      const protections=group.filter(level=>['tp','sl'].includes(level.kind));
+      const protections=group.filter(level=>['tp','sl','limitPrice'].includes(level.kind));
       if (!entry || !protections.length) return null;
       const ys=[entry.y,...protections.map(level=>level.y)];
       return <div data-v4-hover-group={entry.objectId}
