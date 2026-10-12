@@ -392,7 +392,15 @@ try{
  await page.mouse.down();
  await page.mouse.move(g.x+g.width/2,g.y+g.height/2-36,{steps:10});
  await page.mouse.up();
- await page.waitForFunction(()=>Boolean(window.v4QA.parentDraft));
+ const debug=await page.evaluate(()=>({
+   draft:window.v4QA.parentDraft, selected:window.v4QA.selectedPositionId,
+   previews:document.querySelectorAll('[data-v4-preview]').length,
+   editor:document.querySelectorAll('[data-v4-manage-position]').length,
+   buttons:document.querySelectorAll('[data-v4-position-action-anchor]').length,
+   grip:document.querySelectorAll('[data-v4-drag-handle="qa-account:position:p1:tp"]').length
+ }));
+ console.error('QA_UNIFIED_DRAG_DEBUG', JSON.stringify(debug));
+ await page.waitForFunction(()=>Boolean(window.v4QA.parentDraft),null,{timeout:4000});
  assert.notEqual(await page.evaluate(()=>window.v4QA.parentDraft.tp),84450,
    'TP drag must update shared draft used by panel inputs');
  assert.equal(await page.evaluate(()=>window.v4QA.commands.length),beforeDragCommands);
