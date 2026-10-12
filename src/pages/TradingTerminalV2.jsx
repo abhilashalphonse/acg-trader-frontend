@@ -1244,8 +1244,9 @@ export default function TradingTerminalV2({
   const movePendingOrder = async (id, nextPrice, field = 'entry') => {
     const order = pendingOrders.find(item => String(item.id) === String(id));
     if (!order) return;
-    const numericPrice = Number(nextPrice);
-    if (!Number.isFinite(numericPrice) || numericPrice <= 0) return;
+    const clearingProtection = nextPrice === null && (field === 'sl' || field === 'tp');
+    const numericPrice = clearingProtection ? null : Number(nextPrice);
+    if (!clearingProtection && (!Number.isFinite(numericPrice) || numericPrice <= 0)) return;
 
     const replacement = buildChartPendingAmendment(order, numericPrice, field);
     if (!replacement) return;
@@ -1257,7 +1258,7 @@ export default function TradingTerminalV2({
         field,
         price: numericPrice,
       });
-      showNotice(field === 'entry' ? 'Pending price updated' : `${field.toUpperCase()} updated`);
+      showNotice(clearingProtection ? `${field.toUpperCase()} removed` : field === 'entry' ? 'Pending price updated' : `${field === 'limitPrice' ? 'LIMIT' : field.toUpperCase()} updated`);
     } catch (error) {
       handleTradingError(error, `Move ${order.symbol} pending ${field}`);
     }
