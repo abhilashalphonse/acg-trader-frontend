@@ -70,7 +70,7 @@ function ChartLevelBadge({ label, price, amount = null, percent = null, color = 
   return (
     <div
       data-v4-chart-badge
-      className={`pointer-events-auto absolute right-[148px] top-1/2 z-20 flex h-7 max-w-[calc(100%-162px)] -translate-y-1/2 items-center gap-1.5 overflow-hidden rounded-[5px] border bg-[#111419]/96 px-1.5 font-mono text-[10px] font-semibold tabular-nums shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm transition-[box-shadow,background-color] ${groupActive ? 'bg-[#242b31]/98 ring-1 ring-white/35 shadow-[0_0_14px_rgba(240,247,255,.12)]' : ''} ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
+      className={`pointer-events-auto absolute right-[148px] top-1/2 z-20 flex h-7 max-w-[calc(100%-162px)] -translate-y-1/2 items-center ${onRemove ? 'gap-1 pl-1 pr-7' : 'gap-1.5 px-1.5'} overflow-hidden rounded-[5px] border bg-[#111419]/96 font-mono text-[10px] font-semibold tabular-nums shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm transition-[box-shadow,background-color] ${groupActive ? 'bg-[#242b31]/98 ring-1 ring-white/35 shadow-[0_0_14px_rgba(240,247,255,.12)]' : ''} ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
       style={{ borderColor: `${color}aa` }}
       onMouseEnter={onGroupEnter}
       onMouseLeave={onGroupLeave}
@@ -87,9 +87,9 @@ function ChartLevelBadge({ label, price, amount = null, percent = null, color = 
       {prefix}
       <span className="shrink-0 font-sans font-semibold" style={{ color }}>{label}</span>
       {price != null && <span className="shrink-0 text-[#e5ebf0]">{price}</span>}
-      {amount != null && <span className="shrink-0 rounded-[3px] px-1.5 py-0.5" style={{ color, backgroundColor: `${color}1b` }}>{amount}</span>}
-      {percent != null && <span className="shrink-0 font-sans font-medium text-[#919ba6]">{Number(percent).toFixed(2)}%</span>}
-      {onRemove && <button type="button" className="ml-0.5 grid size-5 shrink-0 place-items-center rounded text-[#9aa5af] hover:bg-white/10 hover:text-white" aria-label={removeLabel} onPointerDown={event => event.stopPropagation()} onClick={event => { event.preventDefault(); event.stopPropagation(); onRemove(); }}>×</button>}
+      {amount != null && <span className={`${onRemove ? 'min-w-0 truncate px-1' : 'shrink-0 px-1.5'} rounded-[3px] py-0.5`} style={{ color, backgroundColor: `${color}1b` }}>{amount}</span>}
+      {percent != null && <span className={`${onRemove ? 'min-w-0 truncate' : 'shrink-0'} font-sans font-medium text-[#919ba6]`}>{Number(percent).toFixed(2)}%</span>}
+      {onRemove && <button type="button" className="absolute right-1 top-1/2 z-30 grid size-5 -translate-y-1/2 place-items-center rounded text-[#9aa5af] hover:bg-white/10 hover:text-white" aria-label={removeLabel} onPointerDown={event => event.stopPropagation()} onClick={event => { event.preventDefault(); event.stopPropagation(); onRemove(); }}>×</button>}
     </div>
   );
 }
@@ -160,19 +160,17 @@ export function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi
         const pnlColor = Number.isFinite(pnl) ? pnl < 0 ? '#ff5968' : pnl > 0 ? '#55dfa9' : '#eef4f2' : '#eef4f2';
         const protection = chartPositionProtections(position);
         const groupActive = hoveredPositionId != null && String(hoveredPositionId) === String(position.id);
-        const prefix = <span className="flex shrink-0 items-center gap-0.5 font-sans text-[9px]">
-          {['tp', 'sl'].map(kind => {
-            const active = protection[kind];
-            const tone = kind === 'tp' ? '#35d79d' : '#ff5968';
-            return active ? <span key={kind} data-attached-protection={kind} title={`Active ${kind.toUpperCase()}`}
-              className="rounded-[3px] border px-1 py-0.5 font-bold" style={{ color: tone, borderColor: `${tone}70`, backgroundColor: `${tone}15` }}>{kind.toUpperCase()}</span>
-              : typeof onRequestPositionProtection === 'function' ? <button key={kind} type="button" title={`Add ${kind.toUpperCase()}`}
-                aria-label={`Add ${kind.toUpperCase()} to ${side} position`}
-                className="rounded-[3px] border border-white/15 px-1 py-0.5 text-[#9aa5af] hover:bg-white/10"
-                onPointerDown={event => event.stopPropagation()}
-                onClick={event => { event.stopPropagation(); onRequestPositionProtection(position.id, kind); }}>+{kind.toUpperCase()}</button> : null;
-          })}
-        </span>;
+        // Only missing protection appears on the entry badge. Once attached,
+        // SL/TP owns an independent draggable level with its own remove action.
+        const absentProtections = ['tp', 'sl'].filter(kind => !protection[kind]);
+        const prefix = absentProtections.length && typeof onRequestPositionProtection === 'function'
+          ? <span className="flex shrink-0 items-center gap-0.5 font-sans text-[9px]">
+            {absentProtections.map(kind => <button key={kind} type="button" title={`Add ${kind.toUpperCase()}`}
+              aria-label={`Add ${kind.toUpperCase()} to ${side} position`}
+              className="rounded-[3px] border border-white/15 px-1 py-0.5 text-[#9aa5af] hover:bg-white/10"
+              onPointerDown={event => event.stopPropagation()}
+              onClick={event => { event.stopPropagation(); onRequestPositionProtection(position.id, kind); }}>+{kind.toUpperCase()}</button>)}
+          </span> : null;
 
         return (
           <div key={position.id || `${side}-${entry}-${lots}`} className="absolute left-0 right-0" style={{ top: y }}>
@@ -934,8 +932,8 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
                 setDragging(kind);
                 onChange({ activeField: kind, stage: `dragging-${kind}` });
               }}
-              onRemove={() => onChange({ [field]: null, activeField: null, stage: 'ready' })}
-              removeLabel={`Clear ${label}`}
+              onRemove={desktopPositionProtectionMode ? onCancel : () => onChange({ [field]: null, activeField: null, stage: 'ready' })}
+              removeLabel={desktopPositionProtectionMode ? `Cancel ${label} edit` : `Clear ${label}`}
             />
 
             <span
@@ -1090,7 +1088,7 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
   );
 }
 
-export function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, instrument, onUpdatePosition = () => {}, onRemoveProtection = () => {}, onRequestProtectionChange = null, selectedPositionId = null, onSelectPosition = () => {}, hoveredPositionId = null, onHoverPosition = () => {}, mobileStyle = false, desktopStyle = false }) {
+export function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, instrument, onUpdatePosition = () => {}, onRemoveProtection = () => {}, onRequestProtectionChange = null, editingProtection = null, selectedPositionId = null, onSelectPosition = () => {}, hoveredPositionId = null, onHoverPosition = () => {}, mobileStyle = false, desktopStyle = false }) {
   const layerRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [preview, setPreview] = useState({});
@@ -1185,12 +1183,17 @@ export function OpenPositionProtectionOverlay({ symbol, positions = [], coordina
     const currency = position?.pnlCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || 'USD';
     const selected = String(selectedPositionId) === String(position.id);
     const active = selected || (dragging?.positionId === position.id && dragging?.kind === kind);
+    const editingThisLevel = desktopStyle && String(editingProtection?.positionId || '') === String(position.id)
+      && editingProtection?.activeField === kind;
+    const previewingThisLevel = desktopStyle && dragging?.positionId === position.id
+      && dragging?.kind === kind && Object.prototype.hasOwnProperty.call(preview, key);
+    const showAcceptedBadge = !editingThisLevel && !previewingThisLevel;
     const groupActive = desktopStyle && hoveredPositionId != null && String(hoveredPositionId) === String(position.id);
 
     if (!mobileStyle) {
       const displayPrice = value => formatInstrumentPrice(value, instrument);
       const pips = positionDistancePips(position, price, instrument);
-      const previewText = active
+      const previewText = desktopStyle ? displayPrice(price) : active
         ? (projectedPnl == null
             ? `${displayPrice(price)} · ${pips?.toFixed(1) ?? '—'}p`
             : `${displayPrice(price)} · ${formatProjectedPnl(projectedPnl, currency)} · ${pips?.toFixed(1) ?? '—'}p`)
@@ -1199,8 +1202,7 @@ export function OpenPositionProtectionOverlay({ symbol, positions = [], coordina
       return (
         <div key={key} className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: y }}>
           <div className="relative h-px transition-[box-shadow] duration-150" style={{ backgroundColor: color, boxShadow: groupActive ? `0 0 8px ${color}90` : undefined }}>
-            {desktopStyle ? (
-            <ChartLevelBadge
+            {desktopStyle ? (showAcceptedBadge && <ChartLevelBadge
               label={kind === 'sl' ? 'Stop loss' : 'Take profit'}
               price={displayPrice(price)}
               groupActive={groupActive}
@@ -1212,6 +1214,8 @@ export function OpenPositionProtectionOverlay({ symbol, positions = [], coordina
               tooltip="Estimated P&L at this protection level, excluding possible slippage and costs."
               onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onSelectPosition(position.id); setDragging({ positionId: position.id, kind }); }}
               onClick={event => { event.stopPropagation(); onSelectPosition(position.id); }}
+              onRemove={() => onRemoveProtection(position.id, kind)}
+              removeLabel={`Remove ${kind === 'sl' ? 'Stop loss' : 'Take profit'} from position`}
             />
             ) : (
               <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 text-[8px] font-black"
@@ -1311,11 +1315,18 @@ export function OpenPositionProtectionOverlay({ symbol, positions = [], coordina
         if (!activePositions.some(position => String(position.id) === positionId)) return null;
         const price = Number(candidate);
         const y = coordinateApi.priceToY(price);
-        if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(y)) return null;
+        const position = activePositions.find(item => String(item.id) === positionId);
+        if (!position || !Number.isFinite(price) || price <= 0 || !Number.isFinite(y)) return null;
         const color = kind === 'sl' ? '#ff5968' : '#35d79d';
+        const currency = position.pnlCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || 'USD';
+        const estimate = estimatePositionPnlAtPrice(position, price, instrument);
         return <div key={`protection-preview:${key}`} className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: y }}>
           <div className="relative border-t-2 border-dotted" style={{ borderColor: color }}>
-            <ChartLevelBadge label={kind === 'sl' ? 'Stop loss' : 'Take profit'} price={formatInstrumentPrice(price, instrument)} color={color} tooltip="Preview only until the update is accepted." />
+            <ChartLevelBadge label={kind === 'sl' ? 'Stop loss' : 'Take profit'}
+              price={formatInstrumentPrice(price, instrument)}
+              amount={chartEstimateCurrencySupported(instrument, currency) && Number.isFinite(estimate) ? formatPositionPnl(estimate, currency) : null}
+              percent={chartPriceChangePercent(position.entry ?? position.entryPrice, price)}
+              color={color} tooltip="Preview only. This price is not applied until confirmed." />
             <span className="absolute right-[56px] top-1/2 -translate-y-1/2 rounded border px-1.5 py-0.5 font-mono text-[9px] lg:right-2" style={{ borderColor: color, color, backgroundColor: '#111419' }}>{formatInstrumentPrice(price, instrument)}</span>
           </div>
         </div>;
@@ -1372,6 +1383,7 @@ export default function ChartArea({
   onUpdatePosition = () => {},
   onRemovePositionProtection = () => {},
   onRequestPositionProtection = null,
+  onCancelPositionProtection = () => {},
   selectedPositionId = null,
   onSelectPosition = () => {},
   onClosePosition = () => {},
@@ -1659,6 +1671,7 @@ export default function ChartArea({
           <TradePlanOverlay
             plan={positionProtectionDraft}
             onChange={onPositionProtectionDraftChange}
+            onCancel={onCancelPositionProtection}
             coordinateApi={coordinateApi}
             instrument={instrument}
             lots={Number(positionProtectionDraft.manualLots) || tradePlanLots}
@@ -1684,6 +1697,7 @@ export default function ChartArea({
           onUpdatePosition={onUpdatePosition}
           onRemoveProtection={onRemovePositionProtection}
           onRequestProtectionChange={onRequestPositionProtection}
+          editingProtection={positionProtectionDraft}
           selectedPositionId={selectedPositionId}
           hoveredPositionId={hoveredPositionId}
           onHoverPosition={setHoveredPositionId}

@@ -52,12 +52,31 @@ const openPositions=[
 ];
 function PositionFixture(){
  const [hovered,setHovered]=useState(null);
+ const [livePositions,setLivePositions]=useState(openPositions);
+ const [edit,setEdit]=useState(null);
+ const startEdit=(id,kind,price)=>{
+   const position=livePositions.find(item=>item.id===id);
+   if(!position)return;
+   setEdit({
+     positionId:id,source:'open-position',symbol:position.symbol,
+     side:position.side,entry:position.entry,sl:position.sl,tp:position.tp,
+     activeField:kind,stage:'draft',manualLots:position.volume,
+     sizingMode:'lots',pending:false,open:false,
+     ...(Number.isFinite(Number(price))?{[kind]:Number(price)}:{}),
+   });
+ };
  return <>
-   <OpenPositionEntryOverlay symbol="BTCUSD" positions={openPositions} coordinateApi={coordinateApi} instrument={DEMO}
-     desktopStyle hoveredPositionId={hovered} onHoverPosition={setHovered} onRequestPositionProtection={()=>{}} />
-   <OpenPositionProtectionOverlay symbol="BTCUSD" positions={openPositions} coordinateApi={coordinateApi} instrument={DEMO}
-     desktopStyle hoveredPositionId={hovered} onHoverPosition={setHovered} />
-   <OpenPositionGroupGuide symbol="BTCUSD" positions={openPositions} hoveredPositionId={hovered} coordinateApi={coordinateApi} />
+   <OpenPositionEntryOverlay symbol="BTCUSD" positions={livePositions} coordinateApi={coordinateApi} instrument={DEMO}
+     desktopStyle hoveredPositionId={hovered} onHoverPosition={setHovered} onRequestPositionProtection={startEdit} />
+   <OpenPositionProtectionOverlay symbol="BTCUSD" positions={livePositions} coordinateApi={coordinateApi} instrument={DEMO}
+     desktopStyle hoveredPositionId={hovered} onHoverPosition={setHovered}
+     editingProtection={edit}
+     onRequestProtectionChange={startEdit}
+     onRemoveProtection={(id,field)=>setLivePositions(current=>current.map(p=>p.id===id?{...p,[field]:null}:p))} />
+   {edit&&<TradePlanOverlay plan={edit} onChange={patch=>setEdit(old=>old?{...old,...patch}:old)}
+     onCancel={()=>setEdit(null)} coordinateApi={coordinateApi} instrument={DEMO}
+     account={ACCOUNT} lots={edit.manualLots} accountCurrency="USD" showEntry={false} desktopStyle />}
+   <OpenPositionGroupGuide symbol="BTCUSD" positions={livePositions} hoveredPositionId={hovered} coordinateApi={coordinateApi} />
  </>;
 }
 
@@ -177,10 +196,17 @@ async function run(){
  const buyEntry=entryBadges.find(b=>b.textContent.includes('BUY 0.02'));
  const unprotectedEntry=entryBadges.find(b=>b.textContent.includes('BUY 0.01'));
  if(!sellEntry||!buyEntry||!unprotectedEntry)failed.push('Three independent live position badges missing');
- if(sellEntry?.querySelectorAll('[data-attached-protection]').length!==2)failed.push('Both active SL/TP must have position chips');
- if(buyEntry?.querySelectorAll('[data-attached-protection]').length!==1)failed.push('TP-only position chip missing');
- if(unprotectedEntry?.querySelector('[data-attached-protection]'))failed.push('Unprotected position showed false attached chips');
- if(!unprotectedEntry?.querySelector('[aria-label="Add SL to BUY position"]'))failed.push('Missing-SL add action absent');
+ if(sellEntry?.querySelector('[data-attached-protection],button[aria-label^="Add "]'))
+   failed.push('Fully protected position must leave TP and SL off the entry badge');
+ if(buyEntry?.querySelector('[data-attached-protection],button[aria-label="Add TP to BUY position"]'))
+   failed.push('Placed TP must leave the original BUY position row');
+ if(!buyEntry?.querySelector('button[aria-label="Add SL to BUY position"]'))
+   failed.push('TP-only position must offer only +SL');
+ if(unprotectedEntry?.querySelector('[data-attached-protection]'))
+   failed.push('Unprotected position showed active protection chip');
+ if(!unprotectedEntry?.querySelector('button[aria-label="Add SL to BUY position"]')
+   ||!unprotectedEntry?.querySelector('button[aria-label="Add TP to BUY position"]'))
+   failed.push('Unprotected position must offer +TP and +SL');
  const sellProtection=allLiveRows.find(b=>b.textContent.includes('Stop loss')&&b.textContent.includes('83200'));
  if(!sellProtection)failed.push('Confirmed SL badge missing');
  const showHover=async badge=>{
@@ -208,6 +234,57 @@ async function run(){
  liveProtectionBadge?.dispatchEvent(new MouseEvent('mouseout',{bubbles:true,relatedTarget:null}));
  await sleep(90);
  if(liveChart.querySelector('[data-v4-hover-group]'))failed.push('Hover connector remained after mouse leave');
+ // Drag accepted TP: keep its solid price line, but display exactly one
+ // full TP badge while a dotted preview moves, then while the edit awaits save.
+ const confirmedTp=Array.from(liveChart.querySelectorAll('[data-v4-chart-badge]'))
+   .find(b=>b.textContent.includes('Take profit')&&b.textContent.includes('82500'));
+ if(!confirmedTp)failed.push('Accepted SELL TP missing before drag');
+ else {
+   const bounds=liveChart.getBoundingClientRect();
+   const initialY=coordinateApi.priceToY(82500);
+   const start={bubbles:true,clientY:bounds.top+initialY,pointerId:4};
+   confirmedTp.dispatchEvent(new PointerEvent('pointerdown',start));
+   await sleep(80);
+   window.dispatchEvent(new PointerEvent('pointermove',{...start,clientY:bounds.top+initialY-8}));
+   await sleep(90);
+   const duringDrag=Array.from(liveChart.querySelectorAll('[data-v4-chart-badge]'))
+     .filter(b=>b.textContent.includes('Take profit')&&b.textContent.includes('82'));
+   if(duringDrag.length!==1)failed.push('Dragging TP showed duplicate full badges: '+duringDrag.length);
+   window.dispatchEvent(new PointerEvent('pointerup',{...start,clientY:bounds.top+initialY-8}));
+   await sleep(170);
+   const afterRelease=Array.from(liveChart.querySelectorAll('[data-v4-chart-badge]'))
+     .filter(b=>b.textContent.includes('Take profit')&&b.textContent.includes('82'));
+   if(afterRelease.length!==1)failed.push('Editing TP showed duplicate accepted and proposed badges');
+   if(!liveChart.querySelector('.relative.border-t.border-dotted'))
+     failed.push('Proposed TP edit missing dotted price line');
+   if(!Array.from(liveChart.querySelectorAll('span')).some(e=>e.textContent.trim()==='82500.00'))
+     failed.push('Accepted TP price marker disappeared while editing');
+   if(liveChart.textContent.includes('82500.00 ·'))
+     failed.push('Y-axis TP label overcrowded with P&L and pips');
+   const cancelEdit=liveChart.querySelector('[aria-label="Cancel TP edit"]');
+   if(!cancelEdit)failed.push('Draft TP badge missing cancellation X');
+   cancelEdit?.click();
+   await sleep(90);
+   const acceptedAgain=Array.from(liveChart.querySelectorAll('[data-v4-chart-badge]'))
+     .find(b=>b.textContent.includes('Take profit')&&b.textContent.includes('82500'));
+   if(!acceptedAgain)failed.push('Cancel TP edit did not restore full accepted badge');
+   const removeTp=acceptedAgain?.querySelector('[aria-label="Remove Take profit from position"]');
+   if(!removeTp)failed.push('Confirmed TP missing removal X');
+   if(removeTp && acceptedAgain){
+     const buttonBox=removeTp.getBoundingClientRect(),badgeBox=acceptedAgain.getBoundingClientRect();
+     if(buttonBox.left<badgeBox.left||buttonBox.right>badgeBox.right+1)
+       failed.push('Confirmed TP removal X is visually clipped by compact chart badge');
+   }
+   removeTp?.click();
+   await sleep(90);
+   if(Array.from(liveChart.querySelectorAll('[data-v4-chart-badge]'))
+     .some(b=>b.textContent.includes('Take profit')&&b.textContent.includes('82500')))
+     failed.push('Removing confirmed TP did not clear its badge');
+   const sellAfterRemove=Array.from(liveChart.querySelectorAll('[data-v4-chart-badge]'))
+     .find(b=>b.textContent.includes('SELL 0.01'));
+   if(!sellAfterRemove?.querySelector('[aria-label="Add TP to SELL position"]'))
+     failed.push('Removing TP did not restore +TP on position row');
+ }
  // Accepted entry and active protection lines remain solid; ghost only on edits.
  const placedSell=pendingChart.querySelector('[data-v4-chart-entry][data-order-state="placed"]');
  const placedBuy=Array.from(pendingChart.querySelectorAll('[data-v4-chart-entry][data-order-state="placed"]')).find(el=>el.textContent.includes('BUY'));

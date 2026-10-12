@@ -1162,6 +1162,7 @@ export default function DesktopTerminal({
                 onUpdatePosition={updateDesktopProtection}
                 positionProtectionDraft={positionProtectionDraft}
                 onPositionProtectionDraftChange={onPositionProtectionDraftChange}
+                onCancelPositionProtection={onCancelPositionProtection}
                 onRemovePositionProtection={(positionId, field) => updateDesktopProtection(positionId, { [field]: null })}
                 onRequestPositionProtection={(positionId, field, price) => editPositionProtection(positionId, field, price)}
                 selectedPositionId={selectedPositionId}
