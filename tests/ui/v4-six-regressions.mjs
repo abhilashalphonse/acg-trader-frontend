@@ -446,8 +446,28 @@ try{
  assert.equal(await page.locator('[data-v4-manage-position]').count(),0);
  assert.equal(await page.evaluate(()=>window.v4QA.selectedPositionId),null);
  assert.equal(await page.locator('[data-v4-preview]').count(),0);
+
+ // Position Management must use the very same InstrumentAvatar as the
+ // untouched Trade Execution ticket. EUR/USD requires TWO overlapping flag
+ // circles, not a generic initials-only "EU" placeholder.
+ await page.getByRole('button',{name:'Select EUR/USD position'}).click();
+ const forexManage=page.locator('[data-v4-manage-position="p2"]');
+ await forexManage.waitFor();
+ const forexAvatar=forexManage.locator('[data-v4-manage-instrument-avatar] > span');
+ assert.equal(await forexAvatar.count(),1,'selected position must render the shared instrument avatar');
+ assert.equal(await forexAvatar.getAttribute('title'),'EURUSD');
+ assert.equal(await forexAvatar.locator(':scope > span').count(),2,
+   'Forex avatar must render both base and quote currencies as overlapping icons');
+ assert.equal(await forexAvatar.locator(':scope > span.absolute.bottom-0.left-0').count(),1);
+ assert.equal(await forexAvatar.locator(':scope > span.absolute.right-0.top-0').count(),1);
+ assert.notEqual(await forexAvatar.innerText(),'EU',
+   'generic EU placeholder must not replace EUR/USD instrument identity');
+ assert.equal(await forexManage.locator('.v4-coin.v4-manage-instrument-avatar').count(),0);
+ assert.equal(await forexManage.locator('.v4-symbol strong').innerText(),'EUR/USD');
+ await forexManage.getByRole('button',{name:'Back to new order'}).click();
+ assert.equal(await page.locator('[data-v4-manage-position]').count(),0);
  assert.deepEqual(errors,[],'no uncaught browser errors');
- console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks:94,commands:await page.evaluate(()=>window.v4QA.commands)}));
+ console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks:101,commands:await page.evaluate(()=>window.v4QA.commands)}));
 }catch(error){
  console.error('SIX_V4_REGRESSIONS_FAIL',error);
  process.exitCode=1;
