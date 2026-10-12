@@ -214,7 +214,7 @@ jobs:
           grep -q 'Market options' src/components/trading-v2/desktop/DesktopWatchlist.jsx
           grep -q 'Stock markets' src/components/trading-v2/desktop/DesktopWatchlist.jsx
           grep -q 'v4StockListingCountry' src/utils/v4MarketsDiscovery.js
-          grep -q 'Favorites shows existing starred instruments' tests/ui/v4-six-regressions.mjs
+          grep -q 'Favorites preserves saved instruments from multiple markets' tests/ui/v4-six-regressions.mjs
           test -f src/components/trading-v2/desktop/DesktopMarketsV4.css
           grep -q 'data-v4-market-scroll' src/components/trading-v2/desktop/DesktopWatchlist.jsx
           grep -q 'acg-v4-market-column-header' src/components/trading-v2/desktop/DesktopMarketsV4.css
