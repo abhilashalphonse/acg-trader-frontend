@@ -100,11 +100,14 @@ export default function V4ChartOrderLayer({
         {location && <div data-v4-badge={level.id}
           onPointerDown={event=>beginDrag(event,level)} onMouseEnter={()=>setHoveredId(groupId)} onMouseLeave={()=>setHoveredId(null)}
           onFocus={()=>setHoveredId(groupId)} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setHoveredId(null);}}
-          className="pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] items-center gap-1 overflow-hidden rounded-[5px] border bg-[#111419]/95 px-1.5 font-mono text-[10px] text-white shadow-lg"
+          className={`pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] items-center ${marketProtection ? 'gap-0 bg-[#09090b]/96' : 'gap-1 bg-[#111419]/95 px-1.5'} overflow-hidden rounded-[5px] border font-mono text-[10px] text-white shadow-lg`}
           style={{top:location.badgeTop,borderColor:color,boxShadow:highlighted?'0 0 10px rgba(215,223,231,.18)':undefined}}>
-          <span className="shrink-0 font-semibold" style={{color}}>{level.kind==='sl'?'Stop loss':level.kind==='tp'?'Take profit':level.side+' '+(level.objectType==='pending'?' '+(level.orderType||'').toUpperCase():'')}</span>
+          {marketProtection ? <>
+            <span className="shrink-0 border-r border-dotted border-white/20 px-2 py-1 font-medium" style={{color}}>{projection.volume}</span>
+            <span className="shrink-0 px-2 py-1 font-medium" style={{color}}>{projection.amount}</span>
+          </> : <span className="shrink-0 font-semibold" style={{color}}>{level.kind==='sl'?'Stop loss':level.kind==='tp'?'Take profit':level.side+' '+(level.objectType==='pending'?' '+(level.orderType||'').toUpperCase():'')}</span>}
           {level.kind==='entry' && level.objectType==='position' && <span className="shrink-0 text-gray-300">{formatVolume?.(level.volume) ?? level.volume}</span>}
-          {level.kind!=='entry' && <span className="shrink-0">{priceLabel(level.price,formatPrice)}</span>}
+          {level.kind!=='entry' && !marketProtection && <span className="shrink-0">{priceLabel(level.price,formatPrice)}</span>}
           {level.kind==='entry' && level.objectType==='position' && formatPnl && <span className="truncate" style={{color}}>{formatPnl(level.pnl)}</span>}
           {level.kind==='entry' && level.objectType==='position' && onSelectPosition && <button type="button" aria-label="Select position" onClick={()=>onSelectPosition(level.objectId)} className="shrink-0 px-1 text-gray-300">Select</button>}
           {level.kind==='entry' && level.objectType==='position' && onClosePosition && <button type="button" aria-label="Close position" onClick={()=>onClosePosition(level.objectId, 100)} className="shrink-0 px-1 text-gray-300">×</button>}
@@ -114,7 +117,7 @@ export default function V4ChartOrderLayer({
           {(['sl','tp'].includes(level.kind) || (level.objectType==='pending' && level.kind==='entry'))&&onBeginEdit&&<button type="button" className="shrink-0 px-1"
             aria-label={`Edit ${level.kind.toUpperCase()}`} onClick={()=>onBeginEdit(v4ProtectionAction(accepted,level.id,'edit'))}>Edit</button>}
           {(['sl','tp'].includes(level.kind))&&canRemove&&<button type="button" aria-label={`Confirm removal of ${level.kind.toUpperCase()}`}
-            className="shrink-0 px-1" onClick={()=>setRemoveLevel(level.id)}>×</button>}
+            className={marketProtection ? 'grid h-7 w-7 shrink-0 place-items-center border-l border-dotted border-white/20 text-[#99a6b0]' : 'shrink-0 px-1'} onClick={()=>setRemoveLevel(level.id)}>×</button>}
         </div>}
         {location?.displaced && <div className="pointer-events-none absolute right-[140px] w-px bg-[#98a7b6]/70"
           style={{top:Math.min(level.y,location.badgeTop+14),height:Math.abs(level.y-(location.badgeTop+14))}}
