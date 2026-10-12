@@ -9,7 +9,8 @@ import { normalizeProtectionPrice } from '../../../utils/tradingCommandNormaliza
 // the existing store; drafts exist locally and never optimistically mutate it.
 export default function V4FullTerminalOrders({
   account, symbol, instrument, positions = [], pendingOrders = [],
-  coordinateApi, height, positionProtectionDraft, isNewOrderPlanning = false,
+  coordinateApi, height, positionProtectionDraft, pendingOrderDraft = null,
+  onPendingOrderDraftChange, onCancelPendingOrderDraft, isNewOrderPlanning = false,
   renderPositionEntries = null, hoveredPositionId = null,
   onUpdatePosition, onRemovePositionProtection, onMovePending,
   onRequestPositionProtection, onCancelPositionProtection,
@@ -85,7 +86,7 @@ export default function V4FullTerminalOrders({
       kind: parent.activeField, proposedPrice: Number(parent[parent.activeField]),
     };
   }, [positionProtectionDraft, symbol, accountId]);
-  const activeEdit = isNewOrderPlanning ? null : edit || parentEdit;
+  const activeEdit = isNewOrderPlanning ? null : edit || parentEdit || pendingOrderDraft;
 
   // Acknowledge only the matching server/store snapshot. Never paint a local
   // confirmed line while the backend still reports the original price.
@@ -106,6 +107,7 @@ export default function V4FullTerminalOrders({
       setSaving(false);
       setError('');
       onCancelPositionProtection?.();
+      if(awaiting.objectType==='pending')onCancelPendingOrderDraft?.();
     }
   }, [accepted, awaiting, onCancelPositionProtection, instrument?.tickSize]);
   useEffect(() => {
@@ -136,22 +138,27 @@ export default function V4FullTerminalOrders({
         (value.objectType !== 'position' || String(parentEdit.objectId)!==String(value.objectId) || parentEdit.kind!==value.kind)) {
       onCancelPositionProtection?.();
     }
+    if(value.objectType==='pending'){
+      onSelectPending?.(value.objectId);
+      onPendingOrderDraftChange?.({...value});
+    }
     if (value.objectType === 'position' && ['tp','sl'].includes(value.kind)) {
       // Selecting/draging a chart protection switches the very same sidebar
       // into Manage Position and creates a shared position draft.
       onRequestPositionProtection?.(value.objectId,value.kind,value.proposedPrice);
     }
-  }, [parentEdit, onCancelPositionProtection, onRequestPositionProtection, saving, isNewOrderPlanning]);
+  }, [parentEdit, onCancelPositionProtection, onRequestPositionProtection, onPendingOrderDraftChange, onSelectPending, saving, isNewOrderPlanning]);
 
   const changeEdit = useCallback(value => {
     setEdit(value);
+    if(value?.objectType==='pending')onPendingOrderDraftChange?.({...value});
     if (value?.objectType === 'position' && ['sl','tp'].includes(value.kind) &&
         Number.isFinite(Number(value.proposedPrice))) {
       onPositionProtectionDraftChange?.({
         [value.kind]:Number(value.proposedPrice),activeField:value.kind,stage:'draft',
       });
     }
-  }, [onPositionProtectionDraftChange]);
+  }, [onPositionProtectionDraftChange, onPendingOrderDraftChange]);
 
   const discard = () => {
     if (saving) return;
@@ -159,6 +166,7 @@ export default function V4FullTerminalOrders({
     setAwaiting(null);
     setError('');
     onCancelPositionProtection?.();
+    onCancelPendingOrderDraft?.();
   };
 
   const beginProtection = (id, kind, objectType='position') => {
@@ -180,7 +188,10 @@ export default function V4FullTerminalOrders({
       const raw = fillReference + direction * distance * (kind==='tp' ? 2 : 1);
       const proposedPrice=normalizeProtectionPrice(raw,instrument,side,kind);
       if (!(Number(proposedPrice)>0)) return;
-      setEdit({accountId,objectType:'pending',objectId:String(id),kind,proposedPrice});
+      const pendingDraft={accountId,objectType:'pending',objectId:String(id),kind,proposedPrice};
+      setEdit(pendingDraft);
+      onSelectPending?.(id);
+      onPendingOrderDraftChange?.(pendingDraft);
       setAwaiting(null);
       setError('');
       onCancelPositionProtection?.();
