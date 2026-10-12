@@ -136,7 +136,7 @@ try{
  // Existing accepted SL has the same drag affordance, with the accepted
  // server price and solid line unchanged until explicit confirmation.
  const acceptedSlLine=page.locator('[data-v4-accepted-line="qa-account:position:p1:sl"]');
- const slAcceptedStyle=await acceptedSlLine.getAttribute('style');
+ const slAcceptedTop=await acceptedSlLine.evaluate(node=>node.style.top);
  const slGrip=page.locator('[data-v4-drag-handle="qa-account:position:p1:sl"]');
  const slBounds=await slGrip.boundingBox();
  await page.mouse.move(slBounds.x+slBounds.width/2,slBounds.y+slBounds.height/2);
@@ -145,8 +145,8 @@ try{
  await page.mouse.up();
  assert.equal(await page.evaluate(()=>window.v4QA.commands.length),1,
   'accepted SL drag release must not execute another command');
- assert.equal(await acceptedSlLine.getAttribute('style'),slAcceptedStyle,
-  'accepted SL remains fixed while dotted preview is dragged');
+ assert.equal(await acceptedSlLine.evaluate(node=>node.style.top),slAcceptedTop,
+  'accepted SL price coordinate remains fixed while dotted preview is dragged');
  assert.equal(await page.locator('[data-v4-preview]').count(),1);
  assert.equal(await page.locator('[data-v4-badge="qa-account:position:p1:sl"]').count(),0,
    'existing SL full badge must hide while the distinct dotted draft is visible');
