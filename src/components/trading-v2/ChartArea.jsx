@@ -1321,6 +1321,11 @@ export function OpenPositionProtectionOverlay({ symbol, positions = [], coordina
 // Hover-only relation guide between the accepted entry and its confirmed
 // protections. Price values are never moved, and all layers are hit-test transparent.
 export function OpenPositionGroupGuide({ symbol, positions = [], hoveredPositionId, coordinateApi }) {
+  const [, forceLayout] = useState(0);
+  useEffect(() => {
+    if (!coordinateApi?.subscribe) return undefined;
+    return coordinateApi.subscribe(() => forceLayout(current => current + 1));
+  }, [coordinateApi]);
   if (!hoveredPositionId || !coordinateApi?.priceToY) return null;
   const position = positions.find(item =>
     String(item?.id) === String(hoveredPositionId)
