@@ -24,3 +24,14 @@ test('SL and TP amendments remain separate, and limit edits on regular stop are 
   assert.equal(buildChartPendingAmendment({ ...order, orderType: 'stop' }, 1.32010, 'limitPrice'), null);
   assert.equal(buildChartPendingAmendment(order, 0, 'entry'), null);
 });
+
+test('removing placed SL/TP sends explicit null through the existing amendment contract', () => {
+  const withoutSl = buildChartPendingAmendment(order, null, 'sl');
+  const withoutTp = buildChartPendingAmendment(order, null, 'tp');
+  assert.equal(withoutSl.stopLoss, null);
+  assert.equal(withoutSl.takeProfit, order.tp);
+  assert.equal(withoutTp.takeProfit, null);
+  assert.equal(withoutTp.stopLoss, order.sl);
+  assert.equal(buildChartPendingAmendment(order, null, 'entry'), null);
+  assert.equal(buildChartPendingAmendment(order, null, 'limitPrice'), null);
+});
