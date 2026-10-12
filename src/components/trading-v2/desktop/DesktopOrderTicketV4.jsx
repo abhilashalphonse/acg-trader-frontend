@@ -374,6 +374,11 @@ export default function DesktopOrderTicketV4({
   // Starting a risk plan does NOT submit an order. Its first SL and
   // estimated volume are calculated after Buy/Sell sets the direction.
   const canTrade=canStartPlan&&(requiresPlan||(financialVerified&&Boolean(volume)));
+  // A slider-generated pending draft has no explicit side choice yet.
+  const pendingReview=family==='pending'&&Boolean(tradePlan)&&tradePlan?.source!=='v4-slider';
+  const reviewedSide=String(effective?.side||'').toLowerCase();
+  const pendingActionName=tradePlan?.editingOrderId?'Save Order Changes'
+    :'Place '+reviewedSide.toUpperCase()+' '+String(effective?.orderType||orderType).replaceAll('-',' ').toUpperCase();
   const executionDisabledReason=Number.isFinite(freeAfter)&&freeAfter<0
     ? 'Insufficient free margin — reduce position size.'
     : !financialVerified
@@ -399,13 +404,17 @@ export default function DesktopOrderTicketV4({
   const place=side=>{
     // Selecting the opposite side switches the existing chart draft,
     // without ever dispatching an order for that first side change.
-    if(tradePlan?.source==='v4-slider'&&effective?.side!==side&&!tradePlan.editingOrderId){
+    if(tradePlan?.source==='v4-slider'&&!tradePlan.editingOrderId &&
+      (family==='pending'||effective?.side!==side)){
       setDraftSide(side);
       onStartPlan(side,orderType,{
         protection:activeMode==='risk'||hasSl?'sl':hasTp?'tp':'none',
-        sizingMode:activeMode,manualLots:volume||lots,source:'v4-slider',
+        sizingMode:activeMode,manualLots:volume||lots,
+        // Explicit side selection on pending drafts disarms the provisional flag.
+        ...(family==='market'?{source:'v4-slider'}:{}),
         desktopPendingDraft:family==='pending',
       });
+      if(family==='pending')notice('Review the chart-linked pending order, then press Place Order.');
       return;
     }
     if(!canTrade){if(!executionCommandPending&&!localSubmitting)notice(!exposureAllowed?exposureBlockReason:executionDisabledReason||'Waiting for executable market quote.');return;}
@@ -415,7 +424,9 @@ export default function DesktopOrderTicketV4({
         const protection=(wantSl||capabilities.stopLossRequiredForManualLots||activeMode==='risk')
           ?(wantTp?'both':'sl'):(wantTp?'tp':'none');
         onStartPlan(side,orderType,{protection,desktopPendingDraft:family==='pending'});
-        notice('Review the chart-linked order, then press '+side.toUpperCase()+' again to execute.');
+        notice(family==='pending'
+          ?'Review the chart-linked pending order, then press Place Order.'
+          :'Review the chart-linked order, then press '+side.toUpperCase()+' again to execute.');
         return;
       }
       submitOnce(()=>onManualOrder({side,symbol:market.symbol,lots:normalLots(lots),price:side==='buy'?market.ask:market.bid}));
@@ -598,15 +609,28 @@ export default function DesktopOrderTicketV4({
         <div><span>Required margin</span><strong>{money(margin,currency)}</strong></div>
         <div><span>Free after</span><strong>{money(freeAfter,currency)}</strong></div>
       </div>
-      <div className="v4-trade-actions">
-        <button type="button" className="v4-sell" disabled={!canTrade} onClick={()=>place('sell')}>
-          <span>{family==='market'?'SELL':'SELL '+orderType.replace('-',' ').toUpperCase()}</span>
-          <strong>{formatInstrumentPrice(family==='market'?market?.bid:effective?.entry,market)}</strong>
-        </button>
-        <button type="button" className="v4-buy" disabled={!canTrade} onClick={()=>place('buy')}>
-          <span>{family==='market'?'BUY':'BUY '+orderType.replace('-',' ').toUpperCase()}</span>
-          <strong>{formatInstrumentPrice(family==='market'?market?.ask:effective?.entry,market)}</strong>
-        </button>
+      <div className={pendingReview?'v4-trade-actions v4-pending-review-actions':'v4-trade-actions'}>
+        {pendingReview?<>
+          <button type="button" className="v4-pending-discard" disabled={localSubmitting||executionCommandPending}
+            onClick={onCancelPlan} aria-label="Discard unplaced chart order">
+            <span>Discard</span>
+          </button>
+          <button type="button" className={'v4-pending-place '+(reviewedSide==='sell'?'v4-sell':'v4-buy')}
+            disabled={!canTrade} onClick={()=>place(reviewedSide)} aria-label={pendingActionName}>
+            <span>{pendingActionName}</span>
+            <strong>{volume?volumeLabel:'—'} @ {formatInstrumentPrice(
+              effective?.pending&&effective?.orderType==='stop-limit'?effective?.limitPrice:effective?.entry,market)}</strong>
+          </button>
+        </>:<>
+          <button type="button" className="v4-sell" disabled={!canTrade} onClick={()=>place('sell')}>
+            <span>{family==='market'?'SELL':'SELL '+orderType.replace('-',' ').toUpperCase()}</span>
+            <strong>{formatInstrumentPrice(family==='market'?market?.bid:effective?.entry,market)}</strong>
+          </button>
+          <button type="button" className="v4-buy" disabled={!canTrade} onClick={()=>place('buy')}>
+            <span>{family==='market'?'BUY':'BUY '+orderType.replace('-',' ').toUpperCase()}</span>
+            <strong>{formatInstrumentPrice(family==='market'?market?.ask:effective?.entry,market)}</strong>
+          </button>
+        </>}
       </div>
     </div>
   </section>;

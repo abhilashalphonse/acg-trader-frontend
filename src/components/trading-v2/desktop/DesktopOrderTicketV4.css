@@ -470,3 +470,32 @@
   .v4-manage-summary { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .v4-manage-summary span { font-size:8px; }
 }
+
+/* Selected V4 pending chart order: one action to place, one to discard. */
+.v4-ticket.v4-live-scope .v4-pending-review-actions {
+  grid-template-columns:minmax(0,.75fr) minmax(0,1.25fr);gap:7px;
+}
+.v4-ticket.v4-live-scope .v4-pending-review-actions > button {
+  min-width:0;min-height:52px;padding:8px 9px;border-radius:8px;
+  display:flex;justify-content:center;box-shadow:none;
+}
+.v4-ticket.v4-live-scope .v4-pending-review-actions .v4-pending-discard {
+  align-items:center;text-align:center;color:#f2f2f4;
+  background:#17171a;border:1px solid #44444a;
+}
+.v4-ticket.v4-live-scope .v4-pending-review-actions .v4-pending-discard:hover:not(:disabled) {
+  background:#242427;border-color:#595960;
+}
+.v4-ticket.v4-live-scope .v4-pending-review-actions .v4-pending-place {
+  align-items:flex-start;text-align:left;border:0;
+}
+.v4-ticket.v4-live-scope .v4-pending-review-actions .v4-pending-place span,
+.v4-ticket.v4-live-scope .v4-pending-review-actions .v4-pending-place strong {
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.v4-ticket.v4-live-scope .v4-pending-review-actions .v4-pending-place strong {
+  font-size:11px;line-height:1.35;font-weight:600;
+}
+.v4-ticket.v4-live-scope .v4-pending-review-actions button:focus-visible {
+  outline:2px solid #e3e3eb;outline-offset:2px;
+}

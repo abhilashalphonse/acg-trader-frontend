@@ -643,6 +643,31 @@ async function run(){
  normalizationEvidence.id='v4-terminal-typography-metrics';
  normalizationEvidence.textContent=JSON.stringify({before:terminalBefore,after:terminalAfter});
  document.body.appendChild(normalizationEvidence);
+ // Pending slider drafts initially show side selection. Once SELL is chosen,
+ // only Discard + one contextual SELL LIMIT Place button may remain.
+ if(!ticket.querySelector('button.v4-sell')||!ticket.querySelector('button.v4-buy'))
+   failed.push('Slider-created pending order did not require explicit side selection');
+ const countBeforeReview=counters.planned;
+ ticket.querySelector('button.v4-sell')?.click();
+ await sleep(170);
+ if(counters.planned!==countBeforeReview)failed.push('Selecting SELL submitted a pending order');
+ const pendingPlace=ticket.querySelector('button.v4-pending-place');
+ const pendingDiscard=ticket.querySelector('button.v4-pending-discard');
+ if(!pendingPlace||!pendingDiscard)failed.push('Selected SELL LIMIT did not show Place + Discard');
+ if(ticket.querySelector('button.v4-buy'))failed.push('BUY button repeated while reviewing SELL LIMIT');
+ if(!pendingPlace?.textContent.includes('Place SELL LIMIT'))failed.push('Place CTA lacks correct side and type');
+ if(!pendingPlace?.textContent.includes('@'))failed.push('Place CTA lacks entry price');
+ if(pendingPlace?.disabled)failed.push('Valid SELL LIMIT Place action unavailable');
+ if(!chart.textContent.includes('SELL'))failed.push('Chart did not update to chosen SELL side');
+ pendingPlace?.click();pendingPlace?.click();
+ await sleep(330);
+ if(counters.planned!==countBeforeReview+1)failed.push('Place double-click must execute at most once');
+ pendingDiscard?.click();
+ await sleep(160);
+ if(ticket.querySelector('.v4-pending-review-actions'))failed.push('Discard retained Place/Discard footer');
+ if(chart.querySelector('[aria-label="Drag pending entry"]'))failed.push('Discard left a chart draft');
+ if(counters.planned!==countBeforeReview+1)failed.push('Discard caused an execution');
+
  if(new URLSearchParams(window.location.search).get('density')==='before')
    ticket.classList.add('v4-density-baseline');
  const qa=document.createElement('output');
