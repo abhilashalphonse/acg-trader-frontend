@@ -71,7 +71,7 @@ function ChartLevelBadge({ label, price, amount = null, percent = null, color = 
   const badge = (
     <div
       data-v4-chart-badge
-      className={`pointer-events-auto ${entryActions ? 'relative z-20' : 'absolute right-[148px] top-1/2 z-20 -translate-y-1/2'} flex h-7 max-w-[calc(100%-162px)] items-center ${onRemove ? 'gap-1 pl-1 pr-7' : 'gap-1.5 px-1.5'} overflow-hidden rounded-[5px] border bg-[#111419]/96 font-mono text-[10px] font-semibold tabular-nums shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm transition-[box-shadow,background-color] ${groupActive ? 'bg-[#242b31]/98 ring-1 ring-white/35 shadow-[0_0_14px_rgba(240,247,255,.12)]' : ''} ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
+      className={`pointer-events-auto ${entryActions ? 'relative z-20 max-w-none shrink-0' : 'absolute right-[148px] top-1/2 z-20 -translate-y-1/2 max-w-[calc(100%-162px)]'} flex h-7 items-center ${onRemove ? 'gap-1 pl-1 pr-7' : 'gap-1.5 px-1.5'} overflow-hidden rounded-[5px] border bg-[#111419]/96 font-mono text-[10px] font-semibold tabular-nums shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm transition-[box-shadow,background-color] ${groupActive ? 'bg-[#242b31]/98 ring-1 ring-white/35 shadow-[0_0_14px_rgba(240,247,255,.12)]' : ''} ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
       style={{ borderColor: `${color}aa` }}
       onMouseEnter={onGroupEnter}
       onMouseLeave={onGroupLeave}
