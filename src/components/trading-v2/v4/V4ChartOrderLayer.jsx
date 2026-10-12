@@ -15,7 +15,7 @@ const priceLabel = (value, formatPrice) => formatPrice ? formatPrice(value) : St
 // the same way as the approved TP/SL reference chip.
 const protectionPriceLabel = (value, formatPrice) => {
   const label = String(priceLabel(value, formatPrice));
-  const match = /^(-?)(\\d+)(\\.\\d+)?$/.exec(label);
+  const match = /^(-?)([0-9]+)([.][0-9]+)?$/.exec(label);
   return match
     ? match[1] + Number(match[2]).toLocaleString('en-US') + (match[3] || '')
     : label;
