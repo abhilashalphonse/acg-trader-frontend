@@ -232,7 +232,7 @@ export default function V4FullTerminalOrders({
       onBeginEdit={isNewOrderPlanning ? null : begin} onChangeEdit={isNewOrderPlanning ? null : setEdit}
       onSaveEdit={isNewOrderPlanning ? null : confirm} onCancelEdit={isNewOrderPlanning ? null : discard}
       onAddProtection={isNewOrderPlanning ? null : beginProtection}
-      onConfirmRemoval={isNewOrderPlanning ? null : remove}
+      onRemoveProtection={isNewOrderPlanning ? null : remove}
       onSelectPosition={isNewOrderPlanning ? null : onSelectPosition}
       onClosePosition={isNewOrderPlanning ? null : onClosePosition}
       onCancelPending={isNewOrderPlanning ? null : onCancelPending}/>
