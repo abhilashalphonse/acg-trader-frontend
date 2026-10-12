@@ -425,14 +425,13 @@
 .v4-live-scope .v4-slider-hint { color:#c5a97c; font-size:10px; line-height:1.35; }
 .v4-live-scope .v4-slider input:disabled { opacity:.45; cursor:not-allowed; }
 
-/* Pending orders share the compact hierarchy of the real execution panel.
- * These are visual controls only; they do not override backend validation. */
-.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-pending-types { border-radius: 8px; }
-.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-pending-types .v4-capsule-button {
-  min-height: 27px;
-  padding: 4px 2px;
-  font-size: 10px;
-  border-radius: 7px;
+/* Single compact Market | Limit | Stop selector.
+ * Pending order detail fields are only shown for Limit/Stop.
+ * Stop Limit remains accessible solely for existing order amendments. */
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-order-types .v4-capsule-button {
+  min-height: 30px;
+  font-size: 11px;
+  border-radius: 8px;
 }
 .v4-ticket.v4-live-scope .v4-pending-note {
   display: block;
