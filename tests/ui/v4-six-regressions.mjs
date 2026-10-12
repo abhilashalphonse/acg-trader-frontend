@@ -12,10 +12,23 @@ try{
  const entry=page.locator('[data-v4-badge="qa-account:pending:o1:entry"]');
  const pendingTp=page.locator('[data-v4-badge="qa-account:pending:o1:tp"]');
  await entry.waitFor();
+ assert.equal(await page.locator('[data-v4-badge="qa-account:position:p1:entry"]').count(),0,
+  'do not render a second prototype market-position entry badge');
+ assert.equal(await page.locator('[data-v4-chart-badge]').count(),1,
+  'original approved market-position entry badge must be present');
+ assert.equal(await page.getByRole('button',{name:'Add TP to BUY position'}).count(),1,
+  'original inline market TP action must remain available');
  await pendingTp.getByRole('button',{name:'Edit TP'}).click();
  // 1. Exactly one accepted entry badge while TP edit exists.
  assert.equal(await entry.count(),1,'pending accepted entry must never duplicate');
  assert.equal(await page.locator('[data-v4-preview]').count(),1,'one preview only');
+ const draftBadge=page.locator('[data-v4-draft-badge]');
+ const inlineActions=draftBadge.locator('[data-v4-chart-actions]');
+ assert.equal(await inlineActions.count(),1,'Confirm and Discard belong to the active draft badge');
+ const badgeBounds=await draftBadge.boundingBox(), actionBounds=await inlineActions.boundingBox();
+ assert.ok(actionBounds.x>=badgeBounds.x &&
+   actionBounds.x+actionBounds.width<=badgeBounds.x+badgeBounds.width+2,
+  'draft actions must be inside their active level, not floating at the position entry');
  assert.equal(await page.locator('[data-v4-draft-connector]').count(),1,'draft TP connector');
  // 2. Pending order accepted solid badge & line remain while editing.
  assert.equal(await page.locator('[data-v4-accepted-line="qa-account:pending:o1:entry"]').count(),1);
@@ -26,6 +39,14 @@ try{
  assert.equal(await page.locator('[data-v4-draft-shade]').count(),0);
  assert.equal(await page.locator('[data-v4-draft-connector]').count(),0);
  assert.equal(await page.evaluate(()=>window.v4QA.commands.length),0);
+ // A new limit order is a trade-plan draft. Its Buy/Sell execution is the
+ // confirmation; no standalone chart Confirm/Discard is offered.
+ await page.getByRole('button',{name:'Start new limit plan'}).click();
+ assert.equal(await page.locator('[data-v4-chart-actions]').count(),0,
+   'new limit planning may not display chart amendment buttons');
+ assert.equal(await page.locator('[data-v4-preview]').count(),0);
+ assert.equal(await page.evaluate(()=>window.v4QA.commands.length),0);
+ await page.getByRole('button',{name:'Finish planning'}).click();
  // 4. Drag pending entry: original solid level does not move; release doesn't commit.
  const before=await page.locator('[data-v4-accepted-line="qa-account:pending:o1:entry"]').getAttribute('style');
  const rect=await entry.boundingBox();
@@ -38,11 +59,10 @@ try{
  assert.equal(await page.locator('[data-v4-preview]').count(),1);
  await page.getByRole('button',{name:'Discard chart edit'}).click();
  // 5. TP to SL switching: only one draft shade exists and its type changes.
- const positionEntry=page.locator('[data-v4-badge="qa-account:position:p1:entry"]');
- await positionEntry.getByRole('button',{name:'Add TP'}).click();
+ await page.getByRole('button',{name:'Add TP to BUY position'}).click();
  assert.equal(await page.locator('[data-v4-draft-shade="tp"]').count(),1);
  assert.equal(await page.locator('[data-v4-draft-connector]').count(),1);
- await positionEntry.getByRole('button',{name:'Add SL'}).click();
+ await page.getByRole('button',{name:'Add SL to BUY position'}).click();
  assert.equal(await page.locator('[data-v4-draft-shade="tp"]').count(),0,'stale green TP shade');
  assert.equal(await page.locator('[data-v4-draft-shade="sl"]').count(),1,'one red SL shade');
  assert.equal(await page.locator('[data-v4-preview]').count(),1);
@@ -54,7 +74,7 @@ try{
  await page.waitForFunction(()=>document.querySelectorAll('[data-v4-preview]').length===0);
  assert.equal(await page.evaluate(()=>window.v4QA.positions[0].sl),83400);
  assert.deepEqual(errors,[],'no uncaught browser errors');
- console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks:6,commands:await page.evaluate(()=>window.v4QA.commands)}));
+ console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks:9,commands:await page.evaluate(()=>window.v4QA.commands)}));
 }catch(error){
  console.error('SIX_V4_REGRESSIONS_FAIL',error);
  process.exitCode=1;
