@@ -53,6 +53,10 @@ try{
  eq(await markets.getByRole('combobox',{name:'Market sort'}).count(),0,'sort select removed from header');
  eq(await markets.getByRole('button',{name:'Search markets',exact:true}).count(),1,'search icon by close');
  eq(await markets.getByRole('button',{name:'Market options'}).count(),1,'sort moved into three-dot menu');
+ ok((await markets.getByRole('button',{name:'Forex',exact:true}).evaluate(el=>getComputedStyle(el).fontFamily)).startsWith('Inter'),
+   'Markets category navigation uses Inter consistently');
+ ok((await markets.getByRole('button',{name:'Search markets'}).evaluate(el=>getComputedStyle(el).fontFamily)).startsWith('Inter'),
+   'Markets header actions inherit V4 font');
  eq(await markets.getByRole('button',{name:'Close markets panel'}).count(),1);
  eq(await markets.getByRole('textbox',{name:'Search markets input'}).isVisible(),false,'search hidden by default');
  eq(await markets.locator('[data-market-symbol]').count(),2,'Forex is the default and never mixes asset classes');
@@ -93,6 +97,9 @@ try{
        iconSize:icon.getBoundingClientRect().width,
        cssGrid:getComputedStyle(row).gridTemplateColumns,
        font:getComputedStyle(bid).fontFamily,
+       priceFontWeight:getComputedStyle(bid).fontWeight,
+       percentFont:getComputedStyle(change).fontFamily,
+       symbolFont:getComputedStyle(title).fontFamily,
        tabular:getComputedStyle(bid).fontVariantNumeric,
      };
    });
@@ -116,6 +123,10 @@ try{
    ok(geom.change.l>=geom.ask.r+3,`Change column follows Ask at ${width}px`);
    ok(Math.abs(geom.headerBid.r-geom.bid.r)<=1,`Bid aligns to column header at ${width}px`);
    ok(geom.tabular.includes('tabular-nums'),`Quotes use tabular numerals at ${width}px`);
+   ok(geom.font.startsWith('Inter'),`Bid/Ask use V4 Inter rather than legacy monospace at ${width}px`);
+   ok(geom.percentFont.startsWith('Inter'),`Change % uses V4 Inter at ${width}px`);
+   ok(geom.symbolFont.startsWith('Inter'),`Instrument labels use V4 Inter at ${width}px`);
+   ok(Number(geom.priceFontWeight)>=650,`Quotes keep V4 execution emphasis at ${width}px`);
  };
  await compactGeometry(340);
  await compactGeometry(320);

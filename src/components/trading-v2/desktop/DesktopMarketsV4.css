@@ -11,7 +11,21 @@
   --v4-market-secondary: #a6a6af;
   --v4-market-subtle: #8e9099;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
   container-type: inline-size;
+}
+/* Match the approved V4 Trade Execution typeface on every Market control.
+   The legacy Watchlist and other terminal components remain unaffected. */
+[data-v4-markets-panel] button,
+[data-v4-markets-panel] input,
+[data-v4-markets-panel] select {
+  font-family: inherit;
+}
+[data-v4-markets-panel] h2,
+[data-v4-markets-panel] strong,
+[data-v4-markets-panel] small {
+  font-family: inherit;
 }
 [data-v4-markets-panel] .acg-v4-markets-list {
   scrollbar-width: thin;
@@ -117,12 +131,12 @@
 [data-v4-markets-panel] .acg-v4-market-price,
 [data-v4-markets-panel] .acg-v4-market-change {
   min-width: 0;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 11.5px;
-  font-weight: 650;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
-  letter-spacing: -.03em;
+  letter-spacing: -.018em;
   white-space: nowrap;
   text-align: right;
   overflow: hidden;
@@ -130,7 +144,7 @@
 }
 [data-v4-markets-panel] .acg-v4-market-price { color: #e6e6eb; }
 [data-v4-markets-panel] .acg-v4-market-last { grid-column: 2 / 4; font-size: 12px; }
-[data-v4-markets-panel] .acg-v4-market-change { grid-column: 4; font-size: 11px; }
+[data-v4-markets-panel] .acg-v4-market-change { grid-column: 4; font-size: 11px; font-weight: 650; }
 [data-v4-markets-panel] .acg-v4-market-change.is-positive { color: #42d7a1; }
 [data-v4-markets-panel] .acg-v4-market-change.is-negative { color: #ff6f7a; }
 [data-v4-markets-panel] .acg-v4-market-change.is-neutral,
