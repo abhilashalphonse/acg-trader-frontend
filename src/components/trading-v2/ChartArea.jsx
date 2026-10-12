@@ -178,7 +178,9 @@ export function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi
         const groupActive = hoveredPositionId != null && String(hoveredPositionId) === String(position.id);
         // Only missing protection appears on the entry badge. Once attached,
         // SL/TP owns an independent draggable level with its own remove action.
-        const absentProtections = ['tp', 'sl'].filter(kind => !protection[kind]);
+        const activeChartDraftKind = chartEditActions && String(chartEditActions.positionId) === String(position.id)
+          ? chartEditActions.kind : null;
+        const absentProtections = ['tp', 'sl'].filter(kind => !protection[kind] && kind !== activeChartDraftKind);
         const prefix = absentProtections.length && typeof onRequestPositionProtection === 'function'
           ? <span className="flex shrink-0 items-center gap-0.5 font-sans text-[9px]">
             {absentProtections.map(kind => <button key={kind} type="button" title={`Add ${kind.toUpperCase()}`}
@@ -1748,6 +1750,7 @@ export default function ChartArea({
         )}
 
         {v4AuditLayer && <V4FullTerminalOrders
+          hoveredPositionId={hoveredPositionId}
           renderPositionEntries={(chartEditActions, beginProtection) => (
             <OpenPositionEntryOverlay symbol={symbol} positions={positions}
               coordinateApi={coordinateApi} instrument={instrument}
