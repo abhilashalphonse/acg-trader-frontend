@@ -379,7 +379,10 @@ try{
  assert.equal(mutedSummaryBox,'rgba(0, 0, 0, 0)',
    'position volume and P&L must not introduce a new grey panel');
  assert.equal(await manage.locator('[data-v4-manage-size]').innerText(),'0.0100 lots');
- assert.match(await manage.locator('[data-v4-manage-entry]').innerText(),/84/);
+ assert.equal(
+   Number((await manage.locator('[data-v4-manage-entry]').innerText()).replaceAll(',','')),
+   await page.evaluate(()=>window.v4QA.positions[0].entry),
+   'position entry strip must reflect the actual selected position price');
  assert.ok((await manage.locator('[data-v4-manage-return]').innerText()).endsWith('%'));
  await manage.locator('.v4-disclosure').click();
  assert.equal(await manage.locator('[data-v4-manage-advanced]').count(),1,
