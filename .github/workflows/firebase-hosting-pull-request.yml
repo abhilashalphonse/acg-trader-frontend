@@ -161,3 +161,73 @@ jobs:
           VITE_ACG_TRADER_WS_URL: ws://localhost:4000/v1/ws
       - name: Exercise six V4 chart regressions in real Chrome
         run: node tests/ui/v4-six-regressions.mjs
+
+  # Single owner-audit deploy for the reviewed five chart visual/interaction issues.
+  # Query gated. PR #107 stays draft and is not merged.
+  v4-five-issues-audit-deploy:
+    if: ${{ github.event.pull_request.number == 107 && github.event.pull_request.head.repo.full_name == github.repository }}
+    needs: [preview, v4-six-regressions-browser, live-startup-smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      VITE_ACG_TRADER_API_BASE: https://acg-trader-backend-production.up.railway.app
+      VITE_ACG_TRADER_WS_URL: wss://acg-trader-backend-production.up.railway.app/v1/ws
+      VITE_ACG_EXECUTION_V4_ENABLED: 'true'
+      VITE_ACG_TRADER_HTTP_TIMEOUT_MS: 10000
+      VITE_ACG_FUNDED_SUPPORT_BASE_URL: ${{ secrets.VITE_ACG_FUNDED_SUPPORT_BASE_URL }}
+      VITE_GIT_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify backend and audit-only routing
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 2 --connect-timeout 10 --max-time 25 https://acg-trader-backend-production.up.railway.app/health/live >/dev/null
+          grep -q 'v4AuditLayer = desktopEnhanced && chartOrderV4 && !mobileOverlayStyle' src/components/trading-v2/ChartArea.jsx
+          grep -q 'data-v4-hover-group' src/components/trading-v2/v4/V4ChartOrderLayer.jsx
+          grep -q 'activeChartDraftKind' src/components/trading-v2/ChartArea.jsx
+          grep -q 'new URLSearchParams(search).get' src/utils/chartOrderPresentation.js
+      - name: Run all frontend CI checks
+        run: npm run check
+      - name: Verify canonical secure websocket in built frontend
+        run: |
+          set -euo pipefail
+          grep -qrF 'wss://acg-trader-backend-production.up.railway.app/v1/ws' dist/assets
+          grep -qrF 'acg_v4_audit' dist/assets
+          grep -qrF 'data-v4-position-action-anchor' dist/assets
+      - name: Deploy reviewed V4 fixes to existing Firebase URL
+        id: deployed
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ACG_TRADER }}
+          projectId: acg-trader
+          channelId: live
+      - name: Install Chrome verifier
+        run: npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - name: Verify Firebase frontend boot after deploy
+        id: smoke
+        run: node tests/ui/live-startup-diagnostic.mjs
+      - name: Checkout stable main on startup failure
+        if: ${{ failure() && steps.deployed.outcome == 'success' && steps.smoke.outcome == 'failure' }}
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Rebuild stable main on startup failure
+        if: ${{ failure() && steps.deployed.outcome == 'success' && steps.smoke.outcome == 'failure' }}
+        run: |
+          npm ci
+          npm run build
+      - name: Recover stable Firebase frontend on startup failure
+        if: ${{ failure() && steps.deployed.outcome == 'success' && steps.smoke.outcome == 'failure' }}
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ACG_TRADER }}
+          projectId: acg-trader
+          channelId: live
