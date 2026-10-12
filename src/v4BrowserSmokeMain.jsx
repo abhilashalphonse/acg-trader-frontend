@@ -1,5 +1,8 @@
 // Synthetic-only full ticket + chart browser acceptance; NO trading API.
 import React, { useState } from 'react';
+// Match the actual terminal's production styling in Chromium visual QA.
+import './index.css';
+import './styles/acg-pure-black.css';
 import { createRoot } from 'react-dom/client';
 import { createPortal } from 'react-dom';
 import DesktopOrderTicketV4 from './components/trading-v2/desktop/DesktopOrderTicketV4.jsx';
