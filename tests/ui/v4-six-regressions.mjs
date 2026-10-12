@@ -41,7 +41,7 @@ try{
  eq(await discovery.count(),1,'Unified V4 Markets renders only in owner-audit mode');
  eq(await markets.getByRole('heading',{name:'Markets'}).count(),1,'one compact Markets title');
  eq(await markets.getByRole('button',{name:'Favorites',exact:true}).count(),1,'Favorites star is in category row');
- eq(await markets.getByRole('button',{name:'All',exact:true}).count(),1);
+ eq(await markets.getByRole('button',{name:'All',exact:true}).count(),0,'All is removed from the V4 category row');
  eq(await markets.getByRole('button',{name:'Forex',exact:true}).count(),1);
  eq(await markets.getByRole('button',{name:'Commodities',exact:true}).count(),1);
  eq(await markets.getByRole('button',{name:'Stocks',exact:true}).count(),1);
@@ -55,21 +55,29 @@ try{
  eq(await markets.getByRole('button',{name:'Market options'}).count(),1,'sort moved into three-dot menu');
  eq(await markets.getByRole('button',{name:'Close markets panel'}).count(),1);
  eq(await markets.getByRole('textbox',{name:'Search markets input'}).isVisible(),false,'search hidden by default');
- eq(await markets.locator('[data-market-symbol]').count(),6,'All contains every available instrument');
+ eq(await markets.locator('[data-market-symbol]').count(),2,'Forex is the default and never mixes asset classes');
  ok((await markets.locator('[data-market-symbol="AUDCAD"]').innerText()).includes('Spread'),
    'Forex row retains visible Spread');
- eq(await markets.locator('[data-market-symbol] .acg-v4-market-avatar').count(),6,'Every market row preserves its instrument icon');
- eq(await markets.locator('[data-market-symbol] button').count(),6,'Exactly one chart-navigation action per row');
+ eq(await markets.locator('[data-market-symbol] .acg-v4-market-avatar').count(),2,'Every Forex row preserves its instrument icon');
+ eq(await markets.locator('[data-market-symbol] button').count(),2,'Exactly one chart-navigation action per row');
  eq(await markets.locator('[data-market-symbol] [aria-label*="watchlist"]').count(),0,
     'No redundant row Favorites star; the chart-header star owns saved-state changes');
  eq(await markets.locator('[data-v4-market-header]').count(),1,'One fixed price header');
- eq(await markets.getByText('BID / LAST',{exact:true}).count(),1,'Mixed-markets header labels Bid / Last');
+ eq(await markets.getByText('BID',{exact:true}).count(),1,'Forex opens with its own Bid header');
  eq(await markets.getByText('ASK',{exact:true}).count(),1,'Mixed-markets header labels Ask');
  eq(await markets.getByText('CHG %',{exact:true}).count(),1,'Daily change has its own column');
  const compactGeometry=async width=>{
    await markets.evaluate((el,w)=>{el.style.width=w+'px';},width);
    const geom=await markets.evaluate(el=>{
      const panel=el.querySelector('[data-v4-market-scroll]');
+     const nav=el.querySelector('nav[aria-label="Asset categories"]');
+     const tabs=[...nav.querySelectorAll('button')];
+     const navRect=nav.getBoundingClientRect();
+     const tabGeometry=tabs.map(tab=>{
+       const r=tab.getBoundingClientRect();
+       return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,
+         label:tab.getAttribute('aria-label')||tab.textContent,visibleText:tab.scrollWidth<=tab.clientWidth+1};
+     });
      const row=el.querySelector('[data-market-symbol="EURUSD"] .acg-v4-market-row');
      const bid=row.querySelector('[data-v4-bid]'),ask=row.querySelector('[data-v4-ask]'),change=row.querySelector('[data-v4-change]');
      const title=row.querySelector('.acg-v4-market-symbol'),icon=row.querySelector('.acg-v4-market-avatar');
@@ -77,6 +85,8 @@ try{
      const headerBid=header.querySelector('.acg-v4-market-col-bid-label');
      const rect=x=>{const r=x.getBoundingClientRect();return {l:r.left,r:r.right,w:r.width,h:r.height};};
      return {width:el.clientWidth,scroll:el.scrollWidth,scrollInner:panel.scrollWidth,scrollView:panel.clientWidth,
+       navScroll:nav.scrollWidth,navWidth:nav.clientWidth,nav:{left:navRect.left,right:navRect.right},
+       tabs:tabGeometry,
        row:rect(row),bid:rect(bid),ask:rect(ask),change:rect(change),icon:rect(icon),title:rect(title),
        headerBid:rect(headerBid),bidText:bid.textContent,askText:ask.textContent,
        changeText:change.textContent,rowHeight:row.getBoundingClientRect().height,
@@ -87,6 +97,17 @@ try{
      };
    });
    ok(geom.scroll<=geom.width+1,`Market panel does not overflow ${width}px dock`);
+   ok(geom.navScroll<=geom.navWidth+1,`Category navigation does not scroll or clip at ${width}px`);
+   eq(geom.tabs.length,5,`Favorite star plus four market categories render at ${width}px`);
+   ok(geom.tabs.every(t=>t.visibleText),`All category labels fit their buttons at ${width}px`);
+   ok(geom.tabs.every(t=>t.left>=geom.nav.left-1&&t.right<=geom.nav.right+1),
+      `Category buttons stay fully within navigation at ${width}px`);
+   ok(geom.tabs.every((t,i)=>i===0||(t.left>=geom.tabs[i-1].right+3)),
+      `Category tabs maintain consistent ≥3px gaps at ${width}px`);
+   ok(geom.tabs.every(t=>Math.abs((t.bottom-t.top)-32)<=1),
+      `Category tabs share 32px height at ${width}px`);
+   ok(geom.tabs.every(t=>Math.abs(t.top-geom.tabs[0].top)<=1),
+      `Category tabs align vertically at ${width}px`);
    ok(geom.scrollInner<=geom.scrollView+1,`Market data grid does not horizontally scroll at ${width}px`);
    ok(geom.iconSize>=22&&geom.iconSize<=24,`Instrument icon remains 23px at ${width}px`);
    ok(geom.rowHeight>=60&&geom.rowHeight<=65,`Market row stays ~62px at ${width}px`);
@@ -109,8 +130,12 @@ try{
    'Forex row shows signed daily change');
  await markets.getByRole('button',{name:'Search markets',exact:true}).click();
  eq(await markets.getByRole('textbox',{name:'Search markets input'}).isVisible(),true,'search opens only on demand');
+ await markets.getByRole('textbox',{name:'Search markets input'}).fill('NIFTY');
+ eq(await markets.locator('[data-market-symbol="NIFTY"]').count(),1,'Global search finds an index without All category');
+ eq(await markets.locator('[data-v4-market-section="indices"]').count(),1,'Global search groups Indices in their own section');
+ eq(await markets.locator('[data-v4-market-section="indices"] [data-v4-last]').count(),1,'Indices use Last Price rather than Forex quote columns');
  await markets.getByRole('textbox',{name:'Search markets input'}).fill('AUD/CAD');
- eq(await markets.locator('[data-market-symbol]').count(),1,'category stays active when searching');
+ eq(await markets.locator('[data-market-symbol]').count(),1,'Search restores only matched currency pair');
  eq(await markets.locator('[data-market-symbol="AUDCAD"]').count(),1,'slash formatted cross-pair matches');
  await markets.getByRole('button',{name:'Open AUD/CAD chart'}).click();
  eq(await page.evaluate(()=>window.v4MarketsQA.selected),'AUDCAD','chart selection unchanged');
@@ -121,10 +146,20 @@ try{
  await markets.getByRole('button',{name:'Close search'}).click();
  eq(await markets.getByRole('textbox',{name:'Search markets input'}).isVisible(),false,'search closes after review');
  eq(await markets.locator('[data-market-symbol]').count(),2,'closing search clears hidden filter');
+ await page.evaluate(()=>window.v4MarketsQA.setSaved(['EURUSD','AUDCAD','AAPL','BTCUSD','NIFTY']));
+ await page.waitForFunction(()=>window.v4MarketsQA.saved.length===5);
  await markets.getByRole('button',{name:'Favorites',exact:true}).click();
- eq(await markets.locator('[data-market-symbol]').count(),2,'Favorites shows existing starred instruments across categories');
+ eq(await markets.locator('[data-market-symbol]').count(),5,'Favorites preserves saved instruments from multiple markets');
  eq(await markets.locator('[data-market-symbol="EURUSD"]').count(),1);
  eq(await markets.locator('[data-market-symbol="AUDCAD"]').count(),1);
+ eq(await markets.locator('[data-v4-market-section="forex"]').count(),1,'Favorites includes Forex section');
+ eq(await markets.locator('[data-v4-market-section="stocks"]').count(),1,'Favorites includes Stocks section');
+ eq(await markets.locator('[data-v4-market-section="crypto"]').count(),1,'Favorites includes Crypto section');
+ eq(await markets.locator('[data-v4-market-section="indices"]').count(),1,'Favorites includes Indices section');
+ eq(await markets.locator('[data-v4-market-header]').count(),4,'Favorites has a distinct price header for each asset class');
+ eq(await markets.locator('[data-v4-market-section="forex"] [data-v4-bid]').count(),2,'Forex favorites use Bid/Ask');
+ eq(await markets.locator('[data-v4-market-section="stocks"] [data-v4-last]').count(),1,'Stock favorites use Last');
+ eq(await markets.locator('[data-v4-market-section="indices"] [data-v4-last]').count(),1,'Index favorites use Last');
  await markets.getByRole('button',{name:'Market options'}).click();
  eq(await markets.getByRole('menu',{name:'Sort markets'}).count(),1,'three-dot sort menu opens');
  await markets.getByRole('menuitemradio',{name:'A–Z'}).click();
@@ -145,16 +180,16 @@ try{
  await markets.getByRole('button',{name:'India',exact:true}).click();
  eq(await markets.locator('[data-market-symbol="RELIANCE"]').count(),1,'India stocks shows Indian equities');
  eq(await markets.locator('[data-market-symbol="NIFTY"]').count(),0,'Stocks India excludes indices');
- await markets.getByRole('button',{name:'All',exact:true}).click();
- eq(await markets.locator('[data-market-symbol="NIFTY"]').count(),1,'index remains available under All');
+ await markets.getByRole('button',{name:'Forex',exact:true}).click();
+ eq(await markets.locator('[data-market-symbol="NIFTY"]').count(),0,'Indices are not mixed into Forex rows');
  await page.evaluate(()=>window.v4MarketsQA.setMode('watchlist'));
  await page.waitForFunction(()=>document.querySelector('#v4-markets-fixture button[aria-label="Favorites"]')?.getAttribute('aria-pressed')==='true');
  eq(await markets.locator('[data-v4-markets-panel]').count(),1,'Watchlist route renders same unified Markets panel');
  eq(await markets.getByRole('button',{name:'Favorites',exact:true}).getAttribute('aria-pressed'),'true',
    'legacy Watchlist entry activates Favorites');
- eq(await markets.locator('[data-market-symbol]').count(),2,'legacy Watchlist entry preserves saved symbols');
- await markets.getByRole('button',{name:'All',exact:true}).click();
- eq(await page.evaluate(()=>window.v4MarketsQA.mode),'markets','changing from Favorites to All restores Markets route');
+ eq(await markets.locator('[data-market-symbol]').count(),5,'legacy Watchlist entry preserves grouped saved symbols');
+ await markets.getByRole('button',{name:'Forex',exact:true}).click();
+ eq(await page.evaluate(()=>window.v4MarketsQA.mode),'markets','changing from Favorites to Forex restores Markets route');
  const marketsWidth=await markets.evaluate(el=>({client:el.clientWidth,scroll:el.scrollWidth}));
  ok(marketsWidth.scroll<=marketsWidth.client+1,'V4 Markets header and rows fit 340px dock');
  ok(!errors.length,'Markets header interactions create no JS errors');
