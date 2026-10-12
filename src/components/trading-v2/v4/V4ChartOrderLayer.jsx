@@ -87,7 +87,9 @@ export default function V4ChartOrderLayer({
     event.preventDefault();
     event.stopPropagation();
     const draft = isPreview ? {
-      ...edit, proposedPrice: level.price,
+      accountId: level.accountId, objectType: level.objectType, objectId: level.objectId,
+      kind: level.kind, levelId: level.sourceLevelId || undefined, ...edit,
+      proposedPrice: level.price,
     } : {
       accountId: level.accountId, objectType: level.objectType,
       objectId: level.objectId, kind: level.kind, levelId: level.id, proposedPrice: level.price,
