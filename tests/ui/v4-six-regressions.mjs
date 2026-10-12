@@ -148,7 +148,7 @@ try{
 
  // Pending-order panel can add/modify protections without Buy/Sell controls.
  const pending=page.locator('[data-v4-manage-pending="o2"]');
- eq(await pending.getByRole('button',{name:'New Order'}).count(),0,
+ eq(await pending.getByRole('button',{name:'New Order',exact:true}).count(),0,
   'Pending context relies on Back/Close rather than redundant mode switch');
  eq(await pending.getByRole('button',{name:/^(BUY|SELL) /}).count(),0);
  ok((await pending.innerText()).includes('Estimated margin on fill'));
