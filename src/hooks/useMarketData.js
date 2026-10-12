@@ -236,6 +236,8 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
       volatilityMultiplier: Number.isFinite(Number(quote?.volatilityMultiplier)) ? Number(quote.volatilityMultiplier) : 1,
       sessionMultiplier: Number.isFinite(Number(quote?.sessionMultiplier)) ? Number(quote.sessionMultiplier) : 1,
       timestamp: quote?.providerTimestampMs ?? quote?.receivedAtMs ?? quote?.timeMs ?? null,
+      // Currency conversion must use backend receive-time (not provider trade time).
+      receivedAtMs: quote?.receivedAtMs ?? null,
       dayVolume: quote?.dayVolume ?? null,
       isStale,
       live: marketDataAvailable && sessionOpen && quoteBelongsToOpenSession && Boolean(quote) && !isStale && !['DISCONNECTED', 'UNAVAILABLE', 'SUBSCRIPTION_ERROR'].includes(marketState),

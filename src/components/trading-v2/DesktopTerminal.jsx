@@ -1306,7 +1306,7 @@ export default function DesktopTerminal({
                         />
                       ) : (
                         <DesktopOrderTicketV4 key={`v4-order-ticket-${account?.id || 'none'}-${market?.symbol || 'none'}`}
-                          market={market} account={account} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason}
+                          market={market} account={account} conversionMarkets={markets} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason}
                           lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange}
                           riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange}
                           orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan}

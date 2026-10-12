@@ -10,6 +10,7 @@ import { deriveTerminalStatus } from './utils/terminalStatus.js';
 import { formatInstrumentPrice } from './utils/instrumentFormatting.js';
 import { resolveActiveAccountId } from './utils/accountLifecycleRouting.js';
 import { riskCriticalMarketSymbols } from './utils/marketSubscriptions.js';
+import { conversionQuoteSymbolsForInstrument } from './utils/verifiedFxConversion.js';
 
 const TradingTerminalV2 = lazy(() => import('./pages/TradingTerminalV2.jsx'));
 const MobileTraderShell = lazy(() => import('./pages/MobileTraderShell.jsx'));
@@ -118,14 +119,20 @@ export default function App() {
     grantedAccountIds: auth.principal?.accountIds,
   }), [auth.principal?.accountIds, trading.ordersById, trading.positionsById]);
 
+  // Keep FX conversion quotes subscribed for selected cross-currency instruments,
+  // even when the conversion pair is not on the visible watchlist.
+  const fxConversionSymbols = useMemo(()=>conversionQuoteSymbolsForInstrument(
+    instruments.find(item=>item.symbol===activeSymbol),instruments,'USD'
+  ),[activeSymbol,instruments]);
   const subscriptionSymbols = useMemo(
     () => [...new Set([
+      ...fxConversionSymbols,
       ...riskCriticalSymbols,
       ...watchlists.activeSymbols,
       ...viewportQuoteSymbols,
       activeSymbol,
     ].filter(Boolean))],
-    [activeSymbol, riskCriticalSymbols, viewportQuoteSymbols, watchlists.activeSymbols],
+    [activeSymbol, fxConversionSymbols, riskCriticalSymbols, viewportQuoteSymbols, watchlists.activeSymbols],
   );
 
   const { markets, activeTick, activeMarket, status, error: marketError } = useMarketData(instruments, activeSymbol, subscriptionSymbols);
