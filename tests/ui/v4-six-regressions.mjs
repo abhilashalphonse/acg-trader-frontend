@@ -135,6 +135,28 @@ try{
  await pending.getByRole('button',{name:'Keep Order'}).click();
  eq(await page.evaluate(()=>window.v4QA.orders.length),2,'cancel confirmation can be dismissed');
 
+ // The pending-order manager owns its selected order's amendment draft.
+ // Editing the Stop-Limit execution boundary via the manager cannot alter
+ // another order, submit a new Buy/Sell, or move the accepted trigger.
+ const beforePanelBoundary=await page.evaluate(()=>window.v4QA.orders[1].limitPrice);
+ const beforePanelTrigger=await page.evaluate(()=>window.v4QA.orders[1].entry);
+ await pending.getByRole('spinbutton',{name:'Limit boundary price'}).fill(String(beforePanelBoundary+25));
+ await page.waitForFunction(()=>window.v4QA.pendingDraft?.kind==='limitPrice');
+ eq(await page.evaluate(()=>window.v4QA.orders[1].limitPrice),beforePanelBoundary,
+   'pending sidebar input may only create a preview before Confirm');
+ eq(await page.locator('[data-v4-preview]').count(),1,'pending panel uses chart dotted preview');
+ eq(await pending.locator('.v4-manage-confirm').count(),1);
+ await pending.locator('.v4-manage-discard').click();
+ await page.waitForFunction(()=>window.v4QA.pendingDraft==null);
+ eq(await page.locator('[data-v4-preview]').count(),0,'pending panel Discard clears chart draft');
+ eq(await page.evaluate(()=>window.v4QA.orders[1].limitPrice),beforePanelBoundary);
+ await pending.getByRole('spinbutton',{name:'Limit boundary price'}).fill(String(beforePanelBoundary+25));
+ await pending.locator('.v4-manage-confirm').click();
+ await page.waitForFunction(price=>window.v4QA.orders[1].limitPrice===price,beforePanelBoundary+25);
+ await page.waitForFunction(()=>window.v4QA.pendingDraft==null);
+ eq(await page.evaluate(()=>window.v4QA.orders[1].entry),beforePanelTrigger,
+   'pending panel limit-boundary amendment leaves Stop-Limit trigger unchanged');
+
  // Open-position selection must override the pending manager.
  await page.getByRole('button',{name:'Select open position'}).click();
  const manage=page.locator('[data-v4-manage-position="p1"]');
@@ -185,7 +207,14 @@ try{
  eq(await eur.locator('.v4-symbol strong').innerText(),'EUR/USD');
  eq(await eur.locator('[data-v4-manage-instrument-avatar] > span > span').count(),2);
  eq(await eur.locator('.v4-manage-close').count(),1);
- await eur.getByRole('button',{name:'Back to new order'}).click();
+ // Click the *chart* position to switch directly from EUR/USD into the
+ // BTC position's management panel; this must not leave EUR/USD selected.
+ await page.locator('[data-v4-chart-badge]').click();
+ await page.waitForFunction(()=>window.v4QA.selectedPositionId==='p1');
+ eq(await page.locator('[data-v4-manage-position="p1"]').count(),1,
+   'chart position selection switches to the exact clicked position');
+ eq(await page.locator('[data-v4-manage-position="p2"]').count(),0);
+ await page.locator('[data-v4-manage-position="p1"]').getByRole('button',{name:'Back to new order'}).click();
  eq(await page.locator('[data-v4-manage-position]').count(),0);
  eq(await page.locator('[data-v4-manage-pending]').count(),0);
  eq(await page.locator('[data-v4-preview]').count(),0);
