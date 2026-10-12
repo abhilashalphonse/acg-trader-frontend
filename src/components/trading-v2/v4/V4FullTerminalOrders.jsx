@@ -1,0 +1,158 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import V4ChartOrderLayer from './V4ChartOrderLayer.jsx';
+import { projectV4AcceptedLevels } from './chartOrderModel.js';
+import { formatInstrumentPrice } from '../../../utils/instrumentFormatting.js';
+
+// Runs ONLY behind the desktop V4 audit gate. Financial state is provided by
+// the existing store; drafts exist locally and never optimistically mutate it.
+export default function V4FullTerminalOrders({
+  account, symbol, instrument, positions = [], pendingOrders = [],
+  coordinateApi, height, positionProtectionDraft,
+  onUpdatePosition, onRemovePositionProtection, onMovePending,
+  onRequestPositionProtection, onCancelPositionProtection,
+  onSelectPosition, onClosePosition, onCancelPending,
+}) {
+  const accountId = account?.id == null ? null : String(account.id);
+  const [edit, setEdit] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [awaiting, setAwaiting] = useState(null);
+  const accepted = useMemo(() => projectV4AcceptedLevels({
+    accountId, symbol, positions, pendingOrders,
+  }), [accountId, symbol, positions, pendingOrders]);
+
+  // Cancel any previous owner when the user switches account or instrument.
+  useEffect(() => {
+    setEdit(null);
+    setAwaiting(null);
+    setError('');
+  }, [accountId, symbol]);
+
+  const parentEdit = useMemo(() => {
+    const parent = positionProtectionDraft;
+    if (!parent || !['tp', 'sl'].includes(parent.activeField) ||
+        String(parent.symbol).toUpperCase() !== String(symbol).toUpperCase() ||
+        !Number.isFinite(Number(parent[parent.activeField])) ||
+        Number(parent[parent.activeField]) <= 0 || !accountId) return null;
+    return {
+      accountId, objectType: 'position', objectId: String(parent.positionId),
+      kind: parent.activeField, proposedPrice: Number(parent[parent.activeField]),
+    };
+  }, [positionProtectionDraft, symbol, accountId]);
+  const activeEdit = edit || parentEdit;
+
+  // Acknowledge only the matching server/store snapshot. Never paint a local
+  // confirmed line while the backend still reports the original price.
+  useEffect(() => {
+    if (!awaiting) return;
+    const actual = accepted.find(level => level.accountId === awaiting.accountId &&
+      level.objectId === awaiting.objectId && level.objectType === awaiting.objectType &&
+      level.kind === awaiting.kind);
+    if (actual && Math.abs(actual.price - awaiting.price) < 1e-8) {
+      setAwaiting(null);
+      setEdit(null);
+      setSaving(false);
+      setError('');
+      onCancelPositionProtection?.();
+    }
+  }, [accepted, awaiting, onCancelPositionProtection]);
+
+  const begin = useCallback(value => {
+    if (!value || saving) return;
+    // Switching levels replaces every draft visual from the previous edit.
+    setEdit({ ...value, proposedPrice: value.proposedPrice ?? value.confirmedPrice });
+    setError('');
+    setAwaiting(null);
+    if (parentEdit) onCancelPositionProtection?.();
+  }, [parentEdit, onCancelPositionProtection, saving]);
+
+  const discard = () => {
+    if (saving) return;
+    setEdit(null);
+    setAwaiting(null);
+    setError('');
+    onCancelPositionProtection?.();
+  };
+
+  const beginProtection = (id, kind) => {
+    if (saving) return;
+    discard();
+    onRequestPositionProtection?.(id, kind);
+  };
+
+  const confirm = async draft => {
+    if (!draft || saving || !accountId) return;
+    const objectType = draft.objectType;
+    const objectId = String(draft.objectId || '');
+    const kind = draft.kind;
+    const price = Number(draft.proposedPrice);
+    if (draft.accountId !== accountId || !Number.isFinite(price) || price <= 0 ||
+        !objectId || !['sl','tp','entry'].includes(kind)) {
+      setError('Invalid chart modification. Discard and try again.');
+      return;
+    }
+    const owner = objectType === 'position'
+      ? positions.find(item => String(item.id) === objectId && item.symbol === symbol)
+      : pendingOrders.find(item => String(item.id) === objectId && item.symbol === symbol);
+    if (!owner || (objectType === 'position' && kind === 'entry')) {
+      setError('This position or pending order is no longer available.');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      const applied = objectType === 'position'
+        ? await onUpdatePosition?.(objectId, { [kind]: price })
+        : await onMovePending?.(objectId, price, kind);
+      if (applied === false || applied == null) {
+        setError('Modification was not accepted. Review the price or Discard.');
+        setSaving(false);
+        return;
+      }
+      // The backend/store must confirm price before the dotted preview clears.
+      setAwaiting({ accountId, objectType, objectId, kind, price });
+    } catch (cause) {
+      setError(cause?.message || 'Unable to confirm the chart modification.');
+      setSaving(false);
+    }
+  };
+
+  const remove = async action => {
+    if (!action || saving || action.accountId !== accountId ||
+        !['sl','tp'].includes(action.kind)) return;
+    setSaving(true);
+    try {
+      const result = action.objectType === 'position'
+        ? await onRemovePositionProtection?.(action.objectId, action.kind)
+        : await onMovePending?.(action.objectId, null, action.kind);
+      if (result === false || result == null) setError('Removal was not accepted; the original level remains.');
+    } catch (cause) {
+      setError(cause?.message || 'Could not remove the protection.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return <>
+    <V4ChartOrderLayer accountId={accountId} symbol={symbol}
+      positions={positions} pendingOrders={pendingOrders}
+      coordinateApi={coordinateApi} height={height}
+      formatPrice={value => formatInstrumentPrice(value, instrument)}
+      formatVolume={value => Number(value).toFixed(2) + ' lots'}
+      formatPnl={value => Number.isFinite(Number(value)) ? Number(value).toFixed(2) + ' ' + (account?.currency || 'USD') : '—'}
+      edit={activeEdit} saving={saving}
+      onBeginEdit={begin} onChangeEdit={setEdit}
+      onSaveEdit={confirm} onCancelEdit={discard}
+      onAddProtection={beginProtection} onConfirmRemoval={remove}
+      onSelectPosition={onSelectPosition} onClosePosition={onClosePosition}
+      onCancelPending={onCancelPending}/>
+    {error && <div role="alert" data-v4-chart-error
+      className="pointer-events-auto absolute bottom-12 right-[148px] z-[70] max-w-[360px] rounded border border-[#a34556] bg-[#221116]/95 p-2 text-[11px] text-white">
+      {error}
+      <button type="button" className="ml-3 underline" onClick={discard}>Discard</button>
+    </div>}
+    {awaiting && <div role="status" className="pointer-events-none absolute bottom-3 right-[148px] z-[70] rounded bg-[#15191e]/95 px-2 py-1 text-[10px] text-white">
+      Waiting for confirmed server price…
+    </div>}
+  </>;
+}
