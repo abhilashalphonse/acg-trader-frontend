@@ -73,14 +73,13 @@ export default function V4ChartOrderLayer({
     {acceptedWithCoordinates.map(level=>{
       const color=colorFor(level);
       const location=placed.get(level.id);
-      const editing=ghost?.sourceLevelId===level.id;
       const groupId=level.accountId+':'+level.objectType+':'+level.objectId;
       const highlighted=hoveredId===groupId;
       const missing=level.objectType==='position' && level.kind==='entry' ? v4MissingProtections(accepted,level.id) : [];
       return <React.Fragment key={level.id}>
         <div data-v4-accepted-line={level.id} className="pointer-events-none absolute left-0 right-0 border-t"
           style={{top:level.y,borderColor:color,opacity:highlighted?1:0.7}}/>
-        {location && !editing && <div data-v4-badge={level.id}
+        {location && <div data-v4-badge={level.id}
           onPointerDown={event=>beginDrag(event,level)} onMouseEnter={()=>setHoveredId(groupId)} onMouseLeave={()=>setHoveredId(null)}
           onFocus={()=>setHoveredId(groupId)} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setHoveredId(null);}}
           className="pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] items-center gap-1 overflow-hidden rounded-[5px] border bg-[#111419]/95 px-1.5 font-mono text-[10px] text-white shadow-lg"
@@ -99,7 +98,7 @@ export default function V4ChartOrderLayer({
           {(['sl','tp'].includes(level.kind))&&canRemove&&<button type="button" aria-label={`Confirm removal of ${level.kind.toUpperCase()}`}
             className="shrink-0 px-1" onClick={()=>setRemoveLevel(level.id)}>×</button>}
         </div>}
-        {location?.displaced && !editing && <div className="pointer-events-none absolute right-[140px] w-px bg-[#98a7b6]/70"
+        {location?.displaced && <div className="pointer-events-none absolute right-[140px] w-px bg-[#98a7b6]/70"
           style={{top:Math.min(level.y,location.badgeTop+14),height:Math.abs(level.y-(location.badgeTop+14))}}
           aria-hidden="true"/>}
       </React.Fragment>;
