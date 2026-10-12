@@ -151,9 +151,9 @@ export default function V4ChartOrderLayer({
         {location && !editingAcceptedProtection && <div data-v4-badge={level.id}
           onPointerDown={event=>beginDrag(event,level)} onMouseEnter={()=>setHoveredId(groupId)} onMouseLeave={()=>setHoveredId(null)}
           onFocus={()=>setHoveredId(groupId)} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setHoveredId(null);}}
-          className={`pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] items-center ${marketProtection ? 'gap-0 tabular-nums backdrop-blur-sm' : pendingEntry ? 'gap-1 bg-[#09090b] px-1.5' : pendingLimit ? 'gap-0 bg-[#09090b]' : 'gap-1 bg-[#111419]/95 px-1.5'} ${pendingEditing ? 'overflow-visible' : 'overflow-hidden'} rounded-[5px] border font-mono text-[10px] text-white shadow-[0_3px_12px_rgba(0,0,0,.36)] transition-[box-shadow]`}
+          className={`pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] items-center ${marketProtection ? 'gap-0 tabular-nums backdrop-blur-sm' : pendingEntry ? 'gap-1 px-1.5' : pendingLimit ? 'gap-0' : 'gap-1 bg-[#111419]/95 px-1.5'} ${pendingEditing ? 'overflow-visible' : 'overflow-hidden'} rounded-[5px] border font-mono text-[10px] text-white shadow-[0_3px_12px_rgba(0,0,0,.36)] transition-[box-shadow]`}
           style={{top:location.badgeTop,borderColor:marketProtection?color+'aa':color,
-            backgroundColor:marketProtection?protectionTheme(level.kind).background:undefined,
+            backgroundColor:marketProtection?protectionTheme(level.kind).background:(pendingEntry || pendingLimit ? '#09090b' : undefined),
             boxShadow:highlighted?'0 0 10px rgba(215,223,231,.12)':undefined}}>
           {marketProtection ? <>
             <span data-v4-drag-handle={level.id} aria-label={`Drag ${level.kind.toUpperCase()} level`}
@@ -250,7 +250,7 @@ export default function V4ChartOrderLayer({
       <div className="absolute left-0 right-0 border-t border-dotted" style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost)}}/>
       <div data-v4-draft-badge
         onPointerDown={event=>beginDrag(event,ghost,true)}
-        className={`pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] -translate-y-1/2 items-center rounded-[5px] border font-mono text-[10px] tabular-nums text-white shadow-[0_3px_12px_rgba(0,0,0,.36)] ${['tp','sl'].includes(ghost.kind) ? 'gap-0 cursor-ns-resize touch-none border-dotted bg-[#09090b]' : 'gap-1 cursor-ns-resize touch-none border-dotted bg-[#09090b] px-1.5'}`}
+        className={`pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] -translate-y-1/2 items-center rounded-[5px] border font-mono text-[10px] tabular-nums text-white shadow-[0_3px_12px_rgba(0,0,0,.36)] ${['tp','sl'].includes(ghost.kind) ? 'gap-0 cursor-ns-resize touch-none border-dotted' : 'gap-1 cursor-ns-resize touch-none border-dotted px-1.5'}`}
         style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost),
           backgroundColor:'#09090b'}}>
         {['tp','sl'].includes(ghost.kind) ? (() => {
