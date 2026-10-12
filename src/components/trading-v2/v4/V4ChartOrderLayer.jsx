@@ -196,6 +196,8 @@ export default function V4ChartOrderLayer({
 
   const startDrag=(event,level)=>{
     if(saving||removal||edit?.status==='review'||event.button>0)return;
+    // An accepted position entry is immutable; it can be selected or closed, not dragged.
+    if(level.owner==='position'&&level.field==='entry')return;
     event.preventDefault();event.stopPropagation();
     dragging.current={key:level.key,startY:event.clientY,pointerId:event.pointerId,moved:false};
   };
