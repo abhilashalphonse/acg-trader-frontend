@@ -79,10 +79,10 @@ export function v4MissingProtections(levels, positionEntryId) {
 export function v4ProtectionAction(levels, levelId, type) {
   const level = (levels || []).find(item => item.id === levelId);
   if (!level || !(['sl', 'tp'].includes(level.kind) || (level.objectType === 'pending' && level.kind === 'entry'))) return null;
-  if (type === 'remove') return Object.freeze({ state: V4_ORDER_VISUAL_STATES.CONFIRM_REMOVE,
-    accountId: level.accountId, objectId: level.objectId, kind: level.kind, confirmedPrice: level.price });
+  if (type === 'remove') return level.kind === 'entry' ? null : Object.freeze({ state: V4_ORDER_VISUAL_STATES.CONFIRM_REMOVE,
+    accountId: level.accountId, objectType: level.objectType, objectId: level.objectId, kind: level.kind, confirmedPrice: level.price });
   if (type === 'edit') return Object.freeze({ state: V4_ORDER_VISUAL_STATES.DRAFT,
-    accountId: level.accountId, objectId: level.objectId, levelId, confirmedPrice: level.price });
+    accountId: level.accountId, objectType: level.objectType, objectId: level.objectId, kind: level.kind, levelId, proposedPrice: level.price, confirmedPrice: level.price });
   return null;
 }
 
