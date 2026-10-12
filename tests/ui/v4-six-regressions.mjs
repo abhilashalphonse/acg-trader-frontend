@@ -78,6 +78,20 @@ try{
  assert.match(await page.locator('[data-v4-draft-badge]').innerText(),/[+]5[.]00 USD/,'TP draft should use projected P&L, not an unrelated price label');
  assert.equal(await page.locator('[data-v4-draft-shade="tp"]').count(),1);
  assert.equal(await page.locator('[data-v4-draft-connector]').count(),1);
+ // Newly created TP has a functioning drag grip. Its draft moves, but release
+ // must never hit the command handler or move any server-accepted level.
+ const draftGrip=page.locator('[data-v4-drag-handle="draft"]');
+ const draftBefore=await page.locator('[data-v4-protection-draft-price]').innerText();
+ const draftBeforeBounds=await draftGrip.boundingBox();
+ await page.mouse.move(draftBeforeBounds.x+draftBeforeBounds.width/2,draftBeforeBounds.y+draftBeforeBounds.height/2);
+ await page.mouse.down();
+ await page.mouse.move(draftBeforeBounds.x+draftBeforeBounds.width/2,
+   draftBeforeBounds.y+draftBeforeBounds.height/2-30,{steps:10});
+ await page.mouse.up();
+ const draftAfter=await page.locator('[data-v4-protection-draft-price]').innerText();
+ assert.notEqual(draftAfter,draftBefore,'new TP draft must actually move with pointer');
+ assert.equal(await page.evaluate(()=>window.v4QA.commands.length),0,'new TP mouse release must not execute');
+ assert.equal(await entryActions.count(),1,'position entry Confirm / Discard persists while dragging TP');
  await page.locator('button[aria-label="Add SL to BUY position"]').click();
  assert.equal(await page.locator('[data-v4-draft-shade="tp"]').count(),0,'stale green TP shade');
  assert.equal(await page.locator('[data-v4-draft-shade="sl"]').count(),1,'one red SL shade');
@@ -89,8 +103,50 @@ try{
  await page.locator('[data-v4-badge="qa-account:position:p1:sl"]').waitFor();
  await page.waitForFunction(()=>document.querySelectorAll('[data-v4-preview]').length===0);
  assert.equal(await page.evaluate(()=>window.v4QA.positions[0].sl),83400);
+ // Existing accepted SL has the same drag affordance, with the accepted
+ // server price and solid line unchanged until explicit confirmation.
+ const acceptedSlLine=page.locator('[data-v4-accepted-line="qa-account:position:p1:sl"]');
+ const slAcceptedStyle=await acceptedSlLine.getAttribute('style');
+ const slGrip=page.locator('[data-v4-drag-handle="qa-account:position:p1:sl"]');
+ const slBounds=await slGrip.boundingBox();
+ await page.mouse.move(slBounds.x+slBounds.width/2,slBounds.y+slBounds.height/2);
+ await page.mouse.down();
+ await page.mouse.move(slBounds.x+slBounds.width/2,slBounds.y+slBounds.height/2+26,{steps:8});
+ await page.mouse.up();
+ assert.equal(await page.evaluate(()=>window.v4QA.commands.length),1,
+  'accepted SL drag release must not execute another command');
+ assert.equal(await acceptedSlLine.getAttribute('style'),slAcceptedStyle,
+  'accepted SL remains fixed while dotted preview is dragged');
+ assert.equal(await page.locator('[data-v4-preview]').count(),1);
+ assert.equal(await page.locator('[data-v4-position-action-anchor] [data-v4-chart-actions]').count(),1);
+ await page.getByRole('button',{name:'Discard chart edit'}).click();
+ assert.equal(await page.locator('[data-v4-preview]').count(),0);
+ assert.equal(await page.evaluate(()=>window.v4QA.positions[0].sl),83400,
+  'discarding accepted SL drag leaves server price unchanged');
+
+ // Add TP again, confirm it through simulated backend, then drag accepted TP.
+ await page.locator('button[aria-label="Add TP to BUY position"]').click();
+ await page.getByRole('button',{name:'Confirm chart edit'}).click();
+ await page.waitForFunction(()=>window.v4QA.commands.length===2);
+ await page.locator('[data-v4-badge="qa-account:position:p1:tp"]').waitFor();
+ await page.waitForFunction(()=>document.querySelectorAll('[data-v4-preview]').length===0);
+ const tpGrip=page.locator('[data-v4-drag-handle="qa-account:position:p1:tp"]');
+ const tpBounds=await tpGrip.boundingBox();
+ const acceptedTpLine=page.locator('[data-v4-accepted-line="qa-account:position:p1:tp"]');
+ const tpStyle=await acceptedTpLine.getAttribute('style');
+ await page.mouse.move(tpBounds.x+tpBounds.width/2,tpBounds.y+tpBounds.height/2);
+ await page.mouse.down();
+ await page.mouse.move(tpBounds.x+tpBounds.width/2,tpBounds.y+tpBounds.height/2-26,{steps:8});
+ await page.mouse.up();
+ assert.equal(await page.evaluate(()=>window.v4QA.commands.length),2,
+  'accepted TP drag release must not execute another command');
+ assert.equal(await acceptedTpLine.getAttribute('style'),tpStyle,
+  'accepted TP remains fixed while dragging dotted preview');
+ assert.equal(await page.locator('[data-v4-preview]').count(),1);
+ await page.getByRole('button',{name:'Discard chart edit'}).click();
+ assert.equal(await page.locator('[data-v4-preview]').count(),0);
  assert.deepEqual(errors,[],'no uncaught browser errors');
- console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks:12,commands:await page.evaluate(()=>window.v4QA.commands)}));
+ console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks:17,commands:await page.evaluate(()=>window.v4QA.commands)}));
 }catch(error){
  console.error('SIX_V4_REGRESSIONS_FAIL',error);
  process.exitCode=1;
