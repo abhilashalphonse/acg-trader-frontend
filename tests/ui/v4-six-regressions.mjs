@@ -59,10 +59,10 @@ try{
  await page.getByRole('button',{name:'Finish planning'}).click();
  // 4. Drag pending entry: original solid level does not move; release doesn't commit.
  const before=await page.locator('[data-v4-accepted-line="qa-account:pending:o1:entry"]').getAttribute('style');
- const rect=await entry.boundingBox();
- await page.mouse.move(rect.x+25,rect.y+13);
+ const rect=await entry.locator('[data-v4-pending-grip]').boundingBox();
+ await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2);
  await page.mouse.down();
- await page.mouse.move(rect.x+25,rect.y+75,{steps:8});
+ await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2+62,{steps:8});
  await page.mouse.up();
  assert.equal(await page.evaluate(()=>window.v4QA.commands.length),0,'pointerup must never modify');
  assert.equal(await page.locator('[data-v4-accepted-line="qa-account:pending:o1:entry"]').getAttribute('style'),before,'accepted line fixed');
