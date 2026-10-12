@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   projectV4AcceptedLevels, projectV4DraftGroup, placeV4Badges,
   v4MissingProtections, v4ProtectionAction,
@@ -13,10 +13,32 @@ const priceLabel = (value, formatPrice) => formatPrice ? formatPrice(value) : St
 export default function V4ChartOrderLayer({
   accountId, symbol, positions = [], pendingOrders = [], coordinateApi,
   height = 480, formatPrice, formatVolume, formatPnl,
-  edit = null, saving = false, onBeginEdit, onSaveEdit, onCancelEdit,
+  edit = null, saving = false, onBeginEdit, onChangeEdit, onSaveEdit, onCancelEdit,
   onConfirmRemoval, onAddProtection,
 }) {
   const [removeLevel, setRemoveLevel] = useState(null);
+  const drag = useRef(null);
+  useEffect(() => {
+    const onMove = event => {
+      if (!drag.current || !coordinateApi?.yToPrice || !onChangeEdit) return;
+      const dy = event.clientY - drag.current.startY;
+      if (Math.abs(dy) < 4 && !drag.current.started) return;
+      drag.current.started = true;
+      const nextPrice = coordinateApi.yToPrice(drag.current.startChartY + dy);
+      if (Number.isFinite(nextPrice) && nextPrice > 0) {
+        onChangeEdit({ ...drag.current.draft, proposedPrice: nextPrice });
+      }
+    };
+    const end = () => { drag.current = null; };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', end);
+      window.removeEventListener('pointercancel', end);
+    };
+  }, [coordinateApi, onChangeEdit]);
   const [hoveredId, setHoveredId] = useState(null);
   const accepted = useMemo(() => projectV4AcceptedLevels({accountId,symbol,positions,pendingOrders}),
     [accountId,symbol,positions,pendingOrders]);
@@ -31,6 +53,17 @@ export default function V4ChartOrderLayer({
     : level.side==='BUY' ? COLORS.buy : COLORS.sell;
   const selected = removeLevel && accepted.find(level=>level.id===removeLevel);
   const canRemove = Boolean(onConfirmRemoval);
+  const beginDrag = (event, level) => {
+    if (!onBeginEdit || !onChangeEdit || saving || !coordinateApi?.yToPrice) return;
+    if (!(level.objectType === 'pending' && level.kind === 'entry') && !['sl','tp'].includes(level.kind)) return;
+    if (event.target.closest('button')) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const draft = { accountId:level.accountId, objectType:level.objectType,
+      objectId:level.objectId, kind:level.kind, levelId:level.id, proposedPrice:level.price };
+    drag.current = { draft, startY:event.clientY, startChartY:level.y, started:false };
+    onBeginEdit(draft);
+  };
 
   return <div className="pointer-events-none absolute inset-0 z-[36] overflow-hidden" data-v4-isolated-layer
     style={{ height }}>
@@ -45,7 +78,7 @@ export default function V4ChartOrderLayer({
         <div data-v4-accepted-line={level.id} className="pointer-events-none absolute left-0 right-0 border-t"
           style={{top:level.y,borderColor:color,opacity:highlighted?1:0.7}}/>
         {location && !editing && <div data-v4-badge={level.id}
-          onMouseEnter={()=>setHoveredId(groupId)} onMouseLeave={()=>setHoveredId(null)}
+          onPointerDown={event=>beginDrag(event,level)} onMouseEnter={()=>setHoveredId(groupId)} onMouseLeave={()=>setHoveredId(null)}
           onFocus={()=>setHoveredId(groupId)} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setHoveredId(null);}}
           className="pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] items-center gap-1 overflow-hidden rounded-[5px] border bg-[#111419]/95 px-1.5 font-mono text-[10px] text-white shadow-lg"
           style={{top:location.badgeTop,borderColor:color,boxShadow:highlighted?'0 0 10px rgba(215,223,231,.18)':undefined}}>
@@ -70,6 +103,14 @@ export default function V4ChartOrderLayer({
       className="pointer-events-none absolute right-[135px] border-l border-dotted border-[#a8b5bd]/60"
       style={{top:Math.min(coordinateApi.priceToY(connector.fromPrice),coordinateApi.priceToY(connector.toPrice)),
         height:Math.abs(coordinateApi.priceToY(connector.fromPrice)-coordinateApi.priceToY(connector.toPrice))}} />}
+    {ghost && connector && coordinateApi?.priceToY && (() => {
+      const y1=coordinateApi.priceToY(connector.fromPrice), y2=coordinateApi.priceToY(connector.toPrice);
+      if (!Number.isFinite(y1) || !Number.isFinite(y2)) return null;
+      return <div data-v4-draft-shade={ghost.kind} className="pointer-events-none absolute left-[42%] right-[148px]" style={{
+        top:Math.min(y1,y2),height:Math.abs(y1-y2),
+        background:ghost.kind==='tp'?'rgba(22,134,95,0.12)':'rgba(175,55,70,0.12)'
+      }}/>;
+    })()}
     {ghost && coordinateApi?.priceToY && Number.isFinite(coordinateApi.priceToY(ghost.price)) && <div data-v4-preview={ghost.id}>
       <div className="absolute left-0 right-0 border-t border-dotted" style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost)}}/>
       <div className="pointer-events-auto absolute right-[148px] flex h-7 -translate-y-1/2 items-center gap-2 rounded-[5px] border bg-[#111419]/95 px-2 text-[10px]"
