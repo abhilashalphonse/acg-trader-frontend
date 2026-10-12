@@ -60,6 +60,21 @@ try{
  await page.getByRole('button',{name:'Discard chart edit'}).click();
  // 5. TP to SL switching: only one draft shade exists and its type changes.
  await page.locator('button[aria-label="Add TP to BUY position"]').click();
+ const entryActions=page.locator('[data-v4-position-action-anchor] [data-v4-chart-actions]');
+ assert.equal(await entryActions.count(),1,'market Confirm / Discard must be beside approved position badge');
+ assert.equal(await entryActions.getAttribute('data-v4-actions-location'),'position-entry');
+ assert.equal(await page.locator('[data-v4-draft-badge] [data-v4-chart-actions]').count(),0,
+   'TP draft badge must not contain Confirm / Discard');
+ const positionAnchor=page.locator('[data-v4-position-action-anchor]');
+ const positionBadge=positionAnchor.locator('[data-v4-chart-badge]');
+ const buttons=await entryActions.boundingBox(), positionBox=await positionBadge.boundingBox();
+ assert.ok(buttons.x+buttons.width<=positionBox.x+1,'buttons must be OUTSIDE and LEFT of the position badge');
+ assert.ok(Math.abs((buttons.y+buttons.height/2)-(positionBox.y+positionBox.height/2))<2,
+   'actions must remain on the position ENTRY line, not on the TP draft line');
+ const previewBox=await page.locator('[data-v4-draft-badge]').boundingBox();
+ assert.ok(Math.abs(previewBox.y-positionBox.y)>20,'TP draft must have its own independent price level');
+ assert.match(await page.locator('[data-v4-draft-badge]').innerText(),/0\\.01/);
+ assert.ok(await page.locator('[data-v4-protection-draft-price]').count()===1);
  assert.equal(await page.locator('[data-v4-draft-shade="tp"]').count(),1);
  assert.equal(await page.locator('[data-v4-draft-connector]').count(),1);
  await page.locator('button[aria-label="Add SL to BUY position"]').click();
@@ -74,7 +89,7 @@ try{
  await page.waitForFunction(()=>document.querySelectorAll('[data-v4-preview]').length===0);
  assert.equal(await page.evaluate(()=>window.v4QA.positions[0].sl),83400);
  assert.deepEqual(errors,[],'no uncaught browser errors');
- console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks:9,commands:await page.evaluate(()=>window.v4QA.commands)}));
+ console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks:12,commands:await page.evaluate(()=>window.v4QA.commands)}));
 }catch(error){
  console.error('SIX_V4_REGRESSIONS_FAIL',error);
  process.exitCode=1;
