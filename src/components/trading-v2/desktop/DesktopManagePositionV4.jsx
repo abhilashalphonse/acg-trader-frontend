@@ -161,10 +161,7 @@ export default function DesktopManagePositionV4({
       </div>
 
       <div className="v4-position v4-block">
-        <div className="v4-section-heading">
-          <span>POSITION</span>
-          <span data-v4-selected-position-size>{number(volume,2)} lots</span>
-        </div>
+        <div className="v4-section-heading"><span>POSITION</span></div>
         <div className="v4-manage-position-values">
           <div className="v4-manage-position-size">
             <span className="v4-manage-stat-label">POSITION SIZE</span>
