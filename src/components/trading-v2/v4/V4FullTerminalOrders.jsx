@@ -166,7 +166,7 @@ export default function V4FullTerminalOrders({
     : null;
 
   return <>
-    {renderPositionEntries?.(chartEditActions)}
+    {renderPositionEntries?.(chartEditActions, beginProtection)}
     <V4ChartOrderLayer accountId={accountId} symbol={symbol}
       positions={positions} pendingOrders={pendingOrders}
       coordinateApi={coordinateApi} height={height}
