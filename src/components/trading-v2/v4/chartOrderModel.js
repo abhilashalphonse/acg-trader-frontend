@@ -137,13 +137,15 @@ export function projectV4DraftGroup(acceptedLevels, draft) {
     level.kind === 'entry');
   if (!owner) return { accepted, preview: null, connector: null };
   const kind = source?.kind || draft.kind;
+  const matchedSource = source || accepted.find(level => level.accountId === owner.accountId &&
+    level.objectType === owner.objectType && level.objectId === owner.objectId && level.kind === kind);
   if (!['entry', 'sl', 'tp'].includes(kind)) return { accepted, preview: null, connector: null };
-  if (!source && kind === 'entry') return { accepted, preview: null, connector: null };
+  if (!matchedSource && kind === 'entry') return { accepted, preview: null, connector: null };
   if (draft.accountId != null && String(draft.accountId) !== owner.accountId) return { accepted, preview: null, connector: null };
   if (draft.objectId != null && String(draft.objectId) !== owner.objectId) return { accepted, preview: null, connector: null };
-  const id = source?.id || v4LevelId({ accountId: owner.accountId, objectType: owner.objectType, objectId: owner.objectId, kind });
+  const id = matchedSource?.id || v4LevelId({ accountId: owner.accountId, objectType: owner.objectType, objectId: owner.objectId, kind });
   const preview = Object.freeze({
-    ...(source || owner), id: id + ':preview', sourceLevelId: source?.id ?? null,
+    ...(matchedSource || owner), id: id + ':preview', sourceLevelId: matchedSource?.id ?? null,
     kind, price: Number(draft.proposedPrice), state: V4_ORDER_VISUAL_STATES.PREVIEW,
     lineStyle: 'dotted', objectId: owner.objectId, accountId: owner.accountId,
   });
