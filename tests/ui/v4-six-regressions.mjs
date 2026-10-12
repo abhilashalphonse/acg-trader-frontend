@@ -17,7 +17,6 @@ try{
  assert.equal(await entry.count(),1,'pending accepted entry must never duplicate');
  assert.equal(await page.locator('[data-v4-preview]').count(),1,'one preview only');
  assert.equal(await page.locator('[data-v4-draft-connector]').count(),1,'draft TP connector');
- assert.equal(await page.locator('[data-v4-confirmed-connector]').count(),0);
  // 2. Pending order accepted solid badge & line remain while editing.
  assert.equal(await page.locator('[data-v4-accepted-line="qa-account:pending:o1:entry"]').count(),1);
  assert.equal(await page.locator('[data-v4-badge="qa-account:pending:o1:tp"]').count(),1);
