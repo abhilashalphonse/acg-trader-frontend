@@ -8,6 +8,14 @@ export default defineConfig({
     strictPort: true,
   },
   plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: {
+      input: {
+        main: 'index.html',
+        v4ChartPreview: 'v4-chart-preview.html',
+      },
+    },
+  },
   optimizeDeps: {
     include: ['lightweight-charts'],
   },
