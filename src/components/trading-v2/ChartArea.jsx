@@ -1394,6 +1394,7 @@ export default function ChartArea({
 }) {
   const [clockNow, setClockNow] = useState(() => new Date());
   const [coordinateApi, setCoordinateApi] = useState(null);
+  const [hoveredPositionId, setHoveredPositionId] = useState(null);
   const [showDrawings, setShowDrawings] = useState(true);
   const [drawingSnap, setDrawingSnap] = useState('off');
   const [lockAllDrawings, setLockAllDrawings] = useState(false);
@@ -1659,7 +1660,7 @@ export default function ChartArea({
         )}
         <ClosedPositionChartOverlay symbol={symbol} position={historicalPosition} coordinateApi={coordinateApi} instrument={instrument} onClear={onClearHistoricalPosition} />
         {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} onMove={onMovePending} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} account={account} accountCurrency={accountCurrency} />}
-        <OpenPositionEntryOverlay symbol={symbol} positions={positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} />
+        <OpenPositionEntryOverlay symbol={symbol} positions={positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} onRequestPositionProtection={onRequestPositionProtection} hoveredPositionId={hoveredPositionId} onHoverPosition={setHoveredPositionId} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} />
         <OpenPositionProtectionOverlay
           symbol={symbol}
           positions={positions.filter(position =>
@@ -1672,10 +1673,20 @@ export default function ChartArea({
           onRemoveProtection={onRemovePositionProtection}
           onRequestProtectionChange={onRequestPositionProtection}
           selectedPositionId={selectedPositionId}
+          hoveredPositionId={hoveredPositionId}
+          onHoverPosition={setHoveredPositionId}
           onSelectPosition={onSelectPosition}
           mobileStyle={mobileOverlayStyle}
           desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle}
         />
+        {desktopEnhanced && chartOrderV4 && !mobileOverlayStyle && (
+          <OpenPositionGroupGuide
+            symbol={symbol}
+            positions={positions}
+            hoveredPositionId={hoveredPositionId}
+            coordinateApi={coordinateApi}
+          />
+        )}
 
         {desktopEnhanced && !compactContext && (
           <div className="absolute right-[74px] top-2 z-30 flex items-center gap-1">
