@@ -137,3 +137,27 @@ jobs:
         run: npm install --no-save --no-audit --no-fund playwright@1.56.1
       - name: Verify deployed ACG Trader startup without credentials
         run: node tests/ui/live-startup-diagnostic.mjs
+
+  v4-six-regressions-browser:
+    if: ${{ github.event.pull_request.number == 107 && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Install test browser controller
+        run: npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - name: Launch V4 full-terminal fixture
+        run: |
+          npm run dev -- --host 127.0.0.1 >/tmp/v4-qa-vite.log 2>&1 &
+          curl --fail --retry 30 --retry-delay 1 --retry-connrefused http://127.0.0.1:5174/v4-six-fixes-audit.html >/dev/null
+        env:
+          VITE_ACG_TRADER_API_BASE: http://localhost:4000
+          VITE_ACG_TRADER_WS_URL: ws://localhost:4000/v1/ws
+      - name: Exercise six V4 chart regressions in real Chrome
+        run: node tests/ui/v4-six-regressions.mjs
