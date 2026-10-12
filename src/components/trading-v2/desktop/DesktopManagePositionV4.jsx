@@ -142,7 +142,7 @@ export default function DesktopManagePositionV4({
         </span>
         <div className="v4-symbol">
           <strong>{instrument?.displaySymbol || position?.symbol || '—'}</strong>
-          <span>Open position · {side}</span>
+          <span className="v4-manage-header-context"><i className="v4-manage-status-dot"/><b className={side==='BUY'?'v4-manage-long':'v4-manage-short'}>{side}</b><span>· Open position</span></span>
         </div>
         <div className="v4-head-actions">
           <button type="button" aria-label="Back to new order" title="New Order"
@@ -150,13 +150,6 @@ export default function DesktopManagePositionV4({
           <button type="button" aria-label="Close position editor"
             onClick={leave} disabled={working}><X size={19}/></button>
         </div>
-      </div>
-
-      <div className="v4-session" aria-label="Position status">
-        <span><i className="v4-manage-live-indicator"/>Open position</span>
-        <span data-v4-manage-direction className={side==='BUY'?'v4-manage-long':'v4-manage-short'}>
-          {side} · {position?.symbol}
-        </span>
       </div>
 
       {/* Reuse the ticket's three-column quote strip instead of a grey statistics card. */}
@@ -167,19 +160,10 @@ export default function DesktopManagePositionV4({
           {displayReturn}</strong></span>
       </div>
 
-      {/* Same horizontal mode control as the new-order ticket. Its alternate action
-          returns to New Order; it must never initiate a BUY/SELL execution. */}
-      <div className="v4-capsule v4-mainmodes v4-order-types v4-manage-modes" role="group"
-        aria-label="Trade panel context">
-        <span className="v4-capsule-button selected" data-v4-context-active="position">Open Position</span>
-        <button type="button" className="v4-capsule-button"
-          onClick={leave} disabled={working}>New Order</button>
-      </div>
-
       <div className="v4-position v4-block">
         <div className="v4-section-heading">
           <span>POSITION</span>
-          <span>{side} · OPEN</span>
+          <span data-v4-selected-position-size>{number(volume,2)} lots</span>
         </div>
         <div className="v4-manage-position-values">
           <div className="v4-manage-position-size">
