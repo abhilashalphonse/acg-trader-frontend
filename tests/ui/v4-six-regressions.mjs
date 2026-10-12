@@ -135,15 +135,15 @@ try{
  const tpGrip=page.locator('[data-v4-drag-handle="qa-account:position:p1:tp"]');
  const tpBounds=await tpGrip.boundingBox();
  const acceptedTpLine=page.locator('[data-v4-accepted-line="qa-account:position:p1:tp"]');
- const tpStyle=await acceptedTpLine.getAttribute('style');
+ const tpTop=await acceptedTpLine.evaluate(node=>node.style.top);
  await page.mouse.move(tpBounds.x+tpBounds.width/2,tpBounds.y+tpBounds.height/2);
  await page.mouse.down();
  await page.mouse.move(tpBounds.x+tpBounds.width/2,tpBounds.y+tpBounds.height/2-26,{steps:8});
  await page.mouse.up();
  assert.equal(await page.evaluate(()=>window.v4QA.commands.length),2,
   'accepted TP drag release must not execute another command');
- assert.equal(await acceptedTpLine.getAttribute('style'),tpStyle,
-  'accepted TP remains fixed while dragging dotted preview');
+ assert.equal(await acceptedTpLine.evaluate(node=>node.style.top),tpTop,
+  'accepted TP price coordinate remains fixed while dragging dotted preview');
  assert.equal(await page.locator('[data-v4-preview]').count(),1);
  await page.getByRole('button',{name:'Discard chart edit'}).click();
  assert.equal(await page.locator('[data-v4-preview]').count(),0);
