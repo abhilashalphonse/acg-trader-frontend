@@ -424,3 +424,19 @@
 /* The affordability status is informational and does not resize the dock. */
 .v4-live-scope .v4-slider-hint { color:#c5a97c; font-size:10px; line-height:1.35; }
 .v4-live-scope .v4-slider input:disabled { opacity:.45; cursor:not-allowed; }
+
+/* Pending orders share the compact hierarchy of the real execution panel.
+ * These are visual controls only; they do not override backend validation. */
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-pending-types { border-radius: 8px; }
+.v4-ticket.v4-live-scope:not(.v4-density-baseline) .v4-pending-types .v4-capsule-button {
+  min-height: 27px;
+  padding: 4px 2px;
+  font-size: 10px;
+  border-radius: 7px;
+}
+.v4-ticket.v4-live-scope .v4-pending-note {
+  display: block;
+  font-size: 10px;
+  line-height: 1.45;
+  color: #929ba5;
+}
