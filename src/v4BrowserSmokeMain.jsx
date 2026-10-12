@@ -270,6 +270,11 @@ async function run(){
    if(!acceptedAgain)failed.push('Cancel TP edit did not restore full accepted badge');
    const removeTp=acceptedAgain?.querySelector('[aria-label="Remove Take profit from position"]');
    if(!removeTp)failed.push('Confirmed TP missing removal X');
+   if(removeTp && acceptedAgain){
+     const buttonBox=removeTp.getBoundingClientRect(),badgeBox=acceptedAgain.getBoundingClientRect();
+     if(buttonBox.left<badgeBox.left||buttonBox.right>badgeBox.right+1)
+       failed.push('Confirmed TP removal X is visually clipped by compact chart badge');
+   }
    removeTp?.click();
    await sleep(90);
    if(Array.from(liveChart.querySelectorAll('[data-v4-chart-badge]'))
