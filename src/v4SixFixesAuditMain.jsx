@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import V4FullTerminalOrders from './components/trading-v2/v4/V4FullTerminalOrders.jsx';
 import { OpenPositionEntryOverlay } from './components/trading-v2/ChartArea.jsx';
@@ -25,6 +25,8 @@ function App(){
  const [planning,setPlanning]=useState(false);
  const [hoveredPositionId,setHoveredPositionId]=useState(null);
  const [commands,setCommands]=useState([]);
+ const rejectNextRemoval=useRef(false);
+ const removalCalls=useRef(0);
  const coordinateApi=useMemo(()=>({priceToY:toY,yToPrice:fromY,subscribe:()=>()=>{}}),[]);
  const record=(kind,id,field,price)=>setCommands(c=>[...c,{kind,id,field,price}]);
  const modifyPosition=async(id,patch)=>{
@@ -39,6 +41,15 @@ function App(){
    setOrders(values=>values.map(v=>v.id===id?{...v,[field]:price}:v));
    return true;
  };
+ const removeProtection=async(id,kind)=>{
+   removalCalls.current += 1;
+   if(rejectNextRemoval.current){
+     rejectNextRemoval.current=false;
+     await new Promise(resolve=>setTimeout(resolve,80));
+     return false;
+   }
+   return modifyPosition(id,{[kind]:null});
+ };
  const beginProtection=(id,kind)=>{
    const position=positions.find(x=>x.id===id);
    if(!position)return false;
@@ -47,7 +58,9 @@ function App(){
    return true;
  };
  window.v4QA={get commands(){return commands;},get positions(){return positions;},
-  get orders(){return orders;},get parentDraft(){return parentDraft;},get planning(){return planning;}};
+  get orders(){return orders;},get parentDraft(){return parentDraft;},get planning(){return planning;},
+  get removalCalls(){return removalCalls.current;},
+  rejectOneRemoval(){rejectNextRemoval.current=true;}};
  return <div className="min-h-screen bg-black p-4 text-white">
   <div className="mb-3 text-sm font-semibold">V4 full-terminal chart integration — deterministic acceptance fixture</div>
   <div className="mb-3 flex gap-2">
@@ -70,7 +83,7 @@ function App(){
       coordinateApi={coordinateApi} height={580}
       positionProtectionDraft={parentDraft}
       onUpdatePosition={modifyPosition}
-      onRemovePositionProtection={(id,field)=>modifyPosition(id,{[field]:null})}
+      onRemovePositionProtection={removeProtection}
       onMovePending={movePending} onRequestPositionProtection={beginProtection}
       onCancelPositionProtection={()=>setParentDraft(null)}
       onSelectPosition={()=>{}} onClosePosition={()=>{}} onCancelPending={()=>{}}/>
