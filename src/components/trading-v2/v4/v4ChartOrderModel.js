@@ -147,7 +147,7 @@ export function v4LayoutBadges(entries, chartHeight, { rowHeight = 28, gap = 6, 
     badgeY[index]=block.mean+index*step;
   if (badgeY.length && maxY>=minY && (sorted.length-1)*step<=maxY-minY) {
     const low=badgeY[0],high=badgeY[badgeY.length-1];
-    const shift=Math.max(minY-low,Math.min(0,maxY-high));
+    const shift=low<minY ? minY-low : high>maxY ? maxY-high : 0;
     for(let index=0;index<badgeY.length;index++)badgeY[index]+=shift;
   }
   return sorted.map((item,index)=>({
