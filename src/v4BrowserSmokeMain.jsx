@@ -113,6 +113,18 @@ async function run(){
  // Accepted stop-limit must draw two independent SOLID price levels,
  // and show a temporary DOTTED ghost while its LIMIT leg is dragged.
  const pendingChart=document.getElementById('pending-chart-fixture');
+ // Reproduce the reported 435px chart and reserve the full BID/ASK quote rail.
+ // TradingChart paints BID/ASK via Lightweight Charts' canvas, so a DOM-only
+ // price-marker check misses that overlap. Reserve a conservative 130px from
+ // the right edge (label + title), with at least 14px between it and the badge.
+ pendingChart.style.width='435px';
+ chart.style.width='435px';
+ const checkBidAskClearance=(badge,container,name)=>{
+   if(!badge){failed.push(name+' badge missing for quote clearance');return;}
+   const quoteRailLeft=container.getBoundingClientRect().right-130;
+   const gap=quoteRailLeft-badge.getBoundingClientRect().right;
+   if(!Number.isFinite(gap)||gap<14)failed.push(name+' overlaps BID/ASK price-scale corridor: '+gap);
+ };
  // Price labels stay on the real chart Y-axis level. V4 badges stay vertically
  // centered on that line but sit to its left with a readable horizontal gap.
  const checkYAxisGap=(badge,name)=>{
@@ -131,6 +143,8 @@ async function run(){
  checkYAxisGap(acceptedBadges.find(b=>b.textContent.includes('Stop loss')),'Accepted SL');
  checkYAxisGap(acceptedBadges.find(b=>b.textContent.includes('Take profit')),'Accepted TP');
  checkYAxisGap(pendingChart.querySelector('[data-v4-chart-entry]'),'Accepted entry');
+ for(const badge of acceptedBadges)checkBidAskClearance(badge,pendingChart,'Placed '+badge.textContent.slice(0,28));
+ checkBidAskClearance(pendingChart.querySelector('[data-v4-chart-entry]'),pendingChart,'Placed entry');
  if(pendingChart.querySelector('[data-chart-level-placement],[data-chart-order-entry-placement]'))
    failed.push('Old vertical badge offsets were not reverted');
  const pendingLines=pendingChart.querySelectorAll('.relative.border-t:not(.border-dotted):not(.border-dashed)');
@@ -225,6 +239,7 @@ async function run(){
  if(Number(marginSlider?.value)<=marginBefore)failed.push('Margin budget did not advance');
  if(counters.drafts!==1)failed.push('Margin slider did not create exactly one draft');
  checkYAxisGap(chart.querySelector('[data-v4-chart-entry]'),'Draft entry');
+ checkBidAskClearance(chart.querySelector('[data-v4-chart-entry]'),chart,'Draft entry');
  if(!chart.querySelector('[title="Add SL"]'))failed.push('Chart draft entry missing SL shortcut');
  if(!chart.textContent.includes('BUY'))failed.push('Chart draft direction missing');
  if(counters.planned!==0)failed.push('Margin draft unexpectedly submitted an order');
@@ -245,6 +260,7 @@ async function run(){
  if(findMode(ticket,'Risk %')?.getAttribute('aria-pressed')!=='true')failed.push('Risk % selection failed');
  if(!ticket.querySelector('input[aria-label="Stop Loss value"]'))failed.push('Risk % did not create default SL');
  checkYAxisGap(Array.from(chart.querySelectorAll('[data-v4-chart-badge]')).find(b=>b.textContent.includes('Stop loss')),'Draft SL');
+ checkBidAskClearance(Array.from(chart.querySelectorAll('[data-v4-chart-badge]')).find(b=>b.textContent.includes('Stop loss')),chart,'Draft SL');
  const startRisk=Number(ticket.querySelector('input[aria-label="Position size slider"]')?.value);
  ticket.querySelector('button[aria-label="Increase position value"]')?.click();
  await sleep(180);
@@ -259,6 +275,7 @@ async function run(){
  if(chart.querySelector('[title="Add TP"]'))failed.push('Activated TP shortcut stayed on entry row');
  if(!chart.querySelector('[aria-label="Clear TP"]'))failed.push('Activated TP has no independent removable price line');
  checkYAxisGap(Array.from(chart.querySelectorAll('[data-v4-chart-badge]')).find(b=>b.textContent.includes('Take profit')),'Draft TP');
+ checkBidAskClearance(Array.from(chart.querySelectorAll('[data-v4-chart-badge]')).find(b=>b.textContent.includes('Take profit')),chart,'Draft TP');
  // Removing the independent line returns its entry shortcut and updates
  // the same V4 ticket; this is an edit to a draft, not an execution.
  chart.querySelector('[aria-label="Clear TP"]')?.click();
