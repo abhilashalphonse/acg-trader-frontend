@@ -136,7 +136,9 @@ async function run(){
    const markerBox=priceMarker.getBoundingClientRect();
    const xGap=markerBox.left-badgeBox.right;
    const yDelta=Math.abs((badgeBox.top+badgeBox.bottom)/2-line.getBoundingClientRect().top);
-   if(!Number.isFinite(xGap)||xGap<12||xGap>80)failed.push(name+' horizontal Y-axis gap invalid: '+xGap);
+   // The BID/ASK exclusion rail requires more than the former 80px maximum.
+   // The order-price marker remains aligned on the exact price line.
+   if(!Number.isFinite(xGap)||xGap<12||xGap>130)failed.push(name+' horizontal Y-axis gap invalid: '+xGap);
    if(!Number.isFinite(yDelta)||yDelta>3)failed.push(name+' is no longer vertically aligned with its price line: '+yDelta);
  };
  const acceptedBadges=Array.from(pendingChart.querySelectorAll('[data-v4-chart-badge]'));
