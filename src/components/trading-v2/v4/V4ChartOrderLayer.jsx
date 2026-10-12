@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { formatInstrumentPrice } from '../../../utils/instrumentFormatting.js';
-import { chartEstimateCurrencySupported, chartPriceChangePercent } from '../../../utils/chartOrderPresentation.js';
+import { chartEntryReference, chartEstimateCurrencySupported, chartPriceChangePercent } from '../../../utils/chartOrderPresentation.js';
 import { estimatePositionPnlAtPrice, estimateLossAtStopWithCosts, estimateStopRisk } from '../../../utils/tradingRisk.js';
 import { effectiveTradePlan } from '../../../utils/tradePlanExecution.js';
 import { v4AcceptedLevels, v4DraftLevels, v4LayoutBadges, v4ShowAcceptedBadge, v4ValidEditPrice } from './v4ChartOrderModel.js';
@@ -259,9 +259,33 @@ export default function V4ChartOrderLayer({
   const hoverPosition=hover?.owner==='position'?hover.ownerId:null;
   const related=hoverPosition?accepted.filter(level=>level.owner==='position'&&level.ownerId===hoverPosition):[];
   const ys=related.map(level=>coordinateApi?.priceToY?.(level.price)).filter(Number.isFinite);
+  // Subtle accepted risk/reward shading from a single selected/hovered group.
+  // Multiple positions never paint several competing full-chart risk zones.
+  const matchedPositions=positions.filter(p=>String(p?.symbol||'').toUpperCase()===String(symbol||'').toUpperCase());
+  const selected=matchedPositions.find(p=>String(p.id)===String(hoverPosition || selectedPositionId))
+    || (matchedPositions.length===1?matchedPositions[0]:null);
+  const zoneSource=selected
+    ? { entry:selected.entry??selected.entryPrice,sl:selected.sl,tp:selected.tp }
+    : tradePlan && !tradePlan.open && String(tradePlan.symbol||'').toUpperCase()===String(symbol||'').toUpperCase()
+      ? {entry:chartEntryReference(tradePlan),sl:tradePlan.sl,tp:tradePlan.tp}
+      : null;
+  const zoneReference=v4ValidEditPrice(zoneSource?.entry);
+  const zoneReferenceY=zoneReference!=null?coordinateApi?.priceToY?.(zoneReference):null;
+  const shadeZones=zoneReferenceY!=null&&Number.isFinite(zoneReferenceY)
+    ? ['sl','tp'].map(field=>{
+      const price=v4ValidEditPrice(zoneSource?.[field]);
+      const y=price!=null?coordinateApi?.priceToY?.(price):null;
+      if(!Number.isFinite(y))return null;
+      return {field,top:Math.min(y,zoneReferenceY),height:Math.abs(y-zoneReferenceY)};
+    }).filter(Boolean)
+    : [];
   if(!coordinateApi?.priceToY)return null;
   return <div ref={root} data-v4-independent-order-layer
     className="pointer-events-none absolute inset-0 z-[40] overflow-hidden">
+    {shadeZones.map(zone=><div key={zone.field} data-v4-risk-zone={zone.field}
+      aria-hidden="true" className="pointer-events-none absolute left-[44%] right-[140px] z-0"
+      style={{top:zone.top,height:zone.height,
+        background:zone.field==='sl'?'rgba(183,50,65,0.13)':'rgba(23,137,103,0.12)'}}/>)}
     {allVisible.map(level=>{
       const y=coordinateApi.priceToY(level.price),color=level.color;
       const show=v4ShowAcceptedBadge(level,{edit,tradePlan,positionProtectionDraft});
