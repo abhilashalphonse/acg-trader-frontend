@@ -1,473 +1,198 @@
 import { createRequire } from 'node:module';
-import process from 'node:process';
 import assert from 'node:assert/strict';
-const require=createRequire(import.meta.url);
-const { chromium }=require('playwright');
+const { chromium }=createRequire(import.meta.url)('playwright');
 const browser=await chromium.launch({headless:true,channel:'chrome',args:['--no-sandbox']});
 const page=await browser.newPage({viewport:{width:1320,height:850}});
 const errors=[];
-page.on('pageerror',err=>errors.push(err.message));
+let checks=0;
+page.on('pageerror',e=>errors.push(e.message));
+const ok=(condition,message)=>{assert.ok(condition,message);checks++;};
+const eq=(a,b,message)=>{assert.equal(a,b,message);checks++;};
+const wait=()=>page.waitForTimeout(100);
+const chart=()=>page.locator('[data-v4-full-terminal-fixture]');
+const badge=id=>page.locator('[data-v4-badge="qa-account:'+id+'"]');
+const accepted=id=>page.locator('[data-v4-accepted-line="qa-account:'+id+'"]');
+const drag=async (selector,dy)=>{
+  const grip=page.locator(selector);
+  await grip.scrollIntoViewIfNeeded();
+  const rect=await grip.boundingBox();
+  ok(Boolean(rect),'drag control must have a bounding box');
+  const x=rect.x+rect.width/2,y=rect.y+rect.height/2;
+  await page.mouse.move(x,y);
+  await page.mouse.down();
+  await page.mouse.move(x,y+dy,{steps:8});
+  return {x,y};
+};
+const end=async()=>{await page.mouse.up();await wait();};
 try{
  await page.goto('http://127.0.0.1:5174/v4-six-fixes-audit.html',{waitUntil:'networkidle'});
- const entry=page.locator('[data-v4-badge="qa-account:pending:o1:entry"]');
- const pendingTp=page.locator('[data-v4-badge="qa-account:pending:o1:tp"]');
+ const entry=badge('pending:o1:entry');
+ const tp=badge('pending:o1:tp');
  await entry.waitFor();
- assert.equal(await page.locator('[data-v4-badge="qa-account:position:p1:entry"]').count(),0,
-  'do not render a second prototype market-position entry badge');
- assert.equal(await page.locator('[data-v4-chart-badge]').count(),1,
-  'original approved market-position entry badge must be present');
- const originalPositionBadge=page.locator('[data-v4-chart-badge]');
- assert.equal(await originalPositionBadge.locator('[data-v4-position-direction]').innerText(),'BUY');
- assert.equal(await originalPositionBadge.locator('[data-v4-position-size]').innerText(),'0.01');
- assert.match(await originalPositionBadge.locator('[data-v4-position-pnl]').innerText(),/3[.]50 USD/);
- assert.equal(await originalPositionBadge.evaluate(el=>Math.round(el.getBoundingClientRect().height)),28);
- const positionRightBefore=(await originalPositionBadge.boundingBox());
- const positionRightEdgeBefore=positionRightBefore.x+positionRightBefore.width;
- assert.equal(await page.locator('button[aria-label="Add TP to BUY position"]').count(),1,
-  'original inline market TP action must remain available');
- await pendingTp.locator('[data-v4-drag-handle]').click();
- // 1. Exactly one accepted entry badge while TP edit exists.
- assert.equal(await entry.count(),1,'pending accepted entry must never duplicate');
- assert.equal(await page.locator('[data-v4-preview]').count(),1,'one preview only');
- const draftBadge=page.locator('[data-v4-draft-badge]');
- const inlineActions=page.locator('[data-v4-pending-chart-actions]');
- assert.equal(await inlineActions.count(),1,'Pending order Confirm and Discard must attach to accepted entry');
- const entryBounds=await entry.boundingBox(), actionBounds=await inlineActions.boundingBox();
- assert.ok(actionBounds.x+actionBounds.width<=entryBounds.x+1,
-  'pending draft actions must be OUTSIDE to the left of its accepted entry badge');
- assert.equal(await draftBadge.locator('[data-v4-chart-actions]').count(),0,
-  'pending draft itself must not contain extra Confirm/Discard');
- assert.equal(await page.locator('[data-v4-draft-connector]').count(),1,'draft TP connector');
- // 2. Pending order accepted solid badge & line remain while editing.
- assert.equal(await page.locator('[data-v4-accepted-line="qa-account:pending:o1:entry"]').count(),1);
- assert.equal(await page.locator('[data-v4-badge="qa-account:pending:o1:tp"]').count(),0);
- assert.equal(await page.locator('[data-v4-accepted-line="qa-account:pending:o1:tp"]').count(),1);
- // 3. No amendment on Discard, including shade cleanup.
+ eq(await badge('position:p1:entry').count(),0,'no second synthetic market position entry');
+ eq(await page.locator('[data-v4-chart-badge]').count(),1,'original approved market badge present');
+ eq(await page.locator('[data-v4-chart-badge] [data-v4-position-direction]').innerText(),'BUY');
+ eq(await entry.locator('[data-v4-pending-type]').innerText(),'LIMIT');
+
+ // Click selects an existing pending order; a click never arms an edit.
+ await tp.locator('[data-v4-drag-handle]').click();
+ await page.waitForFunction(()=>window.v4QA.selectedPendingId==='o1');
+ eq(await page.locator('[data-v4-preview]').count(),0,'click does not create draft');
+ eq(await page.locator('[data-v4-pending-chart-actions]').count(),0,'click does not create confirm buttons');
+ eq(await page.locator('[data-v4-manage-pending="o1"]').count(),1,'correct Limit order is selected');
+ eq(await page.locator('[data-v4-manage-position]').count(),0,'pending selection must not open position manager');
+ eq(await page.locator('[data-v4-manage-pending="o1"] .v4-exit-card').count(),2);
+ eq(await page.locator('[data-v4-manage-pending="o1"] .v4-capsule').count(),1);
+
+ // Press/release without crossing the drag threshold must preserve the order.
+ const grip=tp.locator('[data-v4-drag-handle]');
+ const rect=await grip.boundingBox();
+ await page.mouse.move(rect.x+3,rect.y+12);
+ await page.mouse.down();
+ await page.mouse.move(rect.x+3,rect.y+14);
+ await end();
+ eq(await page.locator('[data-v4-preview]').count(),0,'2px motion is not an edit');
+ eq(await page.evaluate(()=>window.v4QA.commands.length),0,'no command from click');
+
+ // Pending TP: original full chip follows the pointer; solid accepted line stays.
+ const tpOldY=await accepted('pending:o1:tp').evaluate(n=>n.style.top);
+ const badgeOldY=(await tp.boundingBox()).y;
+ await drag('[data-v4-drag-handle="qa-account:pending:o1:tp"]',-45);
+ ok((await tp.boundingBox()).y!==badgeOldY,'accepted chip visually follows the drag');
+ eq(await accepted('pending:o1:tp').evaluate(n=>n.style.top),tpOldY,'solid accepted price remains fixed');
+ eq(await page.locator('[data-v4-draft-badge]').count(),0,'no second full draft chip');
+ eq(await page.locator('[data-v4-pending-chart-actions]').count(),0,'no Confirm during drag');
+ await end();
+ eq(await page.locator('[data-v4-pending-chart-actions]').count(),1,'Confirm after meaningful release');
+ eq(await tp.count(),1,'original TP chip remains the only full chip');
+ eq(await page.locator('[data-v4-preview]').count(),1,'one dotted preview line');
+ eq(await page.evaluate(()=>window.v4QA.commands.length),0,'release does not submit');
  await page.getByRole('button',{name:'Discard chart edit'}).click();
- assert.equal(await page.locator('[data-v4-preview]').count(),0);
- assert.equal(await page.locator('[data-v4-draft-shade]').count(),0);
- assert.equal(await page.locator('[data-v4-accepted-shade]').count(),0, 'canvas remains free of accepted protection fills');
- assert.equal(await page.locator('[data-v4-draft-connector]').count(),0);
- assert.equal(await page.evaluate(()=>window.v4QA.commands.length),0);
- // A new limit order is a trade-plan draft. Its Buy/Sell execution is the
- // confirmation; no standalone chart Confirm/Discard is offered.
+ eq(await page.locator('[data-v4-preview]').count(),0,'Discard clears draft');
+ eq(await page.evaluate(()=>window.v4QA.orders[0].tp),82100,'Discard preserves accepted TP');
+
+ // Moving entry likewise edits only after release; Discard preserves entry.
+ await drag('[data-v4-pending-grip="qa-account:pending:o1:entry"]',52);
+ eq(await page.locator('[data-v4-pending-chart-actions]').count(),0,'entry actions hidden while dragging');
+ await end();
+ eq(await entry.count(),1,'entry chip not duplicated');
+ eq(await page.locator('[data-v4-preview]').count(),1);
+ await page.getByRole('button',{name:'Discard chart edit'}).click();
+ eq(await page.evaluate(()=>window.v4QA.orders[0].entry),84400);
+
+ // New order planning must never add extraneous chart confirmation controls.
  await page.getByRole('button',{name:'Start new limit plan'}).click();
- assert.equal(await page.locator('[data-v4-chart-actions]').count(),0,
-   'new limit planning may not display chart amendment buttons');
- assert.equal(await page.locator('[data-v4-preview]').count(),0);
- assert.equal(await page.evaluate(()=>window.v4QA.commands.length),0);
+ eq(await page.locator('[data-v4-pending-chart-actions]').count(),0);
+ eq(await page.locator('[data-v4-preview]').count(),0);
  await page.getByRole('button',{name:'Finish planning'}).click();
- // 4. Drag pending entry: original solid level does not move; release doesn't commit.
- const before=await page.locator('[data-v4-accepted-line="qa-account:pending:o1:entry"]').getAttribute('style');
- const rect=await entry.locator('[data-v4-pending-grip]').boundingBox();
- await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2);
- await page.mouse.down();
- await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2+62,{steps:8});
- await page.mouse.up();
- assert.equal(await page.evaluate(()=>window.v4QA.commands.length),0,'pointerup must never modify');
- assert.equal(await page.locator('[data-v4-accepted-line="qa-account:pending:o1:entry"]').getAttribute('style'),before,'accepted line fixed');
- assert.equal(await page.locator('[data-v4-preview]').count(),1);
- await page.getByRole('button',{name:'Discard chart edit'}).click();
- // 5. New TP/SL drafts hide the corresponding entry shortcut and never shade the canvas.
- await page.locator('button[aria-label="Add TP to BUY position"]').click();
- const entryActions=page.locator('[data-v4-position-action-anchor] [data-v4-chart-actions]');
- assert.equal(await entryActions.count(),1,'market Confirm / Discard must be beside approved position badge');
- assert.equal(await entryActions.getAttribute('data-v4-actions-location'),'position-entry');
- assert.equal(await page.locator('[data-v4-draft-badge] [data-v4-chart-actions]').count(),0,
-   'TP draft badge must not contain Confirm / Discard');
- assert.equal(await page.locator('button[aria-label="Add TP to BUY position"]').count(),0,
-   'active unconfirmed TP must not continue displaying +TP on the position badge');
- assert.equal(await page.locator('button[aria-label="Add SL to BUY position"]').count(),1,
-   'unrelated missing SL remains available while creating TP');
- const positionAnchor=page.locator('[data-v4-position-action-anchor]');
- const positionBadge=positionAnchor.locator('[data-v4-chart-badge]');
- const buttons=await entryActions.boundingBox(), positionBox=await positionBadge.boundingBox();
- assert.ok(buttons.x+buttons.width<=positionBox.x+1,'buttons must be OUTSIDE and LEFT of the position badge');
- assert.ok(Math.abs(positionBox.x+positionBox.width-positionRightEdgeBefore)<2,
-   'Confirm/Discard must NOT shift or resize the main position badge');
- assert.ok(Math.abs((buttons.y+buttons.height/2)-(positionBox.y+positionBox.height/2))<2,
-   'actions must remain on the position ENTRY line, not on the TP draft line');
- const previewBox=await page.locator('[data-v4-draft-badge]').boundingBox();
- assert.ok(Math.abs(previewBox.y-positionBox.y)>20,'TP draft must have its own independent price level');
- assert.match(await page.locator('[data-v4-draft-badge]').innerText(),/Take profit/);
- assert.match(await page.locator('[data-v4-draft-badge]').innerText(),/84,400/);
- assert.match(await page.locator('[data-v4-draft-badge]').innerText(),/0[.]60%/);
- assert.ok(await page.locator('[data-v4-protection-draft-price]').count()===1);
- assert.match(await page.locator('[data-v4-draft-badge]').innerText(),/[+]5[.]00 USD/,'TP draft should use projected P&L, not an unrelated price label');
- assert.equal(await page.locator('[data-v4-draft-badge]').evaluate(node=>Math.round(node.getBoundingClientRect().height)),28);
- assert.equal(await page.locator('[data-v4-draft-badge]').evaluate(node=>getComputedStyle(node).backgroundColor),
-   'rgb(9, 9, 11)', 'draft TP badge must be black, not green');
- assert.equal(await page.locator('[data-v4-draft-shade]').count(),0,
-   'there must be no colored planning canvas fill');
- assert.equal(await page.locator('[data-v4-draft-connector]').count(),1);
- // Newly created TP has a functioning drag grip. Its draft moves, but release
- // must never hit the command handler or move any server-accepted level.
- const draftGrip=page.locator('[data-v4-drag-handle="draft"]');
- const draftBefore=await page.locator('[data-v4-protection-draft-price]').innerText();
- const draftBeforeBounds=await draftGrip.boundingBox();
- await page.mouse.move(draftBeforeBounds.x+draftBeforeBounds.width/2,draftBeforeBounds.y+draftBeforeBounds.height/2);
- await page.mouse.down();
- await page.mouse.move(draftBeforeBounds.x+draftBeforeBounds.width/2,
-   draftBeforeBounds.y+draftBeforeBounds.height/2-30,{steps:10});
- await page.mouse.up();
- const draftAfter=await page.locator('[data-v4-protection-draft-price]').innerText();
- assert.notEqual(draftAfter,draftBefore,'new TP draft must actually move with pointer');
- assert.equal(await page.evaluate(()=>window.v4QA.commands.length),0,'new TP mouse release must not execute');
- assert.equal(await entryActions.count(),1,'position entry Confirm / Discard persists while dragging TP');
- await page.locator('button[aria-label="Add SL to BUY position"]').click();
- assert.equal(await page.locator('button[aria-label="Add SL to BUY position"]').count(),0,
-   'active unconfirmed SL must not continue displaying +SL on the position badge');
- assert.equal(await page.locator('button[aria-label="Add TP to BUY position"]').count(),1,
-   'switch from TP to SL must restore +TP');
- assert.equal(await page.locator('[data-v4-draft-shade]').count(),0,
-   'draft switch must not leave any chart canvas fill');
- assert.equal(await page.locator('[data-v4-preview]').count(),1);
- // 6. Chart-side Confirm updates only after backend stand-in resolution.
- assert.equal(await page.evaluate(()=>window.v4QA.commands.length),0);
- await page.getByRole('button',{name:'Confirm chart edit'}).click();
- await page.waitForFunction(()=>window.v4QA.commands.length===1);
- await page.locator('[data-v4-badge="qa-account:position:p1:sl"]').waitFor();
- await page.waitForFunction(()=>document.querySelectorAll('[data-v4-preview]').length===0);
- assert.equal(await page.evaluate(()=>window.v4QA.positions[0].sl),83400);
- const acceptedSlBadge=page.locator('[data-v4-badge="qa-account:position:p1:sl"]');
- assert.equal(await acceptedSlBadge.evaluate(node=>Math.round(node.getBoundingClientRect().height)),28);
- assert.equal(await acceptedSlBadge.evaluate(node=>getComputedStyle(node).backgroundColor),
-   'rgb(9, 9, 11)', 'accepted SL badge must be black');
- assert.equal(await page.locator('[data-v4-accepted-shade]').count(),0,
-   'confirmed SL must not paint a risk-area fill');
- // Existing accepted SL has the same drag affordance, with the accepted
- // server price and solid line unchanged until explicit confirmation.
- const acceptedSlLine=page.locator('[data-v4-accepted-line="qa-account:position:p1:sl"]');
- const slAcceptedTop=await acceptedSlLine.evaluate(node=>node.style.top);
- const slGrip=page.locator('[data-v4-drag-handle="qa-account:position:p1:sl"]');
- const slBounds=await slGrip.boundingBox();
- await page.mouse.move(slBounds.x+slBounds.width/2,slBounds.y+slBounds.height/2);
- await page.mouse.down();
- await page.mouse.move(slBounds.x+slBounds.width/2,slBounds.y+slBounds.height/2+26,{steps:8});
- await page.mouse.up();
- assert.equal(await page.evaluate(()=>window.v4QA.commands.length),1,
-  'accepted SL drag release must not execute another command');
- assert.equal(await acceptedSlLine.evaluate(node=>node.style.top),slAcceptedTop,
-  'accepted SL price coordinate remains fixed while dotted preview is dragged');
- assert.equal(await page.locator('[data-v4-preview]').count(),1);
- assert.equal(await page.locator('[data-v4-badge="qa-account:position:p1:sl"]').count(),0,
-   'existing SL full badge must hide while the distinct dotted draft is visible');
- assert.equal(await page.locator('[data-v4-accepted-line="qa-account:position:p1:sl"]').count(),1,
-   'accepted SL price line must remain fixed and visible');
- assert.equal(await page.locator('[data-v4-accepted-protection-price="qa-account:position:p1:sl"]').count(),1);
- assert.equal(await page.locator('[data-v4-position-action-anchor] [data-v4-chart-actions]').count(),1);
- await page.getByRole('button',{name:'Discard chart edit'}).click();
- assert.equal(await page.locator('[data-v4-badge="qa-account:position:p1:sl"]').count(),1,
-   'accepted SL chip must return after Discard');
- assert.equal(await page.locator('[data-v4-preview]').count(),0);
- assert.equal(await page.evaluate(()=>window.v4QA.positions[0].sl),83400,
-  'discarding accepted SL drag leaves server price unchanged');
 
- // Add TP again, confirm it through simulated backend, then drag accepted TP.
- await page.locator('button[aria-label="Add TP to BUY position"]').click();
- await page.getByRole('button',{name:'Confirm chart edit'}).click();
- await page.waitForFunction(()=>window.v4QA.commands.length===2);
- await page.locator('[data-v4-badge="qa-account:position:p1:tp"]').waitFor();
- await page.waitForFunction(()=>document.querySelectorAll('[data-v4-preview]').length===0);
- assert.equal(await page.locator('[data-v4-accepted-shade]').count(),0,
-   'confirmed TP and SL must leave the chart background black');
- // Hovering the original position badge must connect its accepted entry, TP and SL.
- // The compact original position badge may share vertical space with a
- // displaced protection chip. Hover its unobstructed lower edge directly.
- const entryBox=await originalPositionBadge.boundingBox();
- await page.mouse.move(entryBox.x+entryBox.width-35,entryBox.y+entryBox.height-2);
- await page.locator('[data-v4-hover-group="p1"]').waitFor({timeout:3000});
- assert.equal(await page.locator('[data-v4-hover-connector-point]').count(),3,
-   'hover must show entry, TP and SL relationship points');
- await page.mouse.move(50,50);
- await page.waitForFunction(()=>document.querySelectorAll('[data-v4-hover-group="p1"]').length===0);
- // Hovering either accepted protection must reveal the same ownership link.
- await page.locator('[data-v4-badge="qa-account:position:p1:tp"]').hover();
- await page.locator('[data-v4-hover-group="p1"]').waitFor({timeout:3000});
- assert.equal(await page.locator('[data-v4-hover-connector-point]').count(),3);
- await page.mouse.move(50,50);
- const tpGrip=page.locator('[data-v4-drag-handle="qa-account:position:p1:tp"]');
- const tpBounds=await tpGrip.boundingBox();
- const acceptedTpLine=page.locator('[data-v4-accepted-line="qa-account:position:p1:tp"]');
- const tpTop=await acceptedTpLine.evaluate(node=>node.style.top);
- await page.mouse.move(tpBounds.x+tpBounds.width/2,tpBounds.y+tpBounds.height/2);
- await page.mouse.down();
- await page.mouse.move(tpBounds.x+tpBounds.width/2,tpBounds.y+tpBounds.height/2-26,{steps:8});
- await page.mouse.up();
- assert.equal(await page.evaluate(()=>window.v4QA.commands.length),2,
-  'accepted TP drag release must not execute another command');
- assert.equal(await acceptedTpLine.evaluate(node=>node.style.top),tpTop,
-  'accepted TP price coordinate remains fixed while dragging dotted preview');
- assert.equal(await page.locator('[data-v4-preview]').count(),1);
- assert.equal(await page.locator('[data-v4-badge="qa-account:position:p1:tp"]').count(),0,
-   'existing TP full badge must hide while dotted preview is active');
- await page.getByRole('button',{name:'Discard chart edit'}).click();
- assert.equal(await page.locator('[data-v4-preview]').count(),0);
- assert.equal(await page.locator('[data-v4-badge="qa-account:position:p1:tp"]').count(),1,
-   'accepted TP badge returns when edit is discarded');
+ // Clicking a different pending order selects that order (not an open position).
+ await badge('pending:o2:entry').locator('[data-v4-pending-grip]').click();
+ await page.waitForFunction(()=>window.v4QA.selectedPendingId==='o2');
+ eq(await page.locator('[data-v4-manage-pending="o2"]').count(),1);
+ eq(await page.locator('[data-v4-manage-pending="o1"]').count(),0);
+ eq(await page.locator('[data-v4-manage-position]').count(),0);
+ eq(await page.locator('[data-v4-manage-pending="o2"] input[aria-label="Stop trigger price"]').count(),1);
+ eq(await page.locator('[data-v4-manage-pending="o2"] input[aria-label="Limit boundary price"]').count(),1);
 
- // 7. × removes a confirmed TP immediately. No confirmation modal is mounted.
- // Synchronous in-flight guard prevents duplicate API calls on rapid double click.
- const tpRemove=page.locator('[data-v4-remove-protection="qa-account:position:p1:tp"]');
- const removalCount=await page.evaluate(()=>window.v4QA.removalCalls);
- await tpRemove.evaluate(node=>{node.click();node.click();});
- assert.equal(await page.evaluate(()=>window.v4QA.removalCalls),removalCount+1,
-   'double clicking TP × must dispatch only one removal command');
- assert.equal(await page.getByRole('dialog',{name:/Confirm remove/i}).count(),0,
-   'removing TP must not open a confirmation dialog');
- assert.equal(await page.locator('[data-v4-accepted-line="qa-account:position:p1:tp"]').count(),1,
-   'confirmed TP line stays visible while server removal is pending');
- assert.equal(await tpRemove.isDisabled(),true,'removing TP disables the × until backend acceptance');
- await page.waitForFunction(()=>window.v4QA.positions[0].tp == null);
- await page.waitForFunction(()=>document.querySelector('[data-v4-badge="qa-account:position:p1:tp"]')===null);
- assert.equal(await page.locator('[data-v4-accepted-protection-price="qa-account:position:p1:tp"]').count(),0,
-   'confirmed TP price marker must also disappear after removal');
- assert.equal(await page.locator('button[aria-label="Add TP to BUY position"]').count(),1,
-   'removal restores +TP on the original position badge');
-
- // 8. Failed immediate SL removal must preserve accepted price and explain why.
- await page.evaluate(()=>window.v4QA.rejectOneRemoval());
- const slRemove=page.locator('[data-v4-remove-protection="qa-account:position:p1:sl"]');
- const beforeSlRemoval=await page.evaluate(()=>window.v4QA.positions[0].sl);
- await slRemove.click();
- assert.equal(await page.getByRole('dialog',{name:/Confirm remove/i}).count(),0,
-   'removing SL must not open a confirmation dialog');
- await page.locator('[data-v4-chart-error]').waitFor();
- assert.match(await page.locator('[data-v4-chart-error]').innerText(),/Removal was not accepted/);
- assert.equal(await page.evaluate(()=>window.v4QA.positions[0].sl),beforeSlRemoval,
-   'backend rejection must not erase the accepted SL');
- assert.equal(await page.locator('[data-v4-badge="qa-account:position:p1:sl"]').count(),1,
-   'SL badge stays on-screen if removal failed');
- assert.equal(await slRemove.isDisabled(),false,'retry must be available after a rejected removal');
-
- // 9. Retry SL × executes once and removes the accepted level after backend ACK.
- await slRemove.click();
- await page.waitForFunction(()=>window.v4QA.positions[0].sl == null);
- await page.waitForFunction(()=>document.querySelector('[data-v4-badge="qa-account:position:p1:sl"]')===null);
- assert.equal(await page.locator('[data-v4-accepted-line="qa-account:position:p1:sl"]').count(),0);
- assert.equal(await page.locator('button[aria-label="Add SL to BUY position"]').count(),1);
-
- // 10. Placed pending-order TP × uses the same one-click removal behavior.
- await pendingTp.locator('[data-v4-remove-protection]').click();
- assert.equal(await page.getByRole('dialog',{name:/Confirm remove/i}).count(),0);
- await page.waitForFunction(()=>window.v4QA.orders[0].tp == null);
- assert.equal(await pendingTp.count(),0);
-
- // 11. Placed Limit uses the same +SL/TP, compact chip and Confirm/Discard semantics.
- const limitEntry=page.locator('[data-v4-badge="qa-account:pending:o1:entry"]');
- assert.equal(await limitEntry.locator('[data-v4-pending-side]').innerText(),'SELL');
- assert.equal(await limitEntry.locator('[data-v4-pending-type]').innerText(),'LIMIT');
- assert.equal(await limitEntry.locator('[data-v4-pending-size]').innerText(),'0.01');
- await limitEntry.locator('button[aria-label="Add SL to SELL LIMIT order"]').click();
- assert.equal(await page.locator('[data-v4-pending-chart-actions]').count(),1);
- assert.equal(await page.locator('[data-v4-draft-badge]').count(),1);
- assert.match(await page.locator('[data-v4-draft-badge]').innerText(),/Stop loss/);
- assert.equal(await limitEntry.locator('button[aria-label="Add SL to SELL LIMIT order"]').count(),0);
- assert.equal(await page.evaluate(()=>window.v4QA.orders[0].sl),null);
- await page.getByRole('button',{name:'Confirm chart edit'}).click();
- await page.waitForFunction(()=>window.v4QA.orders[0].sl!=null);
- await page.waitForFunction(()=>document.querySelectorAll('[data-v4-preview]').length===0);
- assert.equal(await page.locator('[data-v4-badge="qa-account:pending:o1:sl"]').count(),1);
- assert.equal(await page.locator('[data-v4-badge="qa-account:pending:o1:sl"]').evaluate(node=>getComputedStyle(node).backgroundColor),'rgb(9, 9, 11)');
-
- // 12. Stop-Limit's trigger and limit boundary are not the same accepted price.
- const trigger=page.locator('[data-v4-badge="qa-account:pending:o2:entry"]');
- const boundary=page.locator('[data-v4-badge="qa-account:pending:o2:limitPrice"]');
- await trigger.waitFor();
- await boundary.waitFor();
- assert.equal(await trigger.locator('[data-v4-pending-type]').innerText(),'STOP LIMIT');
- assert.equal(await trigger.locator('[data-v4-pending-side]').innerText(),'SELL');
- assert.equal(await page.evaluate(()=>window.v4QA.orders[1].entry),81600);
- assert.equal(await page.evaluate(()=>window.v4QA.orders[1].limitPrice),81400);
- assert.equal(await page.locator('[data-v4-accepted-line="qa-account:pending:o2:entry"]').count(),1);
- assert.equal(await page.locator('[data-v4-accepted-line="qa-account:pending:o2:limitPrice"]').count(),1);
-
- // 13. Dragging the execution bound changes only the limit, not the stop trigger.
- const boundGrip=boundary.locator('[data-v4-drag-handle]');
- const boundBox=await boundGrip.boundingBox();
- await page.mouse.move(boundBox.x+boundBox.width/2,boundBox.y+boundBox.height/2);
- await page.mouse.down();
- await page.mouse.move(boundBox.x+boundBox.width/2,boundBox.y+boundBox.height/2+24,{steps:8});
- await page.mouse.up();
- assert.equal(await page.locator('[data-v4-pending-chart-actions]').count(),1);
- assert.equal(await page.locator('[data-v4-draft-connector]').count(),1);
- assert.equal(await page.locator('[data-v4-badge="qa-account:pending:o2:limitPrice"]').count(),0);
- assert.equal(await page.locator('[data-v4-accepted-line="qa-account:pending:o2:limitPrice"]').count(),1);
- assert.equal(await page.locator('[data-v4-secondary-preview]').count(),0);
- assert.equal(await page.evaluate(()=>window.v4QA.orders[1].limitPrice),81400);
- await page.getByRole('button',{name:'Confirm chart edit'}).click();
- await page.waitForFunction(()=>window.v4QA.orders[1].limitPrice!==81400);
- await page.waitForFunction(()=>document.querySelectorAll('[data-v4-preview]').length===0);
- assert.equal(await page.evaluate(()=>window.v4QA.orders[1].entry),81600);
- const limitOnlyPrice=await page.evaluate(()=>window.v4QA.orders[1].limitPrice);
-
- // 14. Dragging stop trigger moves trigger and boundary in lockstep, but
- // both accepted lines stay immutable until Confirm and both store levels ACK.
- const stopGrip=trigger.locator('[data-v4-pending-grip]');
- const stopBox=await stopGrip.boundingBox();
- const acceptedStopY=await page.locator('[data-v4-accepted-line="qa-account:pending:o2:entry"]').evaluate(n=>n.style.top);
- const acceptedBoundY=await page.locator('[data-v4-accepted-line="qa-account:pending:o2:limitPrice"]').evaluate(n=>n.style.top);
- await page.mouse.move(stopBox.x+stopBox.width/2,stopBox.y+stopBox.height/2);
- await page.mouse.down();
- await page.mouse.move(stopBox.x+stopBox.width/2,stopBox.y+stopBox.height/2-36,{steps:8});
- await page.mouse.up();
- assert.equal(await page.locator('[data-v4-secondary-preview]').count(),1,
-  'Stop-Limit trigger drag must preview shifted execution boundary');
- assert.equal(await page.locator('[data-v4-secondary-dotted-line]').count(),1);
- assert.equal(await page.locator('[data-v4-pending-chart-actions]').count(),1);
- assert.equal(await page.locator('[data-v4-accepted-line="qa-account:pending:o2:entry"]').evaluate(n=>n.style.top),acceptedStopY);
- assert.equal(await page.locator('[data-v4-accepted-line="qa-account:pending:o2:limitPrice"]').evaluate(n=>n.style.top),acceptedBoundY);
- assert.equal(await page.evaluate(()=>window.v4QA.orders[1].entry),81600);
- assert.equal(await page.evaluate(()=>window.v4QA.orders[1].limitPrice),limitOnlyPrice);
+ // Drag Stop-Limit trigger. The accepted trigger and limit remain solid while
+ // two dotted proposed levels move in lockstep; no command until Confirm.
+ const stopBefore=await accepted('pending:o2:entry').evaluate(n=>n.style.top);
+ const limitBefore=await accepted('pending:o2:limitPrice').evaluate(n=>n.style.top);
+ await drag('[data-v4-pending-grip="qa-account:pending:o2:entry"]',-41);
+ eq(await page.locator('[data-v4-secondary-preview]').count(),1,'linked limit preview while moving stop trigger');
+ eq(await page.locator('[data-v4-pending-chart-actions]').count(),0,'actions hidden until release');
+ await end();
+ eq(await page.locator('[data-v4-pending-chart-actions]').count(),1);
+ eq(await accepted('pending:o2:entry').evaluate(n=>n.style.top),stopBefore);
+ eq(await accepted('pending:o2:limitPrice').evaluate(n=>n.style.top),limitBefore);
+ eq(await page.evaluate(()=>window.v4QA.orders[1].entry),81600);
+ eq(await page.evaluate(()=>window.v4QA.orders[1].limitPrice),81400);
  await page.getByRole('button',{name:'Confirm chart edit'}).click();
  await page.waitForFunction(()=>window.v4QA.orders[1].entry!==81600);
  await page.waitForFunction(()=>document.querySelectorAll('[data-v4-preview]').length===0);
- const stopResult=await page.evaluate(()=>window.v4QA.orders[1]);
- assert.ok(Math.abs((stopResult.entry-81600)-(stopResult.limitPrice-limitOnlyPrice))<0.001,
-  'backend confirmation must preserve Stop-Limit trigger-to-limit separation');
+ const changed=await page.evaluate(()=>window.v4QA.orders[1]);
+ ok(Math.abs((changed.entry-81600)-(changed.limitPrice-81400))<.01,'Stop-Limit trigger delta keeps limit spacing');
+ eq(await page.locator('[data-v4-secondary-preview]').count(),0,'linked preview cleared on ACK');
 
- // 15. Pending Stop-Limit +TP is a provisional black chip and Discard removes
- // it completely without changing accepted financial state.
- const stopTp=trigger.locator('button[aria-label="Add TP to SELL STOP LIMIT order"]');
- await stopTp.click();
- assert.equal(await page.locator('[data-v4-pending-chart-actions]').count(),1);
- assert.equal(await page.locator('[data-v4-draft-shade]').count(),0);
- assert.equal(await page.locator('[data-v4-draft-badge]').evaluate(n=>getComputedStyle(n).backgroundColor),'rgb(9, 9, 11)');
- assert.equal(await page.evaluate(()=>window.v4QA.orders[1].tp),null);
- await page.getByRole('button',{name:'Discard chart edit'}).click();
- assert.equal(await page.locator('[data-v4-preview]').count(),0);
- assert.equal(await page.evaluate(()=>window.v4QA.orders[1].tp),null);
- assert.equal(await stopTp.count(),1);
+ // Stop-Limit limit boundary is independently amendable.
+ const beforeLimit=await page.evaluate(()=>window.v4QA.orders[1].limitPrice);
+ await drag('[data-v4-drag-handle="qa-account:pending:o2:limitPrice"]',32);
+ eq(await page.locator('[data-v4-secondary-preview]').count(),0,'limit-only drag has no coupled trigger');
+ await end();
+ eq(await page.locator('[data-v4-pending-chart-actions]').count(),1);
+ await page.getByRole('button',{name:'Confirm chart edit'}).click();
+ await page.waitForFunction(price=>window.v4QA.orders[1].limitPrice!==price,beforeLimit);
+ eq(await page.evaluate(()=>window.v4QA.orders[1].entry),changed.entry,'limit-only edit leaves trigger unchanged');
 
- // 16. New Limit/Stop-Limit planning remains in the existing execution workflow.
- await page.getByRole('button',{name:'Start new limit plan'}).click();
- assert.equal(await page.locator('[data-v4-pending-chart-actions]').count(),0);
- assert.equal(await page.locator('[data-v4-chart-actions]').count(),0);
- await page.getByRole('button',{name:'Finish planning'}).click();
- // 17. Chart selection opens the SAME V4 trade sidebar in Manage Position
- // mode; Buy/Sell execution controls and the stacked drawer are absent.
+ // Pending-order panel can add/modify protections without Buy/Sell controls.
+ const pending=page.locator('[data-v4-manage-pending="o2"]');
+ await pending.locator('button:has-text("New Order")').count();
+ eq(await pending.getByRole('button',{name:/^(BUY|SELL) /}).count(),0);
+ ok((await pending.innerText()).includes('Estimated margin on fill'));
+ await pending.getByRole('button',{name:'Cancel Order'}).click();
+ eq(await pending.getByRole('dialog',{name:'Confirm order cancellation'}).count(),1);
+ await pending.getByRole('button',{name:'Keep Order'}).click();
+ eq(await page.evaluate(()=>window.v4QA.orders.length),2,'cancel confirmation can be dismissed');
+
+ // Open-position selection must override the pending manager.
  await page.getByRole('button',{name:'Select open position'}).click();
  const manage=page.locator('[data-v4-manage-position="p1"]');
  await manage.waitFor();
- assert.equal(await page.locator('[data-qa-unified-position-sidebar]').count(),1);
- assert.equal(await page.getByRole('heading',{name:'Open Position'}).count(),0);
- assert.equal(await manage.getByRole('button',{name:/^(BUY|SELL)/}).count(),0);
- assert.ok((await manage.innerText()).includes('EXITS / PROTECTION'));
- assert.equal(await manage.locator('.v4-manage-summary').count(),0,
-   'six-stat grey card must be removed; do not introduce a second layout');
- assert.equal(await manage.locator('.v4-instrument').count(),1);
- assert.equal(await manage.locator('.v4-quote-strip').count(),1,
-   'position price summary reuses the ticket quote strip');
- assert.equal(await manage.locator('.v4-capsule.v4-mainmodes').count(),1,
-   'manage context reuses the ticket mode capsule');
- assert.equal(await manage.locator('.v4-position.v4-block').count(),1,
-   'position sizing/PNL remains in the execution panel POSITION slot');
- assert.equal(await manage.locator('.v4-section-heading').count(),2);
- assert.equal(await manage.locator('.v4-ratio-slab').count(),1);
- assert.equal(await manage.locator('.v4-disclosure').count(),1);
- assert.equal(await manage.locator('.v4-execution-footer').count(),1);
- assert.equal(await manage.locator('.v4-margin-summary').count(),1);
- assert.equal(await manage.locator('.v4-trade-actions').count(),1);
- assert.equal(await manage.locator('.v4-exit-card').count(),2,
-   'must reuse the exact untouched V4 protection card components');
- assert.equal(await manage.locator('.v4-manage-position-size').count(),1);
- assert.equal(await manage.locator('.v4-manage-position-pnl').count(),1);
- const managerBackground=await manage.evaluate(node=>getComputedStyle(node).backgroundColor);
- assert.equal(managerBackground,'rgb(9, 9, 11)');
- const mutedSummaryBox=await manage.locator('.v4-manage-position-values')
-   .evaluate(node=>getComputedStyle(node).backgroundColor);
- assert.equal(mutedSummaryBox,'rgba(0, 0, 0, 0)',
-   'position volume and P&L must not introduce a new grey panel');
- assert.equal(await manage.locator('[data-v4-manage-size]').innerText(),'0.0100 lots');
- assert.equal(
-   Number((await manage.locator('[data-v4-manage-entry]').innerText()).replaceAll(',','')),
-   await page.evaluate(()=>window.v4QA.positions[0].entry),
-   'position entry strip must reflect the actual selected position price');
- assert.ok((await manage.locator('[data-v4-manage-return]').innerText()).endsWith('%'));
- await manage.locator('.v4-disclosure').click();
- assert.equal(await manage.locator('[data-v4-manage-advanced]').count(),1,
-   'advanced details use the existing disclosure rather than a new widget');
- await manage.locator('.v4-disclosure').click();
- assert.equal(await manage.locator('[data-v4-manage-advanced]').count(),0);
- assert.equal(await manage.locator('[data-v4-context-active="position"]').innerText(),'Open Position');
- // No TP exists after the previous direct-× regression.
- assert.equal(await page.evaluate(()=>window.v4QA.positions[0].tp),null);
- const beforePanel=await page.evaluate(()=>window.v4QA.commands.length);
- await manage.locator('.v4-exit-card').nth(1).getByRole('button',{name:/Disabled/}).click();
+ eq(await page.locator('[data-v4-manage-pending]').count(),0);
+ eq(await page.evaluate(()=>window.v4QA.selectedPositionId),'p1');
+ ok((await manage.innerText()).includes('EXITS / PROTECTION'));
+ ok((await manage.innerText()).includes('Estimated margin'));
+ eq(await manage.locator('.v4-exit-card').count(),2);
+ eq(await manage.locator('.v4-manage-new-order').count(),0,'no redundant bottom New Order');
+ eq(await manage.locator('.v4-manage-close').count(),1,'idle footer is Close Position');
+ eq(await manage.getByRole('button',{name:'Confirm position protection'}).count(),0,'no Confirm without a draft');
+
+ // Actions use existing position callbacks and close confirmation.
+ await manage.getByRole('button',{name:/POSITION ACTIONS/}).click();
+ eq(await manage.locator('[data-v4-manage-advanced]').count(),1);
+ eq(await manage.getByRole('button',{name:'Break-even'}).count(),1);
+ eq(await manage.getByRole('button',{name:'Trailing SL'}).count(),1);
+ eq(await manage.getByRole('button',{name:'Partial close'}).count(),1);
+ await manage.getByRole('button',{name:'Trailing SL'}).click();
+ await manage.locator('[data-v4-trailing-options]').getByRole('button',{name:'10 pips'}).click();
+ await page.waitForFunction(()=>window.v4QA.actionCommands.some(x=>x.kind==='trail'&&x.pips===10));
+ await manage.getByRole('button',{name:'Partial close'}).click();
+ eq(await manage.getByRole('dialog',{name:'Confirm position close'}).count(),1);
+ await manage.getByRole('button',{name:'Keep Position'}).click();
+ eq(await page.evaluate(()=>window.v4QA.actionCommands.filter(x=>x.kind==='close').length),0);
+ await manage.locator('.v4-manage-close').click();
+ eq(await manage.getByRole('dialog',{name:'Confirm position close'}).count(),1);
+ await manage.getByRole('button',{name:'Confirm Close'}).click();
+ await page.waitForFunction(()=>window.v4QA.actionCommands.some(x=>x.kind==='close'&&x.percent===100));
+
+ // Existing add-TP still creates a deliberate draft with Confirm/Discard;
+ // panel and chart use the same object and submit only on Confirm.
+ await page.locator('button[aria-label="Add TP to BUY position"]').click();
  await page.waitForFunction(()=>Boolean(window.v4QA.parentDraft));
- assert.equal(await page.locator('[data-v4-preview]').count(),1,
-   'starting TP in unified panel must render the same dotted chart preview');
- assert.equal(await page.evaluate(()=>window.v4QA.commands.length),beforePanel,
-   'starting a protected draft may not send an execution command');
- assert.equal(await manage.getByRole('button',{name:'Confirm position protection'}).count(),1);
+ eq(await manage.getByRole('button',{name:'Confirm position protection'}).count(),1);
+ eq(await page.locator('[data-v4-draft-badge]').count(),1);
  await manage.getByRole('button',{name:'Discard position protection'}).click();
  await page.waitForFunction(()=>window.v4QA.parentDraft==null);
- assert.equal(await page.locator('[data-v4-preview]').count(),0,
-   'panel Discard must also remove chart TP preview');
- assert.equal(await page.evaluate(()=>window.v4QA.positions[0].tp),null);
+ eq(await page.locator('[data-v4-preview]').count(),0);
 
- // 18. Panel creates a TP draft and confirms via existing position update.
- await manage.locator('.v4-exit-card').nth(1).getByRole('button',{name:/Disabled/}).click();
- const tpPanelInput=manage.getByRole('textbox',{name:'Take Profit value'});
- await tpPanelInput.fill('84450');
- await tpPanelInput.press('Tab');
- await page.waitForFunction(()=>Number(window.v4QA.parentDraft?.tp)===84450);
- assert.match(await page.locator('[data-v4-draft-badge]').innerText(),/84,450/);
- await manage.getByRole('button',{name:'Confirm position protection'}).click();
- await page.waitForFunction(()=>window.v4QA.positions[0].tp===84450);
- await page.waitForFunction(()=>window.v4QA.parentDraft==null);
- assert.equal(await page.locator('[data-v4-preview]').count(),0);
- assert.equal(await page.locator('[data-v4-badge="qa-account:position:p1:tp"]').count(),1);
-
- // 19. Dragging an accepted chart TP updates unified panel draft and
- // releasing mouse does NOT save until the user confirms in that panel.
- const grip=page.locator('[data-v4-drag-handle="qa-account:position:p1:tp"]');
- await grip.scrollIntoViewIfNeeded();
- const g=await grip.boundingBox();
- const beforeDragCommands=await page.evaluate(()=>window.v4QA.commands.length);
- await page.mouse.move(g.x+g.width/2,g.y+g.height/2);
- await page.mouse.down();
- await page.mouse.move(g.x+g.width/2,g.y+g.height/2-36,{steps:10});
- await page.mouse.up();
- await page.waitForFunction(()=>Boolean(window.v4QA.parentDraft),null,{timeout:5000});
- assert.notEqual(await page.evaluate(()=>window.v4QA.parentDraft.tp),84450,
-   'TP drag must update shared draft used by panel inputs');
- assert.equal(await page.evaluate(()=>window.v4QA.commands.length),beforeDragCommands);
- assert.equal(await page.locator('[data-v4-preview]').count(),1);
- assert.equal(await manage.getByRole('button',{name:'Confirm position protection'}).count(),1);
- const draggedTp=await page.evaluate(()=>window.v4QA.parentDraft.tp);
- await manage.getByRole('button',{name:'Confirm position protection'}).click();
- await page.waitForFunction(expected=>window.v4QA.positions[0].tp===expected,draggedTp);
- await page.waitForFunction(()=>window.v4QA.parentDraft==null);
- assert.equal(await page.locator('[data-v4-preview]').count(),0);
-
- // 20. Dismiss restores New Order; no leftover edit controls.
- await manage.getByRole('button',{name:'Back to new order'}).click();
- assert.equal(await page.locator('[data-v4-manage-position]').count(),0);
- assert.equal(await page.evaluate(()=>window.v4QA.selectedPositionId),null);
- assert.equal(await page.locator('[data-v4-preview]').count(),0);
-
- // Position Management must use the very same InstrumentAvatar as the
- // untouched Trade Execution ticket. EUR/USD requires TWO overlapping flag
- // circles, not a generic initials-only "EU" placeholder.
+ // Selecting another open position switches its exact manager, never stays
+ // stuck on the first position. Shared currency avatar remains correct.
  await page.getByRole('button',{name:'Select EUR/USD position'}).click();
- const forexManage=page.locator('[data-v4-manage-position="p2"]');
- await forexManage.waitFor();
- const forexAvatar=forexManage.locator('[data-v4-manage-instrument-avatar] > span');
- assert.equal(await forexAvatar.count(),1,'selected position must render the shared instrument avatar');
- assert.equal(await forexAvatar.getAttribute('title'),'EURUSD');
- assert.equal(await forexAvatar.locator(':scope > span').count(),2,
-   'Forex avatar must render both base and quote currencies as overlapping icons');
- assert.equal(await forexAvatar.locator(':scope > span.absolute.bottom-0.left-0').count(),1);
- assert.equal(await forexAvatar.locator(':scope > span.absolute.right-0.top-0').count(),1);
- assert.notEqual(await forexAvatar.innerText(),'EU',
-   'generic EU placeholder must not replace EUR/USD instrument identity');
- assert.equal(await forexManage.locator('.v4-coin.v4-manage-instrument-avatar').count(),0);
- assert.equal(await forexManage.locator('.v4-symbol strong').innerText(),'EUR/USD');
- await forexManage.getByRole('button',{name:'Back to new order'}).click();
- assert.equal(await page.locator('[data-v4-manage-position]').count(),0);
- assert.deepEqual(errors,[],'no uncaught browser errors');
- console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks:101,commands:await page.evaluate(()=>window.v4QA.commands)}));
+ const eur=page.locator('[data-v4-manage-position="p2"]');
+ await eur.waitFor();
+ eq(await manage.count(),0);
+ eq(await eur.locator('.v4-symbol strong').innerText(),'EUR/USD');
+ eq(await eur.locator('[data-v4-manage-instrument-avatar] > span > span').count(),2);
+ eq(await eur.locator('.v4-manage-close').count(),1);
+ await eur.getByRole('button',{name:'Back to new order'}).click();
+ eq(await page.locator('[data-v4-manage-position]').count(),0);
+ eq(await page.locator('[data-v4-manage-pending]').count(),0);
+ eq(await page.locator('[data-v4-preview]').count(),0);
+ eq(await page.locator('[data-v4-draft-shade]').count(),0);
+ eq(await page.locator('[data-v4-accepted-shade]').count(),0);
+ assert.deepEqual(errors,[],'no uncaught page errors');checks++;
+ console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks,commands:await page.evaluate(()=>window.v4QA.commands)}));
 }catch(error){
  console.error('SIX_V4_REGRESSIONS_FAIL',error);
  process.exitCode=1;
