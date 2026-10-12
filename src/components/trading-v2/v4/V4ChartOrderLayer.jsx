@@ -141,6 +141,13 @@ export default function V4ChartOrderLayer({
           {(['sl','tp'].includes(level.kind))&&canRemove&&<button type="button" aria-label={`Confirm removal of ${level.kind.toUpperCase()}`}
             className={marketProtection ? 'grid h-7 w-7 shrink-0 place-items-center border-l border-dotted border-white/20 text-[#99a6b0]' : 'shrink-0 px-1'} onClick={()=>setRemoveLevel(level.id)}>×</button>}
         </div>}
+        {marketProtection && <div data-v4-accepted-protection-price={level.id}
+          className="pointer-events-none absolute right-[56px] flex -translate-y-1/2 items-center gap-1.5 lg:right-2"
+          style={{top:level.y}}>
+          <span className="size-[6px] rounded-full border" style={{borderColor:color,backgroundColor:'#09090b'}}/>
+          <span className="rounded-[4px] border bg-[#09090b]/95 px-1.5 py-0.5 font-mono text-[9px] font-semibold"
+            style={{borderColor:color,color}}>{priceLabel(level.price,formatPrice)}</span>
+        </div>}
         {location?.displaced && <div className="pointer-events-none absolute right-[140px] w-px bg-[#98a7b6]/70"
           style={{top:Math.min(level.y,location.badgeTop+14),height:Math.abs(level.y-(location.badgeTop+14))}}
           aria-hidden="true"/>}
