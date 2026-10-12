@@ -96,5 +96,26 @@ jobs:
             echo '::error::STAGING backend does not currently allow chart-order Firebase preview Origin. Do not run authenticated trading acceptance on this preview.'
             exit 1
           fi
-          echo 'Confirmed chart-order Firebase preview Origin is allowed by STAGING Trader.'
+          # Exercise the browser's actual POST/PATCH preflight contract for
+          # pending creation and amendment, without sending trading commands.
+          for case in 'POST /v1/trading/orders/pending' 'PATCH /v1/trading/orders/chart-order-check'; do
+            method="${case%% *}"
+            path="${case#* }"
+            preflight="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 20 \
+              --request OPTIONS --dump-header - --output /dev/null \
+              --header "Origin: $origin" \
+              --header "Access-Control-Request-Method: $method" \
+              --header 'Access-Control-Request-Headers: authorization,content-type' \
+              "$base$path")"
+            printf '%s\n' "$preflight" | grep -qiF "access-control-allow-origin: $origin" || {
+              echo "::error::STAGING CORS preflight rejected $method $path Origin"; exit 1;
+            }
+            printf '%s\n' "$preflight" | grep -qiF 'access-control-allow-credentials: true' || {
+              echo "::error::STAGING CORS credentials not allowed for $method $path"; exit 1;
+            }
+            printf '%s\n' "$preflight" | grep -Ei '^access-control-allow-methods:' | grep -qi "$method" || {
+              echo "::error::STAGING CORS method $method not allowed for $path"; exit 1;
+            }
+          done
+          echo 'Confirmed chart-order Firebase preview Origin and POST/PATCH preflights are allowed by STAGING Trader.'
 
