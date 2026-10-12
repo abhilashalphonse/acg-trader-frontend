@@ -926,10 +926,10 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
       <div className="relative border-t border-dotted" style={{ borderColor: plan.pending && ['stop', 'stop-limit'].includes(plan.orderType) ? '#d7a455' : '#b8c4ce' }}>
         {(liveSl == null || liveTp == null) && (
           <div className="pointer-events-auto absolute left-3 top-1/2 z-20 flex h-7 -translate-y-1/2 items-center gap-1">
-            {liveTp == null && <button type="button" aria-label="Add TP" title="Add Take profit"
+            {liveTp == null && <button type="button" aria-label="Add TP" title="Add TP"
               onClick={event => { event.preventDefault(); event.stopPropagation(); requestDesktopProtection('tp'); }}
               className="h-6 rounded border border-[#24735d]/70 bg-[#0a1714] px-2 text-[9px] font-semibold text-[#35d79d]">TP +</button>}
-            {liveSl == null && <button type="button" aria-label="Add SL" title="Add Stop loss"
+            {liveSl == null && <button type="button" aria-label="Add SL" title="Add SL"
               onClick={event => { event.preventDefault(); event.stopPropagation(); requestDesktopProtection('sl'); }}
               className="h-6 rounded border border-[#863b49]/70 bg-[#1a0c10] px-2 text-[9px] font-semibold text-[#ff5968]">SL +</button>}
           </div>
