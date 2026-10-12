@@ -199,8 +199,19 @@ export default function V4ChartOrderLayer({
               const action = v4ProtectionAction(accepted,level.id,'remove');
               if(action) onRemoveProtection?.(action);
             }}>{removingLevelId===level.id ? '…' : '×'}</button>}
+          {pendingEditing && !readOnly && <div data-v4-pending-chart-actions data-v4-chart-actions
+            data-v4-actions-location="pending-entry"
+            className="pointer-events-auto absolute right-[calc(100%+6px)] top-1/2 z-40 flex -translate-y-1/2 items-center gap-1 whitespace-nowrap"
+            onPointerDown={event=>event.stopPropagation()}>
+            <button type="button" disabled={saving} aria-label="Discard chart edit"
+              onClick={event=>{event.stopPropagation();onCancelEdit?.();}}
+              className="h-7 rounded-[4px] border border-[#5d6771] bg-[#14171b] px-2.5 font-mono text-[10px] font-semibold text-[#e2e7ec] hover:bg-[#242a30] disabled:opacity-50">Discard</button>
+            <button type="button" disabled={saving} aria-label="Confirm chart edit"
+              onClick={event=>{event.stopPropagation();onSaveEdit?.(edit);}}
+              className="h-7 rounded-[4px] border border-[#17b899] bg-[#148f77] px-2.5 font-mono text-[10px] font-semibold text-white hover:brightness-110 disabled:opacity-50">{saving?'Confirming…':'Confirm'}</button>
+          </div>}
         </div>}
-        {marketProtection && <div data-v4-accepted-protection-price={level.id}
+        {(marketProtection || pendingLimit || pendingEntry) && <div data-v4-accepted-protection-price={level.id}
           className="pointer-events-none absolute right-[56px] flex -translate-y-1/2 items-center gap-1.5 lg:right-2"
           style={{top:level.y}}>
           <span className="size-[6px] rounded-full border" style={{borderColor:color,backgroundColor:'#09090b'}}/>
