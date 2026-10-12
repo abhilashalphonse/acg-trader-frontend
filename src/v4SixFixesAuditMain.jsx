@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import V4FullTerminalOrders from './components/trading-v2/v4/V4FullTerminalOrders.jsx';
 import DesktopManagePositionV4 from './components/trading-v2/desktop/DesktopManagePositionV4.jsx';
 import DesktopManagePendingV4 from './components/trading-v2/desktop/DesktopManagePendingV4.jsx';
+import DesktopWatchlist from './components/trading-v2/desktop/DesktopWatchlist.jsx';
 import { OpenPositionEntryOverlay } from './components/trading-v2/ChartArea.jsx';
 import { buildChartPendingAmendment } from './utils/pendingOrderChartMove.js';
 import './index.css';
@@ -159,3 +160,36 @@ function App(){
  </div>;
 }
 createRoot(document.getElementById('root')).render(<App/>);
+
+const MARKETS_QA=[
+ {symbol:'EURUSD',displaySymbol:'EUR/USD',name:'Euro / US Dollar',assetClass:'FOREX',bid:1.1003,ask:1.1005,mid:1.1004,pipSize:0.0001,changePercent:0.45,volume:100,marketState:'LIVE',live:true,subscribed:true,sessionOpen:true},
+ {symbol:'AUDCAD',displaySymbol:'AUD/CAD',name:'Australian Dollar / Canadian Dollar',assetClass:'FOREX',bid:0.99395,ask:0.99401,mid:0.99398,pipSize:0.0001,changePercent:-0.3,volume:20,marketState:'LIVE',live:true,subscribed:true,sessionOpen:true},
+ {symbol:'AAPL',displaySymbol:'AAPL',name:'Apple',assetClass:'EQUITY',last:218.25,changePercent:1.25,volume:400,marketState:'LIVE',live:true,subscribed:true,sessionOpen:true},
+ {symbol:'BTCUSD',displaySymbol:'BTCUSD',name:'Bitcoin',assetClass:'CRYPTO',last:80000,changePercent:-2.1,volume:300,marketState:'LIVE',live:true,subscribed:true,sessionOpen:true},
+];
+function V4MarketsQA(){
+ const [mode,setMode]=useState('markets');
+ const [selected,setSelected]=useState('EURUSD');
+ const [saved,setSaved]=useState(['EURUSD']);
+ const [viewed,setViewed]=useState([]);
+ const [activeSubs,setActiveSubs]=useState([]);
+ const searchRef=useRef(null);
+ const symbols=useMemo(()=>saved,[saved]);
+ const subsChanged=React.useCallback(value=>setActiveSubs(old=>old.join('|')===value.join('|')?old:value),[]);
+ const watchlist=useMemo(()=>({
+  activeSymbols:symbols,
+  activeList:{id:'favorites',name:'Favorites',symbols},
+  workspace:{lists:[{id:'favorites',name:'Favorites',symbols}]},
+  isWatched:symbol=>symbols.includes(symbol),
+  toggleSymbol:symbol=>setSaved(old=>old.includes(symbol)?old.filter(v=>v!==symbol):[...old,symbol]),
+  setActiveListId:()=>{},
+  moveSymbol:()=>{},
+ }),[symbols]);
+ window.v4MarketsQA={get selected(){return selected;},get saved(){return saved;},
+  get viewed(){return viewed;},get subscribedSymbols(){return activeSubs;},get mode(){return mode;}};
+ return <DesktopWatchlist markets={MARKETS_QA} activeSymbol={selected} mode={mode}
+  onSelectSymbol={symbol=>{setSelected(symbol);setViewed(list=>[...list,symbol]);}}
+  onModeChange={setMode} onClose={()=>setMode('watchlist')}
+  watchlists={watchlist} searchRef={searchRef} onViewportQuoteSymbolsChange={subsChanged}/>;
+}
+createRoot(document.getElementById('v4-markets-fixture')).render(<V4MarketsQA/>);

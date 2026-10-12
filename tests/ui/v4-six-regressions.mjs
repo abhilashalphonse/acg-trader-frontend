@@ -30,10 +30,46 @@ const drag=async (selector,dy)=>{
 };
 const end=async()=>{await page.mouse.up();await wait();};
 try{
- await page.goto('http://127.0.0.1:5174/v4-six-fixes-audit.html',{waitUntil:'networkidle'});
+ await page.goto('http://127.0.0.1:5174/v4-six-fixes-audit.html?acg_v4_audit=1',{waitUntil:'networkidle'});
  // DesktopMultiChart is the production wrapper between DesktopTerminal and
  // ChartArea. Assert the full prop chain; the isolated fixture alone missed
  // the originally reported full-terminal Sell Limit selection failure.
+ // Opt-in Markets V4 uses the production DesktopWatchlist entrypoint.
+ const markets=page.locator('#v4-markets-fixture');
+ const discovery=markets.locator('[data-v4-markets-panel]');
+ await discovery.waitFor();
+ eq(await discovery.count(),1,'V4 Markets discovery renders only in audit mode');
+ eq(await markets.getByRole('heading',{name:'Markets'}).count(),1,'Markets title has single hierarchy');
+ eq(await markets.getByRole('textbox',{name:'Search markets'}).count(),1,'single Markets search field');
+ eq(await markets.locator('[data-market-symbol]').count(),4,'all discovery rows are visible');
+ ok((await markets.locator('[data-market-symbol="AUDCAD"]').innerText()).includes('Spread'),
+   'Forex row prioritizes Bid/Ask/Spread');
+ await markets.getByRole('button',{name:'Forex',exact:true}).click();
+ eq(await markets.locator('[data-market-symbol]').count(),2,'Forex category filters instruments');
+ await markets.getByRole('textbox',{name:'Search markets'}).fill('AUD/CAD');
+ eq(await markets.locator('[data-market-symbol]').count(),1,'search remains inside selected category');
+ eq(await markets.locator('[data-market-symbol="AUDCAD"]').count(),1,'slash formatted cross-pair matches');
+ await markets.getByRole('button',{name:'Open AUD/CAD chart'}).click();
+ eq(await page.evaluate(()=>window.v4MarketsQA.selected),'AUDCAD','row switches selected chart symbol');
+ await markets.getByRole('button',{name:'Add AUDCAD to watchlist'}).click();
+ ok(await page.evaluate(()=>window.v4MarketsQA.saved.includes('AUDCAD')),'star saves to existing Watchlist');
+ eq(await markets.locator('[data-market-symbol="AUDCAD"] [aria-pressed="true"]').count(),1,'star reflects saved state');
+ await markets.getByRole('button',{name:'Clear market search'}).click();
+ await markets.getByRole('button',{name:'Stocks',exact:true}).click();
+ eq(await markets.locator('[data-market-symbol="AAPL"]').count(),1,'Stocks category filters correctly');
+ eq(await markets.locator('[data-market-symbol="AUDCAD"]').count(),0,'Forex excluded from Stocks');
+ ok((await markets.locator('[data-market-symbol="AAPL"]').innerText()).includes('+1.25%'),
+   'equity row prioritizes Last and daily change');
+ await markets.getByRole('button',{name:'Watchlist',exact:true}).click();
+ eq(await page.evaluate(()=>window.v4MarketsQA.mode),'watchlist','Markets->Watchlist navigation preserved');
+ eq(await markets.locator('[data-v4-markets-panel]').count(),0,'Watchlist retains old panel DOM');
+ eq(await markets.getByRole('button',{name:'Markets',exact:true}).count(),1,'legacy Watchlist can return to Markets');
+ await markets.getByRole('button',{name:'Markets',exact:true}).click();
+ eq(await markets.locator('[data-v4-markets-panel]').count(),1,'Watchlist->Markets navigation preserved');
+ const marketsWidth=await markets.evaluate(el=>({client:el.clientWidth,scroll:el.scrollWidth}));
+ ok(marketsWidth.scroll<=marketsWidth.client+1,'V4 Markets does not overflow a 340px desktop dock');
+ ok(!errors.length,'Markets interactions create no browser errors');
+ // All V4 Markets interactions use existing symbol/watchlist callbacks only; no orders submitted.
  const multi=readFileSync('src/components/trading-v2/desktop/DesktopMultiChart.jsx','utf8');
  const terminal=readFileSync('src/components/trading-v2/DesktopTerminal.jsx','utf8');
  const chartArea=readFileSync('src/components/trading-v2/ChartArea.jsx','utf8');
