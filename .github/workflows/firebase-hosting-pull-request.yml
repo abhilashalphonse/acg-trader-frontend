@@ -84,3 +84,17 @@ jobs:
           projectId: acg-trader
           channelId: pr-${{ github.event.pull_request.number }}
           expires: 7d
+
+      - name: Verify chart-order preview Origin against STAGING CORS
+        if: ${{ github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels' }}
+        run: |
+          set -euo pipefail
+          origin='https://acg-trader--pr-97-v1thyrgt.web.app'
+          base='https://discerning-presence-staging.up.railway.app'
+          headers="$(curl --fail --silent --show-error --connect-timeout 10 --max-time 20 --dump-header - --output /dev/null --header "Origin: $origin" "$base/health/live")"
+          if ! printf '%s\n' "$headers" | grep -qiF "access-control-allow-origin: $origin"; then
+            echo '::error::STAGING backend does not currently allow chart-order Firebase preview Origin. Do not run authenticated trading acceptance on this preview.'
+            exit 1
+          fi
+          echo 'Confirmed chart-order Firebase preview Origin is allowed by STAGING Trader.'
+
