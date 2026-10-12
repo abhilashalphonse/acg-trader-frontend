@@ -27,6 +27,7 @@ import {
 import DesktopOrderTicket from './desktop/DesktopOrderTicket.jsx';
 import DesktopOrderTicketV4 from './desktop/DesktopOrderTicketV4.jsx';
 import DesktopManagePositionV4 from './desktop/DesktopManagePositionV4.jsx';
+import DesktopManagePendingV4 from './desktop/DesktopManagePendingV4.jsx';
 import './desktop/DesktopTerminal.theme.css';
 import DesktopPositionManager from './desktop/DesktopPositionManager.jsx';
 import DesktopMultiChart from './desktop/DesktopMultiChart.jsx';
@@ -379,6 +380,8 @@ export default function DesktopTerminal({
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [selectedPositionId, setSelectedPositionId] = useState(null);
+  const [selectedPendingId,setSelectedPendingId]=useState(null);
+  const [pendingOrderDraft,setPendingOrderDraft]=useState(null);
   const [positionEditRequest, setPositionEditRequest] = useState(null);
   const [requestedDockTab, setRequestedDockTab] = useState(null);
   const [positionsExpanded, setPositionsExpanded] = useState(false);
@@ -396,11 +399,14 @@ export default function DesktopTerminal({
   const [objectManagerOpen, setObjectManagerOpen] = useState(false);
   const [multiChart, setMultiChart] = useState(() => loadMultiChart(activeSymbol, timeframe, indicators));
   const selectedPosition = positions.find(position => String(position?.id) === String(selectedPositionId)) || null;
+  const selectedPending = pendingOrders.find(order=>String(order?.id)===String(selectedPendingId) && String(order?.status||'PENDING').toUpperCase()==='PENDING') || null;
   const lastManagedAccountId = useRef(activeAccountId);
   useEffect(() => {
     if (lastManagedAccountId.current === activeAccountId) return;
     lastManagedAccountId.current = activeAccountId;
     setSelectedPositionId(null);
+    setSelectedPendingId(null);
+    setPendingOrderDraft(null);
     setPositionEditRequest(null);
     onCancelPositionProtection();
   }, [activeAccountId]);
@@ -417,6 +423,11 @@ export default function DesktopTerminal({
     if (selectedPositionId == null) return;
     if (!positions.some(position => String(position?.id) === String(selectedPositionId))) setSelectedPositionId(null);
   }, [positions, selectedPositionId]);
+  useEffect(()=>{
+    if(selectedPendingId!=null&&!pendingOrders.some(order=>String(order?.id)===String(selectedPendingId)&&String(order?.status||'PENDING').toUpperCase()==='PENDING')){
+      setSelectedPendingId(null);setPendingOrderDraft(null);
+    }
+  },[pendingOrders,selectedPendingId]);
 
   const selectPosition = positionOrId => {
     const id = typeof positionOrId === 'object' ? positionOrId?.id : positionOrId;
@@ -435,6 +446,8 @@ export default function DesktopTerminal({
       onCancelPositionProtection();
     }
     setSelectedPositionId(position.id);
+    setSelectedPendingId(null);
+    setPendingOrderDraft(null);
     setPositionEditRequest(null);
     // Chart and dock selection reveal the same Trade sidebar; a new position
     // never stacks a separate position drawer beneath the execution ticket.
@@ -442,6 +455,23 @@ export default function DesktopTerminal({
     setDesktopLayout(current => ({ ...current, sidebarCollapsed:false }));
     if (position.symbol && position.symbol !== activeSymbol) onSelectSymbol(position.symbol);
   };
+
+  const selectPending = orderOrId => {
+    const id=typeof orderOrId==='object'?orderOrId?.id:orderOrId;
+    if(id==null){setSelectedPendingId(null);setPendingOrderDraft(null);return;}
+    const order=pendingOrders.find(item=>String(item?.id)===String(id)&&String(item?.status||'PENDING').toUpperCase()==='PENDING');
+    if(!order)return;
+    if(positionProtectionSaving)return setNotice('Wait for the current protection save before switching orders.');
+    setSelectedPendingId(order.id);
+    setSelectedPositionId(null);
+    setPendingOrderDraft(null);
+    setPositionEditRequest(null);
+    onCancelPositionProtection();
+    setActiveNav('trade');
+    setDesktopLayout(current=>({...current,sidebarCollapsed:false}));
+    if(order.symbol&&order.symbol!==activeSymbol)onSelectSymbol(order.symbol);
+  };
+  const clearPendingDraft=()=>setPendingOrderDraft(null);
 
   const favorite = watchlists?.isWatched?.(activeSymbol) === true;
 
@@ -1187,6 +1217,10 @@ export default function DesktopTerminal({
                 onRequestPositionProtection={(positionId, field, price) => editPositionProtection(positionId, field, price)}
                 selectedPositionId={selectedPositionId}
                 onSelectPosition={selectPosition}
+                onSelectPending={selectPending}
+                pendingOrderDraft={pendingOrderDraft}
+                onPendingOrderDraftChange={setPendingOrderDraft}
+                onCancelPendingOrderDraft={clearPendingDraft}
                 onClosePosition={onClosePosition}
               />
             </div>
@@ -1244,7 +1278,16 @@ export default function DesktopTerminal({
                 <>
                   <div className="min-h-0 flex-1">
 <React.Fragment>
-                      {V4_DESKTOP_EXECUTION_ENABLED ? (selectedPosition ? (
+                      {V4_DESKTOP_EXECUTION_ENABLED ? (selectedPending ? (
+                        <DesktopManagePendingV4 key={`v4-manage-pending-${account?.id||'none'}-${selectedPending.id}`}
+                          order={selectedPending}
+                          instrument={markets.find(item=>item.symbol===selectedPending.symbol)||market}
+                          account={account} draft={pendingOrderDraft}
+                          onDraftChange={setPendingOrderDraft} onDiscard={clearPendingDraft}
+                          onMovePending={onMovePending} onCancelPending={onCancelPending}
+                          onNotice={setNotice} readOnly={readOnly}
+                          onDismiss={()=>{setSelectedPendingId(null);setPendingOrderDraft(null);}}/>
+                      ) : selectedPosition ? (
                         <DesktopManagePositionV4
                           key={`v4-manage-position-${account?.id || 'none'}-${selectedPosition.id}`}
                           position={selectedPosition}
