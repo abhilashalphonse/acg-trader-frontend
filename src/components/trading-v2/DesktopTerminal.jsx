@@ -1299,6 +1299,8 @@ export default function DesktopTerminal({
                           onApplyProtection={onApplyPositionProtection}
                           onCancelProtection={onCancelPositionProtection}
                           onUpdateProtection={updateDesktopProtection}
+                          onClosePosition={onClosePosition} onBreakEven={onBreakEven}
+                          onSetTrailing={onSetTrailing}
                           onNotice={setNotice} readOnly={readOnly}
                           onDismiss={() => { setSelectedPositionId(null); setPositionEditRequest(null); onCancelPositionProtection(); }}
                         />
