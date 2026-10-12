@@ -31,7 +31,7 @@ try{
  const result=spawnSync(chrome,[
    '--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage',
    '--hide-scrollbars','--no-first-run','--disable-background-networking',
-   '--window-size=1280,900','--virtual-time-budget=7000',
+   '--window-size=1280,900','--virtual-time-budget=13500',
    '--dump-dom',url,
  ],{encoding:'utf8',timeout:30000,maxBuffer:15*1024*1024});
  const html=result.stdout||'';
@@ -49,7 +49,7 @@ try{
  const shot=spawnSync(chrome,[
    '--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage',
    '--hide-scrollbars','--no-first-run','--disable-background-networking',
-   '--window-size=1740,960','--virtual-time-budget=9500',
+   '--window-size=1740,960','--virtual-time-budget=17000',
    '--screenshot='+screenshotPath,url,
  ],{encoding:'utf8',timeout:30000,maxBuffer:1024*1024});
  if(shot.status!==0 || !existsSync(screenshotPath)) {
