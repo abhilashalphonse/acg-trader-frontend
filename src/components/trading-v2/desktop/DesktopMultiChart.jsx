@@ -17,6 +17,7 @@ function cellGrid(layout) {
 
 export default function DesktopMultiChart({
   compactContext = false,
+  chartOrderV4 = false,
   chartSettings = null,
   config,
   onChange = () => {},
@@ -134,6 +135,7 @@ export default function DesktopMultiChart({
               <div className="h-full min-h-0 min-w-0 overflow-hidden">
                 <ChartArea
                   desktopEnhanced
+                  chartOrderV4={chartOrderV4}
                   compactContext={compactContext}
                   chartSettings={chartSettings}
                   symbol={symbol}
