@@ -17,27 +17,53 @@ export function v4StockListingCountry(item) {
   return category(item)==='stocks'?'us':null; // Current non-India catalog is US-listed.
 }
 const searchable=item=>[` ${item.symbol||''}`,item.displaySymbol,item.name,item.assetClass,commoditySearchTerms(item)].filter(Boolean).join(' ').toLowerCase();
+const V4_MARKET_GROUPS = [
+  ['forex','Forex'],['commodities','Commodities'],['stocks','Stocks'],
+  ['crypto','Crypto'],['indices','Indices'],['other','Other'],
+];
+export function v4MarketGroupForInstrument(item){
+  if(isCommodityInstrument(item))return 'commodities';
+  if(isEquity(item))return 'stocks';
+  const kind=category(item);
+  return ['forex','crypto','indices'].includes(kind)?kind:'other';
+}
+export function buildV4MarketSections(rows,{category:selected='forex',search=''}={}){
+  const grouped=selected==='favorites'||Boolean(search.trim());
+  if(!grouped){
+    return [{id:selected,label:null,layout:selected==='forex'?'forex':['stocks','crypto','indices'].includes(selected)?'last':'mixed',rows}];
+  }
+  return V4_MARKET_GROUPS.map(([id,label])=>{
+    const matching=rows.filter(item=>v4MarketGroupForInstrument(item)===id);
+    return {id,label,layout:id==='forex'?'forex':id==='commodities'?'mixed':'last',rows:matching};
+  }).filter(section=>section.rows.length>0);
+}
 const compareSymbol=(a,b)=>String(a?.symbol||'').localeCompare(String(b?.symbol||''));
 
-export function selectV4Markets({markets=[],category:selected='all',commodityView='all',stockCountry='us',watched=[],search='',view='popular',recent=[],popularSymbols=[]}={}) {
+export function selectV4Markets({markets=[],category:selected='forex',commodityView='all',stockCountry='us',watched=[],search='',view='popular',recent=[],popularSymbols=[]}={}) {
   const q=search.trim().toLowerCase().replaceAll('/','');
   let rows=markets.filter(item=>item?.marketDataAvailable!==false);
-  if(selected==='favorites'){
-    const saved=new Set(watched);
-    rows=rows.filter(item=>saved.has(item.symbol));
-  } else if(selected==='stocks'){
-    rows=rows.filter(item=>v4StockListingCountry(item)===stockCountry);
-  } else if(selected!=='all'){
-    rows=rows.filter(item=>category(item)===selected);
+  if(q){
+    // Search discovers the entire instrument catalog, including indices
+    // which do not have a standalone V4 navigation category.
+    rows=rows.filter(item=>searchable(item).replaceAll('/','').includes(q));
+  } else {
+    if(selected==='favorites'){
+      const saved=new Set(watched);
+      rows=rows.filter(item=>saved.has(item.symbol));
+    } else if(selected==='stocks'){
+      rows=rows.filter(item=>v4StockListingCountry(item)===stockCountry);
+    } else if(selected!=='all'){
+      rows=rows.filter(item=>category(item)===selected);
+    }
+    if(selected==='commodities'&&commodityView!=='all')rows=rows.filter(item=>commoditySubgroup(item)===commodityView);
   }
-  if(selected==='commodities'&&commodityView!=='all')rows=rows.filter(item=>commoditySubgroup(item)===commodityView);
-  if(q)rows=rows.filter(item=>searchable(item).replaceAll('/','').includes(q));
   const popular=new Map(popularSymbols.map((symbol,index)=>[symbol,index]));
   const recentIndex=new Map(recent.map((symbol,index)=>[symbol,index]));
-  if(view==='recent')rows=rows.filter(item=>recentIndex.has(item.symbol)).sort((a,b)=>recentIndex.get(a.symbol)-recentIndex.get(b.symbol));
-  else if(view==='movers')rows=rows.filter(item=>change(item)!==null).sort((a,b)=>Math.abs(change(b))-Math.abs(change(a))||compareSymbol(a,b));
-  else if(view==='active')rows=rows.filter(item=>volume(item)!==null).sort((a,b)=>volume(b)-volume(a)||compareSymbol(a,b));
-  else if(view==='popular')rows=rows.sort((a,b)=>(popular.get(a.symbol)??Number.MAX_SAFE_INTEGER)-(popular.get(b.symbol)??Number.MAX_SAFE_INTEGER)||compareSymbol(a,b));
+  const effectiveView=q?'all':view;
+  if(effectiveView==='recent')rows=rows.filter(item=>recentIndex.has(item.symbol)).sort((a,b)=>recentIndex.get(a.symbol)-recentIndex.get(b.symbol));
+  else if(effectiveView==='movers')rows=rows.filter(item=>change(item)!==null).sort((a,b)=>Math.abs(change(b))-Math.abs(change(a))||compareSymbol(a,b));
+  else if(effectiveView==='active')rows=rows.filter(item=>volume(item)!==null).sort((a,b)=>volume(b)-volume(a)||compareSymbol(a,b));
+  else if(effectiveView==='popular')rows=rows.sort((a,b)=>(popular.get(a.symbol)??Number.MAX_SAFE_INTEGER)-(popular.get(b.symbol)??Number.MAX_SAFE_INTEGER)||compareSymbol(a,b));
   else rows=rows.sort(compareSymbol);
   return rows;
 }
