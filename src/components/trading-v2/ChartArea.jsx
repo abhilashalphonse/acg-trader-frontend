@@ -1769,6 +1769,7 @@ export default function ChartArea({
           onMovePending={onMovePending}
           onRequestPositionProtection={onRequestPositionProtection}
           onCancelPositionProtection={onCancelPositionProtection}
+          onPositionProtectionDraftChange={onPositionProtectionDraftChange}
           onSelectPosition={onSelectPosition} onClosePosition={onClosePosition}
           onCancelPending={onCancelPending}
         />}
