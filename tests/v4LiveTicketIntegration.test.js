@@ -9,14 +9,21 @@ const desktop=read('src/components/trading-v2/DesktopTerminal.jsx');
 const original=read('src/components/trading-v2/desktop/DesktopOrderTicket.jsx');
 
 test('V4 production ticket is opt-in only; legacy desktop and floating tickets remain',()=>{
- assert.match(desktop,/import\.meta\.env\.VITE_ACG_EXECUTION_V4_ENABLED === 'true'/);
- assert.match(desktop,/new URLSearchParams\(window\.location\.search\)\.get\('acg_v4_audit'\) === '1'/);
+ assert.match(desktop,/isChartOrderAuditEnabled\(\s*import\.meta\.env\.VITE_ACG_EXECUTION_V4_ENABLED/);
+ assert.match(desktop,/typeof window !== 'undefined' \? window\.location\.search : ''/);
  assert.match(desktop,/V4_DESKTOP_EXECUTION_ENABLED \? \(/);
  assert.match(desktop,/<DesktopOrderTicketV4 /);
  assert.match(desktop,/<DesktopOrderTicket key=/);
  assert.match(desktop,/<DesktopOrderTicket\s+[\s\S]*?variant="floating"/);
  assert.match(desktop,/onCloseTicket=\{\(\) => setDesktopLayout/);
  assert.doesNotMatch(original,/DesktopOrderTicketV4/);
+ const multiChart=read('src/components/trading-v2/desktop/DesktopMultiChart.jsx');
+ const chartArea=read('src/components/trading-v2/ChartArea.jsx');
+ assert.match(desktop,/chartOrderV4=\{V4_DESKTOP_EXECUTION_ENABLED\}/);
+ assert.match(multiChart,/chartOrderV4=\{chartOrderV4\}/);
+ assert.match(chartArea,/chartOrderV4 = false/);
+ assert.match(chartArea,/desktopStyle=\{desktopEnhanced && chartOrderV4 && !mobileOverlayStyle\}/);
+
 });
 
 test('Production build enables audit-only bundle but keeps default legacy UI',()=>{
