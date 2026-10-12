@@ -1,6 +1,7 @@
 // Anonymous, read-only live-site bootstrap smoke. Never attach a federation ticket
 // or submit credentials/trading commands. This diagnoses the deployed HTML/JS.
 import { createRequire } from 'node:module';
+import process from 'node:process';
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 
