@@ -21,7 +21,7 @@ const initialOrders = [
 
 function App() {
   const [positions,setPositions] = useState(initialPositions);
-  const [orders] = useState(initialOrders);
+  const [orders,setOrders] = useState(initialOrders);
   const [edit,setEdit] = useState(null);
   const [notice,setNotice] = useState('Isolated presentation proof. No broker or trading requests.');
   const [showOverlap,setShowOverlap] = useState(false);
@@ -35,7 +35,14 @@ function App() {
   };
   const save = draft => {
     const [account,objectType,id,kind]=String(draft.levelId).split(':');
-    if(account!==DEMO_ACCOUNT||objectType!=='position'||!['sl','tp'].includes(kind))return;
+    if(account!==DEMO_ACCOUNT)return;
+    if(objectType==='pending' && kind==='entry') {
+      setOrders(current=>current.map(o=>o.id===id?{...o,entry:Number(draft.proposedPrice)}:o));
+      setEdit(null);
+      setNotice('Synthetic pending order amendment confirmed. No backend request.');
+      return;
+    }
+    if(objectType!=='position'||!['sl','tp'].includes(kind))return;
     setPositions(current=>current.map(p=>p.id===id?{...p,[kind]:Number(draft.proposedPrice)}:p));
     setEdit(null);
     setNotice('Synthetic save confirmed. Real trading integration is not connected yet.');
