@@ -161,3 +161,77 @@ jobs:
           VITE_ACG_TRADER_WS_URL: ws://localhost:4000/v1/ws
       - name: Exercise six V4 chart regressions in real Chrome
         run: node tests/ui/v4-six-regressions.mjs
+
+  # One-shot owner-requested position-management-only visual refinement.
+  # Do not merge PR 107; enforce immutable existing new-order ticket files.
+  v4-position-only-owner-audit:
+    if: ${{ github.event.pull_request.number == 107 && github.event.pull_request.head.repo.full_name == github.repository }}
+    needs: [preview, v4-six-regressions-browser, live-startup-smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      VITE_ACG_TRADER_API_BASE: https://acg-trader-backend-production.up.railway.app
+      VITE_ACG_TRADER_WS_URL: wss://acg-trader-backend-production.up.railway.app/v1/ws
+      VITE_ACG_EXECUTION_V4_ENABLED: 'true'
+      VITE_ACG_TRADER_HTTP_TIMEOUT_MS: 10000
+      VITE_ACG_FUNDED_SUPPORT_BASE_URL: ${{ secrets.VITE_ACG_FUNDED_SUPPORT_BASE_URL }}
+      VITE_GIT_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Checkout position-only audited candidate
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install frontend
+        run: npm ci
+      - name: Enforce original execution-ticket source and CSS hashes
+        run: |
+          set -euo pipefail
+          test "$(git hash-object src/components/trading-v2/desktop/DesktopOrderTicketV4.jsx)" = "3308cd96638a88fde8ebaae328d4f9dc09884e58"
+          test "$(git hash-object src/components/trading-v2/desktop/DesktopOrderTicketV4.css)" = "3fdcfcf15a08771050446fe0018003ce852b01ee"
+          grep -q 'v4AuditLayer = desktopEnhanced && chartOrderV4 && !mobileOverlayStyle' src/components/trading-v2/ChartArea.jsx
+          grep -q 'data-v4-manage-position' src/components/trading-v2/desktop/DesktopManagePositionV4.jsx
+          grep -q 'v4-manage-position' src/components/trading-v2/desktop/DesktopManagePositionV4.css
+      - name: Verify canonical production backend
+        run: |
+          curl --fail --silent --show-error --retry 2 --connect-timeout 10 --max-time 25 https://acg-trader-backend-production.up.railway.app/health/live >/dev/null
+      - name: Run frontend release checks
+        run: npm run check
+      - name: Verify audit-only bundle and secure websocket
+        run: |
+          set -euo pipefail
+          grep -qrF 'wss://acg-trader-backend-production.up.railway.app/v1/ws' dist/assets
+          grep -qrF 'acg_v4_audit' dist/assets
+          grep -qrF 'data-v4-manage-position' dist/assets
+          grep -qrF 'data-v4-manage-position-pnl' dist/assets
+      - name: Deploy position-only V4 refinement to original audit URL
+        id: deployed
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ACG_TRADER }}
+          projectId: acg-trader
+          channelId: live
+      - name: Install Chrome bootstrap verifier
+        run: npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - name: Check original Firebase URL browser startup
+        id: smoke
+        run: node tests/ui/live-startup-diagnostic.mjs
+      - name: Checkout stable main if live browser startup fails
+        if: ${{ failure() && steps.deployed.outcome == 'success' && steps.smoke.outcome == 'failure' }}
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Rebuild stable frontend if live browser startup fails
+        if: ${{ failure() && steps.deployed.outcome == 'success' && steps.smoke.outcome == 'failure' }}
+        run: |
+          npm ci
+          npm run build
+      - name: Recover stable frontend if browser bootstrap fails
+        if: ${{ failure() && steps.deployed.outcome == 'success' && steps.smoke.outcome == 'failure' }}
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ACG_TRADER }}
+          projectId: acg-trader
+          channelId: live
