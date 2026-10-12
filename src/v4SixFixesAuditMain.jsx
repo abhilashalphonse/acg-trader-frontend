@@ -13,6 +13,7 @@ const ACCOUNT={id:'qa-account',currency:'USD'};
 const SYMBOL='BTCUSD';
 const originalPositions=[
  {id:'p1',symbol:SYMBOL,status:'OPEN',side:'BUY',entry:83900,volume:0.01,pnl:3.5,sl:null,tp:null},
+ {id:'p2',symbol:'EURUSD',status:'OPEN',side:'SELL',entry:1.116,volume:0.01,pnl:0.15,sl:null,tp:null},
 ];
 const originalOrders=[
  {id:'o1',symbol:SYMBOL,status:'PENDING',side:'SELL',orderType:'limit',
@@ -87,6 +88,7 @@ function App(){
     <button type="button" className="rounded border border-gray-600 px-2 py-1 text-xs" onClick={()=>setPlanning(true)}>Start new limit plan</button>
     <button type="button" className="rounded border border-gray-600 px-2 py-1 text-xs" onClick={()=>setPlanning(false)}>Finish planning</button>
     <button type="button" className="rounded border border-gray-600 px-2 py-1 text-xs" onClick={()=>setSelectedPositionId('p1')}>Select open position</button>
+    <button type="button" className="rounded border border-gray-600 px-2 py-1 text-xs" onClick={()=>setSelectedPositionId('p2')}>Select EUR/USD position</button>
    </div>
   <div className="relative w-full overflow-hidden rounded border border-[#444]" style={{height:580}}
     data-v4-full-terminal-fixture>
@@ -113,7 +115,11 @@ function App(){
   {selectedPositionId&&positions.some(position=>position.id===selectedPositionId)&&<div
     data-qa-unified-position-sidebar className="mt-3 w-[340px]" style={{height:520}}>
     <DesktopManagePositionV4 position={positions.find(position=>position.id===selectedPositionId)}
-      instrument={{tickSize:1,tickValue:1,contractSize:1,quoteCurrency:'USD',displaySymbol:'BTCUSD',bid:84000,ask:84001}}
+      instrument={selectedPositionId==='p2'
+        ? {symbol:'EURUSD',assetClass:'FOREX',baseCurrency:'EUR',quoteCurrency:'USD',
+          tickSize:0.00001,tickValue:1,contractSize:100000,displaySymbol:'EUR/USD',bid:1.11597,ask:1.11599}
+        : {symbol:'BTCUSD',assetClass:'CRYPTO',baseCurrency:'BTC',quoteCurrency:'USD',
+          tickSize:1,tickValue:1,contractSize:1,displaySymbol:'BTCUSD',bid:84000,ask:84001}}
       account={{...ACCOUNT,equity:100000,balance:100000}}
       protectionDraft={parentDraft}
       onBeginProtection={kind=>beginProtection(selectedPositionId,kind)}
