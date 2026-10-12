@@ -29,6 +29,7 @@ function App() {
   const formatPrice = price => Number(price).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1});
   const requestedEdit = payload => {
     if(!payload) return;
+    if(payload.proposedPrice != null) { setEdit(payload); return; }
     const delta=payload.confirmedPrice*0.004*(payload.levelId.endsWith(':sl')?1:-1);
     setEdit({levelId:payload.levelId,proposedPrice:Number((payload.confirmedPrice+delta).toFixed(1))});
     setNotice('Edit is local. Confirm or Discard directly on the chart.');
@@ -94,8 +95,8 @@ function App() {
           </g>)}
         </svg>
         <V4ChartOrderLayer accountId={DEMO_ACCOUNT} symbol={DEMO_SYMBOL}
-          positions={samples} pendingOrders={orders} coordinateApi={{priceToY:toY}}
-          height={VIEW_HEIGHT} edit={edit} onBeginEdit={requestedEdit}
+          positions={samples} pendingOrders={orders} coordinateApi={{priceToY:toY,yToPrice:y=>86000-(y-50)*10}}
+          height={VIEW_HEIGHT} edit={edit} onBeginEdit={requestedEdit} onChangeEdit={setEdit}
           onSaveEdit={save} onCancelEdit={()=>{setEdit(null);setNotice('Edit canceled. Accepted synthetic price unchanged.');}}
           onConfirmRemoval={remove} onAddProtection={add}
           formatPrice={formatPrice} formatVolume={v=>Number(v).toFixed(2)+' lots'}
