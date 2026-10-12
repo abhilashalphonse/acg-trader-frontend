@@ -122,7 +122,7 @@ function ChartOrderEntryRow({ side, type, lots, color, showTp = false, showSl = 
   );
 }
 
-function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instrument, selectedPositionId = null, onSelectPosition = () => {}, onClosePosition = () => {}, desktopStyle = false }) {
+export function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instrument, selectedPositionId = null, onSelectPosition = () => {}, onClosePosition = () => {}, onRequestPositionProtection = null, hoveredPositionId = null, onHoverPosition = () => {}, desktopStyle = false }) {
   const [, forceLayout] = useState(0);
   const closeAvailability = positionCloseAvailability(instrument);
   const closeDisabled = !closeAvailability.allowed;
@@ -158,14 +158,33 @@ function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instr
         const quantityBackground = isBuy ? '#087a62' : '#8f2734';
         const closeColor = isBuy ? '#35d7b0' : '#ff7883';
         const pnlColor = Number.isFinite(pnl) ? pnl < 0 ? '#ff5968' : pnl > 0 ? '#55dfa9' : '#eef4f2' : '#eef4f2';
+        const protection = chartPositionProtections(position);
+        const groupActive = hoveredPositionId != null && String(hoveredPositionId) === String(position.id);
+        const prefix = <span className="flex shrink-0 items-center gap-0.5 font-sans text-[9px]">
+          {['tp', 'sl'].map(kind => {
+            const active = protection[kind];
+            const tone = kind === 'tp' ? '#35d79d' : '#ff5968';
+            return active ? <span key={kind} data-attached-protection={kind} title={`Active ${kind.toUpperCase()}`}
+              className="rounded-[3px] border px-1 py-0.5 font-bold" style={{ color: tone, borderColor: `${tone}70`, backgroundColor: `${tone}15` }}>{kind.toUpperCase()}</span>
+              : typeof onRequestPositionProtection === 'function' ? <button key={kind} type="button" title={`Add ${kind.toUpperCase()}`}
+                aria-label={`Add ${kind.toUpperCase()} to ${side} position`}
+                className="rounded-[3px] border border-white/15 px-1 py-0.5 text-[#9aa5af] hover:bg-white/10"
+                onPointerDown={event => event.stopPropagation()}
+                onClick={event => { event.stopPropagation(); onRequestPositionProtection(position.id, kind); }}>+${kind.toUpperCase()}</button> : null;
+          })}
+        </span>;
 
         return (
           <div key={position.id || `${side}-${entry}-${lots}`} className="absolute left-0 right-0" style={{ top: y }}>
             <div className="relative border-t" style={{ borderColor: lineColor }}>
               {desktopStyle ? (
               <ChartLevelBadge
-                label={`${side} ${formatPositionLots(lots)} lots`}
-                price={formatInstrumentPrice(entry, instrument)}
+                label={`${side} ${formatPositionLots(lots)}`}
+                price={null}
+                prefix={prefix}
+                groupActive={groupActive}
+                onGroupEnter={() => onHoverPosition(String(position.id))}
+                onGroupLeave={() => onHoverPosition(null)}
                 amount={Number.isFinite(pnl) ? formatPositionPnl(pnl, currency) : null}
                 color={lineColor}
                 tooltip={closeDisabled ? closeAvailability.reason : 'Live position: click to select; × closes at market when permitted.'}
@@ -470,7 +489,7 @@ export function PendingOrderOverlay({
         const lots = Number(order.volume ?? order.lots);
         const secondary = order.orderType === 'stop-limit' ? validPlanPrice(order.limitPrice) : null;
         const secondaryY = secondary == null ? null : coordinateApi.priceToY(secondary);
-        const triggerTone = ['stop', 'stop-limit'].includes(order.orderType) ? '#d7a455' : '#acbac7';
+        const triggerTone = desktopStyle ? chartPlacedSideColor(side) : ['stop', 'stop-limit'].includes(order.orderType) ? '#d7a455' : '#acbac7';
         const beginPlacedDrag = (event, field = 'entry') => {
           if (!desktopStyle) return;
           event.preventDefault();
@@ -494,6 +513,7 @@ export function PendingOrderOverlay({
                   type={type}
                   lots={lots}
                   color={triggerTone}
+                  placed
                   showTp={validPlanPrice(order.tp) == null}
                   showSl={validPlanPrice(order.sl) == null}
                   onTp={() => onModify(order.id, 'tp')}
