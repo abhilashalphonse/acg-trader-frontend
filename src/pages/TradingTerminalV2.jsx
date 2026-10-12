@@ -20,7 +20,7 @@ import {defaultPlannerStopDistance, estimateOpeningRequirement, estimateStopRisk
 import { exposureAvailability } from '../utils/exposureAvailability.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../utils/instrumentFormatting.js';
 import { normalizeTradePlanPatch } from '../utils/tradePlanNormalization.js';
-import { buildChartPendingAmendment } from '../utils/pendingOrderChartMove.js';
+import { buildChartPendingAmendment, isActiveChartProtection } from '../utils/pendingOrderChartMove.js';
 import { DEFAULT_RISK_GUARD_SETTINGS, evaluateRiskGuard } from '../utils/riskGuard.js';
 import { createDefaultTradePlan, effectiveTradePlan, validateTradePlanForExecution } from '../utils/tradePlanExecution.js';
 import { estimateExecutionPrice, resolveExecutionPreview } from '../utils/executionPricing.js';
@@ -1286,7 +1286,7 @@ export default function TradingTerminalV2({
 
     if (isDesktop && ['sl', 'tp'].includes(protectionField)) {
       nextPlan.activeField = protectionField;
-      if (!Number.isFinite(Number(nextPlan[protectionField])) && Number.isFinite(fillReference) && Number.isFinite(distance)) {
+      if (!isActiveChartProtection(nextPlan[protectionField]) && Number.isFinite(fillReference) && fillReference > 0 && Number.isFinite(distance) && distance > 0) {
         const rawProtection = protectionField === 'sl'
           ? (side === 'sell' ? fillReference + distance : fillReference - distance)
           : (side === 'sell' ? fillReference - distance * 2 : fillReference + distance * 2);
