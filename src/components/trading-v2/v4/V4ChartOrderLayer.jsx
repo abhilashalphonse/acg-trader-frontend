@@ -153,6 +153,11 @@ export default function V4ChartOrderLayer({
   if(edit&&active&&v4ValidEditPrice(edit.price)!=null)forLayout.push({...active,key:'preview:'+active.key,y:coordinateApi.priceToY(edit.price)});
   const layout=v4LayoutBadges(forLayout,height);
   const offsets=new Map(layout.map(item=>[item.key,item.deltaY]));
+  // Axis price labels may be visually offset to avoid other order labels,
+  // but every underlying price line and marker dot stays at the true Y.
+  const axisLayout=v4LayoutBadges(allVisible.map(level=>({...level,y:coordinateApi.priceToY(level.price)})),
+    height,{rowHeight:15,gap:5,inset:8});
+  const axisOffsets=new Map(axisLayout.map(item=>[item.key,item.deltaY]));
 
   useEffect(()=>{
     const priceFrom=event=>{
@@ -297,8 +302,14 @@ export default function V4ChartOrderLayer({
         className="pointer-events-none absolute left-0 right-0" style={{top:y,zIndex:level.accepted?20:30}}>
         <div className={'relative border-t '+(level.accepted?'border-solid':'border-dotted')}
           style={{borderColor:color,boxShadow:group?'0 0 8px '+color+'90':undefined}}>
-          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-[3px] border bg-[#22272d] px-1.5 py-0.5 font-mono text-[9px] tabular-nums text-white"
-            style={{borderColor:color+'90'}}>{formatInstrumentPrice(level.price,instrument)}</span>
+          <span data-v4-price-label={level.key}
+            className="pointer-events-none absolute right-2 -translate-y-1/2 rounded-[3px] border bg-[#22272d] px-1.5 py-0.5 font-mono text-[9px] tabular-nums text-white"
+            style={{borderColor:color+'90',top:axisOffsets.get(level.key)||0}}>{formatInstrumentPrice(level.price,instrument)}</span>
+          <span aria-hidden="true" className="pointer-events-none absolute right-[74px] top-[-3px] size-[6px] rounded-full border bg-[#0b0e12]"
+            style={{borderColor:color}} />
+          {Math.abs(axisOffsets.get(level.key)||0)>2&&<div aria-hidden="true"
+            className="pointer-events-none absolute right-[77px] w-px bg-[#a3afb8]/70"
+            style={{top:Math.min(0,axisOffsets.get(level.key)||0),height:Math.abs(axisOffsets.get(level.key)||0)}}/>}
           {show&&<Badge level={level} offset={offset} instrument={instrument} account={account} currency={accountCurrency}
             hovered={Boolean(group)} selected={level.owner==='position'&&String(selectedPositionId)===level.ownerId}
             onEnter={setHover} onExit={()=>setHover(null)} onDrag={startDrag} onChoose={choose}
