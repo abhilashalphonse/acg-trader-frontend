@@ -193,7 +193,7 @@ function ClosedPositionChartOverlay({ symbol, position = null, coordinateApi, in
   );
 }
 
-function PendingOrderOverlay({
+export function PendingOrderOverlay({
   symbol,
   orders = [],
   coordinateApi,
