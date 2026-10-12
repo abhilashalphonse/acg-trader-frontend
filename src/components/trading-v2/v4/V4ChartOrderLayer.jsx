@@ -3,6 +3,8 @@ import {
   projectV4AcceptedLevels, projectV4DraftGroup, placeV4Badges,
   v4MissingProtections, v4ProtectionAction,
 } from './chartOrderModel.js';
+import { estimatePositionPnlAtPrice } from '../../../utils/tradingRisk.js';
+import { chartEstimateCurrencySupported } from '../../../utils/chartOrderPresentation.js';
 
 // An intentionally separate V4-only renderer: no imports from ChartArea or
 // legacy plan/pending/position overlays. Future phases connect real chart
@@ -12,7 +14,7 @@ const priceLabel = (value, formatPrice) => formatPrice ? formatPrice(value) : St
 
 export default function V4ChartOrderLayer({
   accountId, symbol, positions = [], pendingOrders = [], coordinateApi,
-  height = 480, formatPrice, formatVolume, formatPnl,
+  height = 480, formatPrice, formatVolume, formatPnl, instrument = null, accountCurrency = 'USD',
   hidePositionEntries = false, readOnly = false,
   edit = null, saving = false, onBeginEdit, onChangeEdit, onSaveEdit, onCancelEdit,
   onConfirmRemoval, onAddProtection, onSelectPosition, onClosePosition, onCancelPending,
@@ -55,6 +57,18 @@ export default function V4ChartOrderLayer({
   const colorFor = level => level.kind==='sl' ? COLORS.sl : level.kind==='tp' ? COLORS.tp
     : level.objectType==='position' && level.kind==='entry' ? COLORS.neutral
     : level.side==='BUY' ? COLORS.buy : COLORS.sell;
+  const projectedPositionProtection = level => {
+    const position = positions.find(item => String(item.id) === String(level.objectId));
+    const lots = Number(position?.volume ?? position?.lots);
+    const volume = Number.isFinite(lots) ? String(Number(lots.toFixed(4))) : '—';
+    const currency = String(accountCurrency || 'USD').toUpperCase();
+    const estimate = chartEstimateCurrencySupported(instrument, currency)
+      ? estimatePositionPnlAtPrice(position, level.price, instrument)
+      : null;
+    const amount = estimate == null || !Number.isFinite(estimate)
+      ? '— ' + currency : (estimate >= 0 ? '+' : '-') + Math.abs(estimate).toFixed(2) + ' ' + currency;
+    return { volume, amount };
+  };
   const selected = removeLevel && accepted.find(level=>level.id===removeLevel);
   const canRemove = Boolean(onConfirmRemoval);
   const [cancelPendingId, setCancelPendingId] = useState(null);
@@ -78,6 +92,8 @@ export default function V4ChartOrderLayer({
       const groupId=level.accountId+':'+level.objectType+':'+level.objectId;
       const highlighted=hoveredId===groupId;
       const missing=level.objectType==='position' && level.kind==='entry' ? v4MissingProtections(accepted,level.id) : [];
+      const marketProtection = level.objectType==='position' && ['sl','tp'].includes(level.kind);
+      const projection = marketProtection ? projectedPositionProtection(level) : null;
       return <React.Fragment key={level.id}>
         <div data-v4-accepted-line={level.id} className="pointer-events-none absolute left-0 right-0 border-t"
           style={{top:level.y,borderColor:color,opacity:highlighted?1:0.7}}/>
