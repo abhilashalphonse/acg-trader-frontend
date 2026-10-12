@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import V4FullTerminalOrders from './components/trading-v2/v4/V4FullTerminalOrders.jsx';
+import DesktopManagePositionV4 from './components/trading-v2/desktop/DesktopManagePositionV4.jsx';
 import { OpenPositionEntryOverlay } from './components/trading-v2/ChartArea.jsx';
 import { buildChartPendingAmendment } from './utils/pendingOrderChartMove.js';
 import './index.css';
@@ -25,6 +26,7 @@ function App(){
  const [positions,setPositions]=useState(originalPositions);
  const [orders,setOrders]=useState(originalOrders);
  const [parentDraft,setParentDraft]=useState(null);
+ const [selectedPositionId,setSelectedPositionId]=useState(null);
  const [planning,setPlanning]=useState(false);
  const [hoveredPositionId,setHoveredPositionId]=useState(null);
  const [commands,setCommands]=useState([]);
@@ -59,15 +61,24 @@ function App(){
    }
    return modifyPosition(id,{[kind]:null});
  };
- const beginProtection=(id,kind)=>{
+ const beginProtection=(id,kind,initialPrice=null)=>{
    const position=positions.find(x=>x.id===id);
    if(!position)return false;
-   setParentDraft({positionId:id,symbol:SYMBOL,activeField:kind,
-    [kind]:Number(position.entry)+(kind==='tp'?500:-500)});
+   setSelectedPositionId(id);
+   setParentDraft(previous=>{
+     const base=previous?.positionId===id?previous:{
+       positionId:id,symbol:SYMBOL,side:position.side.toLowerCase(),entry:position.entry,
+       sl:position.sl,tp:position.tp,manualLots:position.volume,
+       sizingMode:'lots',pending:false,source:'open-position',
+     };
+     return {...base,activeField:kind,
+       [kind]:initialPrice??base[kind]??Number(position.entry)+(kind==='tp'?500:-500)};
+   });
    return true;
  };
  window.v4QA={get commands(){return commands;},get positions(){return positions;},
   get orders(){return orders;},get parentDraft(){return parentDraft;},get planning(){return planning;},
+  get selectedPositionId(){return selectedPositionId;},
   get removalCalls(){return removalCalls.current;},
   rejectOneRemoval(){rejectNextRemoval.current=true;}};
  return <div className="min-h-screen bg-black p-4 text-white">
@@ -75,6 +86,7 @@ function App(){
   <div className="mb-3 flex gap-2">
     <button type="button" className="rounded border border-gray-600 px-2 py-1 text-xs" onClick={()=>setPlanning(true)}>Start new limit plan</button>
     <button type="button" className="rounded border border-gray-600 px-2 py-1 text-xs" onClick={()=>setPlanning(false)}>Finish planning</button>
+    <button type="button" className="rounded border border-gray-600 px-2 py-1 text-xs" onClick={()=>setSelectedPositionId('p1')}>Select open position</button>
    </div>
   <div className="relative w-full overflow-hidden rounded border border-[#444]" style={{height:580}}
     data-v4-full-terminal-fixture>
@@ -82,7 +94,7 @@ function App(){
       renderPositionEntries={(chartEditActions, requestProtection) => (
         <OpenPositionEntryOverlay symbol={SYMBOL} positions={positions} coordinateApi={coordinateApi}
           instrument={{tickSize:1,tickValue:1,quoteCurrency:'USD',displaySymbol:'BTCUSD',sessionOpen:true,marketDataAvailable:true}}
-          selectedPositionId={'p1'} onSelectPosition={()=>{}} onClosePosition={()=>{}}
+          selectedPositionId={selectedPositionId} onSelectPosition={setSelectedPositionId} onClosePosition={()=>{}}
           onRequestPositionProtection={planning ? null : requestProtection}
           chartEditActions={chartEditActions}
           hoveredPositionId={hoveredPositionId} onHoverPosition={setHoveredPositionId} desktopStyle/>
@@ -95,8 +107,22 @@ function App(){
       onRemovePositionProtection={removeProtection}
       onMovePending={movePending} onRequestPositionProtection={beginProtection}
       onCancelPositionProtection={()=>setParentDraft(null)}
-      onSelectPosition={()=>{}} onClosePosition={()=>{}} onCancelPending={()=>{}}/>
+      onPositionProtectionDraftChange={patch=>setParentDraft(current=>current?{...current,...patch}:current)}
+      onSelectPosition={setSelectedPositionId} onClosePosition={()=>{}} onCancelPending={()=>{}}/>
   </div>
+  {selectedPositionId&&positions.some(position=>position.id===selectedPositionId)&&<div
+    data-qa-unified-position-sidebar className="mt-3 w-[340px]" style={{height:520}}>
+    <DesktopManagePositionV4 position={positions.find(position=>position.id===selectedPositionId)}
+      instrument={{tickSize:1,tickValue:1,contractSize:1,quoteCurrency:'USD',displaySymbol:'BTCUSD',bid:84000,ask:84001}}
+      account={{...ACCOUNT,equity:100000,balance:100000}}
+      protectionDraft={parentDraft}
+      onBeginProtection={kind=>beginProtection(selectedPositionId,kind)}
+      onProtectionDraftChange={patch=>setParentDraft(current=>current?{...current,...patch}:current)}
+      onApplyProtection={async patch=>{const ok=await modifyPosition(selectedPositionId,patch);if(ok)setParentDraft(null);return ok;}}
+      onCancelProtection={()=>setParentDraft(null)}
+      onUpdateProtection={modifyPosition}
+      onDismiss={()=>{setSelectedPositionId(null);setParentDraft(null);}}/>
+  </div>}
   <div data-qa-command-count className="mt-2 text-xs">{commands.length} commands</div>
  </div>;
 }
