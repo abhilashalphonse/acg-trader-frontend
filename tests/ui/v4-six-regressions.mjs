@@ -16,7 +16,7 @@ try{
   'do not render a second prototype market-position entry badge');
  assert.equal(await page.locator('[data-v4-chart-badge]').count(),1,
   'original approved market-position entry badge must be present');
- assert.equal(await page.getByRole('button',{name:'Add TP to BUY position'}).count(),1,
+ assert.equal(await page.locator('button[aria-label="Add TP to BUY position"]').count(),1,
   'original inline market TP action must remain available');
  await pendingTp.getByRole('button',{name:'Edit TP'}).click();
  // 1. Exactly one accepted entry badge while TP edit exists.
@@ -59,10 +59,10 @@ try{
  assert.equal(await page.locator('[data-v4-preview]').count(),1);
  await page.getByRole('button',{name:'Discard chart edit'}).click();
  // 5. TP to SL switching: only one draft shade exists and its type changes.
- await page.getByRole('button',{name:'Add TP to BUY position'}).click();
+ await page.locator('button[aria-label="Add TP to BUY position"]').click();
  assert.equal(await page.locator('[data-v4-draft-shade="tp"]').count(),1);
  assert.equal(await page.locator('[data-v4-draft-connector]').count(),1);
- await page.getByRole('button',{name:'Add SL to BUY position'}).click();
+ await page.locator('button[aria-label="Add SL to BUY position"]').click();
  assert.equal(await page.locator('[data-v4-draft-shade="tp"]').count(),0,'stale green TP shade');
  assert.equal(await page.locator('[data-v4-draft-shade="sl"]').count(),1,'one red SL shade');
  assert.equal(await page.locator('[data-v4-preview]').count(),1);
