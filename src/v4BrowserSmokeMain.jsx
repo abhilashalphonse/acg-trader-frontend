@@ -80,7 +80,7 @@ function Fixture(){
      <TradePlanOverlay plan={plan} onChange={patch}
        onCancel={()=>setPlan(null)} coordinateApi={coordinateApi}
        instrument={DEMO} lots={lots} account={ACCOUNT}
-       riskPercent={percent} accountCurrency="USD"/>,
+       riskPercent={percent} accountCurrency="USD" desktopStyle/>,
      document.getElementById('chart-fixture')
    )}
  </>;
