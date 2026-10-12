@@ -193,3 +193,20 @@
   border-radius:7px;border:1px solid #333339;background:#19191c;
   color:#e8e8eb;text-align:right;font-family:ui-monospace,monospace;font-size:12px;
 }
+
+/* Compact context only in Manage Position/Pending: one symbol, one side, one status. */
+.v4-ticket.v4-manage-position .v4-symbol .v4-manage-header-context {
+  display:flex;align-items:center;gap:5px;white-space:nowrap;
+  color:#9ca2aa;font-size:11px;line-height:1.4;
+}
+.v4-ticket.v4-manage-position .v4-manage-header-context > span {
+  font-size:11px;color:#9ca2aa;
+}
+.v4-ticket.v4-manage-position .v4-manage-header-context b {
+  font-size:11px;font-weight:650;
+}
+.v4-ticket.v4-manage-position .v4-manage-status-dot {
+  display:inline-block;flex:none;width:6px;height:6px;border-radius:50%;
+  background:#23c58b;
+}
+.v4-ticket.v4-manage-position .v4-instrument {margin-bottom:2px;}
