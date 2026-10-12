@@ -1,5 +1,7 @@
 # ACG Trader V4 — Frozen Design & Production Integration Contract
 
+> **2026-10-12 chart-order addendum:** The approved chart-order visual reference and the final Save/Cancel drag, confirm-before-removal, and automatic individual badge overlap decisions are frozen in [ACG-V4-CHART-ORDER-FROZEN-DESIGN-WORKFLOW.md](ACG-V4-CHART-ORDER-FROZEN-DESIGN-WORKFLOW.md). **That document supersedes earlier chart-order UI and interaction descriptions**, including the old two-row Market/Pending selection and any immediate TP/SL amendment/removal behavior. This original document still governs unaffected execution-panel and financial integration requirements. The new chart layer is not yet authorized for customer release.
+
 Status: **DESIGN LOCKED / financial integration M1 underway / NO RELEASE AUTHORIZED**
 Updated: 2026-10-11
 
