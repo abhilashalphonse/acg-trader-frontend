@@ -113,6 +113,24 @@ async function run(){
  // Accepted stop-limit must draw two independent SOLID price levels,
  // and show a temporary DOTTED ghost while its LIMIT leg is dragged.
  const pendingChart=document.getElementById('pending-chart-fixture');
+ // Badges are visibly offset from their exact price lines, while the
+ // right-hand price chips remain fixed to the original line coordinates.
+ const checkBadgeGap=(badge, placement, name)=>{
+   if(!badge){failed.push(name+' badge missing');return;}
+   const line=badge.parentElement?.getBoundingClientRect();
+   const bounds=badge.getBoundingClientRect();
+   const gap=placement==='below'?bounds.top-line?.top:line?.top-bounds.bottom;
+   if(!Number.isFinite(gap)||gap<6||gap>11)
+     failed.push(name+' badge offset from price line invalid: '+gap);
+   if(badge.dataset.chartLevelPlacement!==placement && badge.dataset.chartOrderEntryPlacement!==placement)
+     failed.push(name+' has wrong side of line');
+   if(badge.previousElementSibling?.getAttribute('aria-hidden')!=='true')
+     failed.push(name+' visual price-line connector missing');
+ };
+ const acceptedBadges=Array.from(pendingChart.querySelectorAll('[data-chart-level-placement]'));
+ checkBadgeGap(acceptedBadges.find(b=>b.textContent.includes('Stop loss')),'above','Accepted SL');
+ checkBadgeGap(acceptedBadges.find(b=>b.textContent.includes('Take profit')),'below','Accepted TP');
+ checkBadgeGap(pendingChart.querySelector('[data-chart-order-entry-placement]'),'above','Accepted entry');
  const pendingLines=pendingChart.querySelectorAll('.relative.border-t:not(.border-dotted):not(.border-dashed)');
  if(pendingLines.length<4)failed.push('Accepted stop-limit levels are not all solid: '+pendingLines.length);
  const limitHandle=pendingChart.querySelector('[aria-label="Drag pending stop-limit limit price"]');
@@ -204,6 +222,7 @@ async function run(){
  if(!Number.isFinite(marginMax)||Math.abs(Number(marginSlider?.max)-marginMax)>1e-6)failed.push('Margin slider max shifted');
  if(Number(marginSlider?.value)<=marginBefore)failed.push('Margin budget did not advance');
  if(counters.drafts!==1)failed.push('Margin slider did not create exactly one draft');
+ checkBadgeGap(chart.querySelector('[data-chart-order-entry-placement]'),'above','Draft entry');
  if(!chart.querySelector('[title="Add SL"]'))failed.push('Chart draft entry missing SL shortcut');
  if(!chart.textContent.includes('BUY'))failed.push('Chart draft direction missing');
  if(counters.planned!==0)failed.push('Margin draft unexpectedly submitted an order');
@@ -223,6 +242,7 @@ async function run(){
  await sleep(180);
  if(findMode(ticket,'Risk %')?.getAttribute('aria-pressed')!=='true')failed.push('Risk % selection failed');
  if(!ticket.querySelector('input[aria-label="Stop Loss value"]'))failed.push('Risk % did not create default SL');
+ checkBadgeGap(Array.from(chart.querySelectorAll('[data-chart-level-placement]')).find(b=>b.textContent.includes('Stop loss')),'above','Draft SL');
  const startRisk=Number(ticket.querySelector('input[aria-label="Position size slider"]')?.value);
  ticket.querySelector('button[aria-label="Increase position value"]')?.click();
  await sleep(180);
@@ -236,6 +256,7 @@ async function run(){
  if(!ticket.querySelector('input[aria-label="Take Profit value"]'))failed.push('Chart TP toggle failed to update ticket');
  if(chart.querySelector('[title="Add TP"]'))failed.push('Activated TP shortcut stayed on entry row');
  if(!chart.querySelector('[aria-label="Clear TP"]'))failed.push('Activated TP has no independent removable price line');
+ checkBadgeGap(Array.from(chart.querySelectorAll('[data-chart-level-placement]')).find(b=>b.textContent.includes('Take profit')),'below','Draft TP');
  // Removing the independent line returns its entry shortcut and updates
  // the same V4 ticket; this is an edit to a draft, not an execution.
  chart.querySelector('[aria-label="Clear TP"]')?.click();
