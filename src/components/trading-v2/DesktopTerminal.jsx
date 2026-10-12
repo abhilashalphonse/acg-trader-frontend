@@ -399,7 +399,7 @@ export default function DesktopTerminal({
   const [objectManagerOpen, setObjectManagerOpen] = useState(false);
   const [multiChart, setMultiChart] = useState(() => loadMultiChart(activeSymbol, timeframe, indicators));
   const selectedPosition = positions.find(position => String(position?.id) === String(selectedPositionId)) || null;
-  const selectedPending = pendingOrders.find(order=>String(order?.id)===String(selectedPendingId) && String(order?.status||'PENDING').toUpperCase()==='PENDING') || null;
+  const selectedPending = pendingOrders.find(order=>String(order?.id??order?.orderId)===String(selectedPendingId) && ['PENDING','ACCEPTED','TRIGGERED'].includes(String(order?.status||'PENDING').toUpperCase())) || null;
   const lastManagedAccountId = useRef(activeAccountId);
   useEffect(() => {
     if (lastManagedAccountId.current === activeAccountId) return;
@@ -424,7 +424,7 @@ export default function DesktopTerminal({
     if (!positions.some(position => String(position?.id) === String(selectedPositionId))) setSelectedPositionId(null);
   }, [positions, selectedPositionId]);
   useEffect(()=>{
-    if(selectedPendingId!=null&&!pendingOrders.some(order=>String(order?.id)===String(selectedPendingId)&&String(order?.status||'PENDING').toUpperCase()==='PENDING')){
+    if(selectedPendingId!=null&&!pendingOrders.some(order=>String(order?.id??order?.orderId)===String(selectedPendingId)&&['PENDING','ACCEPTED','TRIGGERED'].includes(String(order?.status||'PENDING').toUpperCase()))){
       setSelectedPendingId(null);setPendingOrderDraft(null);
     }
   },[pendingOrders,selectedPendingId]);
@@ -459,10 +459,10 @@ export default function DesktopTerminal({
   const selectPending = orderOrId => {
     const id=typeof orderOrId==='object'?orderOrId?.id:orderOrId;
     if(id==null){setSelectedPendingId(null);setPendingOrderDraft(null);return;}
-    const order=pendingOrders.find(item=>String(item?.id)===String(id)&&String(item?.status||'PENDING').toUpperCase()==='PENDING');
+    const order=pendingOrders.find(item=>String(item?.id??item?.orderId)===String(id)&&['PENDING','ACCEPTED','TRIGGERED'].includes(String(item?.status||'PENDING').toUpperCase()));
     if(!order)return;
     if(positionProtectionSaving)return setNotice('Wait for the current protection save before switching orders.');
-    setSelectedPendingId(order.id);
+    setSelectedPendingId(order.id??order.orderId);
     setSelectedPositionId(null);
     setPendingOrderDraft(null);
     setPositionEditRequest(null);
