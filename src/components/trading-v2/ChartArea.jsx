@@ -413,6 +413,17 @@ function PendingOrderOverlay({
 
   return (
     <div ref={layerRef} className="pointer-events-none absolute inset-0 z-[28] overflow-hidden">
+      {desktopStyle && activeOrders.length === 1 && activeOrders.map(order => {
+        const anchor = chartEntryReference({ pending: true, orderType: order.orderType, entry: order.entry, limitPrice: order.limitPrice });
+        const at = coordinateApi.priceToY(anchor);
+        if (!Number.isFinite(at)) return null;
+        return ['sl', 'tp'].map(field => {
+          const y = coordinateApi.priceToY(Number(order[field]));
+          if (!Number.isFinite(y) || !Number.isFinite(Number(order[field])) || Number(order[field]) <= 0) return null;
+          return <div key={`pending-zone:${field}`} className="pointer-events-none absolute left-[44%] right-0"
+            style={{ top: Math.min(y, at), height: Math.abs(y - at), background: field === 'sl' ? 'rgba(187,48,65,0.10)' : 'rgba(28,143,106,0.10)' }} />;
+        });
+      })}
       {activeOrders.flatMap(order => {
         const rawEntry = Number(order.entry);
         const entryPreviewKey = `${order.id}:entry`;
@@ -603,6 +614,28 @@ function PendingOrderOverlay({
           renderProtectionLine(order, 'sl', '#ff5968', 'SL'),
           renderProtectionLine(order, 'tp', '#35d79d', 'TP'),
         ].filter(Boolean);
+      })}
+      {desktopStyle && Object.entries(previewPrices).map(([key, requested]) => {
+        const fieldSeparator = key.lastIndexOf(':');
+        if (fieldSeparator < 0) return null;
+        const orderId = key.slice(0, fieldSeparator);
+        const field = key.slice(fieldSeparator + 1);
+        const order = activeOrders.find(item => String(item.id) === orderId);
+        const level = Number(requested);
+        const y = coordinateApi.priceToY(level);
+        if (!order || !Number.isFinite(level) || level <= 0 || !Number.isFinite(y)) return null;
+        const color = field === 'sl' ? '#ff5968' : field === 'tp' ? '#35d79d' : field === 'limitPrice' ? '#b58cff' : '#d7a455';
+        const label = field === 'sl' ? 'Stop loss' : field === 'tp' ? 'Take profit' : field === 'limitPrice' ? 'Limit' : String(order.orderType || '').toLowerCase().includes('stop') ? 'Stop' : 'Entry';
+        return (
+          <div key={`pending-preview:${key}`} className="pointer-events-none absolute left-0 right-0 z-[29]" style={{ top: y }}>
+            <div className={chartLineStyle({ preview: true }) === 'dotted' ? 'relative border-t-2 border-dotted' : 'relative border-t'} style={{ borderColor: color }}>
+              <ChartLevelBadge label={label} price={formatInstrumentPrice(level, instrument)} color={color} tooltip="Drag preview: changes are not active until the server accepts them." />
+              <span className="absolute right-[56px] top-1/2 -translate-y-1/2 rounded border px-1.5 py-0.5 font-mono text-[9px] font-semibold lg:right-2" style={{ borderColor: color, backgroundColor: '#111419', color }}>
+                {formatInstrumentPrice(level, instrument)}
+              </span>
+            </div>
+          </div>
+        );
       })}
     </div>
   );
@@ -1544,7 +1577,7 @@ export default function ChartArea({
           />
         )}
         <ClosedPositionChartOverlay symbol={symbol} position={historicalPosition} coordinateApi={coordinateApi} instrument={instrument} onClear={onClearHistoricalPosition} />
-        {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} onMove={onMovePending} desktopStyle={desktopEnhanced && !mobileOverlayStyle} />}
+        {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} onMove={onMovePending} desktopStyle={desktopEnhanced && !mobileOverlayStyle} account={account} accountCurrency={accountCurrency} />}
         <OpenPositionEntryOverlay symbol={symbol} positions={positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} />
         <OpenPositionProtectionOverlay
           symbol={symbol}
