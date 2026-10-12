@@ -1088,7 +1088,7 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
   );
 }
 
-export function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, instrument, onUpdatePosition = () => {}, onRemoveProtection = () => {}, onRequestProtectionChange = null, selectedPositionId = null, onSelectPosition = () => {}, hoveredPositionId = null, onHoverPosition = () => {}, mobileStyle = false, desktopStyle = false }) {
+export function OpenPositionProtectionOverlay({ symbol, positions = [], coordinateApi, instrument, onUpdatePosition = () => {}, onRemoveProtection = () => {}, onRequestProtectionChange = null, editingProtection = null, selectedPositionId = null, onSelectPosition = () => {}, hoveredPositionId = null, onHoverPosition = () => {}, mobileStyle = false, desktopStyle = false }) {
   const layerRef = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [preview, setPreview] = useState({});
@@ -1183,12 +1183,17 @@ export function OpenPositionProtectionOverlay({ symbol, positions = [], coordina
     const currency = position?.pnlCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || 'USD';
     const selected = String(selectedPositionId) === String(position.id);
     const active = selected || (dragging?.positionId === position.id && dragging?.kind === kind);
+    const editingThisLevel = desktopStyle && String(editingProtection?.positionId || '') === String(position.id)
+      && editingProtection?.activeField === kind;
+    const previewingThisLevel = desktopStyle && dragging?.positionId === position.id
+      && dragging?.kind === kind && Object.prototype.hasOwnProperty.call(preview, key);
+    const showAcceptedBadge = !editingThisLevel && !previewingThisLevel;
     const groupActive = desktopStyle && hoveredPositionId != null && String(hoveredPositionId) === String(position.id);
 
     if (!mobileStyle) {
       const displayPrice = value => formatInstrumentPrice(value, instrument);
       const pips = positionDistancePips(position, price, instrument);
-      const previewText = active
+      const previewText = desktopStyle ? displayPrice(price) : active
         ? (projectedPnl == null
             ? `${displayPrice(price)} · ${pips?.toFixed(1) ?? '—'}p`
             : `${displayPrice(price)} · ${formatProjectedPnl(projectedPnl, currency)} · ${pips?.toFixed(1) ?? '—'}p`)
@@ -1197,8 +1202,7 @@ export function OpenPositionProtectionOverlay({ symbol, positions = [], coordina
       return (
         <div key={key} className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: y }}>
           <div className="relative h-px transition-[box-shadow] duration-150" style={{ backgroundColor: color, boxShadow: groupActive ? `0 0 8px ${color}90` : undefined }}>
-            {desktopStyle ? (
-            <ChartLevelBadge
+            {desktopStyle ? (showAcceptedBadge && <ChartLevelBadge
               label={kind === 'sl' ? 'Stop loss' : 'Take profit'}
               price={displayPrice(price)}
               groupActive={groupActive}
@@ -1210,6 +1214,8 @@ export function OpenPositionProtectionOverlay({ symbol, positions = [], coordina
               tooltip="Estimated P&L at this protection level, excluding possible slippage and costs."
               onPointerDown={event => { event.preventDefault(); event.stopPropagation(); onSelectPosition(position.id); setDragging({ positionId: position.id, kind }); }}
               onClick={event => { event.stopPropagation(); onSelectPosition(position.id); }}
+              onRemove={() => onRemoveProtection(position.id, kind)}
+              removeLabel={`Remove ${kind === 'sl' ? 'Stop loss' : 'Take profit'} from position`}
             />
             ) : (
               <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-[4px] border px-1.5 py-0.5 text-[8px] font-black"
@@ -1309,11 +1315,18 @@ export function OpenPositionProtectionOverlay({ symbol, positions = [], coordina
         if (!activePositions.some(position => String(position.id) === positionId)) return null;
         const price = Number(candidate);
         const y = coordinateApi.priceToY(price);
-        if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(y)) return null;
+        const position = activePositions.find(item => String(item.id) === positionId);
+        if (!position || !Number.isFinite(price) || price <= 0 || !Number.isFinite(y)) return null;
         const color = kind === 'sl' ? '#ff5968' : '#35d79d';
+        const currency = position.pnlCurrency || instrument?.pnlCurrency || instrument?.quoteCurrency || 'USD';
+        const estimate = estimatePositionPnlAtPrice(position, price, instrument);
         return <div key={`protection-preview:${key}`} className="pointer-events-none absolute left-0 right-0 z-30" style={{ top: y }}>
           <div className="relative border-t-2 border-dotted" style={{ borderColor: color }}>
-            <ChartLevelBadge label={kind === 'sl' ? 'Stop loss' : 'Take profit'} price={formatInstrumentPrice(price, instrument)} color={color} tooltip="Preview only until the update is accepted." />
+            <ChartLevelBadge label={kind === 'sl' ? 'Stop loss' : 'Take profit'}
+              price={formatInstrumentPrice(price, instrument)}
+              amount={chartEstimateCurrencySupported(instrument, currency) && Number.isFinite(estimate) ? formatPositionPnl(estimate, currency) : null}
+              percent={chartPriceChangePercent(position.entry ?? position.entryPrice, price)}
+              color={color} tooltip="Preview only. This price is not applied until confirmed." />
             <span className="absolute right-[56px] top-1/2 -translate-y-1/2 rounded border px-1.5 py-0.5 font-mono text-[9px] lg:right-2" style={{ borderColor: color, color, backgroundColor: '#111419' }}>{formatInstrumentPrice(price, instrument)}</span>
           </div>
         </div>;
