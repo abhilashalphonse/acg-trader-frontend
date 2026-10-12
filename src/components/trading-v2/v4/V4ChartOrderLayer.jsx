@@ -53,6 +53,7 @@ function Badge({level,offset=0,instrument,account,currency,hovered,selected,
     : [];
   return <div
     data-v4-badge={level.key}
+    data-v4-badge-owner={level.owner}
     data-v4-badge-state={isDraft?'draft':'accepted'}
     className={'pointer-events-auto absolute right-[148px] z-30 flex h-[27px] max-w-[calc(100%-162px)] -translate-y-1/2 items-center gap-1 overflow-hidden rounded-[4px] border bg-[#111419]/95 pl-2 pr-7 font-mono text-[10px] font-semibold tabular-nums text-[#d6e0e8] shadow-[0_3px_12px_rgba(0,0,0,.32)] backdrop-blur-sm '+(hovered||selected?'ring-1 ring-white/30':'')}
     style={{top:offset,borderColor:color+'a5'}}
@@ -152,7 +153,6 @@ export default function V4ChartOrderLayer({
   if(edit&&active&&v4ValidEditPrice(edit.price)!=null)forLayout.push({...active,key:'preview:'+active.key,y:coordinateApi.priceToY(edit.price)});
   const layout=v4LayoutBadges(forLayout,height);
   const offsets=new Map(layout.map(item=>[item.key,item.deltaY]));
-  const currentLevel=level=>byKey.get(level.key);
 
   useEffect(()=>{
     const priceFrom=event=>{
