@@ -20,6 +20,7 @@ import {defaultPlannerStopDistance, estimateOpeningRequirement, estimateStopRisk
 import { exposureAvailability } from '../utils/exposureAvailability.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../utils/instrumentFormatting.js';
 import { normalizeTradePlanPatch } from '../utils/tradePlanNormalization.js';
+import { buildChartPendingAmendment } from '../utils/pendingOrderChartMove.js';
 import { DEFAULT_RISK_GUARD_SETTINGS, evaluateRiskGuard } from '../utils/riskGuard.js';
 import { createDefaultTradePlan, effectiveTradePlan, validateTradePlanForExecution } from '../utils/tradePlanExecution.js';
 import { estimateExecutionPrice, resolveExecutionPreview } from '../utils/executionPricing.js';
@@ -1246,30 +1247,8 @@ export default function TradingTerminalV2({
     const numericPrice = Number(nextPrice);
     if (!Number.isFinite(numericPrice) || numericPrice <= 0) return;
 
-    const replacement = {
-      entry: order.entry,
-      volume: order.volume ?? order.lots,
-      stopLoss: order.sl,
-      takeProfit: order.tp,
-      timeInForce: order.expiration || 'GTC',
-      expiresAt: order.expiresAt || null,
-    };
-
-    if (field === 'sl') replacement.stopLoss = numericPrice;
-    else if (field === 'tp') replacement.takeProfit = numericPrice;
-    else if (field === 'limitPrice' && String(order.orderType || '').toLowerCase() === 'stop-limit') {
-      // Only the execution limit changes; the stop trigger is independent.
-      replacement.limitPrice = numericPrice;
-    } else {
-      replacement.entry = numericPrice;
-      if (
-        String(order.orderType || '').toLowerCase() === 'stop-limit'
-        && Number.isFinite(Number(order.entry))
-        && Number.isFinite(Number(order.limitPrice))
-      ) {
-        replacement.limitPrice = Number(order.limitPrice) + (numericPrice - Number(order.entry));
-      }
-    }
+    const replacement = buildChartPendingAmendment(order, numericPrice, field);
+    if (!replacement) return;
 
     try {
       await trading.replacePendingOrder(id, replacement);
