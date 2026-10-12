@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import DesktopOrderTicket from './desktop/DesktopOrderTicket.jsx';
 import DesktopOrderTicketV4 from './desktop/DesktopOrderTicketV4.jsx';
+import DesktopManagePositionV4 from './desktop/DesktopManagePositionV4.jsx';
 import './desktop/DesktopTerminal.theme.css';
 import DesktopPositionManager from './desktop/DesktopPositionManager.jsx';
 import DesktopMultiChart from './desktop/DesktopMultiChart.jsx';
@@ -420,6 +421,10 @@ export default function DesktopTerminal({
     if (!position) return;
     setSelectedPositionId(position.id);
     setPositionEditRequest(null);
+    // Chart and dock selection reveal the same Trade sidebar; a new position
+    // never stacks a separate position drawer beneath the execution ticket.
+    setActiveNav('trade');
+    setDesktopLayout(current => ({ ...current, sidebarCollapsed:false }));
     if (position.symbol && position.symbol !== activeSymbol) onSelectSymbol(position.symbol);
   };
 
@@ -1224,7 +1229,22 @@ export default function DesktopTerminal({
                 <>
                   <div className="min-h-0 flex-1">
 <React.Fragment>
-                      {V4_DESKTOP_EXECUTION_ENABLED ? (
+                      {V4_DESKTOP_EXECUTION_ENABLED ? (selectedPosition ? (
+                        <DesktopManagePositionV4
+                          key={`v4-manage-position-${account?.id || 'none'}-${selectedPosition.id}`}
+                          position={selectedPosition}
+                          instrument={markets.find(item => item.symbol === selectedPosition.symbol) || market}
+                          account={account} protectionDraft={positionProtectionDraft}
+                          protectionSaving={positionProtectionSaving}
+                          onBeginProtection={field => editPositionProtection(selectedPosition.id,field)}
+                          onProtectionDraftChange={onPositionProtectionDraftChange}
+                          onApplyProtection={onApplyPositionProtection}
+                          onCancelProtection={onCancelPositionProtection}
+                          onUpdateProtection={updateDesktopProtection}
+                          onNotice={setNotice} readOnly={readOnly}
+                          onDismiss={() => { setSelectedPositionId(null); setPositionEditRequest(null); onCancelPositionProtection(); }}
+                        />
+                      ) : (
                         <DesktopOrderTicketV4 key={`v4-order-ticket-${account?.id || 'none'}-${market?.symbol || 'none'}`}
                           market={market} account={account} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason}
                           lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange}
@@ -1236,12 +1256,12 @@ export default function DesktopTerminal({
                           onOpenMarkets={() => openMarketPanel('markets', true)}
                           onCloseTicket={() => setDesktopLayout(current => ({ ...current, sidebarCollapsed: true }))}
                         />
-                      ) : (
+                      )) : (
                         <DesktopOrderTicket key={`order-ticket-${account?.id || 'none'}`} market={market} account={account} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} orderExecutionPreview={orderExecutionPreview} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} onNotice={setNotice}/>
                       )}
                     </React.Fragment>
                   </div>
-                  {selectedPosition && (
+                  {selectedPosition && !V4_DESKTOP_EXECUTION_ENABLED && (
                     <div className="acg-motion-panel-stack max-h-[46%] shrink-0 overflow-y-auto [scrollbar-width:thin]">
                       <DesktopPositionManager
                         position={selectedPosition}
