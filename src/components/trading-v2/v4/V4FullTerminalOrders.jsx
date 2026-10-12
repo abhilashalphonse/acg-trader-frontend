@@ -13,6 +13,7 @@ export default function V4FullTerminalOrders({
   renderPositionEntries = null, hoveredPositionId = null,
   onUpdatePosition, onRemovePositionProtection, onMovePending,
   onRequestPositionProtection, onCancelPositionProtection,
+  onPositionProtectionDraftChange,
   onSelectPosition, onClosePosition, onCancelPending,
 }) {
   const accountId = account?.id == null ? null : String(account.id);
@@ -60,6 +61,18 @@ export default function V4FullTerminalOrders({
     }, 12000);
     return () => window.clearTimeout(timeout);
   }, [removing]);
+
+  const hadParentDraft = useRef(false);
+  useEffect(() => {
+    const exists = Boolean(positionProtectionDraft);
+    // Panel Confirm/Discard clears the parent's authoritative draft. Also
+    // clear a chart-originated local preview; no orphaned dotted line remains.
+    if (!exists && hadParentDraft.current && edit?.objectType === 'position' && !awaiting) {
+      setEdit(null);
+      setError('');
+    }
+    hadParentDraft.current = exists;
+  }, [positionProtectionDraft, edit?.objectType, awaiting]);
 
   const parentEdit = useMemo(() => {
     const parent = positionProtectionDraft;
@@ -119,8 +132,26 @@ export default function V4FullTerminalOrders({
     setEdit({ ...value, proposedPrice: value.proposedPrice ?? value.confirmedPrice });
     setError('');
     setAwaiting(null);
-    if (parentEdit) onCancelPositionProtection?.();
-  }, [parentEdit, onCancelPositionProtection, saving, isNewOrderPlanning]);
+    if (parentEdit &&
+        (value.objectType !== 'position' || String(parentEdit.objectId)!==String(value.objectId) || parentEdit.kind!==value.kind)) {
+      onCancelPositionProtection?.();
+    }
+    if (value.objectType === 'position' && ['tp','sl'].includes(value.kind)) {
+      // Selecting/draging a chart protection switches the very same sidebar
+      // into Manage Position and creates a shared position draft.
+      onRequestPositionProtection?.(value.objectId,value.kind,value.proposedPrice);
+    }
+  }, [parentEdit, onCancelPositionProtection, onRequestPositionProtection, saving, isNewOrderPlanning]);
+
+  const changeEdit = useCallback(value => {
+    setEdit(value);
+    if (value?.objectType === 'position' && ['sl','tp'].includes(value.kind) &&
+        Number.isFinite(Number(value.proposedPrice))) {
+      onPositionProtectionDraftChange?.({
+        [value.kind]:Number(value.proposedPrice),activeField:value.kind,stage:'draft',
+      });
+    }
+  }, [onPositionProtectionDraftChange]);
 
   const discard = () => {
     if (saving) return;
@@ -268,7 +299,7 @@ export default function V4FullTerminalOrders({
       edit={activeEdit} saving={saving} removingLevelId={removing?.id || null} hoveredPositionId={hoveredPositionId}
       hidePositionEntries readOnly={isNewOrderPlanning}
       instrument={instrument} accountCurrency={account?.currency || 'USD'}
-      onBeginEdit={isNewOrderPlanning ? null : begin} onChangeEdit={isNewOrderPlanning ? null : setEdit}
+      onBeginEdit={isNewOrderPlanning ? null : begin} onChangeEdit={isNewOrderPlanning ? null : changeEdit}
       onSaveEdit={isNewOrderPlanning ? null : confirm} onCancelEdit={isNewOrderPlanning ? null : discard}
       onAddProtection={isNewOrderPlanning ? null : beginProtection}
       onRemoveProtection={isNewOrderPlanning ? null : remove}
