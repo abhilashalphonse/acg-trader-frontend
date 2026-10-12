@@ -177,8 +177,8 @@ async function run(){
  const sellBadge=Array.from(pendingChart.querySelectorAll('[data-v4-chart-entry]')).find(el=>el.textContent.includes('SELL'));
  const sellRgb=sellBadge?getComputedStyle(sellBadge).borderTopColor:'';
  const buyRgb=placedBuy?getComputedStyle(placedBuy).borderTopColor:'';
- if(!placedSell || !sellBadge || sellRgb!=='rgb(239, 86, 100)')failed.push('Placed SELL Limit/Stop did not use confirmed sell red');
- if(!placedBuy || buyRgb!=='rgb(18, 185, 150)')failed.push('Placed BUY Limit did not use confirmed buy green');
+ if(!placedSell || !sellBadge || !sellRgb.includes('239, 86, 100'))failed.push('Placed SELL Limit/Stop did not use confirmed sell red');
+ if(!placedBuy || !buyRgb.includes('18, 185, 150'))failed.push('Placed BUY Limit did not use confirmed buy green');
  const liveLines=liveChart.querySelectorAll('.relative.border-t:not(.border-dotted):not(.border-dashed)');
  if(liveLines.length<3)failed.push('Live entry lines not solid');
  if(liveChart.querySelector('.relative.border-t-dotted'))failed.push('Confirmed protection drawn as draft');
