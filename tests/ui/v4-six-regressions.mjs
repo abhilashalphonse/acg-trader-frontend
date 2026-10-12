@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
+import process from 'node:process';
 const { chromium }=createRequire(import.meta.url)('playwright');
 const browser=await chromium.launch({headless:true,channel:'chrome',args:['--no-sandbox']});
 const page=await browser.newPage({viewport:{width:1320,height:850}});
@@ -9,7 +10,6 @@ page.on('pageerror',e=>errors.push(e.message));
 const ok=(condition,message)=>{assert.ok(condition,message);checks++;};
 const eq=(a,b,message)=>{assert.equal(a,b,message);checks++;};
 const wait=()=>page.waitForTimeout(100);
-const chart=()=>page.locator('[data-v4-full-terminal-fixture]');
 const badge=id=>page.locator('[data-v4-badge="qa-account:'+id+'"]');
 const accepted=id=>page.locator('[data-v4-accepted-line="qa-account:'+id+'"]');
 const drag=async (selector,dy)=>{
