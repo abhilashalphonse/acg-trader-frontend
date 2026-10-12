@@ -57,9 +57,56 @@ try{
  eq(await markets.getByRole('textbox',{name:'Search markets input'}).isVisible(),false,'search hidden by default');
  eq(await markets.locator('[data-market-symbol]').count(),6,'All contains every available instrument');
  ok((await markets.locator('[data-market-symbol="AUDCAD"]').innerText()).includes('Spread'),
-   'Forex row retains Bid/Ask/Spread');
+   'Forex row retains visible Spread');
+ eq(await markets.locator('[data-market-symbol] .acg-v4-market-avatar').count(),6,'Every market row preserves its instrument icon');
+ eq(await markets.locator('[data-market-symbol] button').count(),6,'Exactly one chart-navigation action per row');
+ eq(await markets.locator('[data-market-symbol] [aria-label*="watchlist"]').count(),0,
+    'No redundant row Favorites star; the chart-header star owns saved-state changes');
+ eq(await markets.locator('[data-v4-market-header]').count(),1,'One fixed price header');
+ eq(await markets.getByText('BID / LAST',{exact:true}).count(),1,'Mixed-markets header labels Bid / Last');
+ eq(await markets.getByText('ASK',{exact:true}).count(),1,'Mixed-markets header labels Ask');
+ eq(await markets.getByText('CHG %',{exact:true}).count(),1,'Daily change has its own column');
+ const compactGeometry=async width=>{
+   await markets.evaluate((el,w)=>{el.style.width=w+'px';},width);
+   const geom=await markets.evaluate(el=>{
+     const panel=el.querySelector('[data-v4-market-scroll]');
+     const row=el.querySelector('[data-market-symbol="EURUSD"] .acg-v4-market-row');
+     const bid=row.querySelector('[data-v4-bid]'),ask=row.querySelector('[data-v4-ask]'),change=row.querySelector('[data-v4-change]');
+     const title=row.querySelector('.acg-v4-market-symbol'),icon=row.querySelector('.acg-v4-market-avatar');
+     const header=panel.querySelector('[data-v4-market-header]');
+     const headerBid=header.querySelector('.acg-v4-market-col-bid-label');
+     const rect=x=>{const r=x.getBoundingClientRect();return {l:r.left,r:r.right,w:r.width,h:r.height};};
+     return {width:el.clientWidth,scroll:el.scrollWidth,scrollInner:panel.scrollWidth,scrollView:panel.clientWidth,
+       row:rect(row),bid:rect(bid),ask:rect(ask),change:rect(change),icon:rect(icon),title:rect(title),
+       headerBid:rect(headerBid),bidText:bid.textContent,askText:ask.textContent,
+       changeText:change.textContent,rowHeight:row.getBoundingClientRect().height,
+       iconSize:icon.getBoundingClientRect().width,
+       cssGrid:getComputedStyle(row).gridTemplateColumns,
+       font:getComputedStyle(bid).fontFamily,
+       tabular:getComputedStyle(bid).fontVariantNumeric,
+     };
+   });
+   ok(geom.scroll<=geom.width+1,`Market panel does not overflow ${width}px dock`);
+   ok(geom.scrollInner<=geom.scrollView+1,`Market data grid does not horizontally scroll at ${width}px`);
+   ok(geom.iconSize>=22&&geom.iconSize<=24,`Instrument icon remains 23px at ${width}px`);
+   ok(geom.rowHeight>=60&&geom.rowHeight<=65,`Market row stays ~62px at ${width}px`);
+   ok(geom.bid.l>=geom.title.r+2,`Bid does not collide with instrument at ${width}px`);
+   ok(geom.ask.l>=geom.bid.r+3,`Ask column follows Bid at ${width}px`);
+   ok(geom.change.l>=geom.ask.r+3,`Change column follows Ask at ${width}px`);
+   ok(Math.abs(geom.headerBid.r-geom.bid.r)<=1,`Bid aligns to column header at ${width}px`);
+   ok(geom.tabular.includes('tabular-nums'),`Quotes use tabular numerals at ${width}px`);
+ };
+ await compactGeometry(340);
+ await compactGeometry(320);
+ await markets.evaluate(el=>{el.style.width='340px';});
  await markets.getByRole('button',{name:'Forex',exact:true}).click();
  eq(await markets.locator('[data-market-symbol]').count(),2,'Forex filters correct symbols');
+ eq(await markets.getByText('BID',{exact:true}).count(),1,'Forex category has explicit Bid header');
+ eq(await markets.getByText('ASK',{exact:true}).count(),1,'Forex category has explicit Ask header');
+ eq(await markets.locator('[data-market-symbol="AUDCAD"] .acg-v4-market-subtitle').innerText().then(s=>s.startsWith('Spread ')),true,
+   'Forex subtitle shows spread, not duplicate currency-pair text');
+ eq(await markets.locator('[data-market-symbol="AUDCAD"] [data-v4-change]').innerText(),'-0.30%',
+   'Forex row shows signed daily change');
  await markets.getByRole('button',{name:'Search markets',exact:true}).click();
  eq(await markets.getByRole('textbox',{name:'Search markets input'}).isVisible(),true,'search opens only on demand');
  await markets.getByRole('textbox',{name:'Search markets input'}).fill('AUD/CAD');
@@ -67,8 +114,10 @@ try{
  eq(await markets.locator('[data-market-symbol="AUDCAD"]').count(),1,'slash formatted cross-pair matches');
  await markets.getByRole('button',{name:'Open AUD/CAD chart'}).click();
  eq(await page.evaluate(()=>window.v4MarketsQA.selected),'AUDCAD','chart selection unchanged');
- await markets.getByRole('button',{name:'Add AUDCAD to watchlist'}).click();
- ok(await page.evaluate(()=>window.v4MarketsQA.saved.includes('AUDCAD')),'existing Watchlist save callback unchanged');
+ await page.evaluate(()=>window.v4MarketsQA.setSaved(old=>[...old,'AUDCAD']));
+ await page.waitForFunction(()=>window.v4MarketsQA.saved.includes('AUDCAD'));
+ ok(await page.evaluate(()=>window.v4MarketsQA.saved.includes('AUDCAD')),'external chart-header favorite updates preserved in Markets');
+ eq(await markets.locator('[data-market-symbol="AUDCAD"] [aria-label*="watchlist"]').count(),0,'row remains free of Favorite star');
  await markets.getByRole('button',{name:'Close search'}).click();
  eq(await markets.getByRole('textbox',{name:'Search markets input'}).isVisible(),false,'search closes after review');
  eq(await markets.locator('[data-market-symbol]').count(),2,'closing search clears hidden filter');
@@ -85,6 +134,11 @@ try{
  eq(await markets.getByRole('button',{name:'US',exact:true}).count(),1);
  eq(await markets.getByRole('button',{name:'India',exact:true}).count(),1);
  eq(await markets.locator('[data-market-symbol="AAPL"]').count(),1,'US stocks shows US equities');
+ eq(await markets.getByText('LAST',{exact:true}).count(),1,'Stocks use a single Last Price heading');
+ eq(await markets.locator('[data-market-symbol="AAPL"] [data-v4-last]').count(),1,'stock row uses last price instead of fake bid and ask');
+ eq(await markets.locator('[data-market-symbol="AAPL"] [data-v4-bid]').count(),0,'stock row does not manufacture bid');
+ eq(await markets.locator('[data-market-symbol="AAPL"] [data-v4-change]').innerText(),'+1.25%',
+   'stocks keep context-appropriate change percentage');
  eq(await markets.locator('[data-market-symbol="NIFTY"]').count(),0,'India index is not mislabeled a stock');
  ok((await markets.locator('[data-market-symbol="AAPL"]').innerText()).includes('+1.25%'),
    'equity row presentation unchanged');

@@ -189,7 +189,7 @@ function V4MarketsQA(){
  }),[symbols]);
  window.v4MarketsQA={get selected(){return selected;},get saved(){return saved;},
   get viewed(){return viewed;},get subscribedSymbols(){return activeSubs;},get mode(){return mode;},
-  setMode};
+  setMode,setSaved};
  return <DesktopWatchlist markets={MARKETS_QA} activeSymbol={selected} mode={mode}
   onSelectSymbol={symbol=>{setSelected(symbol);setViewed(list=>[...list,symbol]);}}
   onModeChange={setMode} onClose={()=>setMode('watchlist')}
