@@ -30,7 +30,7 @@
 .acg-v4-positions .v4-positions-tabs::-webkit-scrollbar{display:none}
 .acg-v4-positions .v4-positions-tab {
   position:relative;display:inline-flex;align-items:center;white-space:nowrap;gap:8px;
-  min-height:48px;padding:0;color:var(--v4p-secondary);
+  min-height:47px;padding:0;color:var(--v4p-secondary);
   font-size:12px;line-height:20px;font-weight:500;border:0;background:transparent;
 }
 .acg-v4-positions .v4-positions-tab.is-active{
