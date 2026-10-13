@@ -88,7 +88,7 @@ try{
   await dock.getByRole('button',{name:'Execution',exact:true}).click();
   eq(await ids(),originalIds,'Execution retains same rows');
   await dock.getByRole('button',{name:'Expand execution details for BTC/USD'}).click();
-  ok((await dock.locator('[data-v4-position-detail="position-btc-2"]').innerText()).includes('No position-specific activity records available.'),
+  ok((await dock.locator('[data-v4-position-detail="position-btc-2"]').innerText()).includes('No verified execution records available.'),
     'Unavailable backend activity is not invented');
   const geometry=await dock.evaluate(el=>{
     const rect=selector=>el.querySelector(selector).getBoundingClientRect();
