@@ -399,6 +399,27 @@ export default function DesktopTerminal({
   const [indicatorPanelOpen, setIndicatorPanelOpen] = useState(false);
   const [indicatorFocusId, setIndicatorFocusId] = useState(null);
   const [objectManagerOpen, setObjectManagerOpen] = useState(false);
+  // Single active desktop overlay in the V4 owner audit; legacy logic stays intact.
+  const [v4HeaderMenu, setV4HeaderMenu] = useState(null);
+  const v4IsOpen = (name, legacy) => V4_DESKTOP_EXECUTION_ENABLED ? v4HeaderMenu === name : legacy;
+  const v4Toggle = (name, setter) => {
+    if (V4_DESKTOP_EXECUTION_ENABLED) setV4HeaderMenu(previous => previous === name ? null : name);
+    else setter(previous => !previous);
+  };
+  const v4Close = () => { if (V4_DESKTOP_EXECUTION_ENABLED) setV4HeaderMenu(null); };
+  useEffect(() => {
+    if (!V4_DESKTOP_EXECUTION_ENABLED || !v4HeaderMenu) return undefined;
+    const keydown = event => { if (event.key === 'Escape') setV4HeaderMenu(null); };
+    const pointerdown = event => {
+      if (!event.target.closest('.acg-v4-header, [data-v4-chart-settings]')) setV4HeaderMenu(null);
+    };
+    document.addEventListener('keydown', keydown);
+    document.addEventListener('pointerdown', pointerdown);
+    return () => {
+      document.removeEventListener('keydown', keydown);
+      document.removeEventListener('pointerdown', pointerdown);
+    };
+  }, [v4HeaderMenu]);
   const [multiChart, setMultiChart] = useState(() => loadMultiChart(activeSymbol, timeframe, indicators));
   const selectedPosition = positions.find(position => String(position?.id) === String(selectedPositionId)) || null;
   const selectedPending = pendingOrders.find(order=>String(order?.id??order?.orderId)===String(selectedPendingId) && ['PENDING','ACCEPTED','TRIGGERED'].includes(String(order?.status||'PENDING').toUpperCase())) || null;
@@ -1037,12 +1058,12 @@ export default function DesktopTerminal({
           </div>
           <div className="acg-v4-header-tools ml-1.5 flex h-full shrink-0 items-center gap-1.5" role="group" aria-label="Chart tools">
             <div className="relative">
-              <button type="button" data-v4-header-tool="chart-type" aria-label={V4_DESKTOP_EXECUTION_ENABLED ? 'Chart type' : undefined} aria-expanded={chartMenuOpen} onClick={() => setChartMenuOpen(value => !value)} className={chartMenuOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#C9CDD2]/60 bg-[#222427] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title={V4_DESKTOP_EXECUTION_ENABLED ? 'Chart type' : 'Chart settings'}><CandlestickChart size={V4_DESKTOP_EXECUTION_ENABLED ? 18 : 12}/><span className="acg-v4-header-tool-label">Charts</span><ChevronDown className="acg-v4-header-tool-chevron" size={10}/></button>
-              {chartMenuOpen && (
-                <div className="acg-motion-popover absolute right-0 top-8 z-[100] w-[205px] rounded-md border border-white/[0.10] bg-[#111113] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+              <button type="button" data-v4-header-tool="chart-type" aria-label={V4_DESKTOP_EXECUTION_ENABLED ? 'Chart type' : undefined} aria-expanded={v4IsOpen('chart',chartMenuOpen)} onClick={() => v4Toggle('chart',setChartMenuOpen)} className={chartMenuOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#C9CDD2]/60 bg-[#222427] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title={V4_DESKTOP_EXECUTION_ENABLED ? 'Chart type' : 'Chart settings'}><CandlestickChart size={V4_DESKTOP_EXECUTION_ENABLED ? 18 : 12}/><span className="acg-v4-header-tool-label">Charts</span><ChevronDown className="acg-v4-header-tool-chevron" size={10}/></button>
+              {v4IsOpen('chart',chartMenuOpen) && (
+                <div data-v4-header-menu={V4_DESKTOP_EXECUTION_ENABLED ? 'chart' : undefined} className="acg-motion-popover absolute right-0 top-8 z-[100] w-[205px] rounded-md border border-white/[0.10] bg-[#111113] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
                   <div className="px-2 pb-1 pt-0.5 text-[7px] font-bold uppercase tracking-[0.08em] text-[#5f6d79]">Chart type</div>
-                  <button type="button" onClick={() => { onChartModeChange('candles'); setChartMenuOpen(false); }} className={chartMode === 'candles' ? "flex w-full items-center gap-2 rounded bg-[#24262A] px-2 py-2 text-left text-[8px] font-semibold text-[#C9CDD2]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><CandlestickChart size={12}/>Candlesticks</button>
-                  <button type="button" onClick={() => { onChartModeChange('line'); setChartMenuOpen(false); }} className={chartMode === 'line' ? "flex w-full items-center gap-2 rounded bg-[#24262A] px-2 py-2 text-left text-[8px] font-semibold text-[#C9CDD2]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><ChartNoAxesCombined size={12}/>Line</button>
+                  <button type="button" onClick={() => { onChartModeChange('candles'); setChartMenuOpen(false); v4Close(); }} className={chartMode === 'candles' ? "flex w-full items-center gap-2 rounded bg-[#24262A] px-2 py-2 text-left text-[8px] font-semibold text-[#C9CDD2]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><CandlestickChart size={12}/>Candlesticks</button>
+                  <button type="button" onClick={() => { onChartModeChange('line'); setChartMenuOpen(false); v4Close(); }} className={chartMode === 'line' ? "flex w-full items-center gap-2 rounded bg-[#24262A] px-2 py-2 text-left text-[8px] font-semibold text-[#C9CDD2]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><ChartNoAxesCombined size={12}/>Line</button>
                   {!V4_DESKTOP_EXECUTION_ENABLED && <>
                   <div className="my-1 border-t border-white/[0.06]"/>
                   <div className="px-2 pb-1 pt-0.5 text-[7px] font-bold uppercase tracking-[0.08em] text-[#5f6d79]">Chart grid</div>
@@ -1059,10 +1080,12 @@ export default function DesktopTerminal({
               )}
             </div>
             <div className="relative">
-              <button type="button" data-v4-header-tool="indicators" aria-label={V4_DESKTOP_EXECUTION_ENABLED ? 'Indicators' : undefined} aria-expanded={indicatorPanelOpen} onClick={() => { setIndicatorFocusId(null); setObjectManagerOpen(false); setIndicatorPanelOpen(value => !value); }} className={indicatorPanelOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#C9CDD2]/60 bg-[#222427] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title="Indicators"><span className="acg-v4-header-fx text-[11px] font-black">ƒx</span><span className="acg-v4-header-tool-label">Indicators</span>{indicators.length > 0 && <span className="acg-v4-header-indicator-count grid min-w-3 place-items-center rounded bg-[#181b20] px-1 text-[6px] text-[#aab5bf]">{indicators.length}</span>}<ChevronDown className="acg-v4-header-tool-chevron" size={10}/></button>
-              {indicatorPanelOpen && (
-                <div className="acg-motion-popover absolute right-0 top-8 z-[110] w-[390px] max-h-[min(680px,calc(100dvh-150px))] overflow-y-auto rounded-lg border border-white/[0.10] bg-[#09090B]/98 p-3 shadow-[0_24px_70px_rgba(0,0,0,.68)] backdrop-blur-xl [scrollbar-width:thin]">
-                  <div className="mb-3 flex items-center justify-between border-b border-white/[0.07] pb-2.5"><div><strong className="block text-[11px] text-[#EDF3F7]">Indicators</strong><span className="mt-0.5 block text-[8px] text-[#687D91]">Active chart · {activeSymbol} · {activeChartTimeframe}</span></div><button type="button" onClick={() => setIndicatorPanelOpen(false)} className="grid size-7 place-items-center rounded text-[#7D91A4] hover:bg-white/[0.04] hover:text-white"><X size={13}/></button></div>
+              <button type="button" data-v4-header-tool="indicators" aria-label={V4_DESKTOP_EXECUTION_ENABLED ? 'Indicators' : undefined} aria-expanded={v4IsOpen('indicators',indicatorPanelOpen)} onClick={() => {
+                setIndicatorFocusId(null); setObjectManagerOpen(false); v4Toggle('indicators',setIndicatorPanelOpen);
+              }} className={indicatorPanelOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#C9CDD2]/60 bg-[#222427] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title="Indicators"><span className="acg-v4-header-fx text-[11px] font-black">ƒx</span><span className="acg-v4-header-tool-label">Indicators</span>{indicators.length > 0 && <span className="acg-v4-header-indicator-count grid min-w-3 place-items-center rounded bg-[#181b20] px-1 text-[6px] text-[#aab5bf]">{indicators.length}</span>}<ChevronDown className="acg-v4-header-tool-chevron" size={10}/></button>
+              {v4IsOpen('indicators',indicatorPanelOpen) && (
+                <div data-v4-header-menu={V4_DESKTOP_EXECUTION_ENABLED ? 'indicators' : undefined} className="acg-motion-popover absolute right-0 top-8 z-[110] w-[390px] max-h-[min(680px,calc(100dvh-150px))] overflow-y-auto rounded-lg border border-white/[0.10] bg-[#09090B]/98 p-3 shadow-[0_24px_70px_rgba(0,0,0,.68)] backdrop-blur-xl [scrollbar-width:thin]">
+                  <div className="mb-3 flex items-center justify-between border-b border-white/[0.07] pb-2.5"><div><strong className="block text-[11px] text-[#EDF3F7]">Indicators</strong><span className="mt-0.5 block text-[8px] text-[#687D91]">Active chart · {activeSymbol} · {activeChartTimeframe}</span></div><button type="button" onClick={() => { setIndicatorPanelOpen(false); v4Close(); }} className="grid size-7 place-items-center rounded text-[#7D91A4] hover:bg-white/[0.04] hover:text-white"><X size={13}/></button></div>
                   <IndicatorManager desktop applied={indicators} favorites={indicatorFavorites} onAdd={onAddIndicator} onRemove={onRemoveIndicator} onToggleVisible={onToggleIndicator} onUpdate={onUpdateIndicator} onToggleFavorite={onToggleIndicatorFavorite} focusInstanceId={indicatorFocusId} onClearFocus={() => setIndicatorFocusId(null)}/>
                 </div>
               )}
@@ -1070,7 +1093,9 @@ export default function DesktopTerminal({
             <DesktopWorkspaceMenu snapshot={workspaceSnapshot} onApply={applyWorkspace}
               compact={V4_DESKTOP_EXECUTION_ENABLED} chartLayout={chartLayout} onChartLayoutChange={setChartLayout}
               chartLinked={chartLinked} onToggleChartLink={toggleChartLink}
-              onCopyIndicators={applyActiveIndicatorsToAllCharts} indicatorCount={indicators.length}/>
+              onCopyIndicators={applyActiveIndicatorsToAllCharts} indicatorCount={indicators.length}
+              open={V4_DESKTOP_EXECUTION_ENABLED ? v4HeaderMenu === 'layout' : undefined}
+              onOpenChange={V4_DESKTOP_EXECUTION_ENABLED ? next => setV4HeaderMenu(next ? 'layout' : null) : undefined}/>
           </div>
         </div>
 
@@ -1100,16 +1125,16 @@ export default function DesktopTerminal({
             <b className={valuationStatus === 'LIVE' ? "mt-0.5 block text-[8px] text-[#42D7A1]" : valuationStatus === 'STALE' ? "mt-0.5 block text-[8px] text-[#E7BD58]" : "mt-0.5 block text-[8px] text-[#A1AFBC]"}>{valuationStatus}</b>
           </div>
           <div className="relative">
-            <button type="button" data-v4-header-account onClick={() => setAccountMenuOpen(value => !value)} className="flex h-8 min-w-[176px] items-center gap-2 rounded-md border border-white/[0.07] bg-black/20 px-2.5 text-left hover:bg-white/[0.025]" aria-label="Switch trading account" aria-expanded={accountMenuOpen} title={account?.accountCode || 'Trading account'}>
+            <button type="button" data-v4-header-account onClick={() => v4Toggle('account',setAccountMenuOpen)} className="flex h-8 min-w-[176px] items-center gap-2 rounded-md border border-white/[0.07] bg-black/20 px-2.5 text-left hover:bg-white/[0.025]" aria-label="Switch trading account" aria-expanded={v4IsOpen('account',accountMenuOpen)} title={account?.accountCode || 'Trading account'}>
               {accountSwitching ? <Loader2 size={11} className="shrink-0 animate-spin text-[#C9CDD2]"/> : <span className={`acg-v4-header-account-dot ${canOpen ? "size-1.5 shrink-0 rounded-full bg-[#9FA5AA]" : valuationStatus === 'STALE' ? "size-1.5 shrink-0 rounded-full bg-[#e8bd55]" : "size-1.5 shrink-0 rounded-full bg-[#343434]"}`}/>}
               <div className="min-w-0 flex-1 leading-none">
                 <strong data-v4-header-account-name className="block truncate text-[9px]">{V4_DESKTOP_EXECUTION_ENABLED ? v4HeaderAccountLabel(account) : account?.accountCode || accountStatus}</strong>
                 <span className="mt-1 block truncate text-[8px] text-[#6F8191]">{accountTypeBadge(account)} · {accountSize(account?.initialBalance ?? account?.startingBalance ?? account?.challenge?.accountSize ?? account?.balance)}{Number(account?.leverage) > 0 ? ` · 1:${Number(account.leverage)}` : ''}</span>
               </div>
-              <ChevronDown size={11} className={accountMenuOpen ? "acg-motion-chevron shrink-0 rotate-180 text-[#6F8191]" : "acg-motion-chevron shrink-0 text-[#6F8191]"}/>
+              <ChevronDown size={11} className={v4IsOpen('account',accountMenuOpen) ? "acg-motion-chevron shrink-0 rotate-180 text-[#6F8191]" : "acg-motion-chevron shrink-0 text-[#6F8191]"}/>
             </button>
-            {accountMenuOpen && (
-              <div className="acg-motion-popover absolute right-0 top-10 z-[140] w-[330px] overflow-hidden rounded-md border border-white/[0.10] bg-[#111113] shadow-[0_20px_60px_rgba(0,0,0,.65)]">
+            {v4IsOpen('account',accountMenuOpen) && (
+              <div data-v4-header-menu={V4_DESKTOP_EXECUTION_ENABLED ? 'account' : undefined} className="acg-motion-popover absolute right-0 top-10 z-[140] w-[330px] overflow-hidden rounded-md border border-white/[0.10] bg-[#111113] shadow-[0_20px_60px_rgba(0,0,0,.65)]">
                 <div className="border-b border-white/[0.07] px-3 py-2.5">
                   <strong className="block text-[10px] text-[#E6EDF3]">Trading accounts</strong>
                   <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[8px] text-[#6F8191]">
@@ -1134,7 +1159,7 @@ export default function DesktopTerminal({
                           <button key={id} type="button" disabled={accountSwitching && !selected} onClick={() => {
                             try {
                               const changed = onSelectAccount(id);
-                              if (changed !== false) setAccountMenuOpen(false);
+                              if (changed !== false) { setAccountMenuOpen(false); v4Close(); }
                             } catch (error) {
                               setNotice(error?.message || 'Unable to switch account');
                             }
@@ -1162,23 +1187,28 @@ export default function DesktopTerminal({
             )}
           </div>
           <div className="relative">
-            <button type="button" data-v4-header-more onClick={() => setToolsMenuOpen(value => !value)} className={toolsMenuOpen ? "grid size-8 place-items-center rounded-md border border-[#C9CDD2]/60 bg-[#222427] text-[#f1f4f6]" : "grid size-8 place-items-center rounded-md border border-white/[0.07] bg-black/20 text-[#8996a1] hover:bg-white/[0.025] hover:text-white"} title="More" aria-label="More terminal actions"><MoreHorizontal size={16}/></button>
-            {toolsMenuOpen && (
-              <div className="acg-motion-popover absolute right-0 top-10 z-[105] w-[230px] rounded-md border border-white/[0.10] bg-[#111113] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
-                <button type="button" onClick={() => { handleNav('markets'); setToolsMenuOpen(false); }} className={activeNav === 'markets' ? "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#C9CDD2]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><List size={12}/>Markets / Watchlist</button>
-                <button type="button" onClick={() => { handleNav('history'); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><History size={12}/>History</button>
-                <button type="button" onClick={() => { setReviewOpen(true); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><BookOpen size={12}/>Trade review</button>
-                <button type="button" onClick={() => { setIndicatorPanelOpen(false); setObjectManagerOpen(value => !value); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Layers3 size={12}/>Chart manager</button>
-                <button type="button" onClick={() => { void toggleFullscreen(); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Maximize2 size={12}/>Fullscreen</button>
+            <button type="button" data-v4-header-more onClick={() => v4Toggle('more',setToolsMenuOpen)} aria-expanded={v4IsOpen('more',toolsMenuOpen)} className={v4IsOpen('more',toolsMenuOpen) ? "grid size-8 place-items-center rounded-md border border-[#C9CDD2]/60 bg-[#222427] text-[#f1f4f6]" : "grid size-8 place-items-center rounded-md border border-white/[0.07] bg-black/20 text-[#8996a1] hover:bg-white/[0.025] hover:text-white"} title="More" aria-label="More terminal actions"><MoreHorizontal size={16}/></button>
+            {v4IsOpen('more',toolsMenuOpen) && (
+              <div data-v4-header-menu={V4_DESKTOP_EXECUTION_ENABLED ? 'more' : undefined} className="acg-motion-popover absolute right-0 top-10 z-[105] w-[230px] rounded-md border border-white/[0.10] bg-[#111113] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+                <button type="button" onClick={() => { handleNav('markets'); setToolsMenuOpen(false); v4Close(); }} className={activeNav === 'markets' ? "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#C9CDD2]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><List size={12}/>Markets / Watchlist</button>
+                <button type="button" onClick={() => { handleNav('history'); setToolsMenuOpen(false); v4Close(); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><History size={12}/>History</button>
+                <button type="button" onClick={() => { setReviewOpen(true); setToolsMenuOpen(false); v4Close(); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><BookOpen size={12}/>Trade review</button>
+                <button type="button" onClick={() => {
+                  setIndicatorPanelOpen(false);
+                  if (V4_DESKTOP_EXECUTION_ENABLED) setV4HeaderMenu('manager');
+                  else setObjectManagerOpen(value => !value);
+                  setToolsMenuOpen(false);
+                }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Layers3 size={12}/>Chart manager</button>
+                <button type="button" onClick={() => { void toggleFullscreen(); setToolsMenuOpen(false); v4Close(); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Maximize2 size={12}/>Fullscreen</button>
                 <div className="my-1 border-t border-white/[0.06]"/>
-                <button type="button" onClick={() => { toggleSidebar(); setToolsMenuOpen(false); }} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Side panel</span><span className="text-[#6F8191]">{desktopLayout.sidebarCollapsed ? 'Closed' : 'Open'}</span></button>
-                <button type="button" onClick={() => { toggleDock(); setToolsMenuOpen(false); }} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Positions dock</span><span className="text-[#6F8191]">{dockBodyVisible ? 'Shown' : 'Hidden'}</span></button>
-                <button type="button" onClick={() => { resetDesktopLayout(); setToolsMenuOpen(false); }} className="w-full rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]">Reset desktop layout</button>
+                <button type="button" onClick={() => { toggleSidebar(); setToolsMenuOpen(false); v4Close(); }} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Side panel</span><span className="text-[#6F8191]">{desktopLayout.sidebarCollapsed ? 'Closed' : 'Open'}</span></button>
+                <button type="button" onClick={() => { toggleDock(); setToolsMenuOpen(false); v4Close(); }} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Positions dock</span><span className="text-[#6F8191]">{dockBodyVisible ? 'Shown' : 'Hidden'}</span></button>
+                <button type="button" onClick={() => { resetDesktopLayout(); setToolsMenuOpen(false); v4Close(); }} className="w-full rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]">Reset desktop layout</button>
                 <div className="my-1 border-t border-white/[0.06]"/>
-                <button type="button" onClick={() => { onOpenSettings(); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Settings size={12}/>Settings</button>
+                <button type="button" onClick={() => { onOpenSettings(); setToolsMenuOpen(false); v4Close(); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Settings size={12}/>Settings</button>
               </div>
             )}
-            {objectManagerOpen && <div className="acg-motion-popover absolute right-0 top-10 z-[115]"><ChartObjectManager symbol={activeSymbol} timeframe={activeChartTimeframe === '1m' ? 'M1' : activeChartTimeframe === '5m' ? 'M5' : activeChartTimeframe === '15m' ? 'M15' : activeChartTimeframe === '30m' ? 'M30' : activeChartTimeframe === '1H' ? 'H1' : activeChartTimeframe === '4H' ? 'H4' : activeChartTimeframe === '1D' ? 'D1' : activeChartTimeframe === '1W' ? 'W1' : activeChartTimeframe} indicators={indicators} chartInstanceId={'desktop-chart-' + Math.min(Math.max(0, Number(multiChart?.activeCell) || 0), chartLayout - 1)} onToggleIndicator={onToggleIndicator} onRemoveIndicator={onRemoveIndicator} onOpenIndicatorSettings={instanceId => { setObjectManagerOpen(false); setIndicatorFocusId(instanceId); setIndicatorPanelOpen(true); }} onClose={() => setObjectManagerOpen(false)}/></div>}
+            {v4IsOpen('manager',objectManagerOpen) && <div data-v4-header-menu={V4_DESKTOP_EXECUTION_ENABLED ? 'manager' : undefined} className="acg-motion-popover absolute right-0 top-10 z-[115]"><ChartObjectManager symbol={activeSymbol} timeframe={activeChartTimeframe === '1m' ? 'M1' : activeChartTimeframe === '5m' ? 'M5' : activeChartTimeframe === '15m' ? 'M15' : activeChartTimeframe === '30m' ? 'M30' : activeChartTimeframe === '1H' ? 'H1' : activeChartTimeframe === '4H' ? 'H4' : activeChartTimeframe === '1D' ? 'D1' : activeChartTimeframe === '1W' ? 'W1' : activeChartTimeframe} indicators={indicators} chartInstanceId={'desktop-chart-' + Math.min(Math.max(0, Number(multiChart?.activeCell) || 0), chartLayout - 1)} onToggleIndicator={onToggleIndicator} onRemoveIndicator={onRemoveIndicator} onOpenIndicatorSettings={instanceId => { setObjectManagerOpen(false); setIndicatorFocusId(instanceId); if (V4_DESKTOP_EXECUTION_ENABLED) setV4HeaderMenu('indicators'); else setIndicatorPanelOpen(true); }} onClose={() => { setObjectManagerOpen(false); v4Close(); }}/></div>}
           </div>
         </div>
       </header>
@@ -1420,9 +1450,9 @@ export default function DesktopTerminal({
               type="button"
               onClick={event => {
                 event.stopPropagation();
-                setChartSettingsOpen(value => !value);
+                v4Toggle('settings',setChartSettingsOpen);
               }}
-              className={chartSettingsOpen
+              className={v4IsOpen('settings',chartSettingsOpen)
                 ? "grid size-9 place-items-center rounded-md bg-[#222225] text-[#C9CDD2] ring-1 ring-inset ring-[#C9CDD2]/70"
                 : "grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"}
               title="Chart appearance settings"
@@ -1433,10 +1463,11 @@ export default function DesktopTerminal({
           </aside>
 
           <DesktopChartSettingsPopover
-            open={chartSettingsOpen}
+            open={v4IsOpen('settings',chartSettingsOpen)}
+            v4Theme={V4_DESKTOP_EXECUTION_ENABLED}
             settings={chartSettings}
             onChange={next => setChartSettings(normalizeDesktopChartSettings(next))}
-            onClose={() => setChartSettingsOpen(false)}
+            onClose={() => { setChartSettingsOpen(false); v4Close(); }}
           />
 
           <div className="acg-desktop-dock-shell min-h-0 overflow-hidden rounded-[9px] border border-[#292d31] bg-[#09090B] transition-[height,transform,opacity] duration-300 ease-out" style={{ gridColumn: '1 / 4', gridRow: '2' }}>
