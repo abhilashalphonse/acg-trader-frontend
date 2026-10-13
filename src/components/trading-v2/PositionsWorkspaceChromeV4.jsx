@@ -3,7 +3,9 @@ import { Search, SlidersHorizontal } from 'lucide-react';
 import {
   finiteOrNull, money, fixedNumber, pnlTone,
   positionExposure, positionMargin, positionOpened, positionExecutionSource,
-  positionRiskAtStop, positionIdentity,
+  positionRiskAtStop, positionIdentity, positionUsdNotional,
+  positionMarginUtilization, positionRecordedCosts, positionHoldingDuration,
+  positionUnrealizedPnl, positionProtectionIntelligence,
 } from '../../utils/v4PositionsPresentation.js';
 import { formatInstrumentPrice, instrumentForSymbol } from '../../utils/instrumentFormatting.js';
 import { estimatePositionPnlAtPrice } from '../../utils/tradingRisk.js';
@@ -89,30 +91,54 @@ function journalForPosition(journal,id){
     .filter(item=>String(item?.positionId??item?.metadata?.positionId??item?.details?.positionId??item?.meta?.positionId??'')===String(id))
     .slice(-3).reverse();
 }
-export function PositionsExpandedDetails({position,instrument,account,journal,onEditProtection,onOpenJournal,readOnly}){
+export function PositionsExpandedDetails({
+  position,instrument,account,journal,onEditProtection,onOpenJournal,readOnly,view='compact',visibleColumns=[],
+}){
   const id=positionIdentity(position);
   const opened=positionOpened(position);
   const created=position?.raw?.createdAt?new Date(position.raw.createdAt):null;
   const createdText=created&&Number.isFinite(created.getTime())?created.toLocaleString('en-GB'):'—';
+  const currency=account?.currency||'USD';
+  const costs=positionRecordedCosts(position);
+  const margin=positionMargin(position);
+  const marginPercent=positionMarginUtilization(position,account);
+  const usdExposure=positionUsdNotional(position,instrument);
+  const protection=positionProtectionIntelligence(position,instrument,account,estimatePositionPnlAtPrice);
   const sl=finiteOrNull(position?.sl),tp=finiteOrNull(position?.tp);
   const risk=positionRiskAtStop(position,instrument,account,estimatePositionPnlAtPrice);
+  const pnl=positionUnrealizedPnl(position,account);
   const logs=journalForPosition(journal,id);
+  const visible=label=>visibleColumns.includes(label);
+  const distance=(value,delta)=>value==null?'—':
+    fixedNumber(value,value<1?2:1)+' '+protection.unit+(delta==null?'':' · '+money(delta,currency,true));
   return <div className="v4-position-expanded" role="region" aria-label={'Position '+id+' details'}>
     <section>
       <h4>Execution</h4>
-      {detailValue('Position ID',String(position.positionId||id))}
-      {detailValue('Source',positionExecutionSource(position))}
+      {!visible('Position ID')&&detailValue('Position ID',String(position.positionId||id))}
+      {!visible('Source')&&detailValue('Source',positionExecutionSource(position))}
       {detailValue('Order created',createdText)}
-      {detailValue('Filled',opened?opened.date+' · '+opened.time+' '+opened.offset:'—')}
+      {!visible('Opened')&&detailValue('Filled',opened?opened.date+' · '+opened.time+' '+opened.offset:'—')}
       {detailValue('Order ID',String(position.raw?.sourceOrderId||'—'))}
+      {detailValue('Holding duration',positionHoldingDuration(position)||'—')}
+      {detailValue('Recorded commission',costs.commission==null?'—':money(costs.commission,currency))}
+      {detailValue('Recorded swap / financing',costs.swap==null?'—':money(costs.swap,currency,true))}
+      {costs.realized!=null&&detailValue('Realized P&L',money(costs.realized,currency,true))}
+      {!visible('Unrealized P&L')&&detailValue('Unrealized P&L',money(pnl.value,currency,true))}
     </section>
     <section>
       <h4>Risk &amp; protection</h4>
-      {detailValue('Stop loss',sl==null?'Not set':formatInstrumentPrice(sl,instrument))}
-      {detailValue('Take profit',tp==null?'Not set':formatInstrumentPrice(tp,instrument))}
-      {detailValue('Risk at stop',risk==null?'—':money(risk,account?.currency))}
-      {detailValue('Reserved margin',money(positionMargin(position),account?.currency))}
-      {!readOnly&&<button type="button" className="v4-position-add-protection"
+      {view!=='risk'&&detailValue('Reserved margin',money(margin,currency))}
+      {detailValue('Margin / equity',marginPercent==null?'—':fixedNumber(marginPercent,2)+'%')}
+      {detailValue('USD notional',usdExposure==null?'—':money(usdExposure,'USD'))}
+      {view!=='risk'&&detailValue('Stop loss',sl==null?'Not set':formatInstrumentPrice(sl,instrument))}
+      {view!=='risk'&&detailValue('Take profit',tp==null?'Not set':formatInstrumentPrice(tp,instrument))}
+      {view!=='risk'&&detailValue('Risk at stop',risk==null?'—':money(risk,currency))}
+      {sl!=null&&detailValue('Distance to SL',distance(protection.stopDistance,protection.currentToStop))}
+      {tp!=null&&detailValue('Distance to TP',distance(protection.targetDistance,protection.currentToTarget))}
+      {sl!=null&&tp!=null&&detailValue('Risk / reward',protection.rewardToRisk==null?'—':'1 : '+fixedNumber(protection.rewardToRisk,2))}
+      {detailValue('R-multiple',protection.rMultiple==null?'—':fixedNumber(protection.rMultiple,2)+'R')}
+      {detailValue('Trailing stop',position.trailingEnabled?'Enabled · '+fixedNumber(position.trailingPips,1)+' pips':'Disabled')}
+      {view!=='risk'&&!readOnly&&<button type="button" className="v4-position-add-protection"
         onClick={e=>{e.stopPropagation();onEditProtection(id,sl==null?'sl':'tp');}}>
         + {sl==null?'Add protection':'Edit protection'}
       </button>}
