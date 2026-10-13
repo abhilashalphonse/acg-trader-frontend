@@ -394,6 +394,20 @@ export default function DesktopTerminal({
   const [requestedDockTab, setRequestedDockTab] = useState(null);
   const [positionsExpanded, setPositionsExpanded] = useState(false);
   const [desktopLayout, setDesktopLayout] = useState(loadDesktopLayout);
+  // The legacy 180px dock cannot fit the V4 reference's 48px header, search
+  // toolbar, 32px headings, 48px row and footer. Upgrade saved desktop sizes
+  // only on first V4 opt-in. Users can resize the dock afterward.
+  useEffect(() => {
+    if (!V4_DESKTOP_EXECUTION_ENABLED) return;
+    const key='acg-v4-positions-workspace-sized-v1';
+    try { if (window.localStorage.getItem(key)==='true') return; } catch { /* no storage */ }
+    setDesktopLayout(current=>{
+      if(current.dockCollapsed || current.dockHeight<=60)return current;
+      const bounds=desktopHeightBounds(window.innerHeight,false,current.dockHeight);
+      return {...current,dockHeight:clamp(Math.max(current.dockHeight,300),bounds.dockMin,bounds.dockMax)};
+    });
+    try { window.localStorage.setItem(key,'true'); } catch { /* storage unavailable */ }
+  }, []);
   const [floatingOrder, setFloatingOrder] = useState(loadFloatingOrder);
   const [viewportHeight, setViewportHeight] = useState(() => typeof window !== 'undefined' ? window.innerHeight : 900);
   const [viewportWidth, setViewportWidth] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1440);
@@ -735,7 +749,9 @@ export default function DesktopTerminal({
     viewportHeight - 46 - 12 - expandedChartStripHeight,
   );
   const visibleDockHeight = clamp(
-    Math.max(180, Math.round(viewportHeight * 0.22)),
+    V4_DESKTOP_EXECUTION_ENABLED
+      ? Math.max(300, Math.round(viewportHeight * 0.32))
+      : Math.max(180, Math.round(viewportHeight * 0.22)),
     heightBounds.dockMin,
     heightBounds.dockMax,
   );
