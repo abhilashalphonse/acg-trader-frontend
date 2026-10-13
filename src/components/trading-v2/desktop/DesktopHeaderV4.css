@@ -70,8 +70,15 @@
   box-shadow:none !important;
 }
 .acg-v4-header .acg-v4-header-timeframes button:not(:disabled):hover { color:#fff !important; }
-.acg-v4-header .acg-v4-header-timeframes button[aria-pressed="true"] {
-  background:#f2f2f4 !important; color:#121215 !important; font-weight:700 !important;
+/* State must outrank legacy mouse-hover / pressed utility rules. */
+.acg-desktop-v3 .acg-v4-header .acg-v4-header-timeframes button[aria-pressed="true"],
+.acg-desktop-v3 .acg-v4-header .acg-v4-header-timeframes button[aria-pressed="true"]:is(:hover,:focus,:active) {
+  background:#f2f2f4 !important;
+  background-color:#f2f2f4 !important;
+  background-image:none !important;
+  box-shadow:none !important;
+  color:#121215 !important;
+  font-weight:700 !important;
 }
 .acg-v4-header .acg-v4-header-timeframes .acg-active-underline { display:none !important; }
 .acg-v4-header .acg-v4-header-tools {
