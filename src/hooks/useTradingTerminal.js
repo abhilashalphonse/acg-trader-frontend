@@ -211,6 +211,8 @@ export function useTradingTerminal(markets = []) {
   const { trading, connection, commands, requestSnapshot } = useTradingStore();
   const positionValuations = trading.positionValuationsById;
   const [history, setHistory] = useState({ accountId: null, orders: [], deals: [], positions: [], loaded: false, error: null });
+  const [historyRefreshVersion, setHistoryRefreshVersion] = useState(0);
+  const refreshHistory = useCallback(() => setHistoryRefreshVersion(v => v+1), []);
   const [commandState, setCommandState] = useState({ pending: false, uncertain: false, error: null, lastResult: null });
   const [switchContext, setSwitchContext] = useState(null);
   const [switchRequestVersion, setSwitchRequestVersion] = useState(0);
@@ -400,7 +402,7 @@ export function useTradingTerminal(markets = []) {
         if (!controller.signal.aborted) setHistory({ accountId, orders: [], deals: [], positions: [], loaded: false, error: error?.message || 'Unable to load account history' });
       });
     return () => controller.abort();
-  }, [accountId, commands, connection.status, switchRequestVersion]);
+  }, [accountId, commands, connection.status, switchRequestVersion, historyRefreshVersion]);
 
   useEffect(() => {
     if (!switchContext || !accountId || switchContext.targetId !== accountId) return;
@@ -617,5 +619,5 @@ export function useTradingTerminal(markets = []) {
     }));
   }, [commands, instrumentForSymbol, pendingOrders, requireAccount, run]);
 
-  return { accountId, activeAccountId, grantedAccountIds, accountGrants, accounts, selectAccount, accountSwitching, accountGrantMissing, accountSwitchError, lifecycleEvent, clearLifecycleEvent, account, rawAccount, valuation, positions, pendingOrders, positionHistory, historyOrders: history.accountId === accountId ? history.orders : [], historyDeals: history.accountId === accountId ? history.deals : [], historyPositions: history.accountId === accountId ? history.positions : [], historyLoaded: history.accountId === accountId && history.loaded, fills: trading.fills.filter(fill => String(fill?.accountId || '') === String(accountId || '')), orders: Object.values(trading.ordersById).filter(order => String(order?.accountId || '') === String(accountId || '')), connection, commandState, tradingReady: Boolean(accountId && !accountGrantMissing && rawAccount && account.tradingEnabled && connection.status === 'ready' && !commandState.uncertain && !accountSwitching), refreshState, getPolicyStatus, openMarketOrder, placePendingOrder, replacePendingOrder, cancelPendingOrder, closePosition, closeAllPositions, updatePosition, movePositionToBreakEven, setPositionTrailing, duplicatePosition, reversePosition, errorMessage };
+  return { accountId, activeAccountId, grantedAccountIds, accountGrants, accounts, selectAccount, accountSwitching, accountGrantMissing, accountSwitchError, lifecycleEvent, clearLifecycleEvent, account, rawAccount, valuation, positions, pendingOrders, positionHistory, historyOrders: history.accountId === accountId ? history.orders : [], historyDeals: history.accountId === accountId ? history.deals : [], historyPositions: history.accountId === accountId ? history.positions : [], historyLoaded: history.accountId === accountId && history.loaded, historyError: history.accountId === accountId ? history.error : null, refreshHistory, fills: trading.fills.filter(fill => String(fill?.accountId || '') === String(accountId || '')), orders: Object.values(trading.ordersById).filter(order => String(order?.accountId || '') === String(accountId || '')), connection, commandState, tradingReady: Boolean(accountId && !accountGrantMissing && rawAccount && account.tradingEnabled && connection.status === 'ready' && !commandState.uncertain && !accountSwitching), refreshState, getPolicyStatus, openMarketOrder, placePendingOrder, replacePendingOrder, cancelPendingOrder, closePosition, closeAllPositions, updatePosition, movePositionToBreakEven, setPositionTrailing, duplicatePosition, reversePosition, errorMessage };
 }
