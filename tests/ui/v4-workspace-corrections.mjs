@@ -37,7 +37,17 @@ try{
    scroller:el.querySelector('.v4-positions-scroller').getBoundingClientRect().height,
    scrollHeight:el.querySelector('.v4-positions-scroller').scrollHeight,
  }));
- ok(heights.dock>=480,'Dock grows to show three-column details when expanding');
+ ok(heights.dock>=560,'Dock grows enough for rich three-column details on desktop');
+ await page.waitForTimeout(400);
+ const visibility=await dock.evaluate(el=>{
+   const scroller=el.querySelector('.v4-positions-scroller').getBoundingClientRect();
+   const row=el.querySelector('tr[data-v4-position-id="position-eur-1"]').getBoundingClientRect();
+   const expanded=el.querySelector('tr[data-v4-position-detail="position-eur-1"]').getBoundingClientRect();
+   return {rowVisible:row.top>=scroller.top-1,detailVisible:expanded.bottom<=scroller.bottom+2,
+     scroller:scroller.height,contents:el.querySelector('.v4-positions-scroller').scrollHeight};
+ });
+ ok(visibility.rowVisible&&visibility.detailVisible,
+   'Selected position and entire expanded three-column detail fit simultaneously in desktop dock');
  const detail=dock.locator('[data-v4-position-detail="position-eur-1"]');
  const info=await detail.innerText();
  ok(info.includes('Recorded commission')&&info.includes('$2.50'),'Recorded commission shown');
