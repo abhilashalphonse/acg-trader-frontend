@@ -36,10 +36,12 @@ try {
     const head=d.querySelector('.v4-positions-header');
     const th=d.querySelector('thead th');
     const rect=el=>el.getBoundingClientRect();
-    return {row:rect(tr).height,head:rect(head).height,heading:rect(th).height,
+    return {root:rect(d).height,parent:rect(d.parentElement).height,
+      row:rect(tr).height,head:rect(head).height,heading:rect(th).height,
       bg:getComputedStyle(d).backgroundColor,padding:getComputedStyle(th).paddingLeft,
       font:getComputedStyle(th).fontSize};
   });
+  ok(Math.abs(compactMetrics.root-compactMetrics.parent)<=1,'V4 table dock fills resized panel, never legacy 44px clipping');
   eq(compactMetrics.row,48,'Compact row 48px');
   eq(compactMetrics.head,48,'Header 48px');
   eq(compactMetrics.heading,32,'Column header 32px');
