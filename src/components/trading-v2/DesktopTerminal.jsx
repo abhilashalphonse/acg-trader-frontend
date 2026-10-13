@@ -1023,7 +1023,7 @@ export default function DesktopTerminal({
                   {market?.sessionOpen === false || String(market?.marketState || '').toUpperCase() === 'CLOSED' ? 'MARKET CLOSED' : 'MARKET OPEN'}
                 </span>
               </button>
-            )
+            )}
           </div>
         </div>
         <div className="acg-desktop-chart-toolbar flex min-w-0 shrink-0 items-center border-l border-white/[0.06] bg-transparent px-2.5">
