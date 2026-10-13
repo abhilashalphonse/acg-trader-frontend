@@ -17,12 +17,16 @@ const sourcePrice=(o,k)=>k==='sl'?o.sl??o.stopLoss:k==='tp'?o.tp??o.takeProfit:o
 export default function DesktopManagePendingV4({
   order, instrument, account={}, draft=null, onDraftChange=()=>{},
   onDiscard=()=>{}, onMovePending=async()=>false, onCancelPending=async()=>false,
-  onDismiss=()=>{}, onNotice=()=>{}, readOnly=false,
+  onDismiss=()=>{}, onNotice=()=>{}, readOnly=false, cancelIntent=null,
 }) {
   const [busy,setBusy]=useState(false);
   const [waiting,setWaiting]=useState(null);
   const [error,setError]=useState('');
   const [cancelConfirmation,setCancelConfirmation]=useState(false);
+  React.useEffect(()=>{
+    if(!cancelIntent||String(cancelIntent.orderId)!==String(order?.id)||readOnly)return;
+    setCancelConfirmation(true);
+  },[cancelIntent?.nonce,cancelIntent?.orderId,order?.id,readOnly]);
   const [slUnit,setSlUnit]=useState('price');
   const [tpUnit,setTpUnit]=useState('price');
   const type=typeName(order?.orderType||order?.type);
