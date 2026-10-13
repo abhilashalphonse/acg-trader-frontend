@@ -77,7 +77,7 @@ try{
   ok(detailsText.includes('Execution'),'Expanded Execution section present');
   ok(detailsText.includes('Risk & protection'),'Expanded Risk section present');
   ok(detailsText.includes('Position activity'),'Expanded activity section present');
-  ok(detailsText.includes('Position filled'),'Activity uses true position journal entry');
+  ok(detailsText.includes('Position filled'),'Activity uses actual deal record rather than browser-only Journal messages');
   ok(detailsText.includes('USD notional')&&detailsText.includes('$1,117.35'),'Risk details show quote-safe USD exposure');
   ok(detailsText.includes('Margin / equity')&&!detailsText.includes('Reserved margin'),'Risk expansion avoids repeating already-visible reserved margin');
   ok(detailsText.includes('Recorded commission')&&detailsText.includes('$2.50'),'Recorded commission shown without combining into P&L');
