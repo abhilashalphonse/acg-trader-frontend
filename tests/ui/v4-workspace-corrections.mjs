@@ -20,7 +20,7 @@ try{
  eq(await dock.getByRole('button',{name:'History',exact:true}).count(),1,'History tab has no count badge');
  eq(await dock.getByRole('button',{name:'Journal',exact:true}).count(),1,'Journal tab has no count badge');
  eq(await dock.getByRole('button',{name:/Positions/}).locator('.v4-positions-count').count(),1,'Positions retains count');
- eq(await dock.getByRole('button',{name:'Pending 1'}).count(),1,'Pending retains count');
+ eq(await dock.getByRole('button',{name:/Pending/}).locator('.v4-positions-count').count(),1,'Pending retains count');
 
  const rows=()=>dock.locator('tr[data-v4-position-id]');
  eq(await dock.getAttribute('data-v4-position-view'),'compact','Compact default');
