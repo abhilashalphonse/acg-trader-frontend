@@ -15,7 +15,7 @@ const BTC=Object.freeze({symbol:'BTCUSD',displaySymbol:'BTC/USD',name:'Bitcoin /
  bid:68100,ask:68102,price:68101,sessionOpen:true,marketState:'LIVE',isStale:false,marketDataAvailable:true});
 const ACCOUNT=Object.freeze({id:'v4-positions-fixture',accountCode:'ACG-V4-POSITIONS',accountType:'TRIAL',type:'TRIAL',status:'ACTIVE',
  currency:'USD',initialBalance:100000,startingBalance:100000,balance:100000,equity:99999.17,
- valuationStatus:'LIVE',tradingEnabled:true,leverage:100,freeMargin:99988.01});
+ valuationStatus:'LIVE',tradingEnabled:true,leverage:100,usedMargin:11.16,freeMargin:99988.01,floatingPnl:-0.83});
 const POSITIONS=Object.freeze([
  {id:'position-eur-1',positionId:'position-eur-1',symbol:'EURUSD',side:'SELL',volume:0.01,entry:1.11652,closePrice:1.11735,
   pnl:-0.83,pnlCurrency:'USD',sl:null,tp:null,source:'live-account-currency',
@@ -47,7 +47,7 @@ function PositionsQA(){
  };
  return <DesktopTerminal market={market} tick={market} markets={markets} activeSymbol={symbol}
   onSelectSymbol={setSymbol} account={account} accounts={[account]} activeAccountId={account.id}
-  positions={positions} positionsLoading={loading} positionsError={error}
+  positions={positions} journal={[{id:'journal-1',positionId:'position-eur-1',time:'01:47:53',message:'Position filled'}]} positionsLoading={loading} positionsError={error}
   onRetryPositions={()=>{setRetries(v=>v+1);setError(null);}}
   positionProtectionDraft={protectionDraft}
   onBeginPositionProtection={()=>true}
