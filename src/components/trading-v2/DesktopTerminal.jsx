@@ -51,6 +51,7 @@ import { validateOpenPositionProtection } from '../../utils/openPositionPresenta
 import { loadDesktopChartSettings, normalizeDesktopChartSettings, saveDesktopChartSettings } from '../../utils/desktopChartSettings.js';
 import { isChartOrderAuditEnabled } from '../../utils/chartOrderPresentation.js';
 import { v4HeaderMarketStatus, v4HeaderAccountLabel } from '../../utils/v4HeaderPresentation.js';
+import { effectiveLeverage } from '../../utils/tradingRisk.js';
 
 // Explicit opt-in only. Disabled in all existing builds unless configured.
 // ACG V4 is an owner-initiated production audit, not a global ticket rollout.
@@ -1150,7 +1151,7 @@ export default function DesktopTerminal({
               {accountSwitching ? <Loader2 size={11} className="shrink-0 animate-spin text-[#C9CDD2]"/> : <span className={`acg-v4-header-account-dot ${canOpen ? "size-1.5 shrink-0 rounded-full bg-[#9FA5AA]" : valuationStatus === 'STALE' ? "size-1.5 shrink-0 rounded-full bg-[#e8bd55]" : "size-1.5 shrink-0 rounded-full bg-[#343434]"}`}/>}
               <div className="min-w-0 flex-1 leading-none">
                 <strong data-v4-header-account-name className="block truncate text-[9px]">{V4_DESKTOP_EXECUTION_ENABLED ? v4HeaderAccountLabel(account) : account?.accountCode || accountStatus}</strong>
-                <span className="mt-1 block truncate text-[8px] text-[#6F8191]">{accountTypeBadge(account)} · {accountSize(account?.initialBalance ?? account?.startingBalance ?? account?.challenge?.accountSize ?? account?.balance)}{Number(account?.leverage) > 0 ? ` · 1:${Number(account.leverage)}` : ''}</span>
+                <span className="mt-1 block truncate text-[8px] text-[#6F8191]">{accountTypeBadge(account)} · {accountSize(account?.initialBalance ?? account?.startingBalance ?? account?.challenge?.accountSize ?? account?.balance)}{V4_DESKTOP_EXECUTION_ENABLED ? (Number.isFinite(effectiveLeverage(account,market)) ? ` · Market 1:${Number(effectiveLeverage(account,market).toFixed(2))}` : ' · Leverage unavailable') : (Number(account?.leverage)>0 ? ` · 1:${Number(account.leverage)}` : '')}</span>
               </div>
               <ChevronDown size={11} className={v4IsOpen('account',accountMenuOpen) ? "acg-motion-chevron shrink-0 rotate-180 text-[#6F8191]" : "acg-motion-chevron shrink-0 text-[#6F8191]"}/>
             </button>
