@@ -1,4 +1,4 @@
-import React,{useEffect,useState} from 'react';
+import React,{useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {ChevronDown,ChevronRight,Maximize2,Minimize2,MoreHorizontal} from 'lucide-react';
 import {formatInstrumentPrice,instrumentForSymbol} from '../../utils/instrumentFormatting.js';
@@ -56,13 +56,13 @@ function CloseMenu({menu,onClose,onManagePosition,onRequestClose,onEditProtectio
     </div>,document.body
   );
 }
-function InstrumentCell({position,instrument,view,onToggle,expanded}){
+function InstrumentCell({position,instrument,onToggle,expanded}){
   const side=String(position.side||'').toUpperCase();
   const symbol=instrument?.displaySymbol||position.symbol||'—';
   return <span className="v4-position-instrument">
-    {view!=='compact'&&<button type="button" className="v4-position-chevron" aria-label={(expanded?'Collapse':'Expand')+(view==='execution'?' execution details':' position details')+' for '+symbol}
-      title={(expanded?'Collapse':'Expand')+' execution details'} aria-expanded={expanded}
-      onClick={event=>{event.stopPropagation();onToggle();}}>{expanded?<ChevronDown size={16}/>:<ChevronRight size={16}/>}</button>}
+    <button type="button" className="v4-position-chevron" aria-label={(expanded?'Collapse':'Expand')+' position details for '+symbol}
+      title={(expanded?'Collapse':'Expand')+' position details'} aria-expanded={expanded}
+      onClick={event=>{event.stopPropagation();onToggle();}}>{expanded?<ChevronDown size={16}/>:<ChevronRight size={16}/>}</button>
     <span className="v4-position-avatar" aria-hidden="true"><InstrumentAvatar instrument={instrument} size={24}/></span>
     <strong title={symbol}>{symbol}</strong>
     <span className={'v4-position-side '+(side==='BUY'?'is-buy':'is-sell')}>{side||'—'}</span>
@@ -93,14 +93,14 @@ function TableRow({position,instrument,account,view,visibleColumns,selected,expa
   const displayId=String(position.positionId||id);
   const currentPrice=finiteOrNull(position.closePrice);
   const stopRisk=positionRiskAtStop(position,instrument,account,estimatePositionPnlAtPrice);
-  const canExpand=view!=='compact';
+  const canExpand=true;
   const rowLabel=(position.symbol||'Instrument')+' '+(position.side||'')+', '+view+' position';
   return <>
     <tr key={id} className={'v4-position-row '+(selected?'is-selected ':'')+(view==='execution'?'is-execution':'')}
       data-v4-position-id={id} aria-selected={selected} tabIndex={0} aria-label={rowLabel}
-      onClick={()=>onSelect(id)}
-      onKeyDown={event=>{if(event.target!==event.currentTarget)return;if(event.key==='Enter'||event.key===' '){event.preventDefault();onSelect(id);}}}>
-      <Cell align="left"><InstrumentCell position={position} instrument={instrument} view={view} expanded={expanded} onToggle={onToggle}/></Cell>
+      onClick={()=>{onSelect(id);onToggle();}}
+      onKeyDown={event=>{if(event.target!==event.currentTarget)return;if(event.key==='Enter'||event.key===' '){event.preventDefault();onSelect(id);onToggle();}}}>
+      <Cell align="left"><InstrumentCell position={position} instrument={instrument} expanded={expanded} onToggle={()=>{onSelect(id);onToggle();}}/></Cell>
       {view==='compact'&&<>
         {displayed('Size')&&<Cell>{fixedNumber(position.volume,2)} lots</Cell>}
         {displayed('Current price')&&<Cell>{currentPrice==null?'—':formatInstrumentPrice(currentPrice,instrument)}</Cell>}
@@ -158,10 +158,12 @@ export default function PositionsDockV4({
   positions=[],markets=[],account={},counts={},journal=[],positionActivityOrders=[],positionActivityDeals=[],positionActivityFills=[],onTabChange=()=>{},
   selectedPositionId=null,onSelectPosition=()=>{},onManagePosition=()=>{},onEditProtection=()=>{},
   onRequestClose=()=>{},onBreakEven=()=>{},onSetTrailing=()=>{},collapsed=false,compactDock=false,expanded=false,
-  onToggleExpanded=()=>{},loading=false,error=null,onRetry=()=>{},readOnly=false,
+  onToggleExpanded=()=>{},onEnsureDetailSpace=()=>{},loading=false,error=null,onRetry=()=>{},readOnly=false,
 }){
   const [view,setView]=useState(initialView);
   const [expandedIds,setExpandedIds]=useState(()=>new Set());
+  const scrollerRef=useRef(null);
+  const revealRef=useRef(null);
   const [menu,setMenu]=useState(null);
   const [query,setQuery]=useState('');
   const [instrumentFilter,setInstrumentFilter]=useState('');
@@ -191,10 +193,34 @@ export default function PositionsDockV4({
     };
   },[menu]);
   const toggleRow=id=>setExpandedIds(current=>{
-    const next=new Set(current);
-    if(next.has(id))next.delete(id);else next.add(id);
+    const opening=!current.has(id);
+    const next=new Set();
+    if(opening)next.add(id); // Single expanded position keeps details focused.
+    if(opening)revealRef.current=id;
     return next;
   });
+  useEffect(()=>{
+    const id=revealRef.current;
+    if(!id||!expandedIds.has(id))return;
+    const scroller=scrollerRef.current;
+    const detail=scroller&&Array.from(scroller.querySelectorAll('[data-v4-position-detail]'))
+      .find(item=>item.getAttribute('data-v4-position-detail')===id);
+    if(!detail)return;
+    onEnsureDetailSpace();
+    const raf=window.requestAnimationFrame(()=>{
+      const current=scrollerRef.current;
+      const target=current&&Array.from(current.querySelectorAll('[data-v4-position-detail]'))
+        .find(item=>item.getAttribute('data-v4-position-detail')===id);
+      if(!current||!target)return;
+      const bounds=current.getBoundingClientRect();
+      const detailBounds=target.getBoundingClientRect();
+      // Keep the selected row and detail in the dock; never scroll the page.
+      const delta=Math.max(0,detailBounds.bottom-bounds.bottom+12);
+      if(delta>0)current.scrollTo({top:current.scrollTop+delta,behavior:'smooth'});
+      revealRef.current=null;
+    });
+    return ()=>window.cancelAnimationFrame(raf);
+  },[expandedIds,onEnsureDetailSpace]);
   const openMenu=(event,position,closeAvailability)=>{
     if(menu?.position.id===position.id){onCloseMenu();return;}
     setMenu({position,rect:event.currentTarget.getBoundingClientRect(),closeDisabled:!closeAvailability.allowed});
@@ -242,7 +268,7 @@ export default function PositionsDockV4({
         onResetColumns={()=>setHiddenByView(current=>({...current,[view]:[]}))}
         showAccount={showAccount} onShowAccount={setShowAccount}
         showExposure={showExposure} onShowExposure={setShowExposure}/>
-      <div className="v4-positions-scroller" data-v4-position-scroller="true">
+      <div ref={scrollerRef} className="v4-positions-scroller" data-v4-position-scroller="true">
         <table className="v4-positions-table" style={{minWidth:V4_POSITION_MIN_WIDTHS[view]}}>
           <colgroup>{visibleColumns.map(([label,width])=><col key={label} style={{width}}/>)}</colgroup>
           <thead><tr>{visibleColumns.map(([label,,align])=><th scope="col" key={label} className={align==='left'?'is-left':'is-right'}>{label}</th>)}</tr></thead>
