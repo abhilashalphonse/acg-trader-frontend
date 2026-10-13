@@ -297,6 +297,9 @@ export default function DesktopTerminal({
   positionHistory = [],
   pendingOrders = [],
   journal = [],
+  positionActivityOrders = [],
+  positionActivityDeals = [],
+  positionActivityFills = [],
   onClosePosition = () => {},
   onCloseAllPositions = () => {},
   onCloseWinners = () => {},
@@ -1553,7 +1556,7 @@ export default function DesktopTerminal({
             <PositionsPanel v4Positions={V4_DESKTOP_EXECUTION_ENABLED} readOnly={readOnly}
               onReviewClosePosition={reviewDockPositionClose}
               positionsLoading={positionsLoading} positionsError={positionsError} onRetryPositions={onRetryPositions}
-              desktopDense collapsed={desktopLayout.dockCollapsed} compactDock={dockHeight <= compactDockThreshold && !positionsExpanded} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={updateDesktopProtection} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={V4_DESKTOP_EXECUTION_ENABLED ? (inspectedPositionId ?? selectedPositionId) : selectedPositionId} onSelectPosition={V4_DESKTOP_EXECUTION_ENABLED ? inspectDockPosition : selectPosition} onManagePosition={selectPosition} onEditProtection={editPositionProtection}/>
+              desktopDense collapsed={desktopLayout.dockCollapsed} compactDock={dockHeight <= compactDockThreshold && !positionsExpanded} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} positionActivityOrders={positionActivityOrders} positionActivityDeals={positionActivityDeals} positionActivityFills={positionActivityFills} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={updateDesktopProtection} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={V4_DESKTOP_EXECUTION_ENABLED ? (inspectedPositionId ?? selectedPositionId) : selectedPositionId} onSelectPosition={V4_DESKTOP_EXECUTION_ENABLED ? inspectDockPosition : selectPosition} onManagePosition={selectPosition} onEditProtection={editPositionProtection}/>
           </div>
 
           {!desktopLayout.sidebarCollapsed && !positionsExpanded && (
