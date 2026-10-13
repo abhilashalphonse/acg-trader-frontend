@@ -1,6 +1,6 @@
 /* Owner-audit-only V4 desktop header. The customer-default header is untouched.
-   Left groups stay together; spacer is AFTER chart tools. Right group uses the
-   same sidebar and dock widths as the workspace beneath it. */
+   Left groups stay together, with the spacer after chart tools. The account
+   and More menu form one tight, right-aligned group. */
 .acg-desktop-v3 .acg-v4-header {
   height:52px !important; min-height:52px; max-height:52px;
   display:flex; align-items:center; gap:0;
@@ -155,15 +155,18 @@
   flex:1 1 0; min-width:0; height:100%;
 }
 .acg-v4-header .acg-v4-header-right {
-  position:relative; display:flex; align-items:center; justify-content:space-between;
-  box-sizing:border-box; margin:0; padding:0 0 0 9px;
-  width:max(228px,calc(var(--acg-v4-sidebar-width,370px) + var(--acg-v4-rail-width,42px)));
-  flex:0 0 auto; height:100%; gap:8px;
+  position:relative; display:flex; align-items:center; justify-content:flex-end;
+  box-sizing:border-box; margin-left:auto; padding:0 0 0 10px;
+  width:max-content; max-width:100%; flex:0 0 auto; height:100%; gap:8px;
+}
+.acg-v4-header .acg-v4-header-account-wrap {
+  flex:0 1 auto; min-width:0;
 }
 .acg-v4-header .acg-v4-header-valuation { display:none !important; }
 .acg-desktop-v3 .acg-v4-header [data-v4-header-account] {
-  display:flex; align-items:center; width:174px; max-width:174px; min-width:0;
-  height:44px; gap:0; padding:0 4px;
+  display:flex; align-items:center;
+  width:fit-content; max-width:188px; min-width:0;
+  height:44px; gap:0; padding:0 3px;
   background:transparent !important; border:0 !important;
   color:#f2f2f4; box-shadow:none !important;
 }
@@ -205,7 +208,7 @@
 .acg-v4-header .acg-motion-popover,
 .acg-v4-header .acg-v3-popover { top:38px; font-family:inherit; }
 .acg-v4-header .acg-v4-header-layout-tool { font-size:0; }
-/* The order panel and dock retain their account-boundary alignment on narrow desktops.
+/* Narrow desktop keeps the right-aligned account + More cluster compact.
    The compact timeframe picker replaces, rather than scrolls, the wide row. */
 @media (max-width:1279px) {
   .acg-v4-header .acg-v4-header-instrument { flex-basis:166px; max-width:166px; }
@@ -218,8 +221,8 @@
   .acg-v4-header .acg-v4-header-instrument { flex-basis:136px; max-width:136px; gap:5px; margin-right:4px; }
   .acg-v4-header .acg-v4-header-primary strong { font-size:12px !important; }
   .acg-v4-header .acg-v4-header-tools { gap:2px; padding:0; }
-  .acg-desktop-v3 .acg-v4-header [data-v4-header-account] { width:145px; max-width:145px; padding:0 2px; }
-  .acg-v4-header .acg-v4-header-right { gap:3px; padding-left:6px; }
+  .acg-desktop-v3 .acg-v4-header [data-v4-header-account] { max-width:156px; padding:0 2px; }
+  .acg-v4-header .acg-v4-header-right { gap:5px; padding-left:8px; }
 }
 @media (prefers-reduced-motion:reduce) {
   .acg-v4-header :is(button,.acg-v4-header-timeframes) {
