@@ -22,6 +22,7 @@ import { positionCloseAvailability } from '../../utils/marketExecutionAvailabili
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import './PositionsPanel.desktop.css';
 import SharePositionSheet from './SharePositionSheet.jsx';
+import PositionsDockV4 from './PositionsDockV4.jsx';
 
 const tabs = [
   { id: 'positions', label: 'Positions' },
@@ -88,6 +89,11 @@ export default function PositionsPanel({
   selectedPositionId = null,
   onSelectPosition = () => {},
   onEditProtection = () => {},
+  v4Positions = false,
+  onReviewClosePosition = () => {},
+  positionsLoading = false,
+  positionsError = null,
+  onRetryPositions = () => {},
 }) {
   const [tab, setTab] = useState('positions');
 
@@ -268,6 +274,20 @@ export default function PositionsPanel({
     await Promise.resolve(onCloseAll());
     await cancelAllPendingOrders();
   };
+
+  // Desktop V4 is isolated from the existing customer/mobile panel.
+  // Other tabs retain their current implementation until their own V4 milestones.
+  if (v4Positions && desktopDense && tab === 'positions') {
+    return <section className="acg-desktop-positions acg-dock-v3 h-full min-h-0 overflow-hidden" aria-label="Positions workspace">
+      <PositionsDockV4
+        positions={positions} markets={markets} account={account} counts={counts}
+        onTabChange={setTab} selectedPositionId={selectedPositionId}
+        onSelectPosition={onSelectPosition} onEditProtection={onEditProtection}
+        onRequestClose={onReviewClosePosition} collapsed={collapsed} compactDock={compactDock}
+        expanded={expanded} onToggleExpanded={onToggleExpanded}
+        loading={positionsLoading} error={positionsError} onRetry={onRetryPositions}/>
+    </section>;
+  }
 
   return (
     <section className={`${desktopDense ? `acg-desktop-positions acg-dock-v3 h-full ${collapsed || compactDock ? 'overflow-hidden' : 'overflow-auto'}` : 'mt-3 overflow-visible'} border-y border-white/[0.06] bg-black`}>
