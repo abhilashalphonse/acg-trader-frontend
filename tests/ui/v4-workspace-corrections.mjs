@@ -67,7 +67,7 @@ try{
  await history.waitFor({state:'visible'});
  eq(await history.locator('.v4-positions-count').count(),2,'Only Positions and Pending display counts');
  eq(await history.getByRole('group',{name:'History date range'}).count(),1,'History has date selectors');
- eq(await history.locator('[data-v4-activity-range]').count(),1,'Date-range state exposed');
+ eq(await history.getAttribute('data-v4-activity-range'),'30D','History initially shows last 30 days');
  eq(await history.locator('tr.v4-activity-row').count(),2,'30D displays only two recent closed positions');
  eq(await history.getByText('closed-old').count(),0,'Oldest record not included');
  ok((await history.locator('.v4-activity-summary').innerText()).includes('Realized P&L'),'History summarizes realized P&L');
