@@ -90,6 +90,7 @@ export default function PositionsPanel({
   onSelectPosition = () => {},
   onEditProtection = () => {},
   v4Positions = false,
+  readOnly = false,
   onReviewClosePosition = () => {},
   positionsLoading = false,
   positionsError = null,
@@ -280,7 +281,7 @@ export default function PositionsPanel({
   if (v4Positions && desktopDense && tab === 'positions') {
     return <section className="acg-desktop-positions acg-dock-v3 h-full min-h-0 overflow-hidden" aria-label="Positions workspace">
       <PositionsDockV4
-        positions={positions} markets={markets} account={account} counts={counts}
+        positions={positions} markets={markets} account={account} counts={counts} readOnly={readOnly}
         onTabChange={setTab} selectedPositionId={selectedPositionId}
         onSelectPosition={onSelectPosition} onEditProtection={onEditProtection}
         onRequestClose={onReviewClosePosition} collapsed={collapsed} compactDock={compactDock}
