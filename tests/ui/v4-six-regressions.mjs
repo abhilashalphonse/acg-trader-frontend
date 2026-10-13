@@ -564,6 +564,72 @@ try{
  await header.getByRole('button',{name:'Indicators'}).click();
  eq(await header.getByText('Indicators',{exact:true}).count()>=1,true,'fx icon still opens indicator panel');
  await header.getByRole('button',{name:'Indicators'}).click();
+
+ // Exactly one V4 desktop overlay can remain open, regardless of which
+ // control is clicked next. Check visual theme and accessibility too.
+ const activeMenu=()=>header.locator('[data-v4-header-menu]');
+ const menuIs=async name=>{
+   eq(await activeMenu().count(),1,`Exactly one dropdown is open: ${name}`);
+   eq(await activeMenu().getAttribute('data-v4-header-menu'),name,`The visible menu is ${name}`);
+   const skin=await activeMenu().evaluate(el=>({
+     background:getComputedStyle(el).backgroundColor,
+     font:getComputedStyle(el).fontFamily,
+     radius:getComputedStyle(el).borderRadius,
+   }));
+   eq(skin.background,'rgb(17, 17, 20)',`${name} uses V4 metallic-black submenu surface`);
+   ok(skin.font.startsWith('Inter'),`${name} inherits Inter typography`);
+   eq(skin.radius,'10px',`${name} uses V4 menu radius`);
+ };
+ await header.getByRole('button',{name:'Chart type'}).click();
+ await menuIs('chart');
+ await header.getByRole('button',{name:'Indicators'}).click();
+ await menuIs('indicators');
+ eq(await header.getByRole('button',{name:'Chart type'}).getAttribute('aria-expanded'),'false','chart closes when fx opens');
+ await header.getByRole('button',{name:'Layout'}).click();
+ await menuIs('layout');
+ eq(await header.getByRole('button',{name:'Indicators'}).getAttribute('aria-expanded'),'false','fx closes when layout opens');
+ await header.getByRole('button',{name:'Switch trading account'}).click();
+ await menuIs('account');
+ eq(await header.getByRole('button',{name:'Layout'}).getAttribute('aria-expanded'),'false','layout closes when account opens');
+ await header.getByRole('button',{name:'More terminal actions'}).click();
+ await menuIs('more');
+ eq(await header.getByRole('button',{name:'Switch trading account'}).getAttribute('aria-expanded'),'false','account closes when more opens');
+ await header.getByRole('button',{name:'More terminal actions'}).click();
+ eq(await activeMenu().count(),0,'reclicking active More control closes it');
+ await header.getByRole('button',{name:'Chart type'}).click();
+ await menuIs('chart');
+ await page.keyboard.press('Escape');
+ eq(await activeMenu().count(),0,'Escape closes the active V4 dropdown');
+ await header.getByRole('button',{name:'Layout'}).click();
+ await menuIs('layout');
+ await page.mouse.click(10,1);
+ eq(await activeMenu().count(),0,'outside pointer closes the active V4 dropdown');
+ await header.getByRole('button',{name:'Indicators'}).click();
+ await menuIs('indicators');
+ const fxVisual=await header.locator('.acg-v4-header-fx').evaluate(el=>({
+   size:getComputedStyle(el).fontSize,weight:getComputedStyle(el).fontWeight,
+ }));
+ eq(fxVisual.size,'17px','ƒx optical size matches 18px icon set');
+ eq(fxVisual.weight,'400','ƒx no longer has heavy type weight');
+ await header.getByRole('button',{name:'Switch trading account'}).click();
+ await menuIs('account');
+ const chevronSpacing=await header.locator('[data-v4-header-account]').evaluate(el=>{
+   const label=el.querySelector(':scope > div').getBoundingClientRect();
+   const icon=el.querySelector(':scope > svg').getBoundingClientRect();
+   return icon.left-label.right;
+ });
+ ok(chevronSpacing>=4&&chevronSpacing<=12,'account chevron stays attached to account text');
+ await page.getByRole('button',{name:'Chart appearance settings'}).click();
+ eq(await activeMenu().count(),0,'chart appearance closes account menu');
+ eq(await page.locator('[data-v4-chart-settings="true"]').count(),1,'chart settings opens as V4 themed popover');
+ const settingsBg=await page.locator('[data-v4-chart-settings]').evaluate(el=>getComputedStyle(el).backgroundColor);
+ eq(settingsBg,'rgb(17, 17, 20)','chart appearance shares V4 submenu surface');
+ await header.getByRole('button',{name:'Chart type'}).click();
+ await menuIs('chart');
+ eq(await page.locator('[data-v4-chart-settings]').count(),0,'header menu closes chart appearance settings');
+ await header.getByRole('button',{name:'Chart type'}).click();
+ eq(await activeMenu().count(),0,'repeated chart control closes its submenu');
+
  await page.evaluate(()=>window.v4HeaderQA.setSession('CLOSED'));
  await page.waitForFunction(()=>document.querySelector('[data-v4-header] [data-market-status]')?.dataset.marketStatus==='closed');
  await page.evaluate(()=>window.v4HeaderQA.setSession('WAITING'));

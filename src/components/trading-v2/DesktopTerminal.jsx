@@ -1241,7 +1241,8 @@ export default function DesktopTerminal({
                 onOpenIndicatorSettings={instanceId => {
                   setObjectManagerOpen(false);
                   setIndicatorFocusId(instanceId);
-                  setIndicatorPanelOpen(true);
+                  if (V4_DESKTOP_EXECUTION_ENABLED) setV4HeaderMenu('indicators');
+                  else setIndicatorPanelOpen(true);
                 }}
                 onRemoveIndicator={onRemoveIndicator}
                 positions={positions}
