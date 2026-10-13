@@ -115,6 +115,7 @@
 .acg-v4-positions .v4-position-instrument {
   display:flex;align-items:center;gap:8px;min-width:0;white-space:nowrap;
 }
+.acg-v4-positions .v4-position-avatar{flex:0 0 24px;display:flex;align-items:center;justify-content:center}
 .acg-v4-positions .v4-position-instrument strong {
   display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;
   font-size:13px;line-height:18px;font-weight:600;color:var(--v4p-primary);
