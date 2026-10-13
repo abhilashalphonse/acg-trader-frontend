@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './DesktopOrderTicket.theme.css';
+import './DesktopFloatingQuickOrderV4.css';
 import { AlertTriangle, ChevronDown, Clock3, GripVertical, Maximize2, Minus, Plus, X } from 'lucide-react';
 import { decimalPlaces, normalizeVolumeToStep } from '../../../utils/tradingCommandNormalization.js';
 import {
@@ -90,6 +91,7 @@ export default function DesktopOrderTicket({
   exposureBlockReason = 'New exposure is temporarily unavailable',
   onNotice = () => {},
   variant = 'panel',
+  floatingV4 = false,
   onFloatingDragStart = () => {},
   onOpenFullTrade = () => {},
 }) {
@@ -625,8 +627,13 @@ export default function DesktopOrderTicket({
         ? `${Number(riskPercent).toFixed(Number(riskPercent) % 1 === 0 ? 0 : 2)}% risk · ${riskSizingText} · Margin ${money(previewMargin, currency)}`
         : `${floatingLotText} lots · Margin ${money(previewMargin, currency)}${Number.isFinite(floatingMarginPercent) ? ` (${floatingMarginPercent.toFixed(2)}%)` : ''} · Free ${money(freeAfter, currency)}`;
 
+    const floatingV4Summary=compactWarning
+      ? compactWarning
+      : (activeSizingMode==='risk' ? `Risk ${Number(riskPercent).toFixed(2)}% · ` : '')+
+        `Est. margin ${Number.isFinite(previewMargin)?money(previewMargin,currency):'—'} · Free after ${Number.isFinite(freeAfter)?money(freeAfter,currency):'—'}`;
     return (
-      <section className="acg-floating-order acg-exec-root w-[344px] overflow-hidden rounded-[12px] border border-white/[0.16] bg-[#09090B]/[0.98] text-[#f4f6f8] shadow-[0_14px_40px_rgba(0,0,0,.52)] backdrop-blur-md">
+      <section data-v4-quick-order={floatingV4?'true':undefined}
+        className={`acg-floating-order acg-exec-root w-[344px] overflow-hidden rounded-[12px] border border-white/[0.16] bg-[#09090B]/[0.98] text-[#f4f6f8] shadow-[0_14px_40px_rgba(0,0,0,.52)] backdrop-blur-md${floatingV4?' acg-v4-quick-order':''}`}>
         <div className="flex h-[36px] items-center gap-1 border-b border-white/[0.07] px-1.5">
           <button type="button" onPointerDown={onFloatingDragStart} className="grid h-7 w-6 shrink-0 cursor-move place-items-center rounded text-[#7c8995] hover:bg-white/[0.04] hover:text-white" aria-label="Drag execution widget" title="Drag execution widget">
             <GripVertical size={13}/>
@@ -635,14 +642,14 @@ export default function DesktopOrderTicket({
             <InstrumentAvatar instrument={market} size={16}/>
             <span className="min-w-0 truncate text-[10px] font-bold text-[#f1f4f6]">{market?.displaySymbol || market?.symbol || '—'}</span>
           </div>
-          <button type="button" onClick={() => chooseFamily(orderFamily === 'market' ? 'pending' : 'market')} className="h-7 rounded-[5px] border border-white/[0.07] bg-[#111113] px-2 text-[9px] font-black text-[#e9edf2] transition hover:bg-[#1a1e24]">
+          <button type="button" onClick={() => chooseFamily(orderFamily === 'market' ? 'pending' : 'market')} title={orderFamily === 'market' ? 'Switch to pending order' : 'Switch to market order'} aria-label={orderFamily === 'market' ? 'Market order, switch to pending' : 'Pending order, switch to market'} className="h-7 rounded-[5px] border border-white/[0.07] bg-[#111113] px-2 text-[9px] font-black text-[#e9edf2] transition hover:bg-[#1a1e24]">
             {floatingModeLabel}
           </button>
-          <button type="button" onClick={() => setMode(activeSizingMode === 'risk' ? 'lots' : 'risk')} disabled={!riskSupported} className={activeSizingMode === 'risk' ? 'h-7 rounded-[5px] border border-[#ACB2B9]/55 bg-[#222225] px-2 text-[9px] font-black text-[#C8CDD3]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#111113] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white disabled:opacity-30'}>
+          <button type="button" onClick={() => setMode(activeSizingMode === 'risk' ? 'lots' : 'risk')} disabled={!riskSupported} aria-label="Toggle risk sizing" aria-pressed={activeSizingMode === 'risk'} className={activeSizingMode === 'risk' ? 'h-7 rounded-[5px] border border-[#ACB2B9]/55 bg-[#222225] px-2 text-[9px] font-black text-[#C8CDD3]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#111113] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white disabled:opacity-30'}>
             RISK
           </button>
-          <button type="button" onClick={() => addProtection('sl')} className={hasStopLoss || protectionIntent === 'sl' ? 'h-7 rounded-[5px] border border-[#303338] bg-[#09090B] px-2 text-[9px] font-black text-[#C5CAD0]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#111113] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white'}>SL</button>
-          <button type="button" onClick={() => addProtection('tp')} className={hasTakeProfit || protectionIntent === 'tp' ? 'h-7 rounded-[5px] border border-[#34373C] bg-[#0B0D0E] px-2 text-[9px] font-black text-[#C5CAD0]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#111113] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white'}>TP</button>
+          <button type="button" onClick={() => addProtection('sl')} title="Add or edit stop loss" aria-label="Add or edit stop loss" aria-pressed={Boolean(hasStopLoss || protectionIntent === 'sl')} className={hasStopLoss || protectionIntent === 'sl' ? 'h-7 rounded-[5px] border border-[#303338] bg-[#09090B] px-2 text-[9px] font-black text-[#C5CAD0]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#111113] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white'}>SL</button>
+          <button type="button" onClick={() => addProtection('tp')} title="Add or edit take profit" aria-label="Add or edit take profit" aria-pressed={Boolean(hasTakeProfit || protectionIntent === 'tp')} className={hasTakeProfit || protectionIntent === 'tp' ? 'h-7 rounded-[5px] border border-[#34373C] bg-[#0B0D0E] px-2 text-[9px] font-black text-[#C5CAD0]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#111113] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white'}>TP</button>
           <button type="button" onClick={onOpenFullTrade} className="grid size-7 shrink-0 place-items-center rounded-[5px] border border-white/[0.06] bg-[#111113] text-[#8d99a5] hover:bg-[#1a1e24] hover:text-white" aria-label="Open full trade execution panel" title="Open full trade execution">
             <Maximize2 size={12}/>
           </button>
@@ -650,7 +657,7 @@ export default function DesktopOrderTicket({
 
         <>
           <div className={`flex h-[30px] items-center justify-center border-b border-white/[0.05] px-2 text-[9px] font-semibold ${compactWarning ? 'text-[#B5BBC2]' : 'text-[#aeb8c1]'}`}>
-            <span className="truncate">{summaryText}</span>
+            <span className="truncate">{floatingV4 ? floatingV4Summary : summaryText}</span>
           </div>
           <div className="grid grid-cols-[92px_minmax(0,1fr)_92px] gap-1.5 p-2">
               <button type="button" disabled={sideDisabled('sell')} onClick={() => handleSide('sell')} className="acg-exec-sell flex h-[42px] min-w-0 flex-col items-center justify-center rounded-[7px] border border-[#373A3F] bg-[#171719] px-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.10)] transition hover:bg-[#25282C] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-35">
