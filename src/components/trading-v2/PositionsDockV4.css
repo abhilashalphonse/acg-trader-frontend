@@ -1,4 +1,16 @@
 /* Owner-audit V4 Positions only. Existing Pending/History/Journal and mobile remain unchanged. */
+/* Override the legacy dock surface (which uses !important). Keep this opt-in
+   region pixel-identical to the approved V4 palette without touching V3. */
+.acg-desktop-v3 .acg-dock-v3 > .acg-v4-positions {
+  background:#09090B !important;
+}
+.acg-desktop-v3 .acg-dock-v3 > .acg-v4-positions .v4-positions-header {
+  background:#101012 !important;
+}
+.acg-desktop-v3 .acg-dock-v3 > .acg-v4-positions .v4-positions-scroller {
+  background:#09090B !important;
+}
+
 .acg-v4-positions {
   --v4p-canvas:#09090B; --v4p-header:#101012; --v4p-control:#202023;
   --v4p-hover:#27272C; --v4p-row-hover:#151518; --v4p-border:#29292E;
