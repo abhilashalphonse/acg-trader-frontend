@@ -469,6 +469,7 @@ try{
  eq(await page.locator('[data-v4-draft-shade]').count(),0);
  eq(await page.locator('[data-v4-accepted-shade]').count(),0);
 
+ const executedChartCommands=await page.evaluate(()=>window.v4QA.commands);
  // The mounted REAL desktop terminal, not a reconstructed screenshot fixture.
  await page.goto('http://127.0.0.1:5174/v4-header-audit.html?acg_v4_audit=1',{waitUntil:'domcontentloaded'});
  const header=page.locator('[data-v4-header="true"]');
@@ -537,7 +538,7 @@ try{
  await page.waitForFunction(()=>document.querySelector('[data-v4-header] [data-market-status]')?.dataset.marketStatus==='unavailable');
 
  assert.deepEqual(errors,[],'no uncaught page errors');checks++;
- console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks,commands:await page.evaluate(()=>window.v4QA.commands)}));
+ console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks,commands:executedChartCommands}));
 }catch(error){
  console.error('SIX_V4_REGRESSIONS_FAIL',error);
  process.exitCode=1;
