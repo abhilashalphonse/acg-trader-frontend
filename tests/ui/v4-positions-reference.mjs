@@ -9,7 +9,7 @@ const ok=(value,label)=>{assert.ok(value,label);checks++};
 try{
   await page.addInitScript(()=>{
     window.localStorage.setItem('acg-trader-desktop-layout-v2',JSON.stringify({
-      dockHeight:320,sidebarCollapsed:false,dockCollapsed:false,sidebarWidth:360
+      dockHeight:180,sidebarCollapsed:false,dockCollapsed:false,sidebarWidth:360
     }));
     window.localStorage.removeItem('acg-v4-positions-view-v1');
   });
@@ -91,6 +91,7 @@ try{
     return {header:rect('.v4-positions-header').height,toolbar:rect('.v4-positions-toolbar').height,
       footer:rect('.v4-positions-footer').height,container:el.getBoundingClientRect().height};
   });
+  ok(geometry.container>=290,'Legacy saved 180px dock is upgraded once to fit V4 header, toolbar, table and footer');
   eq(geometry.header,48,'Reference header height remains 48px at desktop width');
   ok(geometry.toolbar>=44,'Toolbar fits controls without overflow');
   ok(geometry.footer>=34,'Footer stays above minimum height');
