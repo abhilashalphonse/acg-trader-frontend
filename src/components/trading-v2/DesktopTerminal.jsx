@@ -1034,12 +1034,13 @@ export default function DesktopTerminal({
           </div>
           <div className="acg-v4-header-tools ml-1.5 flex h-full shrink-0 items-center gap-1.5" role="group" aria-label="Chart tools">
             <div className="relative">
-              <button type="button" onClick={() => setChartMenuOpen(value => !value)} className={chartMenuOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#C9CDD2]/60 bg-[#222427] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title="Chart settings"><CandlestickChart size={12}/><span>Charts</span><ChevronDown size={10}/></button>
+              <button type="button" data-v4-header-tool="chart-type" aria-label={V4_DESKTOP_EXECUTION_ENABLED ? 'Chart type' : undefined} aria-expanded={chartMenuOpen} onClick={() => setChartMenuOpen(value => !value)} className={chartMenuOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#C9CDD2]/60 bg-[#222427] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title={V4_DESKTOP_EXECUTION_ENABLED ? 'Chart type' : 'Chart settings'}><CandlestickChart size={V4_DESKTOP_EXECUTION_ENABLED ? 19 : 12}/><span className="acg-v4-header-tool-label">Charts</span><ChevronDown className="acg-v4-header-tool-chevron" size={10}/></button>
               {chartMenuOpen && (
                 <div className="acg-motion-popover absolute right-0 top-8 z-[100] w-[205px] rounded-md border border-white/[0.10] bg-[#111113] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
                   <div className="px-2 pb-1 pt-0.5 text-[7px] font-bold uppercase tracking-[0.08em] text-[#5f6d79]">Chart type</div>
                   <button type="button" onClick={() => { onChartModeChange('candles'); setChartMenuOpen(false); }} className={chartMode === 'candles' ? "flex w-full items-center gap-2 rounded bg-[#24262A] px-2 py-2 text-left text-[8px] font-semibold text-[#C9CDD2]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><CandlestickChart size={12}/>Candlesticks</button>
                   <button type="button" onClick={() => { onChartModeChange('line'); setChartMenuOpen(false); }} className={chartMode === 'line' ? "flex w-full items-center gap-2 rounded bg-[#24262A] px-2 py-2 text-left text-[8px] font-semibold text-[#C9CDD2]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><ChartNoAxesCombined size={12}/>Line</button>
+                  {!V4_DESKTOP_EXECUTION_ENABLED && <>
                   <div className="my-1 border-t border-white/[0.06]"/>
                   <div className="px-2 pb-1 pt-0.5 text-[7px] font-bold uppercase tracking-[0.08em] text-[#5f6d79]">Chart grid</div>
                   {[[1, Square, 'Single chart'], [2, Columns2, 'Two charts'], [4, Grid2X2, 'Four charts']].map(([value, Icon, label]) => (
@@ -1050,11 +1051,12 @@ export default function DesktopTerminal({
                     <button type="button" onClick={toggleChartLink} className={chartLinked ? "flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#C9CDD2] hover:bg-white/[0.03]" : "flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><span className="flex items-center gap-2">{chartLinked ? <Link2 size={12}/> : <Link2Off size={12}/>}Link symbols</span><span className="text-[#6F8191]">{chartLinked ? 'On' : 'Off'}</span></button>
                     <button type="button" onClick={applyActiveIndicatorsToAllCharts} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Copy indicators to all</span><span className="text-[#6F8191]">ƒx {indicators.length}</span></button>
                   </>}
+                  </>}
                 </div>
               )}
             </div>
             <div className="relative">
-              <button type="button" onClick={() => { setIndicatorFocusId(null); setObjectManagerOpen(false); setIndicatorPanelOpen(value => !value); }} className={indicatorPanelOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#C9CDD2]/60 bg-[#222427] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title="Indicators"><span className="text-[11px] font-black">ƒx</span><span>Indicators</span>{indicators.length > 0 && <span className="grid min-w-3 place-items-center rounded bg-[#181b20] px-1 text-[6px] text-[#aab5bf]">{indicators.length}</span>}<ChevronDown size={10}/></button>
+              <button type="button" data-v4-header-tool="indicators" aria-label={V4_DESKTOP_EXECUTION_ENABLED ? 'Indicators' : undefined} aria-expanded={indicatorPanelOpen} onClick={() => { setIndicatorFocusId(null); setObjectManagerOpen(false); setIndicatorPanelOpen(value => !value); }} className={indicatorPanelOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#C9CDD2]/60 bg-[#222427] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title="Indicators"><span className="acg-v4-header-fx text-[11px] font-black">ƒx</span><span className="acg-v4-header-tool-label">Indicators</span>{indicators.length > 0 && <span className="acg-v4-header-indicator-count grid min-w-3 place-items-center rounded bg-[#181b20] px-1 text-[6px] text-[#aab5bf]">{indicators.length}</span>}<ChevronDown className="acg-v4-header-tool-chevron" size={10}/></button>
               {indicatorPanelOpen && (
                 <div className="acg-motion-popover absolute right-0 top-8 z-[110] w-[390px] max-h-[min(680px,calc(100dvh-150px))] overflow-y-auto rounded-lg border border-white/[0.10] bg-[#09090B]/98 p-3 shadow-[0_24px_70px_rgba(0,0,0,.68)] backdrop-blur-xl [scrollbar-width:thin]">
                   <div className="mb-3 flex items-center justify-between border-b border-white/[0.07] pb-2.5"><div><strong className="block text-[11px] text-[#EDF3F7]">Indicators</strong><span className="mt-0.5 block text-[8px] text-[#687D91]">Active chart · {activeSymbol} · {activeChartTimeframe}</span></div><button type="button" onClick={() => setIndicatorPanelOpen(false)} className="grid size-7 place-items-center rounded text-[#7D91A4] hover:bg-white/[0.04] hover:text-white"><X size={13}/></button></div>
@@ -1062,11 +1064,14 @@ export default function DesktopTerminal({
                 </div>
               )}
             </div>
-            <DesktopWorkspaceMenu snapshot={workspaceSnapshot} onApply={applyWorkspace}/>
+            <DesktopWorkspaceMenu snapshot={workspaceSnapshot} onApply={applyWorkspace}
+              compact={V4_DESKTOP_EXECUTION_ENABLED} chartLayout={chartLayout} onChartLayoutChange={setChartLayout}
+              chartLinked={chartLinked} onToggleChartLink={toggleChartLink}
+              onCopyIndicators={applyActiveIndicatorsToAllCharts} indicatorCount={indicators.length}/>
           </div>
         </div>
 
-        {viewportWidth >= 1500 && (
+        {!V4_DESKTOP_EXECUTION_ENABLED && viewportWidth >= 1500 && (
           <div className="ml-2 flex h-full items-center">
             <div className="min-w-[92px] border-l border-white/[0.055] px-3">
               <span className="block text-[7px] uppercase tracking-[0.07em] text-[#637484]">24h High</span>
@@ -1084,17 +1089,17 @@ export default function DesktopTerminal({
             )}
           </div>
         )}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="acg-v4-header-right ml-auto flex items-center gap-2">
           {readOnly && <span className="hidden rounded-md border border-rose-400/20 bg-rose-400/[0.08] px-2 py-1 text-[7px] font-black uppercase tracking-[0.09em] text-rose-300 2xl:inline-flex">Read-only · Breached</span>}
-          <div className="hidden text-right 2xl:block">
+          <div className="acg-v4-header-valuation hidden text-right 2xl:block">
             <span className="block text-[7px] uppercase tracking-[0.08em] text-[#637484]">Valuation</span>
             <b className={valuationStatus === 'LIVE' ? "mt-0.5 block text-[8px] text-[#42D7A1]" : valuationStatus === 'STALE' ? "mt-0.5 block text-[8px] text-[#E7BD58]" : "mt-0.5 block text-[8px] text-[#A1AFBC]"}>{valuationStatus}</b>
           </div>
           <div className="relative">
-            <button type="button" onClick={() => setAccountMenuOpen(value => !value)} className="flex h-8 min-w-[176px] items-center gap-2 rounded-md border border-white/[0.07] bg-black/20 px-2.5 text-left hover:bg-white/[0.025]" aria-label="Switch trading account" aria-expanded={accountMenuOpen}>
-              {accountSwitching ? <Loader2 size={11} className="shrink-0 animate-spin text-[#C9CDD2]"/> : <span className={canOpen ? "size-1.5 shrink-0 rounded-full bg-[#9FA5AA]" : valuationStatus === 'STALE' ? "size-1.5 shrink-0 rounded-full bg-[#e8bd55]" : "size-1.5 shrink-0 rounded-full bg-[#343434]"}/>}
+            <button type="button" data-v4-header-account onClick={() => setAccountMenuOpen(value => !value)} className="flex h-8 min-w-[176px] items-center gap-2 rounded-md border border-white/[0.07] bg-black/20 px-2.5 text-left hover:bg-white/[0.025]" aria-label="Switch trading account" aria-expanded={accountMenuOpen} title={account?.accountCode || 'Trading account'}>
+              {accountSwitching ? <Loader2 size={11} className="shrink-0 animate-spin text-[#C9CDD2]"/> : <span className={`acg-v4-header-account-dot ${canOpen ? "size-1.5 shrink-0 rounded-full bg-[#9FA5AA]" : valuationStatus === 'STALE' ? "size-1.5 shrink-0 rounded-full bg-[#e8bd55]" : "size-1.5 shrink-0 rounded-full bg-[#343434]"}`}/>}
               <div className="min-w-0 flex-1 leading-none">
-                <strong className="block truncate text-[9px]">{account?.accountCode || accountStatus}</strong>
+                <strong data-v4-header-account-name className="block truncate text-[9px]">{V4_DESKTOP_EXECUTION_ENABLED ? v4HeaderAccountLabel(account) : account?.accountCode || accountStatus}</strong>
                 <span className="mt-1 block truncate text-[8px] text-[#6F8191]">{accountTypeBadge(account)} · {accountSize(account?.initialBalance ?? account?.startingBalance ?? account?.challenge?.accountSize ?? account?.balance)}{Number(account?.leverage) > 0 ? ` · 1:${Number(account.leverage)}` : ''}</span>
               </div>
               <ChevronDown size={11} className={accountMenuOpen ? "acg-motion-chevron shrink-0 rotate-180 text-[#6F8191]" : "acg-motion-chevron shrink-0 text-[#6F8191]"}/>
@@ -1153,7 +1158,7 @@ export default function DesktopTerminal({
             )}
           </div>
           <div className="relative">
-            <button type="button" onClick={() => setToolsMenuOpen(value => !value)} className={toolsMenuOpen ? "grid size-8 place-items-center rounded-md border border-[#C9CDD2]/60 bg-[#222427] text-[#f1f4f6]" : "grid size-8 place-items-center rounded-md border border-white/[0.07] bg-black/20 text-[#8996a1] hover:bg-white/[0.025] hover:text-white"} title="More" aria-label="More terminal actions"><MoreHorizontal size={16}/></button>
+            <button type="button" data-v4-header-more onClick={() => setToolsMenuOpen(value => !value)} className={toolsMenuOpen ? "grid size-8 place-items-center rounded-md border border-[#C9CDD2]/60 bg-[#222427] text-[#f1f4f6]" : "grid size-8 place-items-center rounded-md border border-white/[0.07] bg-black/20 text-[#8996a1] hover:bg-white/[0.025] hover:text-white"} title="More" aria-label="More terminal actions"><MoreHorizontal size={16}/></button>
             {toolsMenuOpen && (
               <div className="acg-motion-popover absolute right-0 top-10 z-[105] w-[230px] rounded-md border border-white/[0.10] bg-[#111113] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
                 <button type="button" onClick={() => { handleNav('markets'); setToolsMenuOpen(false); }} className={activeNav === 'markets' ? "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#C9CDD2]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><List size={12}/>Markets / Watchlist</button>
