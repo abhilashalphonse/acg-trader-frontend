@@ -2,6 +2,7 @@ import React,{useEffect,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {ChevronDown,ChevronRight,Maximize2,Minimize2,MoreHorizontal} from 'lucide-react';
 import {formatInstrumentPrice,instrumentForSymbol} from '../../utils/instrumentFormatting.js';
+import InstrumentAvatar from './InstrumentAvatar.jsx';
 import {estimatePositionPnlAtPrice} from '../../utils/tradingRisk.js';
 import {positionCloseAvailability} from '../../utils/marketExecutionAvailability.js';
 import {
@@ -46,6 +47,7 @@ function InstrumentCell({position,instrument,view,onToggle,expanded}){
     {view!=='compact'&&<button type="button" className="v4-position-chevron" aria-label={(expanded?'Collapse':'Expand')+(view==='execution'?' execution details':' position details')+' for '+symbol}
       title={(expanded?'Collapse':'Expand')+' execution details'} aria-expanded={expanded}
       onClick={event=>{event.stopPropagation();onToggle();}}>{expanded?<ChevronDown size={16}/>:<ChevronRight size={16}/>}</button>}
+    <span className="v4-position-avatar" aria-hidden="true"><InstrumentAvatar instrument={instrument} size={24}/></span>
     <strong title={symbol}>{symbol}</strong>
     <span className={'v4-position-side '+(side==='BUY'?'is-buy':'is-sell')}>{side||'—'}</span>
   </span>;
