@@ -63,7 +63,6 @@ function Amount({position,account}){
 }
 function TableRow({position,instrument,account,view,selected,expanded,onSelect,onToggle,onEditProtection,onReviewClose,onOpenMenu}){
   const id=positionIdentity(position);
-  const pnl=positionUnrealizedPnl(position,account);
   const margin=positionMargin(position);
   const exposure=positionExposure(position,instrument);
   const opened=positionOpened(position);
