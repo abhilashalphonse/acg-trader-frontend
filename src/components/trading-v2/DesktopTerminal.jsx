@@ -1145,7 +1145,7 @@ export default function DesktopTerminal({
             <span className="block text-[7px] uppercase tracking-[0.08em] text-[#637484]">Valuation</span>
             <b className={valuationStatus === 'LIVE' ? "mt-0.5 block text-[8px] text-[#42D7A1]" : valuationStatus === 'STALE' ? "mt-0.5 block text-[8px] text-[#E7BD58]" : "mt-0.5 block text-[8px] text-[#A1AFBC]"}>{valuationStatus}</b>
           </div>
-          <div className="relative">
+          <div className={V4_DESKTOP_EXECUTION_ENABLED ? "relative acg-v4-header-account-wrap" : "relative"}>
             <button type="button" data-v4-header-account onClick={() => v4Toggle('account',setAccountMenuOpen)} className="flex h-8 min-w-[176px] items-center gap-2 rounded-md border border-white/[0.07] bg-black/20 px-2.5 text-left hover:bg-white/[0.025]" aria-label="Switch trading account" aria-expanded={v4IsOpen('account',accountMenuOpen)} title={account?.accountCode || 'Trading account'}>
               {accountSwitching ? <Loader2 size={11} className="shrink-0 animate-spin text-[#C9CDD2]"/> : <span className={`acg-v4-header-account-dot ${canOpen ? "size-1.5 shrink-0 rounded-full bg-[#9FA5AA]" : valuationStatus === 'STALE' ? "size-1.5 shrink-0 rounded-full bg-[#e8bd55]" : "size-1.5 shrink-0 rounded-full bg-[#343434]"}`}/>}
               <div className="min-w-0 flex-1 leading-none">
