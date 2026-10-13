@@ -1,0 +1,69 @@
+/* V4 owner-audit-only drawing rail: no changes to the legacy or mobile rail. */
+.acg-v4-drawing-rail {
+  display:flex; flex-direction:column; align-items:stretch; box-sizing:border-box;
+  width:40px; min-width:0; height:100%; min-height:0; overflow:hidden;
+  padding:4px 1px; border:1px solid #303035; border-radius:9px;
+  background:#0b0b0d; color:#c6c6ce;
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  box-shadow:inset 0 1px rgba(255,255,255,.025);
+}
+.acg-v4-drawing-rail .acg-v4-drawing-scroll {
+  display:flex; flex:1 1 auto; flex-direction:column; align-items:center;
+  width:100%; min-height:0; overflow-x:hidden; overflow-y:auto;
+  scrollbar-width:none; overscroll-behavior:contain;
+}
+.acg-v4-drawing-rail .acg-v4-drawing-scroll::-webkit-scrollbar { display:none; }
+.acg-v4-drawing-rail .acg-v4-drawing-section {
+  display:flex; flex:0 0 auto; flex-direction:column; align-items:center;
+  gap:2px; width:100%;
+}
+.acg-v4-drawing-rail .acg-v4-drawing-divider {
+  width:22px; height:1px; flex:0 0 1px; margin:5px auto;
+  background:#3a3a40;
+}
+.acg-v4-drawing-rail .acg-v4-drawing-button {
+  position:relative; display:grid; place-items:center; box-sizing:border-box;
+  flex:0 0 36px; width:36px; height:36px; min-width:36px;
+  padding:0; border:1px solid transparent; border-radius:7px;
+  background:transparent; color:#bfc0c9; box-shadow:none;
+  cursor:pointer; transition:color .12s,background-color .12s,border-color .12s;
+}
+.acg-v4-drawing-rail .acg-v4-drawing-button svg { width:18px; height:18px; }
+.acg-v4-drawing-rail .acg-v4-drawing-button:not(:disabled):hover {
+  color:#f2f2f4; background:#242428; border-color:#33333a;
+}
+.acg-v4-drawing-rail [data-v4-drawing-tool][aria-pressed="true"] {
+  background:#f2f2f4; color:#141417; border-color:#f2f2f4;
+  box-shadow:inset 0 1px rgba(255,255,255,.3);
+}
+.acg-v4-drawing-rail [data-v4-drawing-tool][aria-pressed="true"]:not(:disabled):hover {
+  background:#e9e9ed; color:#141417; border-color:#e9e9ed;
+}
+.acg-v4-drawing-rail [data-v4-drawing-control][aria-pressed="true"] {
+  color:#f1f1f4; background:#242429; border-color:#36363d;
+}
+.acg-v4-drawing-rail .acg-v4-drawing-button:focus-visible {
+  outline:2px solid #e4e4e9; outline-offset:-2px;
+}
+.acg-v4-drawing-rail .acg-v4-drawing-button:disabled {
+  cursor:not-allowed; opacity:.35;
+}
+.acg-v4-drawing-rail .acg-v4-drawing-footer {
+  display:flex; flex:0 0 auto; flex-direction:column; align-items:center;
+  width:100%; margin-top:auto; padding-top:2px;
+  border-top:1px solid #26262c;
+}
+.acg-v4-drawing-rail .acg-v4-drawing-count,
+.acg-v4-drawing-rail .acg-v4-drawing-small-status {
+  position:absolute; right:1px; bottom:1px;
+  display:grid; place-items:center; min-width:11px; height:11px; padding:0 1px;
+  border-radius:3px; background:#17171b; color:#cfcfd6;
+  font-size:7px; font-weight:700; font-variant-numeric:tabular-nums;
+}
+.acg-v4-drawing-rail .acg-v4-drawing-pin-dot {
+  position:absolute; right:4px; bottom:4px;
+  width:4px; height:4px; border-radius:50%; background:#f2f2f4;
+}
+@media (prefers-reduced-motion:reduce) {
+  .acg-v4-drawing-rail .acg-v4-drawing-button { transition:none; }
+}

@@ -11,6 +11,7 @@ import { effectiveTradePlan } from '../../utils/tradePlanExecution.js';
 import { chartEntryReference, chartLineStyle, chartPriceChangePercent, chartEstimateCurrencySupported, chartPositionProtections, chartPlacedSideColor, chartPositionConnectorLevels } from '../../utils/chartOrderPresentation.js';
 import { DRAWING_TOOL_GROUPS, DRAWING_TOOL_LABELS } from '../../utils/drawingTools.js';
 import { DRAWING_TOOL_ICONS } from './DrawingToolIcons.jsx';
+import V4DrawingToolbar from './v4/V4DrawingToolbar.jsx';
 import { chartTimezoneLabel, formatChartClock } from '../../utils/desktopChartSettings.js';
 
 const MOBILE_HIDDEN_DRAWING_TOOLS = new Set([
@@ -1574,7 +1575,10 @@ export default function ChartArea({
         ? `grid h-full min-h-0 ${toolbarVisible ? 'grid-cols-[36px_minmax(0,1fr)] gap-1.5' : 'grid-cols-[minmax(0,1fr)]'} grid-rows-[minmax(0,1fr)] px-1.5 pb-1.5`
         : `grid ${heightClass} grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2`;
 
-  const toolbarClass = drawingToolbarOverlay
+  const v4DesktopDrawingToolbar = v4AuditLayer && !compactContext && !drawingToolbarOverlay;
+  const toolbarClass = v4DesktopDrawingToolbar
+    ? 'acg-v4-drawing-rail'
+    : drawingToolbarOverlay
     ? 'acg-mobile-reference-drawing-rail mx-0.5 my-1 flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto rounded-[8px] border border-white/[0.08] bg-[#071019] py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
     : focusMode || embedded
       ? desktopEnhanced
@@ -1587,8 +1591,28 @@ export default function ChartArea({
   return (
     <div className={areaClass}>
       {toolbarVisible && (
-        <aside className={toolbarClass} aria-label="Drawing tools">
-          {compactContext ? (
+        <aside className={toolbarClass} aria-label="Drawing tools"
+          data-v4-drawing-toolbar={v4DesktopDrawingToolbar ? 'true' : undefined}>
+          {v4DesktopDrawingToolbar ? (
+            <V4DrawingToolbar
+              selectedTool={selectedTool}
+              onSelectTool={id => {
+                if (tradePlan) return;
+                setShowDrawings(true);
+                onSelectTool(id);
+              }}
+              tradePlanActive={Boolean(tradePlan)}
+              drawingCount={drawingCount}
+              showDrawings={showDrawings}
+              onToggleVisibility={() => setShowDrawings(value => !value)}
+              drawingSnap={drawingSnap}
+              onCycleSnap={cycleDrawingSnap}
+              lockAllDrawings={lockAllDrawings}
+              onToggleLock={() => setLockAllDrawings(value => !value)}
+              keepDrawingTool={keepDrawingTool}
+              onTogglePin={() => setKeepDrawingTool(value => !value)}
+            />
+          ) : compactContext ? (
             compactTool && (() => {
               const [id, Icon, label] = compactTool;
               return (
