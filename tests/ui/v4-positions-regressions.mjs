@@ -56,7 +56,7 @@ try {
   eq(await dock.locator('thead th').allTextContents(),
     ['Instrument','Exposure','Margin','Stop loss','Take profit','Risk at stop','Unrealized P&L'],'Exact Risk headings');
   eq(await rows().first().locator('td').count(),7,'Risk has seven columns');
-  ok((await rows().first().innerText()).includes('1,000.00 EUR'),'Base-quantity exposure labeled in EUR');
+  ok((await rows().first().innerText()).includes('1,000 EUR'),'Base-quantity exposure labeled in EUR');
   ok((await rows().first().innerText()).includes('$11.16'),'Stored margin retained');
   eq(await rows().first().getByRole('button',{name:'Add stop loss for EURUSD'}).count(),1,'Missing SL has Add button');
   eq(await rows().first().getByRole('button',{name:'Add take profit for EURUSD'}).count(),1,'Missing TP has Add button');
