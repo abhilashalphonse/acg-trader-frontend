@@ -9,6 +9,16 @@
   font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
   font-feature-settings:"tnum" 1; font-variant-numeric:tabular-nums;
 }
+/* Some desktop shell styles load after this sheet with a competing strip
+   background. Lock just the opt-in V4 header and its toolbar to one canvas. */
+.acg-desktop-v3 header.acg-v4-header[data-v4-header="true"] {
+  background:#09090b !important; background-color:#09090b !important;
+  background-image:none !important;
+}
+.acg-desktop-v3 header.acg-v4-header[data-v4-header="true"] .acg-desktop-chart-toolbar {
+  background:transparent !important; background-color:transparent !important;
+  background-image:none !important;
+}
 .acg-v4-header button { font-family:inherit; }
 .acg-v4-header .acg-v4-header-instrument {
   position:relative; flex:0 0 190px; min-width:0; max-width:190px;
