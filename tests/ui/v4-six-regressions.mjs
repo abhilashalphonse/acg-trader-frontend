@@ -522,6 +522,7 @@ try{
    ok(g.toolGroup.x-g.timeframeGroup.right<=10,`Chart tools immediately follow timeframes at ${width}px`);
    ok(g.spacer.x>=g.toolGroup.right-1 && g.accountGroup.x>=g.spacer.right-1,`Flexible space appears only after chart tools at ${width}px`);
    ok(g.accountButton.x>=g.accountGroup.x && g.accountButton.x<=g.accountGroup.x+16,`Account starts at right workspace boundary at ${width}px`);
+   console.log('V4_HEADER_GEOMETRY',width,JSON.stringify({outer:g.outer,more:g.more,accountGroup:g.accountGroup,accountButton:g.accountButton,toolGroup:g.toolGroup,spacer:g.spacer,sidebar:g.sidebar,rail:g.rail}));
    ok(g.more.right<=g.outer.right+1,`More button fits far-right dock at ${width}px`);
    ok(Math.abs(g.selected.w-32)<=1&&Math.abs(g.selected.h-28)<=1,`Selected timeframe is 32×28px at ${width}px`);
    eq(g.selectedRadius,'6px',`Selected timeframe uses 6px radius at ${width}px`);
