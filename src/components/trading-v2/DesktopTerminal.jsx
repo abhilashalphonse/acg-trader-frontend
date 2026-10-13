@@ -150,7 +150,24 @@ function loadDesktopLayout() {
     const requestedDockHeight = Number.isFinite(storedDockHeight) && storedDockHeight > 72
       ? storedDockHeight
       : fallback.dockHeight;
-    const dockHeight = clamp(requestedDockHeight, initialBounds.dockMin, initialBounds.dockMax);
+    // One-time compact-workspace migration happens *during initial layout
+    // hydration*. This avoids a later effect restoring a stale 400px+ dock
+    // (including browsers that have already run the earlier v1/v2 migration).
+    // After this version is marked complete, user-driven dock resizing is
+    // respected on every subsequent load.
+    let dockHeight=clamp(requestedDockHeight,initialBounds.dockMin,initialBounds.dockMax);
+    if (V4_DESKTOP_EXECUTION_ENABLED) {
+      const migrationKey='acg-v4-positions-dock-density-v3';
+      const migrationComplete=window.localStorage.getItem(migrationKey)==='true';
+      if(!migrationComplete) {
+        if(!dockCollapsed&&dockHeight>initialBounds.dockMin+8) {
+          const preferred=clamp(Math.round(viewportHeight*0.34),260,360);
+          const target=clamp(preferred,initialBounds.dockMin,initialBounds.dockMax);
+          if (dockHeight>target+16 || dockHeight<target-60) dockHeight=target;
+        }
+        window.localStorage.setItem(migrationKey,'true');
+      }
+    }
     const bounds = desktopHeightBounds(viewportHeight, dockCollapsed, dockHeight);
     return {
       sidebarWidth: clamp(stored.sidebarWidth || fallback.sidebarWidth, widthBounds.sidebarMin, widthBounds.sidebarMax),
@@ -408,43 +425,8 @@ export default function DesktopTerminal({
   const [requestedDockTab, setRequestedDockTab] = useState(null);
   const [positionsExpanded, setPositionsExpanded] = useState(false);
   const [desktopLayout, setDesktopLayout] = useState(loadDesktopLayout);
-  // The legacy 180px dock cannot fit the V4 reference's 48px header, search
-  // toolbar, 32px headings, 48px row and footer. Upgrade saved desktop sizes
-  // only on first V4 opt-in. Users can resize the dock afterward.
-  useEffect(() => {
-    if (!V4_DESKTOP_EXECUTION_ENABLED) return;
-    const key='acg-v4-positions-workspace-sized-v1';
-    try { if (window.localStorage.getItem(key)==='true') return; } catch { /* no storage */ }
-    setDesktopLayout(current=>{
-      if(current.dockCollapsed || current.dockHeight<=60)return current;
-      const bounds=desktopHeightBounds(window.innerHeight,false,current.dockHeight);
-      return {...current,dockHeight:clamp(Math.max(current.dockHeight,300),bounds.dockMin,bounds.dockMax)};
-    });
-    try { window.localStorage.setItem(key,'true'); } catch { /* storage unavailable */ }
-  }, []);
-  // Owner-density adjustment (13 Oct): the earlier expanded-details milestone
-  // left some V4 users with a 400px+ saved dock even after automatic expansion
-  // was removed. Apply this responsive correction ONCE to oversized saved
-  // layouts, not on each row expansion or window resize. Manual resizing after
-  // migration remains fully under the trader's control.
-  useEffect(() => {
-    if (!V4_DESKTOP_EXECUTION_ENABLED) return;
-    const key='acg-v4-positions-dock-density-v2';
-    try { if(window.localStorage.getItem(key)==='true') return; } catch { /* optional storage */ }
-    setDesktopLayout(current=>{
-      if(current.dockCollapsed||current.dockHeight<=60)return current;
-      const viewport=window.innerHeight;
-      // At a 910px screen target ~309px (vs the previous ~420px).
-      // Smaller screens stay legible; larger screens receive proportional room.
-      const preferred=clamp(Math.round(viewport*0.34),260,360);
-      const bounds=desktopHeightBounds(viewport,false,current.dockHeight);
-      const limit=clamp(preferred,bounds.dockMin,bounds.dockMax);
-      return current.dockHeight>limit+16
-        ? {...current,dockHeight:limit}
-        : current;
-    });
-    try {window.localStorage.setItem(key,'true');} catch { /* optional storage */ }
-  }, []);
+  // Initial V4 dock sizing is resolved in loadDesktopLayout(), so render
+  // and persisted sizing never race with legacy mount-time migrations.
   const [floatingOrder, setFloatingOrder] = useState(loadFloatingOrder);
   const [viewportHeight, setViewportHeight] = useState(() => typeof window !== 'undefined' ? window.innerHeight : 900);
   const [viewportWidth, setViewportWidth] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1440);
