@@ -96,7 +96,7 @@ function TableRow({position,instrument,account,view,selected,expanded,onSelect,o
         </Cell>
       </>}
       {view==='risk'&&<>
-        <Cell title={exposure?.description}>{exposure?fixedNumber(exposure.quantity,exposure.quantity<1?4:2)+' '+exposure.unit:'—'}</Cell>
+        <Cell title={exposure?.description}>{exposure?fixedNumber(exposure.quantity,Number.isInteger(exposure.quantity)?0:exposure.quantity<1?4:2)+' '+exposure.unit:'—'}</Cell>
         <Cell title="Position-level reserved margin; account currency">{money(margin,account?.currency)}</Cell>
         {['sl','tp'].map(field=>{
           const value=field==='sl'?sl:tp;
