@@ -30,6 +30,21 @@ const POSITIONS=Object.freeze([
   pnl:6,pnlCurrency:'USD',sl:67000,tp:70000,source:'server-position-valuation',
   raw:{margin:'678.00',contractSize:'1',openedAt:'2026-10-13T02:30:00.000Z',sourceOrderId:'order-btc-2'}},
 ]);
+const fixtureDaysAgo=days=>new Date(Date.now()-days*86400000).toISOString();
+const HISTORY_FIXTURE=[
+  {id:'closed-recent',symbol:'EURUSD',side:'BUY',volume:0.05,entry:1.10,closePrice:1.11,pnl:50,commission:2.0,swap:0,
+    pnlCurrency:'USD',closeType:'CLOSED',raw:{closedAt:fixtureDaysAgo(3),openedAt:fixtureDaysAgo(4),commissionPaid:2.0,swapPaid:0}},
+  {id:'closed-25d',symbol:'BTCUSD',side:'SELL',volume:0.02,entry:67000,closePrice:66900,pnl:2,
+    pnlCurrency:'USD',closeType:'CLOSED',raw:{closedAt:fixtureDaysAgo(25),openedAt:fixtureDaysAgo(26)}},
+  {id:'closed-old',symbol:'EURUSD',side:'SELL',volume:0.03,entry:1.12,closePrice:1.10,pnl:60,
+    pnlCurrency:'USD',closeType:'CLOSED',raw:{closedAt:fixtureDaysAgo(50),openedAt:fixtureDaysAgo(51)}},
+];
+const JOURNAL_FIXTURE=[
+ {id:'journal-current',type:'modify',timestamp:fixtureDaysAgo(2),time:'09:12:15',symbol:'EURUSD',
+  message:'SL modification requested',positionId:'position-eur-1'},
+ {id:'journal-old',type:'order',timestamp:fixtureDaysAgo(55),time:'07:44:19',
+  message:'Old browser journal item',orderId:'old-order'}
+];
 function PositionsQA(){
  const [positions,setPositions]=useState(POSITIONS);
  const [loading,setLoading]=useState(false);
@@ -53,7 +68,7 @@ function PositionsQA(){
  };
  return <DesktopTerminal market={market} tick={market} markets={markets} activeSymbol={symbol}
   onSelectSymbol={setSymbol} account={account} accounts={[account]} activeAccountId={account.id}
-  positions={positions} pendingOrders={PENDING} journal={[{id:'journal-1',positionId:'position-eur-1',time:'01:47:53',message:'Local journal only'}]}
+  positions={positions} pendingOrders={PENDING} positionHistory={HISTORY_FIXTURE} journal={JOURNAL_FIXTURE}
   positionActivityOrders={[{id:'order-eur-1',positionId:'position-eur-1',createdAt:'2026-10-13T01:47:52.000Z',side:'SELL',requestedVolume:'0.01',type:'MARKET'}]}
   positionActivityDeals={[{id:'deal-eur-1',positionId:'position-eur-1',executedAt:'2026-10-13T01:47:53.000Z',price:'1.11652',volume:'0.01',type:'OPEN'}]}
   positionsLoading={loading} positionsError={error}
