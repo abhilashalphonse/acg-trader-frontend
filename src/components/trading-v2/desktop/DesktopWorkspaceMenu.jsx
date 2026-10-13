@@ -53,8 +53,15 @@ export default function DesktopWorkspaceMenu({
   chartLayout = 1, onChartLayoutChange = () => {},
   chartLinked = false, onToggleChartLink = () => {},
   onCopyIndicators = () => {}, indicatorCount = 0,
+  open: controlledOpen, onOpenChange,
 }) {
-  const [open, setOpen] = useState(false);
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = controlledOpen === undefined ? localOpen : controlledOpen;
+  const setOpen = next => {
+    const value = typeof next === 'function' ? next(open) : next;
+    if (controlledOpen === undefined) setLocalOpen(value);
+    else onOpenChange?.(value);
+  };
   const [custom, setCustom] = useState(loadCustom);
   const workspaces = useMemo(() => [...BUILT_INS, ...custom], [custom]);
 
@@ -90,7 +97,7 @@ export default function DesktopWorkspaceMenu({
       </button>
 
       {open && (
-        <div className="acg-v3-popover absolute right-0 top-9 z-[90] w-[230px] overflow-hidden rounded-md border border-white/[0.10] bg-[#111113] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+        <div data-v4-header-menu={compact ? 'layout' : undefined} className="acg-v3-popover absolute right-0 top-9 z-[90] w-[230px] overflow-hidden rounded-md border border-white/[0.10] bg-[#111113] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
           {compact && <>
             <div className="px-2 pb-1 pt-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[#A6A6AF]">Chart grid</div>
             {[[1, Square, 'Single chart'], [2, Columns2, 'Two charts'], [4, Grid2X2, 'Four charts']].map(([value, Icon, label]) => (

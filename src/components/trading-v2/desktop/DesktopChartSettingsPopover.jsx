@@ -28,6 +28,7 @@ function ColorCell({ value, onChange, label }) {
 
 export default function DesktopChartSettingsPopover({
   open,
+  v4Theme = false,
   settings,
   onChange = () => {},
   onClose = () => {},
@@ -62,6 +63,7 @@ export default function DesktopChartSettingsPopover({
   return (
     <div
       ref={panelRef}
+      data-v4-chart-settings={v4Theme ? 'true' : undefined}
       className="acg-motion-popover absolute right-[47px] top-1 z-[180] w-[286px] overflow-hidden rounded-[10px] border border-white/[0.10] bg-[#09090B]/[0.985] shadow-[0_24px_70px_rgba(0,0,0,.62)] backdrop-blur-xl"
       role="dialog"
       aria-label="Chart appearance settings"
