@@ -29,6 +29,7 @@ import DesktopOrderTicketV4 from './desktop/DesktopOrderTicketV4.jsx';
 import DesktopManagePositionV4 from './desktop/DesktopManagePositionV4.jsx';
 import DesktopManagePendingV4 from './desktop/DesktopManagePendingV4.jsx';
 import './desktop/DesktopTerminal.theme.css';
+import './desktop/DesktopHeaderV4.css';
 import DesktopPositionManager from './desktop/DesktopPositionManager.jsx';
 import DesktopMultiChart from './desktop/DesktopMultiChart.jsx';
 import DesktopTradeReview from './desktop/DesktopTradeReview.jsx';
@@ -49,6 +50,7 @@ import { resolveExecutionPreview } from '../../utils/executionPricing.js';
 import { validateOpenPositionProtection } from '../../utils/openPositionPresentation.js';
 import { loadDesktopChartSettings, normalizeDesktopChartSettings, saveDesktopChartSettings } from '../../utils/desktopChartSettings.js';
 import { isChartOrderAuditEnabled } from '../../utils/chartOrderPresentation.js';
+import { v4HeaderMarketStatus, v4HeaderFxMonogram, v4HeaderAccountLabel } from '../../utils/v4HeaderPresentation.js';
 
 // Explicit opt-in only. Disabled in all existing builds unless configured.
 // ACG V4 is an owner-initiated production audit, not a global ticket rollout.
@@ -872,6 +874,8 @@ export default function DesktopTerminal({
   const valuationStatus = String(account?.valuationStatus || 'WAITING').toUpperCase();
   const accountStatus = String(account?.status || 'UNKNOWN').toUpperCase();
   const canOpen = exposureAllowed && executableMarket(market) && accountStatus === 'ACTIVE' && account?.tradingEnabled === true && valuationStatus === 'LIVE';
+  const v4HeaderStatus = v4HeaderMarketStatus(market);
+  const v4HeaderMonogram = v4HeaderFxMonogram(market);
   const firstPositive = (...values) => {
     for (const value of values) {
       const numeric = Number(value);
@@ -983,13 +987,16 @@ export default function DesktopTerminal({
       {notice && <div className="acg-motion-notice absolute right-3 top-[66px] z-[120] flex max-w-[390px] items-center gap-3 rounded-md border border-white/[0.06] bg-[#101010]/95 px-3 py-2.5 text-[10px] font-semibold text-[#E6EDF3] shadow-[0_16px_48px_rgba(0,0,0,.45)]"><span>{notice}</span><button type="button" onClick={() => setNotice('')} className="grid size-6 place-items-center rounded-md text-[#8094a7]"><X size={13}/></button></div>}
 
 
-      <header className="acg-desktop-market-strip flex h-[46px] w-full min-w-0 shrink-0 items-center overflow-visible rounded-[10px] border border-white/[0.07] bg-[#09090B] px-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_6px_18px_rgba(0,0,0,.22)]">
-        <div className="flex min-w-[178px] items-center gap-2.5 text-left 2xl:min-w-[210px]">
+      <header data-v4-header={V4_DESKTOP_EXECUTION_ENABLED ? 'true' : undefined}
+        className={`acg-desktop-market-strip flex h-[46px] w-full min-w-0 shrink-0 items-center overflow-visible rounded-[10px] border border-white/[0.07] bg-[#09090B] px-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_6px_18px_rgba(0,0,0,.22)] ${V4_DESKTOP_EXECUTION_ENABLED ? 'acg-v4-header' : ''}`}>
+        <div className="acg-v4-header-instrument flex min-w-[178px] items-center gap-2.5 text-left 2xl:min-w-[210px]">
           <button type="button" onClick={() => openMarketPanel('markets', false)} className="shrink-0" title="Open markets and watchlist" aria-label="Open markets and watchlist">
-            <InstrumentAvatar instrument={market} size={30}/>
+            {V4_DESKTOP_EXECUTION_ENABLED && v4HeaderMonogram
+              ? <span className="acg-v4-header-monogram" aria-hidden="true">{v4HeaderMonogram}</span>
+              : <InstrumentAvatar instrument={market} size={30}/>} 
           </button>
-          <div className="min-w-0">
-            <div className="flex min-w-0 items-center gap-1">
+          <div className="acg-v4-header-identity min-w-0">
+            <div className="acg-v4-header-primary flex min-w-0 items-center gap-1">
               <button type="button" onClick={() => openMarketPanel('markets', false)} className="flex min-w-0 items-center gap-1 text-left" title="Open markets and watchlist">
                 <strong key={activeSymbol || 'symbol'} className="acg-motion-symbol truncate text-[14px] font-extrabold tracking-[-0.025em] text-[#f3f6f8]">{market?.displaySymbol || displaySymbol(market?.symbol)}</strong>
                 <ChevronDown size={12} className="shrink-0 text-[#f3f6f8]"/>
@@ -1004,21 +1011,28 @@ export default function DesktopTerminal({
                 <Star key={favorite ? 'favorite-on' : 'favorite-off'} className="acg-favorite-icon" data-active={favorite ? 'true' : 'false'} size={12} fill={favorite ? 'currentColor' : 'none'}/>
               </button>
             </div>
-            <button type="button" onClick={() => openMarketPanel('markets', false)} className="mt-0.5 flex min-w-0 items-center gap-1.5 text-left text-[8px] font-bold text-[#697988]" title="Open markets and watchlist">
-              <span className="truncate">{marketLabel(market)}</span>
-              <span className="shrink-0 text-[#697988]">
-                {market?.sessionOpen === false || String(market?.marketState || '').toUpperCase() === 'CLOSED' ? 'MARKET CLOSED' : 'MARKET OPEN'}
-              </span>
-            </button>
+            {V4_DESKTOP_EXECUTION_ENABLED ? (
+              <div className="acg-v4-header-secondary" role="status" data-market-status={v4HeaderStatus}>
+                <span className="acg-v4-header-status-dot" aria-hidden="true"/>
+                <span>{v4HeaderStatus === 'open' ? 'Market open' : v4HeaderStatus === 'closed' ? 'Market closed' : 'Market unavailable'}</span>
+              </div>
+            ) : (
+              <button type="button" onClick={() => openMarketPanel('markets', false)} className="mt-0.5 flex min-w-0 items-center gap-1.5 text-left text-[8px] font-bold text-[#697988]" title="Open markets and watchlist">
+                <span className="truncate">{marketLabel(market)}</span>
+                <span className="shrink-0 text-[#697988]">
+                  {market?.sessionOpen === false || String(market?.marketState || '').toUpperCase() === 'CLOSED' ? 'MARKET CLOSED' : 'MARKET OPEN'}
+                </span>
+              </button>
+            )
           </div>
         </div>
         <div className="acg-desktop-chart-toolbar flex min-w-0 shrink-0 items-center border-l border-white/[0.06] bg-transparent px-2.5">
-          <div className="terminal-toolbar-group flex h-9 min-w-0 shrink-0 items-center overflow-x-auto rounded-[12px] border border-white/[0.09] bg-[#080808] px-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.015)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="terminal-toolbar-group acg-v4-header-timeframes flex h-9 min-w-0 shrink-0 items-center overflow-x-auto rounded-[12px] border border-white/[0.09] bg-[#080808] px-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.015)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {timeframes.map(([label, value]) => (
-              <button key={value} type="button" onClick={() => setDesktopTimeframe(value)} disabled={Boolean(tradePlan && !tradePlan.open)} className={activeChartTimeframe === value ? "relative grid h-full min-w-9 place-items-center px-2 text-[10px] font-bold text-[#f2f2f2] transition" : "relative grid h-full min-w-9 place-items-center px-2 text-[10px] font-bold text-[#8f9aa8] transition hover:text-[#e9edf3]"}>{label}{activeChartTimeframe === value && <span className="acg-active-underline absolute bottom-0 left-[18%] right-[18%] h-[2px] rounded-full bg-[#C9CDD2]" aria-hidden="true"/>}</button>
+              <button key={value} type="button" data-v4-timeframe={value} aria-pressed={activeChartTimeframe === value} onClick={() => setDesktopTimeframe(value)} disabled={Boolean(tradePlan && !tradePlan.open)} className={activeChartTimeframe === value ? "relative grid h-full min-w-9 place-items-center px-2 text-[10px] font-bold text-[#f2f2f2] transition" : "relative grid h-full min-w-9 place-items-center px-2 text-[10px] font-bold text-[#8f9aa8] transition hover:text-[#e9edf3]"}>{label}{activeChartTimeframe === value && <span className="acg-active-underline absolute bottom-0 left-[18%] right-[18%] h-[2px] rounded-full bg-[#C9CDD2]" aria-hidden="true"/>}</button>
             ))}
           </div>
-          <div className="ml-1.5 flex h-full shrink-0 items-center gap-1.5">
+          <div className="acg-v4-header-tools ml-1.5 flex h-full shrink-0 items-center gap-1.5" role="group" aria-label="Chart tools">
             <div className="relative">
               <button type="button" onClick={() => setChartMenuOpen(value => !value)} className={chartMenuOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#C9CDD2]/60 bg-[#222427] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title="Chart settings"><CandlestickChart size={12}/><span>Charts</span><ChevronDown size={10}/></button>
               {chartMenuOpen && (
