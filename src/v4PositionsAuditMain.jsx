@@ -13,6 +13,12 @@ const EURO=Object.freeze({symbol:'EURUSD',displaySymbol:'EUR/USD',name:'Euro / U
 const BTC=Object.freeze({symbol:'BTCUSD',displaySymbol:'BTC/USD',name:'Bitcoin / US Dollar',assetClass:'CRYPTO',
  baseCurrency:'BTC',quoteCurrency:'USD',contractSize:1,defaultLeverage:2,tickSize:0.01,
  bid:68100,ask:68102,price:68101,sessionOpen:true,marketState:'LIVE',isStale:false,marketDataAvailable:true});
+const PENDING=Object.freeze([{
+ id:'pending-eur-1',accountId:'v4-positions-fixture',symbol:'EURUSD',side:'BUY',
+ orderType:'stop-limit',volume:0.03,entry:1.12,stopPrice:1.12,limitPrice:1.1198,
+ sl:1.115,tp:1.13,expiration:'GTC',status:'pending',
+ raw:{createdAt:'2026-10-13T01:15:22.000Z'}
+}]);
 const ACCOUNT=Object.freeze({id:'v4-positions-fixture',accountCode:'ACG-V4-POSITIONS',accountType:'TRIAL',type:'TRIAL',status:'ACTIVE',
  currency:'USD',initialBalance:100000,startingBalance:100000,balance:100000,equity:99999.17,
  valuationStatus:'LIVE',tradingEnabled:true,leverage:100,usedMargin:11.16,freeMargin:99988.01,floatingPnl:-0.83});
@@ -47,7 +53,7 @@ function PositionsQA(){
  };
  return <DesktopTerminal market={market} tick={market} markets={markets} activeSymbol={symbol}
   onSelectSymbol={setSymbol} account={account} accounts={[account]} activeAccountId={account.id}
-  positions={positions} journal={[{id:'journal-1',positionId:'position-eur-1',time:'01:47:53',message:'Local journal only'}]}
+  positions={positions} pendingOrders={PENDING} journal={[{id:'journal-1',positionId:'position-eur-1',time:'01:47:53',message:'Local journal only'}]}
   positionActivityOrders={[{id:'order-eur-1',positionId:'position-eur-1',createdAt:'2026-10-13T01:47:52.000Z',side:'SELL',requestedVolume:'0.01',type:'MARKET'}]}
   positionActivityDeals={[{id:'deal-eur-1',positionId:'position-eur-1',executedAt:'2026-10-13T01:47:53.000Z',price:'1.11652',volume:'0.01',type:'OPEN'}]}
   positionsLoading={loading} positionsError={error}
