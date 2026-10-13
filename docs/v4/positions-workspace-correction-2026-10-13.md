@@ -19,3 +19,7 @@ Scope is exclusively draft PR #107, opt-in desktop V4. Existing V3/mobile, new-o
 - Preserve pending-order flow and position management context: close/partial closes must use confirmation and backend risk/market checks.
 - Test all scoped corrections on Chrome full-terminal fixture alongside prior 527 chart/order, 66 Positions, 48 reference workspace and 25 pending assertions.
 - Await authenticated owner visual acceptance before merge.
+
+## Later owner sizing correction (13 October 2026; supersedes point 3 only)
+
+Owner requested the original dock size when a position expands. **Do not auto-enlarge the dock** on row click or chevron. Restore the standard desktop dock height/resize ceiling (320px at a 900px viewport, size-responsive elsewhere) for opt-in V4, and keep longer position details scrollable inside the dock. The existing explicit Expand/Fullscreen control alone opens the large workspace and can be restored to original size. Selecting/expanding rows must not change the saved dock height. Existing V4 three-column details, the header/toolbar/footer, and V3/mobile defaults remain unchanged. This later owner decision overrides the prior auto-enlarge acceptance contract and corresponding test expectations.
