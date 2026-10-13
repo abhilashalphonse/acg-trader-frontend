@@ -67,6 +67,9 @@ export default function PositionsPanel({
   positionHistory = [],
   pendingOrders = [],
   journal = [],
+  positionActivityOrders = [],
+  positionActivityDeals = [],
+  positionActivityFills = [],
   onClosePosition = () => {},
   onCloseAll = () => {},
   onCloseWinners = () => {},
@@ -282,7 +285,7 @@ export default function PositionsPanel({
   if (v4Positions && desktopDense && tab === 'positions') {
     return <section className="acg-desktop-positions acg-dock-v3 h-full min-h-0 overflow-hidden" aria-label="Positions workspace">
       <PositionsDockV4
-        positions={positions} markets={markets} account={account} counts={counts} journal={journal} readOnly={readOnly}
+        positions={positions} markets={markets} account={account} counts={counts} journal={journal} positionActivityOrders={positionActivityOrders} positionActivityDeals={positionActivityDeals} positionActivityFills={positionActivityFills} readOnly={readOnly}
         onTabChange={setTab} selectedPositionId={selectedPositionId}
         onSelectPosition={onSelectPosition} onManagePosition={onManagePosition} onEditProtection={onEditProtection}
         onRequestClose={onReviewClosePosition} collapsed={collapsed} compactDock={compactDock}
