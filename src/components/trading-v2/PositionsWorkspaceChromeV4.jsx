@@ -5,7 +5,7 @@ import {
   positionExposure, positionMargin, positionOpened, positionExecutionSource,
   positionRiskAtStop, positionIdentity, positionUsdNotional,
   positionMarginUtilization, positionRecordedCosts, positionHoldingDuration,
-  positionUnrealizedPnl, positionProtectionIntelligence,
+  positionUnrealizedPnl, positionProtectionIntelligence,positionCurrentSpread,
 } from '../../utils/v4PositionsPresentation.js';
 import { formatInstrumentPrice, instrumentForSymbol } from '../../utils/instrumentFormatting.js';
 import { estimatePositionPnlAtPrice } from '../../utils/tradingRisk.js';
@@ -96,6 +96,7 @@ export function PositionsExpandedDetails({
   const createdText=created&&Number.isFinite(created.getTime())?created.toLocaleString('en-GB'):'—';
   const currency=account?.currency||'USD';
   const costs=positionRecordedCosts(position);
+  const spread=positionCurrentSpread(position,instrument);
   const margin=positionMargin(position);
   const marginPercent=positionMarginUtilization(position,account);
   const usdExposure=positionUsdNotional(position,instrument);
@@ -117,6 +118,9 @@ export function PositionsExpandedDetails({
       {detailValue('Order ID',String(position.raw?.sourceOrderId||'—'))}
       {detailValue('Holding duration',positionHoldingDuration(position)||'—')}
       {detailValue('Recorded commission',costs.commission==null?'—':money(costs.commission,currency))}
+      {detailValue('Current bid/ask spread',spread==null?'—':
+        fixedNumber(spread.amount,spread.amount<1?2:1)+' '+spread.unit+
+        ' · live, not an added fee')}
       {detailValue('Recorded swap / financing',costs.swap==null?'—':money(costs.swap,currency,true))}
       {costs.realized!=null&&detailValue('Realized P&L',money(costs.realized,currency,true))}
       {!visible('Unrealized P&L')&&detailValue('Unrealized P&L',money(pnl.value,currency,true))}
