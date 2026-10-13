@@ -95,3 +95,48 @@ export function positionRiskAtStop(position,instrument,account,estimatePnlAtPric
 export function positionIdentity(position) {
   return String(position?.id??position?.positionId??'');
 }
+
+
+/**
+ * USD notional = underlying quantity × current executable price, but only
+ * when the instrument is USD-denominated or its underlying itself is USD.
+ * No assumed FX conversion and no mixed-unit additions.
+ */
+export function positionUsdNotional(position,instrument) {
+  const underlying=positionExposure(position,instrument);
+  if(!underlying)return null;
+  const base=String(instrument?.baseCurrency||'').toUpperCase();
+  const quote=String(instrument?.quoteCurrency||'').toUpperCase();
+  if(base==='USD')return underlying.quantity;
+  if(quote!=='USD')return null;
+  const price=finiteOrNull(position?.closePrice);
+  return price!=null&&price>0 ? underlying.quantity*price : null;
+}
+export function positionMarginUtilization(position,account) {
+  const margin=positionMargin(position);
+  const equity=finiteOrNull(account?.equity);
+  return margin!=null&&equity!=null&&equity>0 ? 100*margin/equity : null;
+}
+export function positionRecordedCosts(position) {
+  // Explicit presence matters: unknown is NOT free. Amounts are already
+  // posted in account accounting; never subtract them again from live P&L.
+  const raw=position?.raw;
+  const commission=raw&&Object.prototype.hasOwnProperty.call(raw,'commissionPaid')
+    ? finiteOrNull(raw.commissionPaid):null;
+  const swap=raw&&Object.prototype.hasOwnProperty.call(raw,'swapPaid')
+    ? finiteOrNull(raw.swapPaid):null;
+  const realized=raw&&Object.prototype.hasOwnProperty.call(raw,'realizedPnl')
+    ? finiteOrNull(raw.realizedPnl):null;
+  return {commission,swap,realized};
+}
+export function positionHoldingDuration(position,now=Date.now()) {
+  const started=positionOpened(position)?.iso;
+  const start=started==null?NaN:Date.parse(started);
+  const end=typeof now==='number'?now:Date.parse(now);
+  if(!Number.isFinite(start)||!Number.isFinite(end)||end<start)return null;
+  const totalMinutes=Math.floor((end-start)/60000);
+  const days=Math.floor(totalMinutes/1440);
+  const hours=Math.floor(totalMinutes%1440/60);
+  const minutes=totalMinutes%60;
+  return days ? days+'d '+hours+'h' : hours ? hours+'h '+minutes+'m' : minutes+'m';
+}
