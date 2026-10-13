@@ -46,20 +46,20 @@
 }
 .acg-desktop-v3 .acg-v4-header .acg-v4-header-timeframes {
   display:flex; align-items:center; justify-content:flex-start; gap:4px;
-  box-sizing:border-box; flex:0 1 296px; width:296px;
+  box-sizing:border-box; flex:0 1 316px; width:316px;
   min-width:0; height:32px; padding:0 4px;
   overflow-x:auto; overflow-y:hidden; scroll-behavior:smooth;
   border:0 !important; background:transparent !important;
   border-radius:0 !important; box-shadow:none !important;
 }
 .acg-desktop-v3 .acg-v4-header .acg-v4-header-timeframes button {
-  display:grid; place-items:center; flex:0 0 32px !important;
-  min-width:32px !important; width:32px !important; max-width:32px !important;
-  height:28px !important; min-height:28px !important;
-  padding:0; border:0; border-radius:6px;
+  display:grid; place-items:center; flex:0 0 auto !important;
+  min-width:32px !important; width:max-content !important; max-width:none !important;
+  box-sizing:border-box; height:28px !important; min-height:28px !important;
+  padding:0 8px !important; border:0; border-radius:6px;
   color:#b9b9c2 !important; background:transparent;
   font-size:12px !important; line-height:16px;
-  font-weight:600 !important; transition:color .14s,background .14s;
+  font-weight:600 !important; transition:color .12s ease !important;
 }
 /* Inactive timeframes stay completely flat, even when a previous selection
    retains mouse hover / pointer focus. Only aria-pressed=true has a fill. */

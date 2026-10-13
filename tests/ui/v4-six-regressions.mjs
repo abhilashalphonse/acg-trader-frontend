@@ -532,7 +532,7 @@ try{
    ok(g.accountButton.x>=g.accountGroup.x && g.accountButton.x<=g.accountGroup.x+16,`Account starts at right workspace boundary at ${width}px`);
    console.log('V4_HEADER_GEOMETRY',width,JSON.stringify({outer:g.outer,more:g.more,accountGroup:g.accountGroup,accountButton:g.accountButton,toolGroup:g.toolGroup,spacer:g.spacer,sidebar:g.sidebar,rail:g.rail,selected:g.selected,selectedSize:g.selectedSize,selectedRadius:g.selectedRadius}));
    ok(g.more.right<=g.outer.right+1,`More button fits far-right dock at ${width}px`);
-   ok(Math.abs(g.selected.w-32)<=1&&Math.abs(g.selected.h-28)<=1,`Selected timeframe is 32×28px at ${width}px`);
+   ok(g.selected.w>=32&&Math.abs(g.selected.h-28)<=1,`Selected timeframe has a 32px minimum width and 28px height at ${width}px`);
    eq(g.selectedRadius,'6px',`Selected timeframe uses 6px radius at ${width}px`);
    eq(g.selectedSize,'12px',`Timeframes use 12px text at ${width}px`);
    eq(g.fxSize,'17px',`ƒx is optically balanced at 17px alongside 18px icons at ${width}px`);
@@ -553,6 +553,40 @@ try{
  await header.locator('[data-v4-timeframe="15m"]').click();
  await page.waitForFunction(()=>document.querySelector('[data-v4-timeframe="15m"]')?.getAttribute('aria-pressed')==='true');
  const inactiveTime=header.locator('[data-v4-timeframe="30m"]');
+ await inactiveTime.hover();
+ const checkPillFit=async(value)=>{
+   const pill=header.locator(`[data-v4-timeframe="${value}"]`);
+   const geom=await pill.evaluate(button=>{
+     const bounds=button.getBoundingClientRect();
+     const range=document.createRange();
+     range.selectNodeContents(button);
+     const textBounds=range.getBoundingClientRect();
+     const style=getComputedStyle(button);
+     return {
+       width:bounds.width,height:bounds.height,
+       textWidth:textBounds.width,
+       paddingLeft:parseFloat(style.paddingLeft),
+       paddingRight:parseFloat(style.paddingRight),
+       background:style.backgroundColor,
+     };
+   });
+   ok(geom.width>=geom.textWidth+15,`${value} selected pill leaves visible padding around its label`);
+   ok(geom.width>=32,`${value} pill retains 32px minimum width`);
+   ok(Math.abs(geom.height-28)<=1,`${value} pill retains 28px height`);
+   eq(geom.background,'rgb(242, 242, 244)',`${value} pill has full soft-white fill`);
+   return geom.width;
+ };
+ const m15=await checkPillFit('15m');
+ ok(m15>32,`15m selected white pill expands beyond fixed 32px`);
+ await inactiveTime.click();
+ await page.waitForFunction(()=>document.querySelector('[data-v4-timeframe="30m"]')?.getAttribute('aria-pressed')==='true');
+ const m30=await checkPillFit('30m');
+ ok(m30>32,`30m selected white pill expands beyond fixed 32px`);
+ await header.locator('[data-v4-timeframe="1m"]').click();
+ await page.waitForFunction(()=>document.querySelector('[data-v4-timeframe="1m"]')?.getAttribute('aria-pressed')==='true');
+ await checkPillFit('1m');
+ await header.locator('[data-v4-timeframe="15m"]').click();
+ await page.waitForFunction(()=>document.querySelector('[data-v4-timeframe="15m"]')?.getAttribute('aria-pressed')==='true');
  await inactiveTime.hover();
  const timeframeVisuals=await header.locator('.acg-v4-header-timeframes').evaluate(node=>{
    const buttons=[...node.querySelectorAll('[data-v4-timeframe]')];
