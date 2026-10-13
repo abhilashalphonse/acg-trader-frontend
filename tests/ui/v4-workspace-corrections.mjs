@@ -25,6 +25,7 @@ try{
  const rows=()=>dock.locator('tr[data-v4-position-id]');
  eq(await dock.getAttribute('data-v4-position-view'),'compact','Compact default');
  eq(await rows().first().getByRole('button',{name:'Expand position details for EUR/USD'}).count(),1,'Compact view includes detail chevron');
+ const baseDockHeight=await dock.evaluate(el=>el.getBoundingClientRect().height);
  await rows().first().click();
  eq(await dock.locator('[data-v4-position-detail="position-eur-1"]').count(),1,'Compact row click expands inline details');
  eq(await page.locator('[data-v4-manage-position]').count(),0,'Row click never opens right-side management');
@@ -34,8 +35,8 @@ try{
    scroller:el.querySelector('.v4-positions-scroller').getBoundingClientRect().height,
    scrollHeight:el.querySelector('.v4-positions-scroller').scrollHeight,
  }));
- ok(heights.dock>=285&&heights.dock<=321,
-   'Inline row expansion preserves the original compact dock size');
+ ok(Math.abs(heights.dock-baseDockHeight)<=2,
+   'Inline row expansion never changes the compact dock height');
  ok(heights.scrollHeight>heights.scroller,
    'Expanded three-column details scroll inside the original dock');
  const scroll=await dock.locator('.v4-positions-scroller').evaluate(el=>{
