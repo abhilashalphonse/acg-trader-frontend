@@ -16,7 +16,7 @@ try {
       window.sessionStorage.setItem('v4-positions-first-load','yes');
     }
   });
-  const response=await page.goto('http://127.0.0.1:5174/v4-positions-audit.html',{waitUntil:'domcontentloaded'});
+  const response=await page.goto('http://127.0.0.1:5174/v4-positions-audit.html?acg_v4_audit=1',{waitUntil:'domcontentloaded'});
   eq(response?.status(),200,'Full-terminal fixture HTTP 200');
   const dock=page.locator('[data-v4-positions="true"]');
   await dock.waitFor({state:'visible'});
