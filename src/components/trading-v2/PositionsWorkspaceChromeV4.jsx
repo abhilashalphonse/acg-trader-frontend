@@ -9,6 +9,7 @@ import {
 } from '../../utils/v4PositionsPresentation.js';
 import { formatInstrumentPrice, instrumentForSymbol } from '../../utils/instrumentFormatting.js';
 import { estimatePositionPnlAtPrice } from '../../utils/tradingRisk.js';
+import { positionLifecycleEvents } from '../../utils/v4PositionLifecycle.js';
 
 // Presentation is always derived from the authoritative account and position
 // records. Never reconstruct used margin from leverage or fabricate activities.
@@ -86,13 +87,8 @@ export function PositionsToolbar({view,onView,query,onQuery,instrument,onInstrum
   </div>;
 }
 function detailValue(label,value){return <div className="v4-position-detail-field" key={label}><span>{label}</span><strong>{value??'—'}</strong></div>;}
-function journalForPosition(journal,id){
-  return (Array.isArray(journal)?journal:[])
-    .filter(item=>String(item?.positionId??item?.metadata?.positionId??item?.details?.positionId??item?.meta?.positionId??'')===String(id))
-    .slice(-3).reverse();
-}
 export function PositionsExpandedDetails({
-  position,instrument,account,journal,onEditProtection,onOpenJournal,readOnly,view='compact',visibleColumns=[],
+  position,instrument,account,activityOrders=[],activityDeals=[],activityFills=[],onEditProtection,onOpenJournal,readOnly,view='compact',visibleColumns=[],
 }){
   const id=positionIdentity(position);
   const opened=positionOpened(position);
@@ -107,7 +103,7 @@ export function PositionsExpandedDetails({
   const sl=finiteOrNull(position?.sl),tp=finiteOrNull(position?.tp);
   const risk=positionRiskAtStop(position,instrument,account,estimatePositionPnlAtPrice);
   const pnl=positionUnrealizedPnl(position,account);
-  const logs=journalForPosition(journal,id);
+  const logs=positionLifecycleEvents(position,{orders:activityOrders,deals:activityDeals,fills:activityFills});
   const visible=label=>visibleColumns.includes(label);
   const distance=(value,delta)=>value==null?'—':
     fixedNumber(value,value<1?2:1)+' '+protection.unit+(delta==null?'':' · '+money(delta,currency,true));
@@ -145,12 +141,12 @@ export function PositionsExpandedDetails({
     </section>
     <section>
       <h4>Position activity</h4>
-      {logs.length?logs.map((event,index)=><div key={String(event.id??index)} className="v4-position-activity">
-        <time>{event.time||event.timestamp||'—'}</time>
-        <span>{event.message||event.description||event.type||'Recorded event'}</span>
-      </div>):<p className="v4-position-no-activity">No position-specific activity records available.</p>}
+      {logs.length?logs.slice(0,3).map(event=><div key={event.id} className="v4-position-activity">
+        <time dateTime={event.timestamp}>{new Date(event.timestamp).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</time>
+        <span title={event.description||undefined}>{event.label}<small> {event.kind} #{event.recordId}</small></span>
+      </div>):<p className="v4-position-no-activity">No verified execution records available.</p>}
       <button type="button" className="v4-position-view-activity"
-        onClick={e=>{e.stopPropagation();onOpenJournal();}}>View journal →</button>
+        onClick={e=>{e.stopPropagation();onOpenJournal();}}>View history →</button>
     </section>
   </div>;
 }
