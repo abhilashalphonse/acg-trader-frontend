@@ -125,6 +125,64 @@ try{
  await journal.getByRole('button',{name:'1M',exact:true}).click();
  eq(await journal.locator('tr.v4-activity-row').count(),1,'Journal 1M never shows data older than one month');
 
- console.log('V4_WORKSPACE_CORRECTIONS_PASS',JSON.stringify({checks,heights,menu:before}));
+ // User screenshot: 1105 x 910, saved 420px legacy dock. One-time density
+ // migration should free roughly 120px for the chart without changing fullscreen.
+ const densityPage=await browser.newPage({viewport:{width:1105,height:910}});
+ const auditUrl='http://127.0.0.1:5174/v4-positions-audit.html?acg_v4_audit=1';
+ await densityPage.goto(auditUrl,{waitUntil:'domcontentloaded'});
+ await densityPage.evaluate(()=>{
+   localStorage.setItem('acg-trader-desktop-layout-v2',JSON.stringify({
+     dockHeight:420,sidebarCollapsed:false,dockCollapsed:false,sidebarWidth:360
+   }));
+   localStorage.setItem('acg-v4-positions-workspace-sized-v1','true');
+   localStorage.removeItem('acg-v4-positions-dock-density-v2');
+ });
+ await densityPage.reload({waitUntil:'domcontentloaded'});
+ const denseDock=densityPage.locator('[data-v4-positions="true"]');
+ await denseDock.waitFor({state:'visible'});
+ await densityPage.waitForFunction(()=>{
+   const el=document.querySelector('[data-v4-positions="true"]');
+   return el&&el.getBoundingClientRect().height>=295&&el.getBoundingClientRect().height<=330;
+ },null,{timeout:5000});
+ const compactHeight=await denseDock.evaluate(el=>el.getBoundingClientRect().height);
+ ok(compactHeight>=295&&compactHeight<=330,
+   'At screenshot viewport, old 420px dock reduces by about 120px to ~309px');
+ eq(await densityPage.evaluate(()=>localStorage.getItem('acg-v4-positions-dock-density-v2')),
+   'true','Responsive reduction runs only once');
+
+ // A trader's subsequent manual resize is a preference, not something the
+ // one-time migration should erase on next login/reload.
+ await densityPage.evaluate(()=>{
+   const key='acg-trader-desktop-layout-v2';
+   const value=JSON.parse(localStorage.getItem(key)||'{}');
+   localStorage.setItem(key,JSON.stringify({...value,dockHeight:365,dockCollapsed:false}));
+ });
+ await densityPage.reload({waitUntil:'domcontentloaded'});
+ await denseDock.waitFor({state:'visible'});
+ await densityPage.waitForFunction(()=>{
+   const el=document.querySelector('[data-v4-positions="true"]');
+   return el&&el.getBoundingClientRect().height>=352;
+ });
+ ok((await denseDock.evaluate(el=>el.getBoundingClientRect().height))>=352,
+   'After first migration, custom manual dock height persists across reload');
+
+ // A shorter screen receives the same responsive proportional correction.
+ await densityPage.evaluate(()=>{
+   const key='acg-trader-desktop-layout-v2';
+   const value=JSON.parse(localStorage.getItem(key)||'{}');
+   localStorage.setItem(key,JSON.stringify({...value,dockHeight:320,dockCollapsed:false}));
+   localStorage.removeItem('acg-v4-positions-dock-density-v2');
+ });
+ await densityPage.setViewportSize({width:1105,height:760});
+ await densityPage.reload({waitUntil:'domcontentloaded'});
+ await densityPage.waitForFunction(()=>{
+   const el=document.querySelector('[data-v4-positions="true"]');
+   return el&&el.getBoundingClientRect().height>=250&&el.getBoundingClientRect().height<=280;
+ });
+ ok((await denseDock.evaluate(el=>el.getBoundingClientRect().height))<=280,
+   'Shorter 760px screen uses proportional ~260px Positions dock');
+ await densityPage.close();
+
+  console.log('V4_WORKSPACE_CORRECTIONS_PASS',JSON.stringify({checks,heights,menu:before}));
 }catch(error){console.error('V4_WORKSPACE_CORRECTIONS_FAIL',error);throw error;}
 finally{await browser.close();}
