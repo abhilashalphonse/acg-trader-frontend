@@ -28,6 +28,10 @@ try{
  await rows().first().click();
  eq(await dock.locator('[data-v4-position-detail="position-eur-1"]').count(),1,'Compact row click expands inline details');
  eq(await page.locator('[data-v4-manage-position]').count(),0,'Row click never opens right-side management');
+ await page.waitForFunction(()=>{
+   const element=document.querySelector('[data-v4-positions="true"]');
+   return element&&element.getBoundingClientRect().height>=480;
+ },null,{timeout:5000});
  const heights=await dock.evaluate(el=>({
    dock:el.getBoundingClientRect().height,
    scroller:el.querySelector('.v4-positions-scroller').getBoundingClientRect().height,
