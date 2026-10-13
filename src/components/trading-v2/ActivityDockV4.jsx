@@ -72,6 +72,10 @@ export default function ActivityDockV4({
             {data.map(item=>{
               const instrument=instrumentForSymbol(markets,item.symbol);
               const id=String(item.id||item.positionId||'');
+              const hasCommission=item.raw?.commissionPaid!=null||
+                item.executionEvents?.some(event=>event.raw?.commission!=null);
+              const hasSwap=item.raw?.swapPaid!=null||
+                item.executionEvents?.some(event=>event.raw?.swap!=null);
               return <tr key={id} className="v4-activity-row">
                 <td><span className="v4-activity-symbol"><InstrumentAvatar instrument={instrument} size={20}/>
                   <strong>{instrument?.displaySymbol||item.symbol||'—'}</strong></span></td>
@@ -82,8 +86,8 @@ export default function ActivityDockV4({
                 <td>{item.raw?.openedAt?formatStamp(Date.parse(item.raw.openedAt)):'—'}</td>
                 <td>{formatStamp(activityTimestamp(item,'history'))}</td>
                 <td className="is-right"><span className={'v4-position-pnl '+pnlTone(item.pnl)}>{money(item.pnl,item.pnlCurrency||currency,true)}</span></td>
-                <td className="is-right" title="Recorded commission; never subtracted twice">{item.commission==null?'—':money(item.commission,currency)}</td>
-                <td className="is-right" title="Recorded financing/swap">{item.swap==null?'—':money(item.swap,currency,true)}</td>
+                <td className="is-right" title="Recorded commission; never subtracted twice">{!hasCommission?'—':money(item.commission,currency)}</td>
+                <td className="is-right" title="Recorded financing/swap">{!hasSwap?'—':money(item.swap,currency,true)}</td>
                 <td title={String(item.closeType||'')}>{item.closeType||'—'}</td>
               </tr>;
             })}
