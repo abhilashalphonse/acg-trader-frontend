@@ -1395,7 +1395,6 @@ export default function DesktopTerminal({
                 <DesktopOrderTicket
                   key={`floating-order-${account?.id || 'none'}`}
                   variant="floating"
-                  floatingV4={V4_DESKTOP_EXECUTION_ENABLED}
                   onFloatingDragStart={beginFloatingOrderDrag}
                   onOpenFullTrade={() => openSidebarView('trade')}
                   market={market}
