@@ -520,7 +520,7 @@ export default function DesktopTerminal({
     if(position.symbol&&position.symbol!==activeSymbol)onSelectSymbol(position.symbol);
   };
 
-  const reviewDockPositionClose = positionId => {
+  const reviewDockPositionClose = (positionId,percentage=100) => {
     if (!V4_DESKTOP_EXECUTION_ENABLED || readOnly) return;
     const target=positions.find(position=>String(position.id)===String(positionId));
     if(!target)return;
@@ -533,7 +533,7 @@ export default function DesktopTerminal({
     }
     selectPosition(target.id);
     // This is a review intent only. V4 Position Management owns Confirm Close.
-    setDockCloseIntent(previous=>({positionId:String(target.id),nonce:(previous?.nonce||0)+1}));
+    setDockCloseIntent(previous=>({positionId:String(target.id),percentage,nonce:(previous?.nonce||0)+1}));
   };
 
     const selectPending = orderOrId => {
