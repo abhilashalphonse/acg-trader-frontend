@@ -11,7 +11,10 @@ try {
     window.localStorage.setItem('acg-trader-desktop-layout-v2',JSON.stringify({
       dockHeight:285,sidebarCollapsed:false,dockCollapsed:false,sidebarWidth:370
     }));
-    window.localStorage.removeItem('acg-v4-positions-view-v1');
+    if (!window.sessionStorage.getItem('v4-positions-first-load')) {
+      window.localStorage.removeItem('acg-v4-positions-view-v1');
+      window.sessionStorage.setItem('v4-positions-first-load','yes');
+    }
   });
   const response=await page.goto('http://127.0.0.1:5174/v4-positions-audit.html',{waitUntil:'domcontentloaded'});
   eq(response?.status(),200,'Full-terminal fixture HTTP 200');
