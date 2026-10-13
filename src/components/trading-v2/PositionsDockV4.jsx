@@ -25,14 +25,14 @@ function initialView(){
   catch {return 'compact';}
 }
 const classForPnl=value=>'v4-position-pnl '+pnlTone(value);
-function CloseMenu({menu,onClose,onSelect,onRequestClose,onEditProtection,closeDisabled,readOnly}){
+function CloseMenu({menu,onClose,onManagePosition,onRequestClose,onEditProtection,closeDisabled,readOnly}){
   if(!menu)return null;
   const {position,rect}=menu;
   const top=Math.min(window.innerHeight-154,rect.bottom+5);
   const style={position:'fixed',left:Math.max(8,rect.right-186),top:Math.max(8,top),width:186,zIndex:9999};
   return createPortal(
     <div className="v4-positions-popover" role="menu" aria-label={'Actions for '+position.symbol} style={style}>
-      <button role="menuitem" type="button" onClick={()=>{onSelect(position.id);onClose();}}>Manage position</button>
+      <button role="menuitem" type="button" onClick={()=>{onManagePosition(position.id);onClose();}}>Manage position</button>
       <button role="menuitem" type="button" disabled={readOnly} onClick={()=>{onEditProtection(position.id,'sl');onClose();}}>Edit stop loss</button>
       <button role="menuitem" type="button" disabled={readOnly} onClick={()=>{onEditProtection(position.id,'tp');onClose();}}>Edit take profit</button>
       <button role="menuitem" type="button" disabled={closeDisabled}
@@ -139,7 +139,7 @@ function TableRow({position,instrument,account,view,visibleColumns,selected,expa
 }
 export default function PositionsDockV4({
   positions=[],markets=[],account={},counts={},journal=[],onTabChange=()=>{},
-  selectedPositionId=null,onSelectPosition=()=>{},onEditProtection=()=>{},
+  selectedPositionId=null,onSelectPosition=()=>{},onManagePosition=()=>{},onEditProtection=()=>{},
   onRequestClose=()=>{},collapsed=false,compactDock=false,expanded=false,
   onToggleExpanded=()=>{},loading=false,error=null,onRetry=()=>{},readOnly=false,
 }){
@@ -256,7 +256,7 @@ export default function PositionsDockV4({
       </div>
       {showExposure&&<PositionsExposureFooter positions={positions} markets={markets}/>}
     </>}
-    <CloseMenu menu={menu} onClose={onCloseMenu} onSelect={onSelectPosition}
+    <CloseMenu menu={menu} onClose={onCloseMenu} onManagePosition={onManagePosition}
       onRequestClose={onRequestClose} onEditProtection={onEditProtection} closeDisabled={menu?.closeDisabled||readOnly} readOnly={readOnly}/>
   </div>;
 }
