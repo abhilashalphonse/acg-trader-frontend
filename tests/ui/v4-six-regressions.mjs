@@ -473,13 +473,7 @@ try{
  await page.goto('http://127.0.0.1:5174/v4-header-audit.html?acg_v4_audit=1',{waitUntil:'domcontentloaded'});
  const header=page.locator('[data-v4-header="true"]');
  await header.waitFor({timeout:20000});
- eq(await header.locator('.acg-v4-header-monogram').innerText(),'£
- console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks,commands:await page.evaluate(()=>window.v4QA.commands)}));
-}catch(error){
- console.error('SIX_V4_REGRESSIONS_FAIL',error);
- process.exitCode=1;
-}finally{await browser.close();}
-,'GBPUSD uses approved FX monogram');
+ eq(await header.locator('.acg-v4-header-monogram').innerText(),'£$','GBPUSD uses approved FX monogram');
  eq(await header.locator('[data-market-status]').getAttribute('data-market-status'),'open','only confirmed open sessions claim Market open');
  eq(await header.locator('[data-v4-header-account-name]').innerText(),'ACG · 598D2F','compact account name');
  eq(await header.locator('[data-v4-header-tool]').count(),3,'three icon-only chart tools');
