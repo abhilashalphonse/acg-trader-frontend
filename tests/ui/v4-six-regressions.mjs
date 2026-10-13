@@ -472,7 +472,14 @@ try{
  // The mounted REAL desktop terminal, not a reconstructed screenshot fixture.
  await page.goto('http://127.0.0.1:5174/v4-header-audit.html?acg_v4_audit=1',{waitUntil:'domcontentloaded'});
  const header=page.locator('[data-v4-header="true"]');
- await header.waitFor({timeout:20000});
+ await header.waitFor({timeout:12000}).catch(async error=>{
+   console.error('V4_HEADER_FIXTURE_DIAGNOSTIC',JSON.stringify({
+     url:page.url(),text:(await page.locator('body').innerText()).slice(0,1300),
+     errors,rootCount:await page.locator('#v4-header-fixture').count(),
+     html:(await page.locator('#v4-header-fixture').innerHTML()).slice(0,500),
+   }));
+   throw error;
+ });
  eq(await header.locator('.acg-v4-header-monogram').innerText(),'£$','GBPUSD uses approved FX monogram');
  eq(await header.locator('[data-market-status]').getAttribute('data-market-status'),'open','only confirmed open sessions claim Market open');
  eq(await header.locator('[data-v4-header-account-name]').innerText(),'ACG · 598D2F','compact account name');
