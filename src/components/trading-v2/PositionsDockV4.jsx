@@ -39,11 +39,11 @@ function CloseMenu({menu,onClose,onSelect,onRequestClose,onEditProtection,closeD
     </div>,document.body
   );
 }
-function InstrumentCell({position,instrument,execution,onToggle,expanded}){
+function InstrumentCell({position,instrument,view,onToggle,expanded}){
   const side=String(position.side||'').toUpperCase();
   const symbol=instrument?.displaySymbol||position.symbol||'—';
   return <span className="v4-position-instrument">
-    {execution&&<button type="button" className="v4-position-chevron" aria-label={(expanded?'Collapse':'Expand')+' execution details for '+symbol}
+    {view!=='compact'&&<button type="button" className="v4-position-chevron" aria-label={(expanded?'Collapse':'Expand')+(view==='execution'?' execution details':' position details')+' for '+symbol}
       title={(expanded?'Collapse':'Expand')+' execution details'} aria-expanded={expanded}
       onClick={event=>{event.stopPropagation();onToggle();}}>{expanded?<ChevronDown size={16}/>:<ChevronRight size={16}/>}</button>}
     <strong title={symbol}>{symbol}</strong>
@@ -82,7 +82,7 @@ function TableRow({position,instrument,account,view,visibleColumns,selected,expa
       data-v4-position-id={id} aria-selected={selected} tabIndex={0} aria-label={rowLabel}
       onClick={()=>onSelect(id)}
       onKeyDown={event=>{if(event.target!==event.currentTarget)return;if(event.key==='Enter'||event.key===' '){event.preventDefault();onSelect(id);}}}>
-      <Cell align="left"><InstrumentCell position={position} instrument={instrument} execution={canExpand} expanded={expanded} onToggle={onToggle}/></Cell>
+      <Cell align="left"><InstrumentCell position={position} instrument={instrument} view={view} expanded={expanded} onToggle={onToggle}/></Cell>
       {view==='compact'&&<>
         {displayed('Size')&&<Cell>{fixedNumber(position.volume,2)} lots</Cell>}
         {displayed('Current price')&&<Cell>{currentPrice==null?'—':formatInstrumentPrice(currentPrice,instrument)}</Cell>}
