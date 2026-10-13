@@ -487,6 +487,8 @@ try{
    }));
    throw error;
  });
+ eq(await page.locator('[data-v4-drawing-toolbar="true"]').count(),1,
+   'Real V4 DesktopTerminal mounts grouped drawing rail through ChartArea');
  eq(await header.locator('[data-v4-header-instrument-image]').count(),1,'GBPUSD preserves native instrument avatar rather than monogram');
  eq(await header.locator('[data-v4-header-instrument-image] .acg-v4-header-monogram').count(),0,'no replacement currency text monogram');
  ok(await header.locator('[data-v4-header-instrument-image] img').count()>=1,'Forex instrument retains visible pair flag images');
@@ -693,12 +695,14 @@ try{
  await rail.getByRole('button',{name:'Show all drawings'}).click();
  await page.waitForFunction(()=>window.v4DrawingQA.show);
  await page.evaluate(()=>window.v4DrawingQA.setPlan(true));
+ await page.waitForFunction(()=>document.querySelector('[data-v4-drawing-tool="trendline"]')?.disabled===true);
  eq(await rail.getByRole('button',{name:'Trend line'}).isDisabled(),true,'pending trade plan blocks new drawing placement');
  eq(await rail.locator('[data-v4-drawing-control="snap"]').isDisabled(),true,'pending trade plan blocks magnet setting');
  eq(await rail.locator('[data-v4-drawing-control="lock"]').isDisabled(),true,'pending trade plan blocks lock setting');
  eq(await rail.locator('[data-v4-drawing-control="pin"]').isDisabled(),true,'pending trade plan blocks keep-tool setting');
  eq(await rail.locator('[data-v4-drawing-control="visibility"]').isDisabled(),false,'drawing visibility remains available during trade plan');
  await page.evaluate(()=>window.v4DrawingQA.setHeight(230));
+ await page.waitForFunction(()=>Math.round(document.querySelector('[data-v4-drawing-toolbar="true"]')?.getBoundingClientRect().height||0)===230);
  const narrowFooter=await footerPosition();
  const narrowRail=await rail.boundingBox();
  ok(narrowFooter.bottom<=narrowRail.y+narrowRail.height+1,'fixed drawing controls stay inside short chart viewport');
