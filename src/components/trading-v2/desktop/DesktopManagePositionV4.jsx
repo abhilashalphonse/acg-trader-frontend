@@ -76,7 +76,7 @@ export default function DesktopManagePositionV4({
     if(!closeIntent||String(closeIntent.positionId)!==String(position?.id))return;
     if(readOnly||!canClose)return;
     // Dock Close opens the pre-existing confirmation flow; no direct execution.
-    setCloseRequest(100);
+    setCloseRequest([25,50,75,100].includes(Number(closeIntent.percentage)) ? Number(closeIntent.percentage) : 100);
   },[closeIntent?.nonce,closeIntent?.positionId,position?.id,readOnly,canClose]);
 
   const start=field=>{
