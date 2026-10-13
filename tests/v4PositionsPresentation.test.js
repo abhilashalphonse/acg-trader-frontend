@@ -69,7 +69,7 @@ test('risk at stop is missing without SL and fails closed when FX conversion una
 
 
 test('USD notional requires actual close quote and known USD denomination',()=>{
-  assert.equal(positionUsdNotional(position,forex),1117.3500000000001);
+  assert.ok(Math.abs(positionUsdNotional(position,forex)-1117.35)<0.00001);
   assert.equal(positionUsdNotional(position,{...forex,quoteCurrency:'CAD'}),null);
   assert.equal(positionUsdNotional({...position,closePrice:null},forex),null);
   assert.equal(positionUsdNotional(position,{...forex,baseCurrency:'USD',quoteCurrency:'JPY'}),1000);
