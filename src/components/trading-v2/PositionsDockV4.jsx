@@ -164,7 +164,7 @@ export default function PositionsDockV4({
   positions=[],markets=[],account={},counts={},journal=[],positionActivityOrders=[],positionActivityDeals=[],positionActivityFills=[],onTabChange=()=>{},
   selectedPositionId=null,onSelectPosition=()=>{},onManagePosition=()=>{},onEditProtection=()=>{},
   onRequestClose=()=>{},onBreakEven=()=>{},onSetTrailing=()=>{},collapsed=false,compactDock=false,expanded=false,
-  onToggleExpanded=()=>{},onEnsureDetailSpace=()=>{},loading=false,error=null,onRetry=()=>{},readOnly=false,
+  onToggleExpanded=()=>{},loading=false,error=null,onRetry=()=>{},readOnly=false,
 }){
   const [view,setView]=useState(initialView);
   const [expandedIds,setExpandedIds]=useState(()=>new Set());
@@ -208,21 +208,21 @@ export default function PositionsDockV4({
     const detail=scroller&&Array.from(scroller.querySelectorAll('[data-v4-position-detail]'))
       .find(item=>item.getAttribute('data-v4-position-detail')===id);
     if(!detail)return;
-    onEnsureDetailSpace();
     const raf=window.requestAnimationFrame(()=>{
       const current=scrollerRef.current;
-      const target=current&&Array.from(current.querySelectorAll('[data-v4-position-detail]'))
-        .find(item=>item.getAttribute('data-v4-position-detail')===id);
-      if(!current||!target)return;
+      const row=current&&Array.from(current.querySelectorAll('[data-v4-position-id]'))
+        .find(item=>item.getAttribute('data-v4-position-id')===id);
+      if(!current||!row)return;
       const bounds=current.getBoundingClientRect();
-      const detailBounds=target.getBoundingClientRect();
-      // Keep the selected row and detail in the dock; never scroll the page.
-      const delta=Math.max(0,detailBounds.bottom-bounds.bottom+12);
-      if(delta>0)current.scrollTo({top:current.scrollTop+delta,behavior:'smooth'});
+      const rowBounds=row.getBoundingClientRect();
+      // Preserve the dock height. Put the expanded position below the sticky
+      // column headings when needed; longer details scroll inside this dock.
+      const delta=rowBounds.top-bounds.top-33;
+      if(delta>1)current.scrollTo({top:current.scrollTop+delta,behavior:'auto'});
       revealRef.current=null;
     });
     return ()=>window.cancelAnimationFrame(raf);
-  },[expandedIds,onEnsureDetailSpace]);
+  },[expandedIds]);
   const openMenu=(event,position,closeAvailability)=>{
     if(menu?.position.id===position.id){onCloseMenu();return;}
     setMenu({position,rect:event.currentTarget.getBoundingClientRect(),closeDisabled:!closeAvailability.allowed});
