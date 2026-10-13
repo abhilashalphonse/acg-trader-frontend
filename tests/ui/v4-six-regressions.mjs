@@ -561,9 +561,9 @@ try{
  await header.getByRole('button',{name:/ACG-33E47AD12A9C/}).click();
  await page.waitForFunction(()=>window.v4HeaderQA.account==='ACG-33E47AD12A9C');
  eq(await header.locator('[data-v4-header-account-name]').innerText(),'ACG · D12A9C','account selection updates name');
- await header.getByRole('button',{name:'Indicators'}).click();
+ await header.getByRole('button',{name:'Indicators',exact:true}).click();
  eq(await header.getByText('Indicators',{exact:true}).count()>=1,true,'fx icon still opens indicator panel');
- await header.getByRole('button',{name:'Indicators'}).click();
+ await header.getByRole('button',{name:'Indicators',exact:true}).click();
 
  // Exactly one V4 desktop overlay can remain open, regardless of which
  // control is clicked next. Check visual theme and accessibility too.
@@ -582,12 +582,12 @@ try{
  };
  await header.getByRole('button',{name:'Chart type'}).click();
  await menuIs('chart');
- await header.getByRole('button',{name:'Indicators'}).click();
+ await header.getByRole('button',{name:'Indicators',exact:true}).click();
  await menuIs('indicators');
  eq(await header.getByRole('button',{name:'Chart type'}).getAttribute('aria-expanded'),'false','chart closes when fx opens');
  await header.getByRole('button',{name:'Layout'}).click();
  await menuIs('layout');
- eq(await header.getByRole('button',{name:'Indicators'}).getAttribute('aria-expanded'),'false','fx closes when layout opens');
+ eq(await header.getByRole('button',{name:'Indicators',exact:true}).getAttribute('aria-expanded'),'false','fx closes when layout opens');
  await header.getByRole('button',{name:'Switch trading account'}).click();
  await menuIs('account');
  eq(await header.getByRole('button',{name:'Layout'}).getAttribute('aria-expanded'),'false','layout closes when account opens');
@@ -604,7 +604,7 @@ try{
  await menuIs('layout');
  await page.mouse.click(10,1);
  eq(await activeMenu().count(),0,'outside pointer closes the active V4 dropdown');
- await header.getByRole('button',{name:'Indicators'}).click();
+ await header.getByRole('button',{name:'Indicators',exact:true}).click();
  await menuIs('indicators');
  const fxVisual=await header.locator('.acg-v4-header-fx').evaluate(el=>({
    size:getComputedStyle(el).fontSize,weight:getComputedStyle(el).fontWeight,
