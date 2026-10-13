@@ -471,6 +471,12 @@ try{
 
  const executedChartCommands=await page.evaluate(()=>window.v4QA.commands);
  // The mounted REAL desktop terminal, not a reconstructed screenshot fixture.
+ // Verify the customer-relevant case with the order panel OPEN, so the
+ // account group can be measured against its actual workspace boundary.
+ await page.evaluate(()=>localStorage.setItem('acg-trader-desktop-layout-v2',JSON.stringify({
+   sidebarWidth:360,sidebarCollapsed:false,dockCollapsed:false,
+   dockHeight:52,marketPanelWidth:300,watchlistHeight:220,
+ })));
  await page.goto('http://127.0.0.1:5174/v4-header-audit.html?acg_v4_audit=1',{waitUntil:'domcontentloaded'});
  const header=page.locator('[data-v4-header="true"]');
  await header.waitFor({timeout:12000}).catch(async error=>{
@@ -528,6 +534,7 @@ try{
    eq(g.selectedRadius,'6px',`Selected timeframe uses 6px radius at ${width}px`);
    eq(g.selectedSize,'12px',`Timeframes use 12px text at ${width}px`);
    eq(g.fxSize,'18px',`ƒx is normalized to 18px at ${width}px`);
+   ok(g.sidebar>0,`Order panel is open for account alignment at ${width}px`);
    if(width>=1024 && g.sidebar>0){
      ok(Math.abs(g.accountGroup.x-(g.outer.right-g.sidebar-g.rail))<=16,`Account boundary tracks actual order-panel left edge at ${width}px`);
    }

@@ -93,7 +93,7 @@
 .acg-v4-header .acg-v4-header-right {
   position:relative; display:flex; align-items:center; justify-content:space-between;
   box-sizing:border-box; margin:0; padding:0 0 0 9px;
-  width:max(190px,calc(var(--acg-v4-sidebar-width,370px) + var(--acg-v4-rail-width,42px)));
+  width:max(228px,calc(var(--acg-v4-sidebar-width,370px) + var(--acg-v4-rail-width,42px)));
   flex:0 0 auto; height:100%; gap:8px;
 }
 .acg-v4-header .acg-v4-header-valuation { display:none !important; }
