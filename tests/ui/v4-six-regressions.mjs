@@ -520,11 +520,13 @@ try{
      const spacer=rect(el.querySelector('.acg-v4-header-spacer'));
      const accountGroup=rect(el.querySelector('.acg-v4-header-right'));
      const accountButton=rect(el.querySelector('[data-v4-header-account]'));
+     const accountCaption=el.querySelector('[data-v4-header-account] span:not(.acg-v4-header-account-dot)');
      const more=rect(el.querySelector('[data-v4-header-more]'));
      const computed=getComputedStyle(active);
      const sidebar=parseFloat(el.style.getPropertyValue('--acg-v4-sidebar-width'));
      const rail=parseFloat(el.style.getPropertyValue('--acg-v4-rail-width'));
      return {outer:rect(el),symbol,account,tools,separators,timeframeGroup,toolGroup,spacer,accountGroup,accountButton,more,
+       accountCaptionFits:accountCaption.scrollWidth<=accountCaption.clientWidth+1,
        sidebar,rail,compactVisible,timeframeScrollWidth,timeframeClientWidth,timeframeOverflow,
        headerBg:getComputedStyle(el).backgroundColor,
        toolbarBg:getComputedStyle(el.querySelector('.acg-desktop-chart-toolbar')).backgroundColor,
@@ -549,7 +551,14 @@ try{
      ok(g.compactVisible,`Compact picker replaces scroll rail at ${width}px`);
    }
    ok(g.spacer.x>=g.toolGroup.right-1 && g.accountGroup.x>=g.spacer.right-1,`Flexible space appears only after chart tools at ${width}px`);
-   ok(g.accountButton.x>=g.accountGroup.x && g.accountButton.x<=g.accountGroup.x+16,`Account starts at right workspace boundary at ${width}px`);
+   ok(g.accountGroup.w<=242,`Account and More use compact width at ${width}px`);
+   ok(g.accountButton.x>=g.accountGroup.x+5 && g.accountButton.x<=g.accountGroup.x+16,
+     `Compact account follows its divider without excess padding at ${width}px`);
+   ok(g.more.x>=g.accountButton.right+3 && g.more.x-g.accountButton.right<=11,
+     `More sits close to account details at ${width}px`);
+   ok(g.more.right>=g.outer.right-14 && g.more.right<=g.outer.right+1,
+     `More stays anchored to far right of header at ${width}px`);
+   if(width>=1024) ok(g.accountCaptionFits,`Account metadata fits without truncation at ${width}px`);
    console.log('V4_HEADER_GEOMETRY',width,JSON.stringify({outer:g.outer,more:g.more,accountGroup:g.accountGroup,accountButton:g.accountButton,toolGroup:g.toolGroup,spacer:g.spacer,sidebar:g.sidebar,rail:g.rail,selected:g.selected,selectedSize:g.selectedSize,selectedRadius:g.selectedRadius}));
    ok(g.more.right<=g.outer.right+1,`More button fits far-right dock at ${width}px`);
    ok(g.selected.w>=32&&Math.abs(g.selected.h-28)<=1,`Selected timeframe has a 32px minimum width and 28px height at ${width}px`);
@@ -557,8 +566,9 @@ try{
    eq(g.selectedSize,'12px',`Timeframes use 12px text at ${width}px`);
    eq(g.fxSize,'17px',`ƒx is optically balanced at 17px alongside 18px icons at ${width}px`);
    ok(g.sidebar>0,`Order panel is open for account alignment at ${width}px`);
-   if(width>=1024 && g.sidebar>0){
-     ok(Math.abs(g.accountGroup.x-(g.outer.right-g.sidebar-g.rail))<=16,`Account boundary tracks actual order-panel left edge at ${width}px`);
+   if(width>=1024 && g.sidebar>0) {
+     ok(g.accountGroup.x>=g.outer.right-g.sidebar-g.rail,
+       `Compact account is right-anchored within the order-panel space at ${width}px`);
    }
    eq(g.activeBg,'rgb(242, 242, 244)',`White active timeframe at ${width}px`);
  }
