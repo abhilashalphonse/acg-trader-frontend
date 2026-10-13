@@ -5,6 +5,7 @@ import {
   DRAWING_TOOL_GROUPS,
   DRAWING_TOOL_LABELS,
   DRAWING_TWO_POINT_TOOL_IDS,
+  V4_DRAWING_TOOL_SECTIONS,
   canonicalDrawingTimeframe,
   canonicalTimeframeVisibility,
   clampDrawingRiskPercent,
@@ -61,4 +62,20 @@ test('two-point drawing catalog covers every tool that must expose a first ancho
   ]);
   for (const id of DRAWING_TWO_POINT_TOOL_IDS) assert.equal(isTwoPointDrawingTool(id), true);
   for (const id of ['hline', 'horizontal-ray', 'vline', 'text']) assert.equal(isTwoPointDrawingTool(id), false);
+});
+
+test('V4 drawing toolbar reorganizes exactly the existing 13 tools without additions or lost IDs',()=>{
+ const sections=V4_DRAWING_TOOL_SECTIONS;
+ assert.deepEqual(sections.map(s=>s.label),['Cursor','Lines','Analysis','Annotations']);
+ assert.deepEqual(sections.map(s=>s.tools),[
+  ['cursor'],
+  ['trendline','ray','extended-line','hline','horizontal-ray','vline'],
+  ['ruler','fibonacci','long-position','short-position'],
+  ['rectangle','text'],
+ ]);
+ const catalog=sections.flatMap(s=>s.tools);
+ assert.equal(catalog.length,13);
+ assert.equal(new Set(catalog).size,13);
+ assert.deepEqual([...catalog].sort(),[...DRAWING_TOOL_GROUPS.flat()].sort());
+ for(const id of catalog) assert.ok(DRAWING_TOOL_LABELS[id]);
 });

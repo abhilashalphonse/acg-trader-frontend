@@ -635,6 +635,77 @@ try{
  await page.evaluate(()=>window.v4HeaderQA.setSession('WAITING'));
  await page.waitForFunction(()=>document.querySelector('[data-v4-header] [data-market-status]')?.dataset.marketStatus==='unavailable');
 
+
+ // Actual V4 drawing toolbar mounted with deterministic drawing controls.
+ await page.goto('http://127.0.0.1:5174/v4-drawing-toolbar-audit.html?acg_v4_audit=1',{waitUntil:'domcontentloaded'});
+ const rail=page.locator('[data-v4-drawing-toolbar="true"]');
+ await rail.waitFor();
+ eq(await rail.locator('[data-v4-drawing-tool]').count(),13,'V4 rail keeps all original thirteen drawing tools');
+ eq(await rail.locator('[data-v4-drawing-control]').count(),4,'V4 rail keeps exactly four existing drawing controls');
+ for(const groupName of ['Cursor','Lines','Analysis','Annotations']){
+   eq(await rail.getByRole('group',{name:groupName}).count(),1,`Rail group: ${groupName}`);
+ }
+ eq(await rail.locator('[data-v4-drawing-section="lines"] button').count(),6,'all six existing line tools retained');
+ eq(await rail.locator('[data-v4-drawing-section="analysis"] button').count(),4,'ruler, Fibonacci, Long and Short Risk tools retained');
+ eq(await rail.locator('[data-v4-drawing-section="annotations"] button').count(),2,'Rectangle and Text are annotation tools');
+ eq(await rail.locator('[data-v4-drawing-tool="cursor"]').getAttribute('aria-pressed'),'true','crosshair begins selected');
+ eq(await rail.locator('[data-v4-drawing-control="pin"]').isDisabled(),true,'pin is disabled while cursor is selected');
+ const railSkin=await rail.evaluate(el=>({
+   bg:getComputedStyle(el).backgroundColor,font:getComputedStyle(el).fontFamily,
+   width:el.getBoundingClientRect().width,
+   selectedBg:getComputedStyle(el.querySelector('[data-v4-drawing-tool="cursor"]')).backgroundColor,
+   iconSize:el.querySelector('[data-v4-drawing-tool="cursor"] svg').getBoundingClientRect().width,
+ }));
+ eq(railSkin.bg,'rgb(11, 11, 13)','V4 metallic black rail background');
+ ok(railSkin.font.startsWith('Inter'),'Rail uses V4 Inter font');
+ eq(railSkin.width,40,'Drawing rail fits original 40px chart column');
+ eq(railSkin.selectedBg,'rgb(242, 242, 244)','selected drawing uses white active state');
+ eq(railSkin.iconSize,18,'all drawing icons standardized to 18px');
+ const footerPosition=async()=>rail.locator('[data-v4-drawing-controls]').evaluate(el=>{
+   const r=el.getBoundingClientRect();return {top:r.top,bottom:r.bottom};
+ });
+ const beforeFooter=await footerPosition();
+ await rail.getByRole('button',{name:'Text',exact:true}).click();
+ await page.waitForFunction(()=>window.v4DrawingQA.selected==='text');
+ eq(await rail.locator('[data-v4-drawing-tool="text"]').getAttribute('aria-pressed'),'true','Annotation selection propagates');
+ const afterFooter=await footerPosition();
+ ok(Math.abs(beforeFooter.top-afterFooter.top)<=1,'Drawing controls stay pinned when tool list scrolls');
+ const sc=await rail.locator('[data-v4-drawing-scroll]').evaluate(el=>({
+   scrollTop:el.scrollTop,scrollHeight:el.scrollHeight,height:el.clientHeight,
+ }));
+ ok(sc.scrollHeight>sc.height && sc.scrollTop>0,'Long tool catalog scrolls without moving controls');
+ await rail.getByRole('button',{name:'Trend line'}).click();
+ await page.waitForFunction(()=>window.v4DrawingQA.selected==='trendline');
+ await rail.getByRole('button',{name:'Magnet off — click for weak OHLC snapping'}).click();
+ await page.waitForFunction(()=>window.v4DrawingQA.snap==='weak');
+ await rail.getByRole('button',{name:'Weak OHLC magnet — click for strong'}).click();
+ await page.waitForFunction(()=>window.v4DrawingQA.snap==='strong');
+ await rail.getByRole('button',{name:'Strong OHLC magnet — click to turn off'}).click();
+ await page.waitForFunction(()=>window.v4DrawingQA.snap==='off');
+ await rail.getByRole('button',{name:'Lock all drawing movement'}).click();
+ await page.waitForFunction(()=>window.v4DrawingQA.locked);
+ await rail.getByRole('button',{name:'Unlock drawing movement'}).click();
+ await page.waitForFunction(()=>!window.v4DrawingQA.locked);
+ await rail.getByRole('button',{name:'Keep selected drawing tool active'}).click();
+ await page.waitForFunction(()=>window.v4DrawingQA.pinned);
+ await rail.getByRole('button',{name:'Hide all drawings'}).click();
+ await page.waitForFunction(()=>!window.v4DrawingQA.show);
+ await rail.getByRole('button',{name:'Show all drawings'}).click();
+ await page.waitForFunction(()=>window.v4DrawingQA.show);
+ await page.evaluate(()=>window.v4DrawingQA.setPlan(true));
+ eq(await rail.getByRole('button',{name:'Trend line'}).isDisabled(),true,'pending trade plan blocks new drawing placement');
+ eq(await rail.locator('[data-v4-drawing-control="snap"]').isDisabled(),true,'pending trade plan blocks magnet setting');
+ eq(await rail.locator('[data-v4-drawing-control="lock"]').isDisabled(),true,'pending trade plan blocks lock setting');
+ eq(await rail.locator('[data-v4-drawing-control="pin"]').isDisabled(),true,'pending trade plan blocks keep-tool setting');
+ eq(await rail.locator('[data-v4-drawing-control="visibility"]').isDisabled(),false,'drawing visibility remains available during trade plan');
+ await page.evaluate(()=>window.v4DrawingQA.setHeight(230));
+ const narrowFooter=await footerPosition();
+ const narrowRail=await rail.boundingBox();
+ ok(narrowFooter.bottom<=narrowRail.y+narrowRail.height+1,'fixed drawing controls stay inside short chart viewport');
+ ok(narrowFooter.top>=narrowRail.y,'drawing controls have visible space on short charts');
+ eq(await rail.getByRole('button',{name:'Long position risk tool'}).count(),1,'original long-risk icon retained');
+ eq(await rail.getByRole('button',{name:'Short position risk tool'}).count(),1,'original short-risk icon retained');
+
  assert.deepEqual(errors,[],'no uncaught page errors');checks++;
  console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks,commands:executedChartCommands}));
 }catch(error){
