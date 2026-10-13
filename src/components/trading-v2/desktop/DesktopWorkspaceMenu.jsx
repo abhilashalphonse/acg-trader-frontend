@@ -86,7 +86,7 @@ export default function DesktopWorkspaceMenu({
         onClick={() => setOpen(value => !value)}
         className={compact ? 'acg-v4-header-layout-tool' : 'flex h-8 items-center gap-1 rounded-md border border-white/[0.06] bg-black/20 px-2 text-[9px] font-semibold text-[#6F8191] hover:text-white'}
         title={compact ? 'Layout' : 'Layouts'}>
-        {compact ? <LayoutGrid size={19}/> : <><LayoutDashboard size={12}/>Layout<ChevronDown size={10}/></>}
+        {compact ? <LayoutGrid size={18}/> : <><LayoutDashboard size={12}/>Layout<ChevronDown size={10}/></>}
       </button>
 
       {open && (

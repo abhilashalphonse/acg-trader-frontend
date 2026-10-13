@@ -481,7 +481,9 @@ try{
    }));
    throw error;
  });
- eq(await header.locator('.acg-v4-header-monogram').innerText(),'£$','GBPUSD uses approved FX monogram');
+ eq(await header.locator('[data-v4-header-instrument-image]').count(),1,'GBPUSD preserves native instrument avatar rather than monogram');
+ eq(await header.locator('[data-v4-header-instrument-image] .acg-v4-header-monogram').count(),0,'no replacement currency text monogram');
+ ok(await header.locator('[data-v4-header-instrument-image] img').count()>=1,'Forex instrument retains visible pair flag images');
  eq(await header.locator('[data-market-status]').getAttribute('data-market-status'),'open','only confirmed open sessions claim Market open');
  eq(await header.locator('[data-v4-header-account-name]').innerText(),'ACG · 598D2F','compact account name');
  eq(await header.locator('[data-v4-header-tool]').count(),3,'three icon-only chart tools');
@@ -497,15 +499,37 @@ try{
      const symbol=rect(el.querySelector('.acg-v4-header-primary strong'));
      const account=rect(el.querySelector('[data-v4-header-account-name]'));
      const active=el.querySelector('[data-v4-timeframe][aria-pressed="true"]');
-     return {outer:rect(el),symbol,account,tools,separators,
-       activeBg:getComputedStyle(active).backgroundColor,docWidth:document.documentElement.scrollWidth};
+     const timeframeGroup=rect(el.querySelector('.acg-v4-header-timeframes'));
+     const toolGroup=rect(el.querySelector('.acg-v4-header-tools'));
+     const spacer=rect(el.querySelector('.acg-v4-header-spacer'));
+     const accountGroup=rect(el.querySelector('.acg-v4-header-right'));
+     const accountButton=rect(el.querySelector('[data-v4-header-account]'));
+     const more=rect(el.querySelector('[data-v4-header-more]'));
+     const computed=getComputedStyle(active);
+     const sidebar=parseFloat(el.style.getPropertyValue('--acg-v4-sidebar-width'));
+     const rail=parseFloat(el.style.getPropertyValue('--acg-v4-rail-width'));
+     return {outer:rect(el),symbol,account,tools,separators,timeframeGroup,toolGroup,spacer,accountGroup,accountButton,more,
+       sidebar,rail,selected:rect(active),selectedRadius:computed.borderRadius,selectedSize:computed.fontSize,
+       fxSize:getComputedStyle(el.querySelector('.acg-v4-header-fx')).fontSize,
+       activeBg:computed.backgroundColor,docWidth:document.documentElement.scrollWidth};
    });
-   ok(Math.abs(g.outer.h-64)<=1,`Header is 64px at ${width}px`);
+   ok(Math.abs(g.outer.h-52)<=1,`Header is 52px at ${width}px`);
    ok(g.outer.right<=width+1&&g.docWidth<=width+1,`No horizontal overflow at ${width}px`);
    ok(Math.abs(g.symbol.y-g.account.y)<=6,`Names align on same baseline at ${width}px`);
-   ok(g.tools.every(t=>t.rect.w>=32&&t.rect.h>=32),`32px+ tools at ${width}px`);
+   ok(g.tools.every(t=>Math.abs(t.rect.w-32)<=1&&Math.abs(t.rect.h-32)<=1),`Chart tools are exactly 32px at ${width}px`);
    ok(g.tools.every(t=>t.bg==='rgba(0, 0, 0, 0)'),`Icon tools are visually unboxed at ${width}px`);
-   ok(g.separators.every(h=>h==='32px'),`Dividers are consistently 32px at ${width}px`);
+   eq(g.separators[3],'32px',`Account divider remains 32px at ${width}px`);
+   ok(g.toolGroup.x-g.timeframeGroup.right<=10,`Chart tools immediately follow timeframes at ${width}px`);
+   ok(g.spacer.x>=g.toolGroup.right-1 && g.accountGroup.x>=g.spacer.right-1,`Flexible space appears only after chart tools at ${width}px`);
+   ok(g.accountButton.x>=g.accountGroup.x && g.accountButton.x<=g.accountGroup.x+16,`Account starts at right workspace boundary at ${width}px`);
+   ok(g.more.right<=g.outer.right+1,`More button fits far-right dock at ${width}px`);
+   ok(Math.abs(g.selected.w-32)<=1&&Math.abs(g.selected.h-28)<=1,`Selected timeframe is 32×28px at ${width}px`);
+   eq(g.selectedRadius,'6px',`Selected timeframe uses 6px radius at ${width}px`);
+   eq(g.selectedSize,'12px',`Timeframes use 12px text at ${width}px`);
+   eq(g.fxSize,'18px',`ƒx is normalized to 18px at ${width}px`);
+   if(width>=1024 && g.sidebar>0){
+     ok(Math.abs(g.accountGroup.x-(g.outer.right-g.sidebar-g.rail))<=16,`Account boundary tracks actual order-panel left edge at ${width}px`);
+   }
    eq(g.activeBg,'rgb(242, 242, 244)',`White active timeframe at ${width}px`);
  }
  await page.setViewportSize({width:1440,height:850});

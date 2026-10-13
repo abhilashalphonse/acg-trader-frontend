@@ -50,7 +50,7 @@ import { resolveExecutionPreview } from '../../utils/executionPricing.js';
 import { validateOpenPositionProtection } from '../../utils/openPositionPresentation.js';
 import { loadDesktopChartSettings, normalizeDesktopChartSettings, saveDesktopChartSettings } from '../../utils/desktopChartSettings.js';
 import { isChartOrderAuditEnabled } from '../../utils/chartOrderPresentation.js';
-import { v4HeaderMarketStatus, v4HeaderFxMonogram, v4HeaderAccountLabel } from '../../utils/v4HeaderPresentation.js';
+import { v4HeaderMarketStatus, v4HeaderAccountLabel } from '../../utils/v4HeaderPresentation.js';
 
 // Explicit opt-in only. Disabled in all existing builds unless configured.
 // ACG V4 is an owner-initiated production audit, not a global ticket rollout.
@@ -875,7 +875,6 @@ export default function DesktopTerminal({
   const accountStatus = String(account?.status || 'UNKNOWN').toUpperCase();
   const canOpen = exposureAllowed && executableMarket(market) && accountStatus === 'ACTIVE' && account?.tradingEnabled === true && valuationStatus === 'LIVE';
   const v4HeaderStatus = v4HeaderMarketStatus(market);
-  const v4HeaderMonogram = v4HeaderFxMonogram(market);
   const firstPositive = (...values) => {
     for (const value of values) {
       const numeric = Number(value);
@@ -988,12 +987,16 @@ export default function DesktopTerminal({
 
 
       <header data-v4-header={V4_DESKTOP_EXECUTION_ENABLED ? 'true' : undefined}
+        style={V4_DESKTOP_EXECUTION_ENABLED ? {
+          '--acg-v4-sidebar-width': `${sidebarContentWidth}px`,
+          '--acg-v4-rail-width': `${sidebarRailWidth}px`,
+        } : undefined}
         className={`acg-desktop-market-strip flex h-[46px] w-full min-w-0 shrink-0 items-center overflow-visible rounded-[10px] border border-white/[0.07] bg-[#09090B] px-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_6px_18px_rgba(0,0,0,.22)] ${V4_DESKTOP_EXECUTION_ENABLED ? 'acg-v4-header' : ''}`}>
         <div className="acg-v4-header-instrument flex min-w-[178px] items-center gap-2.5 text-left 2xl:min-w-[210px]">
-          <button type="button" onClick={() => openMarketPanel('markets', false)} className="shrink-0" title="Open markets and watchlist" aria-label="Open markets and watchlist">
-            {V4_DESKTOP_EXECUTION_ENABLED && v4HeaderMonogram
-              ? <span className="acg-v4-header-monogram" aria-hidden="true">{v4HeaderMonogram}</span>
-              : <InstrumentAvatar instrument={market} size={30}/>} 
+          <button type="button" data-v4-header-instrument-image={V4_DESKTOP_EXECUTION_ENABLED ? 'true' : undefined}
+            onClick={() => openMarketPanel('markets', false)} className="shrink-0"
+            title="Open markets and watchlist" aria-label="Open markets and watchlist">
+            <InstrumentAvatar instrument={market} size={30}/>
           </button>
           <div className="acg-v4-header-identity min-w-0">
             <div className="acg-v4-header-primary flex min-w-0 items-center gap-1">
@@ -1034,7 +1037,7 @@ export default function DesktopTerminal({
           </div>
           <div className="acg-v4-header-tools ml-1.5 flex h-full shrink-0 items-center gap-1.5" role="group" aria-label="Chart tools">
             <div className="relative">
-              <button type="button" data-v4-header-tool="chart-type" aria-label={V4_DESKTOP_EXECUTION_ENABLED ? 'Chart type' : undefined} aria-expanded={chartMenuOpen} onClick={() => setChartMenuOpen(value => !value)} className={chartMenuOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#C9CDD2]/60 bg-[#222427] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title={V4_DESKTOP_EXECUTION_ENABLED ? 'Chart type' : 'Chart settings'}><CandlestickChart size={V4_DESKTOP_EXECUTION_ENABLED ? 19 : 12}/><span className="acg-v4-header-tool-label">Charts</span><ChevronDown className="acg-v4-header-tool-chevron" size={10}/></button>
+              <button type="button" data-v4-header-tool="chart-type" aria-label={V4_DESKTOP_EXECUTION_ENABLED ? 'Chart type' : undefined} aria-expanded={chartMenuOpen} onClick={() => setChartMenuOpen(value => !value)} className={chartMenuOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#C9CDD2]/60 bg-[#222427] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title={V4_DESKTOP_EXECUTION_ENABLED ? 'Chart type' : 'Chart settings'}><CandlestickChart size={V4_DESKTOP_EXECUTION_ENABLED ? 18 : 12}/><span className="acg-v4-header-tool-label">Charts</span><ChevronDown className="acg-v4-header-tool-chevron" size={10}/></button>
               {chartMenuOpen && (
                 <div className="acg-motion-popover absolute right-0 top-8 z-[100] w-[205px] rounded-md border border-white/[0.10] bg-[#111113] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
                   <div className="px-2 pb-1 pt-0.5 text-[7px] font-bold uppercase tracking-[0.08em] text-[#5f6d79]">Chart type</div>
@@ -1089,6 +1092,7 @@ export default function DesktopTerminal({
             )}
           </div>
         )}
+        {V4_DESKTOP_EXECUTION_ENABLED && <div className="acg-v4-header-spacer" aria-hidden="true"/>}
         <div className="acg-v4-header-right ml-auto flex items-center gap-2">
           {readOnly && <span className="hidden rounded-md border border-rose-400/20 bg-rose-400/[0.08] px-2 py-1 text-[7px] font-black uppercase tracking-[0.09em] text-rose-300 2xl:inline-flex">Read-only · Breached</span>}
           <div className="acg-v4-header-valuation hidden text-right 2xl:block">
