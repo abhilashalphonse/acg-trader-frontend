@@ -546,6 +546,38 @@ try{
  await header.locator('[data-v4-timeframe="1H"]').click();
  await page.waitForFunction(()=>window.v4HeaderQA.timeframe==='1H');
  eq(await header.locator('[data-v4-timeframe="1H"]').getAttribute('aria-pressed'),'true','timeframe selection works');
+ // User screenshot regression: 15m white and 30m dark filled concurrently.
+ // Clicking off 30m, then hovering/focusing it, must never leave a second pill.
+ await header.locator('[data-v4-timeframe="30m"]').click();
+ await page.waitForFunction(()=>document.querySelector('[data-v4-timeframe="30m"]')?.getAttribute('aria-pressed')==='true');
+ await header.locator('[data-v4-timeframe="15m"]').click();
+ await page.waitForFunction(()=>document.querySelector('[data-v4-timeframe="15m"]')?.getAttribute('aria-pressed')==='true');
+ const inactiveTime=header.locator('[data-v4-timeframe="30m"]');
+ await inactiveTime.hover();
+ const timeframeVisuals=await header.locator('.acg-v4-header-timeframes').evaluate(node=>{
+   const buttons=[...node.querySelectorAll('[data-v4-timeframe]')];
+   return buttons.map(button=>({
+     value:button.getAttribute('data-v4-timeframe'),
+     active:button.getAttribute('aria-pressed')==='true',
+     background:getComputedStyle(button).backgroundColor,
+     bgImage:getComputedStyle(button).backgroundImage,
+     shadow:getComputedStyle(button).boxShadow,
+   }));
+ });
+ eq(timeframeVisuals.filter(x=>x.active).length,1,'only one timeframe may have aria-pressed=true');
+ eq(timeframeVisuals.find(x=>x.value==='15m').background,'rgb(242, 242, 244)','15m is the only white filled timeframe');
+ for(const item of timeframeVisuals.filter(x=>!x.active)){
+   eq(item.background,'rgba(0, 0, 0, 0)',`Inactive ${item.value} must have no pill background (including hovered 30m)`);
+   eq(item.bgImage,'none',`Inactive ${item.value} must have no background image`);
+   eq(item.shadow,'none',`Inactive ${item.value} must have no retained shadow`);
+ }
+ await inactiveTime.focus();
+ eq(await inactiveTime.evaluate(el=>getComputedStyle(el).backgroundColor),'rgba(0, 0, 0, 0)',
+    'Keyboard focus on inactive 30m cannot create a second dark pill');
+ eq(await header.locator('[data-v4-timeframe="15m"]').getAttribute('aria-pressed'),'true',
+    'Focus and hover do not alter selected timeframe');
+ await page.mouse.move(1,1);
+
  await header.getByRole('button',{name:'Chart type'}).click();
  eq(await header.getByRole('button',{name:'Candlesticks'}).count(),1,'Chart menu keeps Candlesticks');
  eq(await header.getByRole('button',{name:'Single chart'}).count(),0,'Chart grid is no longer under Chart type');

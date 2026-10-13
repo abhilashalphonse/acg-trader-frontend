@@ -61,6 +61,14 @@
   font-size:12px !important; line-height:16px;
   font-weight:600 !important; transition:color .14s,background .14s;
 }
+/* Inactive timeframes stay completely flat, even when a previous selection
+   retains mouse hover / pointer focus. Only aria-pressed=true has a fill. */
+.acg-desktop-v3 .acg-v4-header .acg-v4-header-timeframes button[aria-pressed="false"],
+.acg-desktop-v3 .acg-v4-header .acg-v4-header-timeframes button[aria-pressed="false"]:is(:hover,:focus,:active) {
+  background-color:transparent !important;
+  background-image:none !important;
+  box-shadow:none !important;
+}
 .acg-v4-header .acg-v4-header-timeframes button:not(:disabled):hover { color:#fff !important; }
 .acg-v4-header .acg-v4-header-timeframes button[aria-pressed="true"] {
   background:#f2f2f4 !important; color:#121215 !important; font-weight:700 !important;
