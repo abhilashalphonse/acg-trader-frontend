@@ -102,7 +102,7 @@ export default function ActivityDockV4({
             <td title={String(item.positionId||item.orderId||'')}>{item.positionId||item.orderId||item.latencyMs!=null&&('Execution '+item.latencyMs+'ms')||'—'}</td>
           </tr>)}</tbody>
         </table>}
-        {!historyLoading&&data.length===0&&<div className="v4-positions-empty">
+        {!(isHistory&&(historyLoading||historyError))&&data.length===0&&<div className="v4-positions-empty">
           <strong>{isHistory?'No closed positions in this period':'No local journal activity in this period'}</strong>
           <span>{isHistory?'Closed trades with verified timestamps will appear here.':'Journal entries are local to this browser.'}</span>
         </div>}
