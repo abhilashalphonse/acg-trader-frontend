@@ -107,7 +107,11 @@ function desktopHeightBounds(viewportHeight, dockCollapsed = false, dockHeight =
   const height = Number(viewportHeight) || 900;
   const compact = height <= 900;
   const dockMin = 52;
-  const dockMax = compact ? Math.min(320, Math.floor(height * 0.44)) : height <= 1050 ? Math.min(420, Math.floor(height * 0.46)) : Math.min(520, Math.floor(height * 0.48));
+  // V4 expanded inline position details require more room. Increase only the
+  // opt-in V4 resize ceiling; keep all legacy V3 customer constraints exact.
+  const dockMax = V4_DESKTOP_EXECUTION_ENABLED
+    ? Math.min(520,Math.floor(height*0.58))
+    : compact ? Math.min(320, Math.floor(height * 0.44)) : height <= 1050 ? Math.min(420, Math.floor(height * 0.46)) : Math.min(520, Math.floor(height * 0.48));
   const defaultDock = 52;
   const effectiveDock = dockCollapsed ? 0 : clamp(dockHeight || defaultDock, dockMin, dockMax);
   const upperWorkspaceHeight = Math.max(0, height - 48 - effectiveDock);
