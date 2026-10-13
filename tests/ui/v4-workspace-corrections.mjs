@@ -134,8 +134,11 @@ try{
    localStorage.setItem('acg-trader-desktop-layout-v2',JSON.stringify({
      dockHeight:420,sidebarCollapsed:false,dockCollapsed:false,sidebarWidth:360
    }));
+   // Reproduce the actual existing-user state: both older migration
+   // flags already set, but an oversized dock height is still persisted.
    localStorage.setItem('acg-v4-positions-workspace-sized-v1','true');
-   localStorage.removeItem('acg-v4-positions-dock-density-v2');
+   localStorage.setItem('acg-v4-positions-dock-density-v2','true');
+   localStorage.removeItem('acg-v4-positions-dock-density-v3');
  });
  await densityPage.reload({waitUntil:'domcontentloaded'});
  const denseDock=densityPage.locator('[data-v4-positions="true"]');
@@ -145,10 +148,12 @@ try{
    return el&&el.getBoundingClientRect().height>=295&&el.getBoundingClientRect().height<=330;
  },null,{timeout:5000});
  const compactHeight=await denseDock.evaluate(el=>el.getBoundingClientRect().height);
+ eq(await densityPage.evaluate(()=>JSON.parse(localStorage.getItem('acg-trader-desktop-layout-v2')).dockHeight),
+   309,'Correct compact height is persisted to the actual desktop layout key');
  ok(compactHeight>=295&&compactHeight<=330,
    'At screenshot viewport, old 420px dock reduces by about 120px to ~309px');
- eq(await densityPage.evaluate(()=>localStorage.getItem('acg-v4-positions-dock-density-v2')),
-   'true','Responsive reduction runs only once');
+ eq(await densityPage.evaluate(()=>localStorage.getItem('acg-v4-positions-dock-density-v3')),
+   'true','V3 initial-layout hydration corrects even previously v2-migrated oversized docks');
 
  // A trader's subsequent manual resize is a preference, not something the
  // one-time migration should erase on next login/reload.
@@ -171,7 +176,7 @@ try{
    const key='acg-trader-desktop-layout-v2';
    const value=JSON.parse(localStorage.getItem(key)||'{}');
    localStorage.setItem(key,JSON.stringify({...value,dockHeight:320,dockCollapsed:false}));
-   localStorage.removeItem('acg-v4-positions-dock-density-v2');
+   localStorage.removeItem('acg-v4-positions-dock-density-v3');
  });
  await densityPage.setViewportSize({width:1105,height:760});
  await densityPage.reload({waitUntil:'domcontentloaded'});
