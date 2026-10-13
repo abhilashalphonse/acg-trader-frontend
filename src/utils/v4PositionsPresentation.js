@@ -140,3 +140,37 @@ export function positionHoldingDuration(position,now=Date.now()) {
   const minutes=totalMinutes%60;
   return days ? days+'d '+hours+'h' : hours ? hours+'h '+minutes+'m' : minutes+'m';
 }
+
+/**
+ * Conservative account-currency protection intelligence. Never equate
+ * original risk with risk remaining from the current mark.
+ * estimatePnlAtPrice computes quote-currency P&L and is only valid as account
+ * P&L here when quote == account currency.
+ */
+export function positionProtectionIntelligence(position,instrument,account,estimatePnlAtPrice) {
+  const entry=finiteOrNull(position?.entry);
+  const current=finiteOrNull(position?.closePrice);
+  const sl=finiteOrNull(position?.sl);
+  const tp=finiteOrNull(position?.tp);
+  const pip=finiteOrNull(instrument?.pipSize)??finiteOrNull(instrument?.tickSize);
+  const unit=finiteOrNull(instrument?.pipSize)>0?'pips':finiteOrNull(instrument?.tickSize)>0?'ticks':'price units';
+  const distance=target=>current!=null&&target!=null&&pip!=null&&pip>0
+    ? Math.abs(target-current)/pip:null;
+  const validConversion=String(instrument?.quoteCurrency||'').toUpperCase()===
+    String(account?.currency||'USD').toUpperCase();
+  const projected=(reference,target)=>validConversion&&reference!=null&&target!=null
+    ? finiteOrNull(estimatePnlAtPrice({...position,entry:reference},target,instrument)):null;
+  const lossAtStop=projected(entry,sl);
+  const gainAtTarget=projected(entry,tp);
+  const currentToStop=projected(current,sl);
+  const currentToTarget=projected(current,tp);
+  return {
+    unit,stopDistance:distance(sl),targetDistance:distance(tp),
+    currentToStop,currentToTarget,lossAtStop,gainAtTarget,
+    rewardToRisk:lossAtStop!=null&&lossAtStop<0&&gainAtTarget!=null&&gainAtTarget>0
+      ? gainAtTarget/-lossAtStop:null,
+    // This is an immutable historical metric; do not synthesize it from
+    // mutable SL or mark price without a recorded opening-risk basis.
+    rMultiple:null,
+  };
+}
