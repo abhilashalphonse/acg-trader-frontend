@@ -1,6 +1,8 @@
 import React,{useMemo,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import DesktopTerminal from './components/trading-v2/DesktopTerminal.jsx';
+import { AuthProvider } from './auth/AuthProvider.jsx';
+import { TradingProvider } from './store/TradingProvider.jsx';
 import './index.css';
 import './styles/acg-pure-black.css';
 
@@ -35,4 +37,6 @@ function HeaderQA(){
    onManualOrder={()=>{throw Error('Header QA must not place an order');}}
    onSelectSymbol={symbol=>setSelected(v=>[...v,symbol])}/>;
 }
-createRoot(document.getElementById('v4-header-fixture')).render(<HeaderQA/>);
+createRoot(document.getElementById('v4-header-fixture')).render(
+ <AuthProvider><TradingProvider><HeaderQA/></TradingProvider></AuthProvider>
+);
