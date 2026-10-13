@@ -23,7 +23,7 @@ function initialView(){
   catch {return 'compact';}
 }
 const classForPnl=value=>'v4-position-pnl '+pnlTone(value);
-function CloseMenu({menu,onClose,onSelect,onRequestClose,onEditProtection,closeDisabled}){
+function CloseMenu({menu,onClose,onSelect,onRequestClose,onEditProtection,closeDisabled,readOnly}){
   if(!menu)return null;
   const {position,rect}=menu;
   const top=Math.min(window.innerHeight-154,rect.bottom+5);
@@ -31,8 +31,8 @@ function CloseMenu({menu,onClose,onSelect,onRequestClose,onEditProtection,closeD
   return createPortal(
     <div className="v4-positions-popover" role="menu" aria-label={'Actions for '+position.symbol} style={style}>
       <button role="menuitem" type="button" onClick={()=>{onSelect(position.id);onClose();}}>Manage position</button>
-      <button role="menuitem" type="button" onClick={()=>{onEditProtection(position.id,'sl');onClose();}}>Edit stop loss</button>
-      <button role="menuitem" type="button" onClick={()=>{onEditProtection(position.id,'tp');onClose();}}>Edit take profit</button>
+      <button role="menuitem" type="button" disabled={readOnly} onClick={()=>{onEditProtection(position.id,'sl');onClose();}}>Edit stop loss</button>
+      <button role="menuitem" type="button" disabled={readOnly} onClick={()=>{onEditProtection(position.id,'tp');onClose();}}>Edit take profit</button>
       <button role="menuitem" type="button" disabled={closeDisabled}
         onClick={()=>{onRequestClose(position.id);onClose();}}>Review close</button>
     </div>,document.body
@@ -61,7 +61,7 @@ function Amount({position,account}){
     {money(pnl.value,pnl.currency,true)}
   </span>;
 }
-function TableRow({position,instrument,account,view,selected,expanded,onSelect,onToggle,onEditProtection,onReviewClose,onOpenMenu}){
+function TableRow({position,instrument,account,view,selected,expanded,onSelect,onToggle,onEditProtection,onReviewClose,onOpenMenu,readOnly}){
   const id=positionIdentity(position);
   const margin=positionMargin(position);
   const exposure=positionExposure(position,instrument);
@@ -86,7 +86,7 @@ function TableRow({position,instrument,account,view,selected,expanded,onSelect,o
         <Cell className="v4-position-actions-cell">
           <span className="v4-position-actions">
             <button type="button" className="v4-position-control v4-position-close"
-              disabled={!validClose.allowed} title={validClose.allowed?'Review closing this position':validClose.reason}
+              disabled={readOnly||!validClose.allowed} title={readOnly?'Account is read-only':validClose.allowed?'Review closing this position':validClose.reason}
               onClick={event=>{event.stopPropagation();onReviewClose(id);}}>Close</button>
             <button type="button" className="v4-position-control v4-position-more" aria-label={'More actions for '+position.symbol}
               title="More position actions" aria-haspopup="menu" onClick={event=>{event.stopPropagation();onOpenMenu(event,position,validClose);}}>
@@ -103,7 +103,7 @@ function TableRow({position,instrument,account,view,selected,expanded,onSelect,o
           return <Cell key={field}><button type="button" className="v4-position-protection"
             title={(value==null?'Add ':'Edit ')+(field==='sl'?'stop loss':'take profit')+' for '+position.symbol}
             aria-label={(value==null?'Add ':'Edit ')+(field==='sl'?'stop loss':'take profit')+' for '+position.symbol}
-            onClick={event=>{event.stopPropagation();onEditProtection(id,field);}}>
+            disabled={readOnly} onClick={event=>{event.stopPropagation();onEditProtection(id,field);}}>
             {value==null?'+ Add':formatInstrumentPrice(value,instrument)}
           </button></Cell>;
         })}
@@ -138,7 +138,7 @@ export default function PositionsDockV4({
   positions=[],markets=[],account={},counts={},onTabChange=()=>{},
   selectedPositionId=null,onSelectPosition=()=>{},onEditProtection=()=>{},
   onRequestClose=()=>{},collapsed=false,compactDock=false,expanded=false,
-  onToggleExpanded=()=>{},loading=false,error=null,onRetry=()=>{},
+  onToggleExpanded=()=>{},loading=false,error=null,onRetry=()=>{},readOnly=false,
 }){
   const [view,setView]=useState(initialView);
   const [expandedIds,setExpandedIds]=useState(()=>new Set());
@@ -212,7 +212,7 @@ export default function PositionsDockV4({
             return <TableRow key={id} position={position} instrument={instrumentForSymbol(markets,position.symbol)}
               account={account} view={view} selected={String(selectedPositionId)===id}
               expanded={expandedIds.has(id)} onSelect={onSelectPosition} onToggle={()=>toggleRow(id)}
-              onEditProtection={onEditProtection} onReviewClose={onRequestClose} onOpenMenu={openMenu}/>;
+              onEditProtection={onEditProtection} onReviewClose={onRequestClose} onOpenMenu={openMenu} readOnly={readOnly}/>;
           })}
         </tbody>
       </table>
@@ -221,6 +221,6 @@ export default function PositionsDockV4({
       </div>}
     </div>}
     <CloseMenu menu={menu} onClose={onCloseMenu} onSelect={onSelectPosition}
-      onRequestClose={onRequestClose} onEditProtection={onEditProtection} closeDisabled={menu?.closeDisabled}/>
+      onRequestClose={onRequestClose} onEditProtection={onEditProtection} closeDisabled={menu?.closeDisabled||readOnly} readOnly={readOnly}/>
   </div>;
 }
