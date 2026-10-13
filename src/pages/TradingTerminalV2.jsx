@@ -1379,6 +1379,10 @@ export default function TradingTerminalV2({
           positionHistory={positionHistory}
           pendingOrders={pendingOrders}
           journal={journal}
+          positionsLoading={Boolean(trading.accountSwitching || ['connecting','loading'].includes(trading.connection?.status))}
+          positionsError={['error','failed','disconnected'].includes(trading.connection?.status) && (trading.activeAccountId || account?.id)
+            ? (trading.errorMessage || 'Positions could not be synchronized. Check the connection and retry.') : null}
+          onRetryPositions={trading.refreshState}
           onClosePosition={closePosition}
           onCloseAllPositions={closeAllPositions}
           onCloseWinners={closeWinners}
