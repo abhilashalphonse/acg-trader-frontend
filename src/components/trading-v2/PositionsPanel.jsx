@@ -88,6 +88,7 @@ export default function PositionsPanel({
   requestedTab = null,
   selectedPositionId = null,
   onSelectPosition = () => {},
+  onManagePosition = () => {},
   onEditProtection = () => {},
   v4Positions = false,
   readOnly = false,
@@ -283,7 +284,7 @@ export default function PositionsPanel({
       <PositionsDockV4
         positions={positions} markets={markets} account={account} counts={counts} journal={journal} readOnly={readOnly}
         onTabChange={setTab} selectedPositionId={selectedPositionId}
-        onSelectPosition={onSelectPosition} onEditProtection={onEditProtection}
+        onSelectPosition={onSelectPosition} onManagePosition={onManagePosition} onEditProtection={onEditProtection}
         onRequestClose={onReviewClosePosition} collapsed={collapsed} compactDock={compactDock}
         expanded={expanded} onToggleExpanded={onToggleExpanded}
         loading={positionsLoading} error={positionsError} onRetry={onRetryPositions}/>
