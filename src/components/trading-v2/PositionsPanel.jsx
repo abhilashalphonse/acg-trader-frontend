@@ -24,6 +24,7 @@ import './PositionsPanel.desktop.css';
 import SharePositionSheet from './SharePositionSheet.jsx';
 import PositionsDockV4 from './PositionsDockV4.jsx';
 import PendingDockV4 from './PendingDockV4.jsx';
+import ActivityDockV4 from './ActivityDockV4.jsx';
 
 const tabs = [
   { id: 'positions', label: 'Positions' },
@@ -287,7 +288,16 @@ export default function PositionsPanel({
 
   // Desktop V4 is isolated from the existing customer/mobile panel.
   // Other tabs retain their current implementation until their own V4 milestones.
-  if (v4Positions && desktopDense && tab === 'orders') {
+  if (v4Positions && desktopDense && (tab === 'history' || tab === 'journal')) {
+    return <section className="acg-desktop-positions acg-dock-v3 h-full min-h-0 overflow-hidden" aria-label={tab === 'history' ? 'Trading history workspace' : 'Trading journal workspace'}>
+      <ActivityDockV4 tab={tab} onTabChange={setTab} counts={counts}
+        account={account} markets={markets} history={positionHistory} journal={journal}
+        expanded={expanded} onToggleExpanded={onToggleExpanded}
+        collapsed={collapsed} compactDock={compactDock}
+        historyError={null} historyLoading={false} onRetry={onRetryPositions}/>
+    </section>;
+  }
+    if (v4Positions && desktopDense && tab === 'orders') {
     return <section className="acg-desktop-positions acg-dock-v3 h-full min-h-0 overflow-hidden" aria-label="Pending orders workspace">
       <PendingDockV4 orders={pendingOrders} markets={markets} account={account} counts={counts}
         selectedOrderId={selectedPendingId} onInspect={onInspectPending} onManage={onManagePending}
