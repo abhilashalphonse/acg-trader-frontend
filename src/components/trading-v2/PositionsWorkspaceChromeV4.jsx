@@ -30,7 +30,7 @@ export function PositionsAccountSummary({ account }) {
   </div>;
 }
 export function PositionsToolbar({view,onView,query,onQuery,instrument,onInstrument,instruments,
-  columns,hiddenColumns,onToggleColumn,onResetColumns,showAccount,onShowAccount,showExposure,onShowExposure}) {
+  columns,hiddenColumns,onToggleColumn,onResetColumns,showAccount,onShowAccount,showExposure,onShowExposure,entity='position'}) {
   const [menu,setMenu]=React.useState(null);
   const menuRef=React.useRef(null);
   React.useEffect(()=>{
@@ -46,7 +46,7 @@ export function PositionsToolbar({view,onView,query,onQuery,instrument,onInstrum
       <label className="v4-positions-search">
         <Search size={16} aria-hidden="true"/>
         <input type="search" value={query} onChange={e=>onQuery(e.target.value)}
-          placeholder="Find position..." aria-label="Find position"/>
+          placeholder={'Find '+entity+'...'} aria-label={'Find '+entity}/>
       </label>
       <select className="v4-positions-instrument-filter" aria-label="Filter by instrument"
         value={instrument} onChange={e=>onInstrument(e.target.value)}>
@@ -55,7 +55,7 @@ export function PositionsToolbar({view,onView,query,onQuery,instrument,onInstrum
       </select>
     </div>
     <div className="v4-positions-tools" ref={menuRef}>
-      <div className="v4-positions-selector" role="group" aria-label="Positions table view">
+      <div className="v4-positions-selector" role="group" aria-label={entity==='order'?'Pending orders table view':'Positions table view'}>
         {['compact','risk','execution'].map(mode=><button key={mode} type="button"
           aria-pressed={mode===view} className={mode===view?'is-active':''} onClick={()=>{onView(mode);setMenu(null);}}>
           {mode[0].toUpperCase()+mode.slice(1)}</button>)}
