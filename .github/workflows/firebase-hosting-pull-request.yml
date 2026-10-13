@@ -168,3 +168,4 @@ jobs:
           node tests/ui/v4-positions-reference.mjs
           node tests/ui/v4-pending-reference.mjs
           node tests/ui/v4-workspace-corrections.mjs
+          node tests/ui/v4-floating-quick-order.mjs
