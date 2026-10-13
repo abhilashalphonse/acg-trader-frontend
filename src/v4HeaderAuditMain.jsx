@@ -23,7 +23,7 @@ function HeaderQA(){
  window.v4HeaderQA={
    get timeframe(){return timeframe;},get chartMode(){return chartMode;},
    get account(){return account.accountCode;},get selected(){return selected;},
-   setSession(state){setMarket(m=>({...m,marketState:state,sessionOpen:state==='LIVE',
+   setSession(state){setMarket(m=>({...m,marketState:state,sessionOpen:state==='LIVE'?true:state==='CLOSED'?false:undefined,
      isStale:state==='WAITING'}));}
  };
  return <DesktopTerminal market={market} tick={market} markets={[market]}

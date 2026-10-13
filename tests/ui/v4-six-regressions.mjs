@@ -468,6 +468,73 @@ try{
  eq(await page.locator('[data-v4-preview]').count(),0);
  eq(await page.locator('[data-v4-draft-shade]').count(),0);
  eq(await page.locator('[data-v4-accepted-shade]').count(),0);
+
+ // The mounted REAL desktop terminal, not a reconstructed screenshot fixture.
+ await page.goto('http://127.0.0.1:5174/v4-header-audit.html?acg_v4_audit=1',{waitUntil:'domcontentloaded'});
+ const header=page.locator('[data-v4-header="true"]');
+ await header.waitFor({timeout:20000});
+ eq(await header.locator('.acg-v4-header-monogram').innerText(),'£
+ console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks,commands:await page.evaluate(()=>window.v4QA.commands)}));
+}catch(error){
+ console.error('SIX_V4_REGRESSIONS_FAIL',error);
+ process.exitCode=1;
+}finally{await browser.close();}
+,'GBPUSD uses approved FX monogram');
+ eq(await header.locator('[data-market-status]').getAttribute('data-market-status'),'open','only confirmed open sessions claim Market open');
+ eq(await header.locator('[data-v4-header-account-name]').innerText(),'ACG · 598D2F','compact account name');
+ eq(await header.locator('[data-v4-header-tool]').count(),3,'three icon-only chart tools');
+ eq(await header.locator('.acg-v4-header-tool-label:visible').count(),0,'icon labels hidden');
+ eq(await header.locator('.acg-v4-header-tool-chevron:visible').count(),0,'icon chevrons hidden');
+ for(const width of [1440,1280,1024,800,768]){
+   await page.setViewportSize({width,height:850});
+   const g=await header.evaluate(el=>{
+     const rect=x=>{const r=x.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,right:r.right};};
+     const separators=['.acg-v4-header-instrument','.acg-v4-header-timeframes','.acg-v4-header-tools','.acg-v4-header-right']
+       .map((s,i)=>getComputedStyle(el.querySelector(s),i===3?'::before':'::after').height);
+     const tools=[...el.querySelectorAll('[data-v4-header-tool]')].map(x=>({rect:rect(x),bg:getComputedStyle(x).backgroundColor}));
+     const symbol=rect(el.querySelector('.acg-v4-header-primary strong'));
+     const account=rect(el.querySelector('[data-v4-header-account-name]'));
+     const active=el.querySelector('[data-v4-timeframe][aria-pressed="true"]');
+     return {outer:rect(el),symbol,account,tools,separators,
+       activeBg:getComputedStyle(active).backgroundColor,docWidth:document.documentElement.scrollWidth};
+   });
+   ok(Math.abs(g.outer.h-64)<=1,`Header is 64px at ${width}px`);
+   ok(g.outer.right<=width+1&&g.docWidth<=width+1,`No horizontal overflow at ${width}px`);
+   ok(Math.abs(g.symbol.y-g.account.y)<=6,`Names align on same baseline at ${width}px`);
+   ok(g.tools.every(t=>t.rect.w>=32&&t.rect.h>=32),`32px+ tools at ${width}px`);
+   ok(g.tools.every(t=>t.bg==='rgba(0, 0, 0, 0)'),`Icon tools are visually unboxed at ${width}px`);
+   ok(g.separators.every(h=>h==='32px'),`Dividers are consistently 32px at ${width}px`);
+   eq(g.activeBg,'rgb(242, 242, 244)',`White active timeframe at ${width}px`);
+ }
+ await page.setViewportSize({width:1440,height:850});
+ await header.locator('[data-v4-timeframe="1H"]').click();
+ await page.waitForFunction(()=>window.v4HeaderQA.timeframe==='1H');
+ eq(await header.locator('[data-v4-timeframe="1H"]').getAttribute('aria-pressed'),'true','timeframe selection works');
+ await header.getByRole('button',{name:'Chart type'}).click();
+ eq(await header.getByRole('button',{name:'Candlesticks'}).count(),1,'Chart menu keeps Candlesticks');
+ eq(await header.getByRole('button',{name:'Single chart'}).count(),0,'Chart grid is no longer under Chart type');
+ await header.getByRole('button',{name:'Line'}).click();
+ await page.waitForFunction(()=>window.v4HeaderQA.chartMode==='line');
+ await header.getByRole('button',{name:'Layout'}).click();
+ eq(await header.getByRole('button',{name:'Two charts'}).count(),1,'Layout exposes two-chart option');
+ eq(await header.getByText('Scalper',{exact:true}).count(),1,'Layout retains saved workspace presets');
+ await header.getByRole('button',{name:'Two charts'}).click();
+ await header.getByRole('button',{name:'Layout'}).click();
+ eq(await header.getByRole('button',{name:'Two charts'}).getAttribute('aria-pressed'),'true','Chart layout state connects to actual grid');
+ await header.getByRole('button',{name:'Layout'}).click();
+ await header.getByRole('button',{name:'Switch trading account'}).click();
+ eq(await header.getByText('Trading accounts').count(),1,'account selector opens');
+ await header.getByRole('button',{name:/ACG-33E47AD12A9C/}).click();
+ await page.waitForFunction(()=>window.v4HeaderQA.account==='ACG-33E47AD12A9C');
+ eq(await header.locator('[data-v4-header-account-name]').innerText(),'ACG · D12A9C','account selection updates name');
+ await header.getByRole('button',{name:'Indicators'}).click();
+ eq(await header.getByText('Indicators',{exact:true}).count()>=1,true,'fx icon still opens indicator panel');
+ await header.getByRole('button',{name:'Indicators'}).click();
+ await page.evaluate(()=>window.v4HeaderQA.setSession('CLOSED'));
+ await page.waitForFunction(()=>document.querySelector('[data-v4-header] [data-market-status]')?.dataset.marketStatus==='closed');
+ await page.evaluate(()=>window.v4HeaderQA.setSession('WAITING'));
+ await page.waitForFunction(()=>document.querySelector('[data-v4-header] [data-market-status]')?.dataset.marketStatus==='unavailable');
+
  assert.deepEqual(errors,[],'no uncaught page errors');checks++;
  console.log('SIX_V4_REGRESSIONS_PASS',JSON.stringify({checks,commands:await page.evaluate(()=>window.v4QA.commands)}));
 }catch(error){
