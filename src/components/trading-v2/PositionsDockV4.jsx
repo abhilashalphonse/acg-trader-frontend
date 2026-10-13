@@ -223,7 +223,7 @@ export default function PositionsDockV4({
       <nav aria-label="Trading activity tabs" className="v4-positions-tabs">
         {tabs.map(([key,label])=><button key={key} className={'v4-positions-tab '+(key==='positions'?'is-active':'')}
           type="button" aria-current={key==='positions'?'page':undefined} onClick={()=>onTabChange(key)}>
-          {label}<span className="v4-positions-count">{counts[key]??0}</span>
+          {label}{(key==='positions'||key==='orders')&&<span className="v4-positions-count">{counts[key]??0}</span>}
         </button>)}
       </nav>
       <div className="v4-positions-header-right">
