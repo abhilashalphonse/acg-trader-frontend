@@ -298,7 +298,7 @@ export default function PositionsPanel({
         account={account} markets={markets} history={positionHistory} journal={journal}
         expanded={expanded} onToggleExpanded={onToggleExpanded}
         collapsed={collapsed} compactDock={compactDock}
-        historyError={null} historyLoading={false} onRetry={onRetryPositions}/>
+        historyError={historyError} historyLoading={historyLoading} onRetry={onRetryHistory}/>
     </section>;
   }
     if (v4Positions && desktopDense && tab === 'orders') {
