@@ -30,7 +30,7 @@ try{
  eq(await page.locator('[data-v4-manage-position]').count(),0,'Row click never opens right-side management');
  await page.waitForFunction(()=>{
    const element=document.querySelector('[data-v4-positions="true"]');
-   return element&&element.getBoundingClientRect().height>=480;
+   return element&&element.getBoundingClientRect().height>=560;
  },null,{timeout:5000});
  const heights=await dock.evaluate(el=>({
    dock:el.getBoundingClientRect().height,
