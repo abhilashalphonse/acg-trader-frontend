@@ -98,11 +98,12 @@
 /* On constrained desktop widths all eight intervals remain accessible via
    a compact picker; the header never hides intervals inside a scroll rail. */
 .acg-v4-header .acg-v4-header-compact-timeframe { display:none; position:relative; flex:0 0 auto; }
-.acg-desktop-v3 .acg-v4-header .acg-v4-header-compact-timeframe > button {
+.acg-desktop-v3 header.acg-v4-header[data-v4-header="true"] .acg-v4-header-compact-timeframe > button {
   display:flex; align-items:center; justify-content:center; gap:6px;
   height:28px; min-width:56px; padding:0 8px;
-  border:0; border-radius:6px; background:#f2f2f4; color:#121215;
-  font-size:12px; font-weight:700;
+  border:0 !important; border-radius:6px;
+  background:#f2f2f4 !important; color:#121215 !important;
+  font-size:12px !important; font-weight:700 !important;
 }
 .acg-desktop-v3 .acg-v4-header [data-v4-header-menu="timeframes"] {
   position:absolute; top:calc(100% + 8px); left:0; z-index:110;
