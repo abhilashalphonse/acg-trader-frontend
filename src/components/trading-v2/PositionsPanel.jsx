@@ -281,7 +281,7 @@ export default function PositionsPanel({
   if (v4Positions && desktopDense && tab === 'positions') {
     return <section className="acg-desktop-positions acg-dock-v3 h-full min-h-0 overflow-hidden" aria-label="Positions workspace">
       <PositionsDockV4
-        positions={positions} markets={markets} account={account} counts={counts} readOnly={readOnly}
+        positions={positions} markets={markets} account={account} counts={counts} journal={journal} readOnly={readOnly}
         onTabChange={setTab} selectedPositionId={selectedPositionId}
         onSelectPosition={onSelectPosition} onEditProtection={onEditProtection}
         onRequestClose={onReviewClosePosition} collapsed={collapsed} compactDock={compactDock}
