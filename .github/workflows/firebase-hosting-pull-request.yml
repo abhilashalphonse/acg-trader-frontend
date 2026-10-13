@@ -261,7 +261,7 @@ jobs:
           grep -q 'data-v4-drawing-controls' src/components/trading-v2/v4/V4DrawingToolbar.jsx
           grep -q 'acg-v4-drawing-footer' src/components/trading-v2/v4/V4DrawingToolbar.css
           grep -q 'V4 rail keeps all original thirteen drawing tools' tests/ui/v4-six-regressions.mjs
-          grep -q 'Real V4 DesktopTerminal mounts the grouped drawing rail' tests/ui/v4-six-regressions.mjs
+          grep -q 'Real V4 DesktopTerminal mounts grouped drawing rail through ChartArea' tests/ui/v4-six-regressions.mjs
           test -f tests/drawingTools.test.js
           test -f v4-drawing-toolbar-audit.html
           if grep -q 'acg-v4-header-monogram' src/components/trading-v2/DesktopTerminal.jsx; then
