@@ -40,15 +40,19 @@
 .acg-v4-header [data-market-status="open"] .acg-v4-header-status-dot { background:#22bcb2; }
 .acg-v4-header [data-market-status="closed"] .acg-v4-header-status-dot { background:#f16a74; }
 .acg-v4-header [data-market-status="unavailable"] .acg-v4-header-status-dot { background:#92929c; }
-.acg-v4-header .acg-desktop-chart-toolbar {
+/* The header owns the only surface color. The legacy chart-toolbar tint
+   must not create a visible rectangle behind the timeframe controls. */
+.acg-desktop-v3 .acg-v4-header .acg-desktop-chart-toolbar {
   display:flex; align-items:center; height:100%; min-width:0;
   flex:0 1 auto; padding:0; border:0 !important; gap:4px;
+  background:transparent !important; background-image:none !important;
 }
 .acg-desktop-v3 .acg-v4-header .acg-v4-header-timeframes {
   display:flex; align-items:center; justify-content:flex-start; gap:4px;
-  box-sizing:border-box; flex:0 1 316px; width:316px;
-  min-width:0; height:32px; padding:0 4px;
-  overflow-x:auto; overflow-y:hidden; scroll-behavior:smooth;
+  /* Eight buttons size to their labels: no horizontal scroll track or clipping. */
+  box-sizing:border-box; flex:0 0 auto; width:max-content;
+  min-width:max-content; height:32px; padding:0 4px;
+  overflow:visible;
   border:0 !important; background:transparent !important;
   border-radius:0 !important; box-shadow:none !important;
 }
@@ -81,6 +85,36 @@
   font-weight:700 !important;
 }
 .acg-v4-header .acg-v4-header-timeframes .acg-active-underline { display:none !important; }
+/* On constrained desktop widths all eight intervals remain accessible via
+   a compact picker; the header never hides intervals inside a scroll rail. */
+.acg-v4-header .acg-v4-header-compact-timeframe { display:none; position:relative; flex:0 0 auto; }
+.acg-desktop-v3 .acg-v4-header .acg-v4-header-compact-timeframe > button {
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  height:28px; min-width:56px; padding:0 8px;
+  border:0; border-radius:6px; background:#f2f2f4; color:#121215;
+  font-size:12px; font-weight:700;
+}
+.acg-desktop-v3 .acg-v4-header [data-v4-header-menu="timeframes"] {
+  position:absolute; top:calc(100% + 8px); left:0; z-index:110;
+  display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px;
+  width:202px; padding:8px; box-sizing:border-box;
+}
+.acg-desktop-v3 .acg-v4-header [data-v4-header-menu="timeframes"] button {
+  height:32px; border:0; border-radius:6px; padding:0 4px;
+  background:transparent; color:#c4c4cc;
+  font-size:12px; font-weight:600;
+}
+.acg-desktop-v3 .acg-v4-header [data-v4-header-menu="timeframes"] button:hover,
+.acg-desktop-v3 .acg-v4-header [data-v4-header-menu="timeframes"] button:focus-visible {
+  background:#26262b; color:#fff;
+}
+.acg-desktop-v3 .acg-v4-header [data-v4-header-menu="timeframes"] button[aria-pressed="true"] {
+  background:#f2f2f4; color:#121215; font-weight:700;
+}
+@media (max-width:1099px) {
+  .acg-desktop-v3 .acg-v4-header .acg-v4-header-timeframes { display:none; }
+  .acg-v4-header .acg-v4-header-compact-timeframe { display:block; }
+}
 .acg-v4-header .acg-v4-header-tools {
   display:flex; align-items:center; gap:6px; margin:0;
   padding:0 4px; height:100%; flex:0 0 auto;
@@ -160,8 +194,8 @@
 .acg-v4-header .acg-motion-popover,
 .acg-v4-header .acg-v3-popover { top:38px; font-family:inherit; }
 .acg-v4-header .acg-v4-header-layout-tool { font-size:0; }
-/* The order panel is roughly 330px, plus its dock rail, on narrow desktops.
-   Timeframes scroll inside their own group; they never displace the icon tools. */
+/* The order panel and dock retain their account-boundary alignment on narrow desktops.
+   The compact timeframe picker replaces, rather than scrolls, the wide row. */
 @media (max-width:1279px) {
   .acg-v4-header .acg-v4-header-instrument { flex-basis:166px; max-width:166px; }
   .acg-v4-header .acg-v4-header-tools { gap:4px; padding:0 2px; }
