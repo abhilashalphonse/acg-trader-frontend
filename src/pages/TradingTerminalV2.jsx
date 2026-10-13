@@ -1377,6 +1377,9 @@ export default function TradingTerminalV2({
           onViewportQuoteSymbolsChange={onViewportQuoteSymbolsChange}
           positions={positions}
           positionHistory={positionHistory}
+          historyError={trading.historyError}
+          historyLoading={Boolean(trading.activeAccountId && !trading.historyLoaded && !trading.historyError && trading.connection?.status==='ready')}
+          onRetryHistory={trading.refreshHistory}
           pendingOrders={pendingOrders}
           journal={journal}
           positionActivityOrders={trading.historyOrders}
