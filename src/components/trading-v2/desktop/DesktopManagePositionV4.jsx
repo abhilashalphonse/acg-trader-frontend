@@ -24,7 +24,7 @@ export default function DesktopManagePositionV4({
   onApplyProtection=async()=>false, onCancelProtection=()=>{},
   onUpdateProtection=async()=>false, onClosePosition=async()=>false,
   onBreakEven=async()=>false, onSetTrailing=async()=>false,
-  onDismiss=()=>{},
+  onDismiss=()=>{}, closeIntent=null,
   onNotice=()=>{}, readOnly=false,
 }) {
   const [slUnit,setSlUnit]=useState('price');
@@ -72,6 +72,13 @@ export default function DesktopManagePositionV4({
   const canBreakEven=entry!=null&&Number.isFinite(price)&&(side==='BUY'?price>entry:price<entry);
   const working=busy||protectionSaving||actionBusy;
   useEffect(()=>{setBusy(false);setActionBusy(false);setError('');setPendingRemoval(null);setCloseRequest(null);setTrailOpen(false);setPartialOpen(false);},[position?.id]);
+  useEffect(()=>{
+    if(!closeIntent||String(closeIntent.positionId)!==String(position?.id))return;
+    if(readOnly||!canClose)return;
+    // Dock Close opens the pre-existing confirmation flow; no direct execution.
+    setCloseRequest(100);
+  },[closeIntent?.nonce,closeIntent?.positionId,position?.id,readOnly,canClose]);
+
   const start=field=>{
     if(readOnly||working)return false;
     setError('');
