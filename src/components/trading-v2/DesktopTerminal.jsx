@@ -1056,6 +1056,27 @@ export default function DesktopTerminal({
               <button key={value} type="button" data-v4-timeframe={value} aria-pressed={activeChartTimeframe === value} onClick={() => setDesktopTimeframe(value)} disabled={Boolean(tradePlan && !tradePlan.open)} className={activeChartTimeframe === value ? "relative grid h-full min-w-9 place-items-center px-2 text-[10px] font-bold text-[#f2f2f2] transition" : "relative grid h-full min-w-9 place-items-center px-2 text-[10px] font-bold text-[#8f9aa8] transition hover:text-[#e9edf3]"}>{label}{activeChartTimeframe === value && <span className="acg-active-underline absolute bottom-0 left-[18%] right-[18%] h-[2px] rounded-full bg-[#C9CDD2]" aria-hidden="true"/>}</button>
             ))}
           </div>
+          {V4_DESKTOP_EXECUTION_ENABLED && (
+            <div className="acg-v4-header-compact-timeframe">
+              <button type="button" aria-label="Choose chart timeframe"
+                aria-haspopup="true" aria-expanded={v4HeaderMenu === 'timeframes'}
+                disabled={Boolean(tradePlan && !tradePlan.open)}
+                onClick={() => setV4HeaderMenu(current => current === 'timeframes' ? null : 'timeframes')}>
+                <span>{activeChartTimeframe}</span><ChevronDown size={12} aria-hidden="true"/>
+              </button>
+              {v4HeaderMenu === 'timeframes' && (
+                <div data-v4-header-menu="timeframes" role="group" aria-label="Chart timeframes">
+                  {timeframes.map(([label, value]) => (
+                    <button key={value} type="button" aria-pressed={activeChartTimeframe === value}
+                      disabled={Boolean(tradePlan && !tradePlan.open)}
+                      onClick={() => { setDesktopTimeframe(value); setV4HeaderMenu(null); }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           <div className="acg-v4-header-tools ml-1.5 flex h-full shrink-0 items-center gap-1.5" role="group" aria-label="Chart tools">
             <div className="relative">
               <button type="button" data-v4-header-tool="chart-type" aria-label={V4_DESKTOP_EXECUTION_ENABLED ? 'Chart type' : undefined} aria-expanded={v4IsOpen('chart',chartMenuOpen)} onClick={() => v4Toggle('chart',setChartMenuOpen)} className={chartMenuOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#C9CDD2]/60 bg-[#222427] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title={V4_DESKTOP_EXECUTION_ENABLED ? 'Chart type' : 'Chart settings'}><CandlestickChart size={V4_DESKTOP_EXECUTION_ENABLED ? 18 : 12}/><span className="acg-v4-header-tool-label">Charts</span><ChevronDown className="acg-v4-header-tool-chevron" size={10}/></button>
