@@ -169,7 +169,7 @@ export default function PendingDockV4({
       <nav className="v4-positions-tabs" aria-label="Trading activity tabs">
         {tabs.map(([key,label])=><button key={key} type="button"
           className={'v4-positions-tab '+(key==='orders'?'is-active':'')} aria-current={key==='orders'?'page':undefined}
-          onClick={()=>onTabChange(key)}>{label}<span className="v4-positions-count">{counts[key]||0}</span></button>)}
+          onClick={()=>onTabChange(key)}>{label}{(key==='positions'||key==='orders')&&<span className="v4-positions-count">{counts[key]??0}</span>}</button>)}
       </nav>
       <div className="v4-positions-header-right">
         {showAccount&&<PositionsAccountSummary account={account}/>}
