@@ -50,7 +50,9 @@ try {
   eq(compactMetrics.font,'11px','Column labels 11px');
   await rows().first().click();
   eq(await dock.locator('tr[aria-selected="true"]').count(),1,'Row selection retained');
-  eq(await page.locator('[data-v4-manage-position="position-eur-1"]').count(),1,'Row selection opens existing position management');
+  eq(await page.locator('[data-v4-manage-position="position-eur-1"]').count(),0,'Dock selection never opens right-side position management');
+  eq(await page.locator('[data-v4-manage-position]').count(),0,'Trade Execution stays independent on row selection');
+  eq(await page.evaluate(()=>window.v4PositionsQA.commands.length),0,'Selection never sends trading commands');
   await dock.getByRole('button',{name:'Risk',exact:true}).click();
   eq(await dock.getAttribute('data-v4-position-view'),'risk','Risk swaps view only');
   eq(await order(),initialOrder,'Risk view keeps order and identity');
@@ -93,6 +95,11 @@ try {
   eq(await page.evaluate(()=>window.v4PositionsQA.commands.length),0,'Cancel produces no execution');
   await rows().first().getByRole('button',{name:'More actions for EURUSD'}).click();
   eq(await page.getByRole('menu',{name:'Actions for EURUSD'}).count(),1,'Overflow menu has accessible role and target');
+  await page.getByRole('menuitem',{name:'Manage position'}).click();
+  eq(await page.locator('[data-v4-manage-position="position-eur-1"]').count(),1,'Explicit Manage action opens the right-side V4 management panel');
+  await rows().first().click();
+  eq(await page.locator('[data-v4-manage-position]').count(),1,'Row inspection does not replace existing management panel');
+  await rows().first().getByRole('button',{name:'More actions for EURUSD'}).click();
   await page.keyboard.press('Escape');
   eq(await page.getByRole('menu',{name:'Actions for EURUSD'}).count(),0,'Escape dismisses overflow');
   // Large P&L updates cannot move columns or reorder position rows.
