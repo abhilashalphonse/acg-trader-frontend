@@ -1,4 +1,4 @@
-import React,{useState} from 'react';
+import React,{useEffect,useState} from 'react';
 import {ChevronDown,ChevronRight,Maximize2,Minimize2,MoreHorizontal} from 'lucide-react';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import {PositionsAccountSummary,PositionsToolbar} from './PositionsWorkspaceChromeV4.jsx';
@@ -144,7 +144,12 @@ export default function PendingDockV4({
   collapsed=false,compactDock=false,expanded=false,onToggleExpanded=()=>{},
   loading=false,error=null,onRetry=()=>{},readOnly=false,
 }){
-  const [view,setView]=useState('compact');
+  const [view,setView]=useState(()=>{
+    if(typeof window==='undefined')return 'compact';
+    try {const stored=window.localStorage.getItem('acg-v4-pending-view-v1');return ['compact','risk','execution'].includes(stored)?stored:'compact';}
+    catch {return 'compact';}
+  });
+  useEffect(()=>{try {window.localStorage.setItem('acg-v4-pending-view-v1',view);}catch{ /* no storage */ }},[view]);
   const [query,setQuery]=useState('');
   const [filter,setFilter]=useState('');
   const [expandedIds,setExpandedIds]=useState(()=>new Set());
