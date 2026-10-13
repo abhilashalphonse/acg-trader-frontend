@@ -109,7 +109,8 @@
 .acg-v4-positions .v4-position-row.is-execution,
 .acg-v4-positions .v4-position-row.is-execution td{height:56px}
 .acg-v4-positions .v4-position-row:hover{background:var(--v4p-row-hover)}
-.acg-v4-positions .v4-position-row.is-selected{background:#17171A;box-shadow:inset 2px 0 0 #F4F4F5}
+.acg-v4-positions .v4-position-row.is-selected{background:#17171A}
+.acg-v4-positions .v4-position-row.is-selected td:first-child{border-left:2px solid #F4F4F5;padding-left:10px}
 .acg-v4-positions .v4-position-cell-inner{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .acg-v4-positions .v4-position-instrument {
   display:flex;align-items:center;gap:8px;min-width:0;white-space:nowrap;
