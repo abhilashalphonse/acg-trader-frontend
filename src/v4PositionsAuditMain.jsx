@@ -47,7 +47,10 @@ function PositionsQA(){
  };
  return <DesktopTerminal market={market} tick={market} markets={markets} activeSymbol={symbol}
   onSelectSymbol={setSymbol} account={account} accounts={[account]} activeAccountId={account.id}
-  positions={positions} journal={[{id:'journal-1',positionId:'position-eur-1',time:'01:47:53',message:'Position filled'}]} positionsLoading={loading} positionsError={error}
+  positions={positions} journal={[{id:'journal-1',positionId:'position-eur-1',time:'01:47:53',message:'Local journal only'}]}
+  positionActivityOrders={[{id:'order-eur-1',positionId:'position-eur-1',createdAt:'2026-10-13T01:47:52.000Z',side:'SELL',requestedVolume:'0.01',type:'MARKET'}]}
+  positionActivityDeals={[{id:'deal-eur-1',positionId:'position-eur-1',executedAt:'2026-10-13T01:47:53.000Z',price:'1.11652',volume:'0.01',type:'OPEN'}]}
+  positionsLoading={loading} positionsError={error}
   onRetryPositions={()=>{setRetries(v=>v+1);setError(null);}}
   positionProtectionDraft={protectionDraft}
   onBeginPositionProtection={()=>true}
