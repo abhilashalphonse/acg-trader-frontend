@@ -24,7 +24,7 @@ const ACCOUNT=Object.freeze({id:'v4-positions-fixture',accountCode:'ACG-V4-POSIT
  valuationStatus:'LIVE',tradingEnabled:true,leverage:100,usedMargin:11.16,freeMargin:99988.01,floatingPnl:-0.83});
 const POSITIONS=Object.freeze([
  {id:'position-eur-1',positionId:'position-eur-1',symbol:'EURUSD',side:'SELL',volume:0.01,entry:1.11652,closePrice:1.11735,
-  pnl:-0.83,pnlCurrency:'USD',sl:null,tp:null,source:'live-account-currency',
+  pnl:-0.83,pnlCurrency:'USD',sl:null,tp:null,valuationStatus:'LIVE',source:'live-account-currency',
   raw:{margin:'11.16',commissionPaid:'2.50',swapPaid:'-0.45',realizedPnl:'4.00',contractSize:'100000',openedAt:'2026-10-13T01:47:53.000Z',metadata:{executionSource:'Manual'},sourceOrderId:'order-eur-1'}},
  {id:'position-btc-2',positionId:'position-btc-2',symbol:'BTCUSD',side:'BUY',volume:0.02,entry:67800,closePrice:68100,
   pnl:6,pnlCurrency:'USD',sl:67000,tp:70000,source:'server-position-valuation',
