@@ -56,6 +56,7 @@ try {
    'Market/Risk/SL/TP aligned in a single row');
  ok(Math.abs(appearance.titleY-appearance.expandY)<6,'Expand stays aligned with instrument header');
  eq(appearance.background,'rgb(9, 9, 11)','Matches V4 pure-black surface');
+ ok(appearance.font.startsWith('Inter'), 'Uses the same Inter typography as the full V4 execution ticket');
  eq(appearance.sellBg,'rgb(200, 50, 66)','SELL keeps established execution red');
  eq(appearance.buyBg,'rgb(25, 91, 225)','BUY keeps established execution blue');
  eq(appearance.horizontalOverflow,0,'No horizontal clipping');
