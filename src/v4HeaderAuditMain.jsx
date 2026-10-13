@@ -9,7 +9,7 @@ import './styles/acg-pure-black.css';
 // Deterministic full DesktopTerminal fixture. No credentials or executable orders.
 const GBP={symbol:'GBPUSD',displaySymbol:'GBP/USD',assetClass:'FOREX',name:'British Pound / US Dollar',
   marketState:'LIVE',sessionOpen:true,isStale:false,marketDataAvailable:true,
-  bid:1.2532,ask:1.2534,mid:1.2533,price:1.2533,pipSize:0.0001,quoteCurrency:'USD'};
+  bid:1.2532,ask:1.2534,mid:1.2533,price:1.2533,pipSize:0.0001,quoteCurrency:'USD',defaultLeverage:100};
 const ACCOUNT={id:'qa-header-1',accountCode:'ACG-33E47A598D2F',accountType:'TRIAL',type:'TRIAL',status:'ACTIVE',
   currency:'USD',initialBalance:100000,startingBalance:100000,balance:100000,equity:100000,
   valuationStatus:'LIVE',tradingEnabled:true,leverage:100,freeMargin:100000};
