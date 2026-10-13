@@ -110,7 +110,7 @@ function desktopHeightBounds(viewportHeight, dockCollapsed = false, dockHeight =
   // V4 expanded inline position details require more room. Increase only the
   // opt-in V4 resize ceiling; keep all legacy V3 customer constraints exact.
   const dockMax = V4_DESKTOP_EXECUTION_ENABLED
-    ? Math.min(520,Math.floor(height*0.58))
+    ? Math.min(590,Math.floor(height*0.66))
     : compact ? Math.min(320, Math.floor(height * 0.44)) : height <= 1050 ? Math.min(420, Math.floor(height * 0.46)) : Math.min(520, Math.floor(height * 0.48));
   const defaultDock = 52;
   const effectiveDock = dockCollapsed ? 0 : clamp(dockHeight || defaultDock, dockMin, dockMax);
@@ -1586,9 +1586,9 @@ export default function DesktopTerminal({
                 // Expand only enough to reveal rich inline details. Keep the
                 // chart, side panels and the user's dock resize controls.
                 setDesktopLayout(current=>{
-                  if(positionsExpanded||current.dockCollapsed||current.dockHeight>=520)return current;
-                  const bounds=desktopHeightBounds(viewportHeight,false,520);
-                  return {...current,dockHeight:clamp(520,bounds.dockMin,bounds.dockMax)};
+                  if(positionsExpanded||current.dockCollapsed||current.dockHeight>=580)return current;
+                  const bounds=desktopHeightBounds(viewportHeight,false,580);
+                  return {...current,dockHeight:clamp(580,bounds.dockMin,bounds.dockMax)};
                 });
               }}
               onReviewClosePosition={reviewDockPositionClose}
