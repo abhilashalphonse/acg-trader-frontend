@@ -23,6 +23,7 @@ import InstrumentAvatar from './InstrumentAvatar.jsx';
 import './PositionsPanel.desktop.css';
 import SharePositionSheet from './SharePositionSheet.jsx';
 import PositionsDockV4 from './PositionsDockV4.jsx';
+import PendingDockV4 from './PendingDockV4.jsx';
 
 const tabs = [
   { id: 'positions', label: 'Positions' },
@@ -92,6 +93,10 @@ export default function PositionsPanel({
   selectedPositionId = null,
   onSelectPosition = () => {},
   onManagePosition = () => {},
+  selectedPendingId = null,
+  onInspectPending = () => {},
+  onManagePending = () => {},
+  onReviewCancelPending = () => {},
   onEditProtection = () => {},
   v4Positions = false,
   readOnly = false,
@@ -282,6 +287,16 @@ export default function PositionsPanel({
 
   // Desktop V4 is isolated from the existing customer/mobile panel.
   // Other tabs retain their current implementation until their own V4 milestones.
+  if (v4Positions && desktopDense && tab === 'orders') {
+    return <section className="acg-desktop-positions acg-dock-v3 h-full min-h-0 overflow-hidden" aria-label="Pending orders workspace">
+      <PendingDockV4 orders={pendingOrders} markets={markets} account={account} counts={counts}
+        selectedOrderId={selectedPendingId} onInspect={onInspectPending} onManage={onManagePending}
+        onReviewCancel={onReviewCancelPending} onTabChange={setTab}
+        collapsed={collapsed} compactDock={compactDock} expanded={expanded}
+        onToggleExpanded={onToggleExpanded} loading={positionsLoading}
+        error={positionsError} onRetry={onRetryPositions} readOnly={readOnly}/>
+    </section>;
+  }
   if (v4Positions && desktopDense && tab === 'positions') {
     return <section className="acg-desktop-positions acg-dock-v3 h-full min-h-0 overflow-hidden" aria-label="Positions workspace">
       <PositionsDockV4
