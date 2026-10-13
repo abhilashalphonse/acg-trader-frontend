@@ -174,3 +174,23 @@ export function positionProtectionIntelligence(position,instrument,account,estim
     rMultiple:null,
   };
 }
+
+
+/** The live bid/ask spread is a market-price metric, not an additional
+ *  recorded commission. Never subtract its indicative cost from P&L.
+ *  It is unavailable during stale or unconfirmed quotes.
+ */
+export function positionCurrentSpread(position,instrument) {
+  if(position?.valuationStatus!=='LIVE'||instrument?.isStale===true)return null;
+  const bid=finiteOrNull(instrument?.bid);
+  const ask=finiteOrNull(instrument?.ask);
+  if(bid==null||ask==null||bid<=0||ask<bid)return null;
+  const difference=ask-bid;
+  const pip=finiteOrNull(instrument?.pipSize);
+  const tick=finiteOrNull(instrument?.tickSize);
+  const unit=pip!=null&&pip>0?'pips':tick!=null&&tick>0?'ticks':'price';
+  const divisor=unit==='pips'?pip:unit==='ticks'?tick:1;
+  return {difference,unit,amount:difference/divisor,
+    quoteCurrency:String(instrument?.quoteCurrency||'').toUpperCase()||null,
+    indicative:true};
+}
