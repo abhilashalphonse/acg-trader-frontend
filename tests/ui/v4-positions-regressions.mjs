@@ -130,7 +130,7 @@ try {
   console.log('V4_POSITIONS_REGRESSIONS_PASS',JSON.stringify({checks,compactMetrics,narrow,rows:initialOrder}));
 }catch(error){
   console.error('V4_POSITIONS_REGRESSIONS_FAIL',error);
-  process.exitCode=1;
+  throw error;
 }finally{
   await browser.close();
 }
