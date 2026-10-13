@@ -23,10 +23,7 @@ export default function DesktopManagePendingV4({
   const [waiting,setWaiting]=useState(null);
   const [error,setError]=useState('');
   const [cancelConfirmation,setCancelConfirmation]=useState(false);
-  React.useEffect(()=>{
-    if(!cancelIntent||String(cancelIntent.orderId)!==String(order?.id)||readOnly)return;
-    setCancelConfirmation(true);
-  },[cancelIntent?.nonce,cancelIntent?.orderId,order?.id,readOnly]);
+
   const [slUnit,setSlUnit]=useState('price');
   const [tpUnit,setTpUnit]=useState('price');
   const type=typeName(order?.orderType||order?.type);
@@ -48,6 +45,10 @@ export default function DesktopManagePendingV4({
   const plan={side:side.toLowerCase(),entry:execution,sl,tp,symbol:order?.symbol,pending:true,
     sizingMode:'lots',manualLots:volume};
   useEffect(()=>{setBusy(false);setWaiting(null);setError('');setCancelConfirmation(false);},[order?.id,account?.id]);
+  React.useEffect(()=>{
+    if(!cancelIntent||String(cancelIntent.orderId)!==String(order?.id)||readOnly)return;
+    setCancelConfirmation(true);
+  },[cancelIntent?.nonce,cancelIntent?.orderId,order?.id,readOnly]);
 
   useEffect(()=>{
     if(!waiting)return;
