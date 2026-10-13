@@ -131,6 +131,7 @@ function TableRow({position,instrument,account,view,visibleColumns,selected,expa
     {canExpand&&expanded&&<tr className="v4-position-detail-row" data-v4-position-detail={id}>
       <td colSpan={visibleColumns.length}>
         <PositionsExpandedDetails position={position} instrument={instrument} account={account}
+          view={view} visibleColumns={visibleColumns}
           journal={journal} onEditProtection={onEditProtection} readOnly={readOnly}
           onOpenJournal={onOpenJournal}/>
       </td>
