@@ -28,26 +28,38 @@ try{
  await rows().first().click();
  eq(await dock.locator('[data-v4-position-detail="position-eur-1"]').count(),1,'Compact row click expands inline details');
  eq(await page.locator('[data-v4-manage-position]').count(),0,'Row click never opens right-side management');
- await page.waitForFunction(()=>{
-   const element=document.querySelector('[data-v4-positions="true"]');
-   return element&&element.getBoundingClientRect().height>=560;
- },null,{timeout:5000});
+ await page.waitForTimeout(380); // Let any dock height transition finish.
  const heights=await dock.evaluate(el=>({
    dock:el.getBoundingClientRect().height,
    scroller:el.querySelector('.v4-positions-scroller').getBoundingClientRect().height,
    scrollHeight:el.querySelector('.v4-positions-scroller').scrollHeight,
  }));
- ok(heights.dock>=560,'Dock grows enough for rich three-column details on desktop');
- await page.waitForTimeout(400);
- const visibility=await dock.evaluate(el=>{
-   const scroller=el.querySelector('.v4-positions-scroller').getBoundingClientRect();
-   const row=el.querySelector('tr[data-v4-position-id="position-eur-1"]').getBoundingClientRect();
-   const expanded=el.querySelector('tr[data-v4-position-detail="position-eur-1"]').getBoundingClientRect();
-   return {rowVisible:row.top>=scroller.top-1,detailVisible:expanded.bottom<=scroller.bottom+2,
-     scroller:scroller.height,contents:el.querySelector('.v4-positions-scroller').scrollHeight};
+ ok(heights.dock>=285&&heights.dock<=321,
+   'Inline row expansion preserves the original compact dock size');
+ ok(heights.scrollHeight>heights.scroller,
+   'Expanded three-column details scroll inside the original dock');
+ const scroll=await dock.locator('.v4-positions-scroller').evaluate(el=>{
+   el.scrollTop=el.scrollHeight;
+   return {top:el.scrollTop,client:el.clientHeight,height:el.scrollHeight};
  });
- ok(visibility.rowVisible&&visibility.detailVisible,
-   'Selected position and entire expanded three-column detail fit simultaneously in desktop dock');
+ ok(scroll.top>0,'Trader can reach the bottom of expanded details by scrolling dock');
+ await dock.locator('.v4-positions-scroller').evaluate(el=>{el.scrollTop=0;});
+ await dock.getByRole('button',{name:'Expand positions workspace'}).click();
+ await page.waitForFunction(()=>{
+   const el=document.querySelector('[data-v4-positions="true"]');
+   return el&&el.getBoundingClientRect().height>480;
+ });
+ ok((await dock.evaluate(el=>el.getBoundingClientRect().height))>480,
+   'Dedicated fullscreen/expand control still grows Positions workspace');
+ eq(await dock.locator('[data-v4-position-detail="position-eur-1"]').count(),1,
+   'Fullscreen preserves expanded position details');
+ await dock.getByRole('button',{name:'Restore positions workspace'}).click();
+ await page.waitForFunction(()=>{
+   const el=document.querySelector('[data-v4-positions="true"]');
+   return el&&el.getBoundingClientRect().height<=321;
+ });
+ ok((await dock.evaluate(el=>el.getBoundingClientRect().height))<=321,
+   'Restoring fullscreen returns to original compact dock size');
  const detail=dock.locator('[data-v4-position-detail="position-eur-1"]');
  const info=await detail.innerText();
  ok(info.includes('Recorded commission')&&info.includes('$2.50'),'Recorded commission shown');
