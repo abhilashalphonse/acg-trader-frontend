@@ -45,7 +45,11 @@ export function effectiveLeverage(account, instrument) {
   const accountLeverage = finitePositive(account?.leverage);
   const instrumentLeverage = finitePositive(instrument?.defaultLeverage);
   if (!accountLeverage || !instrumentLeverage) return null;
-  return Math.min(accountLeverage, instrumentLeverage);
+  const leverageCeiling = Math.min(accountLeverage, instrumentLeverage);
+  const marginRate = finitePositive(instrument?.marginRate);
+  // An explicit margin rate may increase required collateral, never bypass the
+  // market/account leverage ceiling. Mirrors server execution-planner.
+  return marginRate ? Math.min(leverageCeiling, 1 / marginRate) : leverageCeiling;
 }
 
 export function estimateRequiredMargin(price, lots, instrument, account) {
@@ -57,9 +61,8 @@ export function estimateRequiredMargin(price, lots, instrument, account) {
   if (!numericPrice || !numericLots || !contractSize || !accountCurrency || !marginCurrency) return null;
 
   const notional = numericPrice * contractSize * numericLots;
-  const marginRate = finitePositive(instrument?.marginRate);
   const leverage = effectiveLeverage(account, instrument);
-  const margin = marginRate ? notional * marginRate : leverage ? notional / leverage : null;
+  const margin = leverage ? notional / leverage : null;
   if (!Number.isFinite(margin)) return null;
   return accountCurrency === marginCurrency ? margin
     : convertFreshFx(margin,marginCurrency,accountCurrency,account?.conversionMarkets);
