@@ -394,6 +394,8 @@ export default function DesktopTerminal({
   const [selectedPositionId, setSelectedPositionId] = useState(null);
   const [inspectedPositionId, setInspectedPositionId] = useState(null);
   const [dockCloseIntent, setDockCloseIntent] = useState(null);
+  const [inspectedPendingId, setInspectedPendingId] = useState(null);
+  const [dockCancelIntent, setDockCancelIntent] = useState(null);
   const [selectedPendingId,setSelectedPendingId]=useState(null);
   const [pendingOrderDraft,setPendingOrderDraft]=useState(null);
   const [positionEditRequest, setPositionEditRequest] = useState(null);
@@ -456,6 +458,8 @@ export default function DesktopTerminal({
     setSelectedPositionId(null);
     setInspectedPositionId(null);
     setDockCloseIntent(null);
+    setInspectedPendingId(null);
+    setDockCancelIntent(null);
     setSelectedPendingId(null);
     setPendingOrderDraft(null);
     setPositionEditRequest(null);
@@ -476,7 +480,7 @@ export default function DesktopTerminal({
   }, [positions, selectedPositionId, inspectedPositionId]);
   useEffect(()=>{
     if(selectedPendingId!=null&&!pendingOrders.some(order=>String(order?.id??order?.orderId)===String(selectedPendingId)&&['PENDING','ACCEPTED','TRIGGERED'].includes(String(order?.status||'PENDING').toUpperCase()))){
-      setSelectedPendingId(null);setPendingOrderDraft(null);
+      setSelectedPendingId(null);setInspectedPendingId(null);setPendingOrderDraft(null);
     }
   },[pendingOrders,selectedPendingId]);
 
@@ -536,6 +540,21 @@ export default function DesktopTerminal({
     setDockCloseIntent(previous=>({positionId:String(target.id),percentage,nonce:(previous?.nonce||0)+1}));
   };
 
+    const inspectDockPending = orderId => {
+    if (!V4_DESKTOP_EXECUTION_ENABLED) return selectPending(orderId);
+    const order=pendingOrders.find(item=>String(item?.id)===String(orderId));
+    if(!order)return;
+    setInspectedPendingId(order.id);
+    if(order.symbol&&order.symbol!==activeSymbol)onSelectSymbol(order.symbol);
+  };
+  const reviewDockCancelPending = orderId => {
+    if(readOnly||!V4_DESKTOP_EXECUTION_ENABLED)return;
+    const order=pendingOrders.find(item=>String(item?.id)===String(orderId));
+    if(!order)return;
+    selectPending(order.id);
+    setDockCancelIntent(current=>({orderId:String(order.id),nonce:(current?.nonce||0)+1}));
+  };
+
     const selectPending = orderOrId => {
     const id=typeof orderOrId==='object'?orderOrId?.id:orderOrId;
     if(id==null){setSelectedPendingId(null);setPendingOrderDraft(null);return;}
@@ -543,6 +562,7 @@ export default function DesktopTerminal({
     if(!order)return;
     if(positionProtectionSaving)return setNotice('Wait for the current protection save before switching orders.');
     setSelectedPendingId(order.id??order.orderId);
+    setInspectedPendingId(order.id??order.orderId);
     setSelectedPositionId(null);
     setPendingOrderDraft(null);
     setPositionEditRequest(null);
@@ -1418,6 +1438,7 @@ export default function DesktopTerminal({
                           instrument={markets.find(item=>item.symbol===selectedPending.symbol)||market}
                           account={account} draft={pendingOrderDraft}
                           onDraftChange={setPendingOrderDraft} onDiscard={clearPendingDraft}
+                          cancelIntent={dockCancelIntent}
                           onMovePending={onMovePending} onCancelPending={onCancelPending}
                           onNotice={setNotice} readOnly={readOnly}
                           onDismiss={()=>{setSelectedPendingId(null);setPendingOrderDraft(null);}}/>
@@ -1556,7 +1577,10 @@ export default function DesktopTerminal({
             <PositionsPanel v4Positions={V4_DESKTOP_EXECUTION_ENABLED} readOnly={readOnly}
               onReviewClosePosition={reviewDockPositionClose}
               positionsLoading={positionsLoading} positionsError={positionsError} onRetryPositions={onRetryPositions}
-              desktopDense collapsed={desktopLayout.dockCollapsed} compactDock={dockHeight <= compactDockThreshold && !positionsExpanded} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} positionActivityOrders={positionActivityOrders} positionActivityDeals={positionActivityDeals} positionActivityFills={positionActivityFills} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={updateDesktopProtection} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={V4_DESKTOP_EXECUTION_ENABLED ? (inspectedPositionId ?? selectedPositionId) : selectedPositionId} onSelectPosition={V4_DESKTOP_EXECUTION_ENABLED ? inspectDockPosition : selectPosition} onManagePosition={selectPosition} onEditProtection={editPositionProtection}/>
+              desktopDense collapsed={desktopLayout.dockCollapsed} compactDock={dockHeight <= compactDockThreshold && !positionsExpanded} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} positionActivityOrders={positionActivityOrders} positionActivityDeals={positionActivityDeals} positionActivityFills={positionActivityFills} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={updateDesktopProtection} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={V4_DESKTOP_EXECUTION_ENABLED ? (inspectedPositionId ?? selectedPositionId) : selectedPositionId} onSelectPosition={V4_DESKTOP_EXECUTION_ENABLED ? inspectDockPosition : selectPosition} onManagePosition={selectPosition} onEditProtection={editPositionProtection}
+              selectedPendingId={V4_DESKTOP_EXECUTION_ENABLED?(inspectedPendingId??selectedPendingId):selectedPendingId}
+              onInspectPending={inspectDockPending} onManagePending={selectPending}
+              onReviewCancelPending={reviewDockCancelPending}/>
           </div>
 
           {!desktopLayout.sidebarCollapsed && !positionsExpanded && (
