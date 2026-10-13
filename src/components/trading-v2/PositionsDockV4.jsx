@@ -28,9 +28,15 @@ const classForPnl=value=>'v4-position-pnl '+pnlTone(value);
 function CloseMenu({menu,onClose,onManagePosition,onRequestClose,onEditProtection,onBreakEven,onSetTrailing,closeDisabled,readOnly}){
   if(!menu)return null;
   const {position,rect}=menu;
-  const maxHeight=Math.max(100,Math.min(360,window.innerHeight-16));
-  const top=Math.max(8,Math.min(rect.bottom+5,window.innerHeight-maxHeight-8));
-  const style={position:'fixed',left:Math.max(8,rect.right-196),top,width:196,maxHeight,zIndex:9999};
+  const edge=8, width=210, estimatedContent=506;
+  const below=Math.max(0,window.innerHeight-rect.bottom-edge*2);
+  const above=Math.max(0,rect.top-edge*2);
+  const placeAbove=below<estimatedContent&&above>below;
+  const available=Math.max(112,Math.min(window.innerHeight-edge*2,placeAbove?above:below));
+  const maxHeight=Math.min(estimatedContent,available);
+  const top=placeAbove?Math.max(edge,rect.top-maxHeight-5):Math.min(rect.bottom+5,window.innerHeight-maxHeight-edge);
+  const left=Math.min(Math.max(edge,rect.right-width),Math.max(edge,window.innerWidth-width-edge));
+  const style={position:'fixed',left,top,width,maxHeight,zIndex:9999};
   const entry=finiteOrNull(position.entry),current=finiteOrNull(position.closePrice);
   const side=String(position.side||'').toUpperCase();
   const favorable=entry!=null&&current!=null&&position.valuationStatus==='LIVE'&&
@@ -183,13 +189,9 @@ export default function PositionsDockV4({
     const escape=event=>{if(event.key==='Escape')onCloseMenu();};
     window.addEventListener('pointerdown',closeOnOutside);
     window.addEventListener('keydown',escape);
-    window.addEventListener('scroll',onCloseMenu,true);
-    window.addEventListener('resize',onCloseMenu);
     return ()=>{
       window.removeEventListener('pointerdown',closeOnOutside);
       window.removeEventListener('keydown',escape);
-      window.removeEventListener('scroll',onCloseMenu,true);
-      window.removeEventListener('resize',onCloseMenu);
     };
   },[menu]);
   const toggleRow=id=>setExpandedIds(current=>{
