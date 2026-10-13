@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './DesktopOrderTicket.theme.css';
+import './DesktopFloatingQuickOrderV2Theme.css';
 import { AlertTriangle, ChevronDown, Clock3, GripVertical, Maximize2, Minus, Plus, X } from 'lucide-react';
 import { decimalPlaces, normalizeVolumeToStep } from '../../../utils/tradingCommandNormalization.js';
 import {
@@ -90,6 +91,7 @@ export default function DesktopOrderTicket({
   exposureBlockReason = 'New exposure is temporarily unavailable',
   onNotice = () => {},
   variant = 'panel',
+  floatingV2Theme = false,
   onFloatingDragStart = () => {},
   onOpenFullTrade = () => {},
 }) {
@@ -626,7 +628,7 @@ export default function DesktopOrderTicket({
         : `${floatingLotText} lots · Margin ${money(previewMargin, currency)}${Number.isFinite(floatingMarginPercent) ? ` (${floatingMarginPercent.toFixed(2)}%)` : ''} · Free ${money(freeAfter, currency)}`;
 
     return (
-      <section className="acg-floating-order acg-exec-root w-[344px] overflow-hidden rounded-[12px] border border-white/[0.16] bg-[#09090B]/[0.98] text-[#f4f6f8] shadow-[0_14px_40px_rgba(0,0,0,.52)] backdrop-blur-md">
+      <section data-v2-floating-quick-order={floatingV2Theme ? 'true' : undefined} className={`acg-floating-order acg-exec-root w-[344px] overflow-hidden rounded-[12px] border border-white/[0.16] bg-[#09090B]/[0.98] text-[#f4f6f8] shadow-[0_14px_40px_rgba(0,0,0,.52)] backdrop-blur-md${floatingV2Theme ? ' acg-v2-floating-quick-order' : ''}`}>
         <div className="flex h-[36px] items-center gap-1 border-b border-white/[0.07] px-1.5">
           <button type="button" onPointerDown={onFloatingDragStart} className="grid h-7 w-6 shrink-0 cursor-move place-items-center rounded text-[#7c8995] hover:bg-white/[0.04] hover:text-white" aria-label="Drag execution widget" title="Drag execution widget">
             <GripVertical size={13}/>
