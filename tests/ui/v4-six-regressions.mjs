@@ -494,6 +494,8 @@ try{
  ok(await header.locator('[data-v4-header-instrument-image] img').count()>=1,'Forex instrument retains visible pair flag images');
  eq(await header.locator('[data-market-status]').getAttribute('data-market-status'),'open','only confirmed open sessions claim Market open');
  eq(await header.locator('[data-v4-header-account-name]').innerText(),'ACG · 598D2F','compact account name');
+ ok((await header.locator('[data-v4-header-account]').innerText()).includes('Market 1:100'),
+   'V4 header identifies the selected-market effective leverage, not unqualified account maximum');
  eq(await header.locator('[data-v4-header-tool]').count(),3,'three icon-only chart tools');
  eq(await header.locator('.acg-v4-header-tool-label:visible').count(),0,'icon labels hidden');
  eq(await header.locator('.acg-v4-header-tool-chevron:visible').count(),0,'icon chevrons hidden');
