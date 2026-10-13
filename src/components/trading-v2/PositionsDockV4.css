@@ -1,7 +1,13 @@
 /* Owner-audit V4 Positions only. Existing Pending/History/Journal and mobile remain unchanged. */
 /* Override the legacy dock surface (which uses !important). Keep this opt-in
    region pixel-identical to the approved V4 palette without touching V3. */
-.acg-desktop-v3 .acg-dock-v3 > .acg-v4-positions {
+/* Legacy pure-black desktop rules target the dock's first child with
+   44px !important height and a grey surface. Reset both for this V4 only. */
+.acg-terminal.acg-desktop-v3 .acg-desktop-positions.acg-dock-v3 > .acg-v4-positions:first-child {
+  width:100% !important;
+  height:100% !important;
+  min-height:0 !important;
+  padding:0 !important;
   background:#09090B !important;
 }
 .acg-desktop-v3 .acg-dock-v3 > .acg-v4-positions .v4-positions-header {
