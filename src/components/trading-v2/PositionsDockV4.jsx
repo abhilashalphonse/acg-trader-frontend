@@ -25,18 +25,34 @@ function initialView(){
   catch {return 'compact';}
 }
 const classForPnl=value=>'v4-position-pnl '+pnlTone(value);
-function CloseMenu({menu,onClose,onManagePosition,onRequestClose,onEditProtection,closeDisabled,readOnly}){
+function CloseMenu({menu,onClose,onManagePosition,onRequestClose,onEditProtection,onBreakEven,onSetTrailing,closeDisabled,readOnly}){
   if(!menu)return null;
   const {position,rect}=menu;
-  const top=Math.min(window.innerHeight-154,rect.bottom+5);
-  const style={position:'fixed',left:Math.max(8,rect.right-186),top:Math.max(8,top),width:186,zIndex:9999};
+  const maxHeight=Math.max(100,Math.min(360,window.innerHeight-16));
+  const top=Math.max(8,Math.min(rect.bottom+5,window.innerHeight-maxHeight-8));
+  const style={position:'fixed',left:Math.max(8,rect.right-196),top,width:196,maxHeight,zIndex:9999};
+  const entry=finiteOrNull(position.entry),current=finiteOrNull(position.closePrice);
+  const side=String(position.side||'').toUpperCase();
+  const favorable=entry!=null&&current!=null&&position.valuationStatus==='LIVE'&&
+    (side==='BUY'?current>entry:side==='SELL'&&current<entry);
   return createPortal(
     <div className="v4-positions-popover" role="menu" aria-label={'Actions for '+position.symbol} style={style}>
       <button role="menuitem" type="button" onClick={()=>{onManagePosition(position.id);onClose();}}>Manage position</button>
       <button role="menuitem" type="button" disabled={readOnly} onClick={()=>{onEditProtection(position.id,'sl');onClose();}}>Edit stop loss</button>
       <button role="menuitem" type="button" disabled={readOnly} onClick={()=>{onEditProtection(position.id,'tp');onClose();}}>Edit take profit</button>
+      <button role="menuitem" type="button" disabled={readOnly||!favorable}
+        title={!favorable?'Requires a live favorable price':'Move SL to entry'}
+        onClick={()=>{onBreakEven(position.id);onClose();}}>Move to break-even</button>
+      <div className="v4-positions-menu-divider" role="separator"/>
+      {[5,10,20].map(pips=><button key={pips} role="menuitem" type="button" disabled={readOnly}
+        onClick={()=>{onSetTrailing(position.id,true,pips);onClose();}}>Trailing stop · {pips} pips</button>)}
+      {position.trailingEnabled&&<button role="menuitem" type="button" disabled={readOnly}
+        onClick={()=>{onSetTrailing(position.id,false,position.trailingPips||5);onClose();}}>Disable trailing stop</button>}
+      <div className="v4-positions-menu-divider" role="separator"/>
+      {[25,50,75].map(percent=><button key={percent} role="menuitem" type="button" disabled={closeDisabled}
+        onClick={()=>{onRequestClose(position.id,percent);onClose();}}>Review close {percent}%</button>)}
       <button role="menuitem" type="button" disabled={closeDisabled}
-        onClick={()=>{onRequestClose(position.id);onClose();}}>Review close</button>
+        onClick={()=>{onRequestClose(position.id,100);onClose();}}>Review close full position</button>
     </div>,document.body
   );
 }
@@ -141,7 +157,7 @@ function TableRow({position,instrument,account,view,visibleColumns,selected,expa
 export default function PositionsDockV4({
   positions=[],markets=[],account={},counts={},journal=[],positionActivityOrders=[],positionActivityDeals=[],positionActivityFills=[],onTabChange=()=>{},
   selectedPositionId=null,onSelectPosition=()=>{},onManagePosition=()=>{},onEditProtection=()=>{},
-  onRequestClose=()=>{},collapsed=false,compactDock=false,expanded=false,
+  onRequestClose=()=>{},onBreakEven=()=>{},onSetTrailing=()=>{},collapsed=false,compactDock=false,expanded=false,
   onToggleExpanded=()=>{},loading=false,error=null,onRetry=()=>{},readOnly=false,
 }){
   const [view,setView]=useState(initialView);
@@ -258,6 +274,6 @@ export default function PositionsDockV4({
       {showExposure&&<PositionsExposureFooter positions={positions} markets={markets}/>}
     </>}
     <CloseMenu menu={menu} onClose={onCloseMenu} onManagePosition={onManagePosition}
-      onRequestClose={onRequestClose} onEditProtection={onEditProtection} closeDisabled={menu?.closeDisabled||readOnly} readOnly={readOnly}/>
+      onRequestClose={onRequestClose} onEditProtection={onEditProtection} onBreakEven={onBreakEven} onSetTrailing={onSetTrailing} closeDisabled={menu?.closeDisabled||readOnly} readOnly={readOnly}/>
   </div>;
 }
