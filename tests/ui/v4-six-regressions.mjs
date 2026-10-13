@@ -506,8 +506,16 @@ try{
      const tools=[...el.querySelectorAll('[data-v4-header-tool]')].map(x=>({rect:rect(x),bg:getComputedStyle(x).backgroundColor}));
      const symbol=rect(el.querySelector('.acg-v4-header-primary strong'));
      const account=rect(el.querySelector('[data-v4-header-account-name]'));
-     const active=el.querySelector('[data-v4-timeframe][aria-pressed="true"]');
-     const timeframeGroup=rect(el.querySelector('.acg-v4-header-timeframes'));
+     const wideTimeframe=el.querySelector('.acg-v4-header-timeframes');
+     const compactTimeframe=el.querySelector('.acg-v4-header-compact-timeframe');
+     const compactVisible=getComputedStyle(compactTimeframe).display!=='none';
+     const active=compactVisible
+       ? compactTimeframe.querySelector('button')
+       : wideTimeframe.querySelector('[data-v4-timeframe][aria-pressed="true"]');
+     const timeframeGroup=rect(compactVisible?compactTimeframe:wideTimeframe);
+     const timeframeScrollWidth=wideTimeframe.scrollWidth;
+     const timeframeClientWidth=wideTimeframe.clientWidth;
+     const timeframeOverflow=getComputedStyle(wideTimeframe).overflowX;
      const toolGroup=rect(el.querySelector('.acg-v4-header-tools'));
      const spacer=rect(el.querySelector('.acg-v4-header-spacer'));
      const accountGroup=rect(el.querySelector('.acg-v4-header-right'));
@@ -517,7 +525,10 @@ try{
      const sidebar=parseFloat(el.style.getPropertyValue('--acg-v4-sidebar-width'));
      const rail=parseFloat(el.style.getPropertyValue('--acg-v4-rail-width'));
      return {outer:rect(el),symbol,account,tools,separators,timeframeGroup,toolGroup,spacer,accountGroup,accountButton,more,
-       sidebar,rail,selected:rect(active),selectedRadius:computed.borderRadius,selectedSize:computed.fontSize,
+       sidebar,rail,compactVisible,timeframeScrollWidth,timeframeClientWidth,timeframeOverflow,
+       headerBg:getComputedStyle(el).backgroundColor,
+       toolbarBg:getComputedStyle(el.querySelector('.acg-desktop-chart-toolbar')).backgroundColor,
+       selected:rect(active),selectedRadius:computed.borderRadius,selectedSize:computed.fontSize,
        fxSize:getComputedStyle(el.querySelector('.acg-v4-header-fx')).fontSize,
        activeBg:computed.backgroundColor,docWidth:document.documentElement.scrollWidth};
    });
@@ -528,6 +539,15 @@ try{
    ok(g.tools.every(t=>t.bg==='rgba(0, 0, 0, 0)'),`Icon tools are visually unboxed at ${width}px`);
    eq(g.separators[3],'32px',`Account divider remains 32px at ${width}px`);
    ok(g.toolGroup.x-g.timeframeGroup.right<=10,`Chart tools immediately follow timeframes at ${width}px`);
+   eq(g.headerBg,'rgb(9, 9, 11)',`Single V4 header background at ${width}px`);
+   eq(g.toolbarBg,'rgba(0, 0, 0, 0)',`Chart toolbar has no different background tint at ${width}px`);
+   if(width>=1100){
+     ok(!g.compactVisible,`All eight timeframe buttons remain visible at ${width}px`);
+     eq(g.timeframeOverflow,'visible',`Timeframe row has no scroll container at ${width}px`);
+     ok(g.timeframeScrollWidth<=g.timeframeClientWidth+1,`No hidden horizontal timeframe scroll at ${width}px`);
+   } else {
+     ok(g.compactVisible,`Compact picker replaces scroll rail at ${width}px`);
+   }
    ok(g.spacer.x>=g.toolGroup.right-1 && g.accountGroup.x>=g.spacer.right-1,`Flexible space appears only after chart tools at ${width}px`);
    ok(g.accountButton.x>=g.accountGroup.x && g.accountButton.x<=g.accountGroup.x+16,`Account starts at right workspace boundary at ${width}px`);
    console.log('V4_HEADER_GEOMETRY',width,JSON.stringify({outer:g.outer,more:g.more,accountGroup:g.accountGroup,accountButton:g.accountButton,toolGroup:g.toolGroup,spacer:g.spacer,sidebar:g.sidebar,rail:g.rail,selected:g.selected,selectedSize:g.selectedSize,selectedRadius:g.selectedRadius}));
@@ -542,6 +562,16 @@ try{
    }
    eq(g.activeBg,'rgb(242, 242, 244)',`White active timeframe at ${width}px`);
  }
+ // Even at narrow desktop widths, every timeframe is selectable without scrolling.
+ await page.setViewportSize({width:768,height:850});
+ const compactPicker=header.getByRole('button',{name:'Choose chart timeframe'});
+ await compactPicker.click();
+ const compactMenu=header.locator('[data-v4-header-menu="timeframes"]');
+ eq(await compactMenu.getByRole('button').count(),8,'Narrow picker exposes all eight timeframes');
+ await compactMenu.getByRole('button',{name:'1W'}).click();
+ await page.waitForFunction(()=>window.v4HeaderQA.timeframe==='1W');
+ eq(await compactPicker.locator('span').innerText(),'1W','Narrow picker retains selected interval');
+ eq(await compactMenu.count(),0,'Selecting a timeframe dismisses the compact menu');
  await page.setViewportSize({width:1440,height:850});
  await header.locator('[data-v4-timeframe="1H"]').click();
  await page.waitForFunction(()=>window.v4HeaderQA.timeframe==='1H');
