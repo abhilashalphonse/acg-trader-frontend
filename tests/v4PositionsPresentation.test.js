@@ -4,6 +4,8 @@ import {
   V4_POSITION_MIN_WIDTHS,validPositionView,finiteOrNull,money,pnlTone,
   positionMargin,positionExposure,positionOpened,positionExecutionSource,
   positionUnrealizedPnl,positionRiskAtStop,positionIdentity,
+  positionUsdNotional,positionMarginUtilization,positionRecordedCosts,
+  positionHoldingDuration,positionProtectionIntelligence,
 } from '../src/utils/v4PositionsPresentation.js';
 
 const account={currency:'USD'};
@@ -63,4 +65,40 @@ test('risk at stop is missing without SL and fails closed when FX conversion una
   assert.equal(positionRiskAtStop({...position,sl:1.12},forex,account,projected),12.6);
   assert.equal(positionRiskAtStop({...position,sl:1.12},{...forex,quoteCurrency:'CAD'},account,projected),null);
   assert.equal(positionRiskAtStop({...position,sl:1.12},forex,account,()=>4),0);
+});
+
+
+test('USD notional requires actual close quote and known USD denomination',()=>{
+  assert.equal(positionUsdNotional(position,forex),1117.3500000000001);
+  assert.equal(positionUsdNotional(position,{...forex,quoteCurrency:'CAD'}),null);
+  assert.equal(positionUsdNotional({...position,closePrice:null},forex),null);
+  assert.equal(positionUsdNotional(position,{...forex,baseCurrency:'USD',quoteCurrency:'JPY'}),1000);
+});
+test('position costs are recorded-only and do not subtract from live P&L',()=>{
+  assert.deepEqual(positionRecordedCosts(position),{commission:null,swap:null,realized:null});
+  assert.deepEqual(positionRecordedCosts({...position,raw:{
+    ...position.raw,commissionPaid:2.5,swapPaid:-0.45,realizedPnl:4
+  }}),{commission:2.5,swap:-0.45,realized:4});
+  assert.equal(positionMarginUtilization(position,{equity:100000}),0.01116);
+  assert.equal(positionMarginUtilization(position,{equity:0}),null);
+});
+test('holding duration is actual elapsed time and absent for invalid timestamps',()=>{
+  assert.equal(positionHoldingDuration(position,'2026-10-13T03:52:53.000Z'),'2h 5m');
+  assert.equal(positionHoldingDuration(position,'2026-10-12T01:47:53.000Z'),null);
+});
+test('protection R:R uses account-currency-compatible projections; R stays unavailable',()=>{
+  const setup={...position,sl:1.119,tp:1.115};
+  const estimator=(p,target,instrument)=>
+    (String(p.side).toUpperCase()==='SELL'?Number(p.entry)-target:target-Number(p.entry))*
+    Number(instrument.contractSize)*Number(p.volume);
+  const valid=positionProtectionIntelligence(setup,{...forex,pipSize:0.0001},account,estimator);
+  assert.ok(valid.stopDistance>0);
+  assert.ok(valid.targetDistance>0);
+  assert.ok(valid.lossAtStop<0);
+  assert.ok(valid.gainAtTarget>0);
+  assert.ok(valid.rewardToRisk>0);
+  assert.equal(valid.rMultiple,null);
+  const unknownFx=positionProtectionIntelligence(setup,{...forex,quoteCurrency:'CAD'},account,estimator);
+  assert.equal(unknownFx.rewardToRisk,null);
+  assert.equal(unknownFx.currentToStop,null);
 });
