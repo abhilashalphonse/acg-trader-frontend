@@ -386,7 +386,10 @@ export default function DesktopTerminal({
   const [notice, setNotice] = useState('');
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  // Managed chart/sidebar position and inspected dock position are independent.
+  // Inspecting a dock row must never create a right-side management session.
   const [selectedPositionId, setSelectedPositionId] = useState(null);
+  const [inspectedPositionId, setInspectedPositionId] = useState(null);
   const [dockCloseIntent, setDockCloseIntent] = useState(null);
   const [selectedPendingId,setSelectedPendingId]=useState(null);
   const [pendingOrderDraft,setPendingOrderDraft]=useState(null);
@@ -448,6 +451,7 @@ export default function DesktopTerminal({
     if (lastManagedAccountId.current === activeAccountId) return;
     lastManagedAccountId.current = activeAccountId;
     setSelectedPositionId(null);
+    setInspectedPositionId(null);
     setDockCloseIntent(null);
     setSelectedPendingId(null);
     setPendingOrderDraft(null);
@@ -464,9 +468,9 @@ export default function DesktopTerminal({
   }, [activeAccountId, readOnly]);
 
   useEffect(() => {
-    if (selectedPositionId == null) return;
-    if (!positions.some(position => String(position?.id) === String(selectedPositionId))) setSelectedPositionId(null);
-  }, [positions, selectedPositionId]);
+    if (selectedPositionId != null && !positions.some(position => String(position?.id) === String(selectedPositionId))) setSelectedPositionId(null);
+    if (inspectedPositionId != null && !positions.some(position => String(position?.id) === String(inspectedPositionId))) setInspectedPositionId(null);
+  }, [positions, selectedPositionId, inspectedPositionId]);
   useEffect(()=>{
     if(selectedPendingId!=null&&!pendingOrders.some(order=>String(order?.id??order?.orderId)===String(selectedPendingId)&&['PENDING','ACCEPTED','TRIGGERED'].includes(String(order?.status||'PENDING').toUpperCase()))){
       setSelectedPendingId(null);setPendingOrderDraft(null);
@@ -490,6 +494,7 @@ export default function DesktopTerminal({
       onCancelPositionProtection();
     }
     setSelectedPositionId(position.id);
+    setInspectedPositionId(position.id);
     setDockCloseIntent(null);
     if (V4_DESKTOP_EXECUTION_ENABLED) setPositionsExpanded(false);
     setSelectedPendingId(null);
@@ -500,6 +505,16 @@ export default function DesktopTerminal({
     setActiveNav('trade');
     setDesktopLayout(current => ({ ...current, sidebarCollapsed:false }));
     if (position.symbol && position.symbol !== activeSymbol) onSelectSymbol(position.symbol);
+  };
+
+  const inspectDockPosition = positionId => {
+    if (!V4_DESKTOP_EXECUTION_ENABLED) return selectPosition(positionId);
+    const position=positions.find(item=>String(item?.id)===String(positionId));
+    if (!position) return;
+    // Intentionally does NOT mutate managedPosition, nav, sidebar, pending
+    // orders, protection drafts, or the new-order execution form.
+    setInspectedPositionId(position.id);
+    if(position.symbol&&position.symbol!==activeSymbol)onSelectSymbol(position.symbol);
   };
 
   const reviewDockPositionClose = positionId => {
@@ -1331,7 +1346,7 @@ export default function DesktopTerminal({
                 onCancelPositionProtection={onCancelPositionProtection}
                 onRemovePositionProtection={(positionId, field) => updateDesktopProtection(positionId, { [field]: null })}
                 onRequestPositionProtection={(positionId, field, price) => editPositionProtection(positionId, field, price)}
-                selectedPositionId={selectedPositionId}
+                selectedPositionId={V4_DESKTOP_EXECUTION_ENABLED ? (inspectedPositionId ?? selectedPositionId) : selectedPositionId}
                 onSelectPosition={selectPosition}
                 onSelectPending={selectPending}
                 pendingOrderDraft={pendingOrderDraft}
@@ -1538,7 +1553,7 @@ export default function DesktopTerminal({
             <PositionsPanel v4Positions={V4_DESKTOP_EXECUTION_ENABLED} readOnly={readOnly}
               onReviewClosePosition={reviewDockPositionClose}
               positionsLoading={positionsLoading} positionsError={positionsError} onRetryPositions={onRetryPositions}
-              desktopDense collapsed={desktopLayout.dockCollapsed} compactDock={dockHeight <= compactDockThreshold && !positionsExpanded} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={updateDesktopProtection} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition} onEditProtection={editPositionProtection}/>
+              desktopDense collapsed={desktopLayout.dockCollapsed} compactDock={dockHeight <= compactDockThreshold && !positionsExpanded} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={updateDesktopProtection} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={V4_DESKTOP_EXECUTION_ENABLED ? (inspectedPositionId ?? selectedPositionId) : selectedPositionId} onSelectPosition={V4_DESKTOP_EXECUTION_ENABLED ? inspectDockPosition : selectPosition} onManagePosition={selectPosition} onEditProtection={editPositionProtection}/>
           </div>
 
           {!desktopLayout.sidebarCollapsed && !positionsExpanded && (
