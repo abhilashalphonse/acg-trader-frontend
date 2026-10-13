@@ -78,12 +78,12 @@ try {
   ok(opened.includes('Manual'),'Actual execution provenance used when available');
   ok(opened.includes('position-eur-1'),'Exact position ID not fabricated');
   eq(await rows().first().getByRole('button',{name:'Close'}).count(),0,'Execution inspection has no Close action');
-  eq(await rows().last().getByRole('button',{name:/Expand execution details/}).count(),1,'Chevron is accessible');
+  eq(await rows().last().getByRole('button',{name:/Expand position details/}).count(),1,'Chevron is accessible');
   const measured=await rows().first().evaluate(el=>el.getBoundingClientRect().height);
   eq(measured,56,'Execution row 56px');
-  await rows().last().getByRole('button',{name:/Expand execution details/}).click();
+  await rows().last().getByRole('button',{name:/Expand position details/}).click();
   eq(await dock.locator('[data-v4-position-detail="position-btc-2"]').count(),1,'Expanded details directly beneath target position');
-  eq(await rows().last().getByRole('button',{name:/Collapse execution details/}).getAttribute('aria-expanded'),'true','Chevron state accessible');
+  eq(await rows().last().getByRole('button',{name:/Collapse position details/}).getAttribute('aria-expanded'),'true','Chevron state accessible');
   await page.reload({waitUntil:'domcontentloaded'});
   await dock.waitFor({state:'visible'});
   eq(await dock.getAttribute('data-v4-position-view'),'execution','Last-selected view persists after reload');
