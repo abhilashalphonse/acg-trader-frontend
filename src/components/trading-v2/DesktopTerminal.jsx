@@ -107,11 +107,10 @@ function desktopHeightBounds(viewportHeight, dockCollapsed = false, dockHeight =
   const height = Number(viewportHeight) || 900;
   const compact = height <= 900;
   const dockMin = 52;
-  // V4 expanded inline position details require more room. Increase only the
-  // opt-in V4 resize ceiling; keep all legacy V3 customer constraints exact.
-  const dockMax = V4_DESKTOP_EXECUTION_ENABLED
-    ? Math.min(590,Math.floor(height*0.66))
-    : compact ? Math.min(320, Math.floor(height * 0.44)) : height <= 1050 ? Math.min(420, Math.floor(height * 0.46)) : Math.min(520, Math.floor(height * 0.48));
+  // The original compact dock sizing is shared by V3 and the V4 opt-in.
+  // Inline position expansion scrolls inside the dock; only the explicit
+  // maximize control can expand it into the large workspace.
+  const dockMax = compact ? Math.min(320, Math.floor(height * 0.44)) : height <= 1050 ? Math.min(420, Math.floor(height * 0.46)) : Math.min(520, Math.floor(height * 0.48));
   const defaultDock = 52;
   const effectiveDock = dockCollapsed ? 0 : clamp(dockHeight || defaultDock, dockMin, dockMax);
   const upperWorkspaceHeight = Math.max(0, height - 48 - effectiveDock);
@@ -1582,15 +1581,6 @@ export default function DesktopTerminal({
 
           <div className="acg-desktop-dock-shell min-h-0 overflow-hidden rounded-[9px] border border-[#292d31] bg-[#09090B] transition-[height,transform,opacity] duration-300 ease-out" style={{ gridColumn: '1 / 4', gridRow: '2' }}>
             <PositionsPanel v4Positions={V4_DESKTOP_EXECUTION_ENABLED} readOnly={readOnly}
-              onEnsureDetailSpace={()=>{
-                // Expand only enough to reveal rich inline details. Keep the
-                // chart, side panels and the user's dock resize controls.
-                setDesktopLayout(current=>{
-                  if(positionsExpanded||current.dockCollapsed||current.dockHeight>=580)return current;
-                  const bounds=desktopHeightBounds(viewportHeight,false,580);
-                  return {...current,dockHeight:clamp(580,bounds.dockMin,bounds.dockMax)};
-                });
-              }}
               onReviewClosePosition={reviewDockPositionClose}
               positionsLoading={positionsLoading} positionsError={positionsError} onRetryPositions={onRetryPositions}
               desktopDense collapsed={desktopLayout.dockCollapsed} compactDock={dockHeight <= compactDockThreshold && !positionsExpanded} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} historyError={historyError} historyLoading={historyLoading} onRetryHistory={onRetryHistory} pendingOrders={pendingOrders} journal={journal} positionActivityOrders={positionActivityOrders} positionActivityDeals={positionActivityDeals} positionActivityFills={positionActivityFills} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={updateDesktopProtection} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={V4_DESKTOP_EXECUTION_ENABLED ? (inspectedPositionId ?? selectedPositionId) : selectedPositionId} onSelectPosition={V4_DESKTOP_EXECUTION_ENABLED ? inspectDockPosition : selectPosition} onManagePosition={selectPosition} onEditProtection={editPositionProtection}
