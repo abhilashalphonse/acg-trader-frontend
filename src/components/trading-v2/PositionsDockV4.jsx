@@ -65,7 +65,7 @@ function Amount({position,account}){
   </span>;
 }
 function TableRow({position,instrument,account,view,visibleColumns,selected,expanded,onSelect,onToggle,onEditProtection,
-  onReviewClose,onOpenMenu,onOpenJournal,journal,readOnly}) {
+  onReviewClose,onOpenMenu,onOpenJournal,journal,activityOrders,activityDeals,activityFills,readOnly}) {
   const id=positionIdentity(position);
   const displayed=label=>visibleColumns.includes(label);
   const margin=positionMargin(position);
@@ -132,14 +132,14 @@ function TableRow({position,instrument,account,view,visibleColumns,selected,expa
       <td colSpan={visibleColumns.length}>
         <PositionsExpandedDetails position={position} instrument={instrument} account={account}
           view={view} visibleColumns={visibleColumns}
-          journal={journal} onEditProtection={onEditProtection} readOnly={readOnly}
+          journal={journal} activityOrders={activityOrders} activityDeals={activityDeals} activityFills={activityFills} onEditProtection={onEditProtection} readOnly={readOnly}
           onOpenJournal={onOpenJournal}/>
       </td>
     </tr>}
   </>;
 }
 export default function PositionsDockV4({
-  positions=[],markets=[],account={},counts={},journal=[],onTabChange=()=>{},
+  positions=[],markets=[],account={},counts={},journal=[],positionActivityOrders=[],positionActivityDeals=[],positionActivityFills=[],onTabChange=()=>{},
   selectedPositionId=null,onSelectPosition=()=>{},onManagePosition=()=>{},onEditProtection=()=>{},
   onRequestClose=()=>{},collapsed=false,compactDock=false,expanded=false,
   onToggleExpanded=()=>{},loading=false,error=null,onRetry=()=>{},readOnly=false,
@@ -246,7 +246,7 @@ export default function PositionsDockV4({
                 account={account} view={view} visibleColumns={visibleColumns.map(([name])=>name)}
                 selected={String(selectedPositionId)===id}
                 expanded={expandedIds.has(id)} onSelect={onSelectPosition} onToggle={()=>toggleRow(id)}
-                journal={journal} onOpenJournal={()=>onTabChange('journal')}
+                journal={journal} activityOrders={positionActivityOrders} activityDeals={positionActivityDeals} activityFills={positionActivityFills} onOpenJournal={()=>onTabChange('history')}
                 onEditProtection={onEditProtection} onReviewClose={onRequestClose} onOpenMenu={openMenu} readOnly={readOnly}/>;
             })}
           </tbody>
