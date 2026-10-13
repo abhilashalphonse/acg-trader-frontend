@@ -100,6 +100,14 @@ try {
   await rows().first().click();
   eq(await page.locator('[data-v4-manage-position]').count(),1,'Row inspection does not replace existing management panel');
   await rows().first().getByRole('button',{name:'More actions for EURUSD'}).click();
+  eq(await page.getByRole('menuitem',{name:'Move to break-even'}).isDisabled(),true,'Break-even is disabled without live favorable mark');
+  eq(await page.getByRole('menuitem',{name:'Trailing stop · 5 pips'}).count(),1,'Existing trailing choices are exposed');
+  await page.getByRole('menuitem',{name:'Review close 50%'}).click();
+  eq(await page.locator('[data-v4-manage-position="position-eur-1"]').getByRole('dialog',{name:'Confirm position close'}).count(),1,'Partial close launches existing V4 confirmation');
+  ok((await page.locator('[data-v4-manage-position="position-eur-1"]').getByRole('dialog',{name:'Confirm position close'}).innerText()).includes('50%'),'Partial close confirmation identifies exact percentage');
+  eq(await page.evaluate(()=>window.v4PositionsQA.commands.length),0,'Partial close review never submits a command before confirmation');
+  await page.locator('[data-v4-manage-position="position-eur-1"]').getByRole('button',{name:'Cancel',exact:true}).last().click();
+  await rows().first().getByRole('button',{name:'More actions for EURUSD'}).click();
   await page.keyboard.press('Escape');
   eq(await page.getByRole('menu',{name:'Actions for EURUSD'}).count(),0,'Escape dismisses overflow');
   // Large P&L updates cannot move columns or reorder position rows.
