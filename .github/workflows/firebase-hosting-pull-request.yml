@@ -156,9 +156,12 @@ jobs:
         run: |
           npm run dev -- --host 127.0.0.1 >/tmp/v4-qa-vite.log 2>&1 &
           curl --fail --retry 30 --retry-delay 1 --retry-connrefused http://127.0.0.1:5174/v4-six-fixes-audit.html >/dev/null
+          curl --fail --retry 10 --retry-delay 1 --retry-connrefused http://127.0.0.1:5174/v4-positions-audit.html >/dev/null
         env:
           VITE_ACG_TRADER_API_BASE: http://localhost:4000
           VITE_ACG_TRADER_WS_URL: ws://localhost:4000/v1/ws
           VITE_ACG_EXECUTION_V4_ENABLED: 'true'
-      - name: Exercise six V4 chart regressions in real Chrome
-        run: node tests/ui/v4-six-regressions.mjs
+      - name: Exercise V4 chart and positions regressions in real Chrome
+        run: |
+          node tests/ui/v4-six-regressions.mjs
+          node tests/ui/v4-positions-regressions.mjs
