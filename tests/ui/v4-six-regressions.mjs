@@ -533,7 +533,7 @@ try{
    ok(Math.abs(g.selected.w-32)<=1&&Math.abs(g.selected.h-28)<=1,`Selected timeframe is 32×28px at ${width}px`);
    eq(g.selectedRadius,'6px',`Selected timeframe uses 6px radius at ${width}px`);
    eq(g.selectedSize,'12px',`Timeframes use 12px text at ${width}px`);
-   eq(g.fxSize,'18px',`ƒx is normalized to 18px at ${width}px`);
+   eq(g.fxSize,'17px',`ƒx is optically balanced at 17px alongside 18px icons at ${width}px`);
    ok(g.sidebar>0,`Order panel is open for account alignment at ${width}px`);
    if(width>=1024 && g.sidebar>0){
      ok(Math.abs(g.accountGroup.x-(g.outer.right-g.sidebar-g.rail))<=16,`Account boundary tracks actual order-panel left edge at ${width}px`);
