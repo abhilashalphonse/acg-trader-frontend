@@ -84,10 +84,11 @@ export function positionRiskAtStop(position,instrument,account,estimatePnlAtPric
   const sl=finiteOrNull(position?.sl);
   if(sl===null||sl<=0)return null;
   const accountCurrency=String(account?.currency||'USD').toUpperCase();
-  const pnlCurrency=String(position?.pnlCurrency??instrument?.pnlCurrency??instrument?.quoteCurrency??'').toUpperCase();
-  // Risk estimate must be in the account currency; do not silently relabel
-  // quote-currency projection for cross-currency instruments.
-  if(pnlCurrency!==accountCurrency)return null;
+  const quoteCurrency=String(instrument?.quoteCurrency||'').toUpperCase();
+  // The projection helper computes in the instrument quote currency, even if
+  // position.pnl was converted by the valuation feed. Show no synthetic USD
+  // risk estimate for AUD/CAD or other cross-currency instruments.
+  if(!quoteCurrency||quoteCurrency!==accountCurrency)return null;
   const estimated=finiteOrNull(estimatePnlAtPrice(position,sl,instrument));
   return estimated===null?null:Math.max(0,-estimated);
 }
