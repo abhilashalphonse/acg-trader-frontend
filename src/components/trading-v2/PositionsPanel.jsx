@@ -288,7 +288,7 @@ export default function PositionsPanel({
         positions={positions} markets={markets} account={account} counts={counts} journal={journal} positionActivityOrders={positionActivityOrders} positionActivityDeals={positionActivityDeals} positionActivityFills={positionActivityFills} readOnly={readOnly}
         onTabChange={setTab} selectedPositionId={selectedPositionId}
         onSelectPosition={onSelectPosition} onManagePosition={onManagePosition} onEditProtection={onEditProtection}
-        onRequestClose={onReviewClosePosition} collapsed={collapsed} compactDock={compactDock}
+        onRequestClose={onReviewClosePosition} onBreakEven={onBreakEven} onSetTrailing={onSetTrailing} collapsed={collapsed} compactDock={compactDock}
         expanded={expanded} onToggleExpanded={onToggleExpanded}
         loading={positionsLoading} error={positionsError} onRetry={onRetryPositions}/>
     </section>;
