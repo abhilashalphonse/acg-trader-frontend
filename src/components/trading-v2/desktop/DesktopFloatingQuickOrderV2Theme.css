@@ -3,7 +3,7 @@
  * 36px header, 30px economics strip, 42px order controls and all handlers.
  * Scoped to the opted-in V4 desktop; the V2/default UI remains unchanged.
  */
-.acg-v2-floating-quick-order.acg-exec-root {
+.acg-desktop-v3 section.acg-v2-floating-quick-order.acg-exec-root {
   --acg-v2-float-canvas: #09090b;
   --acg-v2-float-header: #101012;
   --acg-v2-float-control: #111113;
