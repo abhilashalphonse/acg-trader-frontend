@@ -52,6 +52,7 @@ import { loadDesktopChartSettings, normalizeDesktopChartSettings, saveDesktopCha
 import { isChartOrderAuditEnabled } from '../../utils/chartOrderPresentation.js';
 import { v4HeaderMarketStatus, v4HeaderAccountLabel } from '../../utils/v4HeaderPresentation.js';
 import { effectiveLeverage } from '../../utils/tradingRisk.js';
+import { positionCloseAvailability } from '../../utils/marketExecutionAvailability.js';
 
 // Explicit opt-in only. Disabled in all existing builds unless configured.
 // ACG V4 is an owner-initiated production audit, not a global ticket rollout.
@@ -359,6 +360,9 @@ export default function DesktopTerminal({
   riskGuardSettings = null,
   onRiskGuardSettingsChange = () => {},
   readOnly = false,
+  positionsLoading = false,
+  positionsError = null,
+  onRetryPositions = () => {},
 }) {
   // One authoritative preview for the chart, fixed ticket, and floating ticket.
   // Derive market entries from the same quote before position sizing.
@@ -383,6 +387,7 @@ export default function DesktopTerminal({
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [selectedPositionId, setSelectedPositionId] = useState(null);
+  const [dockCloseIntent, setDockCloseIntent] = useState(null);
   const [selectedPendingId,setSelectedPendingId]=useState(null);
   const [pendingOrderDraft,setPendingOrderDraft]=useState(null);
   const [positionEditRequest, setPositionEditRequest] = useState(null);
@@ -429,6 +434,7 @@ export default function DesktopTerminal({
     if (lastManagedAccountId.current === activeAccountId) return;
     lastManagedAccountId.current = activeAccountId;
     setSelectedPositionId(null);
+    setDockCloseIntent(null);
     setSelectedPendingId(null);
     setPendingOrderDraft(null);
     setPositionEditRequest(null);
@@ -470,6 +476,8 @@ export default function DesktopTerminal({
       onCancelPositionProtection();
     }
     setSelectedPositionId(position.id);
+    setDockCloseIntent(null);
+    if (V4_DESKTOP_EXECUTION_ENABLED) setPositionsExpanded(false);
     setSelectedPendingId(null);
     setPendingOrderDraft(null);
     setPositionEditRequest(null);
@@ -480,7 +488,23 @@ export default function DesktopTerminal({
     if (position.symbol && position.symbol !== activeSymbol) onSelectSymbol(position.symbol);
   };
 
-  const selectPending = orderOrId => {
+  const reviewDockPositionClose = positionId => {
+    if (!V4_DESKTOP_EXECUTION_ENABLED || readOnly) return;
+    const target=positions.find(position=>String(position.id)===String(positionId));
+    if(!target)return;
+    const targetMarket=markets.find(instrument=>instrument.symbol===target.symbol);
+    const closeAvailability=positionCloseAvailability(targetMarket);
+    if(!closeAvailability.allowed){setNotice(closeAvailability.reason||'Market close is unavailable.');return;}
+    if(positionProtectionSaving && positionProtectionDraft && String(positionProtectionDraft.positionId)!==String(target.id)) {
+      setNotice('Finish the active protection update before changing positions.');
+      return;
+    }
+    selectPosition(target.id);
+    // This is a review intent only. V4 Position Management owns Confirm Close.
+    setDockCloseIntent(previous=>({positionId:String(target.id),nonce:(previous?.nonce||0)+1}));
+  };
+
+    const selectPending = orderOrId => {
     const id=typeof orderOrId==='object'?orderOrId?.id:orderOrId;
     if(id==null){setSelectedPendingId(null);setPendingOrderDraft(null);return;}
     const order=pendingOrders.find(item=>String(item?.id??item?.orderId)===String(id)&&['PENDING','ACCEPTED','TRIGGERED'].includes(String(item?.status||'PENDING').toUpperCase()));
@@ -1375,6 +1399,7 @@ export default function DesktopTerminal({
                           onApplyProtection={onApplyPositionProtection}
                           onCancelProtection={onCancelPositionProtection}
                           onUpdateProtection={updateDesktopProtection}
+                          closeIntent={dockCloseIntent}
                           onClosePosition={onClosePosition} onBreakEven={onBreakEven}
                           onSetTrailing={onSetTrailing}
                           onNotice={setNotice} readOnly={readOnly}
@@ -1494,7 +1519,10 @@ export default function DesktopTerminal({
           />
 
           <div className="acg-desktop-dock-shell min-h-0 overflow-hidden rounded-[9px] border border-[#292d31] bg-[#09090B] transition-[height,transform,opacity] duration-300 ease-out" style={{ gridColumn: '1 / 4', gridRow: '2' }}>
-            <PositionsPanel desktopDense collapsed={desktopLayout.dockCollapsed} compactDock={dockHeight <= compactDockThreshold && !positionsExpanded} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={updateDesktopProtection} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition} onEditProtection={editPositionProtection}/>
+            <PositionsPanel v4Positions={V4_DESKTOP_EXECUTION_ENABLED}
+              onReviewClosePosition={reviewDockPositionClose}
+              positionsLoading={positionsLoading} positionsError={positionsError} onRetryPositions={onRetryPositions}
+              desktopDense collapsed={desktopLayout.dockCollapsed} compactDock={dockHeight <= compactDockThreshold && !positionsExpanded} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={updateDesktopProtection} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition} onEditProtection={editPositionProtection}/>
           </div>
 
           {!desktopLayout.sidebarCollapsed && !positionsExpanded && (
