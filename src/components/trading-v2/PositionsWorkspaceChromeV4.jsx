@@ -1,12 +1,10 @@
 import React from 'react';
-import { Search } from 'lucide-react';
+import { Search, Copy, Check, ChevronRight } from 'lucide-react';
 import {
   finiteOrNull, money, fixedNumber, pnlTone,
   positionExposure, positionMargin, positionOpened, positionExecutionSource,
-  positionRiskAtStop, positionIdentity, positionUsdNotional,
-  positionMarginUtilization, positionRecordedCosts, positionHoldingDuration,
-  positionUnrealizedPnl, positionProtectionIntelligence,positionCurrentSpread,
-  portfolioExposureSummary,
+  positionRiskAtStop, positionIdentity, positionRecordedCosts,
+  portfolioExposureSummary, positionVerifiedUsdNotional,
 } from '../../utils/v4PositionsPresentation.js';
 import { formatInstrumentPrice, instrumentForSymbol } from '../../utils/instrumentFormatting.js';
 import { estimatePositionPnlAtPrice } from '../../utils/tradingRisk.js';
@@ -30,18 +28,8 @@ export function PositionsAccountSummary({ account }) {
     </div>)}
   </div>;
 }
-export function PositionsToolbar({view,onView,query,onQuery,instrument,onInstrument,instruments,
-  columns,hiddenColumns,onToggleColumn,onResetColumns,entity='position'}) {
-  const [menu,setMenu]=React.useState(null);
-  const menuRef=React.useRef(null);
-  React.useEffect(()=>{
-    if(!menu)return undefined;
-    function dismiss(e){if(e.key==='Escape')setMenu(null);}
-    function outside(e){if(menuRef.current&&!menuRef.current.contains(e.target))setMenu(null);}
-    document.addEventListener('keydown',dismiss);
-    document.addEventListener('pointerdown',outside);
-    return ()=>{document.removeEventListener('keydown',dismiss);document.removeEventListener('pointerdown',outside);};
-  },[menu]);
+// Fixed, deliberate view presets: no user-editable Columns control.
+export function PositionsToolbar({view,onView,query,onQuery,instrument,onInstrument,instruments,entity='position'}) {
   return <div className="v4-positions-toolbar">
     <div className="v4-positions-filters">
       <label className="v4-positions-search">
@@ -55,93 +43,107 @@ export function PositionsToolbar({view,onView,query,onQuery,instrument,onInstrum
         {instruments.map(symbol=><option value={symbol} key={symbol}>{symbol}</option>)}
       </select>
     </div>
-    <div className="v4-positions-tools" ref={menuRef}>
+    <div className="v4-positions-tools">
       <div className="v4-positions-selector" role="group" aria-label={entity==='order'?'Pending orders table view':'Positions table view'}>
         {['compact','risk','execution'].map(mode=><button key={mode} type="button"
-          aria-pressed={mode===view} className={mode===view?'is-active':''} onClick={()=>{onView(mode);setMenu(null);}}>
-          {mode[0].toUpperCase()+mode.slice(1)}</button>)}
-      </div>
-      <div className="v4-positions-menu-anchor">
-        <button type="button" className="v4-positions-columns-button" aria-expanded={menu==='columns'}
-          onClick={()=>setMenu(m=>m==='columns'?null:'columns')}>Columns</button>
-        {menu==='columns'&&<div className="v4-positions-options-popover" role="group" aria-label={'Columns in '+view+' view'}>
-          <strong>Visible columns</strong>
-          {columns.map(([label])=><label key={label}>
-            <input type="checkbox" checked={label==='Instrument'||!hiddenColumns.includes(label)}
-              disabled={label==='Instrument'} onChange={()=>onToggleColumn(label)}/>{label}
-          </label>)}
-          <button type="button" className="v4-positions-reset-columns" onClick={()=>{onResetColumns();setMenu(null);}}>Reset columns</button>
-        </div>}
+          aria-pressed={mode===view} className={mode===view?'is-active':''}
+          onClick={()=>onView(mode)}>{mode[0].toUpperCase()+mode.slice(1)}</button>)}
       </div>
     </div>
   </div>;
 }
-function detailValue(label,value){return <div className="v4-position-detail-field" key={label}><span>{label}</span><strong>{value??'—'}</strong></div>;}
+function DisplayField({label,value,action=null}){
+  return <div className="v4-position-detail-field">
+    <span>{label}</span><strong>{value}</strong>{action}
+  </div>;
+}
+function Identifiers({position,logs}){
+  const [copied,setCopied]=React.useState(null);
+  const posId=String(position?.positionId??position?.id??'');
+  const orderIds=[...new Set([position?.raw?.sourceOrderId,...logs.filter(event=>event.kind==='order').map(event=>event.recordId)]
+    .filter(value=>value!=null&&String(value).trim()).map(String))];
+  const dealIds=[...new Set(logs.filter(event=>event.kind==='deal').map(event=>String(event.recordId)).filter(Boolean))];
+  const items=[['Position ID',posId],...orderIds.map(id=>['Order ID',id]),...dealIds.map(id=>['Deal ID',id])].filter(([,id])=>id);
+  const copy=async(value)=>{
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(value);
+    } catch {
+      setCopied(null);
+    }
+  };
+  return <details className="v4-position-identifiers">
+    <summary>Identifiers <ChevronRight size={15} aria-hidden="true"/></summary>
+    <div className="v4-position-identifiers-content" aria-label="Position technical identifiers">
+      {items.length?items.map(([label,value],index)=><div key={label+value+index} className="v4-position-identifier">
+        <span>{label}</span><code title={value}>{value}</code>
+        <button type="button" aria-label={'Copy '+label+' '+value} title={'Copy '+label}
+          onClick={e=>{e.stopPropagation();void copy(value);}}>
+          {copied===value?<Check size={14}/>:<Copy size={14}/>}
+        </button>
+      </div>):<span>No verified identifiers available</span>}
+    </div>
+  </details>;
+}
 export function PositionsExpandedDetails({
-  position,instrument,account,activityOrders=[],activityDeals=[],activityFills=[],onEditProtection,onOpenJournal,readOnly,view='compact',visibleColumns=[],
+  position,instrument,markets=[],account,activityOrders=[],activityDeals=[],activityFills=[],
+  onEditProtection,onOpenJournal,readOnly,
 }){
   const id=positionIdentity(position);
   const opened=positionOpened(position);
-  const created=position?.raw?.createdAt?new Date(position.raw.createdAt):null;
-  const createdText=created&&Number.isFinite(created.getTime())?created.toLocaleString('en-GB'):'—';
   const currency=account?.currency||'USD';
-  const costs=positionRecordedCosts(position);
-  const spread=positionCurrentSpread(position,instrument);
   const margin=positionMargin(position);
-  const marginPercent=positionMarginUtilization(position,account);
-  const usdExposure=positionUsdNotional(position,instrument);
-  const protection=positionProtectionIntelligence(position,instrument,account,estimatePositionPnlAtPrice);
+  const exposure=positionExposure(position,instrument);
+  const notional=positionVerifiedUsdNotional(position,instrument,markets);
+  const costs=positionRecordedCosts(position);
   const sl=finiteOrNull(position?.sl),tp=finiteOrNull(position?.tp);
   const risk=positionRiskAtStop(position,instrument,account,estimatePositionPnlAtPrice);
-  const pnl=positionUnrealizedPnl(position,account);
   const logs=positionLifecycleEvents(position,{orders:activityOrders,deals:activityDeals,fills:activityFills});
-  const visible=label=>visibleColumns.includes(label);
-  const distance=(value,delta)=>value==null?'—':
-    fixedNumber(value,value<1?2:1)+' '+protection.unit+(delta==null?'':' · '+money(delta,currency,true));
+  const created=logs.find(item=>item.kind==='order');
+  const formatTime=iso=>new Date(iso).toLocaleTimeString('en-GB',
+    {hour:'2-digit',minute:'2-digit',second:'2-digit'});
   return <div className="v4-position-expanded" role="region" aria-label={'Position '+id+' details'}>
-    <section>
-      <h4>Execution</h4>
-      {!visible('Position ID')&&detailValue('Position ID',String(position.positionId||id))}
-      {!visible('Source')&&detailValue('Source',positionExecutionSource(position))}
-      {detailValue('Order created',createdText)}
-      {!visible('Opened')&&detailValue('Filled',opened?opened.date+' · '+opened.time+' '+opened.offset:'—')}
-      {detailValue('Order ID',String(position.raw?.sourceOrderId||'—'))}
-      {detailValue('Holding duration',positionHoldingDuration(position)||'—')}
-      {detailValue('Recorded commission',costs.commission==null?'—':money(costs.commission,currency))}
-      {detailValue('Current bid/ask spread',spread==null?'—':
-        fixedNumber(spread.amount,spread.amount<1?2:1)+' '+spread.unit+
-        ' · live, not an added fee')}
-      {detailValue('Recorded swap / financing',costs.swap==null?'—':money(costs.swap,currency,true))}
-      {costs.realized!=null&&detailValue('Realized P&L',money(costs.realized,currency,true))}
-      {!visible('Unrealized P&L')&&detailValue('Unrealized P&L',money(pnl.value,currency,true))}
-    </section>
-    <section>
-      <h4>Risk &amp; protection</h4>
-      {view!=='risk'&&detailValue('Reserved margin',money(margin,currency))}
-      {detailValue('Margin / equity',marginPercent==null?'—':fixedNumber(marginPercent,2)+'%')}
-      {detailValue('USD notional',usdExposure==null?'—':money(usdExposure,'USD'))}
-      {view!=='risk'&&detailValue('Stop loss',sl==null?'Not set':formatInstrumentPrice(sl,instrument))}
-      {view!=='risk'&&detailValue('Take profit',tp==null?'Not set':formatInstrumentPrice(tp,instrument))}
-      {view!=='risk'&&detailValue('Risk at stop',risk==null?'—':money(risk,currency))}
-      {sl!=null&&detailValue('Distance to SL',distance(protection.stopDistance,protection.currentToStop))}
-      {tp!=null&&detailValue('Distance to TP',distance(protection.targetDistance,protection.currentToTarget))}
-      {sl!=null&&tp!=null&&detailValue('Risk / reward',protection.rewardToRisk==null?'—':'1 : '+fixedNumber(protection.rewardToRisk,2))}
-      {detailValue('R-multiple',protection.rMultiple==null?'—':fixedNumber(protection.rMultiple,2)+'R')}
-      {detailValue('Trailing stop',position.trailingEnabled?'Enabled · '+fixedNumber(position.trailingPips,1)+' pips':'Disabled')}
-      {view!=='risk'&&!readOnly&&<button type="button" className="v4-position-add-protection"
-        onClick={e=>{e.stopPropagation();onEditProtection(id,sl==null?'sl':'tp');}}>
-        + {sl==null?'Add protection':'Edit protection'}
-      </button>}
-    </section>
-    <section>
-      <h4>Position activity</h4>
-      {logs.length?logs.slice(0,3).map(event=><div key={event.id} className="v4-position-activity">
-        <time dateTime={event.timestamp}>{new Date(event.timestamp).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</time>
-        <span title={event.description||undefined}>{event.label}<small> {event.kind} #{event.recordId}</small></span>
-      </div>):<p className="v4-position-no-activity">No verified execution records available.</p>}
-      <button type="button" className="v4-position-view-activity"
-        onClick={e=>{e.stopPropagation();onOpenJournal();}}>View history →</button>
-    </section>
+    <div className="v4-position-details-heading">
+      <strong>Position details</strong>
+      <span className="v4-position-opened">Opened {opened?opened.date+' · '+opened.time+' '+opened.offset:'timestamp unavailable'}</span>
+      <Identifiers position={position} logs={logs}/>
+    </div>
+    <div className="v4-position-detail-columns">
+      <section aria-label="Protection">
+        <h4>Protection</h4>
+        {[['sl','Stop loss',sl],['tp','Take profit',tp]].map(([field,label,value])=>
+          <DisplayField key={field} label={label}
+            value={value==null?'Not set':formatInstrumentPrice(value,instrument)}
+            action={<button type="button" className="v4-position-protection-action"
+              disabled={readOnly} aria-label={(value==null?'Add ':'Edit ')+label.toLowerCase()+' for '+position.symbol}
+              onClick={e=>{e.stopPropagation();onEditProtection(id,field);}}>
+              {value==null?'Add':'Edit'}
+            </button>}/>)}
+        <div className="v4-position-details-divider"/>
+        <DisplayField label="Estimated loss at stop" value={sl==null||risk==null?'—':money(risk,currency)}/>
+        {sl==null&&<p className="v4-position-detail-hint">Set a stop loss to estimate risk.</p>}
+      </section>
+      <section aria-label="Exposure and costs">
+        <h4>Exposure &amp; costs</h4>
+        <DisplayField label="Exposure" value={exposure?
+          fixedNumber(exposure.quantity,Number.isInteger(exposure.quantity)?0:2)+' '+exposure.unit:'Not available'}/>
+        <DisplayField label="Notional · live" value={notional==null?'Not available':money(notional,'USD')}/>
+        <DisplayField label="Reserved margin" value={money(margin,currency)}/>
+        <div className="v4-position-details-divider"/>
+        <DisplayField label="Commission" value={costs.commission==null?'Not available':money(costs.commission,currency)}/>
+        <DisplayField label="Swap / financing" value={costs.swap==null?'Not available':money(costs.swap,currency,true)}/>
+      </section>
+      <section aria-label="Activity">
+        <h4>Activity</h4>
+        {logs.length?logs.slice(0,3).map(event=><div key={event.id} className="v4-position-activity">
+          <time dateTime={event.timestamp}>{formatTime(event.timestamp)}</time>
+          <span>{event.label}</span>
+        </div>):<p className="v4-position-no-activity">No verified execution records available.</p>}
+        <div className="v4-position-details-divider"/>
+        <button type="button" className="v4-position-view-activity"
+          onClick={e=>{e.stopPropagation();onOpenJournal(id);}}>View history <ChevronRight size={15} aria-hidden="true"/></button>
+      </section>
+    </div>
   </div>;
 }
 export function PositionsExposureFooter({positions,markets}){
