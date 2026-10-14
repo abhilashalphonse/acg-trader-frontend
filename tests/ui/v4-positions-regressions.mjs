@@ -58,26 +58,25 @@ try {
   eq(await order(),initialOrder,'Risk view keeps order and identity');
   eq(await dock.locator('tr[aria-selected="true"]').count(),1,'Risk keeps selected position');
   eq(await dock.locator('thead th').allTextContents(),
-    ['Instrument','Exposure','Margin','Stop loss','Take profit','Risk at stop','Unrealized P&L'],'Exact Risk headings');
-  eq(await rows().first().locator('td').count(),7,'Risk has seven columns');
+    ['Instrument','Exposure','Margin','Stop loss','Take profit','Risk at stop','Unrealized P&L','Actions'],'Exact Risk headings');
+  eq(await rows().first().locator('td').count(),8,'Risk has eight columns');
   ok((await rows().first().innerText()).includes('1,000 EUR'),'Base-quantity exposure labeled in EUR');
   ok((await rows().first().innerText()).includes('$11.16'),'Stored margin retained');
   eq(await rows().first().getByRole('button',{name:'Add stop loss for EURUSD'}).count(),1,'Missing SL has Add button');
   eq(await rows().first().getByRole('button',{name:'Add take profit for EURUSD'}).count(),1,'Missing TP has Add button');
-  eq(await rows().first().getByRole('button',{name:'Close'}).count(),0,'No Close in Risk inspection view');
+  eq(await rows().first().getByRole('button',{name:'Close'}).count(),1,'Close independent in Risk view');
   await rows().first().getByRole('button',{name:'Add stop loss for EURUSD'}).click();
   eq(await page.locator('[data-v4-manage-position="position-eur-1"]').count(),1,'SL routes to existing right-side editor');
   eq(await page.evaluate(()=>window.v4PositionsQA.commands.length),0,'Protection click cannot execute close');
   await dock.getByRole('button',{name:'Execution',exact:true}).click();
   eq(await order(),initialOrder,'Execution view retains same positions and order');
   eq(await dock.locator('thead th').allTextContents(),
-    ['Instrument','Size','Entry price','Opened','Source','Position ID'],'Exact Execution headings');
+    ['Instrument','Size','Entry price','Opened','Unrealized P&L','Actions'],'Execution hides optional source and technical IDs');
   eq(await rows().first().locator('td').count(),6,'Execution has six columns');
   const opened=await rows().first().innerText();
   ok(opened.includes('13 Oct 2026'),'Opening date from raw ISO');
-  ok(opened.includes('Manual'),'Actual execution provenance used when available');
-  ok(opened.includes('position-eur-1'),'Exact position ID not fabricated');
-  eq(await rows().first().getByRole('button',{name:'Close'}).count(),0,'Execution inspection has no Close action');
+  ok(!opened.includes('position-eur-1'),'Position ID is in Identifiers only');
+  eq(await rows().first().getByRole('button',{name:'Close'}).count(),1,'Execution has Close control');
   eq(await rows().last().getByRole('button',{name:/Expand position details/}).count(),1,'Chevron is accessible');
   const measured=await rows().first().evaluate(el=>el.getBoundingClientRect().height);
   eq(measured,56,'Execution row 56px');
