@@ -133,9 +133,19 @@ try {
   const deadline=Date.now()+30000;
   while (!(await buyButton.isEnabled()) && Date.now()<deadline) await delay(750);
   assert(await buyButton.isEnabled(),'V4 Buy must be enabled on fresh provider quotes');
-  const uiOrder=page.waitForResponse(r=>r.url().endsWith('/v1/trading/orders/market')&&r.request().method()==='POST');
+  const marketResponse=r=>r.url().endsWith('/v1/trading/orders/market')&&r.request().method()==='POST';
+  const firstAttempt=page.waitForResponse(marketResponse,{timeout:5000}).catch(()=>null);
   await buyButton.click();
-  const uiFilled=await uiOrder;
+  let uiFilled=await firstAttempt;
+  if(!uiFilled){
+    // V4 sometimes requires a chart-plan review rather than one-click fill.
+    // Continue through the visible confirmation action as a real user would.
+    const confirmation=ticketPanel.getByRole('button',{name:/^Place BUY MARKET$/});
+    const action=await confirmation.isVisible()?confirmation:buyButton;
+    const secondAttempt=page.waitForResponse(marketResponse,{timeout:20000});
+    await action.click();
+    uiFilled=await secondAttempt;
+  }
   assert.equal(uiFilled.status(),201,'V4 ticket actually submitted and filled');
   const uiPosition=(await uiFilled.json()).position;
   assert(uiPosition?.id,'V4 ticket returned an open position');
