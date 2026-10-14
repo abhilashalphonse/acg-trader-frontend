@@ -175,7 +175,7 @@
 .acg-v4-header .acg-v4-header-valuation { display:none !important; }
 .acg-desktop-v3 .acg-v4-header [data-v4-header-account] {
   display:flex; align-items:center;
-  width:fit-content; max-width:196px; min-width:0;
+  width:fit-content; max-width:228px; min-width:0;
   height:36px; gap:6px; padding:0 0 0 8px;
   background:#17171b !important; border:1px solid #38383e !important;
   border-radius:9px !important; color:#f2f2f4;
