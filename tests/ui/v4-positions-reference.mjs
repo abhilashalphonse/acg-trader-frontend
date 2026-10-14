@@ -78,11 +78,11 @@ try{
   eq(await detail.getByRole('button',{name:/Copy Order ID/}).count(),1,'Copy Order ID');
   eq(await detail.getByRole('button',{name:/Copy Deal ID/}).count(),1,'Copy Deal ID');
   await detail.locator('summary').click();
-  await dock.getByRole('button',{name:'Collapse position details for EUR/USD'}).click();
-  eq(await detail.count(),0,'Chevron can collapse details');
   const commonDetails=await detail.locator('.v4-position-detail-columns').innerText();
   await dock.getByRole('button',{name:'Execution',exact:true}).click();
   eq(await detail.locator('.v4-position-detail-columns').innerText(),commonDetails,'Detail content remains identical across Risk and Execution');
+  await dock.getByRole('button',{name:'Collapse position details for EUR/USD'}).click();
+  eq(await detail.count(),0,'Chevron can collapse details');
   eq(await ids(),originalIds,'Execution retains same rows');
   await dock.getByRole('button',{name:'Expand position details for BTC/USD'}).click();
   ok((await dock.locator('[data-v4-position-detail="position-btc-2"]').innerText()).includes('No verified execution records available.'),
@@ -105,6 +105,20 @@ try{
   });
   ok(narrow.stacked,'At narrow widths view selector shifts below search/filter toolbar');
   ok(narrow.horizontal,'At narrow widths table scrolls horizontally');
+  await page.setViewportSize({width:1440,height:900});
+  await rows().first().getByRole('button',{name:'Expand position details for EUR/USD'}).click();
+  await dock.locator('[data-v4-position-detail="position-eur-1"]').getByRole('button',{name:/View history/}).click();
+  const scopedHistory=page.locator('[data-v4-activity="history"]');
+  await scopedHistory.waitFor({state:'visible'});
+  ok((await scopedHistory.locator('.v4-activity-summary').innerText()).includes('position-eur-1'),
+    'History link scopes to the selected position rather than unrelated records');
+  ok((await scopedHistory.locator('.v4-activity-position-events').innerText()).includes('Position filled'),
+    'Scoped history shows authoritative order and deal events for an active position');
+  eq(await scopedHistory.locator('tr.v4-activity-row').count(),0,
+    'Other positions closed history is excluded from scoped view');
+  await scopedHistory.getByRole('button',{name:'Show all position history'}).click();
+  eq(await scopedHistory.locator('tr.v4-activity-row').count(),2,
+    'Clear filter returns to all recent closed positions');
   console.log('V4_POSITIONS_REFERENCE_PASS',JSON.stringify({checks,geometry,narrow}));
 }catch(error){
   console.error('V4_POSITIONS_REFERENCE_FAIL',error);
