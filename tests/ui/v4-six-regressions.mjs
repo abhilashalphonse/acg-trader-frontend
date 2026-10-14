@@ -497,6 +497,12 @@ try{
  ok((await header.locator('[data-v4-header-account]').innerText()).includes('Market 1:100'),
    'V4 header identifies the selected-market effective leverage, not unqualified account maximum');
  eq(await header.locator('[data-v4-header-tool]').count(),3,'three icon-only chart tools');
+ eq(await header.locator('.acg-v4-header-divider').count(),3,'Three fine dividers separate header tool groups');
+ eq(await header.locator('.acg-v4-header-account-mark svg').count(),1,'Account icon is rendered in compact switcher');
+ ok((await header.locator('[data-v4-header-account]').evaluate(el=>getComputedStyle(el).backgroundColor))!=='rgba(0, 0, 0, 0)',
+   'Account switcher has its own neutral graphite capsule');
+ ok((await header.locator('.acg-v4-header-primary strong').evaluate(el=>getComputedStyle(el).fontFamily)).startsWith('Inter'),
+   'Instrument name computed font is Inter');
  eq(await header.locator('.acg-v4-header-tool-label:visible').count(),0,'icon labels hidden');
  eq(await header.locator('.acg-v4-header-tool-chevron:visible').count(),0,'icon chevrons hidden');
  for(const width of [1440,1280,1024,800,768]){
