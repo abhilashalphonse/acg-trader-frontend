@@ -39,6 +39,7 @@ function marketCategory(market) {
 }
 
 function money(value, currency = 'USD') {
+  if (value === null || value === undefined || value === '') return '—';
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return '—';
   try {
@@ -67,8 +68,8 @@ export default function MobileTradingHeader({
   const symbol = market?.displaySymbol || displaySymbol(market?.symbol);
   const category = marketCategory(market);
   const marketStatus = market?.sessionOpen === false ? 'CLOSED' : market?.live ? 'LIVE' : String(market?.marketState || 'WAIT').toUpperCase();
-  const floatingPnl = Number(account?.floatingPnl);
-  const pnl = Number.isFinite(floatingPnl) ? floatingPnl : 0;
+  const floatingPnl = account?.floatingPnl == null ? null : Number(account.floatingPnl);
+  const pnl = Number.isFinite(floatingPnl) ? floatingPnl : null;
   const pnlTone = pnl > 0 ? 'text-[#32ddb0]' : pnl < 0 ? 'text-[#ff6675]' : 'text-[#d7dce3]';
   const activityCount = Math.max(0, Number(positionsCount) || 0) + Math.max(0, Number(pendingCount) || 0);
 
