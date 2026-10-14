@@ -730,8 +730,8 @@ try{
  await header.getByRole('button',{name:'Switch trading account'}).click();
  await menuIs('account');
  const chevronSpacing=await header.locator('[data-v4-header-account]').evaluate(el=>{
-   const label=el.querySelector(':scope > div').getBoundingClientRect();
-   const icon=el.querySelector(':scope > svg').getBoundingClientRect();
+   const label=el.querySelector(':scope > .acg-v4-header-account-copy').getBoundingClientRect();
+   const icon=el.querySelector(':scope > .acg-v4-header-account-chevron').getBoundingClientRect();
    return icon.left-label.right;
  });
  ok(chevronSpacing>=4&&chevronSpacing<=12,'account chevron stays attached to account text');
