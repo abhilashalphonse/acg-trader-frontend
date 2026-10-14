@@ -1,0 +1,116 @@
+/* V2 trading terminal theme for the ORIGINAL floating Quick Order.
+ * Visual-only: retain the exact one-line header, 344px ticket footprint,
+ * 36px header, 30px economics strip, 42px order controls and all handlers.
+ * Scoped to the opted-in V4 desktop; the V2/default UI remains unchanged.
+ */
+.acg-desktop-v3 section.acg-v2-floating-quick-order.acg-exec-root {
+  --acg-v2-float-canvas: #09090b;
+  --acg-v2-float-header: #101012;
+  --acg-v2-float-control: #111113;
+  --acg-v2-float-raised: #171719;
+  --acg-v2-float-line: #262628;
+  --acg-v2-float-strong-line: #4d4d52;
+  --acg-v2-float-text: #f2f3f5;
+  --acg-v2-float-muted: #9da4ac;
+  width: 344px;
+  color: var(--acg-v2-float-text);
+  background: var(--acg-v2-float-canvas) !important;
+  border-color: var(--acg-v2-float-line) !important;
+  border-radius: 9px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.32) !important;
+  backdrop-filter: none !important;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+.acg-v2-floating-quick-order > div:first-child {
+  background: var(--acg-v2-float-header);
+  border-bottom-color: var(--acg-v2-float-line);
+}
+.acg-v2-floating-quick-order > div:first-child > div span {
+  color: var(--acg-v2-float-text);
+  font-weight: 650;
+}
+.acg-v2-floating-quick-order > div:first-child > button:not(:first-child) {
+  border-color: var(--acg-v2-float-line);
+}
+.acg-v2-floating-quick-order > div:first-child > button:is(:hover,:focus-visible):not(:disabled) {
+  border-color: var(--acg-v2-float-strong-line);
+}
+.acg-v2-floating-quick-order > div:nth-child(2) {
+  background: var(--acg-v2-float-canvas);
+  border-bottom-color: var(--acg-v2-float-line);
+  color: var(--acg-v2-float-muted);
+  font-variant-numeric: tabular-nums;
+}
+.acg-v2-floating-quick-order > div:nth-child(3) {
+  background: var(--acg-v2-float-canvas);
+}
+.acg-v2-floating-quick-order > div:nth-child(3) > div {
+  border-color: var(--acg-v2-float-line);
+  background: var(--acg-v2-float-control);
+}
+.acg-v2-floating-quick-order > div:nth-child(3) > div > div {
+  border-color: var(--acg-v2-float-line);
+}
+.acg-v2-floating-quick-order > div:nth-child(3) > div input {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+.acg-v2-floating-quick-order > div:nth-child(3) > div button:hover:not(:disabled) {
+  background: var(--acg-v2-float-raised);
+}
+.acg-v2-floating-quick-order :is(button,input):focus-visible {
+  outline: 1px solid #cbd0d6 !important;
+  outline-offset: 1px !important;
+}
+/* Execution buttons stay on the terminal's existing SELL/BUY colors:
+ * #c83242 and #195be1. No separate orders, sizing, or margin code.
+ */
+
+/* V2 typography and selected white pill states. The original single-row
+   header, 28px buttons, input positions and trade action sizes do not move. */
+.acg-desktop-v3 .acg-v2-floating-quick-order :is(button, input, strong, span) {
+  font-family: inherit;
+  letter-spacing: 0;
+}
+.acg-desktop-v3 .acg-v2-floating-quick-order > div:first-child > div span {
+  font-size: 11px;
+  font-weight: 650;
+}
+.acg-desktop-v3 .acg-v2-floating-quick-order > div:nth-child(2) {
+  font-size: 10px;
+  font-weight: 500;
+}
+.acg-desktop-v3 .acg-v2-floating-quick-order > div:nth-child(3) input,
+.acg-desktop-v3 .acg-v2-floating-quick-order > div:nth-child(3) .acg-exec-buy span,
+.acg-desktop-v3 .acg-v2-floating-quick-order > div:nth-child(3) .acg-exec-sell span {
+  font-family: inherit !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+.acg-desktop-v3 .acg-v2-floating-quick-order > div:first-child > button[data-v2-pill] {
+  min-width: 0;
+  height: 28px;
+  padding-inline: 7px;
+  border-radius: 999px !important;
+  border: 1px solid #29292e !important;
+  background-color: #202023 !important;
+  color: #a1a1aa !important;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.acg-desktop-v3 .acg-v2-floating-quick-order > div:first-child > button[data-v2-pill][data-v2-pill-active="true"] {
+  background-color: #f4f4f5 !important;
+  border-color: #f4f4f5 !important;
+  color: #111113 !important;
+}
+.acg-desktop-v3 .acg-v2-floating-quick-order > div:first-child > button[data-v2-pill][data-v2-pill-active="false"]:hover:not(:disabled) {
+  background-color: #2a2a30 !important;
+  color: #f2f2f4 !important;
+}
+.acg-desktop-v3 .acg-v2-floating-quick-order > div:first-child > button[data-v2-pill]:focus-visible {
+  outline: 2px solid #f4f4f5 !important;
+  outline-offset: 1px !important;
+}

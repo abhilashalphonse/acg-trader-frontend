@@ -65,7 +65,8 @@ test('V4 retains existing execution functions, not a new broker API or one-click
 test('Four-mode UI dispatches to existing fee-aware adapter, not preview math',()=>{
  for(const mode of ["'lots','Lots'","'margin','Margin $'","'riskPercent','Risk %'","'riskUSD','Risk USD'"])
   assert.ok(component.includes(mode),'missing '+mode);
- assert.match(component,/resolveV4PositionSizing\(\{mode:uiMode,amount:value,plan,account,instrument:market\}\)/);
+ assert.match(component,/resolveV4PositionSizing\(\{mode:uiMode,amount:value,plan,account:previewAccount,instrument:market\}\)/);
+ assert.match(component,/conversionMarkets/);
  assert.match(component,/onRiskPercentChange\(percent\)/);
  assert.match(component,/onLotsChange\(result\.lots\)/);
  assert.match(component,/riskSizingSupported\(market,currency\)/);

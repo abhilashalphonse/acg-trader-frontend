@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Check, ChevronDown, LayoutDashboard, Plus, Save, Trash2 } from 'lucide-react';
+import { Check, ChevronDown, LayoutDashboard, LayoutGrid, Square, Columns2, Grid2X2, Link2, Link2Off, Plus, Save, Trash2 } from 'lucide-react';
 
 const STORAGE_KEY = 'acg-trader-workspaces-v1';
 
@@ -48,8 +48,20 @@ function persist(items) {
   try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); } catch { /* optional preference */ }
 }
 
-export default function DesktopWorkspaceMenu({ snapshot, onApply = () => {} }) {
-  const [open, setOpen] = useState(false);
+export default function DesktopWorkspaceMenu({
+  snapshot, onApply = () => {}, compact = false,
+  chartLayout = 1, onChartLayoutChange = () => {},
+  chartLinked = false, onToggleChartLink = () => {},
+  onCopyIndicators = () => {}, indicatorCount = 0,
+  open: controlledOpen, onOpenChange,
+}) {
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = controlledOpen === undefined ? localOpen : controlledOpen;
+  const setOpen = next => {
+    const value = typeof next === 'function' ? next(open) : next;
+    if (controlledOpen === undefined) setLocalOpen(value);
+    else onOpenChange?.(value);
+  };
   const [custom, setCustom] = useState(loadCustom);
   const workspaces = useMemo(() => [...BUILT_INS, ...custom], [custom]);
 
@@ -76,12 +88,40 @@ export default function DesktopWorkspaceMenu({ snapshot, onApply = () => {} }) {
 
   return (
     <div className="relative">
-      <button type="button" onClick={() => setOpen(value => !value)} className="flex h-8 items-center gap-1 rounded-md border border-white/[0.06] bg-black/20 px-2 text-[9px] font-semibold text-[#6F8191] hover:text-white" title="Layouts">
-        <LayoutDashboard size={12}/>Layout<ChevronDown size={10}/>
+      <button type="button" data-v4-header-tool={compact ? 'layout' : undefined}
+        aria-label={compact ? 'Layout' : undefined} aria-expanded={open}
+        onClick={() => setOpen(value => !value)}
+        className={compact ? 'acg-v4-header-layout-tool' : 'flex h-8 items-center gap-1 rounded-md border border-white/[0.06] bg-black/20 px-2 text-[9px] font-semibold text-[#6F8191] hover:text-white'}
+        title={compact ? 'Layout' : 'Layouts'}>
+        {compact ? <LayoutGrid size={18}/> : <><LayoutDashboard size={12}/>Layout<ChevronDown size={10}/></>}
       </button>
 
       {open && (
-        <div className="acg-v3-popover absolute right-0 top-9 z-[90] w-[230px] overflow-hidden rounded-md border border-white/[0.10] bg-[#111113] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+        <div data-v4-header-menu={compact ? 'layout' : undefined} className="acg-v3-popover absolute right-0 top-9 z-[90] w-[230px] overflow-hidden rounded-md border border-white/[0.10] bg-[#111113] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+          {compact && <>
+            <div className="px-2 pb-1 pt-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[#A6A6AF]">Chart grid</div>
+            {[[1, Square, 'Single chart'], [2, Columns2, 'Two charts'], [4, Grid2X2, 'Four charts']].map(([value, Icon, label]) => (
+              <button key={value} type="button" aria-pressed={chartLayout === value}
+                onClick={() => { onChartLayoutChange(value); setOpen(false); }}
+                className="flex min-h-9 w-full items-center justify-between gap-2 rounded px-2 text-left text-[11px] text-[#D8D8DE] hover:bg-white/[0.045]">
+                <span className="flex items-center gap-2"><Icon size={14}/>{label}</span>
+                {chartLayout === value && <Check size={13}/>}
+              </button>
+            ))}
+            {chartLayout > 1 && <>
+              <div className="my-1 border-t border-white/[0.06]"/>
+              <button type="button" onClick={() => { onToggleChartLink(); setOpen(false); }}
+                className="flex min-h-9 w-full items-center justify-between px-2 text-[10px] text-[#B6B6C0] hover:bg-white/[0.045]">
+                <span className="flex items-center gap-2">{chartLinked ? <Link2 size={13}/> : <Link2Off size={13}/>}Link symbols</span>
+                <span>{chartLinked ? 'On' : 'Off'}</span>
+              </button>
+              <button type="button" onClick={() => { onCopyIndicators(); setOpen(false); }}
+                className="flex min-h-9 w-full items-center justify-between px-2 text-[10px] text-[#B6B6C0] hover:bg-white/[0.045]">
+                Copy indicators to all <span>ƒx {indicatorCount}</span>
+              </button>
+            </>}
+            <div className="my-2 border-t border-white/[0.07]"/>
+          </>}
           <div className="px-1 pb-1 text-[8px] font-semibold uppercase tracking-[0.08em] text-[#6F8191]">Layout presets</div>
           {workspaces.map(item => (
             <div key={item.id} className="group flex items-center gap-1 rounded hover:bg-white/[0.025]">

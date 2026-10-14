@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Eye, EyeOff, RotateCcw, ScanLine, Magnet, Lock, Unlock, Pin } from 'lucide-react';
 import TradingChart from '../TradingChart.jsx';
 import DrawingLayer from './DrawingLayer.jsx';
+import V4FullTerminalOrders from './v4/V4FullTerminalOrders.jsx';
 import { formatInstrumentPrice, formatSpreadDisplay, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 import { positionCloseAvailability } from '../../utils/marketExecutionAvailability.js';
 import { estimateLossAtStopWithCosts, estimatePositionPnlAtPrice, estimateStopRisk, positionDistancePips } from '../../utils/tradingRisk.js';
@@ -10,6 +11,7 @@ import { effectiveTradePlan } from '../../utils/tradePlanExecution.js';
 import { chartEntryReference, chartLineStyle, chartPriceChangePercent, chartEstimateCurrencySupported, chartPositionProtections, chartPlacedSideColor, chartPositionConnectorLevels } from '../../utils/chartOrderPresentation.js';
 import { DRAWING_TOOL_GROUPS, DRAWING_TOOL_LABELS } from '../../utils/drawingTools.js';
 import { DRAWING_TOOL_ICONS } from './DrawingToolIcons.jsx';
+import V4DrawingToolbar from './v4/V4DrawingToolbar.jsx';
 import { chartTimezoneLabel, formatChartClock } from '../../utils/desktopChartSettings.js';
 
 const MOBILE_HIDDEN_DRAWING_TOOLS = new Set([
@@ -65,12 +67,12 @@ function formatPositionLots(value) {
 // Visual status changes the line style; we intentionally do not add "planned" wording.
 // Reserve 148px at the chart's right edge for the price scale plus
 // live BID/ASK titles. The separate price markers retain their exact line.
-function ChartLevelBadge({ label, price, amount = null, percent = null, color = '#aab8c5', onPointerDown, onClick, onRemove, removeLabel = 'Remove level', tooltip = null, prefix = null, groupActive = false, onGroupEnter, onGroupLeave }) {
+function ChartLevelBadge({ label, price, amount = null, percent = null, color = '#aab8c5', onPointerDown, onClick, onRemove, removeLabel = 'Remove level', tooltip = null, prefix = null, groupActive = false, onGroupEnter, onGroupLeave, entryActions = null, positionSide = null, positionSize = null, amountColor = null }) {
   const isInteractive = Boolean(onPointerDown || onClick);
-  return (
+  const badge = (
     <div
       data-v4-chart-badge
-      className={`pointer-events-auto absolute right-[148px] top-1/2 z-20 flex h-7 max-w-[calc(100%-162px)] -translate-y-1/2 items-center ${onRemove ? 'gap-1 pl-1 pr-7' : 'gap-1.5 px-1.5'} overflow-hidden rounded-[5px] border bg-[#111419]/96 font-mono text-[10px] font-semibold tabular-nums shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm transition-[box-shadow,background-color] ${groupActive ? 'bg-[#242b31]/98 ring-1 ring-white/35 shadow-[0_0_14px_rgba(240,247,255,.12)]' : ''} ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
+      className={`pointer-events-auto ${entryActions ? 'relative z-20 max-w-none shrink-0' : 'absolute right-[148px] top-1/2 z-20 -translate-y-1/2 max-w-[calc(100%-162px)]'} flex h-7 items-center ${onRemove ? 'gap-1 pl-1 pr-7' : 'gap-1.5 px-1.5'} overflow-hidden rounded-[5px] border bg-[#111419]/96 font-mono text-[10px] font-semibold tabular-nums shadow-[0_3px_12px_rgba(0,0,0,.36)] backdrop-blur-sm transition-[box-shadow,background-color] ${groupActive ? 'bg-[#242b31]/98 ring-1 ring-white/35 shadow-[0_0_14px_rgba(240,247,255,.12)]' : ''} ${onPointerDown ? 'cursor-ns-resize touch-none' : ''}`}
       style={{ borderColor: `${color}aa` }}
       onMouseEnter={onGroupEnter}
       onMouseLeave={onGroupLeave}
@@ -85,13 +87,28 @@ function ChartLevelBadge({ label, price, amount = null, percent = null, color = 
     >
       <span aria-hidden="true" className="shrink-0 text-[11px] tracking-[-2px] text-[#788592]">⠿</span>
       {prefix}
-      <span className="shrink-0 font-sans font-semibold" style={{ color }}>{label}</span>
+      {positionSide ? <>
+        <span data-v4-position-direction className="shrink-0 font-sans text-[10px] font-bold tracking-[0.01em]" style={{color}}>{positionSide}</span>
+        <span data-v4-position-size className="shrink-0 font-mono text-[10px] font-medium tabular-nums text-[#dbe2e7]">{positionSize}</span>
+      </> : <span className="shrink-0 font-sans font-semibold" style={{ color }}>{label}</span>}
       {price != null && <span className="shrink-0 text-[#e5ebf0]">{price}</span>}
-      {amount != null && <span className={`${onRemove ? 'min-w-0 truncate px-1' : 'shrink-0 px-1.5'} rounded-[3px] py-0.5`} style={{ color, backgroundColor: `${color}1b` }}>{amount}</span>}
+      {amount != null && <span data-v4-position-pnl={positionSide ? 'true' : undefined} className={`${onRemove ? 'min-w-0 truncate px-1.5' : 'shrink-0 px-1.5'} rounded-[3px] py-0.5 font-mono font-semibold tabular-nums`} style={{ color:amountColor || color, backgroundColor: `${amountColor || color}1a` }}>{amount}</span>}
       {percent != null && <span className={`${onRemove ? 'min-w-0 truncate' : 'shrink-0'} font-sans font-medium text-[#919ba6]`}>{Number(percent).toFixed(2)}%</span>}
       {onRemove && <button type="button" className="absolute right-1 top-1/2 z-30 grid size-5 -translate-y-1/2 place-items-center rounded text-[#9aa5af] hover:bg-white/10 hover:text-white" aria-label={removeLabel} onPointerDown={event => event.stopPropagation()} onClick={event => { event.preventDefault(); event.stopPropagation(); onRemove(); }}>×</button>}
     </div>
   );
+  if (!entryActions) return badge;
+  return <div data-v4-position-action-anchor className="pointer-events-none absolute right-[148px] top-1/2 z-30 flex -translate-y-1/2 items-center gap-1.5">
+    <div data-v4-chart-actions data-v4-actions-location="position-entry" className="pointer-events-auto flex shrink-0 items-center gap-1 whitespace-nowrap">
+      <button type="button" disabled={entryActions.saving} aria-label="Discard chart edit"
+        onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); entryActions.onDiscard?.(); }}
+        className="h-7 rounded-[4px] border border-[#5d6771]/80 bg-[#14171b]/96 px-2.5 font-mono text-[10px] font-semibold text-[#e2e7ec] transition-colors hover:bg-[#242a30] disabled:opacity-50">Discard</button>
+      <button type="button" disabled={entryActions.saving} aria-label="Confirm chart edit"
+        onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); entryActions.onConfirm?.(); }}
+        className="h-7 rounded-[4px] border px-2.5 font-mono text-[10px] font-semibold text-white transition-[filter] hover:brightness-110 disabled:opacity-50" style={{ backgroundColor:color, borderColor:color }}>{entryActions.saving ? 'Confirming…' : 'Confirm'}</button>
+    </div>
+    {badge}
+  </div>;
 }
 
 // Reusable compact order row: direction → absent TP/SL shortcuts → size → type → close.
@@ -122,7 +139,7 @@ function ChartOrderEntryRow({ side, type, lots, color, showTp = false, showSl = 
   );
 }
 
-export function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instrument, selectedPositionId = null, onSelectPosition = () => {}, onClosePosition = () => {}, onRequestPositionProtection = null, hoveredPositionId = null, onHoverPosition = () => {}, desktopStyle = false }) {
+export function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi, instrument, selectedPositionId = null, onSelectPosition = () => {}, onClosePosition = () => {}, onRequestPositionProtection = null, hoveredPositionId = null, onHoverPosition = () => {}, desktopStyle = false, chartEditActions = null }) {
   const [, forceLayout] = useState(0);
   const closeAvailability = positionCloseAvailability(instrument);
   const closeDisabled = !closeAvailability.allowed;
@@ -162,7 +179,9 @@ export function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi
         const groupActive = hoveredPositionId != null && String(hoveredPositionId) === String(position.id);
         // Only missing protection appears on the entry badge. Once attached,
         // SL/TP owns an independent draggable level with its own remove action.
-        const absentProtections = ['tp', 'sl'].filter(kind => !protection[kind]);
+        const activeChartDraftKind = chartEditActions && String(chartEditActions.positionId) === String(position.id)
+          ? chartEditActions.kind : null;
+        const absentProtections = ['tp', 'sl'].filter(kind => !protection[kind] && kind !== activeChartDraftKind);
         const prefix = absentProtections.length && typeof onRequestPositionProtection === 'function'
           ? <span className="flex shrink-0 items-center gap-0.5 font-sans text-[9px]">
             {absentProtections.map(kind => <button key={kind} type="button" title={`Add ${kind.toUpperCase()}`}
@@ -178,12 +197,16 @@ export function OpenPositionEntryOverlay({ symbol, positions = [], coordinateApi
               {desktopStyle ? (
               <ChartLevelBadge
                 label={`${side} ${formatPositionLots(lots)}`}
+                positionSide={side}
+                positionSize={formatPositionLots(lots)}
                 price={null}
                 prefix={prefix}
+                entryActions={chartEditActions && String(chartEditActions.positionId) === String(position.id) ? chartEditActions : null}
                 groupActive={groupActive}
                 onGroupEnter={() => onHoverPosition(String(position.id))}
                 onGroupLeave={() => onHoverPosition(null)}
                 amount={Number.isFinite(pnl) ? formatPositionPnl(pnl, currency) : null}
+                amountColor={pnlColor}
                 color={lineColor}
                 tooltip={closeDisabled ? closeAvailability.reason : 'Live position: click to select; × closes at market when permitted.'}
                 onClick={event => { event.stopPropagation(); onSelectPosition(position.id); }}
@@ -1386,6 +1409,10 @@ export default function ChartArea({
   onCancelPositionProtection = () => {},
   selectedPositionId = null,
   onSelectPosition = () => {},
+  onSelectPending = () => {},
+  pendingOrderDraft = null,
+  onPendingOrderDraftChange = () => {},
+  onCancelPendingOrderDraft = () => {},
   onClosePosition = () => {},
   historicalPosition = null,
   onClearHistoricalPosition = () => {},
@@ -1417,6 +1444,19 @@ export default function ChartArea({
 }) {
   const [clockNow, setClockNow] = useState(() => new Date());
   const [coordinateApi, setCoordinateApi] = useState(null);
+  const v4AuditLayer = desktopEnhanced && chartOrderV4 && !mobileOverlayStyle;
+  const v4ChartContainerRef = useRef(null);
+  const [v4ChartHeight, setV4ChartHeight] = useState(480);
+  useEffect(() => {
+    if (!v4AuditLayer || !v4ChartContainerRef.current) return undefined;
+    const node = v4ChartContainerRef.current;
+    const update = () => setV4ChartHeight(node.clientHeight || 480);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [v4AuditLayer]);
+
   const [hoveredPositionId, setHoveredPositionId] = useState(null);
   const [showDrawings, setShowDrawings] = useState(true);
   const [drawingSnap, setDrawingSnap] = useState('off');
@@ -1535,7 +1575,10 @@ export default function ChartArea({
         ? `grid h-full min-h-0 ${toolbarVisible ? 'grid-cols-[36px_minmax(0,1fr)] gap-1.5' : 'grid-cols-[minmax(0,1fr)]'} grid-rows-[minmax(0,1fr)] px-1.5 pb-1.5`
         : `grid ${heightClass} grid-cols-[34px_minmax(0,1fr)] gap-2 px-2 pb-2`;
 
-  const toolbarClass = drawingToolbarOverlay
+  const v4DesktopDrawingToolbar = v4AuditLayer && !compactContext && !drawingToolbarOverlay;
+  const toolbarClass = v4DesktopDrawingToolbar
+    ? 'acg-v4-drawing-rail'
+    : drawingToolbarOverlay
     ? 'acg-mobile-reference-drawing-rail mx-0.5 my-1 flex min-h-0 flex-col items-center gap-0.5 overflow-y-auto rounded-[8px] border border-white/[0.08] bg-[#071019] py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
     : focusMode || embedded
       ? desktopEnhanced
@@ -1548,8 +1591,28 @@ export default function ChartArea({
   return (
     <div className={areaClass}>
       {toolbarVisible && (
-        <aside className={toolbarClass} aria-label="Drawing tools">
-          {compactContext ? (
+        <aside className={toolbarClass} aria-label="Drawing tools"
+          data-v4-drawing-toolbar={v4DesktopDrawingToolbar ? 'true' : undefined}>
+          {v4DesktopDrawingToolbar ? (
+            <V4DrawingToolbar
+              selectedTool={selectedTool}
+              onSelectTool={id => {
+                if (tradePlan) return;
+                setShowDrawings(true);
+                onSelectTool(id);
+              }}
+              tradePlanActive={Boolean(tradePlan)}
+              drawingCount={drawingCount}
+              showDrawings={showDrawings}
+              onToggleVisibility={() => setShowDrawings(value => !value)}
+              drawingSnap={drawingSnap}
+              onCycleSnap={cycleDrawingSnap}
+              lockAllDrawings={lockAllDrawings}
+              onToggleLock={() => setLockAllDrawings(value => !value)}
+              keepDrawingTool={keepDrawingTool}
+              onTogglePin={() => setKeepDrawingTool(value => !value)}
+            />
+          ) : compactContext ? (
             compactTool && (() => {
               const [id, Icon, label] = compactTool;
               return (
@@ -1601,7 +1664,7 @@ export default function ChartArea({
       )}
 
       <div className={`relative h-full min-h-0 min-w-0 overflow-hidden ${desktopEnhanced ? 'rounded-[10px] border border-white/[0.06] bg-[#080A0C] shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]' : 'bg-[#09090b]'}`}>
-        <div className={`relative h-full min-h-0 min-w-0 overflow-hidden ${desktopEnhanced ? 'rounded-[9px] bg-[#07090B]' : 'bg-[#09090b]'} ${drawingToolbarOverlay ? (toolbarVisible ? '' : 'pl-3') : ''} ${mobileReference ? 'pr-1' : ''}`}>
+        <div ref={v4ChartContainerRef} className={`relative h-full min-h-0 min-w-0 overflow-hidden ${desktopEnhanced ? 'rounded-[9px] bg-[#07090B]' : 'bg-[#09090b]'} ${drawingToolbarOverlay ? (toolbarVisible ? '' : 'pl-3') : ''} ${mobileReference ? 'pr-1' : ''}`}>
         <TradingChart
           symbol={symbol}
           instrument={instrument}
@@ -1653,7 +1716,7 @@ export default function ChartArea({
           preserveChartCrosshair={desktopEnhanced && !compactContext}
         />}
         <TradePlanOverlay
-          plan={tradePlan}
+          plan={v4AuditLayer && tradePlan?.editingOrderId ? null : tradePlan}
           onChange={onTradePlanChange}
           // Closing a modification draft must never cancel the live pending order.
           // Actual accepted-order cancellation remains on its separate placed row.
@@ -1667,7 +1730,7 @@ export default function ChartArea({
           orderExecutionPreview={orderExecutionPreview}
           desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle}
         />
-        {positionProtectionDraft && (
+        {positionProtectionDraft && !v4AuditLayer && (
           <TradePlanOverlay
             plan={positionProtectionDraft}
             onChange={onPositionProtectionDraftChange}
@@ -1684,9 +1747,9 @@ export default function ChartArea({
           />
         )}
         <ClosedPositionChartOverlay symbol={symbol} position={historicalPosition} coordinateApi={coordinateApi} instrument={instrument} onClear={onClearHistoricalPosition} />
-        {!tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle ? null : tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} onMove={onMovePending} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} account={account} accountCurrency={accountCurrency} />}
-        <OpenPositionEntryOverlay symbol={symbol} positions={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle ? positions : positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} onRequestPositionProtection={onRequestPositionProtection} hoveredPositionId={hoveredPositionId} onHoverPosition={setHoveredPositionId} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} />
-        <OpenPositionProtectionOverlay
+        {!v4AuditLayer && !tradePlan?.open && <PendingOrderOverlay symbol={symbol} orders={pendingOrders} coordinateApi={coordinateApi} instrument={instrument} hiddenOrderId={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle ? null : tradePlan?.editingOrderId || null} onModify={onModifyPending} onCancel={onCancelPending} onMove={onMovePending} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} account={account} accountCurrency={accountCurrency} />}
+        {!v4AuditLayer && <OpenPositionEntryOverlay symbol={symbol} positions={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle ? positions : positions.filter(position => !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id)))} coordinateApi={coordinateApi} instrument={instrument} selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition} onClosePosition={onClosePosition} onRequestPositionProtection={onRequestPositionProtection} hoveredPositionId={hoveredPositionId} onHoverPosition={setHoveredPositionId} desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle} />}
+        {!v4AuditLayer && <OpenPositionProtectionOverlay
           symbol={symbol}
           positions={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle ? positions : positions.filter(position =>
             !(tradePlan?.open && String(tradePlan?.positionId) === String(position?.id))
@@ -1704,8 +1767,8 @@ export default function ChartArea({
           onSelectPosition={onSelectPosition}
           mobileStyle={mobileOverlayStyle}
           desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle}
-        />
-        {desktopEnhanced && chartOrderV4 && !mobileOverlayStyle && (
+        />}
+        {!v4AuditLayer && desktopEnhanced && chartOrderV4 && !mobileOverlayStyle && (
           <OpenPositionGroupGuide
             symbol={symbol}
             positions={positions}
@@ -1713,6 +1776,34 @@ export default function ChartArea({
             coordinateApi={coordinateApi}
           />
         )}
+
+        {v4AuditLayer && <V4FullTerminalOrders
+          hoveredPositionId={hoveredPositionId}
+          renderPositionEntries={(chartEditActions, beginProtection) => (
+            <OpenPositionEntryOverlay symbol={symbol} positions={positions}
+              coordinateApi={coordinateApi} instrument={instrument}
+              selectedPositionId={selectedPositionId} onSelectPosition={onSelectPosition}
+              onClosePosition={onClosePosition} onRequestPositionProtection={beginProtection}
+              hoveredPositionId={hoveredPositionId} onHoverPosition={setHoveredPositionId}
+              desktopStyle chartEditActions={chartEditActions}/>
+          )}
+          isNewOrderPlanning={Boolean(tradePlan && !tradePlan.editingOrderId)}
+          account={account} symbol={symbol} instrument={instrument}
+          positions={positions} pendingOrders={pendingOrders}
+          coordinateApi={coordinateApi} height={v4ChartHeight}
+          positionProtectionDraft={positionProtectionDraft}
+          pendingOrderDraft={pendingOrderDraft}
+          onPendingOrderDraftChange={onPendingOrderDraftChange}
+          onCancelPendingOrderDraft={onCancelPendingOrderDraft}
+          onUpdatePosition={onUpdatePosition}
+          onRemovePositionProtection={onRemovePositionProtection}
+          onMovePending={onMovePending}
+          onRequestPositionProtection={onRequestPositionProtection}
+          onCancelPositionProtection={onCancelPositionProtection}
+          onPositionProtectionDraftChange={onPositionProtectionDraftChange}
+          onSelectPosition={onSelectPosition} onSelectPending={onSelectPending} onClosePosition={onClosePosition}
+          onCancelPending={onCancelPending}
+        />}
 
         {desktopEnhanced && !compactContext && (
           <div className="absolute right-[74px] top-2 z-30 flex items-center gap-1">

@@ -52,8 +52,13 @@ export default function DesktopMultiChart({
   onPositionProtectionDraftChange = () => {},
   onRemovePositionProtection = () => {},
   onRequestPositionProtection = null,
+  onCancelPositionProtection = () => {},
   selectedPositionId = null,
   onSelectPosition = () => {},
+  onSelectPending = () => {},
+  pendingOrderDraft = null,
+  onPendingOrderDraftChange = () => {},
+  onCancelPendingOrderDraft = () => {},
   onClosePosition = () => {},
 }) {
   const layout = [1,2,4].includes(Number(config?.layout)) ? Number(config.layout) : 1;
@@ -163,9 +168,14 @@ export default function DesktopMultiChart({
                   positionProtectionDraft={isActive && String(positionProtectionDraft?.symbol || '').toUpperCase() === String(symbol || '').toUpperCase() ? positionProtectionDraft : null}
                   onPositionProtectionDraftChange={isActive ? onPositionProtectionDraftChange : () => {}}
                   onRemovePositionProtection={onRemovePositionProtection}
+                  onCancelPositionProtection={isActive ? onCancelPositionProtection : () => {}}
                   onRequestPositionProtection={isActive ? onRequestPositionProtection : null}
                   selectedPositionId={selectedPositionId}
                   onSelectPosition={onSelectPosition}
+                  onSelectPending={onSelectPending}
+                  pendingOrderDraft={isActive ? pendingOrderDraft : null}
+                  onPendingOrderDraftChange={isActive ? onPendingOrderDraftChange : () => {}}
+                  onCancelPendingOrderDraft={isActive ? onCancelPendingOrderDraft : () => {}}
                   onClosePosition={onClosePosition}
                   indicators={cellIndicators}
                   onToggleIndicator={instanceId => {

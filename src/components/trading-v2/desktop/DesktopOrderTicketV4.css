@@ -440,3 +440,62 @@
   line-height: 1.45;
   color: #929ba5;
 }
+
+/* The open-position editor replaces (rather than stacks under) the V4 ticket.
+ * Reuses exactly the same protection cards, inputs, units and footer frame. */
+.v4-ticket.v4-manage-position .v4-ticket-body { gap:12px; }
+.v4-manage-back { flex:0 0 28px; display:grid; place-items:center; height:28px;
+  border:1px solid #36363c; border-radius:7px; color:#d3d3da; background:#18181b; }
+.v4-manage-back:hover { background:#26262b; }
+.v4-manage-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px; padding:11px 10px; border:1px solid #2b2b30; border-radius:10px; background:#151518; }
+.v4-manage-summary > div { min-width:0; display:flex; flex-direction:column; gap:5px; }
+.v4-manage-summary span { color:#999aa5; text-transform:uppercase; font-size:9px;
+  font-weight:600; letter-spacing:.02em; }
+.v4-manage-summary strong { min-width:0; overflow:hidden; text-overflow:ellipsis;
+  color:#ececf0; font-family:ui-monospace,monospace; font-size:11px; font-weight:700;
+  white-space:nowrap; font-variant-numeric:tabular-nums; }
+.v4-manage-summary .v4-positive { color:#23c58b; }
+.v4-manage-summary .v4-negative { color:#f16c78; }
+.v4-manage-footer { gap:8px; }
+.v4-manage-footer button { min-height:37px; width:100%; padding:8px; border-radius:9px;
+  font-weight:700; font-size:12px; border:1px solid #47474d; }
+.v4-manage-confirm { background:#f1f1f4; color:#121214; border-color:#f1f1f4!important; }
+.v4-manage-confirm:hover:not(:disabled) { background:#fff; }
+.v4-manage-discard { background:#202023; color:#f1f1f4; }
+.v4-manage-discard:hover:not(:disabled) { background:#2a2a30; }
+.v4-manage-new-order { background:transparent; color:#b9bac2; }
+.v4-manage-new-order:hover:not(:disabled) { color:#fff; background:#232326; }
+@container (max-width:340px) {
+  .v4-manage-summary { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .v4-manage-summary span { font-size:8px; }
+}
+
+/* Selected V4 pending chart order: one action to place, one to discard. */
+.v4-ticket.v4-live-scope .v4-pending-review-actions {
+  grid-template-columns:minmax(0,.75fr) minmax(0,1.25fr);gap:7px;
+}
+.v4-ticket.v4-live-scope .v4-pending-review-actions > button {
+  min-width:0;min-height:52px;padding:8px 9px;border-radius:8px;
+  display:flex;justify-content:center;box-shadow:none;
+}
+.v4-ticket.v4-live-scope .v4-pending-review-actions .v4-pending-discard {
+  align-items:center;text-align:center;color:#f2f2f4;
+  background:#17171a;border:1px solid #44444a;
+}
+.v4-ticket.v4-live-scope .v4-pending-review-actions .v4-pending-discard:hover:not(:disabled) {
+  background:#242427;border-color:#595960;
+}
+.v4-ticket.v4-live-scope .v4-pending-review-actions .v4-pending-place {
+  align-items:flex-start;text-align:left;border:0;
+}
+.v4-ticket.v4-live-scope .v4-pending-review-actions .v4-pending-place span,
+.v4-ticket.v4-live-scope .v4-pending-review-actions .v4-pending-place strong {
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.v4-ticket.v4-live-scope .v4-pending-review-actions .v4-pending-place strong {
+  font-size:11px;line-height:1.35;font-weight:600;
+}
+.v4-ticket.v4-live-scope .v4-pending-review-actions button:focus-visible {
+  outline:2px solid #e3e3eb;outline-offset:2px;
+}

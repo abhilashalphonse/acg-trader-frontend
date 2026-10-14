@@ -1,0 +1,272 @@
+/*
+ * V4 Manage Position only — inherits the existing untouched Trade Execution
+ * panel's base classes, density, typography, price-strip, protection cards,
+ * risk/reward slab, Advanced disclosure and execution footer.
+ * Every selector below is scoped to .v4-manage-position; it cannot alter
+ * DesktopOrderTicketV4 or another trading-terminal surface.
+ */
+.v4-ticket.v4-live-scope.v4-manage-position .v4-ticket-body {
+  gap: 8px;
+}
+.v4-ticket.v4-manage-position .v4-symbol strong {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.v4-ticket.v4-manage-position .v4-symbol span { font-size: 11px; }
+.v4-ticket.v4-manage-position .v4-manage-live-indicator {
+  background: #23c58b;
+}
+.v4-ticket.v4-manage-position .v4-manage-long { color: #23c58b; }
+.v4-ticket.v4-manage-position .v4-manage-short { color: #f16c78; }
+.v4-ticket.v4-manage-position .v4-quote-strip {
+  background: #1f1f22;
+}
+.v4-ticket.v4-manage-position .v4-quote-strip > span {
+  min-width: 0;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 400;
+}
+.v4-ticket.v4-manage-position .v4-quote-strip strong {
+  font-size: 11px;
+  font-weight: 600;
+}
+.v4-ticket.v4-manage-position .v4-quote-strip strong.v4-manage-long { color: #23c58b; }
+.v4-ticket.v4-manage-position .v4-quote-strip strong.v4-manage-short { color: #f16c78; }
+.v4-ticket.v4-manage-position .v4-manage-modes .v4-capsule-button {
+  display: grid;
+  place-items: center;
+  min-height: 30px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.v4-ticket.v4-manage-position .v4-manage-modes span.v4-capsule-button {
+  cursor: default;
+}
+.v4-ticket.v4-manage-position .v4-manage-position-values {
+  min-height: 55px;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(0,.88fr);
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0 0;
+}
+.v4-ticket.v4-manage-position .v4-manage-position-size,
+.v4-ticket.v4-manage-position .v4-manage-position-pnl {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+}
+.v4-ticket.v4-manage-position .v4-manage-position-pnl {
+  align-items: flex-end;
+  text-align: right;
+}
+.v4-ticket.v4-manage-position .v4-manage-stat-label {
+  color: #a1a1a9;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .02em;
+}
+.v4-ticket.v4-manage-position .v4-manage-size-value {
+  color: #f4f4f6;
+  font-size: 19px;
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.v4-ticket.v4-manage-position .v4-manage-size-value small {
+  color: #a7a8b1;
+  font-size: 11px;
+  font-weight: 500;
+}
+.v4-ticket.v4-manage-position .v4-manage-position-pnl strong {
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.v4-ticket.v4-manage-position .v4-manage-position-pnl strong.v4-manage-long,
+.v4-ticket.v4-manage-position .v4-manage-footer-summary strong.v4-manage-long {
+  color: #23c58b;
+}
+.v4-ticket.v4-manage-position .v4-manage-position-pnl strong.v4-manage-short,
+.v4-ticket.v4-manage-position .v4-manage-footer-summary strong.v4-manage-short {
+  color: #f16c78;
+}
+.v4-ticket.v4-manage-position .v4-manage-footer-summary strong {
+  font-variant-numeric: tabular-nums;
+}
+.v4-ticket.v4-manage-position .v4-manage-trade-actions {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 7px;
+}
+.v4-ticket.v4-manage-position .v4-manage-trade-actions > button {
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 650;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+}
+.v4-ticket.v4-manage-position .v4-manage-trade-actions > .v4-manage-discard {
+  color: #f2f2f4;
+  background: #17171a;
+  border: 1px solid #44444a;
+}
+.v4-ticket.v4-manage-position .v4-manage-trade-actions > .v4-manage-confirm {
+  color: #121214;
+  background: #f2f2f4;
+  border: 1px solid #f2f2f4;
+}
+.v4-ticket.v4-manage-position .v4-manage-trade-actions > .v4-manage-new-order {
+  grid-column: 1/-1;
+  color: #e3e3e7;
+  background: #242427;
+  border: 1px solid #424248;
+}
+.v4-ticket.v4-manage-position .v4-manage-trade-actions > button:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+.v4-ticket.v4-manage-position .v4-advanced-content strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@container (max-width: 300px) {
+  .v4-ticket.v4-manage-position .v4-manage-size-value { font-size: 16px; }
+  .v4-ticket.v4-manage-position .v4-manage-position-pnl strong { font-size: 12px; }
+  .v4-ticket.v4-manage-position .v4-quote-strip strong { font-size: 10px; }
+}
+
+/* Management-only controls share V4 Trade Execution density and geometry. */
+.v4-ticket.v4-manage-position .v4-manage-actions {
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;padding:5px 0 0;
+}
+.v4-ticket.v4-manage-position .v4-manage-actions > button,
+.v4-ticket.v4-manage-position .v4-manage-action-options > button {
+  min-width:0;min-height:34px;padding:7px 5px;border-radius:8px;
+  border:1px solid #3e3e44;background:#242427;color:#e8e8ed;
+  font-size:11px;font-weight:600;line-height:1.25;
+}
+.v4-ticket.v4-manage-position .v4-manage-actions button:hover:not(:disabled) {
+  background:#303035;border-color:#595960;
+}
+.v4-ticket.v4-manage-position .v4-manage-actions button:focus-visible,
+.v4-ticket.v4-manage-position .v4-manage-trade-actions button:focus-visible {
+  outline:2px solid #a5adb9;outline-offset:2px;
+}
+.v4-ticket.v4-manage-position .v4-manage-actions button.is-selected {
+  background:#303035;border-color:#8c8c96;color:#fff;
+}
+.v4-ticket.v4-manage-position .v4-manage-actions button:disabled {opacity:.4;cursor:not-allowed;}
+.v4-ticket.v4-manage-position .v4-manage-action-options {
+  grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;
+}
+.v4-ticket.v4-manage-position .v4-manage-trade-actions > .v4-manage-close {
+  grid-column:1/-1;color:#121214;background:#f2f2f4;border:1px solid #f2f2f4;
+}
+.v4-ticket.v4-manage-position .v4-manage-trade-actions > .v4-manage-close:hover:not(:disabled) {
+  background:#ffffff;border-color:#ffffff;
+}
+.v4-ticket.v4-manage-position .v4-manage-inline-confirm {
+  grid-column:1/-1;display:flex;flex-direction:column;gap:8px;min-width:0;
+}
+.v4-ticket.v4-manage-position .v4-manage-confirm-hint {
+  color:#bcbcc5;font-size:11px;line-height:1.35;
+}
+.v4-ticket.v4-manage-position .v4-manage-confirm-buttons {
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;
+}
+.v4-ticket.v4-manage-position .v4-manage-confirm-buttons > button {
+  min-height:52px;padding:8px;border-radius:8px;font-size:12px;font-weight:650;
+  line-height:1.2;align-items:center;justify-content:center;text-align:center;
+  box-shadow:none;
+}
+.v4-ticket.v4-manage-position .v4-manage-danger {
+  color:#121214;background:#f2f2f4;border:1px solid #f2f2f4;
+}
+.v4-ticket.v4-manage-position .v4-manage-danger:hover:not(:disabled) {background:#ffffff;border-color:#ffffff;}
+.v4-ticket.v4-manage-position .v4-manage-confirm-buttons > .v4-manage-discard {
+  color:#f2f2f4;
+  background:#17171a;
+  border:1px solid #44444a;
+}
+.v4-ticket.v4-manage-position .v4-manage-confirm-buttons > .v4-manage-discard:hover:not(:disabled) {
+  background:#242427;
+  border-color:#52525a;
+}
+/* Pending cancellation is a secondary action until it is explicitly confirmed. */
+.v4-ticket.v4-manage-pending .v4-manage-trade-actions > .v4-manage-close {
+  color:#f2f2f4;
+  background:#17171a;
+  border:1px solid #44444a;
+}
+.v4-ticket.v4-manage-pending .v4-manage-trade-actions > .v4-manage-close:hover:not(:disabled) {
+  background:#242427;
+  border-color:#52525a;
+}
+.v4-ticket.v4-manage-position .v4-manage-confirm-buttons > button:disabled {
+  opacity:.45;cursor:not-allowed;
+}
+.v4-ticket.v4-manage-pending .v4-manage-pending-metrics {
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;
+  padding:9px 10px;background:#202023;border-radius:9px;
+}
+.v4-ticket.v4-manage-pending .v4-manage-pending-metrics > div {
+  min-width:0;display:flex;flex-direction:column;gap:5px;
+}
+.v4-ticket.v4-manage-pending .v4-manage-pending-metrics > div:last-child {
+  text-align:right;align-items:flex-end;
+}
+.v4-ticket.v4-manage-pending .v4-manage-pending-metrics span {
+  color:#aaabb4;font-size:10px;line-height:1.3;
+}
+.v4-ticket.v4-manage-pending .v4-manage-pending-metrics strong {
+  color:#f5f5f6;font-size:12px;font-weight:650;
+  font-variant-numeric:tabular-nums;overflow-wrap:anywhere;
+}
+@container (max-width:300px) {
+  .v4-ticket.v4-manage-position .v4-manage-actions {gap:5px;}
+  .v4-ticket.v4-manage-position .v4-manage-actions > button {font-size:10px;}
+  .v4-ticket.v4-manage-pending .v4-manage-pending-metrics {gap:6px;padding:8px;}
+}
+.v4-ticket.v4-manage-pending .v4-manage-order-price {
+  display:flex;justify-content:space-between;align-items:center;gap:8px;
+  padding:7px 1px;color:#a7a7af;font-size:11px;
+}
+.v4-ticket.v4-manage-pending .v4-manage-order-price input {
+  width:52%;height:33px;min-width:0;padding:4px 8px;
+  border-radius:7px;border:1px solid #333339;background:#19191c;
+  color:#e8e8eb;text-align:right;font-family:ui-monospace,monospace;font-size:12px;
+}
+
+/* Compact context only in Manage Position/Pending: one symbol, one side, one status. */
+.v4-ticket.v4-manage-position .v4-symbol .v4-manage-header-context {
+  display:flex;align-items:center;gap:5px;white-space:nowrap;
+  color:#9ca2aa;font-size:11px;line-height:1.4;
+}
+.v4-ticket.v4-manage-position .v4-manage-header-context > span {
+  font-size:11px;color:#9ca2aa;
+}
+.v4-ticket.v4-manage-position .v4-manage-header-context b {
+  font-size:11px;font-weight:650;
+}
+.v4-ticket.v4-manage-position .v4-manage-status-dot {
+  display:inline-block;flex:none;width:6px;height:6px;border-radius:50%;
+  background:#23c58b;
+}
+.v4-ticket.v4-manage-position .v4-instrument {margin-bottom:2px;}

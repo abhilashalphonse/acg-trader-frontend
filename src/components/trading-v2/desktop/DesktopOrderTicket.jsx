@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './DesktopOrderTicket.theme.css';
+import './DesktopFloatingQuickOrderV2Theme.css';
 import { AlertTriangle, ChevronDown, Clock3, GripVertical, Maximize2, Minus, Plus, X } from 'lucide-react';
 import { decimalPlaces, normalizeVolumeToStep } from '../../../utils/tradingCommandNormalization.js';
 import {
@@ -90,6 +91,7 @@ export default function DesktopOrderTicket({
   exposureBlockReason = 'New exposure is temporarily unavailable',
   onNotice = () => {},
   variant = 'panel',
+  floatingV2Theme = false,
   onFloatingDragStart = () => {},
   onOpenFullTrade = () => {},
 }) {
@@ -626,7 +628,7 @@ export default function DesktopOrderTicket({
         : `${floatingLotText} lots · Margin ${money(previewMargin, currency)}${Number.isFinite(floatingMarginPercent) ? ` (${floatingMarginPercent.toFixed(2)}%)` : ''} · Free ${money(freeAfter, currency)}`;
 
     return (
-      <section className="acg-floating-order acg-exec-root w-[344px] overflow-hidden rounded-[12px] border border-white/[0.16] bg-[#09090B]/[0.98] text-[#f4f6f8] shadow-[0_14px_40px_rgba(0,0,0,.52)] backdrop-blur-md">
+      <section data-v2-floating-quick-order={floatingV2Theme ? 'true' : undefined} className={`acg-floating-order acg-exec-root w-[344px] overflow-hidden rounded-[12px] border border-white/[0.16] bg-[#09090B]/[0.98] text-[#f4f6f8] shadow-[0_14px_40px_rgba(0,0,0,.52)] backdrop-blur-md${floatingV2Theme ? ' acg-v2-floating-quick-order' : ''}`}>
         <div className="flex h-[36px] items-center gap-1 border-b border-white/[0.07] px-1.5">
           <button type="button" onPointerDown={onFloatingDragStart} className="grid h-7 w-6 shrink-0 cursor-move place-items-center rounded text-[#7c8995] hover:bg-white/[0.04] hover:text-white" aria-label="Drag execution widget" title="Drag execution widget">
             <GripVertical size={13}/>
@@ -635,14 +637,14 @@ export default function DesktopOrderTicket({
             <InstrumentAvatar instrument={market} size={16}/>
             <span className="min-w-0 truncate text-[10px] font-bold text-[#f1f4f6]">{market?.displaySymbol || market?.symbol || '—'}</span>
           </div>
-          <button type="button" onClick={() => chooseFamily(orderFamily === 'market' ? 'pending' : 'market')} className="h-7 rounded-[5px] border border-white/[0.07] bg-[#111113] px-2 text-[9px] font-black text-[#e9edf2] transition hover:bg-[#1a1e24]">
+          <button type="button" data-v2-pill="family" data-v2-pill-active="true" title={orderFamily === 'market' ? 'Switch to pending order' : 'Switch to market order'} onClick={() => chooseFamily(orderFamily === 'market' ? 'pending' : 'market')} className="h-7 rounded-[5px] border border-white/[0.07] bg-[#111113] px-2 text-[9px] font-black text-[#e9edf2] transition hover:bg-[#1a1e24]">
             {floatingModeLabel}
           </button>
-          <button type="button" onClick={() => setMode(activeSizingMode === 'risk' ? 'lots' : 'risk')} disabled={!riskSupported} className={activeSizingMode === 'risk' ? 'h-7 rounded-[5px] border border-[#ACB2B9]/55 bg-[#222225] px-2 text-[9px] font-black text-[#C8CDD3]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#111113] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white disabled:opacity-30'}>
+          <button type="button" data-v2-pill="risk" data-v2-pill-active={activeSizingMode === 'risk' ? 'true' : 'false'} aria-pressed={activeSizingMode === 'risk'} onClick={() => setMode(activeSizingMode === 'risk' ? 'lots' : 'risk')} disabled={!riskSupported} className={activeSizingMode === 'risk' ? 'h-7 rounded-[5px] border border-[#ACB2B9]/55 bg-[#222225] px-2 text-[9px] font-black text-[#C8CDD3]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#111113] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white disabled:opacity-30'}>
             RISK
           </button>
-          <button type="button" onClick={() => addProtection('sl')} className={hasStopLoss || protectionIntent === 'sl' ? 'h-7 rounded-[5px] border border-[#303338] bg-[#09090B] px-2 text-[9px] font-black text-[#C5CAD0]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#111113] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white'}>SL</button>
-          <button type="button" onClick={() => addProtection('tp')} className={hasTakeProfit || protectionIntent === 'tp' ? 'h-7 rounded-[5px] border border-[#34373C] bg-[#0B0D0E] px-2 text-[9px] font-black text-[#C5CAD0]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#111113] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white'}>TP</button>
+          <button type="button" data-v2-pill="sl" data-v2-pill-active={hasStopLoss || protectionIntent === 'sl' ? 'true' : 'false'} aria-pressed={Boolean(hasStopLoss || protectionIntent === 'sl')} onClick={() => addProtection('sl')} className={hasStopLoss || protectionIntent === 'sl' ? 'h-7 rounded-[5px] border border-[#303338] bg-[#09090B] px-2 text-[9px] font-black text-[#C5CAD0]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#111113] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white'}>SL</button>
+          <button type="button" data-v2-pill="tp" data-v2-pill-active={hasTakeProfit || protectionIntent === 'tp' ? 'true' : 'false'} aria-pressed={Boolean(hasTakeProfit || protectionIntent === 'tp')} onClick={() => addProtection('tp')} className={hasTakeProfit || protectionIntent === 'tp' ? 'h-7 rounded-[5px] border border-[#34373C] bg-[#0B0D0E] px-2 text-[9px] font-black text-[#C5CAD0]' : 'h-7 rounded-[5px] border border-white/[0.06] bg-[#111113] px-2 text-[9px] font-bold text-[#aeb7c0] hover:text-white'}>TP</button>
           <button type="button" onClick={onOpenFullTrade} className="grid size-7 shrink-0 place-items-center rounded-[5px] border border-white/[0.06] bg-[#111113] text-[#8d99a5] hover:bg-[#1a1e24] hover:text-white" aria-label="Open full trade execution panel" title="Open full trade execution">
             <Maximize2 size={12}/>
           </button>

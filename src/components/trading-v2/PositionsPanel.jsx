@@ -22,6 +22,9 @@ import { positionCloseAvailability } from '../../utils/marketExecutionAvailabili
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import './PositionsPanel.desktop.css';
 import SharePositionSheet from './SharePositionSheet.jsx';
+import PositionsDockV4 from './PositionsDockV4.jsx';
+import PendingDockV4 from './PendingDockV4.jsx';
+import ActivityDockV4 from './ActivityDockV4.jsx';
 
 const tabs = [
   { id: 'positions', label: 'Positions' },
@@ -64,8 +67,14 @@ export default function PositionsPanel({
   markets = [],
   account = {},
   positionHistory = [],
+  historyError = null,
+  historyLoading = false,
+  onRetryHistory = () => {},
   pendingOrders = [],
   journal = [],
+  positionActivityOrders = [],
+  positionActivityDeals = [],
+  positionActivityFills = [],
   onClosePosition = () => {},
   onCloseAll = () => {},
   onCloseWinners = () => {},
@@ -87,9 +96,25 @@ export default function PositionsPanel({
   requestedTab = null,
   selectedPositionId = null,
   onSelectPosition = () => {},
+  onManagePosition = () => {},
+  selectedPendingId = null,
+  onInspectPending = () => {},
+  onManagePending = () => {},
+  onReviewCancelPending = () => {},
   onEditProtection = () => {},
+  v4Positions = false,
+  readOnly = false,
+  onReviewClosePosition = () => {},
+  positionsLoading = false,
+  positionsError = null,
+  onRetryPositions = () => {},
 }) {
   const [tab, setTab] = useState('positions');
+  const [historyPositionFilter,setHistoryPositionFilter] = useState(null);
+  const onV4TabChange=(next,positionId=null)=>{
+    setHistoryPositionFilter(next==='history'&&positionId?String(positionId):null);
+    setTab(next);
+  };
 
   useEffect(() => {
     if (requestedTab && tabs.some(item => item.id === requestedTab)) setTab(requestedTab);
@@ -268,6 +293,41 @@ export default function PositionsPanel({
     await Promise.resolve(onCloseAll());
     await cancelAllPendingOrders();
   };
+
+  // Desktop V4 is isolated from the existing customer/mobile panel.
+  // Other tabs retain their current implementation until their own V4 milestones.
+  if (v4Positions && desktopDense && (tab === 'history' || tab === 'journal')) {
+    return <section className="acg-desktop-positions acg-dock-v3 h-full min-h-0 overflow-hidden" aria-label={tab === 'history' ? 'Trading history workspace' : 'Trading journal workspace'}>
+      <ActivityDockV4 tab={tab} onTabChange={onV4TabChange} counts={counts}
+        account={account} markets={markets} history={positionHistory} journal={journal}
+        historyPositionFilter={historyPositionFilter} onClearHistoryPosition={()=>setHistoryPositionFilter(null)}
+        positions={positions} positionActivityOrders={positionActivityOrders} positionActivityDeals={positionActivityDeals} positionActivityFills={positionActivityFills}
+        expanded={expanded} onToggleExpanded={onToggleExpanded}
+        collapsed={collapsed} compactDock={compactDock}
+        historyError={historyError} historyLoading={historyLoading} onRetry={onRetryHistory}/>
+    </section>;
+  }
+    if (v4Positions && desktopDense && tab === 'orders') {
+    return <section className="acg-desktop-positions acg-dock-v3 h-full min-h-0 overflow-hidden" aria-label="Pending orders workspace">
+      <PendingDockV4 orders={pendingOrders} markets={markets} account={account} counts={counts}
+        selectedOrderId={selectedPendingId} onInspect={onInspectPending} onManage={onManagePending}
+        onReviewCancel={onReviewCancelPending} onTabChange={onV4TabChange}
+        collapsed={collapsed} compactDock={compactDock} expanded={expanded}
+        onToggleExpanded={onToggleExpanded} loading={positionsLoading}
+        error={positionsError} onRetry={onRetryPositions} readOnly={readOnly}/>
+    </section>;
+  }
+  if (v4Positions && desktopDense && tab === 'positions') {
+    return <section className="acg-desktop-positions acg-dock-v3 h-full min-h-0 overflow-hidden" aria-label="Positions workspace">
+      <PositionsDockV4
+        positions={positions} markets={markets} account={account} counts={counts} journal={journal} positionActivityOrders={positionActivityOrders} positionActivityDeals={positionActivityDeals} positionActivityFills={positionActivityFills} readOnly={readOnly}
+        onTabChange={onV4TabChange} selectedPositionId={selectedPositionId}
+        onSelectPosition={onSelectPosition} onManagePosition={onManagePosition} onEditProtection={onEditProtection}
+        onRequestClose={onReviewClosePosition} onBreakEven={onBreakEven} onSetTrailing={onSetTrailing} collapsed={collapsed} compactDock={compactDock}
+        expanded={expanded} onToggleExpanded={onToggleExpanded}
+        loading={positionsLoading} error={positionsError} onRetry={onRetryPositions}/>
+    </section>;
+  }
 
   return (
     <section className={`${desktopDense ? `acg-desktop-positions acg-dock-v3 h-full ${collapsed || compactDock ? 'overflow-hidden' : 'overflow-auto'}` : 'mt-3 overflow-visible'} border-y border-white/[0.06] bg-black`}>

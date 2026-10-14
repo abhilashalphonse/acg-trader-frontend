@@ -68,3 +68,30 @@ test('crypto quantity in BTC; noncrypto lots remain lots',()=>{
  assert.deepEqual(v4CryptoQuantity(0.25,{...btc,baseCurrency:null}),{quantity:0.25,unit:'BTC'});
  assert.equal(v4CryptoQuantity(0.01,{...btc,assetClass:'FOREX'}),null);
 });
+
+test('USD account previews AUD/CAD margin only with fresh live USDCAD conversion',()=>{
+ const now=Date.now();
+ const audcad={symbol:'AUDCAD',quoteCurrency:'CAD',marginCurrency:'CAD',pnlCurrency:'CAD',
+   contractSize:100000,bid:0.99395,ask:0.99401,minVolume:0.01,maxVolume:10,
+   volumeStep:0.01,defaultLeverage:100};
+ const fx={symbol:'USDCAD',bid:1.376,ask:1.377,receivedAtMs:now,
+   subscribed:true,live:true,isStale:false,sessionOpen:true};
+ const convertedAccount={...account,conversionMarkets:[fx]};
+ const expected=(0.99401*100000*0.01/100)/1.377;
+ const cost=estimateOpeningRequirement(0.99401,0.01,audcad,convertedAccount);
+ assert.ok(Math.abs(cost-expected)<1e-9);
+ const affordable=deriveV4AffordableVolume({instrument:audcad,account:convertedAccount});
+ assert.equal(affordable.valid,true);
+ assert.ok(affordable.affordableLots>=0.01);
+ for(const invalid of [
+   {...fx,receivedAtMs:now-11000},
+   {...fx,live:false},
+   {...fx,isStale:true},
+   {...fx,subscribed:false},
+   {...fx,ask:null}
+ ]) {
+   const invalidAccount={...account,conversionMarkets:[invalid]};
+   assert.equal(estimateOpeningRequirement(0.99401,0.01,audcad,invalidAccount),null);
+   assert.equal(deriveV4AffordableVolume({instrument:audcad,account:invalidAccount}).valid,false);
+ }
+});

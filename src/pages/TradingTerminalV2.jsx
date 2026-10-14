@@ -1259,8 +1259,10 @@ export default function TradingTerminalV2({
         price: numericPrice,
       });
       showNotice(clearingProtection ? `${field.toUpperCase()} removed` : field === 'entry' ? 'Pending price updated' : `${field === 'limitPrice' ? 'LIMIT' : field.toUpperCase()} updated`);
+      return true;
     } catch (error) {
       handleTradingError(error, `Move ${order.symbol} pending ${field}`);
+      return false;
     }
   };
 
@@ -1375,8 +1377,18 @@ export default function TradingTerminalV2({
           onViewportQuoteSymbolsChange={onViewportQuoteSymbolsChange}
           positions={positions}
           positionHistory={positionHistory}
+          historyError={trading.historyError}
+          historyLoading={Boolean(trading.activeAccountId && !trading.historyLoaded && !trading.historyError && trading.connection?.status==='ready')}
+          onRetryHistory={trading.refreshHistory}
           pendingOrders={pendingOrders}
           journal={journal}
+          positionActivityOrders={trading.historyOrders}
+          positionActivityDeals={trading.historyDeals}
+          positionActivityFills={trading.fills}
+          positionsLoading={Boolean(trading.accountSwitching || ['connecting','loading'].includes(trading.connection?.status))}
+          positionsError={['error','failed','disconnected'].includes(trading.connection?.status) && (trading.activeAccountId || account?.id)
+            ? (trading.errorMessage || 'Positions could not be synchronized. Check the connection and retry.') : null}
+          onRetryPositions={trading.refreshState}
           onClosePosition={closePosition}
           onCloseAllPositions={closeAllPositions}
           onCloseWinners={closeWinners}

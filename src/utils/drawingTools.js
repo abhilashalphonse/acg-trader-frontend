@@ -5,6 +5,14 @@ export const DRAWING_TOOL_GROUPS = Object.freeze([
   Object.freeze(['long-position', 'short-position']),
 ]);
 
+// Opt-in V4 rail groups only; do not alter the existing tool catalog or IDs.
+export const V4_DRAWING_TOOL_SECTIONS = Object.freeze([
+  Object.freeze({ id:'cursor', label:'Cursor', tools:Object.freeze(['cursor']) }),
+  Object.freeze({ id:'lines', label:'Lines', tools:Object.freeze(['trendline','ray','extended-line','hline','horizontal-ray','vline']) }),
+  Object.freeze({ id:'analysis', label:'Analysis', tools:Object.freeze(['ruler','fibonacci','long-position','short-position']) }),
+  Object.freeze({ id:'annotations', label:'Annotations', tools:Object.freeze(['rectangle','text']) }),
+]);
+
 export const DRAWING_TOOL_LABELS = Object.freeze({
   cursor: 'Select / move',
   trendline: 'Trend line',

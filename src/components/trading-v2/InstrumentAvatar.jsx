@@ -377,7 +377,7 @@ function RemoteOrFallback({ src, failedUrls, onBroken, instrument, size, token =
   );
 }
 
-export default function InstrumentAvatar({ instrument, size = 30, className = '' }) {
+export default function InstrumentAvatar({ instrument, size = 30, className = '', singleAsset = false }) {
   const symbol = String(instrument?.symbol || '').toUpperCase();
   const assetClass = String(instrument?.assetClass || '').toUpperCase();
   const rootRef = useRef(null);
@@ -448,6 +448,15 @@ export default function InstrumentAvatar({ instrument, size = 30, className = ''
   const outer = Math.max(20, Math.min(40, Number(size) || 30));
   const coin = Math.max(14, Math.min(29, Math.round(outer * 0.7)));
 
+  // V4 Positions uses a single primary crypto asset mark; other pair avatars
+  // (including Forex flags and the legacy customer UI) remain unchanged.
+  if (singleAsset && assetClass === 'CRYPTO') {
+    return <span ref={rootRef} data-v4-single-asset="true" className={`inline-grid shrink-0 place-items-center ${className}`}
+      style={{width:outer,height:outer}} aria-hidden="true" title={instrument?.name||symbol}>
+      <RemoteOrFallback src={identity?.baseLogoUrl||identity?.logoUrl} failedUrls={failedUrls}
+        onBroken={onBroken} instrument={instrument} size={outer} token={baseToken}/>
+    </span>;
+  }
   if (pair) {
     return (
       <span

@@ -26,7 +26,10 @@ import {
 } from 'lucide-react';
 import DesktopOrderTicket from './desktop/DesktopOrderTicket.jsx';
 import DesktopOrderTicketV4 from './desktop/DesktopOrderTicketV4.jsx';
+import DesktopManagePositionV4 from './desktop/DesktopManagePositionV4.jsx';
+import DesktopManagePendingV4 from './desktop/DesktopManagePendingV4.jsx';
 import './desktop/DesktopTerminal.theme.css';
+import './desktop/DesktopHeaderV4.css';
 import DesktopPositionManager from './desktop/DesktopPositionManager.jsx';
 import DesktopMultiChart from './desktop/DesktopMultiChart.jsx';
 import DesktopTradeReview from './desktop/DesktopTradeReview.jsx';
@@ -38,7 +41,7 @@ import ResizeHandle from './desktop/ResizeHandle.jsx';
 import PositionsPanel from './PositionsPanel.jsx';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import IndicatorManager from './IndicatorManager.jsx';
-import { accountStatusLabel, accountTypeBadge, accountTypeLabel } from '../../utils/accountPresentation.js';
+import { accountStatusLabel, accountTypeBadge } from '../../utils/accountPresentation.js';
 import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
 import { marketApi } from '../../api/market.js';
 import { normalizeProtectionPrice } from '../../utils/tradingCommandNormalization.js';
@@ -47,6 +50,9 @@ import { resolveExecutionPreview } from '../../utils/executionPricing.js';
 import { validateOpenPositionProtection } from '../../utils/openPositionPresentation.js';
 import { loadDesktopChartSettings, normalizeDesktopChartSettings, saveDesktopChartSettings } from '../../utils/desktopChartSettings.js';
 import { isChartOrderAuditEnabled } from '../../utils/chartOrderPresentation.js';
+import { v4HeaderMarketStatus, v4HeaderAccountLabel, v4HeaderAccountType } from '../../utils/v4HeaderPresentation.js';
+import { effectiveLeverage } from '../../utils/tradingRisk.js';
+import { positionCloseAvailability } from '../../utils/marketExecutionAvailability.js';
 
 // Explicit opt-in only. Disabled in all existing builds unless configured.
 // ACG V4 is an owner-initiated production audit, not a global ticket rollout.
@@ -101,6 +107,9 @@ function desktopHeightBounds(viewportHeight, dockCollapsed = false, dockHeight =
   const height = Number(viewportHeight) || 900;
   const compact = height <= 900;
   const dockMin = 52;
+  // The original compact dock sizing is shared by V3 and the V4 opt-in.
+  // Inline position expansion scrolls inside the dock; only the explicit
+  // maximize control can expand it into the large workspace.
   const dockMax = compact ? Math.min(320, Math.floor(height * 0.44)) : height <= 1050 ? Math.min(420, Math.floor(height * 0.46)) : Math.min(520, Math.floor(height * 0.48));
   const defaultDock = 52;
   const effectiveDock = dockCollapsed ? 0 : clamp(dockHeight || defaultDock, dockMin, dockMax);
@@ -141,7 +150,24 @@ function loadDesktopLayout() {
     const requestedDockHeight = Number.isFinite(storedDockHeight) && storedDockHeight > 72
       ? storedDockHeight
       : fallback.dockHeight;
-    const dockHeight = clamp(requestedDockHeight, initialBounds.dockMin, initialBounds.dockMax);
+    // One-time compact-workspace migration happens *during initial layout
+    // hydration*. This avoids a later effect restoring a stale 400px+ dock
+    // (including browsers that have already run the earlier v1/v2 migration).
+    // After this version is marked complete, user-driven dock resizing is
+    // respected on every subsequent load.
+    let dockHeight=clamp(requestedDockHeight,initialBounds.dockMin,initialBounds.dockMax);
+    if (V4_DESKTOP_EXECUTION_ENABLED) {
+      const migrationKey='acg-v4-positions-dock-density-v3';
+      const migrationComplete=window.localStorage.getItem(migrationKey)==='true';
+      if(!migrationComplete) {
+        if(!dockCollapsed&&dockHeight>initialBounds.dockMin+8) {
+          const preferred=clamp(Math.round(viewportHeight*0.34),260,360);
+          const target=clamp(preferred,initialBounds.dockMin,initialBounds.dockMax);
+          if (dockHeight>target+16 || dockHeight<target-60) dockHeight=target;
+        }
+        window.localStorage.setItem(migrationKey,'true');
+      }
+    }
     const bounds = desktopHeightBounds(viewportHeight, dockCollapsed, dockHeight);
     return {
       sidebarWidth: clamp(stored.sidebarWidth || fallback.sidebarWidth, widthBounds.sidebarMin, widthBounds.sidebarMax),
@@ -289,8 +315,14 @@ export default function DesktopTerminal({
   onViewportQuoteSymbolsChange = () => {},
   positions = [],
   positionHistory = [],
+  historyError = null,
+  historyLoading = false,
+  onRetryHistory = () => {},
   pendingOrders = [],
   journal = [],
+  positionActivityOrders = [],
+  positionActivityDeals = [],
+  positionActivityFills = [],
   onClosePosition = () => {},
   onCloseAllPositions = () => {},
   onCloseWinners = () => {},
@@ -354,6 +386,9 @@ export default function DesktopTerminal({
   riskGuardSettings = null,
   onRiskGuardSettingsChange = () => {},
   readOnly = false,
+  positionsLoading = false,
+  positionsError = null,
+  onRetryPositions = () => {},
 }) {
   // One authoritative preview for the chart, fixed ticket, and floating ticket.
   // Derive market entries from the same quote before position sizing.
@@ -377,11 +412,21 @@ export default function DesktopTerminal({
   const [notice, setNotice] = useState('');
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  // Managed chart/sidebar position and inspected dock position are independent.
+  // Inspecting a dock row must never create a right-side management session.
   const [selectedPositionId, setSelectedPositionId] = useState(null);
+  const [inspectedPositionId, setInspectedPositionId] = useState(null);
+  const [dockCloseIntent, setDockCloseIntent] = useState(null);
+  const [inspectedPendingId, setInspectedPendingId] = useState(null);
+  const [dockCancelIntent, setDockCancelIntent] = useState(null);
+  const [selectedPendingId,setSelectedPendingId]=useState(null);
+  const [pendingOrderDraft,setPendingOrderDraft]=useState(null);
   const [positionEditRequest, setPositionEditRequest] = useState(null);
   const [requestedDockTab, setRequestedDockTab] = useState(null);
   const [positionsExpanded, setPositionsExpanded] = useState(false);
   const [desktopLayout, setDesktopLayout] = useState(loadDesktopLayout);
+  // Initial V4 dock sizing is resolved in loadDesktopLayout(), so render
+  // and persisted sizing never race with legacy mount-time migrations.
   const [floatingOrder, setFloatingOrder] = useState(loadFloatingOrder);
   const [viewportHeight, setViewportHeight] = useState(() => typeof window !== 'undefined' ? window.innerHeight : 900);
   const [viewportWidth, setViewportWidth] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1440);
@@ -393,8 +438,44 @@ export default function DesktopTerminal({
   const [indicatorPanelOpen, setIndicatorPanelOpen] = useState(false);
   const [indicatorFocusId, setIndicatorFocusId] = useState(null);
   const [objectManagerOpen, setObjectManagerOpen] = useState(false);
+  // Single active desktop overlay in the V4 owner audit; legacy logic stays intact.
+  const [v4HeaderMenu, setV4HeaderMenu] = useState(null);
+  const v4IsOpen = (name, legacy) => V4_DESKTOP_EXECUTION_ENABLED ? v4HeaderMenu === name : legacy;
+  const v4Toggle = (name, setter) => {
+    if (V4_DESKTOP_EXECUTION_ENABLED) setV4HeaderMenu(previous => previous === name ? null : name);
+    else setter(previous => !previous);
+  };
+  const v4Close = () => { if (V4_DESKTOP_EXECUTION_ENABLED) setV4HeaderMenu(null); };
+  useEffect(() => {
+    if (!V4_DESKTOP_EXECUTION_ENABLED || !v4HeaderMenu) return undefined;
+    const keydown = event => { if (event.key === 'Escape') setV4HeaderMenu(null); };
+    const pointerdown = event => {
+      if (!event.target.closest('.acg-v4-header, [data-v4-chart-settings]')) setV4HeaderMenu(null);
+    };
+    document.addEventListener('keydown', keydown);
+    document.addEventListener('pointerdown', pointerdown);
+    return () => {
+      document.removeEventListener('keydown', keydown);
+      document.removeEventListener('pointerdown', pointerdown);
+    };
+  }, [v4HeaderMenu]);
   const [multiChart, setMultiChart] = useState(() => loadMultiChart(activeSymbol, timeframe, indicators));
   const selectedPosition = positions.find(position => String(position?.id) === String(selectedPositionId)) || null;
+  const selectedPending = pendingOrders.find(order=>String(order?.id??order?.orderId)===String(selectedPendingId) && ['PENDING','ACCEPTED','TRIGGERED'].includes(String(order?.status||'PENDING').toUpperCase())) || null;
+  const lastManagedAccountId = useRef(activeAccountId);
+  useEffect(() => {
+    if (lastManagedAccountId.current === activeAccountId) return;
+    lastManagedAccountId.current = activeAccountId;
+    setSelectedPositionId(null);
+    setInspectedPositionId(null);
+    setDockCloseIntent(null);
+    setInspectedPendingId(null);
+    setDockCancelIntent(null);
+    setSelectedPendingId(null);
+    setPendingOrderDraft(null);
+    setPositionEditRequest(null);
+    onCancelPositionProtection();
+  }, [activeAccountId]);
   const groupedAccounts = accountGroups(accounts);
 
   useEffect(() => {
@@ -405,9 +486,14 @@ export default function DesktopTerminal({
   }, [activeAccountId, readOnly]);
 
   useEffect(() => {
-    if (selectedPositionId == null) return;
-    if (!positions.some(position => String(position?.id) === String(selectedPositionId))) setSelectedPositionId(null);
-  }, [positions, selectedPositionId]);
+    if (selectedPositionId != null && !positions.some(position => String(position?.id) === String(selectedPositionId))) setSelectedPositionId(null);
+    if (inspectedPositionId != null && !positions.some(position => String(position?.id) === String(inspectedPositionId))) setInspectedPositionId(null);
+  }, [positions, selectedPositionId, inspectedPositionId]);
+  useEffect(()=>{
+    if(selectedPendingId!=null&&!pendingOrders.some(order=>String(order?.id??order?.orderId)===String(selectedPendingId)&&['PENDING','ACCEPTED','TRIGGERED'].includes(String(order?.status||'PENDING').toUpperCase()))){
+      setSelectedPendingId(null);setInspectedPendingId(null);setPendingOrderDraft(null);
+    }
+  },[pendingOrders,selectedPendingId]);
 
   const selectPosition = positionOrId => {
     const id = typeof positionOrId === 'object' ? positionOrId?.id : positionOrId;
@@ -418,10 +504,85 @@ export default function DesktopTerminal({
     }
     const position = positions.find(item => String(item?.id) === String(id));
     if (!position) return;
+    if (positionProtectionDraft && String(positionProtectionDraft.positionId) !== String(position.id)) {
+      if (positionProtectionSaving) {
+        setNotice('Wait for the current protection update before selecting another position.');
+        return;
+      }
+      onCancelPositionProtection();
+    }
     setSelectedPositionId(position.id);
+    setInspectedPositionId(position.id);
+    setDockCloseIntent(null);
+    if (V4_DESKTOP_EXECUTION_ENABLED) setPositionsExpanded(false);
+    setSelectedPendingId(null);
+    setPendingOrderDraft(null);
     setPositionEditRequest(null);
+    // Chart and dock selection reveal the same Trade sidebar; a new position
+    // never stacks a separate position drawer beneath the execution ticket.
+    setActiveNav('trade');
+    setDesktopLayout(current => ({ ...current, sidebarCollapsed:false }));
     if (position.symbol && position.symbol !== activeSymbol) onSelectSymbol(position.symbol);
   };
+
+  const inspectDockPosition = positionId => {
+    if (!V4_DESKTOP_EXECUTION_ENABLED) return selectPosition(positionId);
+    const position=positions.find(item=>String(item?.id)===String(positionId));
+    if (!position) return;
+    // Intentionally does NOT mutate managedPosition, nav, sidebar, pending
+    // orders, protection drafts, or the new-order execution form.
+    setInspectedPositionId(position.id);
+    if(position.symbol&&position.symbol!==activeSymbol)onSelectSymbol(position.symbol);
+  };
+
+  const reviewDockPositionClose = (positionId,percentage=100) => {
+    if (!V4_DESKTOP_EXECUTION_ENABLED || readOnly) return;
+    const target=positions.find(position=>String(position.id)===String(positionId));
+    if(!target)return;
+    const targetMarket=markets.find(instrument=>instrument.symbol===target.symbol);
+    const closeAvailability=positionCloseAvailability(targetMarket);
+    if(!closeAvailability.allowed){setNotice(closeAvailability.reason||'Market close is unavailable.');return;}
+    if(positionProtectionSaving && positionProtectionDraft && String(positionProtectionDraft.positionId)!==String(target.id)) {
+      setNotice('Finish the active protection update before changing positions.');
+      return;
+    }
+    selectPosition(target.id);
+    // This is a review intent only. V4 Position Management owns Confirm Close.
+    setDockCloseIntent(previous=>({positionId:String(target.id),percentage,nonce:(previous?.nonce||0)+1}));
+  };
+
+    const inspectDockPending = orderId => {
+    if (!V4_DESKTOP_EXECUTION_ENABLED) return selectPending(orderId);
+    const order=pendingOrders.find(item=>String(item?.id)===String(orderId));
+    if(!order)return;
+    setInspectedPendingId(order.id);
+    if(order.symbol&&order.symbol!==activeSymbol)onSelectSymbol(order.symbol);
+  };
+  const reviewDockCancelPending = orderId => {
+    if(readOnly||!V4_DESKTOP_EXECUTION_ENABLED)return;
+    const order=pendingOrders.find(item=>String(item?.id)===String(orderId));
+    if(!order)return;
+    selectPending(order.id);
+    setDockCancelIntent(current=>({orderId:String(order.id),nonce:(current?.nonce||0)+1}));
+  };
+
+    const selectPending = orderOrId => {
+    const id=typeof orderOrId==='object'?orderOrId?.id:orderOrId;
+    if(id==null){setSelectedPendingId(null);setPendingOrderDraft(null);return;}
+    const order=pendingOrders.find(item=>String(item?.id??item?.orderId)===String(id)&&['PENDING','ACCEPTED','TRIGGERED'].includes(String(item?.status||'PENDING').toUpperCase()));
+    if(!order)return;
+    if(positionProtectionSaving)return setNotice('Wait for the current protection save before switching orders.');
+    setSelectedPendingId(order.id??order.orderId);
+    setInspectedPendingId(order.id??order.orderId);
+    setSelectedPositionId(null);
+    setPendingOrderDraft(null);
+    setPositionEditRequest(null);
+    onCancelPositionProtection();
+    setActiveNav('trade');
+    setDesktopLayout(current=>({...current,sidebarCollapsed:false}));
+    if(order.symbol&&order.symbol!==activeSymbol)onSelectSymbol(order.symbol);
+  };
+  const clearPendingDraft=()=>setPendingOrderDraft(null);
 
   const favorite = watchlists?.isWatched?.(activeSymbol) === true;
 
@@ -637,7 +798,9 @@ export default function DesktopTerminal({
     viewportHeight - 46 - 12 - expandedChartStripHeight,
   );
   const visibleDockHeight = clamp(
-    Math.max(180, Math.round(viewportHeight * 0.22)),
+    V4_DESKTOP_EXECUTION_ENABLED
+      ? Math.max(300, Math.round(viewportHeight * 0.32))
+      : Math.max(180, Math.round(viewportHeight * 0.22)),
     heightBounds.dockMin,
     heightBounds.dockMax,
   );
@@ -822,6 +985,7 @@ export default function DesktopTerminal({
   const valuationStatus = String(account?.valuationStatus || 'WAITING').toUpperCase();
   const accountStatus = String(account?.status || 'UNKNOWN').toUpperCase();
   const canOpen = exposureAllowed && executableMarket(market) && accountStatus === 'ACTIVE' && account?.tradingEnabled === true && valuationStatus === 'LIVE';
+  const v4HeaderStatus = v4HeaderMarketStatus(market);
   const firstPositive = (...values) => {
     for (const value of values) {
       const numeric = Number(value);
@@ -933,13 +1097,20 @@ export default function DesktopTerminal({
       {notice && <div className="acg-motion-notice absolute right-3 top-[66px] z-[120] flex max-w-[390px] items-center gap-3 rounded-md border border-white/[0.06] bg-[#101010]/95 px-3 py-2.5 text-[10px] font-semibold text-[#E6EDF3] shadow-[0_16px_48px_rgba(0,0,0,.45)]"><span>{notice}</span><button type="button" onClick={() => setNotice('')} className="grid size-6 place-items-center rounded-md text-[#8094a7]"><X size={13}/></button></div>}
 
 
-      <header className="acg-desktop-market-strip flex h-[46px] w-full min-w-0 shrink-0 items-center overflow-visible rounded-[10px] border border-white/[0.07] bg-[#09090B] px-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_6px_18px_rgba(0,0,0,.22)]">
-        <div className="flex min-w-[178px] items-center gap-2.5 text-left 2xl:min-w-[210px]">
-          <button type="button" onClick={() => openMarketPanel('markets', false)} className="shrink-0" title="Open markets and watchlist" aria-label="Open markets and watchlist">
+      <header data-v4-header={V4_DESKTOP_EXECUTION_ENABLED ? 'true' : undefined}
+        style={V4_DESKTOP_EXECUTION_ENABLED ? {
+          '--acg-v4-sidebar-width': `${sidebarContentWidth}px`,
+          '--acg-v4-rail-width': `${sidebarRailWidth}px`,
+        } : undefined}
+        className={`acg-desktop-market-strip flex h-[46px] w-full min-w-0 shrink-0 items-center overflow-visible rounded-[10px] border border-white/[0.07] bg-[#09090B] px-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_6px_18px_rgba(0,0,0,.22)] ${V4_DESKTOP_EXECUTION_ENABLED ? 'acg-v4-header' : ''}`}>
+        <div className="acg-v4-header-instrument flex min-w-[178px] items-center gap-2.5 text-left 2xl:min-w-[210px]">
+          <button type="button" data-v4-header-instrument-image={V4_DESKTOP_EXECUTION_ENABLED ? 'true' : undefined}
+            onClick={() => openMarketPanel('markets', false)} className="shrink-0"
+            title="Open markets and watchlist" aria-label="Open markets and watchlist">
             <InstrumentAvatar instrument={market} size={30}/>
           </button>
-          <div className="min-w-0">
-            <div className="flex min-w-0 items-center gap-1">
+          <div className="acg-v4-header-identity min-w-0">
+            <div className="acg-v4-header-primary flex min-w-0 items-center gap-1">
               <button type="button" onClick={() => openMarketPanel('markets', false)} className="flex min-w-0 items-center gap-1 text-left" title="Open markets and watchlist">
                 <strong key={activeSymbol || 'symbol'} className="acg-motion-symbol truncate text-[14px] font-extrabold tracking-[-0.025em] text-[#f3f6f8]">{market?.displaySymbol || displaySymbol(market?.symbol)}</strong>
                 <ChevronDown size={12} className="shrink-0 text-[#f3f6f8]"/>
@@ -954,28 +1125,58 @@ export default function DesktopTerminal({
                 <Star key={favorite ? 'favorite-on' : 'favorite-off'} className="acg-favorite-icon" data-active={favorite ? 'true' : 'false'} size={12} fill={favorite ? 'currentColor' : 'none'}/>
               </button>
             </div>
-            <button type="button" onClick={() => openMarketPanel('markets', false)} className="mt-0.5 flex min-w-0 items-center gap-1.5 text-left text-[8px] font-bold text-[#697988]" title="Open markets and watchlist">
-              <span className="truncate">{marketLabel(market)}</span>
-              <span className="shrink-0 text-[#697988]">
-                {market?.sessionOpen === false || String(market?.marketState || '').toUpperCase() === 'CLOSED' ? 'MARKET CLOSED' : 'MARKET OPEN'}
-              </span>
-            </button>
+            {V4_DESKTOP_EXECUTION_ENABLED ? (
+              <div className="acg-v4-header-secondary" role="status" data-market-status={v4HeaderStatus}>
+                <span className="acg-v4-header-status-dot" aria-hidden="true"/>
+                <span>{v4HeaderStatus === 'open' ? 'Market open' : v4HeaderStatus === 'closed' ? 'Market closed' : 'Market unavailable'}</span>
+              </div>
+            ) : (
+              <button type="button" onClick={() => openMarketPanel('markets', false)} className="mt-0.5 flex min-w-0 items-center gap-1.5 text-left text-[8px] font-bold text-[#697988]" title="Open markets and watchlist">
+                <span className="truncate">{marketLabel(market)}</span>
+                <span className="shrink-0 text-[#697988]">
+                  {market?.sessionOpen === false || String(market?.marketState || '').toUpperCase() === 'CLOSED' ? 'MARKET CLOSED' : 'MARKET OPEN'}
+                </span>
+              </button>
+            )}
           </div>
         </div>
         <div className="acg-desktop-chart-toolbar flex min-w-0 shrink-0 items-center border-l border-white/[0.06] bg-transparent px-2.5">
-          <div className="terminal-toolbar-group flex h-9 min-w-0 shrink-0 items-center overflow-x-auto rounded-[12px] border border-white/[0.09] bg-[#080808] px-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.015)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="terminal-toolbar-group acg-v4-header-timeframes flex h-9 min-w-0 shrink-0 items-center overflow-x-auto rounded-[12px] border border-white/[0.09] bg-[#080808] px-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.015)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {timeframes.map(([label, value]) => (
-              <button key={value} type="button" onClick={() => setDesktopTimeframe(value)} disabled={Boolean(tradePlan && !tradePlan.open)} className={activeChartTimeframe === value ? "relative grid h-full min-w-9 place-items-center px-2 text-[10px] font-bold text-[#f2f2f2] transition" : "relative grid h-full min-w-9 place-items-center px-2 text-[10px] font-bold text-[#8f9aa8] transition hover:text-[#e9edf3]"}>{label}{activeChartTimeframe === value && <span className="acg-active-underline absolute bottom-0 left-[18%] right-[18%] h-[2px] rounded-full bg-[#C9CDD2]" aria-hidden="true"/>}</button>
+              <button key={value} type="button" data-v4-timeframe={value} aria-pressed={activeChartTimeframe === value} onClick={() => setDesktopTimeframe(value)} disabled={Boolean(tradePlan && !tradePlan.open)} className={activeChartTimeframe === value ? "relative grid h-full min-w-9 place-items-center px-2 text-[10px] font-bold text-[#f2f2f2] transition" : "relative grid h-full min-w-9 place-items-center px-2 text-[10px] font-bold text-[#8f9aa8] transition hover:text-[#e9edf3]"}>{label}{activeChartTimeframe === value && <span className="acg-active-underline absolute bottom-0 left-[18%] right-[18%] h-[2px] rounded-full bg-[#C9CDD2]" aria-hidden="true"/>}</button>
             ))}
           </div>
-          <div className="ml-1.5 flex h-full shrink-0 items-center gap-1.5">
+          {V4_DESKTOP_EXECUTION_ENABLED && (
+            <div className="acg-v4-header-compact-timeframe">
+              <button type="button" aria-label="Choose chart timeframe"
+                aria-haspopup="true" aria-expanded={v4HeaderMenu === 'timeframes'}
+                disabled={Boolean(tradePlan && !tradePlan.open)}
+                onClick={() => setV4HeaderMenu(current => current === 'timeframes' ? null : 'timeframes')}>
+                <span>{activeChartTimeframe}</span><ChevronDown size={12} aria-hidden="true"/>
+              </button>
+              {v4HeaderMenu === 'timeframes' && (
+                <div data-v4-header-menu="timeframes" role="group" aria-label="Chart timeframes">
+                  {timeframes.map(([label, value]) => (
+                    <button key={value} type="button" aria-pressed={activeChartTimeframe === value}
+                      disabled={Boolean(tradePlan && !tradePlan.open)}
+                      onClick={() => { setDesktopTimeframe(value); setV4HeaderMenu(null); }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {V4_DESKTOP_EXECUTION_ENABLED && <span className="acg-v4-header-divider acg-v4-header-timeframe-divider" aria-hidden="true"/>}
+          <div className="acg-v4-header-tools ml-1.5 flex h-full shrink-0 items-center gap-1.5" role="group" aria-label="Chart tools">
             <div className="relative">
-              <button type="button" onClick={() => setChartMenuOpen(value => !value)} className={chartMenuOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#C9CDD2]/60 bg-[#222427] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title="Chart settings"><CandlestickChart size={12}/><span>Charts</span><ChevronDown size={10}/></button>
-              {chartMenuOpen && (
-                <div className="acg-motion-popover absolute right-0 top-8 z-[100] w-[205px] rounded-md border border-white/[0.10] bg-[#111113] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+              <button type="button" data-v4-header-tool="chart-type" aria-label={V4_DESKTOP_EXECUTION_ENABLED ? 'Chart type' : undefined} aria-expanded={v4IsOpen('chart',chartMenuOpen)} onClick={() => v4Toggle('chart',setChartMenuOpen)} className={chartMenuOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#C9CDD2]/60 bg-[#222427] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title={V4_DESKTOP_EXECUTION_ENABLED ? 'Chart type' : 'Chart settings'}><CandlestickChart size={V4_DESKTOP_EXECUTION_ENABLED ? 18 : 12}/><span className="acg-v4-header-tool-label">Charts</span><ChevronDown className="acg-v4-header-tool-chevron" size={10}/></button>
+              {v4IsOpen('chart',chartMenuOpen) && (
+                <div data-v4-header-menu={V4_DESKTOP_EXECUTION_ENABLED ? 'chart' : undefined} className="acg-motion-popover absolute right-0 top-8 z-[100] w-[205px] rounded-md border border-white/[0.10] bg-[#111113] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
                   <div className="px-2 pb-1 pt-0.5 text-[7px] font-bold uppercase tracking-[0.08em] text-[#5f6d79]">Chart type</div>
-                  <button type="button" onClick={() => { onChartModeChange('candles'); setChartMenuOpen(false); }} className={chartMode === 'candles' ? "flex w-full items-center gap-2 rounded bg-[#24262A] px-2 py-2 text-left text-[8px] font-semibold text-[#C9CDD2]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><CandlestickChart size={12}/>Candlesticks</button>
-                  <button type="button" onClick={() => { onChartModeChange('line'); setChartMenuOpen(false); }} className={chartMode === 'line' ? "flex w-full items-center gap-2 rounded bg-[#24262A] px-2 py-2 text-left text-[8px] font-semibold text-[#C9CDD2]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><ChartNoAxesCombined size={12}/>Line</button>
+                  <button type="button" onClick={() => { onChartModeChange('candles'); setChartMenuOpen(false); v4Close(); }} className={chartMode === 'candles' ? "flex w-full items-center gap-2 rounded bg-[#24262A] px-2 py-2 text-left text-[8px] font-semibold text-[#C9CDD2]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><CandlestickChart size={12}/>Candlesticks</button>
+                  <button type="button" onClick={() => { onChartModeChange('line'); setChartMenuOpen(false); v4Close(); }} className={chartMode === 'line' ? "flex w-full items-center gap-2 rounded bg-[#24262A] px-2 py-2 text-left text-[8px] font-semibold text-[#C9CDD2]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><ChartNoAxesCombined size={12}/>Line</button>
+                  {!V4_DESKTOP_EXECUTION_ENABLED && <>
                   <div className="my-1 border-t border-white/[0.06]"/>
                   <div className="px-2 pb-1 pt-0.5 text-[7px] font-bold uppercase tracking-[0.08em] text-[#5f6d79]">Chart grid</div>
                   {[[1, Square, 'Single chart'], [2, Columns2, 'Two charts'], [4, Grid2X2, 'Four charts']].map(([value, Icon, label]) => (
@@ -986,23 +1187,33 @@ export default function DesktopTerminal({
                     <button type="button" onClick={toggleChartLink} className={chartLinked ? "flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#C9CDD2] hover:bg-white/[0.03]" : "flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><span className="flex items-center gap-2">{chartLinked ? <Link2 size={12}/> : <Link2Off size={12}/>}Link symbols</span><span className="text-[#6F8191]">{chartLinked ? 'On' : 'Off'}</span></button>
                     <button type="button" onClick={applyActiveIndicatorsToAllCharts} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Copy indicators to all</span><span className="text-[#6F8191]">ƒx {indicators.length}</span></button>
                   </>}
+                  </>}
                 </div>
               )}
             </div>
+            {V4_DESKTOP_EXECUTION_ENABLED && <span className="acg-v4-header-divider" aria-hidden="true"/>}
             <div className="relative">
-              <button type="button" onClick={() => { setIndicatorFocusId(null); setObjectManagerOpen(false); setIndicatorPanelOpen(value => !value); }} className={indicatorPanelOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#C9CDD2]/60 bg-[#222427] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title="Indicators"><span className="text-[11px] font-black">ƒx</span><span>Indicators</span>{indicators.length > 0 && <span className="grid min-w-3 place-items-center rounded bg-[#181b20] px-1 text-[6px] text-[#aab5bf]">{indicators.length}</span>}<ChevronDown size={10}/></button>
-              {indicatorPanelOpen && (
-                <div className="acg-motion-popover absolute right-0 top-8 z-[110] w-[390px] max-h-[min(680px,calc(100dvh-150px))] overflow-y-auto rounded-lg border border-white/[0.10] bg-[#09090B]/98 p-3 shadow-[0_24px_70px_rgba(0,0,0,.68)] backdrop-blur-xl [scrollbar-width:thin]">
-                  <div className="mb-3 flex items-center justify-between border-b border-white/[0.07] pb-2.5"><div><strong className="block text-[11px] text-[#EDF3F7]">Indicators</strong><span className="mt-0.5 block text-[8px] text-[#687D91]">Active chart · {activeSymbol} · {activeChartTimeframe}</span></div><button type="button" onClick={() => setIndicatorPanelOpen(false)} className="grid size-7 place-items-center rounded text-[#7D91A4] hover:bg-white/[0.04] hover:text-white"><X size={13}/></button></div>
+              <button type="button" data-v4-header-tool="indicators" aria-label={V4_DESKTOP_EXECUTION_ENABLED ? 'Indicators' : undefined} aria-expanded={v4IsOpen('indicators',indicatorPanelOpen)} onClick={() => {
+                setIndicatorFocusId(null); setObjectManagerOpen(false); v4Toggle('indicators',setIndicatorPanelOpen);
+              }} className={indicatorPanelOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#C9CDD2]/60 bg-[#222427] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title="Indicators"><span className="acg-v4-header-fx text-[11px] font-black">ƒx</span><span className="acg-v4-header-tool-label">Indicators</span>{indicators.length > 0 && <span className="acg-v4-header-indicator-count grid min-w-3 place-items-center rounded bg-[#181b20] px-1 text-[6px] text-[#aab5bf]">{indicators.length}</span>}<ChevronDown className="acg-v4-header-tool-chevron" size={10}/></button>
+              {v4IsOpen('indicators',indicatorPanelOpen) && (
+                <div data-v4-header-menu={V4_DESKTOP_EXECUTION_ENABLED ? 'indicators' : undefined} className="acg-motion-popover absolute right-0 top-8 z-[110] w-[390px] max-h-[min(680px,calc(100dvh-150px))] overflow-y-auto rounded-lg border border-white/[0.10] bg-[#09090B]/98 p-3 shadow-[0_24px_70px_rgba(0,0,0,.68)] backdrop-blur-xl [scrollbar-width:thin]">
+                  <div className="mb-3 flex items-center justify-between border-b border-white/[0.07] pb-2.5"><div><strong className="block text-[11px] text-[#EDF3F7]">Indicators</strong><span className="mt-0.5 block text-[8px] text-[#687D91]">Active chart · {activeSymbol} · {activeChartTimeframe}</span></div><button type="button" onClick={() => { setIndicatorPanelOpen(false); v4Close(); }} className="grid size-7 place-items-center rounded text-[#7D91A4] hover:bg-white/[0.04] hover:text-white"><X size={13}/></button></div>
                   <IndicatorManager desktop applied={indicators} favorites={indicatorFavorites} onAdd={onAddIndicator} onRemove={onRemoveIndicator} onToggleVisible={onToggleIndicator} onUpdate={onUpdateIndicator} onToggleFavorite={onToggleIndicatorFavorite} focusInstanceId={indicatorFocusId} onClearFocus={() => setIndicatorFocusId(null)}/>
                 </div>
               )}
             </div>
-            <DesktopWorkspaceMenu snapshot={workspaceSnapshot} onApply={applyWorkspace}/>
+            {V4_DESKTOP_EXECUTION_ENABLED && <span className="acg-v4-header-divider" aria-hidden="true"/>}
+            <DesktopWorkspaceMenu snapshot={workspaceSnapshot} onApply={applyWorkspace}
+              compact={V4_DESKTOP_EXECUTION_ENABLED} chartLayout={chartLayout} onChartLayoutChange={setChartLayout}
+              chartLinked={chartLinked} onToggleChartLink={toggleChartLink}
+              onCopyIndicators={applyActiveIndicatorsToAllCharts} indicatorCount={indicators.length}
+              open={V4_DESKTOP_EXECUTION_ENABLED ? v4HeaderMenu === 'layout' : undefined}
+              onOpenChange={V4_DESKTOP_EXECUTION_ENABLED ? next => setV4HeaderMenu(next ? 'layout' : null) : undefined}/>
           </div>
         </div>
 
-        {viewportWidth >= 1500 && (
+        {!V4_DESKTOP_EXECUTION_ENABLED && viewportWidth >= 1500 && (
           <div className="ml-2 flex h-full items-center">
             <div className="min-w-[92px] border-l border-white/[0.055] px-3">
               <span className="block text-[7px] uppercase tracking-[0.07em] text-[#637484]">24h High</span>
@@ -1020,23 +1231,37 @@ export default function DesktopTerminal({
             )}
           </div>
         )}
-        <div className="ml-auto flex items-center gap-2">
+        {V4_DESKTOP_EXECUTION_ENABLED && <div className="acg-v4-header-spacer" aria-hidden="true"/>}
+        <div className="acg-v4-header-right ml-auto flex items-center gap-2">
           {readOnly && <span className="hidden rounded-md border border-rose-400/20 bg-rose-400/[0.08] px-2 py-1 text-[7px] font-black uppercase tracking-[0.09em] text-rose-300 2xl:inline-flex">Read-only · Breached</span>}
-          <div className="hidden text-right 2xl:block">
+          <div className="acg-v4-header-valuation hidden text-right 2xl:block">
             <span className="block text-[7px] uppercase tracking-[0.08em] text-[#637484]">Valuation</span>
             <b className={valuationStatus === 'LIVE' ? "mt-0.5 block text-[8px] text-[#42D7A1]" : valuationStatus === 'STALE' ? "mt-0.5 block text-[8px] text-[#E7BD58]" : "mt-0.5 block text-[8px] text-[#A1AFBC]"}>{valuationStatus}</b>
           </div>
-          <div className="relative">
-            <button type="button" onClick={() => setAccountMenuOpen(value => !value)} className="flex h-8 min-w-[176px] items-center gap-2 rounded-md border border-white/[0.07] bg-black/20 px-2.5 text-left hover:bg-white/[0.025]" aria-label="Switch trading account" aria-expanded={accountMenuOpen}>
-              {accountSwitching ? <Loader2 size={11} className="shrink-0 animate-spin text-[#C9CDD2]"/> : <span className={canOpen ? "size-1.5 shrink-0 rounded-full bg-[#9FA5AA]" : valuationStatus === 'STALE' ? "size-1.5 shrink-0 rounded-full bg-[#e8bd55]" : "size-1.5 shrink-0 rounded-full bg-[#343434]"}/>}
-              <div className="min-w-0 flex-1 leading-none">
-                <strong className="block truncate text-[9px]">{account?.accountCode || accountStatus}</strong>
-                <span className="mt-1 block truncate text-[8px] text-[#6F8191]">{accountTypeBadge(account)} · {accountSize(account?.initialBalance ?? account?.startingBalance ?? account?.challenge?.accountSize ?? account?.balance)}{Number(account?.leverage) > 0 ? ` · 1:${Number(account.leverage)}` : ''}</span>
-              </div>
-              <ChevronDown size={11} className={accountMenuOpen ? "acg-motion-chevron shrink-0 rotate-180 text-[#6F8191]" : "acg-motion-chevron shrink-0 text-[#6F8191]"}/>
+          <div className={V4_DESKTOP_EXECUTION_ENABLED ? "relative acg-v4-header-account-wrap" : "relative"}>
+            <button type="button" data-v4-header-account onClick={() => v4Toggle('account',setAccountMenuOpen)} className="flex h-8 min-w-[176px] items-center gap-2 rounded-md border border-white/[0.07] bg-black/20 px-2.5 text-left hover:bg-white/[0.025]" aria-label="Switch trading account" aria-expanded={v4IsOpen('account',accountMenuOpen)} title={account?.accountCode || 'Trading account'}>
+              {V4_DESKTOP_EXECUTION_ENABLED ? <>
+                <span className="acg-v4-header-account-mark" aria-hidden="true">
+                  {accountSwitching ? <Loader2 size={16} className="animate-spin"/> : <UserRound size={17}/>}
+                </span>
+                <span className="acg-v4-header-account-copy">
+                  <strong data-v4-header-account-name>{v4HeaderAccountLabel(account)}</strong>
+                  <span className="acg-v4-header-account-type">{v4HeaderAccountType(account)}</span>
+                </span>
+                <span className="acg-v4-header-account-chevron" aria-hidden="true">
+                  <ChevronDown size={17} className={v4IsOpen('account',accountMenuOpen) ? "acg-motion-chevron rotate-180" : "acg-motion-chevron"}/>
+                </span>
+              </> : <>
+                {accountSwitching ? <Loader2 size={11} className="shrink-0 animate-spin text-[#C9CDD2]"/> : <span className={`acg-v4-header-account-dot ${canOpen ? "size-1.5 shrink-0 rounded-full bg-[#9FA5AA]" : valuationStatus === 'STALE' ? "size-1.5 shrink-0 rounded-full bg-[#e8bd55]" : "size-1.5 shrink-0 rounded-full bg-[#343434]"}`}/>}
+                <div className="min-w-0 flex-1 leading-none">
+                  <strong data-v4-header-account-name className="block truncate text-[9px]">{account?.accountCode || accountStatus}</strong>
+                  <span className="mt-1 block truncate text-[8px] text-[#6F8191]">{accountTypeBadge(account)} · {accountSize(account?.initialBalance ?? account?.startingBalance ?? account?.challenge?.accountSize ?? account?.balance)}{Number(account?.leverage)>0 ? ` · 1:${Number(account.leverage)}` : ''}</span>
+                </div>
+                <ChevronDown size={11} className={v4IsOpen('account',accountMenuOpen) ? "acg-motion-chevron shrink-0 rotate-180 text-[#6F8191]" : "acg-motion-chevron shrink-0 text-[#6F8191]"}/>
+              </>}
             </button>
-            {accountMenuOpen && (
-              <div className="acg-motion-popover absolute right-0 top-10 z-[140] w-[330px] overflow-hidden rounded-md border border-white/[0.10] bg-[#111113] shadow-[0_20px_60px_rgba(0,0,0,.65)]">
+            {v4IsOpen('account',accountMenuOpen) && (
+              <div data-v4-header-menu={V4_DESKTOP_EXECUTION_ENABLED ? 'account' : undefined} className="acg-motion-popover absolute right-0 top-10 z-[140] w-[330px] overflow-hidden rounded-md border border-white/[0.10] bg-[#111113] shadow-[0_20px_60px_rgba(0,0,0,.65)]">
                 <div className="border-b border-white/[0.07] px-3 py-2.5">
                   <strong className="block text-[10px] text-[#E6EDF3]">Trading accounts</strong>
                   <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[8px] text-[#6F8191]">
@@ -1061,7 +1286,7 @@ export default function DesktopTerminal({
                           <button key={id} type="button" disabled={accountSwitching && !selected} onClick={() => {
                             try {
                               const changed = onSelectAccount(id);
-                              if (changed !== false) setAccountMenuOpen(false);
+                              if (changed !== false) { setAccountMenuOpen(false); v4Close(); }
                             } catch (error) {
                               setNotice(error?.message || 'Unable to switch account');
                             }
@@ -1088,25 +1313,30 @@ export default function DesktopTerminal({
               </div>
             )}
           </div>
-          <div className="relative">
-            <button type="button" onClick={() => setToolsMenuOpen(value => !value)} className={toolsMenuOpen ? "grid size-8 place-items-center rounded-md border border-[#C9CDD2]/60 bg-[#222427] text-[#f1f4f6]" : "grid size-8 place-items-center rounded-md border border-white/[0.07] bg-black/20 text-[#8996a1] hover:bg-white/[0.025] hover:text-white"} title="More" aria-label="More terminal actions"><MoreHorizontal size={16}/></button>
-            {toolsMenuOpen && (
-              <div className="acg-motion-popover absolute right-0 top-10 z-[105] w-[230px] rounded-md border border-white/[0.10] bg-[#111113] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
-                <button type="button" onClick={() => { handleNav('markets'); setToolsMenuOpen(false); }} className={activeNav === 'markets' ? "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#C9CDD2]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><List size={12}/>Markets / Watchlist</button>
-                <button type="button" onClick={() => { handleNav('history'); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><History size={12}/>History</button>
-                <button type="button" onClick={() => { setReviewOpen(true); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><BookOpen size={12}/>Trade review</button>
-                <button type="button" onClick={() => { setIndicatorPanelOpen(false); setObjectManagerOpen(value => !value); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Layers3 size={12}/>Chart manager</button>
-                <button type="button" onClick={() => { void toggleFullscreen(); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Maximize2 size={12}/>Fullscreen</button>
+          {!V4_DESKTOP_EXECUTION_ENABLED && <div className="relative">
+            <button type="button" data-v4-header-more onClick={() => v4Toggle('more',setToolsMenuOpen)} aria-expanded={v4IsOpen('more',toolsMenuOpen)} className={v4IsOpen('more',toolsMenuOpen) ? "grid size-8 place-items-center rounded-md border border-[#C9CDD2]/60 bg-[#222427] text-[#f1f4f6]" : "grid size-8 place-items-center rounded-md border border-white/[0.07] bg-black/20 text-[#8996a1] hover:bg-white/[0.025] hover:text-white"} title="More" aria-label="More terminal actions"><MoreHorizontal size={16}/></button>
+            {v4IsOpen('more',toolsMenuOpen) && (
+              <div data-v4-header-menu={V4_DESKTOP_EXECUTION_ENABLED ? 'more' : undefined} className="acg-motion-popover absolute right-0 top-10 z-[105] w-[230px] rounded-md border border-white/[0.10] bg-[#111113] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
+                <button type="button" onClick={() => { handleNav('markets'); setToolsMenuOpen(false); v4Close(); }} className={activeNav === 'markets' ? "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#C9CDD2]" : "flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><List size={12}/>Markets / Watchlist</button>
+                <button type="button" onClick={() => { handleNav('history'); setToolsMenuOpen(false); v4Close(); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><History size={12}/>History</button>
+                <button type="button" onClick={() => { setReviewOpen(true); setToolsMenuOpen(false); v4Close(); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><BookOpen size={12}/>Trade review</button>
+                <button type="button" onClick={() => {
+                  setIndicatorPanelOpen(false);
+                  if (V4_DESKTOP_EXECUTION_ENABLED) setV4HeaderMenu('manager');
+                  else setObjectManagerOpen(value => !value);
+                  setToolsMenuOpen(false);
+                }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Layers3 size={12}/>Chart manager</button>
+                <button type="button" onClick={() => { void toggleFullscreen(); setToolsMenuOpen(false); v4Close(); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Maximize2 size={12}/>Fullscreen</button>
                 <div className="my-1 border-t border-white/[0.06]"/>
-                <button type="button" onClick={() => { toggleSidebar(); setToolsMenuOpen(false); }} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Side panel</span><span className="text-[#6F8191]">{desktopLayout.sidebarCollapsed ? 'Closed' : 'Open'}</span></button>
-                <button type="button" onClick={() => { toggleDock(); setToolsMenuOpen(false); }} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Positions dock</span><span className="text-[#6F8191]">{dockBodyVisible ? 'Shown' : 'Hidden'}</span></button>
-                <button type="button" onClick={() => { resetDesktopLayout(); setToolsMenuOpen(false); }} className="w-full rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]">Reset desktop layout</button>
+                <button type="button" onClick={() => { toggleSidebar(); setToolsMenuOpen(false); v4Close(); }} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Side panel</span><span className="text-[#6F8191]">{desktopLayout.sidebarCollapsed ? 'Closed' : 'Open'}</span></button>
+                <button type="button" onClick={() => { toggleDock(); setToolsMenuOpen(false); v4Close(); }} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Positions dock</span><span className="text-[#6F8191]">{dockBodyVisible ? 'Shown' : 'Hidden'}</span></button>
+                <button type="button" onClick={() => { resetDesktopLayout(); setToolsMenuOpen(false); v4Close(); }} className="w-full rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]">Reset desktop layout</button>
                 <div className="my-1 border-t border-white/[0.06]"/>
-                <button type="button" onClick={() => { onOpenSettings(); setToolsMenuOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Settings size={12}/>Settings</button>
+                <button type="button" onClick={() => { onOpenSettings(); setToolsMenuOpen(false); v4Close(); }} className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><Settings size={12}/>Settings</button>
               </div>
             )}
-            {objectManagerOpen && <div className="acg-motion-popover absolute right-0 top-10 z-[115]"><ChartObjectManager symbol={activeSymbol} timeframe={activeChartTimeframe === '1m' ? 'M1' : activeChartTimeframe === '5m' ? 'M5' : activeChartTimeframe === '15m' ? 'M15' : activeChartTimeframe === '30m' ? 'M30' : activeChartTimeframe === '1H' ? 'H1' : activeChartTimeframe === '4H' ? 'H4' : activeChartTimeframe === '1D' ? 'D1' : activeChartTimeframe === '1W' ? 'W1' : activeChartTimeframe} indicators={indicators} chartInstanceId={'desktop-chart-' + Math.min(Math.max(0, Number(multiChart?.activeCell) || 0), chartLayout - 1)} onToggleIndicator={onToggleIndicator} onRemoveIndicator={onRemoveIndicator} onOpenIndicatorSettings={instanceId => { setObjectManagerOpen(false); setIndicatorFocusId(instanceId); setIndicatorPanelOpen(true); }} onClose={() => setObjectManagerOpen(false)}/></div>}
-          </div>
+            {v4IsOpen('manager',objectManagerOpen) && <div data-v4-header-menu={V4_DESKTOP_EXECUTION_ENABLED ? 'manager' : undefined} className="acg-motion-popover absolute right-0 top-10 z-[115]"><ChartObjectManager symbol={activeSymbol} timeframe={activeChartTimeframe === '1m' ? 'M1' : activeChartTimeframe === '5m' ? 'M5' : activeChartTimeframe === '15m' ? 'M15' : activeChartTimeframe === '30m' ? 'M30' : activeChartTimeframe === '1H' ? 'H1' : activeChartTimeframe === '4H' ? 'H4' : activeChartTimeframe === '1D' ? 'D1' : activeChartTimeframe === '1W' ? 'W1' : activeChartTimeframe} indicators={indicators} chartInstanceId={'desktop-chart-' + Math.min(Math.max(0, Number(multiChart?.activeCell) || 0), chartLayout - 1)} onToggleIndicator={onToggleIndicator} onRemoveIndicator={onRemoveIndicator} onOpenIndicatorSettings={instanceId => { setObjectManagerOpen(false); setIndicatorFocusId(instanceId); if (V4_DESKTOP_EXECUTION_ENABLED) setV4HeaderMenu('indicators'); else setIndicatorPanelOpen(true); }} onClose={() => { setObjectManagerOpen(false); v4Close(); }}/></div>}
+          </div>}
         </div>
       </header>
 
@@ -1138,7 +1368,8 @@ export default function DesktopTerminal({
                 onOpenIndicatorSettings={instanceId => {
                   setObjectManagerOpen(false);
                   setIndicatorFocusId(instanceId);
-                  setIndicatorPanelOpen(true);
+                  if (V4_DESKTOP_EXECUTION_ENABLED) setV4HeaderMenu('indicators');
+                  else setIndicatorPanelOpen(true);
                 }}
                 onRemoveIndicator={onRemoveIndicator}
                 positions={positions}
@@ -1165,8 +1396,12 @@ export default function DesktopTerminal({
                 onCancelPositionProtection={onCancelPositionProtection}
                 onRemovePositionProtection={(positionId, field) => updateDesktopProtection(positionId, { [field]: null })}
                 onRequestPositionProtection={(positionId, field, price) => editPositionProtection(positionId, field, price)}
-                selectedPositionId={selectedPositionId}
+                selectedPositionId={V4_DESKTOP_EXECUTION_ENABLED ? (inspectedPositionId ?? selectedPositionId) : selectedPositionId}
                 onSelectPosition={selectPosition}
+                onSelectPending={selectPending}
+                pendingOrderDraft={pendingOrderDraft}
+                onPendingOrderDraftChange={setPendingOrderDraft}
+                onCancelPendingOrderDraft={clearPendingDraft}
                 onClosePosition={onClosePosition}
               />
             </div>
@@ -1176,6 +1411,7 @@ export default function DesktopTerminal({
                 <DesktopOrderTicket
                   key={`floating-order-${account?.id || 'none'}`}
                   variant="floating"
+                  floatingV2Theme={V4_DESKTOP_EXECUTION_ENABLED}
                   onFloatingDragStart={beginFloatingOrderDrag}
                   onOpenFullTrade={() => openSidebarView('trade')}
                   market={market}
@@ -1224,9 +1460,37 @@ export default function DesktopTerminal({
                 <>
                   <div className="min-h-0 flex-1">
 <React.Fragment>
-                      {V4_DESKTOP_EXECUTION_ENABLED ? (
+                      {V4_DESKTOP_EXECUTION_ENABLED ? (selectedPending ? (
+                        <DesktopManagePendingV4 key={`v4-manage-pending-${account?.id||'none'}-${selectedPending.id}`}
+                          order={selectedPending}
+                          instrument={markets.find(item=>item.symbol===selectedPending.symbol)||market}
+                          account={account} draft={pendingOrderDraft}
+                          onDraftChange={setPendingOrderDraft} onDiscard={clearPendingDraft}
+                          cancelIntent={dockCancelIntent}
+                          onMovePending={onMovePending} onCancelPending={onCancelPending}
+                          onNotice={setNotice} readOnly={readOnly}
+                          onDismiss={()=>{setSelectedPendingId(null);setPendingOrderDraft(null);}}/>
+                      ) : selectedPosition ? (
+                        <DesktopManagePositionV4
+                          key={`v4-manage-position-${account?.id || 'none'}-${selectedPosition.id}`}
+                          position={selectedPosition}
+                          instrument={markets.find(item => item.symbol === selectedPosition.symbol) || market}
+                          account={account} protectionDraft={positionProtectionDraft}
+                          protectionSaving={positionProtectionSaving}
+                          onBeginProtection={field => editPositionProtection(selectedPosition.id,field)}
+                          onProtectionDraftChange={onPositionProtectionDraftChange}
+                          onApplyProtection={onApplyPositionProtection}
+                          onCancelProtection={onCancelPositionProtection}
+                          onUpdateProtection={updateDesktopProtection}
+                          closeIntent={dockCloseIntent}
+                          onClosePosition={onClosePosition} onBreakEven={onBreakEven}
+                          onSetTrailing={onSetTrailing}
+                          onNotice={setNotice} readOnly={readOnly}
+                          onDismiss={() => { setSelectedPositionId(null); setPositionEditRequest(null); onCancelPositionProtection(); }}
+                        />
+                      ) : (
                         <DesktopOrderTicketV4 key={`v4-order-ticket-${account?.id || 'none'}-${market?.symbol || 'none'}`}
-                          market={market} account={account} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason}
+                          market={market} account={account} conversionMarkets={markets} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason}
                           lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange}
                           riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange}
                           orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan}
@@ -1236,12 +1500,12 @@ export default function DesktopTerminal({
                           onOpenMarkets={() => openMarketPanel('markets', true)}
                           onCloseTicket={() => setDesktopLayout(current => ({ ...current, sidebarCollapsed: true }))}
                         />
-                      ) : (
+                      )) : (
                         <DesktopOrderTicket key={`order-ticket-${account?.id || 'none'}`} market={market} account={account} exposureAllowed={exposureAllowed} exposureBlockReason={exposureBlockReason} lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange} riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange} orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan} orderExecutionPreview={orderExecutionPreview} onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan} onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} onNotice={setNotice}/>
                       )}
                     </React.Fragment>
                   </div>
-                  {selectedPosition && (
+                  {selectedPosition && !V4_DESKTOP_EXECUTION_ENABLED && (
                     <div className="acg-motion-panel-stack max-h-[46%] shrink-0 overflow-y-auto [scrollbar-width:thin]">
                       <DesktopPositionManager
                         position={selectedPosition}
@@ -1317,9 +1581,9 @@ export default function DesktopTerminal({
               type="button"
               onClick={event => {
                 event.stopPropagation();
-                setChartSettingsOpen(value => !value);
+                v4Toggle('settings',setChartSettingsOpen);
               }}
-              className={chartSettingsOpen
+              className={v4IsOpen('settings',chartSettingsOpen)
                 ? "grid size-9 place-items-center rounded-md bg-[#222225] text-[#C9CDD2] ring-1 ring-inset ring-[#C9CDD2]/70"
                 : "grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"}
               title="Chart appearance settings"
@@ -1330,14 +1594,21 @@ export default function DesktopTerminal({
           </aside>
 
           <DesktopChartSettingsPopover
-            open={chartSettingsOpen}
+            open={v4IsOpen('settings',chartSettingsOpen)}
+            v4Theme={V4_DESKTOP_EXECUTION_ENABLED}
             settings={chartSettings}
             onChange={next => setChartSettings(normalizeDesktopChartSettings(next))}
-            onClose={() => setChartSettingsOpen(false)}
+            onClose={() => { setChartSettingsOpen(false); v4Close(); }}
           />
 
           <div className="acg-desktop-dock-shell min-h-0 overflow-hidden rounded-[9px] border border-[#292d31] bg-[#09090B] transition-[height,transform,opacity] duration-300 ease-out" style={{ gridColumn: '1 / 4', gridRow: '2' }}>
-            <PositionsPanel desktopDense collapsed={desktopLayout.dockCollapsed} compactDock={dockHeight <= compactDockThreshold && !positionsExpanded} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} pendingOrders={pendingOrders} journal={journal} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={updateDesktopProtection} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={selectedPositionId} onSelectPosition={selectPosition} onEditProtection={editPositionProtection}/>
+            <PositionsPanel v4Positions={V4_DESKTOP_EXECUTION_ENABLED} readOnly={readOnly}
+              onReviewClosePosition={reviewDockPositionClose}
+              positionsLoading={positionsLoading} positionsError={positionsError} onRetryPositions={onRetryPositions}
+              desktopDense collapsed={desktopLayout.dockCollapsed} compactDock={dockHeight <= compactDockThreshold && !positionsExpanded} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} historyError={historyError} historyLoading={historyLoading} onRetryHistory={onRetryHistory} pendingOrders={pendingOrders} journal={journal} positionActivityOrders={positionActivityOrders} positionActivityDeals={positionActivityDeals} positionActivityFills={positionActivityFills} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={updateDesktopProtection} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={V4_DESKTOP_EXECUTION_ENABLED ? (inspectedPositionId ?? selectedPositionId) : selectedPositionId} onSelectPosition={V4_DESKTOP_EXECUTION_ENABLED ? inspectDockPosition : selectPosition} onManagePosition={selectPosition} onEditProtection={editPositionProtection}
+              selectedPendingId={V4_DESKTOP_EXECUTION_ENABLED?(inspectedPendingId??selectedPendingId):selectedPendingId}
+              onInspectPending={inspectDockPending} onManagePending={selectPending}
+              onReviewCancelPending={reviewDockCancelPending}/>
           </div>
 
           {!desktopLayout.sidebarCollapsed && !positionsExpanded && (

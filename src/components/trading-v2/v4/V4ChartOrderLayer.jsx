@@ -1,0 +1,341 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  projectV4AcceptedLevels, projectV4DraftGroup, placeV4Badges,
+  v4MissingProtections, v4MissingPendingProtections, v4ProtectionAction,
+} from './chartOrderModel.js';
+import { estimatePositionPnlAtPrice } from '../../../utils/tradingRisk.js';
+import { chartEstimateCurrencySupported, chartEntryReference } from '../../../utils/chartOrderPresentation.js';
+
+// An intentionally separate V4-only renderer: no imports from ChartArea or
+// legacy plan/pending/position overlays. Future phases connect real chart
+// coordinates and command handlers after authenticated staging acceptance.
+const COLORS = Object.freeze({ sl:'#ee5465', tp:'#16c590', buy:'#17b899', sell:'#ee596a', neutral:'#aab6c2', limit:'#b69adc' });
+const priceLabel = (value, formatPrice) => formatPrice ? formatPrice(value) : String(value);
+// Keep the instrument's exact decimal precision while grouping large prices
+// the same way as the approved TP/SL reference chip.
+const protectionPriceLabel = (value, formatPrice) => {
+  const label = String(priceLabel(value, formatPrice));
+  const match = /^(-?)([0-9]+)([.][0-9]+)?$/.exec(label);
+  return match
+    ? match[1] + Number(match[2]).toLocaleString('en-US') + (match[3] || '')
+    : label;
+};
+
+export default function V4ChartOrderLayer({
+  accountId, symbol, positions = [], pendingOrders = [], coordinateApi,
+  height = 480, formatPrice, formatVolume, formatPnl, instrument = null, accountCurrency = 'USD',
+  hidePositionEntries = false, readOnly = false, hoveredPositionId = null,
+  edit = null, saving = false, removingLevelId = null, onBeginEdit, onChangeEdit, onSaveEdit, onCancelEdit,
+  onRemoveProtection, onAddProtection, onSelectPosition, onSelectPending, onClosePosition, onCancelPending,
+}) {
+  const drag = useRef(null);
+  const [dragPreview,setDragPreview]=useState(null);
+  const recentDrag = useRef({levelId:null,at:0});
+  useEffect(() => { drag.current = null; setDragPreview(null); }, [accountId, symbol, readOnly]);
+  useEffect(() => {
+    const onMove = event => {
+      const current=drag.current;
+      if (!current || !coordinateApi?.yToPrice) return;
+      const dy=event.clientY-current.startY;
+      if (Math.abs(dy)<4 && !current.started) return;
+      const raw=coordinateApi.yToPrice(current.startChartY+dy);
+      const tick=Number(instrument?.tickSize);
+      const price=Number.isFinite(tick)&&tick>0?Math.round(raw/tick)*tick:raw;
+      if (!(Number.isFinite(price) && price>0)) return;
+      const next=Number(price.toPrecision(12));
+      const tolerance=Number.isFinite(tick)&&tick>0?tick*0.5:1e-8;
+      current.started=true;
+      if(Math.abs(next-current.draft.confirmedPrice)<=tolerance){
+        current.next=null;
+        setDragPreview(null);
+      }else{
+        current.next={...current.draft,proposedPrice:next};
+        setDragPreview(current.next);
+      }
+    };
+    const onEnd = event => {
+      const current=drag.current;
+      if(!current)return;
+      drag.current=null;
+      setDragPreview(null);
+      if(current.started)recentDrag.current={levelId:current.draft.levelId,at:Date.now()};
+      if(event?.type==='pointercancel')return;
+      // Only release after a price change creates an edit. Merely clicking a
+      // badge never creates local chart actions or a backend amendment.
+      if(current.next){
+        onBeginEdit?.(current.next);
+        onChangeEdit?.(current.next);
+      }
+    };
+    window.addEventListener('pointermove',onMove);
+    window.addEventListener('pointerup',onEnd);
+    window.addEventListener('pointercancel',onEnd);
+    return()=>{
+      window.removeEventListener('pointermove',onMove);
+      window.removeEventListener('pointerup',onEnd);
+      window.removeEventListener('pointercancel',onEnd);
+    };
+  },[coordinateApi,onBeginEdit,onChangeEdit,instrument?.tickSize]);
+  const [hoveredId, setHoveredId] = useState(null);
+  const [, requestCoordinates] = useState(0);
+  useEffect(() => coordinateApi?.subscribe?.(() => requestCoordinates(value => value + 1)), [coordinateApi]);
+  const accepted = useMemo(() => projectV4AcceptedLevels({accountId,symbol,positions,pendingOrders}),
+    [accountId,symbol,positions,pendingOrders]);
+  const visibleEdit=dragPreview || edit;
+  const { preview: ghost, secondaryPreview, connector }=projectV4DraftGroup(accepted,visibleEdit);
+  const acceptedWithCoordinates = coordinateApi?.priceToY
+    ? accepted.map(level => ({...level,y:coordinateApi.priceToY(level.price)})).filter(level=>Number.isFinite(level.y))
+    : [];
+  const displayedLevels = acceptedWithCoordinates.filter(level => !(hidePositionEntries && level.objectType === 'position' && level.kind === 'entry'));
+  const { placements, overflow } = placeV4Badges(displayedLevels, { minY: 14, maxY:height-14, badgeHeight:28, gap:5 });
+  const placed = new Map(placements.map(level=>[level.id,level]));
+  const colorFor = level => level.kind==='sl' ? COLORS.sl : level.kind==='tp' ? COLORS.tp
+    : level.kind==='limitPrice' ? COLORS.limit
+    : level.objectType==='position' && level.kind==='entry' ? COLORS.neutral
+    : level.side==='BUY' ? COLORS.buy : COLORS.sell;
+  const projectedPositionProtection = level => {
+    const isPending=level.objectType==='pending';
+    const order=isPending?pendingOrders.find(item=>String(item.id)===String(level.objectId)):null;
+    const position=isPending ? order : positions.find(item => String(item.id) === String(level.objectId));
+    const reference=isPending
+      ? chartEntryReference({pending:true,orderType:order?.orderType,entry:order?.entry,limitPrice:order?.limitPrice})
+      : null;
+    const projectedSource=isPending && position ? {...position,entry:reference} : position;
+    const lots = Number(position?.volume ?? position?.lots);
+    const volume = Number.isFinite(lots) ? String(Number(lots.toFixed(4))) : '—';
+    const currency = String(accountCurrency || 'USD').toUpperCase();
+    const estimate = chartEstimateCurrencySupported(instrument, currency)
+      ? estimatePositionPnlAtPrice(projectedSource, level.price, instrument)
+      : null;
+    const amount = estimate == null || !Number.isFinite(estimate)
+      ? '— ' + currency : (estimate >= 0 ? '+' : '-') + Math.abs(estimate).toFixed(2) + ' ' + currency;
+    return { volume, amount, reference };
+  };
+  const canRemove = Boolean(onRemoveProtection);
+  const [cancelPendingId, setCancelPendingId] = useState(null);
+  const protectionTheme = kind => kind === 'tp'
+    ? {background:'#09090b', positive:'rgba(22,197,144,0.17)'}
+    : {background:'#09090b', positive:'rgba(238,84,101,0.17)'};
+  const hoveredGroupId = hoveredId || (hoveredPositionId != null && accountId != null
+    ? accountId + ':position:' + String(hoveredPositionId) : null);
+  const beginDrag = (event, level, isPreview=false) => {
+    if(readOnly||!onChangeEdit||saving||!coordinateApi?.yToPrice)return;
+    if(!isPreview&&!onBeginEdit)return;
+    if(!(level.objectType==='pending'&&['entry','limitPrice'].includes(level.kind))&&!['sl','tp'].includes(level.kind))return;
+    if(event.button!==0||event.target.closest('button'))return;
+    const startingPrice=Number(isPreview ? level.confirmedPrice ?? edit?.confirmedPrice ?? level.price : level.price);
+    const levelY=coordinateApi.priceToY(level.price);
+    if(!Number.isFinite(levelY))return;
+    event.preventDefault();
+    event.stopPropagation();
+    const draft={
+      accountId:level.accountId,objectType:level.objectType,objectId:level.objectId,
+      kind:level.kind,levelId:isPreview?level.sourceLevelId:level.id,
+      confirmedPrice:startingPrice,proposedPrice:level.price,
+    };
+    drag.current={draft,startY:event.clientY,startChartY:levelY,started:false,next:null};
+  };
+  const selectOwner=(event,level)=>{
+    if(event.target.closest('button')||
+      (level.id===recentDrag.current.levelId&&Date.now()-recentDrag.current.at<250))return;
+    if(level.objectType==='position')onSelectPosition?.(level.objectId);
+    else if(level.objectType==='pending')onSelectPending?.(level.objectId);
+  };
+
+  return <div className="pointer-events-none absolute inset-0 z-[36] overflow-hidden" data-v4-isolated-layer
+    style={{ height }}>
+    {displayedLevels.map(level=>{
+      const color=colorFor(level);
+      const location=placed.get(level.id);
+      const groupId=level.accountId+':'+level.objectType+':'+level.objectId;
+      const highlighted=hoveredGroupId===groupId;
+      const missing=level.kind==='entry' ? (level.objectType==='position' ? v4MissingProtections(accepted,level.id) :
+        v4MissingPendingProtections(accepted,level.id)) : [];
+      const marketProtection = ['sl','tp'].includes(level.kind);
+      const pendingEntry = level.objectType==='pending' && level.kind==='entry';
+      const pendingLimit = level.objectType==='pending' && level.kind==='limitPrice';
+      const pendingOrder = (pendingEntry || pendingLimit) ? pendingOrders.find(item=>String(item.id)===level.objectId) : null;
+      const pendingEditing = pendingEntry && edit?.objectType==='pending' && String(edit.objectId)===level.objectId;
+      const pendingMissing = readOnly ? [] : missing.filter(kind=>!(pendingEditing && edit?.kind===kind));
+      const movingAccepted = ghost?.sourceLevelId === level.id;
+      const displayed = movingAccepted ? {...level,price:ghost.price} : level;
+      const editingAcceptedProtection = false;
+      const projection = marketProtection ? projectedPositionProtection(displayed) : null;
+      const entryLevel = marketProtection ? accepted.find(value => value.objectType===level.objectType &&
+        value.objectId===level.objectId && value.kind==='entry') : null;
+      const protectionBase = projection?.reference ?? entryLevel?.price;
+      const percent = marketProtection && Number(protectionBase)>0
+        ? Math.abs((displayed.price / protectionBase - 1) * 100).toFixed(2)+'%' : '—';
+      const pendingLabel = String(pendingOrder?.orderType || level.orderType || 'limit')
+        .replaceAll('_','-').toUpperCase().replaceAll('-',' ');
+      const pendingSide = String(level.side || '').toUpperCase();
+      const pendingVolume = Number(level.volume ?? pendingOrder?.volume ?? pendingOrder?.lots);
+      const pendingSize = Number.isFinite(pendingVolume) ? String(pendingVolume) : '—';
+      return <React.Fragment key={level.id}>
+        <div data-v4-accepted-line={level.id} className="pointer-events-none absolute left-0 right-0 border-t"
+          style={{top:level.y,borderColor:color,opacity:highlighted?0.9:0.66}}/>
+        {location && !editingAcceptedProtection && <div data-v4-badge={level.id}
+          data-v4-selected-owner={level.objectType+':'+level.objectId}
+          onClick={event=>selectOwner(event,level)}
+          onPointerDown={event=>beginDrag(event,level)} onMouseEnter={()=>setHoveredId(groupId)} onMouseLeave={()=>setHoveredId(null)}
+          onFocus={()=>setHoveredId(groupId)} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))setHoveredId(null);}}
+          className={`pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] items-center ${marketProtection ? 'gap-0 tabular-nums backdrop-blur-sm' : pendingEntry ? 'gap-1 px-1.5' : pendingLimit ? 'gap-0' : 'gap-1 bg-[#111419]/95 px-1.5'} ${pendingEditing ? 'overflow-visible' : 'overflow-hidden'} rounded-[5px] border font-mono text-[10px] text-white shadow-[0_3px_12px_rgba(0,0,0,.36)] transition-[box-shadow]`}
+          style={{top:movingAccepted ? coordinateApi.priceToY(ghost.price)-14 : location.badgeTop,borderColor:marketProtection?color+'aa':color,
+            backgroundColor:marketProtection?protectionTheme(level.kind).background:(pendingEntry || pendingLimit ? '#09090b' : undefined),
+            boxShadow:highlighted?'0 0 10px rgba(215,223,231,.12)':undefined}}>
+          {marketProtection ? <>
+            <span data-v4-drag-handle={level.id} aria-label={`Drag ${level.kind.toUpperCase()} level`}
+              className="shrink-0 cursor-ns-resize touch-none px-1.5 text-[11px] tracking-[-2px] text-[#7c8994]" title={`Drag ${level.kind.toUpperCase()}`}>⠿</span>
+            <span className="shrink-0 whitespace-nowrap font-sans text-[10px] font-semibold" style={{color}}>{level.kind==='tp'?'Take profit':'Stop loss'}</span>
+            <span className="shrink-0 px-1.5 font-mono font-semibold tabular-nums text-[#e5ebf0]">{protectionPriceLabel(displayed.price,formatPrice)}</span>
+            <span className="shrink-0 rounded-[3px] px-1.5 py-0.5 font-mono font-semibold tabular-nums" style={{color,backgroundColor:protectionTheme(level.kind).positive}}>{projection.amount}</span>
+            <span className="shrink-0 pr-1.5 font-sans text-[9px] font-medium tabular-nums text-[#929ba4]">{percent}</span>
+          </> : pendingEntry ? <>
+            <span data-v4-pending-grip={level.id} className="shrink-0 cursor-ns-resize touch-none text-[11px] tracking-[-2px] text-[#7c8994]" title="Drag placed entry">⠿</span>
+            {pendingMissing.map(kind=><button key={kind} type="button"
+              aria-label={['Add',kind.toUpperCase(),'to',pendingSide,pendingLabel,'order'].join(' ')}
+              className="shrink-0 rounded-[3px] border border-white/10 px-1 py-0.5 text-[9px] text-[#aeb7c0] hover:border-white/25 hover:text-white"
+              onPointerDown={event=>event.stopPropagation()}
+              onClick={event=>{event.stopPropagation();onAddProtection?.(level.objectId,kind,'pending');}}>+{kind.toUpperCase()}</button>)}
+            <span data-v4-pending-side className="shrink-0 font-sans font-bold" style={{color}}>{pendingSide}</span>
+            <span data-v4-pending-size className="shrink-0 tabular-nums text-[#dbe2e7]">{pendingSize}</span>
+            <span data-v4-pending-type className="shrink-0 rounded-[3px] bg-white/[0.055] px-1.5 py-0.5 font-sans text-[9px] font-semibold text-[#aeb7c0]">{pendingLabel}</span>
+          </> : pendingLimit ? <>
+            <span data-v4-drag-handle={level.id} className="shrink-0 cursor-ns-resize touch-none px-1.5 text-[11px] tracking-[-2px] text-[#7c8994]">⠿</span>
+            <span className="shrink-0 font-sans font-semibold" style={{color}}>Limit price</span>
+          </> : <span className="shrink-0 font-semibold" style={{color}}>{level.kind==='sl'?'Stop loss':level.kind==='tp'?'Take profit':level.side}</span>}
+          {level.kind==='entry' && level.objectType==='position' && <span className="shrink-0 text-gray-300">{formatVolume?.(level.volume) ?? level.volume}</span>}
+          {pendingLimit && <span className="shrink-0 px-1.5 font-mono font-semibold tabular-nums text-[#e5ebf0]">{protectionPriceLabel(level.price,formatPrice)}</span>}
+          {level.kind!=='entry' && !marketProtection && !pendingLimit && <span className="shrink-0">{priceLabel(displayed.price,formatPrice)}</span>}
+          {level.kind==='entry' && level.objectType==='position' && formatPnl && <span className="truncate" style={{color}}>{formatPnl(level.pnl)}</span>}
+          {level.kind==='entry' && level.objectType==='position' && onSelectPosition && <button type="button" aria-label="Select position" onClick={()=>onSelectPosition(level.objectId)} className="shrink-0 px-1 text-gray-300">Select</button>}
+          {level.kind==='entry' && level.objectType==='position' && onClosePosition && <button type="button" aria-label="Close position" onClick={()=>onClosePosition(level.objectId, 100)} className="shrink-0 px-1 text-gray-300">×</button>}
+          {level.kind==='entry' && level.objectType==='pending' && onCancelPending && <button type="button" aria-label="Cancel pending order" onClick={()=>setCancelPendingId(level.id)} className="shrink-0 px-1 text-gray-300">×</button>}
+          {level.objectType==='position' && missing.map(kind=><button key={kind} type="button" onClick={()=>onAddProtection?.(level.objectId,kind,'position')}
+            className="shrink-0 rounded-[3px] border border-gray-600 px-1" aria-label={`Add ${kind.toUpperCase()}`}>+{kind.toUpperCase()}</button>)}
+          {(['sl','tp'].includes(level.kind) || (level.objectType==='pending' && level.kind==='entry'))&&onBeginEdit&&!marketProtection&&!pendingEntry&&<button type="button" className="shrink-0 px-1"
+            aria-label={`Edit ${level.kind.toUpperCase()}`} onClick={()=>onBeginEdit(v4ProtectionAction(accepted,level.id,'edit'))}>Edit</button>}
+          {(['sl','tp'].includes(level.kind))&&canRemove&&<button type="button"
+            aria-label={`Remove ${level.kind.toUpperCase()}`}
+            title={removingLevelId===level.id ? 'Removing…' : `Remove ${level.kind.toUpperCase()}`}
+            disabled={saving || Boolean(removingLevelId)}
+            data-v4-remove-protection={level.id}
+            className={marketProtection ? 'grid h-7 w-6 shrink-0 place-items-center border-l border-white/10 text-[#99a6b0] hover:bg-white/[0.06] hover:text-white disabled:cursor-wait disabled:opacity-50' : 'shrink-0 px-1 disabled:opacity-50'}
+            onPointerDown={event=>event.stopPropagation()}
+            onClick={event=>{
+              event.stopPropagation();
+              const action = v4ProtectionAction(accepted,level.id,'remove');
+              if(action) onRemoveProtection?.(action);
+            }}>{removingLevelId===level.id ? '…' : '×'}</button>}
+          {pendingEditing && !dragPreview && !readOnly && <div data-v4-pending-chart-actions data-v4-chart-actions
+            data-v4-actions-location="pending-entry"
+            className="pointer-events-auto absolute right-[calc(100%+6px)] top-1/2 z-40 flex -translate-y-1/2 items-center gap-1 whitespace-nowrap"
+            onPointerDown={event=>event.stopPropagation()}>
+            <button type="button" disabled={saving} aria-label="Discard chart edit"
+              onClick={event=>{event.stopPropagation();onCancelEdit?.();}}
+              className="h-7 rounded-[4px] border border-[#5d6771] bg-[#14171b] px-2.5 font-mono text-[10px] font-semibold text-[#e2e7ec] hover:bg-[#242a30] disabled:opacity-50">Discard</button>
+            <button type="button" disabled={saving} aria-label="Confirm chart edit"
+              onClick={event=>{event.stopPropagation();onSaveEdit?.(edit);}}
+              className="h-7 rounded-[4px] border border-[#17b899] bg-[#148f77] px-2.5 font-mono text-[10px] font-semibold text-white hover:brightness-110 disabled:opacity-50">{saving?'Confirming…':'Confirm'}</button>
+          </div>}
+        </div>}
+        {(marketProtection || pendingLimit || pendingEntry) && <div data-v4-accepted-protection-price={level.id}
+          className="pointer-events-none absolute right-[56px] flex -translate-y-1/2 items-center gap-1.5 lg:right-2"
+          style={{top:level.y}}>
+          <span className="size-[6px] rounded-full border" style={{borderColor:color,backgroundColor:'#09090b'}}/>
+          <span className="rounded-[4px] border bg-[#09090b]/95 px-1.5 py-0.5 font-mono text-[9px] font-semibold"
+            style={{borderColor:color,color}}>{priceLabel(level.price,formatPrice)}</span>
+        </div>}
+        {location?.displaced && <div className="pointer-events-none absolute right-[140px] w-px bg-[#98a7b6]/70"
+          style={{top:Math.min(level.y,location.badgeTop+14),height:Math.abs(level.y-(location.badgeTop+14))}}
+          aria-hidden="true"/>}
+      </React.Fragment>;
+    })}
+    {hoveredGroupId && coordinateApi?.priceToY && (() => {
+      const group=acceptedWithCoordinates.filter(level =>
+        level.accountId+':'+level.objectType+':'+level.objectId===hoveredGroupId);
+      const entry=group.find(level=>level.kind==='entry');
+      const protections=group.filter(level=>['tp','sl','limitPrice'].includes(level.kind));
+      if (!entry || !protections.length) return null;
+      const ys=[entry.y,...protections.map(level=>level.y)];
+      return <div data-v4-hover-group={entry.objectId}
+        className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div data-v4-confirmed-connector={entry.objectId}
+          className="absolute right-[138px] w-px bg-[#b5c3ce]/75 shadow-[0_0_7px_rgba(195,214,229,.12)]"
+          style={{top:Math.min(...ys),height:Math.max(...ys)-Math.min(...ys)}}/>
+        {[entry,...protections].map(level=><div key={level.id}
+          data-v4-hover-connector-point={level.kind}
+          className="absolute right-[136px] size-[5px] -translate-y-1/2 rounded-full bg-[#b5c3ce]"
+          style={{top:level.y}}/>)}
+      </div>;
+    })()}
+    {!readOnly && connector && coordinateApi?.priceToY && Number.isFinite(coordinateApi.priceToY(connector.fromPrice)) && Number.isFinite(coordinateApi.priceToY(connector.toPrice)) && <div
+      data-v4-draft-connector={connector.objectId}
+      className="pointer-events-none absolute right-[135px] border-l border-dotted border-[#a8b5bd]/60"
+      style={{top:Math.min(coordinateApi.priceToY(connector.fromPrice),coordinateApi.priceToY(connector.toPrice)),
+        height:Math.abs(coordinateApi.priceToY(connector.fromPrice)-coordinateApi.priceToY(connector.toPrice))}} />}
+    {!readOnly && ghost && coordinateApi?.priceToY && Number.isFinite(coordinateApi.priceToY(ghost.price)) && <div data-v4-preview={ghost.id}>
+      <div className="absolute left-0 right-0 border-t border-dotted" style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost)}}/>
+      {!ghost.sourceLevelId && <div data-v4-draft-badge
+        onPointerDown={event=>beginDrag(event,ghost,true)}
+        className={`pointer-events-auto absolute right-[148px] flex h-7 max-w-[calc(100%-162px)] -translate-y-1/2 items-center rounded-[5px] border font-mono text-[10px] tabular-nums text-white shadow-[0_3px_12px_rgba(0,0,0,.36)] ${['tp','sl'].includes(ghost.kind) ? 'gap-0 cursor-ns-resize touch-none border-dotted' : 'gap-1 cursor-ns-resize touch-none border-dotted px-1.5'}`}
+        style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost),
+          backgroundColor:'#09090b'}}>
+        {['tp','sl'].includes(ghost.kind) ? (() => {
+          const projection = projectedPositionProtection(ghost);
+          const entry = accepted.find(value => value.objectType===ghost.objectType &&
+            value.objectId===ghost.objectId && value.kind==='entry');
+          const reference = projection.reference ?? entry?.price;
+          const percent = Number(reference)>0
+            ? Math.abs((ghost.price / reference - 1) * 100).toFixed(2)+'%' : '—';
+          return <>
+            <span data-v4-drag-handle="draft" aria-label={`Drag draft ${ghost.kind.toUpperCase()}`}
+              className="shrink-0 cursor-ns-resize touch-none px-1.5 text-[11px] tracking-[-2px] text-[#7c8994]">⠿</span>
+            <span className="shrink-0 whitespace-nowrap font-sans text-[10px] font-semibold" style={{color:colorFor(ghost)}}>{ghost.kind==='tp'?'Take profit':'Stop loss'}</span>
+            <span className="shrink-0 px-1.5 font-mono font-semibold tabular-nums text-[#e5ebf0]">{protectionPriceLabel(ghost.price,formatPrice)}</span>
+            <span className="shrink-0 rounded-[3px] px-1.5 py-0.5 font-mono font-semibold tabular-nums" style={{color:colorFor(ghost),backgroundColor:protectionTheme(ghost.kind).positive}}>{projection.amount}</span>
+            <span className="shrink-0 pr-1.5 font-sans text-[9px] font-medium tabular-nums text-[#929ba4]">{percent}</span>
+            <button type="button" aria-label="Discard protection draft" disabled={saving} onClick={()=>onCancelEdit?.()}
+              className="grid h-7 w-6 shrink-0 place-items-center border-l border-white/10 text-[#9aa4ae] hover:bg-white/[0.06] disabled:opacity-50">×</button>
+          </>;
+        })() : <>
+          <span data-v4-pending-draft-kind style={{color:colorFor(ghost)}}>{ghost.kind==='limitPrice'?'Limit price':ghost.objectType==='pending'?'Draft '+(ghost.orderType==='stop-limit'?'stop trigger':'limit entry'):'Pending entry'}</span>
+          <span>{priceLabel(ghost.price,formatPrice)}</span>
+          {ghost.objectType!=='pending' && <div data-v4-chart-actions data-v4-actions-location="draft" className="ml-1 flex shrink-0 items-center gap-1 whitespace-nowrap border-l border-white/15 pl-1" aria-label="Draft level actions">
+            <button type="button" disabled={saving} aria-label="Discard chart edit" onClick={()=>onCancelEdit?.()} className="rounded border border-[#515b66] bg-[#14171c] px-2 py-1 text-[#e4e8ed]">Discard</button>
+            <button type="button" disabled={saving || !onSaveEdit} aria-label="Confirm chart edit" onClick={()=>onSaveEdit?.(edit)} className="rounded px-2 py-1 font-semibold text-white disabled:opacity-50" style={{background:ghost.kind==='tp'?'#148968':ghost.kind==='sl'?'#bd4353':'#2469b5'}}>{saving?'Confirming…':'Confirm'}</button>
+          </div>}
+        </>}
+      </div>}
+      {['position','pending'].includes(ghost.objectType) && <span data-v4-protection-draft-price
+        className="pointer-events-none absolute right-[56px] -translate-y-1/2 rounded-[4px] border border-dotted bg-[#09090b]/96 px-1.5 py-0.5 font-mono text-[9px] font-semibold lg:right-2"
+        style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost),color:colorFor(ghost)}}>
+        {priceLabel(ghost.price,formatPrice)}
+      </span>}
+    </div>}
+    {!readOnly && secondaryPreview && coordinateApi?.priceToY &&
+      Number.isFinite(coordinateApi.priceToY(secondaryPreview.price)) && <div
+      data-v4-secondary-preview={secondaryPreview.id} className="pointer-events-none absolute inset-0">
+      <div data-v4-secondary-dotted-line className="absolute left-0 right-0 border-t border-dotted border-[#b69adc]/75"
+        style={{top:coordinateApi.priceToY(secondaryPreview.price)}}/>
+      <div data-v4-secondary-draft-badge
+        className="absolute right-[148px] flex h-7 -translate-y-1/2 items-center gap-1 rounded-[5px] border border-dotted border-[#b69adc]/80 bg-[#09090b] px-2 font-mono text-[10px] text-[#d2baf0]"
+        style={{top:coordinateApi.priceToY(secondaryPreview.price)}}>
+        <span className="font-sans font-semibold">Limit price · preview</span>
+        <span className="font-mono font-semibold tabular-nums text-white">{protectionPriceLabel(secondaryPreview.price,formatPrice)}</span>
+      </div>
+      <div className="absolute right-[56px] -translate-y-1/2 rounded-[4px] border border-dotted border-[#b69adc]/80 bg-[#09090b] px-1.5 py-0.5 font-mono text-[9px] text-[#d2baf0]"
+        style={{top:coordinateApi.priceToY(secondaryPreview.price)}}>{priceLabel(secondaryPreview.price,formatPrice)}</div>
+    </div>}
+    {overflow.length>0&&<span className="pointer-events-auto absolute bottom-2 right-[148px] rounded bg-[#202329] px-2 py-1 text-[10px] text-gray-300"
+      data-v4-overflow-count={overflow.length}>{overflow.length} more levels outside badge area</span>}
+    {!readOnly && cancelPendingId && <div role="dialog" aria-modal="true" aria-label="Confirm cancel pending order"
+      className="pointer-events-auto absolute bottom-3 right-[148px] z-[60] flex max-w-[300px] flex-col gap-2 rounded-md border border-gray-600 bg-[#111419] p-3 text-[11px] text-white">
+      <span>Cancel this pending order?</span>
+      <div className="flex gap-2">
+        <button type="button" disabled={saving} onClick={()=>setCancelPendingId(null)}>Discard</button>
+        <button type="button" disabled={saving} onClick={()=>{ const item=accepted.find(level=>level.id===cancelPendingId); if(item) onCancelPending?.(item.objectId); setCancelPendingId(null); }}>Confirm cancellation</button>
+      </div>
+    </div>}
+  </div>;
+}

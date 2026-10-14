@@ -100,8 +100,8 @@ export function resolveV4PositionSizing({ mode, amount, plan, account, instrumen
     lots = normalizeVolumeToStep(value, instrument, { rounding: 'nearest' });
     backendMode = 'lots';
   } else if (mode === 'margin') {
-    if (accountCurrency !== currency(instrument?.marginCurrency || instrument?.quoteCurrency)) {
-      return fail('MARGIN_CONVERSION_UNKNOWN', 'Account-currency margin conversion is unavailable; use Lots.');
+    if (!finitePositive(estimateRequiredMargin(reference,1,instrument,account))) {
+      return fail('MARGIN_CONVERSION_UNKNOWN', 'Verified account-currency margin conversion is unavailable.');
     }
     lots = affordableMarginLots({ target: value, spec, plan: ref.plan, instrument, account, reference });
     if (lots === null) return fail('MARGIN_UNAVAILABLE', 'Instrument margin requirements cannot be verified.');

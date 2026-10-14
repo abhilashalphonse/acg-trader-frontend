@@ -10,6 +10,7 @@ import { resolveV4PositionSizing } from '../../../utils/v4ExecutionPrecision.js'
 import { v4ExitPriceFromInput, v4ExitValueFromPrice } from '../../../utils/v4ProtectionPrecision.js';
 import { estimateExecutionPrice } from '../../../utils/executionPricing.js';
 import { deriveV4AffordableVolume, v4LotsFromTrack, v4TrackFromLots, v4CryptoQuantity } from '../../../utils/v4SliderSizing.js';
+import { convertFreshFx, conversionQuoteSymbolsForInstrument } from '../../../utils/verifiedFxConversion.js';
 import './DesktopOrderTicketV4.css';
 
 // This is a PRODUCTION PRESENTATION ADAPTER, gated off by default in DesktopTerminal.
@@ -77,7 +78,7 @@ function PendingPriceInput({label,price,instrument,disabled,onCommit,onNotice}) 
       if(e.key==='Escape'){cancel.current=true;e.currentTarget.blur();}
     }}/>;
 }
-function ProtectionCard({field,active,onToggle,unit,onUnit,plan,market,account,lots,sizingMode,onPrice,onNotice}) {
+export function ProtectionCard({field,active,onToggle,unit,onUnit,plan,market,account,lots,sizingMode,onPrice,onNotice,disabled=false}) {
   const title = field==='sl'?'Stop Loss':'Take Profit';
   const rawPrice=positive(plan?.[field]);
   const hasPlan=Boolean(plan?.side);
@@ -89,7 +90,7 @@ function ProtectionCard({field,active,onToggle,unit,onUnit,plan,market,account,l
   const [draft,setDraft]=useState('');
   const abort=useRef(false);
   const locked=field==='sl' && ['riskPercent','riskUSD'].includes(sizingMode) && ['usd','balance'].includes(unit);
-  const canEdit=active && hasPlan && !locked && projection?.valid===true;
+  const canEdit=active && !disabled && hasPlan && !locked && projection?.valid===true;
   const currentValue=projection?.valid ? projection.value : null;
   const labelFor=(id)=>{
     if(id==='usd')return field==='sl'?'Risk USD':'Profit USD';
@@ -109,7 +110,7 @@ function ProtectionCard({field,active,onToggle,unit,onUnit,plan,market,account,l
   return <div className={'v4-exit-card'+(!active?' is-disabled':'')}>
     <div className="v4-exit-heading">
       <strong>{title}</strong>
-      <button type="button" className="v4-exit-toggle" onClick={onToggle} aria-pressed={active}>
+      <button type="button" className="v4-exit-toggle" onClick={onToggle} disabled={disabled} aria-pressed={active}>
         {active?<CheckCircle2 size={20} fill="#F2F2F4" color="#F2F2F4" className="v4-check-on"/>
           :<Circle size={20} color="#898990"/>}
         <span>{active?'Enabled':'Disabled'}</span>
@@ -123,7 +124,7 @@ function ProtectionCard({field,active,onToggle,unit,onUnit,plan,market,account,l
           onChange={e=>setDraft(e.target.value)} onBlur={apply}
           onKeyDown={e=>{if(e.key==='Enter')e.currentTarget.blur();if(e.key==='Escape'){abort.current=true;e.currentTarget.blur();}}}/>
         <div className="v4-select-wrap">
-          <select aria-label={title+' input unit'} value={unit} onChange={e=>{onUnit(e.target.value);setFocused(false);}}>
+          <select aria-label={title+' input unit'} value={unit} disabled={disabled} onChange={e=>{onUnit(e.target.value);setFocused(false);}}>
             {exitUnits.map(([id])=><option key={id} value={id}
               disabled={field==='sl' && ['riskPercent','riskUSD'].includes(sizingMode) && ['usd','balance'].includes(id)}>
               {labelFor(id)}
@@ -150,6 +151,7 @@ export default function DesktopOrderTicketV4({
   onManualOrder=()=>{},onTradePlanChange=()=>{},onNotice=()=>{},
   exposureAllowed=true,exposureBlockReason='New exposure unavailable',
   executionCommandPending=false,
+  conversionMarkets=[],
   onCloseTicket=()=>{},
   onOpenMarkets=()=>{},
 }) {
@@ -175,6 +177,20 @@ export default function DesktopOrderTicketV4({
   // Initial protection toggles only apply to one chart plan.
   useEffect(()=>{if(tradePlan?.symbol){setWantSl(false);setWantTp(false);}},[tradePlan?.symbol]);
   const currency=account?.currency||'USD';
+  const fxRequired=String(market?.marginCurrency||market?.quoteCurrency||'').toUpperCase()!==String(currency).toUpperCase();
+  const [fxFreshnessTick,setFxFreshnessTick]=useState(0);
+  useEffect(()=>{
+    if(!fxRequired)return undefined;
+    const timer=window.setInterval(()=>setFxFreshnessTick(t=>t+1),2000);
+    return()=>window.clearInterval(timer);
+  },[fxRequired]);
+  const previewAccount=useMemo(()=>({...account,conversionMarkets}),[account,conversionMarkets]);
+  const fxReady=!fxRequired||Number.isFinite(convertFreshFx(1,
+    market?.marginCurrency||market?.quoteCurrency,currency,conversionMarkets));
+  void fxFreshnessTick;
+  const fxQuoteSymbols=conversionQuoteSymbolsForInstrument(market,conversionMarkets,currency);
+  const fxMessage='Live '+String(market?.marginCurrency||market?.quoteCurrency||'FX').toUpperCase()+
+    ' → '+currency+' conversion unavailable'+(fxQuoteSymbols.length?' · waiting for '+fxQuoteSymbols.join(' / '):'')+'.';
   const family=orderType==='market'?'market':'pending';
   const capabilities=deriveAccountCapabilities(account);
   const effective=useMemo(()=>effectiveTradePlan(tradePlan,market),[tradePlan,market]);
@@ -189,9 +205,9 @@ export default function DesktopOrderTicketV4({
     // Risk sizing without a side/SL is an uncommitted budget, not lots.
     if(!effective && ['riskPercent','riskUSD'].includes(uiMode))return null;
     if(!effective||effective.sizingMode!=='risk')return positive(lots);
-    const result=resolveV4PositionSizing({mode:'riskPercent',amount:riskPercent,plan:effective,account,instrument:market});
+    const result=resolveV4PositionSizing({mode:'riskPercent',amount:riskPercent,plan:effective,account:previewAccount,instrument:market});
     return result.canExecute?result.lots:null;
-  },[effective,account,market,lots,riskPercent,uiMode]);
+  },[effective,previewAccount,market,lots,riskPercent,uiMode]);
   const volume=positive(effectiveLots);
   const step=positive(market?.volumeStep)||0.01;
   const min=positive(market?.minVolume)||step;
@@ -203,17 +219,19 @@ export default function DesktopOrderTicketV4({
   const liveModeledPrice=volume
     ?positive(estimateExecutionPrice(market,effective?.side||'buy',volume)?.price):null;
   const previewRef=effective?.pending?planRef:(liveModeledPrice||planRef||positive(market?.ask));
-  const margin=volume&&previewRef?estimateRequiredMargin(previewRef,volume,market,account):null;
-  const requirement=volume&&previewRef?estimateOpeningRequirement(previewRef,volume,market,account):null;
+  const margin=volume&&previewRef?estimateRequiredMargin(previewRef,volume,market,previewAccount):null;
+  const requirement=volume&&previewRef?estimateOpeningRequirement(previewRef,volume,market,previewAccount):null;
   const freeAfter=Number.isFinite(Number(account?.freeMargin)) && account?.freeMargin!=null&&Number.isFinite(requirement)
     ? Number(account.freeMargin)-requirement:null;
   const risk=effective&&volume&&positive(effective.sl)
-    ? estimateLossAtStopWithCosts({...effective,entry:previewRef||effective.entry},volume,market,account):null;
+    ? estimateLossAtStopWithCosts({...effective,entry:previewRef||effective.entry},volume,market,previewAccount):null;
   const stopDistance=previewRef&&positive(effective?.sl)?Math.abs(previewRef-effective.sl):null;
   const tpDistance=previewRef&&positive(effective?.tp)?Math.abs(previewRef-effective.tp):null;
   const rr=Number.isFinite(stopDistance)&&stopDistance>0&&Number.isFinite(tpDistance)?tpDistance/stopDistance:null;
-  const notional=volume&&previewRef&&positive(market?.contractSize)&&String(market?.quoteCurrency||'').toUpperCase()===String(currency).toUpperCase()
+  const quoteNotional=volume&&previewRef&&positive(market?.contractSize)
     ?volume*previewRef*Number(market.contractSize):null;
+  const notional=quoteNotional==null?null:convertFreshFx(
+    quoteNotional,market?.quoteCurrency,currency,conversionMarkets);
   const selectedValue=uiMode==='lots'?Number(lots):uiMode==='margin'?(marginBudget??margin)
     :uiMode==='riskPercent'?Number(riskPercent):accountValid?Number(account.equity)*Number(riskPercent)/100:null;
   const activeMode=uiMode==='riskUSD'||uiMode==='riskPercent'?'risk':'lots';
@@ -263,7 +281,7 @@ export default function DesktopOrderTicketV4({
       return;
     }
     const plan=effective||fakePlanForIndicative;
-    const result=resolveV4PositionSizing({mode:uiMode,amount:value,plan,account,instrument:market});
+    const result=resolveV4PositionSizing({mode:uiMode,amount:value,plan,account:previewAccount,instrument:market});
     if(uiMode==='margin'){
       if(!result.canExecute){notice(result.message||'Unable to calculate position size');return;}
       onLotsChange(result.lots);onSizingModeChange('lots');
@@ -288,7 +306,7 @@ export default function DesktopOrderTicketV4({
       // A new chart plan will create a default SL, and then compute lots.
       const priceReference=planRef||positive(effective?.entry);
       const perLot=effective?.sl&&volume&&priceReference
-        ?estimateLossAtStopWithCosts({...effective,entry:priceReference},volume,market,account):null;
+        ?estimateLossAtStopWithCosts({...effective,entry:priceReference},volume,market,previewAccount):null;
       if(activeMode!=='risk'&&Number.isFinite(perLot)&&positive(account?.equity)){
         onRiskPercentChange(perLot/Number(account.equity)*100);
       }
@@ -374,10 +392,15 @@ export default function DesktopOrderTicketV4({
   // Starting a risk plan does NOT submit an order. Its first SL and
   // estimated volume are calculated after Buy/Sell sets the direction.
   const canTrade=canStartPlan&&(requiresPlan||(financialVerified&&Boolean(volume)));
+  // A slider-generated pending draft has no explicit side choice yet.
+  const pendingReview=family==='pending'&&Boolean(tradePlan)&&tradePlan?.source!=='v4-slider';
+  const reviewedSide=String(effective?.side||'').toLowerCase();
+  const pendingActionName=tradePlan?.editingOrderId?'Save Order Changes'
+    :'Place '+reviewedSide.toUpperCase()+' '+String(effective?.orderType||orderType).replaceAll('-',' ').toUpperCase();
   const executionDisabledReason=Number.isFinite(freeAfter)&&freeAfter<0
     ? 'Insufficient free margin — reduce position size.'
     : !financialVerified
-      ? 'Opening margin, fees, and free margin must be verified before V4 execution.'
+      ? (fxRequired&&!fxReady?fxMessage:'Opening margin, fees, and free margin must be verified before V4 execution.')
       : !volume?'Position size is not executable.':null;
   const submitOnce=callback=>{
     if(submittingRef.current || executionCommandPending)return;
@@ -399,13 +422,17 @@ export default function DesktopOrderTicketV4({
   const place=side=>{
     // Selecting the opposite side switches the existing chart draft,
     // without ever dispatching an order for that first side change.
-    if(tradePlan?.source==='v4-slider'&&effective?.side!==side&&!tradePlan.editingOrderId){
+    if(tradePlan?.source==='v4-slider'&&!tradePlan.editingOrderId &&
+      (family==='pending'||effective?.side!==side)){
       setDraftSide(side);
       onStartPlan(side,orderType,{
         protection:activeMode==='risk'||hasSl?'sl':hasTp?'tp':'none',
-        sizingMode:activeMode,manualLots:volume||lots,source:'v4-slider',
+        sizingMode:activeMode,manualLots:volume||lots,
+        // Explicit side selection on pending drafts disarms the provisional flag.
+        ...(family==='market'?{source:'v4-slider'}:{}),
         desktopPendingDraft:family==='pending',
       });
+      if(family==='pending')notice('Review the chart-linked pending order, then press Place Order.');
       return;
     }
     if(!canTrade){if(!executionCommandPending&&!localSubmitting)notice(!exposureAllowed?exposureBlockReason:executionDisabledReason||'Waiting for executable market quote.');return;}
@@ -415,7 +442,9 @@ export default function DesktopOrderTicketV4({
         const protection=(wantSl||capabilities.stopLossRequiredForManualLots||activeMode==='risk')
           ?(wantTp?'both':'sl'):(wantTp?'tp':'none');
         onStartPlan(side,orderType,{protection,desktopPendingDraft:family==='pending'});
-        notice('Review the chart-linked order, then press '+side.toUpperCase()+' again to execute.');
+        notice(family==='pending'
+          ?'Review the chart-linked pending order, then press Place Order.'
+          :'Review the chart-linked order, then press '+side.toUpperCase()+' again to execute.');
         return;
       }
       submitOnce(()=>onManualOrder({side,symbol:market.symbol,lots:normalLots(lots),price:side==='buy'?market.ask:market.bid}));
@@ -449,7 +478,7 @@ export default function DesktopOrderTicketV4({
     :fmt(volume,lotPrecision)+' lots';
   const translation=()=>{
     if(!volume)return '—';
-    if(uiMode==='lots')return <>{volumeLabel} <ArrowRight size={13}/> {Number.isFinite(notional)?'~'+money(notional,currency):'—'} <span>{Number.isFinite(notional)&&accountBalance?'('+fmt(notional/accountBalance*100)+'% balance)':'Balance conversion unavailable'}</span></>;
+    if(uiMode==='lots')return <>{volumeLabel} <ArrowRight size={13}/> {Number.isFinite(notional)?'~'+money(notional,currency):'—'} <span>{Number.isFinite(notional)&&accountBalance?'('+fmt(notional/accountBalance*100)+'% balance)':''}</span></>;
     if(uiMode==='margin')return <>{money(margin,currency)} margin <ArrowRight size={13}/> {fmt(volume,lotPrecision)} lots <span>{accountBalance&&Number.isFinite(margin)?'('+fmt(margin/accountBalance*100)+'% balance)':''}</span></>;
     if(uiMode==='riskPercent')return <>{Number.isFinite(risk)&&accountValid?fmt(risk/Number(account.equity)*100)+'% risk':'—'} <ArrowRight size={13}/> {money(risk,currency)} <span>({fmt(volume,lotPrecision)} lots)</span></>;
     return <>{money(risk,currency)} risk <ArrowRight size={13}/> {fmt(volume,lotPrecision)} lots <span>{Number.isFinite(risk)&&accountValid?'('+fmt(risk/Number(account.equity)*100)+'% equity)':''}</span></>;
@@ -458,10 +487,10 @@ export default function DesktopOrderTicketV4({
   // value being dragged. The old "current margin * 4" feedback loop
   // repeatedly rescaled the track after every lot-step conversion.
   const affordable=useMemo(()=>deriveV4AffordableVolume({
-    instrument:market,account,side:effective?.side||draftSide,
+    instrument:market,account:previewAccount,side:effective?.side||draftSide,
     pending:Boolean(effective?.pending),
     referencePrice:planRef,
-  }),[market,account,effective?.side,effective?.pending,draftSide,planRef]);
+  }),[market,previewAccount,effective?.side,effective?.pending,draftSide,planRef]);
   const lotRange={
     minLots:affordable.minLots||min,
     maxLots:affordable.affordableLots,
@@ -469,8 +498,8 @@ export default function DesktopOrderTicketV4({
   };
   const lotsTrackEnabled=affordable.valid&&Number(affordable.affordableLots)>=min;
   const baseSliderQuote=positive(market?.ask)||positive(market?.bid);
-  const minMargin=baseSliderQuote?estimateRequiredMargin(baseSliderQuote,min,market,account):null;
-  const maxMargin=baseSliderQuote?estimateRequiredMargin(baseSliderQuote,max,market,account):null;
+  const minMargin=baseSliderQuote?estimateRequiredMargin(baseSliderQuote,min,market,previewAccount):null;
+  const maxMargin=baseSliderQuote?estimateRequiredMargin(baseSliderQuote,max,market,previewAccount):null;
   const marginCap=Number.isFinite(maxMargin)&&Number.isFinite(Number(account?.freeMargin))
     ?Math.min(maxMargin,Number(account.freeMargin)):null;
   const slideMin=uiMode==='lots'?min:uiMode==='margin'?(positive(minMargin)||0):0;
@@ -552,7 +581,7 @@ export default function DesktopOrderTicketV4({
             style={{'--fill':((trackValue-trackMin)/Math.max(1e-8,trackMax-trackMin)*100)+'%'}}/>
           <div className="v4-scale">{trackMarks.map((mark,i)=><span key={i}>{mark!=null?fmt(mark,uiMode==='lots'?2:0):'—'}</span>)}</div>
           {uiMode==='lots'&&!lotsTrackEnabled&&<span className="v4-slider-hint" role="status">
-            {affordable.valid?'Minimum volume exceeds available margin.':'Affordable range cannot be verified.'}
+            {affordable.valid?'Minimum volume exceeds available margin.':fxRequired&&!fxReady?fxMessage:'Affordable range cannot be verified.'}
           </span>}
         </div>
         <div className="v4-translation">{translation()}</div>
@@ -591,22 +620,36 @@ export default function DesktopOrderTicketV4({
       </div>
       {!exposureAllowed&&<div className="v4-notice" role="status">{exposureBlockReason}</div>}
       {!validMarket&&<div className="v4-notice" role="status">An executable quote is unavailable.</div>}
-      {validMarket&&exposureAllowed&&!financialVerified&&<div className="v4-notice" role="status">{executionDisabledReason}</div>}
+      {validMarket&&exposureAllowed&&!financialVerified&&!(fxRequired&&!fxReady&&uiMode==='lots')&&
+        <div className="v4-notice" role="status">{executionDisabledReason}</div>}
     </div>
     <div className="v4-execution-footer">
       <div className="v4-margin-summary">
         <div><span>Required margin</span><strong>{money(margin,currency)}</strong></div>
         <div><span>Free after</span><strong>{money(freeAfter,currency)}</strong></div>
       </div>
-      <div className="v4-trade-actions">
-        <button type="button" className="v4-sell" disabled={!canTrade} onClick={()=>place('sell')}>
-          <span>{family==='market'?'SELL':'SELL '+orderType.replace('-',' ').toUpperCase()}</span>
-          <strong>{formatInstrumentPrice(family==='market'?market?.bid:effective?.entry,market)}</strong>
-        </button>
-        <button type="button" className="v4-buy" disabled={!canTrade} onClick={()=>place('buy')}>
-          <span>{family==='market'?'BUY':'BUY '+orderType.replace('-',' ').toUpperCase()}</span>
-          <strong>{formatInstrumentPrice(family==='market'?market?.ask:effective?.entry,market)}</strong>
-        </button>
+      <div className={pendingReview?'v4-trade-actions v4-pending-review-actions':'v4-trade-actions'}>
+        {pendingReview?<>
+          <button type="button" className="v4-pending-discard" disabled={localSubmitting||executionCommandPending}
+            onClick={onCancelPlan} aria-label="Discard unplaced chart order">
+            <span>Discard</span>
+          </button>
+          <button type="button" className={'v4-pending-place '+(reviewedSide==='sell'?'v4-sell':'v4-buy')}
+            disabled={!canTrade} onClick={()=>place(reviewedSide)} aria-label={pendingActionName}>
+            <span>{pendingActionName}</span>
+            <strong>{volume?volumeLabel:'—'} @ {formatInstrumentPrice(
+              effective?.pending&&effective?.orderType==='stop-limit'?effective?.limitPrice:effective?.entry,market)}</strong>
+          </button>
+        </>:<>
+          <button type="button" className="v4-sell" disabled={!canTrade} onClick={()=>place('sell')}>
+            <span>{family==='market'?'SELL':'SELL '+orderType.replace('-',' ').toUpperCase()}</span>
+            <strong>{formatInstrumentPrice(family==='market'?market?.bid:effective?.entry,market)}</strong>
+          </button>
+          <button type="button" className="v4-buy" disabled={!canTrade} onClick={()=>place('buy')}>
+            <span>{family==='market'?'BUY':'BUY '+orderType.replace('-',' ').toUpperCase()}</span>
+            <strong>{formatInstrumentPrice(family==='market'?market?.ask:effective?.entry,market)}</strong>
+          </button>
+        </>}
       </div>
     </div>
   </section>;

@@ -1,10 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronUp, GripVertical, ListFilter, Plus, Search, Settings2, Star, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, GripVertical, ListFilter, MoreHorizontal, Plus, Search, Settings2, Star, X } from 'lucide-react';
 import InstrumentAvatar from '../InstrumentAvatar.jsx';
-import { instrumentPipSize } from '../../../utils/instrumentFormatting.js';
+import './DesktopMarketsV4.css';
+import { formatInstrumentPrice, instrumentPipSize } from '../../../utils/instrumentFormatting.js';
+import { isChartOrderAuditEnabled } from '../../../utils/chartOrderPresentation.js';
+import { buildV4MarketSections, selectV4Markets, v4MarketPricePresentation } from '../../../utils/v4MarketsDiscovery.js';
 import { marketCategoryId, marketVenue } from '../../../utils/marketClassification.js';
 import { commodityDisplaySymbol, commoditySearchTerms, commoditySubgroup, isCommodityInstrument } from '../../../utils/commodityPresentation.js';
 
+const V4_MARKETS_AUDIT = isChartOrderAuditEnabled(
+  import.meta.env.VITE_ACG_EXECUTION_V4_ENABLED,
+  typeof window !== 'undefined' ? window.location.search : '',
+);
 const PREFS_KEY = 'acg-trader-desktop-watchlist-v1';
 const RECENT_KEY = 'acg-trader-recent-markets-v1';
 const COLUMN_OPTIONS = [
@@ -24,6 +31,12 @@ const MARKET_VIEWS = [
   ['movers', 'Movers'],
   ['active', 'Active'],
   ['recent', 'Recent'],
+];
+const V4_MARKET_CATEGORIES = [
+  ['forex','Forex'],
+  ['commodities','Commodities'],
+  ['stocks','Stocks'],
+  ['crypto','Crypto'],
 ];
 const CATEGORY_OPTIONS = [
   ['all', 'All'],
@@ -206,9 +219,13 @@ export default function DesktopWatchlist({
   const [columnsOpen, setColumnsOpen] = useState(false);
   const [prefs, setPrefs] = useState(loadPrefs);
   const [dragSymbol, setDragSymbol] = useState(null);
-  const [category, setCategory] = useState('all');
+  const [category, setCategory] = useState(V4_MARKETS_AUDIT?'forex':'all');
+  const [stockCountry, setStockCountry] = useState('us');
+  const [v4SearchOpen, setV4SearchOpen] = useState(false);
+  const [v4SortOpen, setV4SortOpen] = useState(false);
+  const v4SortRef = useRef(null);
   const [commodityView, setCommodityView] = useState('all');
-  const [marketView, setMarketView] = useState('all');
+  const [marketView, setMarketView] = useState(V4_MARKETS_AUDIT ? 'popular' : 'all');
   const [sort, setSort] = useState({ key: 'symbol', direction: 'asc' });
   const [recent, setRecent] = useState(loadRecent);
   const rowRefs = useRef(new Map());
@@ -228,6 +245,17 @@ export default function DesktopWatchlist({
   }, [activeSymbol]);
 
   const watched = useMemo(() => new Set(watchlists?.activeSymbols || []), [watchlists?.activeSymbols]);
+  const v4Category = V4_MARKETS_AUDIT && mode === 'watchlist' ? 'favorites' : category;
+  useEffect(() => {
+    if(!V4_MARKETS_AUDIT || !v4SearchOpen)return;
+    searchRef?.current?.focus();
+  },[v4SearchOpen,searchRef]);
+  useEffect(() => {
+    if(!v4SortOpen)return undefined;
+    const outside=e=>{if(!v4SortRef.current?.contains(e.target))setV4SortOpen(false);};
+    document.addEventListener('pointerdown',outside);
+    return()=>document.removeEventListener('pointerdown',outside);
+  },[v4SortOpen]);
   const availableMarkets = useMemo(
     () => markets.filter(item => item?.marketDataAvailable !== false),
     [markets],
@@ -238,6 +266,10 @@ export default function DesktopWatchlist({
   }, [availableMarkets]);
 
   const rows = useMemo(() => {
+    if (V4_MARKETS_AUDIT && (mode === 'markets' || mode === 'watchlist')) return selectV4Markets({
+      markets: availableMarkets, category: v4Category, commodityView, stockCountry,
+      watched: [...watched], search, view: marketView, recent, popularSymbols: POPULAR_SYMBOLS,
+    });
     const query = search.trim().toLowerCase();
     let base = mode === 'markets'
       ? availableMarkets
@@ -284,7 +316,7 @@ export default function DesktopWatchlist({
     }
 
     return base;
-  }, [availableMarkets, category, commodityView, marketView, mode, recent, search, sort, watched]);
+  }, [availableMarkets, category, commodityView, stockCountry, v4Category, marketView, mode, recent, search, sort, watched]);
 
   const rowSymbolKey = rows.map(item => item.symbol).join('|');
 
@@ -398,6 +430,154 @@ export default function DesktopWatchlist({
     selectInstrument(symbol);
     rowRefs.current.get(symbol)?.scrollIntoView?.({ block: 'nearest' });
   };
+
+
+  // The V4 audit combines the legacy Watchlist and Markets routes into one
+  // discovery surface. Watchlist data, row callbacks, and old non-audit UI remain intact.
+  if (V4_MARKETS_AUDIT && (mode === 'markets' || mode === 'watchlist')) {
+    const changeV4Category=id=>{
+      setCategory(id);
+      setCommodityView('all');
+      if(id==='stocks')setStockCountry('us');
+      if(mode==='watchlist' && id!=='favorites')onModeChange('markets');
+    };
+    const closeSearch=()=>{setSearch('');setV4SearchOpen(false);};
+    const marketSections=buildV4MarketSections(rows,{category:v4Category,search});
+    return (
+      <section data-v4-markets-panel aria-label="Markets discovery"
+        className="acg-v3-watchlist relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[#09090B]"
+        onKeyDown={onKeyDown}>
+        <header className="relative flex min-h-12 shrink-0 items-center justify-between border-b border-white/[0.07] px-3">
+          <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-[#F2F2F4]">Markets</h2>
+          <div className="flex items-center gap-1">
+            <button type="button" aria-label="Search markets" aria-expanded={v4SearchOpen}
+              onClick={()=>{if(v4SearchOpen)closeSearch();else setV4SearchOpen(true);}}
+              className={`grid size-8 place-items-center rounded-md hover:bg-[#242427] hover:text-white ${v4SearchOpen?'text-[#F2F2F4]':'text-[#9A9BA4]'}`}>
+              <Search size={15}/>
+            </button>
+            <div className="relative" ref={v4SortRef}>
+              <button type="button" aria-label="Market options" aria-expanded={v4SortOpen}
+                aria-controls="v4-market-sort-options" onClick={()=>setV4SortOpen(open=>!open)}
+                className={`grid size-8 place-items-center rounded-md hover:bg-[#242427] hover:text-white ${v4SortOpen?'text-[#F2F2F4]':'text-[#9A9BA4]'}`}>
+                <MoreHorizontal size={16}/>
+              </button>
+              {v4SortOpen&&<div id="v4-market-sort-options" role="menu" aria-label="Sort markets"
+                onKeyDown={event=>{if(event.key==='Escape'){event.stopPropagation();setV4SortOpen(false);}}}
+                className="absolute right-0 top-9 z-50 w-40 overflow-hidden rounded-lg border border-[#37373D] bg-[#1A1A1E] p-1.5 shadow-[0_12px_36px_rgba(0,0,0,.6)]">
+                <div className="px-2 py-1.5 text-[10px] font-semibold text-[#8C8F9A]">SORT BY</div>
+                {MARKET_VIEWS.map(([id,label])=><button key={id} type="button" role="menuitemradio" aria-checked={marketView===id}
+                  onClick={()=>{setMarketView(id);setV4SortOpen(false);}}
+                  className={`flex min-h-8 w-full items-center justify-between rounded-md px-2 text-left text-[11px] ${marketView===id?'bg-[#303035] font-semibold text-[#F2F2F4]':'text-[#ADB0BB] hover:bg-[#27272C] hover:text-white'}`}>
+                  {id==='all'?'A–Z':id==='movers'?'Top movers':id==='active'?'Most active':label}
+                  {marketView===id&&<span aria-hidden="true" className="size-1.5 rounded-full bg-[#E4E5E9]"/>}
+                </button>)}
+              </div>}
+            </div>
+            <button type="button" onClick={onClose} title="Close markets panel" aria-label="Close markets panel"
+              className="grid size-8 place-items-center rounded-md text-[#9A9BA4] hover:bg-[#242427] hover:text-white">
+              <X size={15}/>
+            </button>
+          </div>
+        </header>
+        <div className={`shrink-0 overflow-hidden transition-[height,opacity] duration-150 ${v4SearchOpen?'h-14 opacity-100':'h-0 opacity-0'}`}>
+          <label className="mx-3 mt-2 flex h-9 items-center gap-2 rounded-lg border border-[#33343A] bg-[#17171A] px-2.5 text-[#888D98] focus-within:border-[#777A85]">
+            <Search size={14} className="shrink-0"/>
+            <input ref={searchRef} aria-label="Search markets input" value={search}
+              onChange={event=>setSearch(event.target.value)}
+              onFocus={()=>setV4SearchOpen(true)}
+              onKeyDown={event=>{if(event.key==='Escape'){event.stopPropagation();closeSearch();}}}
+              tabIndex={v4SearchOpen?0:-1} aria-hidden={!v4SearchOpen}
+              placeholder="Search instruments..."
+              className="min-w-0 flex-1 bg-transparent text-[11px] text-[#F2F2F4] outline-none placeholder:text-[#777C87]"/>
+            {search&&<button type="button" aria-label="Clear market search" onClick={()=>setSearch('')}
+              className="grid size-6 shrink-0 place-items-center rounded-md hover:bg-[#29292D]"><X size={13}/></button>}
+            <button type="button" aria-label="Close search" onClick={closeSearch}
+              className="grid size-6 shrink-0 place-items-center rounded-md hover:bg-[#29292D]"><X size={13}/></button>
+          </label>
+        </div>
+        <nav aria-label="Asset categories" className="acg-v4-market-categories">
+          <button type="button" aria-label="Favorites" title="Favorites" aria-pressed={v4Category==='favorites'}
+            onClick={()=>changeV4Category('favorites')}
+            className={`acg-v4-market-category acg-v4-market-favorites ${v4Category==='favorites'?'is-selected':''}`}>
+            <Star size={14} fill={v4Category==='favorites'?'currentColor':'none'}/>
+          </button>
+          {V4_MARKET_CATEGORIES.map(([id,label])=><button key={id} type="button" aria-pressed={v4Category===id}
+            onClick={()=>changeV4Category(id)}
+            className={`acg-v4-market-category ${v4Category===id?'is-selected':''}`}>{label}</button>)}
+        </nav>
+        {v4Category==='stocks'&&<nav aria-label="Stock markets" className="flex shrink-0 gap-1.5 border-b border-white/[0.06] px-3 py-2">
+          {[['us','US'],['india','India']].map(([id,label])=><button type="button" key={id} aria-pressed={stockCountry===id}
+            onClick={()=>setStockCountry(id)} className={`min-h-7 rounded-md px-3 text-[10px] font-medium ${stockCountry===id?'bg-[#303035] text-[#F2F2F4]':'text-[#9497A2] hover:bg-[#242427] hover:text-white'}`}>{label}</button>)}
+        </nav>}
+        {v4Category==='commodities'&&<nav aria-label="Commodity categories" className="flex shrink-0 gap-1.5 border-b border-white/[0.06] px-3 py-2">
+          {COMMODITY_VIEWS.map(([id,label])=><button key={id} type="button" aria-pressed={commodityView===id}
+            onClick={()=>setCommodityView(id)} className={`min-h-7 rounded-md px-2.5 text-[10px] ${commodityView===id?'bg-[#303035] font-semibold text-white':'text-[#92949E] hover:bg-[#242427] hover:text-white'}`}>{label}</button>)}
+        </nav>}
+        <div ref={scrollRef} data-v4-market-scroll data-v4-market-groups={marketSections.length>1 || v4Category==='favorites' || Boolean(search.trim())?'true':'false'}
+          className="acg-v4-markets-list min-h-0 flex-1 overflow-y-auto overscroll-contain outline-none" tabIndex={0} aria-label="Market instruments">
+          {!rows.length&&<div className="grid min-h-32 place-items-center px-5 text-center text-[11px] text-[#9A9AA5]">
+            {search?'No instruments match this search.':v4Category==='favorites'?'Star an instrument in the chart header to add it to Favorites.':marketView==='recent'?'Recently viewed instruments appear here.':'No instruments in this category.'}
+          </div>}
+          {marketSections.map(section=>(
+            <section key={section.id} data-v4-market-section={section.id} className="acg-v4-market-section" data-market-layout={section.layout}>
+              {section.label&&<div className="acg-v4-market-section-title">{section.label}</div>}
+              <div className="acg-v4-market-column-header" data-v4-market-header>
+                <span className="acg-v4-market-col-instrument">INSTRUMENT</span>
+                {section.layout==='last'?(
+                  <span className="acg-v4-market-col-last-label">LAST</span>
+                ):(
+                  <>
+                    <span className="acg-v4-market-col-bid-label">{section.layout==='forex'?'BID':'BID / LAST'}</span>
+                    <span className="acg-v4-market-col-ask-label">ASK</span>
+                  </>
+                )}
+                <span className="acg-v4-market-col-change-label">CHG %</span>
+              </div>
+              {section.rows.map(item=>{
+            const selected=item.symbol===activeSymbol;
+            const status=statusFor(item);
+            const forex=assetCategory(item)==='forex';
+            const showBidAsk=forex||(section.layout==='mixed' && v4MarketPricePresentation(item).bid!=='—');
+            const presentation=v4MarketPricePresentation(item,forex);
+            const dayChangeTone=presentation.changeValue==null?'is-unavailable':presentation.changeValue>0?'is-positive':presentation.changeValue<0?'is-negative':'is-neutral';
+            const subtitle=forex
+              ? (status.label==='LIVE'?`Spread ${presentation.spread}`:`${status.label} · ${presentation.spread}`)
+              : (status.label==='LIVE'?(item.name||categoryLabel(item)):status.label);
+            return (
+              <div key={item.symbol}
+                ref={node=>{if(node)rowRefs.current.set(item.symbol,node);else rowRefs.current.delete(item.symbol);}}
+                className="acg-v4-market-row-wrap"
+                data-market-symbol={item.symbol} data-market-selected={selected?'true':'false'}>
+                <button type="button" className="acg-v4-market-row"
+                  onClick={()=>selectInstrument(item.symbol)}
+                  aria-current={selected?'true':undefined}
+                  aria-label={`Open ${displaySymbol(item.symbol)} chart`}>
+                  <span className="acg-v4-market-instrument">
+                    <span className="acg-v4-market-avatar"><InstrumentAvatar instrument={item} size={23}/></span>
+                    <span className="acg-v4-market-instrument-text">
+                      <strong className="acg-v4-market-symbol">{commodityDisplaySymbol(item)||item.displaySymbol||displaySymbol(item.symbol)}</strong>
+                      <small className="acg-v4-market-subtitle" title={subtitle}>{subtitle}</small>
+                    </span>
+                  </span>
+                  {showBidAsk?(
+                    <>
+                      <span className="acg-v4-market-price acg-v4-market-bid" title={`Bid ${presentation.bid}`} data-v4-bid>{presentation.bid}</span>
+                      <span className="acg-v4-market-price acg-v4-market-ask" title={`Ask ${presentation.ask}`} data-v4-ask>{presentation.ask}</span>
+                    </>
+                  ):(
+                    <span className="acg-v4-market-price acg-v4-market-last" title={`Last ${presentation.last}`} data-v4-last>{presentation.last}</span>
+                  )}
+                  <span className={`acg-v4-market-change ${dayChangeTone}`} data-v4-change title={`Daily change ${presentation.change}`}>{presentation.change}</span>
+                </button>
+              </div>
+            );
+              })}
+            </section>
+          ))}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <div className="acg-v3-watchlist flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden" onKeyDown={onKeyDown}>

@@ -191,10 +191,15 @@ async function run(){
  if(protectionDraft.querySelector('button .rounded-full')||protectionDraft.querySelector('button > .rounded-full'))
    failed.push('Legacy circular TP/SL drag handle still rendered in desktop V4');
  const allLiveRows=Array.from(liveChart.querySelectorAll('[data-v4-chart-badge]'));
- const entryBadges=allLiveRows.filter(b=>b.textContent.includes('SELL')||b.textContent.includes('BUY'));
- const sellEntry=entryBadges.find(b=>b.textContent.includes('SELL 0.01'));
- const buyEntry=entryBadges.find(b=>b.textContent.includes('BUY 0.02'));
- const unprotectedEntry=entryBadges.find(b=>b.textContent.includes('BUY 0.01'));
+ // Read semantic direction and quantity fields rather than relying on
+ // incidental whitespace between their separately styled elements.
+ const entryBadges=allLiveRows.filter(b=>b.querySelector('[data-v4-position-direction]'));
+ const positionEntry=(side,size)=>entryBadges.find(b=>
+   b.querySelector('[data-v4-position-direction]')?.textContent===side &&
+   b.querySelector('[data-v4-position-size]')?.textContent===size);
+ const sellEntry=positionEntry('SELL','0.01');
+ const buyEntry=positionEntry('BUY','0.02');
+ const unprotectedEntry=positionEntry('BUY','0.01');
  if(!sellEntry||!buyEntry||!unprotectedEntry)failed.push('Three independent live position badges missing');
  if(sellEntry?.querySelector('[data-attached-protection],button[aria-label^="Add "]'))
    failed.push('Fully protected position must leave TP and SL off the entry badge');
@@ -281,7 +286,8 @@ async function run(){
      .some(b=>b.textContent.includes('Take profit')&&b.textContent.includes('82500')))
      failed.push('Removing confirmed TP did not clear its badge');
    const sellAfterRemove=Array.from(liveChart.querySelectorAll('[data-v4-chart-badge]'))
-     .find(b=>b.textContent.includes('SELL 0.01'));
+     .find(b=>b.querySelector('[data-v4-position-direction]')?.textContent==='SELL' &&
+       b.querySelector('[data-v4-position-size]')?.textContent==='0.01');
    if(!sellAfterRemove?.querySelector('[aria-label="Add TP to SELL position"]'))
      failed.push('Removing TP did not restore +TP on position row');
  }
@@ -637,6 +643,31 @@ async function run(){
  normalizationEvidence.id='v4-terminal-typography-metrics';
  normalizationEvidence.textContent=JSON.stringify({before:terminalBefore,after:terminalAfter});
  document.body.appendChild(normalizationEvidence);
+ // Pending slider drafts initially show side selection. Once SELL is chosen,
+ // only Discard + one contextual SELL LIMIT Place button may remain.
+ if(!ticket.querySelector('button.v4-sell')||!ticket.querySelector('button.v4-buy'))
+   failed.push('Slider-created pending order did not require explicit side selection');
+ const countBeforeReview=counters.planned;
+ ticket.querySelector('button.v4-sell')?.click();
+ await sleep(170);
+ if(counters.planned!==countBeforeReview)failed.push('Selecting SELL submitted a pending order');
+ const pendingPlace=ticket.querySelector('button.v4-pending-place');
+ const pendingDiscard=ticket.querySelector('button.v4-pending-discard');
+ if(!pendingPlace||!pendingDiscard)failed.push('Selected SELL LIMIT did not show Place + Discard');
+ if(ticket.querySelector('button.v4-buy'))failed.push('BUY button repeated while reviewing SELL LIMIT');
+ if(!pendingPlace?.textContent.includes('Place SELL LIMIT'))failed.push('Place CTA lacks correct side and type');
+ if(!pendingPlace?.textContent.includes('@'))failed.push('Place CTA lacks entry price');
+ if(pendingPlace?.disabled)failed.push('Valid SELL LIMIT Place action unavailable');
+ if(!chart.textContent.includes('SELL'))failed.push('Chart did not update to chosen SELL side');
+ pendingPlace?.click();pendingPlace?.click();
+ await sleep(330);
+ if(counters.planned!==countBeforeReview+1)failed.push('Place double-click must execute at most once');
+ pendingDiscard?.click();
+ await sleep(160);
+ if(ticket.querySelector('.v4-pending-review-actions'))failed.push('Discard retained Place/Discard footer');
+ if(chart.querySelector('[aria-label="Drag pending entry"]'))failed.push('Discard left a chart draft');
+ if(counters.planned!==countBeforeReview+1)failed.push('Discard caused an execution');
+
  if(new URLSearchParams(window.location.search).get('density')==='before')
    ticket.classList.add('v4-density-baseline');
  const qa=document.createElement('output');
