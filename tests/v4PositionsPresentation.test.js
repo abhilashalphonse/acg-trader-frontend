@@ -16,7 +16,7 @@ const position={id:'mongo-1',positionId:'public-pos-1',symbol:'EURUSD',side:'SEL
   source:'live-account-currency',raw:{margin:'11.16',contractSize:'100000',openedAt:'2026-10-13T01:47:53.000Z'}};
 
 test('V4 table has three exact modes and no guessed view',()=>{
-  assert.deepEqual(V4_POSITION_MIN_WIDTHS,{compact:680,risk:960,execution:880});
+  assert.deepEqual(V4_POSITION_MIN_WIDTHS,{compact:680,risk:1160,execution:880});
   assert.equal(validPositionView('risk'),'risk');
   assert.equal(validPositionView('execution'),'execution');
   assert.equal(validPositionView('garbage'),'compact');
