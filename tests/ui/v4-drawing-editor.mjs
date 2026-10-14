@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
+import process from 'node:process';
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 
