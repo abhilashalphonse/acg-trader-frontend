@@ -69,7 +69,7 @@ function InstrumentCell({position,instrument,onToggle,expanded}){
     <button type="button" className="v4-position-chevron" aria-label={(expanded?'Collapse':'Expand')+' position details for '+symbol}
       title={(expanded?'Collapse':'Expand')+' position details'} aria-expanded={expanded}
       onClick={event=>{event.stopPropagation();onToggle();}}>{expanded?<ChevronDown size={16}/>:<ChevronRight size={16}/>}</button>
-    <span className="v4-position-avatar" aria-hidden="true"><InstrumentAvatar instrument={instrument} size={24}/></span>
+    <span className="v4-position-avatar" aria-hidden="true"><InstrumentAvatar instrument={instrument} size={24} singleAsset/></span>
     <strong title={symbol}>{symbol}</strong>
     <span className={'v4-position-side '+(side==='BUY'?'is-buy':'is-sell')}>{side||'—'}</span>
   </span>;
@@ -174,8 +174,6 @@ export default function PositionsDockV4({
   const [query,setQuery]=useState('');
   const [instrumentFilter,setInstrumentFilter]=useState('');
   const [hiddenByView,setHiddenByView]=useState({});
-  const [showAccount,setShowAccount]=useState(true);
-  const [showExposure,setShowExposure]=useState(true);
   const onCloseMenu=()=>setMenu(null);
   useEffect(()=>{
     try {window.localStorage.setItem(STORAGE_KEY,view);} catch { /* storage disabled */ }
@@ -255,7 +253,7 @@ export default function PositionsDockV4({
         </button>)}
       </nav>
       <div className="v4-positions-header-right">
-        {showAccount&&<PositionsAccountSummary account={account}/>}
+        <PositionsAccountSummary account={account}/>
         <button type="button" className="v4-positions-expand" onClick={onToggleExpanded}
           aria-label={expanded?'Restore positions workspace':'Expand positions workspace'}
           title={expanded?'Restore workspace':'Expand positions workspace'}>
@@ -267,9 +265,7 @@ export default function PositionsDockV4({
       <PositionsToolbar view={view} onView={setView} query={query} onQuery={setQuery}
         instrument={instrumentFilter} onInstrument={setInstrumentFilter} instruments={validSymbols}
         columns={columns[view]} hiddenColumns={hiddenColumns} onToggleColumn={toggleColumn}
-        onResetColumns={()=>setHiddenByView(current=>({...current,[view]:[]}))}
-        showAccount={showAccount} onShowAccount={setShowAccount}
-        showExposure={showExposure} onShowExposure={setShowExposure}/>
+        onResetColumns={()=>setHiddenByView(current=>({...current,[view]:[]}))}/>
       <div ref={scrollerRef} className="v4-positions-scroller" data-v4-position-scroller="true">
         <table className="v4-positions-table" style={{minWidth:V4_POSITION_MIN_WIDTHS[view]}}>
           <colgroup>{visibleColumns.map(([label,width])=><col key={label} style={{width}}/>)}</colgroup>
@@ -299,7 +295,7 @@ export default function PositionsDockV4({
           <span>{String(error)}</span><button type="button" onClick={onRetry}>Retry</button>
         </div>}
       </div>
-      {showExposure&&<PositionsExposureFooter positions={positions} markets={markets}/>}
+      <PositionsExposureFooter positions={positions} markets={markets}/>
     </>}
     <CloseMenu menu={menu} onClose={onCloseMenu} onManagePosition={onManagePosition}
       onRequestClose={onRequestClose} onEditProtection={onEditProtection} onBreakEven={onBreakEven} onSetTrailing={onSetTrailing} closeDisabled={menu?.closeDisabled||readOnly} readOnly={readOnly}/>
