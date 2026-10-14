@@ -18,3 +18,12 @@ export function v4HeaderAccountLabel(account){
   const raw=String(account?.accountCode||'').trim();
   return raw?'ACG · '+raw.slice(-6):'Trading account';
 }
+
+/** Presentation-only account kind: backend and legacy account rules stay unchanged. */
+export function v4HeaderAccountType(account) {
+  const raw=String(account?.accountType||account?.mode||account?.type||'').trim().toUpperCase();
+  if(raw==='TRIAL'||raw==='DEMO')return 'Trial';
+  if(raw==='CHALLENGE')return 'Challenge';
+  if(raw==='MASTER'||raw==='FUNDED')return 'Master';
+  return 'Account';
+}
