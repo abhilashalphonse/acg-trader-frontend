@@ -1240,14 +1240,25 @@ export default function DesktopTerminal({
           </div>
           <div className={V4_DESKTOP_EXECUTION_ENABLED ? "relative acg-v4-header-account-wrap" : "relative"}>
             <button type="button" data-v4-header-account onClick={() => v4Toggle('account',setAccountMenuOpen)} className="flex h-8 min-w-[176px] items-center gap-2 rounded-md border border-white/[0.07] bg-black/20 px-2.5 text-left hover:bg-white/[0.025]" aria-label="Switch trading account" aria-expanded={v4IsOpen('account',accountMenuOpen)} title={account?.accountCode || 'Trading account'}>
-              {accountSwitching ? <Loader2 size={11} className="shrink-0 animate-spin text-[#C9CDD2]"/> : <span className={`acg-v4-header-account-dot ${canOpen ? "size-1.5 shrink-0 rounded-full bg-[#9FA5AA]" : valuationStatus === 'STALE' ? "size-1.5 shrink-0 rounded-full bg-[#e8bd55]" : "size-1.5 shrink-0 rounded-full bg-[#343434]"}`}/>}
-              {V4_DESKTOP_EXECUTION_ENABLED && <div className="acg-v4-header-account-mark" aria-hidden="true"><UserRound size={14}/></div>}
-              <div className="acg-v4-header-account-copy min-w-0 flex-1 leading-none">
-                <strong data-v4-header-account-name className="block truncate text-[9px]">{V4_DESKTOP_EXECUTION_ENABLED ? v4HeaderAccountLabel(account) : account?.accountCode || accountStatus}</strong>
-                <span className="mt-1 block truncate text-[8px] text-[#6F8191]">{accountTypeBadge(account)} · {accountSize(account?.initialBalance ?? account?.startingBalance ?? account?.challenge?.accountSize ?? account?.balance)}{V4_DESKTOP_EXECUTION_ENABLED ? (Number.isFinite(effectiveLeverage(account,market)) ? ` · Market 1:${Number(effectiveLeverage(account,market).toFixed(2))}` : ' · Leverage unavailable') : (Number(account?.leverage)>0 ? ` · 1:${Number(account.leverage)}` : '')}</span>
-              </div>
-              {V4_DESKTOP_EXECUTION_ENABLED ? <span className="acg-v4-header-account-chevron"><ChevronDown size={12} className={v4IsOpen('account',accountMenuOpen) ? "acg-motion-chevron rotate-180" : "acg-motion-chevron"}/></span>
-                : <ChevronDown size={11} className={v4IsOpen('account',accountMenuOpen) ? "acg-motion-chevron shrink-0 rotate-180 text-[#6F8191]" : "acg-motion-chevron shrink-0 text-[#6F8191]"}/> }
+              {V4_DESKTOP_EXECUTION_ENABLED ? <>
+                <span className="acg-v4-header-account-mark" aria-hidden="true">
+                  {accountSwitching ? <Loader2 size={16} className="animate-spin"/> : <UserRound size={17}/>}
+                </span>
+                <span className="acg-v4-header-account-copy">
+                  <strong data-v4-header-account-name>{v4HeaderAccountLabel(account)}</strong>
+                  <span className="acg-v4-header-account-type">{accountTypeBadge(account).toLowerCase()==='trial'?'Trial':accountTypeLabel(account)}</span>
+                </span>
+                <span className="acg-v4-header-account-chevron" aria-hidden="true">
+                  <ChevronDown size={17} className={v4IsOpen('account',accountMenuOpen) ? "acg-motion-chevron rotate-180" : "acg-motion-chevron"}/>
+                </span>
+              </> : <>
+                {accountSwitching ? <Loader2 size={11} className="shrink-0 animate-spin text-[#C9CDD2]"/> : <span className={`acg-v4-header-account-dot ${canOpen ? "size-1.5 shrink-0 rounded-full bg-[#9FA5AA]" : valuationStatus === 'STALE' ? "size-1.5 shrink-0 rounded-full bg-[#e8bd55]" : "size-1.5 shrink-0 rounded-full bg-[#343434]"}`}/>}
+                <div className="min-w-0 flex-1 leading-none">
+                  <strong data-v4-header-account-name className="block truncate text-[9px]">{account?.accountCode || accountStatus}</strong>
+                  <span className="mt-1 block truncate text-[8px] text-[#6F8191]">{accountTypeBadge(account)} · {accountSize(account?.initialBalance ?? account?.startingBalance ?? account?.challenge?.accountSize ?? account?.balance)}{Number(account?.leverage)>0 ? ` · 1:${Number(account.leverage)}` : ''}</span>
+                </div>
+                <ChevronDown size={11} className={v4IsOpen('account',accountMenuOpen) ? "acg-motion-chevron shrink-0 rotate-180 text-[#6F8191]" : "acg-motion-chevron shrink-0 text-[#6F8191]"}/>
+              </>}
             </button>
             {v4IsOpen('account',accountMenuOpen) && (
               <div data-v4-header-menu={V4_DESKTOP_EXECUTION_ENABLED ? 'account' : undefined} className="acg-motion-popover absolute right-0 top-10 z-[140] w-[330px] overflow-hidden rounded-md border border-white/[0.10] bg-[#111113] shadow-[0_20px_60px_rgba(0,0,0,.65)]">
@@ -1302,7 +1313,7 @@ export default function DesktopTerminal({
               </div>
             )}
           </div>
-          <div className="relative">
+          {!V4_DESKTOP_EXECUTION_ENABLED && <div className="relative">
             <button type="button" data-v4-header-more onClick={() => v4Toggle('more',setToolsMenuOpen)} aria-expanded={v4IsOpen('more',toolsMenuOpen)} className={v4IsOpen('more',toolsMenuOpen) ? "grid size-8 place-items-center rounded-md border border-[#C9CDD2]/60 bg-[#222427] text-[#f1f4f6]" : "grid size-8 place-items-center rounded-md border border-white/[0.07] bg-black/20 text-[#8996a1] hover:bg-white/[0.025] hover:text-white"} title="More" aria-label="More terminal actions"><MoreHorizontal size={16}/></button>
             {v4IsOpen('more',toolsMenuOpen) && (
               <div data-v4-header-menu={V4_DESKTOP_EXECUTION_ENABLED ? 'more' : undefined} className="acg-motion-popover absolute right-0 top-10 z-[105] w-[230px] rounded-md border border-white/[0.10] bg-[#111113] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.55)]">
@@ -1325,7 +1336,7 @@ export default function DesktopTerminal({
               </div>
             )}
             {v4IsOpen('manager',objectManagerOpen) && <div data-v4-header-menu={V4_DESKTOP_EXECUTION_ENABLED ? 'manager' : undefined} className="acg-motion-popover absolute right-0 top-10 z-[115]"><ChartObjectManager symbol={activeSymbol} timeframe={activeChartTimeframe === '1m' ? 'M1' : activeChartTimeframe === '5m' ? 'M5' : activeChartTimeframe === '15m' ? 'M15' : activeChartTimeframe === '30m' ? 'M30' : activeChartTimeframe === '1H' ? 'H1' : activeChartTimeframe === '4H' ? 'H4' : activeChartTimeframe === '1D' ? 'D1' : activeChartTimeframe === '1W' ? 'W1' : activeChartTimeframe} indicators={indicators} chartInstanceId={'desktop-chart-' + Math.min(Math.max(0, Number(multiChart?.activeCell) || 0), chartLayout - 1)} onToggleIndicator={onToggleIndicator} onRemoveIndicator={onRemoveIndicator} onOpenIndicatorSettings={instanceId => { setObjectManagerOpen(false); setIndicatorFocusId(instanceId); if (V4_DESKTOP_EXECUTION_ENABLED) setV4HeaderMenu('indicators'); else setIndicatorPanelOpen(true); }} onClose={() => { setObjectManagerOpen(false); v4Close(); }}/></div>}
-          </div>
+          </div>}
         </div>
       </header>
 
