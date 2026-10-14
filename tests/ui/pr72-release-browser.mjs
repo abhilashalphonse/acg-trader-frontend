@@ -123,7 +123,7 @@ try {
   // execution click in the V4 ticket: no hand-written command is submitted.
   const ticketPanel = page.getByRole('region',{name:'ACG Trader V4 live execution ticket'});
   await ticketPanel.waitFor({state:'visible',timeout:30000});
-  const buyButton=ticketPanel.getByRole('button',{name:/^BUY\\b/});
+  const buyButton=ticketPanel.getByRole('button',{name:/^BUY\b/});
   const deadline=Date.now()+30000;
   while (!(await buyButton.isEnabled()) && Date.now()<deadline) await delay(750);
   assert(await buyButton.isEnabled(),'V4 Buy must be enabled on fresh provider quotes');
