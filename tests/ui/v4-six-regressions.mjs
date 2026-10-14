@@ -686,8 +686,8 @@ try{
  eq(await header.getByText('Trading accounts').count(),1,'account selector opens');
  ok((await header.locator('[data-v4-header-menu="account"]').innerText()).includes('Balance'),
    'Balance remains in account popover instead of selected button');
- ok((await header.locator('[data-v4-header-menu="account"]').innerText()).includes('Phase'),
-   'Phase remains available in account list, not selected button');
+ ok((await header.locator('[data-v4-header-menu="account"]').innerText()).includes('Equity'),
+   'Equity remains available in account dropdown, not selected button');
  await header.getByRole('button',{name:/ACG-33E47AD12A9C/}).click();
  await page.waitForFunction(()=>window.v4HeaderQA.account==='ACG-33E47AD12A9C');
  eq(await header.locator('[data-v4-header-account-name]').innerText(),'ACG · D12A9C','account selection updates name');
