@@ -119,6 +119,24 @@ try {
   report.providerLive=true;
   record('real provider quote freshness for BTCUSD and EURUSD');
 
+  // Unlike the browser-authenticated HTTP checks below, this is a true
+  // execution click in the V4 ticket: no hand-written command is submitted.
+  const ticketPanel = page.getByRole('region',{name:'ACG Trader V4 live execution ticket'});
+  await ticketPanel.waitFor({state:'visible',timeout:30000});
+  const buyButton=ticketPanel.getByRole('button',{name:/^BUY\\b/});
+  const deadline=Date.now()+30000;
+  while (!(await buyButton.isEnabled()) && Date.now()<deadline) await delay(750);
+  assert(await buyButton.isEnabled(),'V4 Buy must be enabled on fresh provider quotes');
+  const uiOrder=page.waitForResponse(r=>r.url().endsWith('/v1/trading/orders/market')&&r.request().method()==='POST');
+  await buyButton.click();
+  const uiFilled=await uiOrder;
+  assert.equal(uiFilled.status(),201,'V4 ticket actually submitted and filled');
+  const uiPosition=(await uiFilled.json()).position;
+  assert(uiPosition?.id,'V4 ticket returned an open position');
+  record('V4 ticket Buy button executes through authenticated backend');
+  await requestJson(federatedContext.request,'POST','/v1/trading/positions/'+uiPosition.id+'/close',token,
+    {accountId:privateData.accounts.secondary,clientOrderId:'ci-ui-close'});
+
   const first=await requestJson(federatedContext.request,'POST','/v1/trading/orders/market',token,
     {accountId:acc,clientOrderId:'ci-market-primary',symbol:'BTCUSD',side:'BUY',volume:'0.1'});
   assert.equal(first.value.position.status,'OPEN');
