@@ -63,6 +63,8 @@ try{
   await dock.getByRole('button',{name:'Expand position details for EUR/USD'}).click();
   const detail=dock.locator('[data-v4-position-detail="position-eur-1"]');
   eq(await detail.count(),1,'Expanded section inserted under correct row');
+  const detailHeight=await detail.evaluate(el=>el.getBoundingClientRect().height);
+  ok(detailHeight>=190&&detailHeight<=225,`Detail card stays near 200–220px, measured ${detailHeight}px`);
   const detailsText=await detail.innerText();
   ok(detailsText.includes('Protection'),'Protection present');
   ok(detailsText.includes('Exposure & costs'),'Exposure and costs present');
