@@ -125,6 +125,8 @@ try {
 
   // Unlike the browser-authenticated HTTP checks below, this is a true
   // execution click in the V4 ticket: no hand-written command is submitted.
+  // The V4 desktop defaults to a collapsed right execution rail.
+  await page.getByRole('button',{name:'Trade',exact:true}).click();
   const ticketPanel = page.getByRole('region',{name:'ACG Trader V4 live execution ticket'});
   await ticketPanel.waitFor({state:'visible',timeout:30000});
   const buyButton=ticketPanel.getByRole('button',{name:/^BUY\b/});
