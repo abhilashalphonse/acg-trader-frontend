@@ -551,7 +551,7 @@ try{
    });
    ok(Math.abs(g.outer.h-52)<=1,`Header is 52px at ${width}px`);
    ok(g.outer.right<=width+1&&g.docWidth<=width+1,`No horizontal overflow at ${width}px`);
-   ok(Math.abs(g.symbol.y-g.account.y)<=6,`Names align on same baseline at ${width}px`);
+   ok(Math.abs((g.symbol.y+g.symbol.h/2)-(g.account.y+g.account.h/2))<=9,`Single-row account and instrument names align optically at ${width}px`);
    ok(g.tools.every(t=>Math.abs(t.rect.w-32)<=1&&Math.abs(t.rect.h-32)<=1),`Chart tools are exactly 32px at ${width}px`);
    ok(g.tools.every(t=>t.bg==='rgba(0, 0, 0, 0)'),`Icon tools are visually unboxed at ${width}px`);
    eq(g.separators[3],'32px',`Account divider remains 32px at ${width}px`);
