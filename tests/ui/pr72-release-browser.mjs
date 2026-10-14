@@ -110,7 +110,7 @@ try {
   await page.getByRole('button',{name:'Switch trading account'}).click();
   const target = page.locator('[data-v4-header-menu="account"]').getByRole('button').filter({hasText:privateData.accountCodes.secondary});
   await target.click();
-  await page.waitForFunction(code=>document.querySelector('[data-v4-header-account-name]')?.textContent?.includes(code),
+  await page.waitForFunction(code=>document.querySelector('[data-v4-header-account]')?.getAttribute('title')===code,
     privateData.accountCodes.secondary,{timeout:30000});
   record('account switching through V4 account dropdown');
   const granted=await requestJson(federatedContext.request,'GET','/v1/auth/accounts',token);
@@ -174,7 +174,7 @@ try {
   await page.getByRole('button',{name:'Switch trading account'}).click();
   await page.locator('[data-v4-header-menu="account"]').getByRole('button')
     .filter({hasText:privateData.accountCodes.eur}).click();
-  await page.waitForFunction(code=>document.querySelector('[data-v4-header-account-name]')?.textContent?.includes(code),
+  await page.waitForFunction(code=>document.querySelector('[data-v4-header-account]')?.getAttribute('title')===code,
     privateData.accountCodes.eur,{timeout:30000});
   const equityInDock = () => page.locator('[aria-label="Account trading metrics"] .v4-positions-metric')
     .filter({hasText:'Equity'}).locator('strong');
