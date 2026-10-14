@@ -1,3 +1,5 @@
+import { convertFreshFx } from './verifiedFxConversion.js';
+
 // Read-only presentation helpers for the V4 Positions dock. Do not derive
 // reserved margin from leverage or confuse valuation source with order source.
 export const V4_POSITION_VIEWS = Object.freeze(['compact','risk','execution']);
@@ -193,4 +195,44 @@ export function positionCurrentSpread(position,instrument) {
   return {difference,unit,amount:difference/divisor,
     quoteCurrency:String(instrument?.quoteCurrency||'').toUpperCase()||null,
     indicative:true};
+}
+
+
+/** Read-only account-currency notional; reject unverified pricing and FX. */
+export function positionVerifiedUsdNotional(position,instrument,markets,nowMs=Date.now()) {
+  if(!position||!instrument)return null;
+  if(position.valuationStatus!=null&&String(position.valuationStatus).toUpperCase()!=='LIVE')return null;
+  if(instrument.isStale===true||instrument.live===false)return null;
+  const exposure=positionExposure(position,instrument);
+  const close=finiteOrNull(position.closePrice);
+  if(!exposure||close===null||close<=0)return null;
+  const side=String(position.side||'').toUpperCase();
+  if(side!=='BUY'&&side!=='SELL')return null;
+  const base=String(instrument.baseCurrency||'').toUpperCase();
+  const quote=String(instrument.quoteCurrency||instrument.currency||'').toUpperCase();
+  if(!/^[A-Z]{3}$/.test(quote))return null;
+  // A currency pair whose base is USD has USD-denominated underlying exposure.
+  // Other pairs, crypto and contract-based markets use quantity x executable price.
+  const amount=base==='USD'&&String(instrument.assetClass||'').toUpperCase()==='FOREX'
+    ? exposure.quantity : exposure.quantity*close;
+  if(!Number.isFinite(amount)||amount<=0)return null;
+  const converted=convertFreshFx(amount,base==='USD'&&String(instrument.assetClass||'').toUpperCase()==='FOREX'
+    ? 'USD' : quote,'USD',markets,nowMs);
+  return converted!==null&&Number.isFinite(converted)&&converted>0?converted:null;
+}
+
+/** Informational directional totals only, never a measure of hedged risk. */
+export function portfolioExposureSummary(positions,markets,nowMs=Date.now()) {
+  const items=Array.isArray(positions)?positions:[];
+  const breakdown=items.map(position=>{
+    const instrument=(Array.isArray(markets)?markets:[]).find(item=>item.symbol===position.symbol);
+    const usd=positionVerifiedUsdNotional(position,instrument,markets,nowMs);
+    return {symbol:String(position.symbol||'—'),side:String(position.side||'').toUpperCase(),
+      available:usd!==null,usd,reason:usd===null?'unverified price, contract size or fresh FX':null};
+  });
+  const priced=breakdown.filter(item=>item.available).length;
+  const complete=priced===items.length;
+  const gross=complete?breakdown.reduce((sum,item)=>sum+Math.abs(item.usd),0):null;
+  const net=complete?breakdown.reduce((sum,item)=>sum+(item.side==='SELL'?-1:1)*item.usd,0):null;
+  return {total:items.length,priced,complete,gross,net,breakdown,currency:'USD'};
 }
