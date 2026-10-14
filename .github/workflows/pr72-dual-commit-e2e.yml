@@ -1,13 +1,21 @@
-name: PR72 dual-commit release acceptance (frontend)
+name: Paired release acceptance (frontend)
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, edited, ready_for_review]
   workflow_dispatch:
+    inputs:
+      peer_pr:
+        description: 'Optional backend PR number; otherwise backend main'
+        type: string
+        default: ''
 
 permissions:
   contents: read
 
 jobs:
   dual-commit-acceptance:
-    uses: abhilashalphonse/acg-trader-backend/.github/workflows/pr72-dual-commit-e2e.yml@fix/asset-class-leverage-policy
+    uses: abhilashalphonse/acg-trader-backend/.github/workflows/pr72-dual-commit-e2e.yml@8146071ad53dd5c1c98097ba17ab989d6599825c
+    with:
+      peer_pr: ${{ inputs.peer_pr || '' }}
     secrets: inherit
