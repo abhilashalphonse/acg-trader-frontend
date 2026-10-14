@@ -548,7 +548,7 @@ try{
    ok(g.tools.every(t=>Math.abs(t.rect.w-32)<=1&&Math.abs(t.rect.h-32)<=1),`Chart tools are exactly 32px at ${width}px`);
    ok(g.tools.every(t=>t.bg==='rgba(0, 0, 0, 0)'),`Icon tools are visually unboxed at ${width}px`);
    eq(g.separators[3],'32px',`Account divider remains 32px at ${width}px`);
-   ok(g.toolGroup.x-g.timeframeGroup.right<=10,`Chart tools immediately follow timeframes at ${width}px`);
+   ok(g.toolGroup.x-g.timeframeGroup.right>=0&&g.toolGroup.x-g.timeframeGroup.right<=22,`A subtle divider separates chart tools from timeframes at ${width}px`);
    eq(g.headerBg,'rgb(9, 9, 11)',`Single V4 header background at ${width}px`);
    eq(g.toolbarBg,'rgba(0, 0, 0, 0)',`Chart toolbar has no different background tint at ${width}px`);
    if(width>=1100){
