@@ -154,8 +154,6 @@ export default function PendingDockV4({
   const [filter,setFilter]=useState('');
   const [expandedIds,setExpandedIds]=useState(()=>new Set());
   const [hidden,setHidden]=useState({});
-  const [showAccount,setShowAccount]=useState(true);
-  const [showExposure,setShowExposure]=useState(true);
   const ids=orders.map(order=>String(order.id));
   const symbols=[...new Set(orders.map(o=>o.symbol).filter(Boolean))].sort();
   const shownOrders=orders.filter(order=>
@@ -172,7 +170,7 @@ export default function PendingDockV4({
           onClick={()=>onTabChange(key)}>{label}{(key==='positions'||key==='orders')&&<span className="v4-positions-count">{counts[key]??0}</span>}</button>)}
       </nav>
       <div className="v4-positions-header-right">
-        {showAccount&&<PositionsAccountSummary account={account}/>}
+        <PositionsAccountSummary account={account}/>
         <button type="button" className="v4-positions-expand" onClick={onToggleExpanded}
           aria-label={expanded?'Restore pending workspace':'Expand pending workspace'}>
           {expanded?<Minimize2 size={16}/>:<Maximize2 size={16}/>}
@@ -184,8 +182,7 @@ export default function PendingDockV4({
         instrument={filter} onInstrument={setFilter} instruments={symbols}
         columns={COLUMN_SPECS[view]} hiddenColumns={hiddenInView}
         onToggleColumn={label=>setHidden(cur=>({...cur,[view]:hiddenInView.includes(label)?hiddenInView.filter(x=>x!==label):[...hiddenInView,label]}))}
-        onResetColumns={()=>setHidden(cur=>({...cur,[view]:[]}))}
-        showAccount={showAccount} onShowAccount={setShowAccount} showExposure={showExposure} onShowExposure={setShowExposure}/>
+        onResetColumns={()=>setHidden(cur=>({...cur,[view]:[]}))}/>
       <div className="v4-positions-scroller">
         <table className="v4-positions-table" style={{minWidth:MIN_WIDTH[view]}}>
           <colgroup>{columns.map(([name,width])=><col key={name} style={{width}}/>)}</colgroup>
@@ -204,10 +201,10 @@ export default function PendingDockV4({
         </table>
         {error&&<div className="v4-positions-error" role="alert"><span>{String(error)}</span><button type="button" onClick={onRetry}>Retry</button></div>}
       </div>
-      {showExposure&&<div className="v4-positions-footer">
+      <div className="v4-positions-footer">
         <span>{orders.length} pending {orders.length===1?'order':'orders'}</span>
         <span className="v4-positions-exposures">{ids.length} awaiting review / execution</span>
-      </div>}
+      </div>
     </>}
   </div>;
 }
