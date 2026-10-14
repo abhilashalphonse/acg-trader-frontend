@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   Copy,
+  GripVertical,
   Eye,
   EyeOff,
   Lock,
@@ -15,6 +16,7 @@ import {
 import { evaluateRiskToolSetup } from '../../utils/tradingRisk.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 import DrawingProperties from './DrawingProperties.jsx';
+import './v4/V4DrawingEditToolbar.css';
 import { constrainDrawingPoint, drawingMagnetMode } from '../../utils/chartToolSettings.js';
 import {
   clampDrawingRiskPercent,
@@ -474,8 +476,12 @@ export default function DrawingLayer({
   interactionEnabled = true,
   showHistoryControls = true,
   preserveChartCrosshair = false,
+  v4Appearance = false,
 }) {
   const svgRef = useRef(null);
+  const drawingEditToolbarRef = useRef(null);
+  const drawingEditDragRef = useRef(null);
+  const [drawingEditPosition, setDrawingEditPosition] = useState(null);
   const creationGestureRef = useRef(null);
   const history = useSyncExternalStore(
     listener => subscribeDrawings(symbol, listener),
@@ -499,6 +505,8 @@ export default function DrawingLayer({
     setDrag(null);
     setSettingsOpen(false);
     setContextMenu(null);
+    setDrawingEditPosition(null);
+    drawingEditDragRef.current = null;
   }, [symbol, chartInstanceId]);
 
   useEffect(() => {
@@ -629,6 +637,7 @@ export default function DrawingLayer({
   }, [interactionEnabled, onToolChange, selectedId, symbol, tool, drag, draft, undo, redo]);
 
   const selected = useMemo(() => drawings.find(item => item.id === selectedId), [drawings, selectedId]);
+  useEffect(() => { setDrawingEditPosition(null); drawingEditDragRef.current = null; }, [selectedId]);
   useEffect(() => {
     if (!selectedId) return;
     if (!selected || !visibleDrawingOnTimeframe(selected, timeframe)) {
@@ -997,12 +1006,75 @@ export default function DrawingLayer({
     };
   })();
 
-  const selectedToolbarStyle = compactDrawingUi
-    ? { left: 8, right: 8, bottom: 46 }
-    : {
-        left: Math.max(8, Math.min(size.width - 360, (selectedAnchor?.x ?? size.width / 2) - 165)),
-        top: Math.max(8, Math.min(size.height - 46, (selectedAnchor?.y ?? 54) - 42)),
-      };
+
+  // Only the V4 edit toolbar is draggable. This position never touches drawing
+  // geometry or the drawing undo/redo store.
+  const clampEditToolbar = (x, y, width, height) => ({
+    x: Math.max(8, Math.min(Math.max(8, size.width - width - 8), x)),
+    y: Math.max(8, Math.min(Math.max(8, size.height - height - 8), y)),
+  });
+  const beginEditToolbarDrag = event => {
+    if (!v4Appearance || !selected || event.button !== 0) return;
+    const box = drawingEditToolbarRef.current?.getBoundingClientRect();
+    const chartBox = svgRef.current?.getBoundingClientRect();
+    if (!box || !chartBox) return;
+    event.preventDefault();
+    event.stopPropagation();
+    drawingEditDragRef.current = {
+      pointerId: event.pointerId,
+      selectedId: selected.id,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: box.left - chartBox.left,
+      originY: box.top - chartBox.top,
+      width: box.width,
+      height: box.height,
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+  const moveEditToolbarDrag = event => {
+    const gesture = drawingEditDragRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const point = clampEditToolbar(
+      gesture.originX + event.clientX - gesture.startX,
+      gesture.originY + event.clientY - gesture.startY,
+      gesture.width, gesture.height,
+    );
+    setDrawingEditPosition({ id: gesture.selectedId, ...point });
+  };
+  const endEditToolbarDrag = event => {
+    const gesture = drawingEditDragRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    drawingEditDragRef.current = null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+  };
+  const cancelEditToolbarDrag = event => {
+    const gesture = drawingEditDragRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    setDrawingEditPosition({
+      id: gesture.selectedId,
+      ...clampEditToolbar(gesture.originX, gesture.originY, gesture.width, gesture.height),
+    });
+    drawingEditDragRef.current = null;
+  };
+  const selectedToolbarStyle = v4Appearance && selected && drawingEditPosition?.id === selected.id
+    ? (() => {
+        const bounds = drawingEditToolbarRef.current?.getBoundingClientRect();
+        const point = clampEditToolbar(drawingEditPosition.x, drawingEditPosition.y, bounds?.width || 360, bounds?.height || 36);
+        return { left: point.x, top: point.y };
+      })()
+    : compactDrawingUi
+      ? { left: 8, right: 8, bottom: 46 }
+      : {
+          left: Math.max(8, Math.min(size.width - 360, (selectedAnchor?.x ?? size.width / 2) - 165)),
+          top: Math.max(8, Math.min(size.height - 46, (selectedAnchor?.y ?? 54) - 42)),
+        };
 
   const settingsPanelStyle = compactDrawingUi
     ? { left: 8, right: 8, bottom: 90, width: 'auto', maxHeight: '56%', overflowY: 'auto' }
@@ -1113,9 +1185,18 @@ export default function DrawingLayer({
 
       {selected && !disabled && !settingsOpen && (
         <div
-          className="acg-chart-tools acg-drawing-toolbar pointer-events-auto absolute z-30 flex min-h-9 max-w-[calc(100%-16px)] items-center gap-0.5 overflow-hidden rounded-[7px] border border-white/[0.08] bg-[#07090b]/97 p-1 shadow-[0_12px_34px_rgba(0,0,0,.52)] backdrop-blur-md"
+          ref={drawingEditToolbarRef}
+          data-v4-drawing-edit-toolbar={v4Appearance ? 'true' : undefined}
+          className={`acg-chart-tools acg-drawing-toolbar pointer-events-auto absolute z-30 flex min-h-9 max-w-[calc(100%-16px)] items-center gap-0.5 overflow-hidden rounded-[7px] border border-white/[0.08] bg-[#07090b]/97 p-1 shadow-[0_12px_34px_rgba(0,0,0,.52)] backdrop-blur-md ${v4Appearance ? 'acg-v4-drawing-edit-toolbar' : ''}`}
           style={selectedToolbarStyle}
         >
+          {v4Appearance && <button type="button" data-v4-drawing-drag-handle="true"
+            aria-label="Drag drawing edit toolbar" title="Drag toolbar to move it"
+            className="acg-v4-drawing-edit-grip" onPointerDown={beginEditToolbarDrag}
+            onPointerMove={moveEditToolbarDrag} onPointerUp={endEditToolbarDrag}
+            onPointerCancel={cancelEditToolbarDrag} onLostPointerCapture={endEditToolbarDrag}>
+            <GripVertical size={15} strokeWidth={1.6}/>
+          </button>}
           <span className="hidden max-w-[96px] truncate border-r border-white/[0.07] px-2 text-[8px] font-bold uppercase tracking-[0.08em] text-[#7e91a3] sm:block">{drawingLabel(selected)}</span>
           {!isRiskDrawingTool(selected.type) && (
             <label className="relative grid size-7 shrink-0 cursor-pointer place-items-center rounded-md hover:bg-white/[0.05]" title="Drawing color">
@@ -1143,7 +1224,7 @@ export default function DrawingLayer({
       )}
 
       {selected && settingsOpen && (
-        <div className="acg-drawing-properties pointer-events-auto absolute z-40" style={settingsPanelStyle}>
+        <div className={`acg-drawing-properties pointer-events-auto absolute z-40 ${v4Appearance ? 'acg-v4-drawing-properties' : ''}`} style={settingsPanelStyle}>
           <DrawingProperties key={selected.id} drawing={selected} riskPercent={riskPercent} lockAll={lockAll} onApply={patchSelected} onClose={() => setSettingsOpen(false)} />
         </div>
       )}
