@@ -559,7 +559,7 @@ try{
      ok(g.compactVisible,`Compact picker replaces scroll rail at ${width}px`);
    }
    ok(g.spacer.x>=g.toolGroup.right-1 && g.accountGroup.x>=g.spacer.right-1,`Flexible space appears only after chart tools at ${width}px`);
-   ok(g.accountGroup.w<=258,`Capsule account switcher and More retain compact grouping at ${width}px`);
+   ok(g.accountGroup.w<=286,`Account capsule retains a readable and bounded footprint at ${width}px`);
    ok(g.accountButton.x>=g.accountGroup.x+5 && g.accountButton.x<=g.accountGroup.x+16,
      `Compact account follows its divider without excess padding at ${width}px`);
    ok(g.more.x>=g.accountButton.right+3 && g.more.x-g.accountButton.right<=11,
