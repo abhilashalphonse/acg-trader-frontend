@@ -86,11 +86,8 @@ try {
   record('browser session refresh after reload');
   await nativeContext.close();
 
-  const ticket = await control(browser, 'federation').catch(async ()=>{
-    // control uses Playwright APIRequestContext; browser is not an API request.
-    throw Error('Federated ticket setup failed');
-  });
   const federatedContext = await browser.newContext({ viewport:{width:1440,height:900} });
+  const ticket = await control(federatedContext.request, 'federation');
   const page = await federatedContext.newPage();
   page.on('pageerror',err=>pageErrors.push(err.name));
   const exchange = page.waitForResponse(r=>r.url().endsWith('/v1/auth/federated/exchange')&&r.request().method()==='POST');
