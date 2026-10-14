@@ -272,7 +272,7 @@
   height:auto!important;padding:0!important;overflow:visible!important;white-space:normal!important;
 }
 .acg-v4-positions .v4-position-expanded{
-  color:var(--v4p-secondary);padding:0 16px 16px;
+  color:var(--v4p-secondary);padding:0 16px 12px;
   min-width:0;background:#141417;position:relative;
 }
 .acg-v4-positions .v4-position-details-heading{
@@ -288,10 +288,10 @@
 }
 .acg-v4-positions .v4-position-detail-columns{
   display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;
-  min-width:0;padding-top:14px;
+  min-width:0;padding-top:12px;
 }
 .acg-v4-positions .v4-position-detail-columns section{
-  display:flex;flex-direction:column;min-width:0;gap:7px;
+  display:flex;flex-direction:column;min-width:0;gap:4px;
 }
 .acg-v4-positions .v4-position-detail-columns section+section{
   border-left:1px solid #34343b;padding-left:20px;
@@ -318,7 +318,7 @@
 }
 .acg-v4-positions .v4-position-protection-action:hover{background:#2b2b32}
 .acg-v4-positions .v4-position-details-divider{
-  height:1px;min-height:1px;background:#303036;margin:5px 0;
+  height:1px;min-height:1px;background:#303036;margin:3px 0;
 }
 .acg-v4-positions .v4-position-detail-hint,
 .acg-v4-positions .v4-position-no-activity{
