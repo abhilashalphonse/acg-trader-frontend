@@ -494,8 +494,10 @@ try{
  ok(await header.locator('[data-v4-header-instrument-image] img').count()>=1,'Forex instrument retains visible pair flag images');
  eq(await header.locator('[data-market-status]').getAttribute('data-market-status'),'open','only confirmed open sessions claim Market open');
  eq(await header.locator('[data-v4-header-account-name]').innerText(),'ACG · 598D2F','compact account name');
- ok((await header.locator('[data-v4-header-account]').innerText()).includes('Market 1:100'),
-   'V4 header identifies the selected-market effective leverage, not unqualified account maximum');
+ eq((await header.locator('[data-v4-header-account]').innerText()).trim(),'ACG · 598D2F Trial',
+   'Account switcher contains only ID and account type on one line');
+ eq(await header.locator('[data-v4-header-more]').count(),0,'V4 navbar has no three-dot More control');
+ eq(await header.locator('.acg-v4-header-account-type').innerText(),'Trial','Reference title-case account type');
  eq(await header.locator('[data-v4-header-tool]').count(),3,'three icon-only chart tools');
  eq(await header.locator('.acg-v4-header-divider').count(),3,'Three fine dividers separate header tool groups');
  eq(await header.locator('.acg-v4-header-account-mark svg').count(),1,'Account icon is rendered in compact switcher');
@@ -528,12 +530,15 @@ try{
      const spacer=rect(el.querySelector('.acg-v4-header-spacer'));
      const accountGroup=rect(el.querySelector('.acg-v4-header-right'));
      const accountButton=rect(el.querySelector('[data-v4-header-account]'));
-     const accountCaption=el.querySelector('[data-v4-header-account] span:not(.acg-v4-header-account-dot)');
-     const more=rect(el.querySelector('[data-v4-header-more]'));
+     const accountCaption=el.querySelector('[data-v4-header-account] .acg-v4-header-account-type');
+     const accountMark=el.querySelector('[data-v4-header-account] .acg-v4-header-account-mark');
+     const accountChevron=el.querySelector('[data-v4-header-account] .acg-v4-header-account-chevron');
+     const accountCopy=el.querySelector('[data-v4-header-account] .acg-v4-header-account-copy');
      const computed=getComputedStyle(active);
      const sidebar=parseFloat(el.style.getPropertyValue('--acg-v4-sidebar-width'));
      const rail=parseFloat(el.style.getPropertyValue('--acg-v4-rail-width'));
-     return {outer:rect(el),symbol,account,tools,separators,timeframeGroup,toolGroup,spacer,accountGroup,accountButton,more,
+     return {outer:rect(el),symbol,account,tools,separators,timeframeGroup,toolGroup,spacer,accountGroup,accountButton,
+       accountMark:rect(accountMark),accountChevron:rect(accountChevron),accountCopy:rect(accountCopy),
        accountCaptionFits:accountCaption.scrollWidth<=accountCaption.clientWidth+1,
        sidebar,rail,compactVisible,timeframeScrollWidth,timeframeClientWidth,timeframeOverflow,
        headerBg:getComputedStyle(el).backgroundColor,
@@ -559,16 +564,19 @@ try{
      ok(g.compactVisible,`Compact picker replaces scroll rail at ${width}px`);
    }
    ok(g.spacer.x>=g.toolGroup.right-1 && g.accountGroup.x>=g.spacer.right-1,`Flexible space appears only after chart tools at ${width}px`);
-   ok(g.accountGroup.w<=286,`Account capsule retains a readable and bounded footprint at ${width}px`);
+   ok(g.accountGroup.w<=260,`Reference account control remains compact at ${width}px`);
    ok(g.accountButton.x>=g.accountGroup.x+5 && g.accountButton.x<=g.accountGroup.x+16,
-     `Compact account follows its divider without excess padding at ${width}px`);
-   ok(g.more.x>=g.accountButton.right+3 && g.more.x-g.accountButton.right<=11,
-     `More sits close to account details at ${width}px`);
-   ok(g.more.right>=g.outer.right-14 && g.more.right<=g.outer.right+1,
-     `More stays anchored to far right of header at ${width}px`);
-   if(width>=1024) ok(g.accountCaptionFits,`Account metadata fits without truncation at ${width}px`);
-   console.log('V4_HEADER_GEOMETRY',width,JSON.stringify({outer:g.outer,more:g.more,accountGroup:g.accountGroup,accountButton:g.accountButton,toolGroup:g.toolGroup,spacer:g.spacer,sidebar:g.sidebar,rail:g.rail,selected:g.selected,selectedSize:g.selectedSize,selectedRadius:g.selectedRadius}));
-   ok(g.more.right<=g.outer.right+1,`More button fits far-right dock at ${width}px`);
+     `Account follows the slim divider at ${width}px`);
+   ok(g.accountButton.right>=g.outer.right-16&&g.accountButton.right<=g.outer.right,
+     `Account switcher is the final right-aligned navbar control at ${width}px`);
+   ok(g.accountCaptionFits,`Account type fits completely at ${width}px`);
+   ok(g.accountCopy.y+g.accountCopy.h/2>g.accountButton.y+10 && 
+      g.accountCopy.y+g.accountCopy.h/2<g.accountButton.y+g.accountButton.h-10,
+      `ID and type remain in the horizontal center of the same account button at ${width}px`);
+   ok(g.accountChevron.x>=g.accountCopy.right+1 && g.accountChevron.right<=g.accountButton.right+1,
+     `Chevron sits in its own trailing section at ${width}px`);
+   ok(g.accountMark.w>=25&&g.accountMark.w<=29,`Reference round avatar stays compact at ${width}px`);
+   console.log('V4_HEADER_GEOMETRY',width,JSON.stringify({outer:g.outer,accountGroup:g.accountGroup,accountButton:g.accountButton,accountMark:g.accountMark,accountCopy:g.accountCopy,accountChevron:g.accountChevron,toolGroup:g.toolGroup,spacer:g.spacer,sidebar:g.sidebar,rail:g.rail,selected:g.selected,selectedSize:g.selectedSize,selectedRadius:g.selectedRadius}));
    ok(g.selected.w>=32&&Math.abs(g.selected.h-28)<=1,`Selected timeframe has a 32px minimum width and 28px height at ${width}px`);
    eq(g.selectedRadius,'6px',`Selected timeframe uses 6px radius at ${width}px`);
    eq(g.selectedSize,'12px',`Timeframes use 12px text at ${width}px`);
@@ -674,6 +682,10 @@ try{
  await header.getByRole('button',{name:'Layout'}).click();
  await header.getByRole('button',{name:'Switch trading account'}).click();
  eq(await header.getByText('Trading accounts').count(),1,'account selector opens');
+ ok((await header.locator('[data-v4-header-menu="account"]').innerText()).includes('Balance'),
+   'Balance remains in account popover instead of selected button');
+ ok((await header.locator('[data-v4-header-menu="account"]').innerText()).includes('Phase'),
+   'Phase remains available in account list, not selected button');
  await header.getByRole('button',{name:/ACG-33E47AD12A9C/}).click();
  await page.waitForFunction(()=>window.v4HeaderQA.account==='ACG-33E47AD12A9C');
  eq(await header.locator('[data-v4-header-account-name]').innerText(),'ACG · D12A9C','account selection updates name');
@@ -707,11 +719,10 @@ try{
  await header.getByRole('button',{name:'Switch trading account'}).click();
  await menuIs('account');
  eq(await header.getByRole('button',{name:'Layout'}).getAttribute('aria-expanded'),'false','layout closes when account opens');
- await header.getByRole('button',{name:'More terminal actions'}).click();
- await menuIs('more');
- eq(await header.getByRole('button',{name:'Switch trading account'}).getAttribute('aria-expanded'),'false','account closes when more opens');
- await header.getByRole('button',{name:'More terminal actions'}).click();
- eq(await activeMenu().count(),0,'reclicking active More control closes it');
+ eq(await header.getByRole('button',{name:'More terminal actions'}).count(),0,
+   'Removed V4 More control is absent from keyboard and accessibility order');
+ await header.getByRole('button',{name:'Switch trading account'}).click();
+ eq(await activeMenu().count(),0,'Reclicking the account switcher closes its menu');
  await header.getByRole('button',{name:'Chart type'}).click();
  await menuIs('chart');
  await page.keyboard.press('Escape');
@@ -734,7 +745,7 @@ try{
    const icon=el.querySelector(':scope > .acg-v4-header-account-chevron').getBoundingClientRect();
    return icon.left-label.right;
  });
- ok(chevronSpacing>=4&&chevronSpacing<=12,'account chevron stays attached to account text');
+ ok(chevronSpacing>=4&&chevronSpacing<=14,'account chevron stays attached to the single-line ID and type');
  await page.getByRole('button',{name:'Chart appearance settings'}).click();
  eq(await activeMenu().count(),0,'chart appearance closes account menu');
  eq(await page.locator('[data-v4-chart-settings="true"]').count(),1,'chart settings opens as V4 themed popover');
