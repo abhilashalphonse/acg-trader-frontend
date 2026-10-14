@@ -1,11 +1,12 @@
 import React from 'react';
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { Search } from 'lucide-react';
 import {
   finiteOrNull, money, fixedNumber, pnlTone,
   positionExposure, positionMargin, positionOpened, positionExecutionSource,
   positionRiskAtStop, positionIdentity, positionUsdNotional,
   positionMarginUtilization, positionRecordedCosts, positionHoldingDuration,
   positionUnrealizedPnl, positionProtectionIntelligence,positionCurrentSpread,
+  portfolioExposureSummary,
 } from '../../utils/v4PositionsPresentation.js';
 import { formatInstrumentPrice, instrumentForSymbol } from '../../utils/instrumentFormatting.js';
 import { estimatePositionPnlAtPrice } from '../../utils/tradingRisk.js';
@@ -30,7 +31,7 @@ export function PositionsAccountSummary({ account }) {
   </div>;
 }
 export function PositionsToolbar({view,onView,query,onQuery,instrument,onInstrument,instruments,
-  columns,hiddenColumns,onToggleColumn,onResetColumns,showAccount,onShowAccount,showExposure,onShowExposure,entity='position'}) {
+  columns,hiddenColumns,onToggleColumn,onResetColumns,entity='position'}) {
   const [menu,setMenu]=React.useState(null);
   const menuRef=React.useRef(null);
   React.useEffect(()=>{
@@ -59,17 +60,6 @@ export function PositionsToolbar({view,onView,query,onQuery,instrument,onInstrum
         {['compact','risk','execution'].map(mode=><button key={mode} type="button"
           aria-pressed={mode===view} className={mode===view?'is-active':''} onClick={()=>{onView(mode);setMenu(null);}}>
           {mode[0].toUpperCase()+mode.slice(1)}</button>)}
-      </div>
-      <div className="v4-positions-menu-anchor">
-        <button type="button" className="v4-positions-settings" aria-label="Positions display settings"
-          aria-expanded={menu==='settings'} title="Display settings"
-          onClick={()=>setMenu(m=>m==='settings'?null:'settings')}>
-          <SlidersHorizontal size={16}/>
-        </button>
-        {menu==='settings'&&<div className="v4-positions-options-popover" role="group" aria-label="Positions display settings">
-          <label><input type="checkbox" checked={showAccount} onChange={e=>onShowAccount(e.target.checked)}/>Show account overview</label>
-          <label><input type="checkbox" checked={showExposure} onChange={e=>onShowExposure(e.target.checked)}/>Show exposure footer</label>
-        </div>}
       </div>
       <div className="v4-positions-menu-anchor">
         <button type="button" className="v4-positions-columns-button" aria-expanded={menu==='columns'}
@@ -155,19 +145,23 @@ export function PositionsExpandedDetails({
   </div>;
 }
 export function PositionsExposureFooter({positions,markets}){
-  const exposure=positions.map(p=>({p,exposure:positionExposure(p,instrumentForSymbol(markets,p.symbol))}));
-  const valid=exposure.filter(x=>x.exposure!=null);
-  const commonUnit=valid.length&&valid.every(x=>x.exposure.unit===valid[0].exposure.unit)?valid[0].exposure.unit:null;
-  const aggregate=valid.length===positions.length&&commonUnit!=null;
-  const gross=aggregate?valid.reduce((sum,x)=>sum+Math.abs(x.exposure.quantity),0):null;
-  const net=aggregate?valid.reduce((sum,x)=>sum+(String(x.p.side).toUpperCase()==='SELL'?-1:1)*x.exposure.quantity,0):null;
-  const qty=value=>fixedNumber(value,Number.isInteger(value)?0:2);
+  // Never sum underlying EUR, BTC and shares. A single USD figure requires a
+  // validated notional for EVERY open position; filtered rows are irrelevant.
+  const totals=portfolioExposureSummary(positions,markets);
+  const ready=totals.complete;
+  const explanation=totals.breakdown.map(item=>item.available
+    ? item.symbol+' '+item.side+' '+money(item.usd,'USD')
+    : item.symbol+' '+item.side+' unavailable: '+item.reason).join(' | ');
+  const unavailable='Not available · '+totals.priced+'/'+totals.total+' priced';
   return <div className="v4-positions-footer" data-v4-exposure-footer="true">
     <span>{positions.length} open {positions.length===1?'position':'positions'}</span>
-    {positions.length>0&&<div className="v4-positions-exposures" title="Underlying units, not account-currency notional">
-      <span>Gross exposure <strong>{aggregate?qty(gross)+' '+commonUnit:'Multiple assets / unavailable'}</strong></span>
+    {positions.length>0&&<div className="v4-positions-exposures"
+      title={explanation||'No verified USD exposures'}>
+      <span title={'Gross: sum of absolute USD notionals. '+explanation}>Gross exposure (USD) <strong>{ready?money(totals.gross,'USD'):unavailable}</strong></span>
       <i aria-hidden="true"/>
-      <span>Net exposure <strong>{aggregate?(net<0?'−':'')+qty(Math.abs(net))+' '+commonUnit:'—'}</strong></span>
+      <span title={'Directional sum of signed USD notionals, not a portfolio hedge or risk offset. '+explanation}>
+        Net directional (USD) <strong>{ready?money(totals.net,'USD',true):unavailable}</strong>
+      </span>
     </div>}
   </div>;
 }
