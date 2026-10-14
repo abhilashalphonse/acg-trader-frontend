@@ -27,7 +27,9 @@ try{
  eq(await rows().first().getByRole('button',{name:'Expand position details for EUR/USD'}).count(),1,'Compact view includes detail chevron');
  const baseDockHeight=await dock.evaluate(el=>el.getBoundingClientRect().height);
  await rows().first().click();
- eq(await dock.locator('[data-v4-position-detail="position-eur-1"]').count(),1,'Compact row click expands inline details');
+ eq(await dock.locator('[data-v4-position-detail="position-eur-1"]').count(),0,'Row selection does not expand');
+ await rows().first().getByRole('button',{name:'Expand position details for EUR/USD'}).click();
+ eq(await dock.locator('[data-v4-position-detail="position-eur-1"]').count(),1,'Chevron alone toggles details');
  eq(await page.locator('[data-v4-manage-position]').count(),0,'Row click never opens right-side management');
  await page.waitForTimeout(380); // Let any dock height transition finish.
  const heights=await dock.evaluate(el=>({
@@ -63,9 +65,8 @@ try{
    'Restoring fullscreen returns to original compact dock size');
  const detail=dock.locator('[data-v4-position-detail="position-eur-1"]');
  const info=await detail.innerText();
- ok(info.includes('Recorded commission')&&info.includes('$2.50'),'Recorded commission shown');
- ok(info.includes('Current bid/ask spread')&&info.includes('pips'),'Live spread explicitly shown');
- ok(info.includes('not an added fee'),'Spread not treated as separately charged fee');
+ ok(info.includes('Commission')&&info.includes('$2.50'),'Recorded commission shown');
+ ok(!info.includes('Current bid/ask spread')&&!info.includes('R-multiple'),'Market spread and ungrounded R multiple omitted');
  await dock.getByRole('button',{name:'Risk',exact:true}).click();
  eq(await detail.count(),1,'Expanded details persist across Risk view');
  await dock.getByRole('button',{name:'Execution',exact:true}).click();
