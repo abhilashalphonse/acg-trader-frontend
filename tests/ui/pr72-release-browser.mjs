@@ -58,7 +58,11 @@ async function freshQuote(request, symbol, timeout=60000) {
 }
 async function finishFailure(e) {
   report.outcome='FAIL';
-  report.blockedReason=String(e.message||e).replace(/\b[0-9a-f]{24}\b/ig,':id').slice(0,240);
+  report.blockedReason=String(e.message||e)
+    .replace(/ticket=[^&\s]+/ig,'ticket=[REDACTED]')
+    .replace(/Bearer\s+[^\s'"]+/ig,'Bearer [REDACTED]')
+    .replace(/\b[0-9a-f]{24}\b/ig,':id')
+    .slice(0,240);
   report.checks=checks;
   fs.writeFileSync(process.env.PR72_E2E_REPORT,JSON.stringify(report,null,2),{mode:0o600});
   console.error('PR72_E2E_FAIL',report.blockedReason);
