@@ -24,6 +24,27 @@ try {
    const geometric=node=>node.getBoundingClientRect();
    return {
      width:r.width,height:r.height,
+     font:getComputedStyle(el).fontFamily,
+     familyPill:{
+       text:headerButtons[1].textContent.trim(),
+       active:headerButtons[1].getAttribute('data-v2-pill-active'),
+       bg:getComputedStyle(headerButtons[1]).backgroundColor,
+       color:getComputedStyle(headerButtons[1]).color,
+       radius:getComputedStyle(headerButtons[1]).borderTopLeftRadius
+     },
+     riskPill:{
+       active:headerButtons[2].getAttribute('data-v2-pill-active'),
+       bg:getComputedStyle(headerButtons[2]).backgroundColor,
+       radius:getComputedStyle(headerButtons[2]).borderTopLeftRadius
+     },
+     stopPill:{
+       active:headerButtons[3].getAttribute('data-v2-pill-active'),
+       radius:getComputedStyle(headerButtons[3]).borderTopLeftRadius
+     },
+     takePill:{
+       active:headerButtons[4].getAttribute('data-v2-pill-active'),
+       radius:getComputedStyle(headerButtons[4]).borderTopLeftRadius
+     },
      headerHeight:geometric(header).height,summaryHeight:geometric(summary).height,
      headerBg:getComputedStyle(header).backgroundColor,
      mainBg:getComputedStyle(el).backgroundColor,
@@ -53,6 +74,16 @@ try {
     &&Math.abs(box.stopY-box.takeY)<2&&Math.abs(box.takeY-box.closeY)<2,
     'Market, Risk, SL, TP and fullscreen align in same header row');
  eq(box.mainBg,'rgb(9, 9, 11)','V2 canvas is near-black');
+ ok(box.font.startsWith('Inter'),'Original floating Quick Order uses the same Inter font');
+ eq(box.familyPill.active,'true','Selected order mode has active pill state');
+ eq(box.familyPill.bg,'rgb(244, 244, 245)','Selected MARKET/PENDING pill is V2 white');
+ eq(box.familyPill.color,'rgb(17, 17, 19)','White pill uses dark readable text');
+ eq(box.familyPill.radius,'999px','Market/Pending control is a white pill');
+ eq(box.riskPill.active,'false','Inactive Risk pill has correct state');
+ eq(box.riskPill.bg,'rgb(32, 32, 35)','Inactive Risk pill stays graphite');
+ eq(box.riskPill.radius,'999px','Risk uses pill geometry');
+ eq(box.stopPill.radius,'999px','SL uses pill geometry');
+ eq(box.takePill.radius,'999px','TP uses pill geometry');
  eq(box.headerBg,'rgb(16, 16, 18)','V2 controls use distinct graphite header');
  eq(box.line,'rgb(38, 38, 40)','V2 neutral border');
  eq(box.sellBg,'rgb(200, 50, 66)','SELL uses existing V2 execution red');
