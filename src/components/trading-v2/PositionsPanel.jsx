@@ -110,6 +110,11 @@ export default function PositionsPanel({
   onRetryPositions = () => {},
 }) {
   const [tab, setTab] = useState('positions');
+  const [historyPositionFilter,setHistoryPositionFilter] = useState(null);
+  const onV4TabChange=(next,positionId=null)=>{
+    setHistoryPositionFilter(next==='history'&&positionId?String(positionId):null);
+    setTab(next);
+  };
 
   useEffect(() => {
     if (requestedTab && tabs.some(item => item.id === requestedTab)) setTab(requestedTab);
@@ -293,8 +298,10 @@ export default function PositionsPanel({
   // Other tabs retain their current implementation until their own V4 milestones.
   if (v4Positions && desktopDense && (tab === 'history' || tab === 'journal')) {
     return <section className="acg-desktop-positions acg-dock-v3 h-full min-h-0 overflow-hidden" aria-label={tab === 'history' ? 'Trading history workspace' : 'Trading journal workspace'}>
-      <ActivityDockV4 tab={tab} onTabChange={setTab} counts={counts}
+      <ActivityDockV4 tab={tab} onTabChange={onV4TabChange} counts={counts}
         account={account} markets={markets} history={positionHistory} journal={journal}
+        historyPositionFilter={historyPositionFilter} onClearHistoryPosition={()=>setHistoryPositionFilter(null)}
+        positions={positions} positionActivityOrders={positionActivityOrders} positionActivityDeals={positionActivityDeals} positionActivityFills={positionActivityFills}
         expanded={expanded} onToggleExpanded={onToggleExpanded}
         collapsed={collapsed} compactDock={compactDock}
         historyError={historyError} historyLoading={historyLoading} onRetry={onRetryHistory}/>
@@ -304,7 +311,7 @@ export default function PositionsPanel({
     return <section className="acg-desktop-positions acg-dock-v3 h-full min-h-0 overflow-hidden" aria-label="Pending orders workspace">
       <PendingDockV4 orders={pendingOrders} markets={markets} account={account} counts={counts}
         selectedOrderId={selectedPendingId} onInspect={onInspectPending} onManage={onManagePending}
-        onReviewCancel={onReviewCancelPending} onTabChange={setTab}
+        onReviewCancel={onReviewCancelPending} onTabChange={onV4TabChange}
         collapsed={collapsed} compactDock={compactDock} expanded={expanded}
         onToggleExpanded={onToggleExpanded} loading={positionsLoading}
         error={positionsError} onRetry={onRetryPositions} readOnly={readOnly}/>
@@ -314,7 +321,7 @@ export default function PositionsPanel({
     return <section className="acg-desktop-positions acg-dock-v3 h-full min-h-0 overflow-hidden" aria-label="Positions workspace">
       <PositionsDockV4
         positions={positions} markets={markets} account={account} counts={counts} journal={journal} positionActivityOrders={positionActivityOrders} positionActivityDeals={positionActivityDeals} positionActivityFills={positionActivityFills} readOnly={readOnly}
-        onTabChange={setTab} selectedPositionId={selectedPositionId}
+        onTabChange={onV4TabChange} selectedPositionId={selectedPositionId}
         onSelectPosition={onSelectPosition} onManagePosition={onManagePosition} onEditProtection={onEditProtection}
         onRequestClose={onReviewClosePosition} onBreakEven={onBreakEven} onSetTrailing={onSetTrailing} collapsed={collapsed} compactDock={compactDock}
         expanded={expanded} onToggleExpanded={onToggleExpanded}
