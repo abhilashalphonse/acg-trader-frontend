@@ -4,7 +4,8 @@ import {
   V4_POSITION_MIN_WIDTHS,validPositionView,finiteOrNull,money,pnlTone,
   positionMargin,positionExposure,positionOpened,positionExecutionSource,
   positionUnrealizedPnl,positionRiskAtStop,positionIdentity,
-  positionUsdNotional,positionMarginUtilization,positionRecordedCosts,
+  positionUsdNotional,positionVerifiedUsdNotional,portfolioExposureSummary,
+  positionMarginUtilization,positionRecordedCosts,
   positionHoldingDuration,positionProtectionIntelligence,
 } from '../src/utils/v4PositionsPresentation.js';
 
@@ -101,4 +102,38 @@ test('protection R:R uses account-currency-compatible projections; R stays unava
   const unknownFx=positionProtectionIntelligence(setup,{...forex,quoteCurrency:'CAD'},account,estimator);
   assert.equal(unknownFx.rewardToRisk,null);
   assert.equal(unknownFx.currentToStop,null);
+});
+
+
+test('V4 mixed Forex and crypto USD exposure is financially comparable',()=>{
+  const eur={...position,valuationStatus:'LIVE',side:'SELL'};
+  const btc={symbol:'BTCUSD',side:'BUY',volume:0.02,closePrice:68100,valuationStatus:'LIVE'};
+  const markets=[{...forex,symbol:'EURUSD'},{symbol:'BTCUSD',assetClass:'CRYPTO',baseCurrency:'BTC',quoteCurrency:'USD',contractSize:1}];
+  const sum=portfolioExposureSummary([eur,btc],markets);
+  assert.equal(sum.complete,true);assert.equal(sum.priced,2);
+  assert.ok(Math.abs(sum.gross-2479.35)<0.000001);
+  assert.ok(Math.abs(sum.net-244.65)<0.000001);
+  assert.equal(positionVerifiedUsdNotional(btc,markets[1],markets),1362);
+});
+
+test('V4 FX notional fails closed on stale rates, bad contracts and position valuations',()=>{
+  const now=Date.now();
+  const aud={symbol:'AUDCAD',assetClass:'FOREX',baseCurrency:'AUD',quoteCurrency:'CAD',contractSize:100000};
+  const position={symbol:'AUDCAD',side:'BUY',volume:0.01,closePrice:1.1,valuationStatus:'LIVE'};
+  const fx={symbol:'CADUSD',live:true,subscribed:true,bid:0.74,ask:0.741,receivedAtMs:now,isStale:false};
+  assert.ok(Math.abs(positionVerifiedUsdNotional(position,aud,[aud,fx],now)-814)<0.00001);
+  assert.equal(positionVerifiedUsdNotional(position,aud,[aud,{...fx,receivedAtMs:now-20000}],now),null);
+  assert.equal(positionVerifiedUsdNotional(position,{...aud,contractSize:null},[aud,fx],now),null);
+  assert.equal(positionVerifiedUsdNotional({...position,valuationStatus:'STALE'},aud,[aud,fx],now),null);
+  assert.equal(positionVerifiedUsdNotional({...position,closePrice:null},aud,[aud,fx],now),null);
+  const summary=portfolioExposureSummary([position],[aud,{...fx,isStale:true}],now);
+  assert.equal(summary.complete,false);assert.equal(summary.gross,null);assert.equal(summary.net,null);
+});
+
+test('V4 USD base Forex notional remains in USD, avoiding quote multiplication',()=>{
+  const market={symbol:'USDJPY',assetClass:'FOREX',baseCurrency:'USD',quoteCurrency:'JPY',contractSize:100000};
+  const position={symbol:'USDJPY',side:'SELL',volume:0.01,closePrice:151.24,valuationStatus:'LIVE'};
+  assert.equal(positionVerifiedUsdNotional(position,market,[market]),1000);
+  assert.equal(portfolioExposureSummary([position],[market]).net,-1000);
+  assert.equal(portfolioExposureSummary([],[]).gross,0);
 });
