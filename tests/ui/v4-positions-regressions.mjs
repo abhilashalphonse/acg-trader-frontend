@@ -126,7 +126,7 @@ try {
       stacked:selector.getBoundingClientRect().top>=tabs.getBoundingClientRect().bottom-1};
   });
   ok(narrow.scrollWidth>narrow.clientWidth,'Risk narrow width scrolls horizontally');
-  ok(narrow.minWidth>=960,'Risk minimum table width 960px');
+  ok(narrow.minWidth>=1160,'Risk minimum table width accommodates independent Close controls');
   ok(narrow.stacked,'Selector moves to second header line when container narrows');
   const first=rows().first();
   await first.focus();
