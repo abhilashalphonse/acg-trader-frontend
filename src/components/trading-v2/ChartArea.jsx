@@ -1714,6 +1714,7 @@ export default function ChartArea({
           interactionEnabled={drawingInteractionEnabled}
           showHistoryControls={!mobileReference && (!drawingToolbarOverlay || toolbarVisible)}
           preserveChartCrosshair={desktopEnhanced && !compactContext}
+          v4Appearance={v4AuditLayer}
         />}
         <TradePlanOverlay
           plan={v4AuditLayer && tradePlan?.editingOrderId ? null : tradePlan}
