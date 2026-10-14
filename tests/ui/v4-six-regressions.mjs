@@ -494,8 +494,10 @@ try{
  ok(await header.locator('[data-v4-header-instrument-image] img').count()>=1,'Forex instrument retains visible pair flag images');
  eq(await header.locator('[data-market-status]').getAttribute('data-market-status'),'open','only confirmed open sessions claim Market open');
  eq(await header.locator('[data-v4-header-account-name]').innerText(),'ACG · 598D2F','compact account name');
- eq((await header.locator('[data-v4-header-account]').innerText()).trim(),'ACG · 598D2F Trial',
-   'Account switcher contains only ID and account type on one line');
+ eq(await header.locator('[data-v4-header-account-name]').innerText(),'ACG · 598D2F',
+   'Account button contains abbreviated ID and no redundant economics');
+ eq(await header.locator('.acg-v4-header-account-type').innerText(),'Trial',
+   'Account type is the only secondary button label');
  eq(await header.locator('[data-v4-header-more]').count(),0,'V4 navbar has no three-dot More control');
  eq(await header.locator('.acg-v4-header-account-type').innerText(),'Trial','Reference title-case account type');
  eq(await header.locator('[data-v4-header-tool]').count(),3,'three icon-only chart tools');
