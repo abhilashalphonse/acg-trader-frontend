@@ -4,7 +4,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 
 const origin = process.env.V4_DRAWING_QA_URL || 'http://127.0.0.1:5174/tests/fixtures/chart-tools.html';
-const browser = await chromium.launch({ headless: true, channel: process.env.PLAYWRIGHT_CHANNEL || undefined });
+const browser = await chromium.launch({ headless: true, channel: process.env.PLAYWRIGHT_CHANNEL || 'chrome', args: ['--no-sandbox'] });
 let assertions = 0;
 const check = (value, message) => { assert.ok(value, message); assertions += 1; };
 try {
