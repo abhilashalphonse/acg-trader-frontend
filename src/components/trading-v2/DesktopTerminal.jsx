@@ -981,7 +981,7 @@ export default function DesktopTerminal({
   };
 
   const currency = account?.currency || 'USD';
-  const accountPnl = Number(account?.floatingPnl ?? (Number(account?.equity) - Number(account?.balance)));
+  const accountPnl = account?.floatingPnl == null ? null : Number(account.floatingPnl);
   const valuationStatus = String(account?.valuationStatus || 'WAITING').toUpperCase();
   const accountStatus = String(account?.status || 'UNKNOWN').toUpperCase();
   const canOpen = exposureAllowed && executableMarket(market) && accountStatus === 'ACTIVE' && account?.tradingEnabled === true && valuationStatus === 'LIVE';
