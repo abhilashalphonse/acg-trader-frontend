@@ -3,7 +3,7 @@ import { convertFreshFx } from './verifiedFxConversion.js';
 // Read-only presentation helpers for the V4 Positions dock. Do not derive
 // reserved margin from leverage or confuse valuation source with order source.
 export const V4_POSITION_VIEWS = Object.freeze(['compact','risk','execution']);
-export const V4_POSITION_MIN_WIDTHS = Object.freeze({compact:680,risk:960,execution:880});
+export const V4_POSITION_MIN_WIDTHS = Object.freeze({compact:680,risk:1160,execution:880});
 
 export function validPositionView(value) {
   return V4_POSITION_VIEWS.includes(value) ? value : 'compact';
