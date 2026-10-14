@@ -21,8 +21,8 @@ function progress(value, total) {
 
 export default function AccountSection({ account = {}, onOpenSheet = () => {} }) {
   const currency = account.currency || 'USD';
-  const balance = Number(account.balance);
-  const equity = Number(account.equity);
+  const balance = account.balance;
+  const equity = account.equity;
   const risk = calculateAccountRiskSummary(account);
   const target = risk.profitTarget;
   const dailyLossLimit = risk.dailyLossLimit;
