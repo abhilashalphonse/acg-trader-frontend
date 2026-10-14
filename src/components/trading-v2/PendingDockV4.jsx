@@ -153,14 +153,12 @@ export default function PendingDockV4({
   const [query,setQuery]=useState('');
   const [filter,setFilter]=useState('');
   const [expandedIds,setExpandedIds]=useState(()=>new Set());
-  const [hidden,setHidden]=useState({});
   const ids=orders.map(order=>String(order.id));
   const symbols=[...new Set(orders.map(o=>o.symbol).filter(Boolean))].sort();
   const shownOrders=orders.filter(order=>
     (!filter||order.symbol===filter)&&(!query.trim()||
       [order.id,order.clientOrderId,order.symbol,order.orderType,order.side].some(v=>String(v||'').toLowerCase().includes(query.trim().toLowerCase()))));
-  const hiddenInView=hidden[view]||[];
-  const columns=COLUMN_SPECS[view].filter(([label])=>label==='Instrument'||!hiddenInView.includes(label));
+  const columns=COLUMN_SPECS[view];
   const tabs=[['positions','Positions'],['orders','Pending'],['history','History'],['journal','Journal']];
   return <div className="acg-v4-positions" data-v4-pending="true" data-v4-pending-view={view}>
     <div className="v4-positions-header">
@@ -180,9 +178,7 @@ export default function PendingDockV4({
     {!collapsed&&!compactDock&&<>
       <PositionsToolbar entity="order" view={view} onView={setView} query={query} onQuery={setQuery}
         instrument={filter} onInstrument={setFilter} instruments={symbols}
-        columns={COLUMN_SPECS[view]} hiddenColumns={hiddenInView}
-        onToggleColumn={label=>setHidden(cur=>({...cur,[view]:hiddenInView.includes(label)?hiddenInView.filter(x=>x!==label):[...hiddenInView,label]}))}
-        onResetColumns={()=>setHidden(cur=>({...cur,[view]:[]}))}/>
+        />
       <div className="v4-positions-scroller">
         <table className="v4-positions-table" style={{minWidth:MIN_WIDTH[view]}}>
           <colgroup>{columns.map(([name,width])=><col key={name} style={{width}}/>)}</colgroup>
