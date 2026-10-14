@@ -2,7 +2,7 @@ import React from 'react';
 import { Search, Copy, Check, ChevronRight } from 'lucide-react';
 import {
   finiteOrNull, money, fixedNumber, pnlTone,
-  positionExposure, positionMargin, positionOpened, positionExecutionSource,
+  positionExposure, positionMargin, positionOpened,
   positionRiskAtStop, positionIdentity, positionRecordedCosts,
   portfolioExposureSummary, positionVerifiedUsdNotional,
 } from '../../utils/v4PositionsPresentation.js';
