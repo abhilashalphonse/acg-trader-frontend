@@ -50,7 +50,7 @@ import { resolveExecutionPreview } from '../../utils/executionPricing.js';
 import { validateOpenPositionProtection } from '../../utils/openPositionPresentation.js';
 import { loadDesktopChartSettings, normalizeDesktopChartSettings, saveDesktopChartSettings } from '../../utils/desktopChartSettings.js';
 import { isChartOrderAuditEnabled } from '../../utils/chartOrderPresentation.js';
-import { v4HeaderMarketStatus, v4HeaderAccountLabel } from '../../utils/v4HeaderPresentation.js';
+import { v4HeaderMarketStatus, v4HeaderAccountLabel, v4HeaderAccountType } from '../../utils/v4HeaderPresentation.js';
 import { effectiveLeverage } from '../../utils/tradingRisk.js';
 import { positionCloseAvailability } from '../../utils/marketExecutionAvailability.js';
 
@@ -1246,7 +1246,7 @@ export default function DesktopTerminal({
                 </span>
                 <span className="acg-v4-header-account-copy">
                   <strong data-v4-header-account-name>{v4HeaderAccountLabel(account)}</strong>
-                  <span className="acg-v4-header-account-type">{accountTypeBadge(account).slice(0,1)+accountTypeBadge(account).slice(1).toLowerCase()}</span>
+                  <span className="acg-v4-header-account-type">{v4HeaderAccountType(account)}</span>
                 </span>
                 <span className="acg-v4-header-account-chevron" aria-hidden="true">
                   <ChevronDown size={17} className={v4IsOpen('account',accountMenuOpen) ? "acg-motion-chevron rotate-180" : "acg-motion-chevron"}/>
