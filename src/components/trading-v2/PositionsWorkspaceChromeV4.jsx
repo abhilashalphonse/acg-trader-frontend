@@ -99,7 +99,6 @@ export function PositionsExpandedDetails({
   const sl=finiteOrNull(position?.sl),tp=finiteOrNull(position?.tp);
   const risk=positionRiskAtStop(position,instrument,account,estimatePositionPnlAtPrice);
   const logs=positionLifecycleEvents(position,{orders:activityOrders,deals:activityDeals,fills:activityFills});
-  const created=logs.find(item=>item.kind==='order');
   const formatTime=iso=>new Date(iso).toLocaleTimeString('en-GB',
     {hour:'2-digit',minute:'2-digit',second:'2-digit'});
   return <div className="v4-position-expanded" role="region" aria-label={'Position '+id+' details'}>
