@@ -1167,6 +1167,7 @@ export default function DesktopTerminal({
               )}
             </div>
           )}
+          {V4_DESKTOP_EXECUTION_ENABLED && <span className="acg-v4-header-divider acg-v4-header-timeframe-divider" aria-hidden="true"/>}
           <div className="acg-v4-header-tools ml-1.5 flex h-full shrink-0 items-center gap-1.5" role="group" aria-label="Chart tools">
             <div className="relative">
               <button type="button" data-v4-header-tool="chart-type" aria-label={V4_DESKTOP_EXECUTION_ENABLED ? 'Chart type' : undefined} aria-expanded={v4IsOpen('chart',chartMenuOpen)} onClick={() => v4Toggle('chart',setChartMenuOpen)} className={chartMenuOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#C9CDD2]/60 bg-[#222427] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title={V4_DESKTOP_EXECUTION_ENABLED ? 'Chart type' : 'Chart settings'}><CandlestickChart size={V4_DESKTOP_EXECUTION_ENABLED ? 18 : 12}/><span className="acg-v4-header-tool-label">Charts</span><ChevronDown className="acg-v4-header-tool-chevron" size={10}/></button>
@@ -1190,6 +1191,7 @@ export default function DesktopTerminal({
                 </div>
               )}
             </div>
+            {V4_DESKTOP_EXECUTION_ENABLED && <span className="acg-v4-header-divider" aria-hidden="true"/>}
             <div className="relative">
               <button type="button" data-v4-header-tool="indicators" aria-label={V4_DESKTOP_EXECUTION_ENABLED ? 'Indicators' : undefined} aria-expanded={v4IsOpen('indicators',indicatorPanelOpen)} onClick={() => {
                 setIndicatorFocusId(null); setObjectManagerOpen(false); v4Toggle('indicators',setIndicatorPanelOpen);
@@ -1201,6 +1203,7 @@ export default function DesktopTerminal({
                 </div>
               )}
             </div>
+            {V4_DESKTOP_EXECUTION_ENABLED && <span className="acg-v4-header-divider" aria-hidden="true"/>}
             <DesktopWorkspaceMenu snapshot={workspaceSnapshot} onApply={applyWorkspace}
               compact={V4_DESKTOP_EXECUTION_ENABLED} chartLayout={chartLayout} onChartLayoutChange={setChartLayout}
               chartLinked={chartLinked} onToggleChartLink={toggleChartLink}
@@ -1238,11 +1241,13 @@ export default function DesktopTerminal({
           <div className={V4_DESKTOP_EXECUTION_ENABLED ? "relative acg-v4-header-account-wrap" : "relative"}>
             <button type="button" data-v4-header-account onClick={() => v4Toggle('account',setAccountMenuOpen)} className="flex h-8 min-w-[176px] items-center gap-2 rounded-md border border-white/[0.07] bg-black/20 px-2.5 text-left hover:bg-white/[0.025]" aria-label="Switch trading account" aria-expanded={v4IsOpen('account',accountMenuOpen)} title={account?.accountCode || 'Trading account'}>
               {accountSwitching ? <Loader2 size={11} className="shrink-0 animate-spin text-[#C9CDD2]"/> : <span className={`acg-v4-header-account-dot ${canOpen ? "size-1.5 shrink-0 rounded-full bg-[#9FA5AA]" : valuationStatus === 'STALE' ? "size-1.5 shrink-0 rounded-full bg-[#e8bd55]" : "size-1.5 shrink-0 rounded-full bg-[#343434]"}`}/>}
-              <div className="min-w-0 flex-1 leading-none">
+              {V4_DESKTOP_EXECUTION_ENABLED && <div className="acg-v4-header-account-mark" aria-hidden="true"><UserRound size={14}/></div>}
+              <div className="acg-v4-header-account-copy min-w-0 flex-1 leading-none">
                 <strong data-v4-header-account-name className="block truncate text-[9px]">{V4_DESKTOP_EXECUTION_ENABLED ? v4HeaderAccountLabel(account) : account?.accountCode || accountStatus}</strong>
                 <span className="mt-1 block truncate text-[8px] text-[#6F8191]">{accountTypeBadge(account)} · {accountSize(account?.initialBalance ?? account?.startingBalance ?? account?.challenge?.accountSize ?? account?.balance)}{V4_DESKTOP_EXECUTION_ENABLED ? (Number.isFinite(effectiveLeverage(account,market)) ? ` · Market 1:${Number(effectiveLeverage(account,market).toFixed(2))}` : ' · Leverage unavailable') : (Number(account?.leverage)>0 ? ` · 1:${Number(account.leverage)}` : '')}</span>
               </div>
-              <ChevronDown size={11} className={v4IsOpen('account',accountMenuOpen) ? "acg-motion-chevron shrink-0 rotate-180 text-[#6F8191]" : "acg-motion-chevron shrink-0 text-[#6F8191]"}/>
+              {V4_DESKTOP_EXECUTION_ENABLED ? <span className="acg-v4-header-account-chevron"><ChevronDown size={12} className={v4IsOpen('account',accountMenuOpen) ? "acg-motion-chevron rotate-180" : "acg-motion-chevron"}/></span>
+                : <ChevronDown size={11} className={v4IsOpen('account',accountMenuOpen) ? "acg-motion-chevron shrink-0 rotate-180 text-[#6F8191]" : "acg-motion-chevron shrink-0 text-[#6F8191]"}/> }
             </button>
             {v4IsOpen('account',accountMenuOpen) && (
               <div data-v4-header-menu={V4_DESKTOP_EXECUTION_ENABLED ? 'account' : undefined} className="acg-motion-popover absolute right-0 top-10 z-[140] w-[330px] overflow-hidden rounded-md border border-white/[0.10] bg-[#111113] shadow-[0_20px_60px_rgba(0,0,0,.65)]">
