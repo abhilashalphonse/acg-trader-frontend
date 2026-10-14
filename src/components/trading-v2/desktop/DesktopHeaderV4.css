@@ -1,6 +1,6 @@
 /* Owner-audit-only V4 desktop header. The customer-default header is untouched.
    Left groups stay together, with the spacer after chart tools. The account
-   and More menu form one tight, right-aligned group. */
+   switcher is the final compact right-aligned navigation control. */
 .acg-desktop-v3 .acg-v4-header {
   height:52px !important; min-height:52px; max-height:52px;
   display:flex; align-items:center; gap:0;
@@ -173,50 +173,50 @@
   flex:0 1 auto; min-width:0;
 }
 .acg-v4-header .acg-v4-header-valuation { display:none !important; }
+/* Owner's reference: light round avatar, ID + account type on one line,
+   fine chevron division. No account size/leverage in this control. */
 .acg-desktop-v3 .acg-v4-header [data-v4-header-account] {
-  display:flex; align-items:center;
-  width:fit-content; max-width:228px; min-width:0;
-  height:36px; gap:6px; padding:0 0 0 8px;
-  background:#17171b !important; border:1px solid #38383e !important;
-  border-radius:9px !important; color:#f2f2f4;
-  box-shadow:inset 0 1px rgba(255,255,255,.035) !important;
+  display:flex; align-items:center; justify-content:flex-start;
+  width:max-content; max-width:248px; min-width:0;
+  height:36px; gap:8px; padding:0 0 0 5px;
+  color:#f3f3f5; background:#111114 !important;
+  border:1px solid #35353d !important; border-radius:20px !important;
+  box-shadow:none !important;
   transition:background .15s ease,border-color .15s ease;
 }
 .acg-desktop-v3 .acg-v4-header [data-v4-header-account]:hover,
 .acg-desktop-v3 .acg-v4-header [data-v4-header-account][aria-expanded="true"] {
-  background:#242429 !important; border-color:#5a5a61 !important;
+  background:#1d1d21 !important; border-color:#54545c !important;
 }
-.acg-v4-header .acg-v4-header-account-mark {
-  flex:0 0 21px; width:21px; height:21px; border-radius:6px;
-  display:grid; place-items:center; color:#e8e8ec; background:#2c2c32;
+.acg-desktop-v3 .acg-v4-header [data-v4-header-account] .acg-v4-header-account-mark {
+  flex:0 0 27px; width:27px; height:27px; border-radius:50%;
+  display:grid; place-items:center; color:#111114; background:#f2f2f4;
 }
-.acg-v4-header .acg-v4-header-account-chevron {
-  flex:0 0 26px; align-self:stretch; display:grid; place-items:center;
-  border-left:1px solid #39393f; color:#b7b7c0;
+.acg-desktop-v3 .acg-v4-header [data-v4-header-account] .acg-v4-header-account-copy {
+  display:flex; flex:0 1 auto !important; flex-direction:row;
+  align-items:center; justify-content:flex-start; gap:8px;
+  min-width:0; max-width:none; white-space:nowrap;
 }
-.acg-v4-header .acg-v4-header-account-dot { display:none; }
-.acg-v4-header [data-v4-header-account] > .acg-v4-header-account-copy {
-  display:flex; flex:0 1 auto !important; flex-direction:column; justify-content:center; gap:2px;
-  min-width:0; max-width:calc(100% - 60px);
+.acg-desktop-v3 .acg-v4-header [data-v4-header-account-name] {
+  flex:0 0 auto; margin:0; overflow:visible; white-space:nowrap;
+  color:#f5f5f6 !important; font-size:12px !important;
+  line-height:16px !important; font-weight:650 !important;
+  letter-spacing:0 !important;
+}
+.acg-desktop-v3 .acg-v4-header [data-v4-header-account] .acg-v4-header-account-type {
+  flex:0 0 auto; margin:0; color:#a6a6b0 !important;
+  font-family:inherit; font-size:11px !important; line-height:16px !important;
+  font-weight:500 !important; white-space:nowrap;
+}
+.acg-desktop-v3 .acg-v4-header [data-v4-header-account] .acg-v4-header-account-chevron {
+  flex:0 0 29px; width:29px; height:100%; align-self:stretch;
+  display:grid; place-items:center; margin-left:1px;
+  border-left:1px solid #44444d; color:#d4d4db;
 }
 .acg-v4-header [data-v4-header-account] > .acg-v4-header-account-chevron > svg {
   display:block; transition:transform .15s ease;
 }
-.acg-v4-header [data-v4-header-account-name] {
-  color:#f2f2f4; font-size:12px !important; line-height:18px; font-weight:700;
-}
-.acg-v4-header [data-v4-header-account] span:not(.acg-v4-header-account-dot) {
-  margin:0; color:#a7a7af; font-size:10px !important;
-  line-height:14px; font-weight:500;
-}
-.acg-desktop-v3 .acg-v4-header [data-v4-header-more] {
-  width:32px; height:32px;
-  border:1px solid #28282d !important; border-radius:7px;
-  background:#1b1b1f !important; color:#e6e6ec !important;
-}
-.acg-desktop-v3 .acg-v4-header [data-v4-header-more]:hover {
-  background:#26262b !important;
-}
+.acg-v4-header .acg-v4-header-account-dot { display:none; }
 /* Purposeful, noninteractive 1px separators between functional tool groups. */
 .acg-desktop-v3 .acg-v4-header .acg-v4-header-divider {
   flex:0 0 1px; width:1px; height:22px; margin:0 2px;
@@ -240,7 +240,7 @@
 .acg-v4-header .acg-motion-popover,
 .acg-v4-header .acg-v3-popover { top:38px; font-family:inherit; }
 .acg-v4-header .acg-v4-header-layout-tool { font-size:0; }
-/* Narrow desktop keeps the right-aligned account + More cluster compact.
+/* Narrow desktop keeps the new account switcher compact.
    The compact timeframe picker replaces, rather than scrolls, the wide row. */
 @media (max-width:1279px) {
   .acg-v4-header .acg-v4-header-instrument { flex-basis:166px; max-width:166px; }
@@ -253,9 +253,9 @@
   .acg-v4-header .acg-v4-header-instrument { flex-basis:136px; max-width:136px; gap:5px; margin-right:4px; }
   .acg-v4-header .acg-v4-header-primary strong { font-size:12px !important; }
   .acg-v4-header .acg-v4-header-tools { gap:2px; padding:0; }
-  .acg-desktop-v3 .acg-v4-header [data-v4-header-account] { max-width:172px; padding:0 0 0 5px; }
-  .acg-v4-header .acg-v4-header-account-mark { width:17px; height:17px; flex-basis:17px; }
-  .acg-v4-header .acg-v4-header-account-chevron { flex-basis:20px; }
+  .acg-desktop-v3 .acg-v4-header [data-v4-header-account] { max-width:248px; padding-left:5px; gap:6px; }
+  .acg-desktop-v3 .acg-v4-header [data-v4-header-account] .acg-v4-header-account-copy { gap:6px; }
+  .acg-desktop-v3 .acg-v4-header [data-v4-header-account] .acg-v4-header-account-chevron { flex-basis:25px; width:25px; }
   .acg-v4-header .acg-v4-header-right { gap:5px; padding-left:8px; }
 }
 @media (prefers-reduced-motion:reduce) {
