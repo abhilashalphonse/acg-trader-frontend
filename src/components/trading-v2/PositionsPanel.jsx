@@ -136,14 +136,10 @@ export default function PositionsPanel({
   }), [positions, pendingOrders, positionHistory, journal]);
 
   const accountCurrency = account?.currency || 'USD';
-  const accountBalance = Number(account?.balance);
-  const accountEquity = Number(account?.equity);
-  const accountPnl = Number.isFinite(Number(account?.floatingPnl))
-    ? Number(account.floatingPnl)
-    : Number.isFinite(accountEquity) && Number.isFinite(accountBalance)
-      ? accountEquity - accountBalance
-      : null;
-  const availableMargin = Number(account?.freeMargin ?? account?.availableMargin ?? account?.availableFunds);
+  const accountBalance = account?.balance == null ? null : Number(account.balance);
+  const accountEquity = account?.equity == null ? null : Number(account.equity);
+  const accountPnl = account?.floatingPnl == null ? null : Number(account.floatingPnl);
+  const availableMargin = account?.freeMargin == null ? null : Number(account.freeMargin);
   const closeAvailabilityFor = position => positionCloseAvailability(instrumentForSymbol(markets, position?.symbol));
   const closablePositions = useMemo(
     () => positions.filter(position => positionCloseAvailability(instrumentForSymbol(markets, position?.symbol)).allowed),
@@ -351,7 +347,7 @@ export default function PositionsPanel({
               </div>
               <div className="min-w-[66px]">
                 <span className="block text-[8px] font-semibold text-[#727D88]">P&amp;L</span>
-                <strong key={`pnl-${accountPnl}`} className={`acg-motion-value mt-0.5 block font-mono text-[11px] font-bold ${Number(accountPnl) > 0 ? 'text-[#42D7A1]' : Number(accountPnl) < 0 ? 'text-[#FF6F7A]' : 'text-[#E7EDF2]'}`}>{Number.isFinite(Number(accountPnl)) ? formatPnl(accountPnl, accountCurrency) : '—'}</strong>
+                <strong key={`pnl-${accountPnl}`} className={`acg-motion-value mt-0.5 block font-mono text-[11px] font-bold ${Number(accountPnl) > 0 ? 'text-[#42D7A1]' : Number(accountPnl) < 0 ? 'text-[#FF6F7A]' : 'text-[#E7EDF2]'}`}>{accountPnl !== null && Number.isFinite(accountPnl) ? formatPnl(accountPnl, accountCurrency) : '—'}</strong>
               </div>
               <div className="min-w-[66px]">
                 <span className="block text-[8px] font-semibold text-[#727D88]">Equity</span>
