@@ -41,7 +41,7 @@ import ResizeHandle from './desktop/ResizeHandle.jsx';
 import PositionsPanel from './PositionsPanel.jsx';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import IndicatorManager from './IndicatorManager.jsx';
-import { accountStatusLabel, accountTypeBadge, accountTypeLabel } from '../../utils/accountPresentation.js';
+import { accountStatusLabel, accountTypeBadge } from '../../utils/accountPresentation.js';
 import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
 import { marketApi } from '../../api/market.js';
 import { normalizeProtectionPrice } from '../../utils/tradingCommandNormalization.js';
@@ -1246,7 +1246,7 @@ export default function DesktopTerminal({
                 </span>
                 <span className="acg-v4-header-account-copy">
                   <strong data-v4-header-account-name>{v4HeaderAccountLabel(account)}</strong>
-                  <span className="acg-v4-header-account-type">{accountTypeBadge(account).toLowerCase()==='trial'?'Trial':accountTypeLabel(account)}</span>
+                  <span className="acg-v4-header-account-type">{accountTypeBadge(account).slice(0,1)+accountTypeBadge(account).slice(1).toLowerCase()}</span>
                 </span>
                 <span className="acg-v4-header-account-chevron" aria-hidden="true">
                   <ChevronDown size={17} className={v4IsOpen('account',accountMenuOpen) ? "acg-motion-chevron rotate-180" : "acg-motion-chevron"}/>
