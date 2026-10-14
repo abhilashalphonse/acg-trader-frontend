@@ -29,12 +29,16 @@ try{
   const instruments=dock.getByRole('combobox',{name:'Filter by instrument'});
   eq(await search.count(),1,'Search field available');
   eq(await instruments.count(),1,'Instrument dropdown available');
-  eq(await dock.getByRole('button',{name:'Positions display settings'}).count(),1,'Settings icon available');
+  eq(await dock.getByRole('button',{name:'Positions display settings'}).count(),0,'Redundant settings icon removed');
   eq(await dock.getByRole('button',{name:'Columns'}).count(),1,'Columns chooser available');
   const footer=dock.locator('[data-v4-exposure-footer]');
   eq(await footer.count(),1,'Portfolio exposure footer available');
   ok((await footer.innerText()).includes('2 open positions'),'Open count footer correct');
-  ok((await footer.innerText()).includes('Multiple assets'),'Mixed underlying assets not aggregated into false units');
+  ok((await footer.innerText()).includes('Gross exposure (USD)'),'Mixed units shown only as verified USD notional');
+  ok((await footer.innerText()).includes('$2,479.35'),'Gross exposure includes complete BTC and EUR USD notionals');
+  ok((await footer.innerText()).includes('+$244.65'),'Net directional USD signs SELL and BUY correctly');
+  eq(await dock.locator('tr[data-v4-position-id="position-btc-2"] [data-v4-single-asset]').count(),1,
+    'BTC position uses one primary Bitcoin mark');
 
   const rows=()=>dock.locator('tr[data-v4-position-id]');
   const ids=()=>rows().evaluateAll(items=>items.map(x=>x.getAttribute('data-v4-position-id')));
@@ -55,16 +59,8 @@ try{
   eq(await rows().first().locator('td').count(),4,'Column chooser hides matching row cells');
   await chooser.getByRole('button',{name:'Reset columns'}).click();
   eq(await dock.locator('thead th').count(),5,'Reset restores Compact default');
-  await dock.getByRole('button',{name:'Positions display settings'}).click();
-  const settings=dock.getByRole('group',{name:'Positions display settings'});
-  await settings.getByRole('checkbox',{name:'Show exposure footer'}).uncheck();
-  eq(await footer.count(),0,'Settings can hide exposure footer');
-  await settings.getByRole('checkbox',{name:'Show exposure footer'}).check();
-  eq(await footer.count(),1,'Settings restore footer');
-  await settings.getByRole('checkbox',{name:'Show account overview'}).uncheck();
-  eq(await dock.locator('.v4-positions-account-summary').count(),0,'Settings hide account summary');
-  await settings.getByRole('checkbox',{name:'Show account overview'}).check();
-  eq(await dock.locator('.v4-positions-account-summary').count(),1,'Settings restore account summary');
+  eq(await dock.locator('.v4-positions-account-summary').count(),1,'Overview remains visible');
+  eq(await footer.count(),1,'Verified exposure footer remains visible');
   await page.keyboard.press('Escape');
   await dock.getByRole('button',{name:'Risk',exact:true}).click();
   eq(await dock.getAttribute('data-v4-position-view'),'risk','Risk view swaps table columns only');
