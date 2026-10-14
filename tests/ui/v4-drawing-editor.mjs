@@ -47,7 +47,7 @@ try {
   await page.mouse.move(chart.x + chart.width + 800, chart.y + chart.height + 800, { steps: 6 });
   await page.mouse.up();
   const bounded = await bar.boundingBox();
-  check(bounded.right <= chart.right + 2 && bounded.bottom <= chart.bottom + 2, 'Toolbar stays within chart bounds');
+  check(bounded.x + bounded.width <= chart.x + chart.width + 2 && bounded.y + bounded.height <= chart.y + chart.height + 2, 'Toolbar stays within chart bounds');
 
   await bar.getByTitle('Drawing properties', { exact: true }).click();
   const properties = page.locator('.acg-v4-drawing-properties');
