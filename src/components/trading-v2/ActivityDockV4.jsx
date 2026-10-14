@@ -5,6 +5,7 @@ import {instrumentForSymbol,formatInstrumentPrice} from '../../utils/instrumentF
 import {finiteOrNull,money,pnlTone,fixedNumber} from '../../utils/v4PositionsPresentation.js';
 import {PositionsAccountSummary} from './PositionsWorkspaceChromeV4.jsx';
 import {filterActivity,V4_ACTIVITY_RANGES,activityTimestamp} from '../../utils/v4ActivityRanges.js';
+import {positionLifecycleEvents} from '../../utils/v4PositionLifecycle.js';
 import './PositionsDockV4.css';
 import './ActivityDockV4.css';
 
@@ -19,12 +20,20 @@ export default function ActivityDockV4({
   tab='history',onTabChange=()=>{},counts={},account={},markets=[],history=[],journal=[],
   collapsed=false,compactDock=false,expanded=false,onToggleExpanded=()=>{},
   historyError=null,historyLoading=false,onRetry=()=>{},
+  historyPositionFilter=null,onClearHistoryPosition=()=>{},positions=[],positionActivityOrders=[],positionActivityDeals=[],positionActivityFills=[],
 }){
   const [rangeByTab,setRangeByTab]=useState({history:'30D',journal:'30D'});
   const [showAccount,setShowAccount]=useState(true);
   const range=rangeByTab[tab]||'30D';
   const isHistory=tab==='history';
-  const data=filterActivity(isHistory?history:journal,range,tab);
+  const historyScope=isHistory&&historyPositionFilter?String(historyPositionFilter):null;
+  const scopedHistory=historyScope?history.filter(item=>
+    String(item.positionId??item.id??'')===historyScope):history;
+  const data=filterActivity(isHistory?scopedHistory:journal,range,tab);
+  const activePosition=historyScope?positions.find(item=>String(item.id??item.positionId)===historyScope):null;
+  const scopedEvents=activePosition?filterActivity(positionLifecycleEvents(activePosition,{
+    orders:positionActivityOrders,deals:positionActivityDeals,fills:positionActivityFills,
+  }),range,'journal'):[];
   const pnl=isHistory?data.reduce((sum,item)=>sum+(finiteOrNull(item.pnl)??0),0):0;
   const pnlValid=isHistory&&data.some(item=>finiteOrNull(item.pnl)!=null);
   const currency=account?.currency||'USD';
@@ -49,7 +58,11 @@ export default function ActivityDockV4({
     {!collapsed&&!compactDock&&<>
       <div className="v4-activity-toolbar">
         <div className="v4-activity-summary">
-          <strong>{isHistory?'Closed positions':'Local activity journal'}</strong>
+          <strong>{historyScope?'Position history':isHistory?'Closed positions':'Local activity journal'}</strong>
+          {historyScope&&<span className="v4-activity-position-filter">
+            Position {historyScope}
+            <button type="button" onClick={onClearHistoryPosition} aria-label="Show all position history">Clear filter</button>
+          </span>}
           <span>{data.length} {data.length===1?'record':'records'} in selected range</span>
           {pnlValid&&<span>Realized P&amp;L <b className={'v4-position-pnl '+pnlTone(pnl)}>{money(pnl,currency,true)}</b></span>}
         </div>
@@ -64,6 +77,12 @@ export default function ActivityDockV4({
         </div>
       </div>
       <div className="v4-positions-scroller v4-activity-scroller">
+        {historyScope&&scopedEvents.length>0&&<section className="v4-activity-position-events" aria-label="Verified position events">
+          <h4>Verified order and fill events</h4>
+          {scopedEvents.map(event=><div key={event.id} className="v4-activity-position-event">
+            <time dateTime={event.timestamp}>{formatStamp(Date.parse(event.timestamp))}</time><span>{event.label}</span>
+          </div>)}
+        </section>}
         {isHistory?<table className="v4-positions-table v4-activity-table" style={{minWidth:1120}}>
           <thead><tr>
             {['Instrument','Side','Size','Entry','Exit','Opened','Closed','Realized P&L','Commission','Swap','Close reason'].map((label,i)=>
@@ -103,7 +122,7 @@ export default function ActivityDockV4({
           </tr>)}</tbody>
         </table>}
         {!(isHistory&&(historyLoading||historyError))&&data.length===0&&<div className="v4-positions-empty">
-          <strong>{isHistory?'No closed positions in this period':'No local journal activity in this period'}</strong>
+          <strong>{isHistory?(historyScope?'No closed trades for this position in the selected period':'No closed positions in this period'):'No local journal activity in this period'}</strong>
           <span>{isHistory?'Closed trades with verified timestamps will appear here.':'Journal entries are local to this browser.'}</span>
         </div>}
         {isHistory&&historyLoading&&<div className="v4-positions-empty" role="status">Loading trade history…</div>}
@@ -119,3 +138,4 @@ export default function ActivityDockV4({
     </>}
   </div>;
 }
+
