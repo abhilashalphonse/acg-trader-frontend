@@ -238,7 +238,10 @@ jobs:
           fi
           grep -q 'V4_WORKSPACE_CORRECTIONS_PASS' tests/ui/v4-workspace-corrections.mjs
           grep -q 'node tests/ui/v4-workspace-corrections.mjs' .github/workflows/firebase-hosting-pull-request.yml
-          grep -q 'Current bid/ask spread' src/components/trading-v2/PositionsWorkspaceChromeV4.jsx
+          if grep -q 'Current bid/ask spread' src/components/trading-v2/PositionsWorkspaceChromeV4.jsx; then
+            echo "::error::V4 position detail must not duplicate live spread"; exit 1
+          fi
+          grep -q 'formatSpreadDisplay' src/components/trading-v2/desktop/DesktopOrderTicketV4.jsx
           grep -q 'History' src/components/trading-v2/ActivityDockV4.jsx
           grep -q 'V4_POSITIONS_REFERENCE_PASS' tests/ui/v4-positions-reference.mjs
           grep -q 'V4_PENDING_REFERENCE_PASS' tests/ui/v4-pending-reference.mjs
