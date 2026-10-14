@@ -165,15 +165,44 @@ try {
     {accountId:euro,clientOrderId:'ci-eur-cross',symbol:'BTCUSD',side:'BUY',volume:'0.1'});
   assert(Number(euroTrade.value.position.margin)>0,'EUR account margin');
   record('cross-currency EUR account trade with live EURUSD conversion');
-  await requestJson(federatedContext.request,'POST','/v1/trading/positions/'+euroTrade.value.position.id+'/close',token,
-    {accountId:euro,clientOrderId:'ci-eur-close'});
+  // Keep an open cross-currency position while interrupting its FX converter.
+  // This must not present cached equity as a valid live account metric.
+  await page.getByRole('button',{name:'Switch trading account'}).click();
+  await page.locator('[data-v4-header-menu="account"]').getByRole('button')
+    .filter({hasText:privateData.accountCodes.eur}).click();
+  await page.waitForFunction(code=>document.querySelector('[data-v4-header-account-name]')?.textContent?.includes(code),
+    privateData.accountCodes.eur,{timeout:30000});
+  const equityInDock = () => page.locator('[aria-label="Account trading metrics"] .v4-positions-metric')
+    .filter({hasText:'Equity'}).locator('strong');
+  await equityInDock().waitFor({state:'visible',timeout:30000});
+  await page.waitForFunction(() => {
+    const row=[...document.querySelectorAll('[aria-label="Account trading metrics"] .v4-positions-metric')]
+      .find(el=>el.querySelector('span')?.textContent==='Equity');
+    const displayed=row?.querySelector('strong')?.textContent;
+    return displayed && displayed!=='—';
+  },null,{timeout:25000});
   await control(federatedContext.request,'outage',{symbol:'EURUSD'});
+  await page.waitForFunction(() => {
+    const row=[...document.querySelectorAll('[aria-label="Account trading metrics"] .v4-positions-metric')]
+      .find(el=>el.querySelector('span')?.textContent==='Equity');
+    return row?.querySelector('strong')?.textContent==='—';
+  },null,{timeout:15000});
+  record('frontend hides unverified cross-currency equity on controlled feed outage');
   const afterOutage=await requestJson(federatedContext.request,'POST','/v1/trading/orders/market',token,
     {accountId:euro,clientOrderId:'ci-eur-fx-outage',symbol:'BTCUSD',side:'BUY',volume:'0.1'},[409,422,503]);
   assert.notEqual(afterOutage.value?.position?.status,'OPEN','stale FX must not execute');
   record('isolated FX delivery interruption blocks exposure');
   await control(federatedContext.request,'recover',{symbol:'EURUSD'});
   await freshQuote(federatedContext.request,'EURUSD');
+  await page.waitForFunction(() => {
+    const row=[...document.querySelectorAll('[aria-label="Account trading metrics"] .v4-positions-metric')]
+      .find(el=>el.querySelector('span')?.textContent==='Equity');
+    const display=row?.querySelector('strong')?.textContent;
+    return display && display!=='—';
+  },null,{timeout:30000});
+  record('frontend restores verified equity only after provider recovery');
+  await requestJson(federatedContext.request,'POST','/v1/trading/positions/'+euroTrade.value.position.id+'/close',token,
+    {accountId:euro,clientOrderId:'ci-eur-close'});
   const resumed=await requestJson(federatedContext.request,'POST','/v1/trading/orders/market',token,
     {accountId:euro,clientOrderId:'ci-eur-fx-recovered',symbol:'BTCUSD',side:'BUY',volume:'0.1'});
   assert.equal(resumed.value.position.status,'OPEN');
