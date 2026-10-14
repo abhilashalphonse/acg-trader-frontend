@@ -1,0 +1,33 @@
+name: V4 drawing editor acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'src/components/trading-v2/ChartArea.jsx'
+      - 'src/components/trading-v2/DrawingLayer.jsx'
+      - 'src/components/trading-v2/v4/V4DrawingEditToolbar.css'
+      - 'tests/fixtures/chart-tools.jsx'
+      - 'tests/ui/v4-drawing-editor.mjs'
+      - '.github/workflows/v4-drawing-editor.yml'
+  workflow_dispatch:
+
+jobs:
+  drawing-editor-chrome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - name: Build V4 and legacy frontend
+        run: npm run build
+      - name: Start synthetic chart fixtures
+        run: |
+          npm run dev -- --host 127.0.0.1 >/tmp/v4-drawing-qa.log 2>&1 &
+          curl --fail --retry 35 --retry-delay 1 --retry-connrefused http://127.0.0.1:5174/tests/fixtures/chart-tools.html >/dev/null
+      - name: Run draggable drawing editor browser acceptance
+        run: node tests/ui/v4-drawing-editor.mjs
