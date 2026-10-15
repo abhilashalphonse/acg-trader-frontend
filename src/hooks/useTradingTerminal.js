@@ -10,6 +10,7 @@ import {
   pendingPriceDirection,
 } from '../utils/tradingCommandNormalization.js';
 import { executeWithOrderReconciliation } from '../utils/executionReconciliation.js';
+import { accountValuationPresentation } from '../utils/accountValuationPresentation.js';
 import { pendingProtectionPatchValue } from '../utils/pendingOrderChartMove.js';
 import { resolveActiveAccountId, resolveCommandAccountId, resolveLifecycleReplacement } from '../utils/accountLifecycleRouting.js';
 import {
@@ -129,20 +130,10 @@ function normalizeTradingPermissions(value = {}) {
 function normalizeAccount(account, valuation) {
   const durable = account?.state || {};
   const policy = account?.riskPolicy || {};
-  const hasValuation = Boolean(valuation);
-  const accountRevision = Number(account?.financialRevision);
-  const valuationRevision = Number(valuation?.financialRevision);
-  const revisionComparable = Number.isFinite(accountRevision)
-    && Number.isFinite(valuationRevision)
-    && accountRevision >= 0
-    && valuationRevision >= 0;
-  const valuationCoherent = hasValuation && (!revisionComparable || valuationRevision === accountRevision);
-  const valuationNumber = (key, fallback) => valuationCoherent
-    ? nullableNumber(valuation?.[key])
-    : nullableNumber(fallback);
+  const presentation = accountValuationPresentation(account, valuation);
   return {
     id: account?.id || null, accountCode: account?.accountCode || null, accountType: account?.accountType || null, currency: account?.currency || 'USD', status: account?.status || 'UNKNOWN', tradingEnabled: account?.tradingEnabled === true, leverage: account?.leverage || null,
-    initialBalance: nullableNumber(durable.initialBalance), balance: valuationNumber('balance', durable.balance), equity: valuationNumber('equity', durable.equity), floatingPnl: valuationNumber('floatingPnl', durable.floatingPnl), margin: valuationNumber('usedMargin', durable.usedMargin), usedMargin: valuationNumber('usedMargin', durable.usedMargin), freeMargin: valuationNumber('freeMargin', durable.freeMargin), marginLevel: valuationNumber('marginLevel', durable.marginLevel), dailyStartEquity: nullableNumber(durable.dailyStartEquity), realizedPnlToday: nullableNumber(durable.realizedPnlToday), valuationStatus: valuationCoherent ? (valuation?.valuationStatus || 'WAITING') : 'WAITING', complete: valuationCoherent ? valuation?.complete !== false : false, valuationCoherent, staleSymbols: valuation?.staleSymbols || [],
+    initialBalance: nullableNumber(durable.initialBalance), balance: presentation.balance, equity: presentation.equity, floatingPnl: presentation.floatingPnl, margin: presentation.usedMargin, usedMargin: presentation.usedMargin, freeMargin: presentation.freeMargin, marginLevel: presentation.marginLevel, dailyStartEquity: nullableNumber(durable.dailyStartEquity), realizedPnlToday: nullableNumber(durable.realizedPnlToday), valuationStatus: presentation.valuationStatus, complete: presentation.complete, valuationCoherent: presentation.valuationCoherent, staleSymbols: presentation.staleSymbols,
     dailyLossLimit: numberOr(policy?.dailyLoss?.limit), dailyLossReference: policy?.dailyLoss?.reference || 'DAILY_START_EQUITY', maxLossLimit: numberOr(policy?.maxLoss?.limit), maxLossReference: policy?.maxLoss?.reference || 'INITIAL_BALANCE', profitTarget: numberOr(policy?.profitTarget), riskPolicy: policy, challenge: account?.challenge || {}, tradingPermissions: normalizeTradingPermissions(account?.tradingPermissions), capabilities: account?.capabilities || {}, marginStopOut: account?.marginStopOut || { state: account?.marginStopOutState || 'NONE', episodeId: account?.marginStopOutEpisodeId || null }, riskProcessingState: account?.riskProcessingState || 'RESOLVED', riskUnresolvedReason: account?.riskUnresolvedReason || null, financialRevision: Number(account?.financialRevision || 0), fundedAccountId: account?.challenge?.fundedAccountId || account?.fundedAccountId || null, riskDayKey: account?.riskDayKey || null, riskTimezone: account?.riskTimezone || 'UTC',
   };
 }
@@ -159,7 +150,7 @@ function normalizeGrantAccount(grant) {
     leverage: grant.leverage || null,
     initialBalance: nullableNumber(grant.initialBalance),
     balance: nullableNumber(grant.balance),
-    equity: nullableNumber(grant.equity),
+    equity: null, // A grant is not an authenticated live-valuation snapshot.
     floatingPnl: null,
     margin: null,
     usedMargin: null,

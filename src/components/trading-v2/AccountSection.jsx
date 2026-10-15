@@ -21,13 +21,14 @@ function progress(value, total) {
 
 export default function AccountSection({ account = {}, onOpenSheet = () => {} }) {
   const currency = account.currency || 'USD';
-  const balance = Number(account.balance);
-  const equity = Number(account.equity);
+  const balance = account.balance;
+  const equity = account.equity;
   const risk = calculateAccountRiskSummary(account);
   const target = risk.profitTarget;
   const dailyLossLimit = risk.dailyLossLimit;
   const maxLossLimit = risk.maxLossLimit;
   const hasChallengeRules = target > 0 || dailyLossLimit > 0 || maxLossLimit > 0;
+  const riskValuationAvailable = account.equity != null && String(account.valuationStatus || '').toUpperCase() === 'LIVE';
   const targetProfit = risk.profit;
   const dailyLoss = risk.dailyLossUsed;
   const maxLoss = risk.maxLossUsed;
@@ -68,7 +69,11 @@ export default function AccountSection({ account = {}, onOpenSheet = () => {} })
 
       <div className="mt-5 px-1"><h2 className="text-[11px] font-black text-[#e9f0f5]">{accountRiskTitle(account)}</h2><p className="mt-1 text-[8px] text-[#60758a]">{accountRiskDescription(account)}</p></div>
       <div className="mt-2 space-y-2">
-        {hasChallengeRules ? (
+        {hasChallengeRules && !riskValuationAvailable ? (
+          <div className="rounded-[17px] border border-white/[0.08] bg-[#080808] p-3 text-[10px] text-[#a4aab5]" role="status">
+            Risk metrics are waiting for a verified account valuation.
+          </div>
+        ) : hasChallengeRules ? (
           <>
             {!master && target > 0 && <ProgressCard icon={Gauge} label="Profit target" value={targetProfit} total={target} valueLabel={`${money(targetProfit, currency)} / ${money(target, currency)}`} tone="blue" />}
             {dailyLossLimit > 0 && <ProgressCard icon={ShieldCheck} label="Daily loss" value={dailyLoss} total={dailyLossLimit} valueLabel={`${money(dailyLoss, currency)} / ${money(dailyLossLimit, currency)}`} tone="green" invert />}
