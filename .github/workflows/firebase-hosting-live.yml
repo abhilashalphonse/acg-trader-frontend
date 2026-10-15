@@ -16,8 +16,8 @@ env:
   VITE_ACG_TRADER_API_BASE: https://acg-trader-backend-production.up.railway.app
   VITE_ACG_TRADER_WS_URL: wss://acg-trader-backend-production.up.railway.app/v1/ws
   VITE_ACG_TRADER_HTTP_TIMEOUT_MS: 10000
-  # V4 remains OFF globally; only explicit ?acg_v4_audit=1 sessions
-  # show the draft ticket while the normal execution UI stays intact.
+  # Approved V4 desktop execution is the default for every customer.
+  # A V3 emergency fallback remains accessible with ?acg_v4_audit=0.
   VITE_ACG_EXECUTION_V4_ENABLED: 'true'
   VITE_ACG_FUNDED_SUPPORT_BASE_URL: ${{ secrets.VITE_ACG_FUNDED_SUPPORT_BASE_URL }}
   VITE_GIT_SHA: ${{ github.sha }}
@@ -43,12 +43,19 @@ jobs:
       - name: Build production frontend
         run: npm run build
 
-      - name: Assert V4 is gated behind explicit production audit opt-in
+      - name: Assert V4 desktop is enabled by default in production
         run: |
           set -euo pipefail
-          grep -qrF 'acg_v4_audit' dist/assets
+          test "$VITE_ACG_EXECUTION_V4_ENABLED" = 'true'
+          node --input-type=module -e "
+            import { strict as assert } from 'node:assert';
+            import { isV4DefaultEnabled } from './src/utils/chartOrderPresentation.js';
+            assert.equal(isV4DefaultEnabled(process.env.VITE_ACG_EXECUTION_V4_ENABLED, ''), true);
+            assert.equal(isV4DefaultEnabled(process.env.VITE_ACG_EXECUTION_V4_ENABLED, '?acg_v4_audit=0'), false);
+            assert.equal(isV4DefaultEnabled('false', '?acg_v4_audit=1'), false);
+          "
           grep -qrF 'ACG Trader V4 live execution ticket' dist/assets
-          echo 'Audit-only V4 is bundled; default legacy ticket remains the live path.'
+          echo 'V4 enabled by default; V3 opt-out requires an explicit support query parameter.'
 
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
