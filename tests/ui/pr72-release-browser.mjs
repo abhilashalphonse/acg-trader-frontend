@@ -73,7 +73,7 @@ try {
   const native = await nativeContext.newPage();
   const pageErrors=[];
   native.on('pageerror',err=>pageErrors.push(err.name));
-  await native.goto(ui+'?acg_v4_audit=1');
+  await native.goto(ui);
   await native.getByRole('textbox',{name:'Trading Account ID'}).fill(privateData.nativeLogin);
   await native.getByLabel('Password',{exact:true}).fill(privateData.nativePassword);
   const nativeAuth = native.waitForResponse(response=>response.url().endsWith('/v1/auth/login')&&response.request().method()==='POST');
@@ -95,7 +95,7 @@ try {
   const page = await federatedContext.newPage();
   page.on('pageerror',err=>pageErrors.push(err.name));
   const exchange = page.waitForResponse(r=>r.url().endsWith('/v1/auth/federated/exchange')&&r.request().method()==='POST');
-  await page.goto(ui+'?acg_v4_audit=1&ticket='+encodeURIComponent(ticket.ticket));
+  await page.goto(ui+'?ticket='+encodeURIComponent(ticket.ticket));
   const exchanged = await exchange;
   assert.equal(exchanged.status(),200,'real federation ticket exchange');
   const auth = await exchanged.json();
@@ -129,6 +129,7 @@ try {
   await page.getByRole('button',{name:'Trade',exact:true}).click();
   const ticketPanel = page.getByRole('region',{name:'ACG Trader V4 live execution ticket'});
   await ticketPanel.waitFor({state:'visible',timeout:30000});
+  record('V4 desktop execution available by default without audit query flag');
   const buyButton=ticketPanel.getByRole('button',{name:/^BUY\b/});
   const deadline=Date.now()+30000;
   while (!(await buyButton.isEnabled()) && Date.now()<deadline) await delay(750);
