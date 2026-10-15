@@ -8,8 +8,8 @@ const css=read('src/components/trading-v2/desktop/DesktopOrderTicketV4.css');
 const desktop=read('src/components/trading-v2/DesktopTerminal.jsx');
 const original=read('src/components/trading-v2/desktop/DesktopOrderTicket.jsx');
 
-test('V4 production ticket is opt-in only; legacy desktop and floating tickets remain',()=>{
- assert.match(desktop,/isChartOrderAuditEnabled\(\s*import\.meta\.env\.VITE_ACG_EXECUTION_V4_ENABLED/);
+test('V4 desktop ticket is enabled by default while V3 remains a targeted fallback',()=>{
+ assert.match(desktop,/isV4DefaultEnabled\(\s*import\.meta\.env\.VITE_ACG_EXECUTION_V4_ENABLED/);
  assert.match(desktop,/typeof window !== 'undefined' \? window\.location\.search : ''/);
  assert.match(desktop,/V4_DESKTOP_EXECUTION_ENABLED \? \(/);
  assert.match(desktop,/<DesktopOrderTicketV4 /);
@@ -26,10 +26,12 @@ test('V4 production ticket is opt-in only; legacy desktop and floating tickets r
 
 });
 
-test('Production build enables audit-only bundle but keeps default legacy UI',()=>{
+test('Production build enables V4 by default while retaining the emergency V3 component',()=>{
  const workflow=read('.github/workflows/firebase-hosting-live.yml');
  assert.match(workflow,/VITE_ACG_EXECUTION_V4_ENABLED: 'true'/);
- assert.match(workflow,/grep -qrF 'acg_v4_audit' dist\/assets/);
+ assert.match(workflow,/Assert V4 desktop is enabled by default in production/);
+ assert.match(workflow,/isV4DefaultEnabled\(process\.env\.VITE_ACG_EXECUTION_V4_ENABLED, ''\), true/);
+ assert.match(read('src/App.jsx'),/V4_FX_ENABLED = isV4DefaultEnabled\(/);
  assert.match(desktop,/V4_DESKTOP_EXECUTION_ENABLED \? \(/);
  assert.match(desktop,/<DesktopOrderTicket key=/);
 });

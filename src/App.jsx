@@ -11,16 +11,16 @@ import { formatInstrumentPrice } from './utils/instrumentFormatting.js';
 import { resolveActiveAccountId } from './utils/accountLifecycleRouting.js';
 import { riskCriticalMarketSymbols } from './utils/marketSubscriptions.js';
 import { conversionQuoteSymbolsForInstrument } from './utils/verifiedFxConversion.js';
-import { isChartOrderAuditEnabled } from './utils/chartOrderPresentation.js';
+import { isV4DefaultEnabled } from './utils/chartOrderPresentation.js';
 
 const TradingTerminalV2 = lazy(() => import('./pages/TradingTerminalV2.jsx'));
 const MobileTraderShell = lazy(() => import('./pages/MobileTraderShell.jsx'));
 
 const LAST_SYMBOL_STORAGE_KEY = 'acg-trader-last-symbol-v1';
 const FX_PRIORITY = ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD'];
-const V4_FX_AUDIT_ENABLED=isChartOrderAuditEnabled(
+const V4_FX_ENABLED = isV4DefaultEnabled(
   import.meta.env.VITE_ACG_EXECUTION_V4_ENABLED,
-  typeof window!=='undefined'?window.location.search:'',
+  typeof window !== 'undefined' ? window.location.search : '',
 );
 
 function storedLastSymbol() {
@@ -126,7 +126,7 @@ export default function App() {
 
   // Keep FX conversion quotes subscribed for selected cross-currency instruments,
   // even when the conversion pair is not on the visible watchlist.
-  const fxConversionSymbols = useMemo(()=>V4_FX_AUDIT_ENABLED
+  const fxConversionSymbols = useMemo(()=>V4_FX_ENABLED
     ? conversionQuoteSymbolsForInstrument(
       instruments.find(item=>item.symbol===activeSymbol),instruments,'USD')
     : [],[activeSymbol,instruments]);

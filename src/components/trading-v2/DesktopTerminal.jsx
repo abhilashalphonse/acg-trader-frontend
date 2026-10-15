@@ -49,17 +49,15 @@ import { effectiveTradePlan } from '../../utils/tradePlanExecution.js';
 import { resolveExecutionPreview } from '../../utils/executionPricing.js';
 import { validateOpenPositionProtection } from '../../utils/openPositionPresentation.js';
 import { loadDesktopChartSettings, normalizeDesktopChartSettings, saveDesktopChartSettings } from '../../utils/desktopChartSettings.js';
-import { isChartOrderAuditEnabled } from '../../utils/chartOrderPresentation.js';
+import { isV4DefaultEnabled } from '../../utils/chartOrderPresentation.js';
 import { v4HeaderMarketStatus, v4HeaderAccountLabel, v4HeaderAccountType } from '../../utils/v4HeaderPresentation.js';
 import { effectiveLeverage } from '../../utils/tradingRisk.js';
 import { positionCloseAvailability } from '../../utils/marketExecutionAvailability.js';
 
-// Explicit opt-in only. Disabled in all existing builds unless configured.
-// ACG V4 is an owner-initiated production audit, not a global ticket rollout.
- // The approved baseline may be inspected in the live site using
- // ?acg_v4_audit=1. Without BOTH the deployment flag and this opt-in,
- // every existing customer continues to receive the legacy execution ticket.
-const V4_DESKTOP_EXECUTION_ENABLED = isChartOrderAuditEnabled(
+// Approved V4 desktop workspace is the default for every production session.
+// V3 stays available only as an emergency, per-session support fallback:
+// ?acg_v4_audit=0. The build flag still controls availability of V4.
+const V4_DESKTOP_EXECUTION_ENABLED = isV4DefaultEnabled(
   import.meta.env.VITE_ACG_EXECUTION_V4_ENABLED,
   typeof window !== 'undefined' ? window.location.search : '',
 );
