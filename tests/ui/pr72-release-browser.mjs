@@ -159,12 +159,21 @@ try {
   assert(Number(first.value.position.margin)>0,'positive live quote margin');
   const pid=first.value.position.id;
   record('authenticated provider-price market order and initial margin');
+  // Provider quotes can have odd cents; halving one is not necessarily tick-aligned.
+  // Read the actual instrument contract and round the distant BUY level down.
+  const contract = await requestJson(federatedContext.request,'GET','/v1/instruments/BTCUSD',token);
+  const { tickSize, digits } = contract.value.instrument;
+  const tick = Number(tickSize);
+  assert(tick > 0 && Number.isInteger(digits) && digits >= 0 && digits <= 12);
+  const tickCount = Math.floor(Number(liveBtc.bid) * 0.5 / tick);
+  assert(Number.isSafeInteger(tickCount) && tickCount > 0);
+  const distantBuyPrice = (tickCount * tick).toFixed(digits);
   await requestJson(federatedContext.request,'PATCH','/v1/trading/positions/'+pid+'/protection',token,
-    {accountId:acc,clientRequestId:'ci-protection-1',stopLoss:String(Number(liveBtc.bid)*0.5)});
+    {accountId:acc,clientRequestId:'ci-protection-1',stopLoss:distantBuyPrice});
   record('live-position stop loss edit');
   const pending=await requestJson(federatedContext.request,'POST','/v1/trading/orders/pending',token,
     {accountId:acc,clientOrderId:'ci-pending-1',symbol:'BTCUSD',side:'BUY',type:'LIMIT',
-      volume:'0.1',limitPrice:String(Number(liveBtc.bid)*0.5)});
+      volume:'0.1',limitPrice:distantBuyPrice});
   assert.equal(pending.value.order.status,'PENDING');
   const oid=pending.value.order.id;
   await requestJson(federatedContext.request,'POST','/v1/trading/orders/'+oid+'/cancel',token,
