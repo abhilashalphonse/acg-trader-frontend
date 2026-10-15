@@ -1,7 +1,13 @@
-// Owner audit is never enabled by a query parameter alone. Both the
-// production build switch and explicit URL opt-in must be present.
+// Historical opt-in helper retained for fixture and compatibility tests.
 export function isChartOrderAuditEnabled(buildFlag, search = '') {
   return buildFlag === 'true' && new URLSearchParams(search).get('acg_v4_audit') === '1';
+}
+
+// Production V4: the approved desktop workspace is enabled for every session
+// when shipped in the configured build. A query-only escape hatch can opt an
+// individual support/QA session back into V3; it cannot enable a disabled build.
+export function isV4DefaultEnabled(buildFlag, search = '') {
+  return buildFlag === 'true' && new URLSearchParams(search).get('acg_v4_audit') !== '0';
 }
 
 // Presentation-only contracts for in-chart order levels. Trading decisions stay on the server.
