@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { isV4DefaultEnabled } from '../src/utils/chartOrderPresentation.js';
 import { buildV4MarketSections, selectV4Markets, v4MarketPricePresentation } from '../src/utils/v4MarketsDiscovery.js';
 const items=[
  {symbol:'EURUSD',assetClass:'FOREX',bid:1.103,ask:1.1032,pipSize:'0.0001',name:'Euro / US Dollar',changePercent:1.4,volume:11},
@@ -68,4 +70,16 @@ test('Non-search category never mixes Forex with Stocks or Indices',()=>{
  const all=[...items,{symbol:'NIFTY',assetClass:'INDEX',timezone:'Asia/Kolkata'}];
  assert.deepEqual(selectV4Markets({markets:all,category:'forex',view:'all'}).map(r=>r.symbol),['AUDCAD','EURUSD','USDCAD']);
  assert.equal(selectV4Markets({markets:all,category:'forex',view:'all'}).some(r=>r.symbol==='AAPL'),false);
+});
+
+test('production V4 Markets uses desktop default-on switch and explicit V3 fallback',()=>{
+ assert.equal(isV4DefaultEnabled('true',''),true);
+ assert.equal(isV4DefaultEnabled('true','?acg_v4_audit=1'),true);
+ assert.equal(isV4DefaultEnabled('true','?acg_v4_audit=0'),false);
+ assert.equal(isV4DefaultEnabled('false','?acg_v4_audit=1'),false);
+ const component=readFileSync(new URL('../src/components/trading-v2/desktop/DesktopWatchlist.jsx',import.meta.url),'utf8');
+ assert.match(component,/const V4_MARKETS_ENABLED = isV4DefaultEnabled\(/);
+ assert.match(component,/if \(V4_MARKETS_ENABLED && \(mode === 'markets' \|\| mode === 'watchlist'\)\)/);
+ assert.match(component,/className="acg-v4-market-favorite"/);
+ assert.match(component,/onClick=\{event=>\{event.stopPropagation\(\);toggleWatch\(item\);\}\}/);
 });
