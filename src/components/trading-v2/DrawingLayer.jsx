@@ -15,6 +15,8 @@ import {
 import { evaluateRiskToolSetup } from '../../utils/tradingRisk.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 import DrawingProperties from './DrawingProperties.jsx';
+import V4DrawingEditor from './v4/V4DrawingEditor.jsx';
+import { clampDrawingEditorPosition, drawingEditorStartPosition, riskTargetProjectionCandidates } from '../../utils/v4DrawingEditor.js';
 import { constrainDrawingPoint, drawingMagnetMode } from '../../utils/chartToolSettings.js';
 import {
   clampDrawingRiskPercent,
@@ -231,7 +233,8 @@ function DrawingShape({
   };
 
   if (drawing.type === 'long-position' || drawing.type === 'short-position') {
-    const target = resolvePoint(drawing.riskTarget);
+    const target = resolvePoint(drawing.riskTarget)
+      || riskTargetProjectionCandidates(drawing).map(resolvePoint).find(Boolean);
     if (!target) return null;
     const isLong = drawing.type === 'long-position';
     const left = Math.min(a.x, b.x);
@@ -474,6 +477,8 @@ export default function DrawingLayer({
   interactionEnabled = true,
   showHistoryControls = true,
   preserveChartCrosshair = false,
+  v4DesktopEditor = false,
+  onHiddenDrawingCountChange = () => {},
 }) {
   const svgRef = useRef(null);
   const creationGestureRef = useRef(null);
@@ -488,6 +493,10 @@ export default function DrawingLayer({
   const [size, setSize] = useState({ width: 1, height: 1 });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
+  const [manualToolbarPosition, setManualToolbarPosition] = useState(null);
+  const [toolbarSize, setToolbarSize] = useState({width:440,height:44});
+  const toolbarRef = useRef(null);
+  const toolbarDragRef = useRef(null);
   const [, setCoordinateRevision] = useState(0);
   const drawingCrosshairVisibleRef = useRef(false);
 
@@ -503,7 +512,8 @@ export default function DrawingLayer({
 
   useEffect(() => {
     onDrawingCountChange(drawings.length);
-  }, [drawings.length, onDrawingCountChange]);
+    onHiddenDrawingCountChange(drawings.filter(item => item.hidden).length);
+  }, [drawings, onDrawingCountChange, onHiddenDrawingCountChange]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -997,12 +1007,66 @@ export default function DrawingLayer({
     };
   })();
 
-  const selectedToolbarStyle = compactDrawingUi
-    ? { left: 8, right: 8, bottom: 46 }
-    : {
-        left: Math.max(8, Math.min(size.width - 360, (selectedAnchor?.x ?? size.width / 2) - 165)),
-        top: Math.max(8, Math.min(size.height - 46, (selectedAnchor?.y ?? 54) - 42)),
-      };
+  useEffect(() => {
+    if (!v4DesktopEditor || !selected || !toolbarRef.current || typeof ResizeObserver === 'undefined') return undefined;
+    const node = toolbarRef.current;
+    const measure = () => {
+      const next = {width:node.offsetWidth || 440,height:node.offsetHeight || 44};
+      setToolbarSize(current => current.width === next.width && current.height === next.height ? current : next);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [v4DesktopEditor, selected?.type, selectedId]);
+
+  const selectedToolbarStyle = v4DesktopEditor
+    ? (manualToolbarPosition
+      ? clampDrawingEditorPosition(manualToolbarPosition, size, toolbarSize)
+      : drawingEditorStartPosition(selectedAnchor, size, toolbarSize))
+    : compactDrawingUi
+      ? { left: 8, right: 8, bottom: 46 }
+      : {
+          left: Math.max(8, Math.min(size.width - 360, (selectedAnchor?.x ?? size.width / 2) - 165)),
+          top: Math.max(8, Math.min(size.height - 46, (selectedAnchor?.y ?? 54) - 42)),
+        };
+
+  const startToolbarDrag = event => {
+    if (event.button !== 0) return;
+    const chartRect = svgRef.current?.getBoundingClientRect();
+    const editorRect = toolbarRef.current?.getBoundingClientRect();
+    if (!chartRect || !editorRect) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const origin = {left:editorRect.left-chartRect.left,top:editorRect.top-chartRect.top};
+    toolbarDragRef.current = {pointerId:event.pointerId,clientX:event.clientX,clientY:event.clientY,origin};
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+
+  const moveToolbarDrag = event => {
+    const active = toolbarDragRef.current;
+    if (!active || active.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    setManualToolbarPosition(clampDrawingEditorPosition({
+      left:active.origin.left + event.clientX - active.clientX,
+      top:active.origin.top + event.clientY - active.clientY,
+    }, size, toolbarSize));
+  };
+
+  const endToolbarDrag = (event, cancel = false) => {
+    const active = toolbarDragRef.current;
+    if (!active || active.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (cancel) setManualToolbarPosition(active.origin);
+    else setManualToolbarPosition(clampDrawingEditorPosition({
+      left:active.origin.left + event.clientX - active.clientX,
+      top:active.origin.top + event.clientY - active.clientY,
+    }, size, toolbarSize));
+    toolbarDragRef.current = null;
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+  };
 
   const settingsPanelStyle = compactDrawingUi
     ? { left: 8, right: 8, bottom: 90, width: 'auto', maxHeight: '56%', overflowY: 'auto' }
@@ -1111,7 +1175,19 @@ export default function DrawingLayer({
         </div>
       )}
 
-      {selected && !disabled && !settingsOpen && (
+      {selected && !disabled && !settingsOpen && (v4DesktopEditor ? (
+        <V4DrawingEditor ref={toolbarRef} drawing={selected} label={selected.type === 'long-position' ? 'Long position' : selected.type === 'short-position' ? 'Short position' : drawingLabel(selected)}
+          metrics={riskMetricsFor(selected)} lockAll={lockAll} style={selectedToolbarStyle}
+          onColor={color => patchSelected({style:{color}})}
+          onWidth={cycleSelectedWidth} onDash={cycleSelectedDash}
+          onCreateOrder={createOrderFromSelectedRisk}
+          onHide={() => patchSelected({hidden:true})}
+          onLock={() => patchSelected({locked:!selected.locked})}
+          onDuplicate={duplicateSelected} onSettings={() => setSettingsOpen(true)}
+          onDelete={deleteSelected} onClose={() => {setSelectedId(null);setSettingsOpen(false);}}
+          onDragStart={startToolbarDrag} onDragMove={moveToolbarDrag}
+          onDragEnd={endToolbarDrag} onDragCancel={event => endToolbarDrag(event,true)}/>
+      ) : (
         <div
           className="acg-chart-tools acg-drawing-toolbar pointer-events-auto absolute z-30 flex min-h-9 max-w-[calc(100%-16px)] items-center gap-0.5 overflow-hidden rounded-[7px] border border-white/[0.08] bg-[#07090b]/97 p-1 shadow-[0_12px_34px_rgba(0,0,0,.52)] backdrop-blur-md"
           style={selectedToolbarStyle}
@@ -1140,10 +1216,10 @@ export default function DrawingLayer({
           <button type="button" onClick={deleteSelected} className="grid size-7 shrink-0 place-items-center rounded-md text-[#d76d77] hover:bg-[#35151d] hover:text-[#ff7b86]" title="Delete drawing"><Trash2 size={13}/></button>
           <button type="button" onClick={() => { setSelectedId(null); setSettingsOpen(false); }} className="grid size-7 shrink-0 place-items-center rounded-md text-[#8194a7] hover:bg-white/[0.05] hover:text-white" title="Deselect"><X size={13}/></button>
         </div>
-      )}
+      ))}
 
       {selected && settingsOpen && (
-        <div className="acg-drawing-properties pointer-events-auto absolute z-40" style={settingsPanelStyle}>
+        <div className={v4DesktopEditor ? "acg-drawing-properties acg-v4-drawing-properties pointer-events-auto absolute z-40" : "acg-drawing-properties pointer-events-auto absolute z-40"} style={settingsPanelStyle}>
           <DrawingProperties key={selected.id} drawing={selected} riskPercent={riskPercent} lockAll={lockAll} onApply={patchSelected} onClose={() => setSettingsOpen(false)} />
         </div>
       )}
