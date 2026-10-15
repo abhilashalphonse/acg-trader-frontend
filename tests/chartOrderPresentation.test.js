@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chartLineStyle, chartEntryReference, chartPriceChangePercent, chartEstimateCurrencySupported, chartPositionProtections, chartPlacedSideColor, chartPositionConnectorLevels, isChartOrderAuditEnabled } from '../src/utils/chartOrderPresentation.js';
+import { chartLineStyle, chartEntryReference, chartPriceChangePercent, chartEstimateCurrencySupported, chartPositionProtections, chartPlacedSideColor, chartPositionConnectorLevels, isChartOrderAuditEnabled, isV4DefaultEnabled } from '../src/utils/chartOrderPresentation.js';
 
 test('draft or temporary edits use dotted levels while accepted orders and positions stay solid', () => {
   assert.equal(chartLineStyle({ draft: true }), 'dotted');
@@ -34,6 +34,16 @@ test('V4 in-chart changes require both the deployment gate and exact audit URL f
   assert.equal(isChartOrderAuditEnabled('true', ''), false);
   assert.equal(isChartOrderAuditEnabled('true', '?acg_v4_audit=0'), false);
   assert.equal(isChartOrderAuditEnabled('true', '?acg_v4_audit=1&foo=bar'), true);
+});
+
+test('V4 is the default on enabled production desktop builds; only explicit support opt-out restores V3', () => {
+  assert.equal(isV4DefaultEnabled('true', ''), true);
+  assert.equal(isV4DefaultEnabled('true', '?foo=bar'), true);
+  assert.equal(isV4DefaultEnabled('true', '?acg_v4_audit=1'), true);
+  assert.equal(isV4DefaultEnabled('true', '?acg_v4_audit=0'), false);
+  assert.equal(isV4DefaultEnabled('false', ''), false);
+  assert.equal(isV4DefaultEnabled(undefined, '?acg_v4_audit=1'), false);
+  assert.equal(isV4DefaultEnabled('false', '?acg_v4_audit=1'), false);
 });
 
 test('attached TP/SL flags use only accepted positive values', () => {
