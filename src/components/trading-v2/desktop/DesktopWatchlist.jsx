@@ -3,12 +3,12 @@ import { ChevronDown, ChevronUp, GripVertical, ListFilter, MoreHorizontal, Plus,
 import InstrumentAvatar from '../InstrumentAvatar.jsx';
 import './DesktopMarketsV4.css';
 import { formatInstrumentPrice, instrumentPipSize } from '../../../utils/instrumentFormatting.js';
-import { isChartOrderAuditEnabled } from '../../../utils/chartOrderPresentation.js';
+import { isV4DefaultEnabled } from '../../../utils/chartOrderPresentation.js';
 import { buildV4MarketSections, selectV4Markets, v4MarketPricePresentation } from '../../../utils/v4MarketsDiscovery.js';
 import { marketCategoryId, marketVenue } from '../../../utils/marketClassification.js';
 import { commodityDisplaySymbol, commoditySearchTerms, commoditySubgroup, isCommodityInstrument } from '../../../utils/commodityPresentation.js';
 
-const V4_MARKETS_AUDIT = isChartOrderAuditEnabled(
+const V4_MARKETS_ENABLED = isV4DefaultEnabled(
   import.meta.env.VITE_ACG_EXECUTION_V4_ENABLED,
   typeof window !== 'undefined' ? window.location.search : '',
 );
@@ -219,13 +219,13 @@ export default function DesktopWatchlist({
   const [columnsOpen, setColumnsOpen] = useState(false);
   const [prefs, setPrefs] = useState(loadPrefs);
   const [dragSymbol, setDragSymbol] = useState(null);
-  const [category, setCategory] = useState(V4_MARKETS_AUDIT?'forex':'all');
+  const [category, setCategory] = useState(V4_MARKETS_ENABLED?'forex':'all');
   const [stockCountry, setStockCountry] = useState('us');
   const [v4SearchOpen, setV4SearchOpen] = useState(false);
   const [v4SortOpen, setV4SortOpen] = useState(false);
   const v4SortRef = useRef(null);
   const [commodityView, setCommodityView] = useState('all');
-  const [marketView, setMarketView] = useState(V4_MARKETS_AUDIT ? 'popular' : 'all');
+  const [marketView, setMarketView] = useState(V4_MARKETS_ENABLED ? 'popular' : 'all');
   const [sort, setSort] = useState({ key: 'symbol', direction: 'asc' });
   const [recent, setRecent] = useState(loadRecent);
   const rowRefs = useRef(new Map());
@@ -245,9 +245,9 @@ export default function DesktopWatchlist({
   }, [activeSymbol]);
 
   const watched = useMemo(() => new Set(watchlists?.activeSymbols || []), [watchlists?.activeSymbols]);
-  const v4Category = V4_MARKETS_AUDIT && mode === 'watchlist' ? 'favorites' : category;
+  const v4Category = V4_MARKETS_ENABLED && mode === 'watchlist' ? 'favorites' : category;
   useEffect(() => {
-    if(!V4_MARKETS_AUDIT || !v4SearchOpen)return;
+    if(!V4_MARKETS_ENABLED || !v4SearchOpen)return;
     searchRef?.current?.focus();
   },[v4SearchOpen,searchRef]);
   useEffect(() => {
@@ -266,7 +266,7 @@ export default function DesktopWatchlist({
   }, [availableMarkets]);
 
   const rows = useMemo(() => {
-    if (V4_MARKETS_AUDIT && (mode === 'markets' || mode === 'watchlist')) return selectV4Markets({
+    if (V4_MARKETS_ENABLED && (mode === 'markets' || mode === 'watchlist')) return selectV4Markets({
       markets: availableMarkets, category: v4Category, commodityView, stockCountry,
       watched: [...watched], search, view: marketView, recent, popularSymbols: POPULAR_SYMBOLS,
     });
@@ -432,9 +432,9 @@ export default function DesktopWatchlist({
   };
 
 
-  // The V4 audit combines the legacy Watchlist and Markets routes into one
-  // discovery surface. Watchlist data, row callbacks, and old non-audit UI remain intact.
-  if (V4_MARKETS_AUDIT && (mode === 'markets' || mode === 'watchlist')) {
+  // Production V4 uses the same default-on and per-session V3 fallback as the desktop terminal.
+  // Keep legacy Watchlist/Markets available for the explicit V3 escape hatch.
+  if (V4_MARKETS_ENABLED && (mode === 'markets' || mode === 'watchlist')) {
     const changeV4Category=id=>{
       setCategory(id);
       setCommodityView('all');
@@ -568,6 +568,14 @@ export default function DesktopWatchlist({
                     <span className="acg-v4-market-price acg-v4-market-last" title={`Last ${presentation.last}`} data-v4-last>{presentation.last}</span>
                   )}
                   <span className={`acg-v4-market-change ${dayChangeTone}`} data-v4-change title={`Daily change ${presentation.change}`}>{presentation.change}</span>
+                </button>
+                <button type="button"
+                  className="acg-v4-market-favorite"
+                  data-watched={watched.has(item.symbol) ? 'true' : 'false'}
+                  aria-label={watched.has(item.symbol) ? `Remove ${item.symbol} from favorites` : `Add ${item.symbol} to favorites`}
+                  title={watched.has(item.symbol) ? 'Remove from favorites' : 'Add to favorites'}
+                  onClick={event=>{event.stopPropagation();toggleWatch(item);}}>
+                  <Star size={13} fill={watched.has(item.symbol) ? 'currentColor' : 'none'}/>
                 </button>
               </div>
             );
