@@ -14,6 +14,8 @@ export default function V4DrawingToolbar({
   drawingCount = 0,
   showDrawings = true,
   onToggleVisibility = () => {},
+  hiddenDrawingCount = 0,
+  onRestoreHiddenDrawings = () => {},
   drawingSnap = 'off',
   onCycleSnap = () => {},
   lockAllDrawings = false,
@@ -57,6 +59,16 @@ export default function V4DrawingToolbar({
     </div>
     <div className="acg-v4-drawing-footer" data-v4-drawing-controls role="group" aria-label="Drawing controls">
       <div className="acg-v4-drawing-divider" aria-hidden="true"/>
+      {hiddenDrawingCount > 0 && (
+        <button type="button" data-v4-drawing-control="restore-hidden"
+          className="acg-v4-drawing-button acg-v4-drawing-control"
+          aria-label={'Restore ' + hiddenDrawingCount + ' hidden drawings'}
+          title={'Restore ' + hiddenDrawingCount + ' individually hidden drawings'}
+          onClick={onRestoreHiddenDrawings}>
+          <Eye size={18} strokeWidth={1.7}/>
+          <span className="acg-v4-drawing-count" aria-hidden="true">{hiddenDrawingCount}</span>
+        </button>
+      )}
       {controls.map(({id,Icon,label,pressed,click,disabled})=>
         <button key={id} type="button" data-v4-drawing-control={id}
           className="acg-v4-drawing-button acg-v4-drawing-control"

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Eye, EyeOff, RotateCcw, ScanLine, Magnet, Lock, Unlock, Pin } from 'lucide-react';
 import TradingChart from '../TradingChart.jsx';
 import DrawingLayer from './DrawingLayer.jsx';
+import { commitDrawings } from '../../utils/drawingStore.js';
 import V4FullTerminalOrders from './v4/V4FullTerminalOrders.jsx';
 import { formatInstrumentPrice, formatSpreadDisplay, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 import { positionCloseAvailability } from '../../utils/marketExecutionAvailability.js';
@@ -1463,6 +1464,7 @@ export default function ChartArea({
   const [lockAllDrawings, setLockAllDrawings] = useState(false);
   const [keepDrawingTool, setKeepDrawingTool] = useState(false);
   const [drawingCount, setDrawingCount] = useState(0);
+  const [hiddenDrawingCount, setHiddenDrawingCount] = useState(0);
   const [narrowMobile, setNarrowMobile] = useState(() => (
     typeof window !== 'undefined' ? window.matchMedia('(max-width: 430px)').matches : false
   ));
@@ -1605,6 +1607,12 @@ export default function ChartArea({
               drawingCount={drawingCount}
               showDrawings={showDrawings}
               onToggleVisibility={() => setShowDrawings(value => !value)}
+              hiddenDrawingCount={hiddenDrawingCount}
+              onRestoreHiddenDrawings={() => {
+                commitDrawings(symbol, current => current.map(item => item.hidden ? {...item,hidden:false} : item));
+                setHiddenDrawingCount(0);
+                setShowDrawings(true);
+              }}
               drawingSnap={drawingSnap}
               onCycleSnap={cycleDrawingSnap}
               lockAllDrawings={lockAllDrawings}
@@ -1705,6 +1713,8 @@ export default function ChartArea({
           snapStep={instrumentPipSize(instrument)}
           lockAll={lockAllDrawings}
           onDrawingCountChange={setDrawingCount}
+          onHiddenDrawingCountChange={setHiddenDrawingCount}
+          v4DesktopEditor={v4AuditLayer && !compactContext && !mobileReference}
           instrument={instrument}
           account={account}
           riskPercent={riskPercent}

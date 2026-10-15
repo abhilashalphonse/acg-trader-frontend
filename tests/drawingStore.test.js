@@ -5,6 +5,7 @@ import {
   commitDrawings,
   commitLiveDrawingTransaction,
   getDrawingSnapshot,
+  patchDrawing,
   redoDrawings,
   removeDrawing,
   replaceDrawingsLive,
@@ -102,4 +103,26 @@ test('no-op live drawing transaction does not create an undo history entry', () 
   replaceDrawingsLive(symbol, cloneDrawings(before));
   assert.equal(commitLiveDrawingTransaction(symbol, before), false);
   assert.equal(getDrawingSnapshot(symbol).past.length, pastBefore);
+});
+
+test('individual long/short visibility is independent from the global chart-layer eye toggle', () => {
+  const symbol = 'STORE_RISK_VISIBILITY_TEST';
+  const drawings = ['long-position','short-position'].map(type => ({
+    id:type, type, a:{time:100,price:100},
+    b:{time:110,price:type === 'long-position' ? 95 : 105},
+    riskTarget:{time:110,price:type === 'long-position' ? 110 : 90},
+    timeframeVisibility:'all',
+  }));
+  commitDrawings(symbol, [...drawings, line('line')]);
+  for (const drawing of drawings) {
+    patchDrawing(symbol,drawing.id,{hidden:true});
+    assert.equal(visibleDrawingOnTimeframe(getDrawingSnapshot(symbol).present.find(item => item.id === drawing.id),'M1'),false);
+    patchDrawing(symbol,drawing.id,{hidden:false});
+    assert.equal(visibleDrawingOnTimeframe(getDrawingSnapshot(symbol).present.find(item => item.id === drawing.id),'M1'),true);
+  }
+  assert.equal(getDrawingSnapshot(symbol).present.find(item => item.id === 'line').hidden,false);
+  assert.deepEqual(getDrawingSnapshot(symbol).present.slice(0,2).map(item => item.riskTarget),drawings.map(item => item.riskTarget));
+  patchDrawing(symbol,'long-position',{hidden:true});
+  commitDrawings(symbol,current => current.map(item => item.hidden ? {...item,hidden:false} : item));
+  assert.ok(getDrawingSnapshot(symbol).present.every(item => visibleDrawingOnTimeframe(item,'M1')));
 });
