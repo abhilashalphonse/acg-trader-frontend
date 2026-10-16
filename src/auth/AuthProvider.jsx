@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useEffect, useMemo, useRef, useState
 import { authApi } from '../api/auth.js';
 import { ApiError } from '../api/client.js';
 import { SESSION_STORAGE_KEY } from '../api/config.js';
+import { SupabaseBrowserAuth } from './supabase-browser.js';
 
 export const AuthContext = createContext(null);
 
@@ -26,6 +27,7 @@ function sessionFromAuthResponse(response) {
       accountIds: Array.isArray(response.session.accountIds) ? response.session.accountIds.map(String) : [],
       selectedAccountId: response.session.selectedAccountId ? String(response.session.selectedAccountId) : null,
       authMethod: response.session.authMethod,
+      userId: response.session.userId || null,
       expiresAt: response.expiresAt,
       refreshExpiresAt: response.refreshExpiresAt || null,
     },
@@ -156,7 +158,7 @@ export function AuthProvider({ children }) {
       if (currentSelected && refreshedAccountIds.includes(currentSelected)) {
         next.principal.selectedAccountId = currentSelected;
       }
-      if (current?.principal?.accountGrants && next?.principal?.authMethod === 'FEDERATED') {
+      if (current?.principal?.accountGrants && ['FEDERATED', 'SUPABASE'].includes(next?.principal?.authMethod)) {
         next.principal.accountGrants = current.principal.accountGrants;
         next.principal.grantsRefreshedAt = current.principal.grantsRefreshedAt || null;
       }
@@ -273,9 +275,26 @@ export function AuthProvider({ children }) {
     }
   }, [commitSession]);
 
+  const loginSupabase = useCallback(async (identityToken, tenantId) => {
+    setStatus('authenticating');
+    setError(null);
+    try {
+      const response = await authApi.exchangeSupabase(identityToken, tenantId);
+      const next = sessionFromAuthResponse(response);
+      commitSession(next);
+      return next;
+    } catch (nextError) {
+      setStatus('anonymous');
+      setError(nextError);
+      throw nextError;
+    }
+  }, [commitSession]);
+
   const logout = useCallback(async () => {
     const token = sessionRef.current?.accessToken || null;
+    const wasSupabase = sessionRef.current?.principal?.authMethod === 'SUPABASE';
     hardClearSession(null);
+    if (wasSupabase) await new SupabaseBrowserAuth().signOut();
     try {
       await authApi.logout(token);
     } catch {
@@ -421,11 +440,11 @@ export function AuthProvider({ children }) {
       const remaining = current.expiresAt ? new Date(current.expiresAt).getTime() - Date.now() : 0;
       if (!current.accessToken || remaining <= WAKE_REFRESH_WINDOW_MS) {
         void refreshSession().then(next => {
-          if (next?.principal?.authMethod === 'FEDERATED') void refreshAccountGrants().catch(() => {});
+          if (['FEDERATED', 'SUPABASE'].includes(next?.principal?.authMethod)) void refreshAccountGrants().catch(() => {});
         }).catch(() => {});
         return;
       }
-      if (current.principal.authMethod === 'FEDERATED') void refreshAccountGrants().catch(() => {});
+      if (['FEDERATED', 'SUPABASE'].includes(current.principal.authMethod)) void refreshAccountGrants().catch(() => {});
     };
 
     const onVisibility = () => {
@@ -444,7 +463,7 @@ export function AuthProvider({ children }) {
   }, [refreshAccountGrants, refreshSession]);
 
   useEffect(() => {
-    if (status !== 'authenticated' || session?.principal?.authMethod !== 'FEDERATED') return undefined;
+    if (status !== 'authenticated' || !['FEDERATED', 'SUPABASE'].includes(session?.principal?.authMethod)) return undefined;
 
     let active = true;
     const refresh = () => {
@@ -476,6 +495,7 @@ export function AuthProvider({ children }) {
     error,
     refreshing,
     login,
+    loginSupabase,
     exchangeTicket,
     logout,
     refreshPrincipal,
@@ -489,6 +509,7 @@ export function AuthProvider({ children }) {
     exchangeTicket,
     invalidateSession,
     login,
+    loginSupabase,
     logout,
     refreshPrincipal,
     refreshAccountGrants,

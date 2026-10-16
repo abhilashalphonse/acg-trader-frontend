@@ -19,6 +19,20 @@ export const authApi = Object.freeze({
     });
   },
 
+  bootstrapSupabase(token, signal) {
+    return apiRequest('/v1/identity/bootstrap', { method: 'POST', token, body: {}, signal });
+  },
+
+  supabaseOrganizations(token, signal) {
+    return apiRequest('/v1/auth/supabase/organizations', { token, signal });
+  },
+
+  exchangeSupabase(token, tenantId, signal) {
+    return apiRequest('/v1/auth/supabase/exchange', {
+      method: 'POST', token, body: { tenantId }, signal,
+    });
+  },
+
   refresh(token = null, signal) {
     return apiRequest('/v1/auth/refresh', {
       method: 'POST',

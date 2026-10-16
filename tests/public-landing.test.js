@@ -19,7 +19,8 @@ test('landing V6 retains approved value proposition and has a real sign-in route
   assert.match(html, /Global markets\.<br\/><span class="soft-text">One platform\./i);
   assert.match(html, /Risk-based sizing\.<br\/><span>Chart-based trading\./i);
   assert.match(html, /Bring ACG Trader<br\/><span>to your traders\./i);
-  assert.match(html, /href="\/\?acg_login=1"/);
+  assert.match(html, /href="\/\?acg_auth=signin&amp;acg_onboarding_audit=1"/);
+  assert.match(html, /href="\/\?acg_auth=signup&amp;acg_onboarding_audit=1"/);
   assert.match(html, /href="#markets"/);
   assert.match(html, /href="#trading"/);
   assert.match(html, /href="#experience"/);
