@@ -43,6 +43,7 @@ export default function MarketPanel({
   showInstrumentHeader = true,
   compactMobileToolbar = false,
   auditMobile = false,
+  onChartReadout,
   fillAvailableHeight = false,
 }) {
   const [drawingToolbarOpen, setDrawingToolbarOpen] = useState(compactMobileToolbar);
@@ -98,6 +99,7 @@ export default function MarketPanel({
         drawingToolbarOverlay={compactMobileToolbar}
         mobileOverlayStyle={compactMobileToolbar}
         auditMobile={auditMobile}
+        onChartReadout={onChartReadout}
         fillAvailableHeight={fillAvailableHeight}
       />
     </section>
