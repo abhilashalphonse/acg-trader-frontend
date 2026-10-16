@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Ellipsis, Eye, EyeOff, Lock, Magnet, Pin, Unlock, RotateCcw } from 'lucide-react';
+import { Ellipsis, Eye, EyeOff, Lock, Magnet, Pin, Unlock, RotateCcw, Plus } from 'lucide-react';
 import { V4_DRAWING_TOOL_SECTIONS, DRAWING_TOOL_LABELS } from '../../utils/drawingTools.js';
 import { DRAWING_TOOL_ICONS } from './DrawingToolIcons.jsx';
 
@@ -47,7 +47,7 @@ export default function MobileAuditDrawingPalette({
           ${active ? 'border-[#e4e8ec] bg-[#101216] text-white' : 'border-transparent text-[#dce1e6] active:bg-white/[0.08]'}
           ${quick ? '' : 'hover:bg-white/[0.07]'} disabled:opacity-35`}
       >
-        <Icon size={quick ? 23 : 19} strokeWidth={1.75}/>
+        {id === 'cursor' && quick ? <Plus size={28} strokeWidth={1.7}/> : <Icon size={quick ? 23 : 19} strokeWidth={1.75}/>}
       </button>
     );
   };
@@ -79,7 +79,7 @@ export default function MobileAuditDrawingPalette({
       ><Ellipsis size={22} strokeWidth={2.2}/></button>
 
       {expanded && (
-        <div data-acg-mobile-audit-palette-expanded className="flex w-full min-h-0 flex-col items-center gap-[2px] border-t border-white/[0.10] pt-[4px]">
+        <div data-acg-mobile-audit-palette-expanded className="flex w-full shrink-0 flex-col items-center gap-[2px] border-t border-white/[0.10] pt-[4px]">
           {V4_DRAWING_TOOL_SECTIONS.map(section => {
             const ids = section.tools.filter(id => id !== 'cursor' && id !== 'trendline');
             if (!ids.length) return null;
