@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { mkdir } from 'node:fs/promises';
 import { setTimeout as wait } from 'node:timers/promises';
 import { chromium } from 'playwright';
+import process from 'node:process';
 
 const server = spawn('npm', ['run', 'dev', '--', '--host', '127.0.0.1', '--port', '4178', '--strictPort'], {
   detached: true, stdio: ['ignore', 'pipe', 'pipe'],
@@ -29,7 +30,6 @@ try {
     const page = await browser.newPage({ viewport: { width, height } });
     await page.goto(uri);
     const dock = page.locator('[data-acg-mobile-audit-dock]');
-    const header = page.locator('[data-acg-mobile-audit-header]');
     await dock.waitFor({ state: 'visible' });
     const geometry = await page.evaluate(() => {
       const dock = document.querySelector('[data-acg-mobile-audit-dock]');
