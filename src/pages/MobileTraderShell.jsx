@@ -320,8 +320,9 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
   const handleTradingError = (error, context = 'Trading command') => {
     const message = trading.errorMessage(error);
-    const unknown = error?.code === 'EXECUTION_STATUS_UNKNOWN';
-    if (mobileAudit && unknown) setAuditUnknownSubmission(true);
+    const unknownExposure = error?.code === 'EXECUTION_STATUS_UNKNOWN';
+    const unknown = unknownExposure || (mobileAudit && isAmbiguousExecutionError(error));
+    if (mobileAudit && unknownExposure) setAuditUnknownSubmission(true);
     setExecutionEvent(current => current ? { ...current, status: unknown ? 'unknown' : 'rejected', message } : { status: unknown ? 'unknown' : 'rejected', message });
     logEvent(unknown ? 'warning' : 'error', `${context}: ${message}`);
     showNotice(message);
@@ -1016,7 +1017,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       if (activeAuditAccount.current!==checkingAccount) return null;
       if (result?.confirmed) {
         setAuditUnknownSubmission(false);setTradePlan(null);
-        setAuditRecoveryMessage('Previous order confirmed.');
+        setAuditRecoveryMessage(`Previous order status: ${String(result.order?.status || 'confirmed').toUpperCase()}.`);
         restoredAuditRecovery.current=null;
         try {localStorage.removeItem(mobileRecoveryKey(trading.accountId));} catch { /* storage unavailable */ }
         trading.refreshHistory();
