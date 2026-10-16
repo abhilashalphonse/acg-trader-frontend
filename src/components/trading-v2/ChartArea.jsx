@@ -9,6 +9,7 @@ import { positionCloseAvailability } from '../../utils/marketExecutionAvailabili
 import { estimateLossAtStopWithCosts, estimatePositionPnlAtPrice, estimateStopRisk, positionDistancePips } from '../../utils/tradingRisk.js';
 import { resolveExecutionPreview } from '../../utils/executionPricing.js';
 import { effectiveTradePlan } from '../../utils/tradePlanExecution.js';
+import { resolveV4PositionSizing } from '../../utils/v4ExecutionPrecision.js';
 import { chartEntryReference, chartLineStyle, chartPriceChangePercent, chartEstimateCurrencySupported, chartPositionProtections, chartPlacedSideColor, chartPositionConnectorLevels } from '../../utils/chartOrderPresentation.js';
 import { DRAWING_TOOL_GROUPS, DRAWING_TOOL_LABELS } from '../../utils/drawingTools.js';
 import { DRAWING_TOOL_ICONS } from './DrawingToolIcons.jsx';
@@ -719,8 +720,9 @@ export function PendingOrderOverlay({
   );
 }
 
-export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, instrument, lots = 0.1, accountCurrency = 'USD', account = null, riskPercent = 0.5, orderExecutionPreview = null, showEntry = true, mobileStyle = false, desktopStyle = false }) {
+export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordinateApi, instrument, lots = 0.1, accountCurrency = 'USD', account = null, riskPercent = 0.5, orderExecutionPreview = null, showEntry = true, mobileStyle = false, desktopStyle = false, auditStyle = false }) {
   const layerRef = useRef(null);
+  const dragOrigin = useRef(null);
   const [dragging, setDragging] = useState(null);
   const [preview, setPreview] = useState({});
   const [, forceLayout] = useState(0);
@@ -755,15 +757,23 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
       const converted = priceFromEvent(event);
       if (converted == null) return;
       event.preventDefault?.();
+      if (auditStyle && dragOrigin.current) {
+        if (event.pointerId !== dragOrigin.current.pointerId) return;
+        if (!dragOrigin.current.moved && Math.abs(event.clientY - dragOrigin.current.clientY) < 5) return;
+        dragOrigin.current.moved = true;
+      }
       setPreview(current => ({ ...current, [field]: converted }));
+      if (auditStyle) onChange({ [field]: converted, stage: 'planning' });
     };
 
     const finish = (event, commit) => {
-      const converted = commit ? priceFromEvent(event) : null;
+      if (auditStyle && dragOrigin.current && event.pointerId !== dragOrigin.current.pointerId) return;
+      const converted = commit && (!auditStyle || dragOrigin.current?.moved) ? priceFromEvent(event) : null;
       setDragging(null);
       clearPreview();
       if (converted != null) onChange({ [field]: converted, stage: 'ready' });
-      else onChange({ stage: 'ready' });
+      else onChange(auditStyle && dragOrigin.current ? { [field]: dragOrigin.current.price, stage: 'planning' } : { stage: 'ready' });
+      dragOrigin.current = null;
     };
 
     const up = event => finish(event, true);
@@ -780,7 +790,7 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', cancel);
     };
-  }, [coordinateApi, dragging, onChange]);
+  }, [coordinateApi, dragging, onChange, auditStyle]);
 
   if (!plan || plan.open || !coordinateApi?.priceToY) return null;
   const isBuy = plan.side === 'buy';
@@ -810,6 +820,9 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
   const liveTp = sourcePrice('tp');
   const liveLimit = sourcePrice('limitPrice');
   const livePlan = { ...plan, entry: liveEntry, limitPrice: liveLimit, sl: liveSl, tp: liveTp };
+  const auditSizing = auditStyle && plan.auditMode ? resolveV4PositionSizing({
+    mode: plan.auditMode, amount: plan.auditValue, plan: livePlan, instrument, account,
+  }) : null;
   // With no uncommitted chart drag, display the exact same resolved size
   // as the ticket; both derive from the current executable market quote.
   const dragPreviewActive = ['entry', 'sl', 'tp', 'limitPrice']
@@ -823,11 +836,11 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
       account: account || {},
       instrument,
     });
-  const rawDisplayLots = plan?.sizingMode === 'risk'
+  const rawDisplayLots = auditStyle ? (auditSizing ? (auditSizing.canExecute ? auditSizing.lots : null) : lots) : plan?.sizingMode === 'risk'
     ? (resolvedLive.sizing?.lots ?? Number.NaN)
     : (plan?.manualLots ?? lots);
   const displayLots = rawDisplayLots == null ? Number.NaN : Number(rawDisplayLots);
-  const riskPricePlan = resolvedLive.riskPlan || resolvedLive.plan || livePlan;
+  const riskPricePlan = auditStyle ? { ...livePlan, entry: auditSizing?.referencePrice ?? liveEntry } : resolvedLive.riskPlan || resolvedLive.plan || livePlan;
   const liveRisk = Number.isFinite(displayLots) && Number.isFinite(liveEntry) && Number.isFinite(liveSl)
     ? estimateLossAtStopWithCosts(riskPricePlan, displayLots, instrument, account)
     : null;
@@ -851,6 +864,30 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
     // Only the edited protection is a draft; untouched accepted SL/TP
     // are rendered by OpenPositionProtectionOverlay as solid levels.
     if (desktopPositionProtectionMode && activeProtectionField && kind !== activeProtectionField) return null;
+
+    if (auditStyle) {
+      const pendingEntry = kind === 'entry' && plan.pending;
+      const title = kind === 'entry' ? `${isBuy ? 'BUY' : 'SELL'} ${plan.pending ? String(plan.orderType).toUpperCase() : 'MARKET'}` : label;
+      const projection = kind === 'sl' ? liveRisk : kind === 'tp' ? liveReward : null;
+      const begin = event => {
+        if (!draggable || plan.stage === 'review') return;
+        event.preventDefault(); event.stopPropagation();
+        dragOrigin.current = { price: sourcePrice(field), clientY:event.clientY, pointerId:event.pointerId, moved:false };
+        setDragging(kind);
+        onChange({ activeField: kind, stage: 'planning' });
+      };
+      return <div data-mobile-draft-level={kind} className="pointer-events-none absolute left-0 right-[52px] z-30 border-t border-dotted" style={{ top, borderColor: color }}>
+        <button type="button" aria-label={draggable ? `Drag draft ${kind}` : 'Market entry follows live quote'} disabled={plan.stage === 'review'} onPointerDown={begin}
+          className="pointer-events-auto absolute left-[56px] right-0 top-1/2 flex h-9 -translate-y-1/2 touch-none items-center justify-between gap-1 text-[11px] tabular-nums">
+          <span className="flex h-[22px] min-w-0 items-center gap-1 rounded-[4px] border bg-[#09090b] px-1.5" style={{ borderColor: color }}>
+            <span style={{ color }}>{title}</span>
+            <span className="truncate text-[#eeeef0]">{kind === 'entry' ? `${lotCompact} lots · Draft` : Number.isFinite(projection) ? formatProjectedPnl(kind === 'sl' ? -Math.abs(projection) : Math.abs(projection), accountCurrency) : '—'}</span>
+          </span>
+          <span className="flex h-[22px] shrink-0 items-center rounded-[4px] border bg-[#09090b] px-1" style={{ borderColor: color, color }}>{formatInstrumentPrice(sourcePrice(field), instrument)}{draggable && plan.stage !== 'review' ? ' ⋮' : ''}</span>
+        </button>
+        {pendingEntry && <span className="sr-only">Pending entry can be dragged. No order is sent on release.</span>}
+      </div>;
+    }
 
     // Stop-limit has two independent chart handles. The limit boundary is
     // a compact secondary level, not the oversized generic price tool.
@@ -1072,8 +1109,8 @@ export function TradePlanOverlay({ plan, onChange, onCancel = () => {}, coordina
 
   return (
     <div ref={layerRef} className="pointer-events-none absolute inset-0 z-[40] overflow-hidden">
-      {!positionProtectionMode && rewardTop != null && <div className="pointer-events-none absolute left-[42%] right-0" style={{ top: rewardTop, height: rewardHeight, background: 'linear-gradient(90deg, rgba(22,134,95,0.10), rgba(34,167,125,0.20))' }} />}
-      {!positionProtectionMode && riskTop != null && <div className="pointer-events-none absolute left-[42%] right-0" style={{ top: riskTop, height: riskHeight, background: 'linear-gradient(90deg, rgba(138,43,57,0.10), rgba(255,68,91,0.17))' }} />}
+      {!positionProtectionMode && rewardTop != null && <div className="pointer-events-none absolute left-[42%] right-0" style={{ top: rewardTop, height: rewardHeight, background: auditStyle ? 'rgba(34,167,125,0.08)' : 'linear-gradient(90deg, rgba(22,134,95,0.10), rgba(34,167,125,0.20))' }} />}
+      {!positionProtectionMode && riskTop != null && <div className="pointer-events-none absolute left-[42%] right-0" style={{ top: riskTop, height: riskHeight, background: auditStyle ? 'rgba(255,68,91,0.07)' : 'linear-gradient(90deg, rgba(138,43,57,0.10), rgba(255,68,91,0.17))' }} />}
       {line('tp', 'tp', '#35d79d', 'TP', `TP ${formatInstrumentPrice(liveTp, instrument)}`, true)}
       {desktopPendingEntry}
       {showEntry && !desktopPendingStyle && line('entry', 'entry', '#42a5ff', entryLabel, formatInstrumentPrice(sourcePrice('entry'), instrument), Boolean(plan.pending))}
@@ -1765,6 +1802,7 @@ export default function ChartArea({
           account={account}
           riskPercent={riskPercent}
           orderExecutionPreview={orderExecutionPreview}
+          auditStyle={auditMobilePalette}
           desktopStyle={desktopEnhanced && chartOrderV4 && !mobileOverlayStyle}
         />
         {positionProtectionDraft && !v4AuditLayer && (

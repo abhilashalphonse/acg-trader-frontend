@@ -8,9 +8,10 @@ The production-default mobile shell is unchanged unless the page URL contains
 A URL query is an opt-in rendering switch **not an access control**. Auth,
 account permissions, and server trading checks remain authoritative.
 
-The audit path lives in the same production Firebase build. The temporary
-development branch is for CI verification only; the approved release method is
-to update `main` directly (no Firebase PR preview).
+The audit path lives in the same production Firebase build. Changes use a
+technical PR and paired acceptance checks before merging into protected `main`.
+The merge triggers Firebase production deployment. Visual owner review happens
+on the real opt-in URL, not the Firebase PR preview.
 
 ## Reuse
 
@@ -27,6 +28,26 @@ to update `main` directly (no Firebase PR preview).
 - Every final submission still passes through `executePlan`, with
   `validateTradePlanForExecution`, current quotes, existing trading
   commands, and the backend's actual order status.
+
+## Chart-first interaction refinement
+
+- The unit label beneath the amount opens sizing modes directly. Changing units
+  does not focus an input. Tapping the amount opens the precise editor; its
+  numeric input stays unfocused until the trader explicitly taps it.
+- First SL/TP activation adds a normalized, unsubmitted chart level using the
+  existing default-distance policy. A second tap offers precise V4 unit editing.
+- V4 protection conversion and circular-risk restrictions remain authoritative.
+  Inputs use a 16px font to avoid iOS focus zoom; the dock keeps 32/20/48px rows.
+- New audit draft badges are thin, dotted, and visually distinct from accepted
+  positions. Their 36px drag areas have a 5px movement threshold. Cancellation
+  restores the original draft price; live drag previews update the sizing adapter.
+- Chart risk drawings carry their actual Risk % budget into the audit dock.
+  Changing order type preserves sizing and protection prices while revalidating
+  entry geometry. No local edit submits an order.
+- Popovers dismiss on outside press or Escape. Only one dock editor is open at
+  once; the dock has no shadow or additional expansion region.
+- Before direction selection, the Lots/Margin helper is explicitly indicative,
+  based on the current buy quote and the existing adapter. It is not executable.
 
 ## Existing contract limitations
 

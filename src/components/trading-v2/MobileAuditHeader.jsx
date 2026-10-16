@@ -44,12 +44,12 @@ export default function MobileAuditHeader({
           {status}
         </div>
       </div>
-      <div className="flex min-w-0 flex-col items-end justify-center overflow-hidden px-1">
-        <strong className={`max-w-[98px] truncate font-mono text-[12px] font-semibold tabular-nums ${Number.isFinite(pnl) && pnl < 0 ? 'text-[#ef6771]' : Number.isFinite(pnl) && pnl > 0 ? 'text-[#36c99b]' : 'text-[#cbd2d8]'}`}>{money(account?.floatingPnl, account?.currency)}</strong>
+      <button type="button" onClick={onOpenTrades} aria-label={`Open positions, ${positionsCount} active`} className="flex min-h-9 shrink-0 items-center gap-1.5 px-1">
+      <span className="flex min-w-0 flex-col items-end justify-center overflow-hidden">
         <span className="text-[9px] text-[#858f99]">P&amp;L</span>
-      </div>
-      <button type="button" onClick={onOpenTrades} className="flex min-w-9 min-h-9 flex-col items-center justify-center rounded text-[#d1d7dc]" aria-label={`Open positions, ${positionsCount} active`}>
-        <strong className="font-mono text-[12px] font-semibold tabular-nums">{positionsCount}</strong><span className="text-[9px] text-[#89929a]">Pos</span>
+        <strong className={`max-w-[98px] truncate font-mono text-[12px] font-semibold tabular-nums ${Number.isFinite(pnl) && pnl < 0 ? 'text-[#ef6771]' : Number.isFinite(pnl) && pnl > 0 ? 'text-[#36c99b]' : 'text-[#cbd2d8]'}`}>{money(account?.floatingPnl, account?.currency)}</strong>
+      </span>
+      <span className="grid min-w-5 h-5 place-items-center rounded-[4px] bg-[#202023] px-1 text-[10px] tabular-nums text-[#d1d7dc]">{positionsCount}</span>
       </button>
       <button type="button" onClick={onOpenAccount} className="grid min-h-9 min-w-8 place-items-center text-[#d0d7dd]" aria-label="Account and menu"><MoreVertical size={18}/></button>
     </header>

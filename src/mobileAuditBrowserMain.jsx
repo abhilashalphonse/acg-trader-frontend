@@ -1,4 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createChart, CandlestickSeries } from 'lightweight-charts';
+import { TradePlanOverlay } from './components/trading-v2/ChartArea.jsx';
 import { createRoot } from 'react-dom/client';
 import MobileAuditHeader from './components/trading-v2/MobileAuditHeader.jsx';
 import MobileAuditExecutionDock from './components/trading-v2/MobileAuditExecutionDock.jsx';
@@ -23,6 +25,33 @@ const initialMarket = {
   quoteCurrency: 'USD', marginCurrency: 'USD', pnlCurrency: 'USD',
   defaultLeverage: 100, commissionPerLotPerSide: 0,
 };
+// Deterministic chart coordinates exercise the actual mobile draft overlay;
+// this fixture has no trading transport or credentials.
+function FixtureChart({ market, account, plan, onChange, children }) {
+  const chartRef = useRef(null);
+  const [coordinates, setCoordinates] = useState(null);
+  useEffect(() => {
+    const chart = createChart(chartRef.current, { autoSize:true, layout:{ background:{color:'#09090b'}, textColor:'#96969f', fontSize:10 }, grid:{ vertLines:{color:'#141519'}, horzLines:{color:'#141519'} }, rightPriceScale:{minimumWidth:52}, timeScale:{timeVisible:true} });
+    const series = chart.addSeries(CandlestickSeries, { upColor:'#2dd39b', downColor:'#f05d68', borderVisible:false, wickUpColor:'#2dd39b', wickDownColor:'#f05d68', priceFormat:{type:'price',precision:5,minMove:0.00001}, autoscaleInfoProvider:() => ({priceRange:{minValue:1.117,maxValue:1.126}}) });
+    series.setData(Array.from({length:75}, (_, i) => {
+      const close = 1.1208 + Math.sin(i / 8) * 0.0011;
+      return {time:1792051200+i*900,open:close-0.00007,high:close+0.00012,low:close-0.00015,close};
+    }));
+    chart.timeScale().fitContent();
+    const listeners = new Set();
+    const notify = () => listeners.forEach(fn => fn());
+    chart.timeScale().subscribeVisibleLogicalRangeChange(notify);
+    const observer = new ResizeObserver(notify);
+    observer.observe(chartRef.current);
+    setCoordinates({priceToY:price => series.priceToCoordinate(price), yToPrice:y => series.coordinateToPrice(y), subscribe:fn => {listeners.add(fn);return () => listeners.delete(fn);} });
+    return () => {observer.disconnect();chart.remove();};
+  }, []);
+  return <>
+    <div ref={chartRef} className="absolute inset-0"/>
+    <TradePlanOverlay plan={plan} instrument={market} account={account} accountCurrency={account.currency} coordinateApi={coordinates} onChange={onChange} auditStyle/>
+    {children}
+  </>;
+}
 function Demo() {
   const [market, setMarket] = useState(initialMarket);
   const [timeframe, setTimeframe] = useState('15m');
@@ -81,10 +110,9 @@ function Demo() {
       positionsCount={3} onSelectInstrument={() => {}} onOpenTrades={() => {}} onOpenAccount={() => {}}/>
     <div className="acg-mobile-reference-content flex min-h-0 flex-1 flex-col">
       <div data-audit-fixture-chart className="relative min-h-0 flex-1 bg-[#09090b]">
-        <div className="flex h-full items-center justify-center text-[11px] text-[#767e87]">
-          Live chart occupies this responsive area
-        </div>
-        <MobileAuditDrawingPalette selectedTool={selectedTool} onSelectTool={setSelectedTool}/>
+        <FixtureChart market={market} account={account} plan={withPlan} onChange={onChange}>
+          <MobileAuditDrawingPalette selectedTool={selectedTool} onSelectTool={setSelectedTool}/>
+        </FixtureChart>
       </div>
       <div className="acg-mobile-reference-order-wrap relative z-50 shrink-0 bg-[#101114] pb-[max(5px,env(safe-area-inset-bottom))]">
         <MobileAuditExecutionDock market={market} account={account} tradePlan={withPlan}

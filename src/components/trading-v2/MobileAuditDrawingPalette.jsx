@@ -44,10 +44,10 @@ export default function MobileAuditDrawingPalette({
         onClick={() => choice(id)}
         title={DRAWING_TOOL_LABELS[id]}
         className={`grid h-[37px] w-[37px] shrink-0 place-items-center rounded-[6px] border transition-colors
-          ${active ? 'border-[#e4e8ec] bg-[#101216] text-white' : 'border-transparent text-[#dce1e6] active:bg-white/[0.08]'}
+          ${active ? 'border-[#e4e8ec] bg-[#eeeef0] text-[#09090b]' : 'border-transparent text-[#dce1e6] active:bg-white/[0.08]'}
           ${quick ? '' : 'hover:bg-white/[0.07]'} disabled:opacity-35`}
       >
-        {id === 'cursor' && quick ? <Plus size={28} strokeWidth={1.7}/> : <Icon size={quick ? 23 : 19} strokeWidth={1.75}/>}
+        {id === 'cursor' && quick ? <Plus size={22} strokeWidth={1.5}/> : <Icon size={19} strokeWidth={1.5}/>}
       </button>
     );
   };
@@ -64,7 +64,7 @@ export default function MobileAuditDrawingPalette({
     <aside
       data-acg-mobile-audit-palette
       aria-label="Chart drawing tools"
-      className="pointer-events-auto absolute left-[12px] top-[12px] z-[48] flex w-[43px] max-h-[min(72dvh,560px)] flex-col items-center gap-[2px] overflow-y-auto overscroll-contain rounded-[9px] border border-white/[0.14] bg-[#15171b]/95 p-[2px] shadow-[0_6px_22px_rgba(0,0,0,0.35)] backdrop-blur-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="pointer-events-auto absolute left-[12px] top-[12px] z-[48] flex w-[43px] max-h-[min(72dvh,560px)] flex-col items-center gap-[2px] overflow-y-auto overscroll-contain rounded-[6px] border border-white/[0.10] bg-[#15171b] p-[2px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {toolButton('cursor', true)}
       {toolButton('trendline', true)}
