@@ -1163,11 +1163,11 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
         onOpenTrades={() => setOverlay('trades')}
         onOpenAccount={() => setOverlay('account')}
       />}
-      <div className={`acg-mobile-reference-content flex min-h-0 flex-1 flex-col ${mobileAudit ? 'px-1.5 pt-1.5' : 'px-2 pt-[10px]'}`}>
+      <div className={`acg-mobile-reference-content flex min-h-0 flex-1 flex-col ${mobileAudit ? 'px-0 pt-0' : 'px-2 pt-[10px]'}`}>
         <div className="acg-mobile-reference-chart-wrap min-h-0 flex-1">
           <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} accountCurrency={account.currency} account={account} riskPercent={riskPercent} onCreateRiskOrder={createPlanFromRiskTool} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onRemovePositionProtection={removePositionProtectionFromChart} onRequestPositionProtection={requestPositionProtectionChange} onClosePosition={closePosition} historicalPosition={historicalChartContext} onClearHistoricalPosition={() => setHistoricalChartContext(null)} selectedPositionId={selectedOpenPositionId} onSelectPosition={selectOpenPosition} positionProtectionDraft={positionProtectionDraft} onPositionProtectionDraftChange={updatePositionProtectionDraft} onSelectInstrument={() => setOverlay('markets')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} compactMobileToolbar auditMobile={mobileAudit} fillAvailableHeight />
         </div>
-        <div className={`acg-mobile-reference-order-wrap relative z-50 shrink-0 ${mobileAudit ? 'mt-1' : 'mt-1.5'}`}>
+        <div className={`acg-mobile-reference-order-wrap relative z-50 shrink-0 ${mobileAudit ? 'mt-0 bg-[#101114] pb-[max(5px,env(safe-area-inset-bottom))]' : 'mt-1.5'}`}>
           {mobileAudit ? <MobileAuditExecutionDock
             market={market}
             account={auditAccount}
@@ -1210,7 +1210,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
             positionProtectionSaving={positionProtectionSaving}
           />}
         </div>
-        <div className="h-[max(5px,env(safe-area-inset-bottom))] shrink-0 bg-black" aria-hidden="true" />
+        {!mobileAudit && <div className="h-[max(5px,env(safe-area-inset-bottom))] shrink-0 bg-black" aria-hidden="true" />}
       </div>
     </div>
   );
