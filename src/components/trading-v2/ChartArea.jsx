@@ -1480,12 +1480,15 @@ export default function ChartArea({
   drawingToolbarOverlay = false,
   mobileOverlayStyle = false,
   auditMobile = false,
+  onMobileManagementChange,
+  mobileTradeSelection,
+  managementDisabled = false,
   onChartReadout,
   fillAvailableHeight = false,
 }) {
   const [clockNow, setClockNow] = useState(() => new Date());
   const [coordinateApi, setCoordinateApi] = useState(null);
-  const v4AuditLayer = desktopEnhanced && chartOrderV4 && !mobileOverlayStyle;
+  const v4AuditLayer = (desktopEnhanced && chartOrderV4 && !mobileOverlayStyle) || auditMobile;
   const v4ChartContainerRef = useRef(null);
   const [v4ChartHeight, setV4ChartHeight] = useState(480);
   useEffect(() => {
@@ -1856,6 +1859,7 @@ export default function ChartArea({
         )}
 
         {v4AuditLayer && <V4FullTerminalOrders
+          mobile={auditMobilePalette} mobileTradeSelection={mobileTradeSelection} onMobileManagementChange={onMobileManagementChange} managementDisabled={managementDisabled}
           hoveredPositionId={hoveredPositionId}
           renderPositionEntries={(chartEditActions, beginProtection) => (
             <OpenPositionEntryOverlay symbol={symbol} positions={positions}

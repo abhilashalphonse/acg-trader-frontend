@@ -23,6 +23,7 @@ const protectionPriceLabel = (value, formatPrice) => {
 
 export default function V4ChartOrderLayer({
   accountId, symbol, positions = [], pendingOrders = [], coordinateApi,
+  mobile = false, selectedOwner = null,
   height = 480, formatPrice, formatVolume, formatPnl, instrument = null, accountCurrency = 'USD',
   hidePositionEntries = false, readOnly = false, hoveredPositionId = null,
   edit = null, saving = false, removingLevelId = null, onBeginEdit, onChangeEdit, onSaveEdit, onCancelEdit,
@@ -87,7 +88,7 @@ export default function V4ChartOrderLayer({
     ? accepted.map(level => ({...level,y:coordinateApi.priceToY(level.price)})).filter(level=>Number.isFinite(level.y))
     : [];
   const displayedLevels = acceptedWithCoordinates.filter(level => !(hidePositionEntries && level.objectType === 'position' && level.kind === 'entry'));
-  const { placements, overflow } = placeV4Badges(displayedLevels, { minY: 14, maxY:height-14, badgeHeight:28, gap:5 });
+  const { placements, overflow } = placeV4Badges(displayedLevels, { minY: 14, maxY:height-14, badgeHeight:mobile ? 36 : 28, gap:5 });
   const placed = new Map(placements.map(level=>[level.id,level]));
   const colorFor = level => level.kind==='sl' ? COLORS.sl : level.kind==='tp' ? COLORS.tp
     : level.kind==='limitPrice' ? COLORS.limit
@@ -141,6 +142,47 @@ export default function V4ChartOrderLayer({
     if(level.objectType==='position')onSelectPosition?.(level.objectId);
     else if(level.objectType==='pending')onSelectPending?.(level.objectId);
   };
+
+  if (mobile) {
+    const selected = level => selectedOwner?.objectType === level.objectType && String(selectedOwner.objectId) === level.objectId;
+    const label = level => {
+      if (['sl','tp'].includes(level.kind)) return `${level.kind.toUpperCase()} · ${projectedPositionProtection(level).amount}`;
+      if (level.kind === 'limitPrice') return `LIMIT · ${priceLabel(level.price, formatPrice)}`;
+      if (level.objectType === 'pending') return `${level.side} ${String(level.orderType || 'limit').replaceAll('-',' ').toUpperCase()} · ${level.volume}`;
+      return `${level.side} ${level.volume} · ${level.pnl == null ? '—' : formatPnl?.(level.pnl) ?? '—'}`;
+    };
+    const mobileBadge = (level, top, draft = false) => <div
+      data-mobile-v4-badge={draft ? 'draft' : level.id}
+      role="button" tabIndex={readOnly ? -1 : 0}
+      aria-label={`${draft ? 'Proposed ' : ''}${label(level)}. ${level.kind === 'entry' && level.objectType === 'position' ? 'Manage position' : 'Drag to adjust'}`}
+      onKeyDown={event => { if (!readOnly && !draft && ['Enter',' '].includes(event.key)) {event.preventDefault(); selectOwner(event,level);} }}
+      onClick={event => {if (!readOnly && !draft) selectOwner(event,level);}}
+      onPointerDown={event => beginDrag(event,level,draft)}
+      className="pointer-events-auto absolute left-[58px] flex h-9 max-w-[calc(100%-126px)] touch-none cursor-pointer items-center outline-none focus-visible:ring-1 focus-visible:ring-white/70"
+      style={{top}}>
+      <span className="flex h-6 min-w-0 items-center gap-1 truncate rounded-[5px] border bg-[#09090b]/95 px-2 font-mono text-[10px] font-medium tabular-nums"
+        style={{borderColor:colorFor(level), borderStyle:draft ? 'dotted' : 'solid', color:['sl','tp'].includes(level.kind) ? colorFor(level) : '#e2e7ec', boxShadow:selected(level) ? '0 0 0 1px #aab6c266' : undefined}}>
+        <span className="truncate">{label(level)}</span>
+      </span>
+    </div>;
+    return <div data-mobile-v4-orders className="pointer-events-none absolute inset-0 z-[36] overflow-hidden" style={{height}}>
+      {displayedLevels.map(level => {
+        const location = placed.get(level.id);
+        return <React.Fragment key={level.id}>
+          <div data-mobile-v4-accepted={level.id} className="absolute left-0 right-[52px] border-t" style={{top:level.y,borderColor:colorFor(level),opacity:selected(level) ? .85 : .4}}/>
+          {location && ghost?.sourceLevelId !== level.id && mobileBadge(level, location.badgeTop)}
+          {location?.displaced && <div className="absolute left-[56px] w-px bg-[#aab6c2]/50" style={{top:Math.min(level.y,location.badgeTop+18),height:Math.abs(level.y-location.badgeTop-18)}}/>}
+        </React.Fragment>;
+      })}
+      {!readOnly && ghost && Number.isFinite(coordinateApi?.priceToY?.(ghost.price)) && <>
+        <div data-mobile-v4-proposed-line className="absolute left-0 right-[52px] border-t border-dotted" style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost)}}/>
+        {mobileBadge(ghost, Math.max(0,Math.min(height-36,coordinateApi.priceToY(ghost.price)-18)),true)}
+        <span className="absolute right-1 -translate-y-1/2 rounded-[3px] border border-dotted bg-[#09090b] px-1 font-mono text-[9px]" style={{top:coordinateApi.priceToY(ghost.price),borderColor:colorFor(ghost),color:colorFor(ghost)}}>{priceLabel(ghost.price,formatPrice)}</span>
+      </>}
+      {!readOnly && secondaryPreview && Number.isFinite(coordinateApi?.priceToY?.(secondaryPreview.price)) && <div data-mobile-v4-secondary-preview className="absolute left-0 right-[52px] border-t border-dotted" style={{top:coordinateApi.priceToY(secondaryPreview.price),borderColor:COLORS.limit}}/>}
+      {overflow.length > 0 && <span className="absolute bottom-7 left-[58px] text-[9px] text-[#aab6c2]">{overflow.length} more levels · zoom chart</span>}
+    </div>;
+  }
 
   return <div className="pointer-events-none absolute inset-0 z-[36] overflow-hidden" data-v4-isolated-layer
     style={{ height }}>

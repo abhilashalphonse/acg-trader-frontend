@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import MobileTradingHeader from '../components/trading-v2/MobileTradingHeader.jsx';
 import MobileAuditHeader from '../components/trading-v2/MobileAuditHeader.jsx';
+import { buildChartPendingAmendment } from '../utils/pendingOrderChartMove.js';
+import MobileAuditManageDock from '../components/trading-v2/MobileAuditManageDock.jsx';
 import MobileAuditExecutionDock from '../components/trading-v2/MobileAuditExecutionDock.jsx';
 import MarketPanel from '../components/trading-v2/MarketPanel.jsx';
 import ExecutionPanel from '../components/trading-v2/ExecutionPanel.jsx';
@@ -135,6 +137,8 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const [orderType, setOrderType] = useState(prefsRef.current.orderType || 'market');
   const [tradePlan, setTradePlan] = useState(null);
   const [selectedOpenPositionId, setSelectedOpenPositionId] = useState(null);
+  const [auditChartSelection, setAuditChartSelection] = useState(null);
+  const [auditManagement, setAuditManagement] = useState(null);
   const [positionProtectionDraft, setPositionProtectionDraft] = useState(null);
   const [positionProtectionSaving, setPositionProtectionSaving] = useState(false);
   const [historicalChartContext, setHistoricalChartContext] = useState(null);
@@ -156,6 +160,8 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       setPositionProtectionDraft(null);
       setOverlay(null);
       setAuditUnknownSubmission(false);
+      setAuditManagement(null);
+      setAuditChartSelection(null);
     }
     auditIdentityRef.current = identity;
   }, [mobileAudit, trading.accountId, activeSymbol]);
@@ -447,6 +453,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     setPositionProtectionDraft(current => {
       const samePosition = current && String(current.positionId) === String(position.id);
       const draft = samePosition ? { ...current } : {
+        accountId: trading.accountId,
         positionId: position.id,
         symbol: position.symbol,
         side: side.toLowerCase(),
@@ -527,6 +534,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
     setSelectedOpenPositionId(position.id);
     setPositionProtectionDraft({
+      accountId: trading.accountId,
       positionId: position.id,
       symbol: position.symbol,
       side: side.toLowerCase(),
@@ -561,6 +569,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     setHistoricalChartContext(null);
     setOverlay(null);
     selectOpenPosition(position);
+    if (mobileAudit) setAuditChartSelection({objectType:'position',id:position.id,revision:Date.now()});
     const preferredField = Number(position.sl) > 0 ? 'sl' : Number(position.tp) > 0 ? 'tp' : null;
     if (!preferredField) {
       showNotice('Position selected · tap SL or TP below the chart to add protection');
@@ -597,6 +606,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
     setSelectedOpenPositionId(position.id);
     setPositionProtectionDraft({
+      accountId: trading.accountId,
       positionId: position.id,
       symbol: position.symbol,
       side: side.toLowerCase(),
@@ -1000,9 +1010,32 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     }
   };
 
+  const movePendingOnChart = async (id, nextPrice, field = 'entry') => {
+    if (!mobileAudit || readOnly || trading.commandState.pending) return false;
+    const order = pendingOrders.find(item => String(item.id) === String(id));
+    if (!order) return false;
+    const replacement = buildChartPendingAmendment(order, nextPrice, field);
+    if (!replacement) return false;
+    try {
+      await trading.replacePendingOrder(id, replacement);
+      logEvent('order', `${order.symbol} pending ${field} updated on chart`);
+      return true;
+    } catch (error) {
+      handleTradingError(error, `Modify ${order.symbol} pending ${field}`);
+      return false;
+    }
+  };
+
   const modifyPendingOrder = id => {
     const order = pendingOrders.find(item => String(item.id) === String(id));
     if (!order) return;
+    if (mobileAudit) {
+      setTradePlan(null); setOverlay(null);
+      setPositionProtectionDraft(null);
+      if (order.symbol && order.symbol !== activeSymbol) onSelectSymbol(order.symbol);
+      setAuditChartSelection({ objectType:'pending', id:order.id, revision:Date.now() });
+      return;
+    }
     if (order.symbol && order.symbol !== activeSymbol) onSelectSymbol(order.symbol);
     setTradePlan({ ...order, editingOrderId: id, stage: 'ready', open: false, pending: true });
     setOrderType(order.orderType);
@@ -1171,10 +1204,10 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       />}
       <div className={`acg-mobile-reference-content flex min-h-0 flex-1 flex-col ${mobileAudit ? 'px-0 pt-0' : 'px-2 pt-[10px]'}`}>
         <div className="acg-mobile-reference-chart-wrap min-h-0 flex-1">
-          <MarketPanel onChartReadout={mobileAudit ? setMobileChartReadout : undefined} market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} accountCurrency={account.currency} account={mobileAudit ? auditAccount : account} riskPercent={riskPercent} onCreateRiskOrder={createPlanFromRiskTool} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onRemovePositionProtection={removePositionProtectionFromChart} onRequestPositionProtection={requestPositionProtectionChange} onClosePosition={closePosition} historicalPosition={historicalChartContext} onClearHistoricalPosition={() => setHistoricalChartContext(null)} selectedPositionId={selectedOpenPositionId} onSelectPosition={selectOpenPosition} positionProtectionDraft={positionProtectionDraft} onPositionProtectionDraftChange={updatePositionProtectionDraft} onSelectInstrument={() => setOverlay('markets')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} compactMobileToolbar auditMobile={mobileAudit} fillAvailableHeight />
+          <MarketPanel mobileTradeSelection={auditChartSelection} onMobileManagementChange={mobileAudit ? setAuditManagement : undefined} managementDisabled={readOnly || trading.commandState.pending} onMovePending={movePendingOnChart} onCancelPositionProtection={cancelPositionProtection} onChartReadout={mobileAudit ? setMobileChartReadout : undefined} market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} accountCurrency={account.currency} account={mobileAudit ? auditAccount : account} riskPercent={riskPercent} onCreateRiskOrder={createPlanFromRiskTool} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onRemovePositionProtection={mobileAudit ? (id, field) => updatePosition(id, {[field]:null}) : removePositionProtectionFromChart} onRequestPositionProtection={mobileAudit ? (id, field, value) => value == null ? beginPositionProtection(field, id) : requestPositionProtectionChange(id, field, value) : requestPositionProtectionChange} onClosePosition={closePosition} historicalPosition={historicalChartContext} onClearHistoricalPosition={() => setHistoricalChartContext(null)} selectedPositionId={selectedOpenPositionId} onSelectPosition={selectOpenPosition} positionProtectionDraft={positionProtectionDraft} onPositionProtectionDraftChange={updatePositionProtectionDraft} onSelectInstrument={() => setOverlay('markets')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} compactMobileToolbar auditMobile={mobileAudit} fillAvailableHeight />
         </div>
         <div className={`acg-mobile-reference-order-wrap relative z-50 shrink-0 ${mobileAudit ? 'mt-0 bg-[#101114] pb-[max(5px,env(safe-area-inset-bottom))]' : 'mt-1.5'}`}>
-          {mobileAudit ? <MobileAuditExecutionDock
+          {mobileAudit ? auditManagement && !canonicalTradePlan ? <MobileAuditManageDock management={auditManagement} market={market} account={auditAccount}/> : <MobileAuditExecutionDock
             market={market}
             account={auditAccount}
             tradePlan={canonicalTradePlan}
