@@ -119,6 +119,8 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const prefsRef = useRef(loadTerminalPrefs());
   const trading = useTradingTerminal(markets);
   const { account, positions, pendingOrders, positionHistory, historyOrders, historyLoaded } = trading;
+  // Reuse the same fresh FX conversion quotes as the V4 desktop ticket.
+  const auditAccount = useMemo(() => mobileAudit ? { ...account, conversionMarkets: markets } : account, [account, markets, mobileAudit]);
   const readOnly = String(account?.status || '').toUpperCase() === 'BREACHED';
 
   const [timeframe, setTimeframe] = useState(prefsRef.current.timeframe || '1m');
@@ -870,12 +872,12 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       if (!checked.valid) { showNotice(checked.message); return; }
     }
     const auditSizing = mobileAudit ? resolveV4PositionSizing({
-      mode: tradePlan.auditMode, amount: tradePlan.auditValue, plan: basePlan, account, instrument: planMarket,
+      mode: tradePlan.auditMode, amount: tradePlan.auditValue, plan: basePlan, account: auditAccount, instrument: planMarket,
     }) : null;
     if (mobileAudit && !auditSizing?.canExecute) { showNotice(auditSizing?.message || 'Sizing unavailable'); return; }
     const effectiveRiskPercent = mobileAudit && auditSizing.riskPercent != null ? auditSizing.riskPercent : riskPercent;
     const sourcePlan = mobileAudit ? { ...basePlan, sizingMode: auditSizing.backendSizingMode, manualLots: auditSizing.manualLots ?? auditSizing.lots } : basePlan;
-    const preview = resolveExecutionPreview({ plan: sourcePlan, riskPercent: effectiveRiskPercent, manualLots: sourcePlan.manualLots ?? lots, account, instrument: planMarket });
+    const preview = resolveExecutionPreview({ plan: sourcePlan, riskPercent: effectiveRiskPercent, manualLots: sourcePlan.manualLots ?? lots, account: auditAccount, instrument: planMarket });
     const executionPlan = preview.plan || sourcePlan;
 
     let calculated;
@@ -1110,10 +1112,10 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       mode: canonicalTradePlan.auditMode,
       amount: canonicalTradePlan.auditValue,
       plan: canonicalTradePlan,
-      account,
+      account: auditAccount,
       instrument: plannedRiskInstrument,
     });
-  }, [mobileAudit, canonicalTradePlan, account, plannedRiskInstrument]);
+  }, [mobileAudit, canonicalTradePlan, auditAccount, plannedRiskInstrument]);
   const tradePlanLots = mobileAudit && canonicalTradePlan?.auditMode
     ? (canonicalAuditSizing?.canExecute ? canonicalAuditSizing.lots : null)
     : canonicalTradePlan
@@ -1168,7 +1170,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
         <div className={`acg-mobile-reference-order-wrap relative z-50 shrink-0 ${mobileAudit ? 'mt-1' : 'mt-1.5'}`}>
           {mobileAudit ? <MobileAuditExecutionDock
             market={market}
-            account={account}
+            account={auditAccount}
             tradePlan={canonicalTradePlan}
             onStartPlan={startPlan}
             onCancelPlan={cancelPlan}
