@@ -38,9 +38,14 @@ function presentAuthError(error) {
 
 export default function SessionGate({ children }) {
   const auth = useTraderAuth();
-  const tenant = String(import.meta.env.VITE_ACG_TRADER_TENANT || 'acg-funded').trim();
+  // The new marketing entry is isolated from the legacy ACG Funded gate.
+  // The existing backend native auth endpoint resolves tenant by slug.
+  const connectProp = typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).get('acg_connect_prop') === '1';
+  const configuredTenant = String(import.meta.env.VITE_ACG_TRADER_TENANT || 'acg-funded').trim();
   const fundedUrl = String(import.meta.env.VITE_ACG_FUNDED_URL || 'https://acgfunded.com').trim();
-  const [form, setForm] = useState({ login: '', password: '' });
+  const [form, setForm] = useState({ tenant: '', login: '', password: '' });
+  const tenant = connectProp ? form.tenant.trim() : configuredTenant;
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -102,13 +107,24 @@ export default function SessionGate({ children }) {
               ACG Trader
             </h1>
             <p className="mt-3 max-w-[360px] text-[14px] leading-6 text-[#8b8d93] lg:text-[13px] lg:leading-5">
-              Access your trading workspace with the credentials issued from your ACG Funded account.
+              {connectProp
+                ? 'Connect to a supported broker or prop firm using the tenant identifier and trading credentials they provided.'
+                : 'Access your trading workspace with the credentials issued from your ACG Funded account.'}
             </p>
           </header>
 
           <div className="mt-9 space-y-5 lg:mt-8 lg:space-y-4">
+            {connectProp && (
+              <Field
+                label="Tenant ID / identifier"
+                value={form.tenant}
+                onChange={value => setForm(current => ({ ...current, tenant: value }))}
+                autoComplete="organization"
+                placeholder="Enter your organization's tenant identifier"
+              />
+            )}
             <Field
-              label="Trading Account ID"
+              label={connectProp ? 'Username / Trading Account ID' : 'Trading Account ID'}
               value={form.login}
               onChange={value => setForm(current => ({ ...current, login: value }))}
               autoComplete="username"
@@ -145,7 +161,7 @@ export default function SessionGate({ children }) {
             {submitting ? 'Signing in…' : 'Sign in'}
           </button>
 
-          {fundedUrl && (
+          {!connectProp && fundedUrl && (
             <a
               href={fundedUrl}
               target="_blank"
