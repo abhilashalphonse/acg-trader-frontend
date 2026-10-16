@@ -37,3 +37,18 @@ test('Connect Prop remains an opt-in tenant-native login with no changed default
   assert.match(gate, /connectProp \? form\.tenant\.trim\(\) : configuredTenant/);
   assert.match(gate, /!connectProp && fundedUrl/);
 });
+
+test('Try Demo uses first-party personal session without Supabase tenant/partner discovery', () => {
+  const api = readFileSync(new URL('../src/api/auth.js', import.meta.url), 'utf8');
+  const auth = readFileSync(new URL('../src/auth/AuthProvider.jsx', import.meta.url), 'utf8');
+  const ui = readFileSync(new URL('../src/components/StandaloneAuthPage.jsx', import.meta.url), 'utf8');
+  assert.match(api, /\/v1\/auth\/personal\/demo/);
+  assert.doesNotMatch(api, /\/v1\/auth\/supabase\/exchange/);
+  assert.doesNotMatch(api, /supabase\/organizations/);
+  assert.match(auth, /loginPersonalDemo/);
+  assert.match(ui, /loginPersonalDemo\(token\)/);
+  assert.doesNotMatch(ui, /selectOrganization|orgs\.map|tenantId/);
+  assert.match(ui, /\$100,000 virtual/);
+  assert.match(ui, /connect_prop=1/);
+  assert.match(ui, /supabaseOnboardingEnabled/);
+});

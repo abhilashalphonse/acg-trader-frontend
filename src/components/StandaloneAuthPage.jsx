@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, ShieldCheck } from 'lucide-react';
 import { useTraderAuth } from '../hooks/useTraderAuth.js';
-import { authApi } from '../api/auth.js';
 import { SupabaseBrowserAuth, supabaseOnboardingEnabled } from '../auth/supabase-browser.js';
 
 const isStrongEnough = password => typeof password === 'string' && password.length >= 12 && password.length <= 128;
@@ -44,8 +43,6 @@ export default function StandaloneAuthPage() {
   const [confirmation, setConfirmation] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [orgs, setOrgs] = useState([]);
-  const [accessToken, setAccessToken] = useState(null);
   const enabled = supabaseOnboardingEnabled();
 
   const go = next => {
@@ -57,27 +54,22 @@ export default function StandaloneAuthPage() {
     window.history.pushState({}, '', url.pathname + url.search);
   };
 
+  // The backend selects the ACG Trader-owned demo namespace. No tenant
+  // IDs, partner grants, balances or platform calculations are passed here.
   const startContext = async () => {
     const token = await browser.currentAccessToken();
     if (!token) { go('signin'); return; }
-    await authApi.bootstrapSupabase(token);
-    setAccessToken(token);
-    const result = await authApi.supabaseOrganizations(token);
-    const found = (result.organizations || []).filter(item =>
-      /^[0-9a-f]{24}$/i.test(item.id) && item.accountCount > 0);
-    setOrgs(found);
-    setMode(found.length ? 'choose' : 'setup');
-    return found;
-  };
-
-  const finishLogin = async tenantId => {
-    if (!accessToken) throw new Error('Your sign-in session expired. Please sign in again.');
-    const currentToken = await browser.currentAccessToken();
-    if (!currentToken) throw new Error('Your sign-in session expired. Please sign in again.');
-    await auth.loginSupabase(currentToken, tenantId);
-    // Return to the original terminal. AuthProvider picks up the newly issued
-    // HttpOnly trading refresh cookie; no Supabase JWT enters the terminal URL.
-    window.location.assign('/?acg_login=1');
+    try {
+      await auth.loginPersonalDemo(token);
+      window.location.assign('/?acg_login=1');
+    } catch (nextError) {
+      if (['PERSONAL_DEMO_LEDGER_UNAVAILABLE', 'PERSONAL_DEMO_UNAVAILABLE',
+        'IDENTITY_CONFIRMATION_UNAVAILABLE', 'NETWORK_ERROR',
+        'REQUEST_TIMEOUT'].includes(nextError?.code)) {
+        setMode('setup');
+      }
+      throw nextError;
+    }
   };
 
   useEffect(() => {
@@ -97,7 +89,9 @@ export default function StandaloneAuthPage() {
       } catch (nextError) {
         if (!active) return;
         setError(nextError.message || 'Unable to complete authentication');
-        setMode('signin');
+        const retryable = ['PERSONAL_DEMO_LEDGER_UNAVAILABLE', 'PERSONAL_DEMO_UNAVAILABLE',
+          'IDENTITY_CONFIRMATION_UNAVAILABLE', 'NETWORK_ERROR', 'REQUEST_TIMEOUT'].includes(nextError?.code);
+        setMode(retryable ? 'setup' : 'signin');
       } finally { if (active) setBusy(false); }
     };
     void initialise();
@@ -129,15 +123,9 @@ export default function StandaloneAuthPage() {
     finally { setBusy(false); }
   };
 
-  const selectOrganization = async tenantId => {
-    setBusy(true); setError('');
-    try { await finishLogin(tenantId); }
-    catch (nextError) { setError(nextError.message || 'Trading session could not be created'); setBusy(false); }
-  };
-
   const signOut = async () => {
     setBusy(true); setError('');
-    try { await browser.signOut(); setAccessToken(null); setOrgs([]); go('signin'); }
+    try { await browser.signOut(); go('signin'); }
     finally { setBusy(false); }
   };
 
@@ -147,7 +135,7 @@ export default function StandaloneAuthPage() {
       <a href="/?acg_landing_audit=1" className="text-xl font-black tracking-[-.065em] text-[#111312] no-underline">
         ACG <span className="font-semibold tracking-[-.04em]">TRADER</span>
       </a>
-      <a href="/?acg_login=1" className="text-xs font-semibold text-[#5b605d] hover:text-black">Existing trading account <ArrowRight size={13} className="inline" /></a>
+      <a href="/?acg_connect_prop=1" className="text-xs font-semibold text-[#5b605d] hover:text-black">Connect Prop <ArrowRight size={13} className="inline" /></a>
     </header>
     <div className="mx-auto grid min-h-[calc(100dvh-150px)] max-w-[1160px] items-center gap-10 px-5 pb-16 pt-8 sm:px-9 lg:grid-cols-[1fr_440px] lg:gap-24">
       <div className="max-w-[520px]">
@@ -156,7 +144,7 @@ export default function StandaloneAuthPage() {
           Global markets.<br/><span className="text-[#8d938b]">One platform.</span>
         </h1>
         <p className="mt-7 max-w-[440px] text-[15px] leading-7 text-[#595f59]">
-          One independent identity for a modern, chart-first trading experience. Your trading accounts stay separated by organization and permission.
+          Explore ACG Trader with a $100,000 virtual demo. Personal practice accounts stay separate from broker and prop-firm accounts.
         </p>
         <div className="mt-8 flex items-center gap-2 text-xs font-semibold text-[#6b716b]">
           <ShieldCheck size={15}/> Secure identity and account access
@@ -167,7 +155,7 @@ export default function StandaloneAuthPage() {
           <p className="text-xs font-bold uppercase tracking-[.12em] text-[#7b8179]">PREVIEW</p>
           <h2 className="mt-3 text-[28px] font-black tracking-[-.045em]">Standalone onboarding</h2>
           <p className="mt-4 text-sm leading-6 text-[#656b64]">
-            This login experience is ready for staging but is not enabled for public registration. Existing ACG Funded traders can keep signing in normally.
+            Try Demo is being prepared for live signup. Email and Google registration remain disabled in this audit build; no personal account will be created here.
           </p>
           <div className="mt-7"><a href="/?acg_login=1" className="block rounded-xl bg-[#141516] px-5 py-4 text-center text-sm font-bold text-white">Open existing login</a></div>
         </> : <>
@@ -215,29 +203,18 @@ export default function StandaloneAuthPage() {
               {mode === 'verify' ? 'Check your email' : mode === 'recovery-sent' ? 'Recovery link sent' : 'Password updated'}
             </h2>
             <p className="text-sm leading-6 text-[#656b64]">{mode === 'verify' ?
-              'Follow the verification link before signing in. Your trading account will be provisioned only after onboarding is available.' :
+              'Follow the verification link, then sign in to create your $100,000 virtual ACG Trader demo when public signup is enabled.' :
               mode === 'recovery-sent' ? 'If an account exists, you will receive a password recovery link.' :
               'Your password has been updated. Sign in to continue.'}</p>
             <Button onClick={()=>go('signin')}>Back to sign in</Button>
           </div>}
-          {mode === 'choose' && <div className="space-y-5">
-            <h2 className="text-[28px] font-black tracking-[-.04em]">Choose your workspace</h2>
-            <p className="text-sm text-[#656b64]">Only organizations that have explicitly granted you trading access appear here.</p>
-            {orgs.map(org=><button key={org.id} disabled={busy} onClick={()=>void selectOrganization(org.id)}
-              className="flex min-h-16 w-full items-center justify-between rounded-xl border border-[#d6d9d4] px-4 text-left hover:bg-[#f5f6f3] disabled:opacity-50">
-              <span><strong className="block text-sm">{org.name}</strong><small className="text-[#757c73]">{org.accountCount} authorized trading {org.accountCount===1?'account':'accounts'}</small></span><ArrowRight size={16}/>
-            </button>)}
-            {error && <p role="alert" className="text-sm text-[#942b27]">{error}</p>}
-            <Button secondary disabled={busy} onClick={()=>void signOut()}>Use another identity</Button>
-          </div>}
           {mode === 'setup' && <div className="space-y-5">
             <h2 className="text-[28px] font-black tracking-[-.04em]">Account setup in progress</h2>
             <p className="text-sm leading-6 text-[#656b64]">
-              Your independent identity is ready, but no trading account is authorized for it yet.
-              Standalone practice-account provisioning is not live. No trades or account data are available until setup completes.
+              Your independent identity is ready. We could not finish setting up your $100,000 virtual demo yet. You can safely retry without creating a duplicate account.
             </p>
             {error && <p role="alert" className="text-sm text-[#942b27]">{error}</p>}
-            <Button disabled={busy} onClick={async()=>{setBusy(true);setError('');try{await startContext();}catch(e){setError(e.message);}finally{setBusy(false);}}}>{showBusy} Check account access</Button>
+            <Button disabled={busy} onClick={async()=>{setBusy(true);setError('');try{await startContext();}catch(e){setError(e.message);}finally{setBusy(false);}}}>{showBusy} Retry demo setup</Button>
             <Button secondary disabled={busy} onClick={()=>void signOut()}>Sign out</Button>
           </div>}
         </>}
