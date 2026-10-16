@@ -42,6 +42,7 @@ export default function MarketPanel({
   onPositionProtectionDraftChange = () => {},
   showInstrumentHeader = true,
   compactMobileToolbar = false,
+  auditMobile = false,
   fillAvailableHeight = false,
 }) {
   const [drawingToolbarOpen, setDrawingToolbarOpen] = useState(compactMobileToolbar);
@@ -49,7 +50,7 @@ export default function MarketPanel({
   return (
     <section className={`overflow-hidden ${fillAvailableHeight ? 'flex h-full min-h-0 flex-col' : ''} ${compactMobileToolbar ? 'acg-mobile-reference-chart-frame acg-mobile-metal-surface rounded-[14px] border border-white/[0.09] bg-[#081019]' : 'border border-white/[0.08] bg-black'}`}>
       {showInstrumentHeader && <InstrumentHeader market={market} favorite={favorite} onFavorite={() => setFavorite(v => !v)} onSelectInstrument={onSelectInstrument} />}
-      <ChartControls
+      {!auditMobile && <ChartControls
         timeframe={timeframe}
         onTimeframe={setTimeframe}
         chartMode={chartMode}
@@ -60,7 +61,7 @@ export default function MarketPanel({
         drawingsOpen={drawingToolbarOpen}
         onToggleDrawings={() => setDrawingToolbarOpen(value => !value)}
         compactMobile={compactMobileToolbar}
-      />
+      />}
       <ChartArea
         symbol={market.symbol}
         instrument={market}
