@@ -50,9 +50,13 @@ jobs:
           node --input-type=module -e "
             import { strict as assert } from 'node:assert';
             import { isV4DefaultEnabled } from './src/utils/chartOrderPresentation.js';
+            import { isMobileV4Enabled } from './src/utils/mobileV4Presentation.js';
             assert.equal(isV4DefaultEnabled(process.env.VITE_ACG_EXECUTION_V4_ENABLED, ''), true);
             assert.equal(isV4DefaultEnabled(process.env.VITE_ACG_EXECUTION_V4_ENABLED, '?acg_v4_audit=0'), false);
             assert.equal(isV4DefaultEnabled('false', '?acg_v4_audit=1'), false);
+            assert.equal(isMobileV4Enabled(''), true);
+            assert.equal(isMobileV4Enabled('?acg_mobile_audit=1'), true);
+            assert.equal(isMobileV4Enabled('?acg_mobile_audit=0'), false);
           "
           grep -qrF 'ACG Trader V4 live execution ticket' dist/assets
           echo 'V4 enabled by default; V3 opt-out requires an explicit support query parameter.'

@@ -1,7 +1,9 @@
 # Mobile V4 sizing and chart management
 
-Approved scope: 16 October 2026. Frontend only, visible through
-`?acg_mobile_audit=1`. Desktop V4 and ordinary mobile retain their own presentation.
+Approved scope: 16 October 2026. Frontend only. Following owner rollout approval,
+V4 is the default for all mobile users on the normal website URL. The existing
+`?acg_mobile_audit=1` link still works; `?acg_mobile_audit=0` provides the legacy
+mobile support fallback. Desktop V4 retains its independent presentation.
 
 ## Sizing
 

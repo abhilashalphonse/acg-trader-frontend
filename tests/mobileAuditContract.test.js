@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolveV4PositionSizing } from '../src/utils/v4ExecutionPrecision.js';
+import { isMobileV4Enabled } from '../src/utils/mobileV4Presentation.js';
 
 const source = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const app = source('src/App.jsx');
@@ -13,8 +14,13 @@ const chartArea = source('src/components/trading-v2/ChartArea.jsx');
 const palette = source('src/components/trading-v2/MobileAuditDrawingPalette.jsx');
 const css = source('src/styles/acg-pure-black.css');
 
-test('Production defaults are preserved and mobile audit is opt-in only', () => {
-  assert.match(app, /get\('acg_mobile_audit'\) === '1'/);
+test('Approved mobile V4 is public by default with an explicit support fallback', () => {
+  assert.equal(isMobileV4Enabled(), true);
+  assert.equal(isMobileV4Enabled('?utm_source=partner'), true);
+  assert.equal(isMobileV4Enabled('?acg_mobile_audit=1'), true);
+  assert.equal(isMobileV4Enabled('?acg_mobile_audit=0'), false);
+  assert.equal(isMobileV4Enabled('?acg_mobile_audit=false'), true);
+  assert.match(app, /MOBILE_AUDIT_ENABLED = isMobileV4Enabled\(/);
   assert.match(app, /isDesktop\s*\?\s*<TradingTerminalV2/);
   assert.match(app, /<MobileTraderShell \{\.\.\.sharedProps\} mobileAudit=\{MOBILE_AUDIT_ENABLED\}/);
   assert.match(shell, /mobileAudit \? <MobileAuditHeader/);
