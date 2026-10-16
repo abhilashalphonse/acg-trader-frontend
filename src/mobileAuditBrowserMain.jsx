@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import MobileAuditHeader from './components/trading-v2/MobileAuditHeader.jsx';
 import MobileAuditExecutionDock from './components/trading-v2/MobileAuditExecutionDock.jsx';
+import MobileAuditDrawingPalette from './components/trading-v2/MobileAuditDrawingPalette.jsx';
 import { createDefaultTradePlan, effectiveTradePlan } from './utils/tradePlanExecution.js';
 import { normalizeTradePlanPatch } from './utils/tradePlanNormalization.js';
 import { resolveV4PositionSizing } from './utils/v4ExecutionPrecision.js';
@@ -29,11 +30,12 @@ function Demo() {
   const [pending, setPending] = useState(false);
   const [commands, setCommands] = useState(0);
   const [attempts, setAttempts] = useState(0);
+  const [selectedTool, setSelectedTool] = useState('cursor');
   const locked = useRef(false);
   const withPlan = plan ? effectiveTradePlan(plan, market) : null;
   window.mobileAuditQA = {
     commands, attempts, stage: withPlan?.stage || 'idle',
-    plan: withPlan, market, account,
+    plan: withPlan, market, account, selectedTool,
     sizing: withPlan ? resolveV4PositionSizing({
       mode: withPlan.auditMode, amount: withPlan.auditValue,
       plan: withPlan, account, instrument: market,
@@ -74,19 +76,23 @@ function Demo() {
       setPending(false);
     }
   };
-  return <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-black text-white">
+  return <div className="acg-mobile-chart-shell acg-mobile-audit-shell flex h-dvh min-h-0 flex-col overflow-hidden bg-black text-white">
     <MobileAuditHeader market={market} account={account} timeframe={timeframe} onTimeframe={setTimeframe}
       positionsCount={3} onSelectInstrument={() => {}} onOpenTrades={() => {}} onOpenAccount={() => {}}/>
-    <div data-audit-fixture-chart className="min-h-0 flex-1 bg-[#09090b]">
-      <div className="flex h-full items-center justify-center text-[11px] text-[#767e87]">
-        Live chart occupies this responsive area
+    <div className="acg-mobile-reference-content flex min-h-0 flex-1 flex-col">
+      <div data-audit-fixture-chart className="relative min-h-0 flex-1 bg-[#09090b]">
+        <div className="flex h-full items-center justify-center text-[11px] text-[#767e87]">
+          Live chart occupies this responsive area
+        </div>
+        <MobileAuditDrawingPalette selectedTool={selectedTool} onSelectTool={setSelectedTool}/>
+      </div>
+      <div className="acg-mobile-reference-order-wrap relative z-50 shrink-0 bg-[#101114] pb-[max(5px,env(safe-area-inset-bottom))]">
+        <MobileAuditExecutionDock market={market} account={account} tradePlan={withPlan}
+          onStartPlan={onStartPlan} onCancelPlan={() => setPlan(null)}
+          onExecutePlan={onSubmit} onTradePlanChange={onChange}
+          exposureAllowed commandPending={pending}/>
       </div>
     </div>
-    <MobileAuditExecutionDock market={market} account={account} tradePlan={withPlan}
-      onStartPlan={onStartPlan} onCancelPlan={() => setPlan(null)}
-      onExecutePlan={onSubmit} onTradePlanChange={onChange}
-      exposureAllowed commandPending={pending}/>
-    <div className="h-[max(5px,env(safe-area-inset-bottom))] shrink-0"/>
   </div>;
 }
 createRoot(document.getElementById('root')).render(<Demo/>);

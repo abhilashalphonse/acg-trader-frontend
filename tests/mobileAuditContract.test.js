@@ -9,6 +9,9 @@ const shell = source('src/pages/MobileTraderShell.jsx');
 const dock = source('src/components/trading-v2/MobileAuditExecutionDock.jsx');
 const marketPanel = source('src/components/trading-v2/MarketPanel.jsx');
 const header = source('src/components/trading-v2/MobileAuditHeader.jsx');
+const chartArea = source('src/components/trading-v2/ChartArea.jsx');
+const palette = source('src/components/trading-v2/MobileAuditDrawingPalette.jsx');
+const css = source('src/styles/acg-pure-black.css');
 
 test('Production defaults are preserved and mobile audit is opt-in only', () => {
   assert.match(app, /get\('acg_mobile_audit'\) === '1'/);
@@ -19,7 +22,11 @@ test('Production defaults are preserved and mobile audit is opt-in only', () => 
   assert.match(shell, /mobileAudit \? <MobileAuditExecutionDock/);
   assert.match(shell, /: <ExecutionPanel/);
   assert.match(marketPanel, /\{!auditMobile && <ChartControls/);
-  assert.match(marketPanel, /aria-label=\{drawingToolbarOpen \? 'Collapse drawing tools' : 'Expand drawing tools'\}/);
+  assert.match(marketPanel, /auditMobile=\{auditMobile\}/);
+  assert.match(chartArea, /auditMobilePalette && <MobileAuditDrawingPalette/);
+  assert.match(chartArea, /toolbarVisible = auditMobilePalette \? false/);
+  assert.match(palette, /V4_DRAWING_TOOL_SECTIONS/);
+  assert.match(palette, /aria-expanded=\{expanded\}/);
 });
 
 test('Mobile audit routes through existing authoritative trading and FX contracts only', () => {
@@ -59,6 +66,9 @@ test('Requested mobile geometry and safe-area rules are present without affectin
     assert.ok(dock.includes(value), value);
   assert.match(header, /48px\+env\(safe-area-inset-top\)/);
   assert.match(shell, /env\(safe-area-inset-bottom\)/);
+  assert.match(shell, /acg-mobile-audit-shell/);
+  assert.match(css, /\.acg-mobile-audit-shell \.acg-mobile-reference-content/);
+  assert.match(css, /grid-template-columns:minmax\(0,1fr\)!important/);
   assert.doesNotMatch(dock, /Free Margin|Free<|free-margin footer/);
   assert.doesNotMatch(dock, /1120\.92|1\.13%|DEMO_ACCOUNT/);
 });

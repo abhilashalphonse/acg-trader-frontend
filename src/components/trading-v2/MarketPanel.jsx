@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import InstrumentHeader from './InstrumentHeader.jsx';
 import ChartControls, { mapTimeframe } from './ChartControls.jsx';
 import ChartArea from './ChartArea.jsx';
@@ -49,14 +48,8 @@ export default function MarketPanel({
   const [drawingToolbarOpen, setDrawingToolbarOpen] = useState(compactMobileToolbar);
 
   return (
-    <section className={`relative overflow-hidden ${fillAvailableHeight ? 'flex h-full min-h-0 flex-col' : ''} ${compactMobileToolbar ? 'acg-mobile-reference-chart-frame acg-mobile-metal-surface rounded-[14px] border border-white/[0.09] bg-[#081019]' : 'border border-white/[0.08] bg-black'}`}>
+    <section className={`relative overflow-hidden ${fillAvailableHeight ? 'flex h-full min-h-0 flex-col' : ''} ${auditMobile ? 'bg-black' : compactMobileToolbar ? 'acg-mobile-reference-chart-frame acg-mobile-metal-surface rounded-[14px] border border-white/[0.09] bg-[#081019]' : 'border border-white/[0.08] bg-black'}`}>
       {showInstrumentHeader && <InstrumentHeader market={market} favorite={favorite} onFavorite={() => setFavorite(v => !v)} onSelectInstrument={onSelectInstrument} />}
-      {auditMobile && <button type="button"
-        aria-label={drawingToolbarOpen ? 'Collapse drawing tools' : 'Expand drawing tools'}
-        aria-expanded={drawingToolbarOpen}
-        onClick={() => setDrawingToolbarOpen(value => !value)}
-        className={`absolute top-2 z-[46] grid size-8 place-items-center rounded-[6px] border border-white/[0.10] bg-[#101114]/95 text-[#d9dfe4] ${drawingToolbarOpen ? 'left-11' : 'left-2'}`}
-      >{drawingToolbarOpen ? <PanelLeftClose size={16}/> : <PanelLeftOpen size={16}/>}</button>}
       {!auditMobile && <ChartControls
         timeframe={timeframe}
         onTimeframe={setTimeframe}
@@ -104,6 +97,7 @@ export default function MarketPanel({
         drawingToolbarOpen={compactMobileToolbar ? drawingToolbarOpen : true}
         drawingToolbarOverlay={compactMobileToolbar}
         mobileOverlayStyle={compactMobileToolbar}
+        auditMobile={auditMobile}
         fillAvailableHeight={fillAvailableHeight}
       />
     </section>

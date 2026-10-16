@@ -13,6 +13,7 @@ import { chartEntryReference, chartLineStyle, chartPriceChangePercent, chartEsti
 import { DRAWING_TOOL_GROUPS, DRAWING_TOOL_LABELS } from '../../utils/drawingTools.js';
 import { DRAWING_TOOL_ICONS } from './DrawingToolIcons.jsx';
 import V4DrawingToolbar from './v4/V4DrawingToolbar.jsx';
+import MobileAuditDrawingPalette from './MobileAuditDrawingPalette.jsx';
 import { chartTimezoneLabel, formatChartClock } from '../../utils/desktopChartSettings.js';
 
 const MOBILE_HIDDEN_DRAWING_TOOLS = new Set([
@@ -1441,6 +1442,7 @@ export default function ChartArea({
   drawingToolbarOpen = true,
   drawingToolbarOverlay = false,
   mobileOverlayStyle = false,
+  auditMobile = false,
   fillAvailableHeight = false,
 }) {
   const [clockNow, setClockNow] = useState(() => new Date());
@@ -1481,19 +1483,20 @@ export default function ChartArea({
   const cycleDrawingSnap = () => setDrawingSnap(current => current === 'off' ? 'weak' : current === 'weak' ? 'strong' : 'off');
 
   const mobileReference = drawingToolbarOverlay && narrowMobile;
+  const auditMobilePalette = auditMobile && drawingToolbarOverlay;
   const visibleToolGroups = useMemo(
-    () => (mobileReference
+    () => (mobileReference && !auditMobilePalette
       ? toolGroups
           .map(group => group.filter(([id]) => !MOBILE_HIDDEN_DRAWING_TOOLS.has(id)))
           .filter(group => group.length)
       : toolGroups),
-    [mobileReference],
+    [mobileReference, auditMobilePalette],
   );
 
   useEffect(() => {
-    if (!mobileReference || !MOBILE_HIDDEN_DRAWING_TOOLS.has(selectedTool)) return;
+    if (!mobileReference || auditMobilePalette || !MOBILE_HIDDEN_DRAWING_TOOLS.has(selectedTool)) return;
     onSelectTool('cursor');
-  }, [mobileReference, onSelectTool, selectedTool]);
+  }, [mobileReference, auditMobilePalette, onSelectTool, selectedTool]);
 
   const oscillatorCount = indicators.filter(item => item.visible !== false && oscillatorIds.has(item.id)).length;
   const priceScaleAnchors = useMemo(() => {
@@ -1566,11 +1569,11 @@ export default function ChartArea({
   }, []);
 
   const heightClass = oscillatorCount ? (oscillatorCount > 1 ? 'h-[500px] md:h-[580px]' : 'h-[430px] md:h-[520px]') : 'h-[360px] md:h-[460px]';
-  const toolbarVisible = compactContext ? true : !hideToolbar && drawingToolbarOpen;
+  const toolbarVisible = auditMobilePalette ? false : compactContext ? true : !hideToolbar && drawingToolbarOpen;
   const compactTool = visibleToolGroups.flat().find(([id]) => id === selectedTool) || visibleToolGroups.flat()[0] || null;
   const mobileHeightClass = fillAvailableHeight ? 'h-full min-h-0 flex-1' : heightClass;
   const areaClass = drawingToolbarOverlay
-    ? `acg-mobile-reference-chart-area acg-mobile-chart-surface ${toolbarVisible ? 'acg-mobile-reference-chart-area--with-drawing-rail' : 'acg-mobile-reference-chart-area--chart-only'} grid ${mobileHeightClass} ${toolbarVisible ? 'grid-cols-[36px_minmax(0,1fr)] gap-1.5' : 'grid-cols-[minmax(0,1fr)]'} bg-[#081019]`
+    ? `acg-mobile-reference-chart-area acg-mobile-chart-surface ${auditMobilePalette ? 'acg-mobile-audit-chart-area' : ''} ${toolbarVisible ? 'acg-mobile-reference-chart-area--with-drawing-rail' : 'acg-mobile-reference-chart-area--chart-only'} grid ${mobileHeightClass} ${toolbarVisible ? 'grid-cols-[36px_minmax(0,1fr)] gap-1.5' : 'grid-cols-[minmax(0,1fr)]'} bg-[#081019]`
     : embedded
       ? `grid h-full min-h-0 grid-rows-[minmax(0,1fr)] ${!toolbarVisible ? 'grid-cols-[minmax(0,1fr)]' : desktopEnhanced ? 'grid-cols-[40px_minmax(0,1fr)]' : 'grid-cols-[36px_minmax(0,1fr)]'} ${desktopEnhanced ? 'gap-2 bg-black' : 'gap-1.5'}`
       : focusMode
@@ -1672,7 +1675,7 @@ export default function ChartArea({
       )}
 
       <div className={`relative h-full min-h-0 min-w-0 overflow-hidden ${desktopEnhanced ? 'rounded-[10px] border border-white/[0.06] bg-[#080A0C] shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]' : 'bg-[#09090b]'}`}>
-        <div ref={v4ChartContainerRef} className={`relative h-full min-h-0 min-w-0 overflow-hidden ${desktopEnhanced ? 'rounded-[9px] bg-[#07090B]' : 'bg-[#09090b]'} ${drawingToolbarOverlay ? (toolbarVisible ? '' : 'pl-3') : ''} ${mobileReference ? 'pr-1' : ''}`}>
+        <div ref={v4ChartContainerRef} className={`relative h-full min-h-0 min-w-0 overflow-hidden ${desktopEnhanced ? 'rounded-[9px] bg-[#07090B]' : 'bg-[#09090b]'} ${drawingToolbarOverlay && !auditMobilePalette ? (toolbarVisible ? '' : 'pl-3') : ''} ${mobileReference && !auditMobilePalette ? 'pr-1' : ''}`}>
         <TradingChart
           symbol={symbol}
           instrument={instrument}
@@ -1701,6 +1704,30 @@ export default function ChartArea({
           onOpenIndicatorSettings={onOpenIndicatorSettings}
           onRemoveIndicator={onRemoveIndicator}
         />
+        {auditMobilePalette && <MobileAuditDrawingPalette
+          selectedTool={selectedTool}
+          onSelectTool={id => {
+            if (tradePlan) return;
+            setShowDrawings(true);
+            onSelectTool(id);
+          }}
+          tradePlanActive={Boolean(tradePlan)}
+          drawingCount={drawingCount}
+          hiddenDrawingCount={hiddenDrawingCount}
+          showDrawings={showDrawings}
+          onToggleVisibility={() => setShowDrawings(value => !value)}
+          onRestoreHiddenDrawings={() => {
+            commitDrawings(symbol, current => current.map(item => item.hidden ? { ...item, hidden: false } : item));
+            setHiddenDrawingCount(0);
+            setShowDrawings(true);
+          }}
+          drawingSnap={drawingSnap}
+          onCycleSnap={cycleDrawingSnap}
+          lockAllDrawings={lockAllDrawings}
+          onToggleLock={() => setLockAllDrawings(value => !value)}
+          keepDrawingTool={keepDrawingTool}
+          onTogglePin={() => setKeepDrawingTool(value => !value)}
+        />}
         {!compactContext && showDrawings && <DrawingLayer
           symbol={symbol}
           timeframe={chartTimeframe}

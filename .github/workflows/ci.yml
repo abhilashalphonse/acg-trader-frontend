@@ -28,12 +28,12 @@ jobs:
       - name: Build
         run: npm run build
       - name: Mobile audit real-Chrome responsive and interaction acceptance
-        if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feat/mobile-audit-') }}
+        if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feat/mobile-audit-') || startsWith(github.ref, 'refs/heads/fix/mobile-audit-') || startsWith(github.head_ref, 'fix/mobile-audit-') }}
         run: |
           npm install --no-save --no-audit --no-fund playwright@1.56.1
           node tests/ui/mobile-audit.mjs
       - name: Upload Mobile audit evidence
-        if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feat/mobile-audit-') }}
+        if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feat/mobile-audit-') || startsWith(github.ref, 'refs/heads/fix/mobile-audit-') || startsWith(github.head_ref, 'fix/mobile-audit-') }}
         uses: actions/upload-artifact@v4
         with:
           name: mobile-audit-responsive

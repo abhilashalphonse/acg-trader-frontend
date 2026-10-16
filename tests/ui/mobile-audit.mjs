@@ -35,10 +35,16 @@ try {
       const dock = document.querySelector('[data-acg-mobile-audit-dock]');
       const header = document.querySelector('[data-acg-mobile-audit-header]');
       const chart = document.querySelector('[data-audit-fixture-chart]');
+      const palette = document.querySelector('[data-acg-mobile-audit-palette]');
+      const dockRegion = dock.parentElement;
       const d = dock.getBoundingClientRect(), h = header.getBoundingClientRect(), c = chart.getBoundingClientRect();
       return {
         dockTop: d.top, dockHeight: d.height, dockLeft: d.left, dockRight: d.right,
         headerHeight: h.height, chartHeight: c.height, chartBottom: c.bottom,
+        chartWidth: c.width, paletteButtons: palette.querySelectorAll('button').length,
+        paletteLeft: palette.getBoundingClientRect().left,
+        regionBottom: dockRegion.getBoundingClientRect().bottom,
+        viewportHeight: window.innerHeight,
         documentWidth: document.documentElement.scrollWidth,
         viewportWidth: window.innerWidth,
         rows: Array.from(dock.children).slice(0, 3).map(el => Math.round(el.getBoundingClientRect().height)),
@@ -55,6 +61,10 @@ try {
     ok(Math.abs(geometry.dockLeft - 6) <= 1.5 && Math.abs(width - geometry.dockRight - 6) <= 1.5, width + 'px: dock side gutters');
     ok(geometry.documentWidth <= geometry.viewportWidth + 1, width + 'px: no horizontal page overflow');
     ok(geometry.chartHeight > 0 && geometry.dockTop >= geometry.chartBottom - 1, width + 'px: flexible chart fills remaining measured space');
+    eq(Math.round(geometry.chartWidth), width, width + 'px: collapsed palette does not reserve chart width');
+    eq(geometry.paletteButtons, 3, width + 'px: collapsed screenshot palette has three controls');
+    ok(Math.abs(geometry.paletteLeft - 12) <= 1, width + 'px: palette floats over chart at upper-left');
+    ok(Math.abs(geometry.regionBottom - geometry.viewportHeight) <= 1, width + 'px: safe area belongs to dock region, not a separate blank strip');
     const beforeHeight = await dock.evaluate(el => el.getBoundingClientRect().height);
     await dock.getByRole('button', { name: 'Choose order type' }).click();
     await dock.getByRole('group', { name: 'Order types' }).getByRole('button', { name: 'Limit' }).click();
@@ -65,6 +75,22 @@ try {
   const page = await browser.newPage({ viewport: { width: 393, height: 852 } });
   await page.goto(uri);
   const dock = page.locator('[data-acg-mobile-audit-dock]');
+  const palette = page.locator('[data-acg-mobile-audit-palette]');
+  eq(await palette.getByRole('button').count(), 3, 'Three buttons visible by default');
+  const chartWidthBefore = await page.locator('[data-audit-fixture-chart]').evaluate(el => el.getBoundingClientRect().width);
+  await palette.getByRole('button', { name: 'Expand drawing tools' }).click();
+  eq(await palette.getByRole('button', { name: 'Collapse drawing tools' }).getAttribute('aria-expanded'), 'true', 'Three-dot button expands the same palette');
+  ok(await palette.getByRole('button', { name: 'Fibonacci retracement' }).count() === 1, 'Expanded palette includes V4 analysis tools');
+  ok(await palette.getByRole('button', { name: 'Long position risk tool' }).count() === 1, 'Expanded palette includes V4 long position');
+  ok(await palette.getByRole('button', { name: 'Short position risk tool' }).count() === 1, 'Expanded palette includes V4 short position');
+  await page.screenshot({ path: 'artifacts/mobile-audit-393-expanded.png' });
+  await palette.getByRole('button', { name: 'Fibonacci retracement' }).click();
+  await page.waitForFunction(() => window.mobileAuditQA.selectedTool === 'fibonacci');
+  await palette.getByRole('button', { name: 'Collapse drawing tools' }).click();
+  eq(await palette.getByRole('button').count(), 3, 'Collapse restores three-button palette');
+  eq(await page.evaluate(() => window.mobileAuditQA.selectedTool), 'fibonacci', 'Collapsing never changes selected drawing tool');
+  eq(Math.round(await page.locator('[data-audit-fixture-chart]').evaluate(el => el.getBoundingClientRect().width)), Math.round(chartWidthBefore), 'Expanding does not shrink chart width');
+  eq(await page.evaluate(() => window.mobileAuditQA.commands), 0, 'Drawing tool interactions cannot submit orders');
   await dock.getByRole('button', { name: 'Prepare buy draft' }).click();
   eq(await page.evaluate(() => window.mobileAuditQA.stage), 'planning', 'Buy prepares draft only');
   eq(await page.evaluate(() => window.mobileAuditQA.commands), 0, 'No order from draft selection');
