@@ -155,17 +155,17 @@ export default function MobileAuditExecutionDock({
 
   const showInput = openPanel && ['size', 'entry', 'sl', 'tp'].includes(openPanel);
   return (
-    <section data-acg-mobile-audit-dock className="relative z-50 mx-[6px] shrink-0 rounded-[8px] border border-white/[0.09] bg-[#101114] p-[8px] text-[#e5e9ed] shadow-[0_-8px_28px_rgba(0,0,0,.3)]">
+    <section data-acg-mobile-audit-dock className="relative z-50 mx-[6px] shrink-0 rounded-t-[14px] rounded-b-[8px] border border-white/[0.12] bg-[#101114] p-[8px] text-[#e5e9ed] shadow-[0_-8px_28px_rgba(0,0,0,.3)]">
       {/* Row 1: order type and new-draft SL/TP controls */}
       <div className="flex h-[32px] min-w-0 items-center justify-between gap-2">
         <button type="button" disabled={commandPending} onClick={() => setOpenPanel(openPanel === 'order' ? null : 'order')} aria-label="Choose order type" aria-expanded={openPanel === 'order'} className="flex h-full min-w-[78px] items-center gap-1 rounded-[6px] px-2 text-left text-[12px] font-semibold text-[#f0f1f2]">
           {ORDER_TYPES.find(([id]) => id === type)?.[1] || type}<ChevronDown size={13}/>
         </button>
         <div className="flex h-full shrink-0 items-center gap-1">
-          <button type="button" disabled={commandPending || !editing} onClick={() => openEditor('sl')} aria-label="Set stop loss" className="min-h-8 rounded-[6px] px-2 text-[12px] font-medium text-[#d8dce0] disabled:opacity-45">
+          <button type="button" disabled={commandPending || !editing} onClick={() => openEditor('sl')} aria-label="Set stop loss" className="min-h-8 rounded-[6px] border border-white/[0.10] bg-white/[0.035] px-2 text-[12px] font-medium text-[#d8dce0] disabled:opacity-45">
             SL {validPositive(tradePlan?.sl) ? '✓' : '+'}
           </button>
-          <button type="button" disabled={commandPending || !editing} onClick={() => openEditor('tp')} aria-label="Set take profit" className="min-h-8 rounded-[6px] px-2 text-[12px] font-medium text-[#d8dce0] disabled:opacity-45">
+          <button type="button" disabled={commandPending || !editing} onClick={() => openEditor('tp')} aria-label="Set take profit" className="min-h-8 rounded-[6px] border border-white/[0.10] bg-white/[0.035] px-2 text-[12px] font-medium text-[#d8dce0] disabled:opacity-45">
             TP {validPositive(tradePlan?.tp) ? '✓' : '+'}
           </button>
           {editing && <button type="button" disabled={commandPending} onClick={cancel} aria-label="Cancel draft" className="grid size-8 place-items-center text-[#aab0b7]"><X size={14}/></button>}
@@ -191,18 +191,18 @@ export default function MobileAuditExecutionDock({
         ) : (
           <>
             <button type="button" disabled={!available} onClick={() => chooseSide('sell')} className={`flex min-w-0 flex-col items-center justify-center rounded-[6px] bg-[#c83242] px-1 text-white disabled:opacity-40 ${direction === 'sell' ? 'ring-1 ring-white/60' : ''}`} aria-label={direction === 'sell' ? 'Review sell draft' : 'Prepare sell draft'}>
-              <strong title={quotePrice('sell')} className="max-w-full truncate font-mono text-[clamp(10px,3.2vw,14px)] font-semibold tabular-nums">{quotePrice('sell')}</strong><span className="text-[10px] font-semibold">{direction === 'sell' ? 'REVIEW SELL' : 'SELL'}</span>
+              <span className="text-[10px] font-semibold tracking-[0.02em]">{direction === 'sell' ? 'REVIEW SELL' : 'SELL'}</span><strong title={quotePrice('sell')} className="max-w-full truncate font-mono text-[clamp(12px,4.1vw,17px)] font-semibold tabular-nums">{quotePrice('sell')}</strong>
             </button>
             <div className="grid min-w-0 grid-cols-[30px_minmax(0,1fr)_30px] items-center rounded-[6px] border border-white/[0.09] bg-[#090a0c]">
-              <button type="button" disabled={commandPending} onClick={() => changeAmountStep(-1)} aria-label="Decrease sizing amount" className="grid h-full min-w-[30px] place-items-center text-[#d6dce1] disabled:opacity-40"><Minus size={16}/></button>
+              <button type="button" disabled={commandPending} onClick={() => changeAmountStep(-1)} aria-label="Decrease sizing amount" className="mx-[2px] grid h-[40px] w-[26px] place-items-center rounded-[6px] border border-white/[0.12] bg-white/[0.07] text-[#e0e4e8] disabled:opacity-40"><Minus size={16}/></button>
               <button type="button" disabled={commandPending} onClick={() => openEditor('size')} aria-label="Edit position sizing" className="min-w-0 overflow-hidden text-center">
-                <strong className="block truncate font-mono text-[13px] font-semibold tabular-nums">{amount}</strong>
+                <strong className="block truncate font-mono text-[17px] font-semibold tabular-nums">{amount}</strong>
                 <span className="flex items-center justify-center gap-0.5 truncate text-[10px] text-[#abb3bb]">{labels[mode]}<ChevronDown size={10}/></span>
               </button>
-              <button type="button" disabled={commandPending} onClick={() => changeAmountStep(1)} aria-label="Increase sizing amount" className="grid h-full min-w-[30px] place-items-center text-[#d6dce1] disabled:opacity-40"><Plus size={16}/></button>
+              <button type="button" disabled={commandPending} onClick={() => changeAmountStep(1)} aria-label="Increase sizing amount" className="mx-[2px] grid h-[40px] w-[26px] place-items-center rounded-[6px] border border-white/[0.12] bg-white/[0.07] text-[#e0e4e8] disabled:opacity-40"><Plus size={16}/></button>
             </div>
             <button type="button" disabled={!available} onClick={() => chooseSide('buy')} className={`flex min-w-0 flex-col items-center justify-center rounded-[6px] bg-[#195be1] px-1 text-white disabled:opacity-40 ${direction === 'buy' ? 'ring-1 ring-white/60' : ''}`} aria-label={direction === 'buy' ? 'Review buy draft' : 'Prepare buy draft'}>
-              <strong title={quotePrice('buy')} className="max-w-full truncate font-mono text-[clamp(10px,3.2vw,14px)] font-semibold tabular-nums">{quotePrice('buy')}</strong><span className="text-[10px] font-semibold">{direction === 'buy' ? 'REVIEW BUY' : 'BUY'}</span>
+              <span className="text-[10px] font-semibold tracking-[0.02em]">{direction === 'buy' ? 'REVIEW BUY' : 'BUY'}</span><strong title={quotePrice('buy')} className="max-w-full truncate font-mono text-[clamp(12px,4.1vw,17px)] font-semibold tabular-nums">{quotePrice('buy')}</strong>
             </button>
           </>
         )}
