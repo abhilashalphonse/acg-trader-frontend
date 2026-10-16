@@ -15,6 +15,8 @@ import { isV4DefaultEnabled } from './utils/chartOrderPresentation.js';
 
 const TradingTerminalV2 = lazy(() => import('./pages/TradingTerminalV2.jsx'));
 const MobileTraderShell = lazy(() => import('./pages/MobileTraderShell.jsx'));
+// Opt-in view only. Ordinary mobile and all desktop traffic keep their current shells.
+const MOBILE_AUDIT_ENABLED = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('acg_mobile_audit') === '1';
 
 const LAST_SYMBOL_STORAGE_KEY = 'acg-trader-last-symbol-v1';
 const FX_PRIORITY = ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD'];
@@ -247,7 +249,7 @@ export default function App() {
       <Suspense fallback={<ACGStartupLoader />}>
         {isDesktop
           ? <TradingTerminalV2 {...sharedProps} />
-          : <MobileTraderShell {...sharedProps} />}
+          : <MobileTraderShell {...sharedProps} mobileAudit={MOBILE_AUDIT_ENABLED} />}
       </Suspense>
     </>
   );

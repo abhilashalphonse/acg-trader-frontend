@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import MobileTradingHeader from '../components/trading-v2/MobileTradingHeader.jsx';
+import MobileAuditHeader from '../components/trading-v2/MobileAuditHeader.jsx';
+import MobileAuditExecutionDock from '../components/trading-v2/MobileAuditExecutionDock.jsx';
 import MarketPanel from '../components/trading-v2/MarketPanel.jsx';
 import ExecutionPanel from '../components/trading-v2/ExecutionPanel.jsx';
 import MobileScalperMode from '../components/trading-v2/MobileScalperMode.jsx';
@@ -22,7 +24,8 @@ import {
 } from '../utils/tradingCommandNormalization.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../utils/instrumentFormatting.js';
 import { normalizeTradePlanPatch } from '../utils/tradePlanNormalization.js';
-import { effectiveTradePlan } from '../utils/tradePlanExecution.js';
+import { effectiveTradePlan, validateTradePlanForExecution } from '../utils/tradePlanExecution.js';
+import { resolveV4PositionSizing } from '../utils/v4ExecutionPrecision.js';
 
 const INDICATOR_STORAGE_KEY = 'acg-trader-indicators-v1';
 const INDICATOR_FAVORITES_KEY = 'acg-trader-indicator-favorites-v1';
@@ -104,14 +107,20 @@ function fillEvent(result, fallback) {
   };
 }
 
-export default function MobileTraderShell({ market, tick, markets = [], activeSymbol, onSelectSymbol = () => {}, watchlists = null, onViewportQuoteSymbolsChange = () => {} }) {
+export default function MobileTraderShell({ market, tick, markets = [], activeSymbol, onSelectSymbol = () => {}, watchlists = null, onViewportQuoteSymbolsChange = () => {}, mobileAudit = false }) {
   const shellRef = useRef(null);
   const noticeTimerRef = useRef(null);
   const executionDismissRef = useRef(null);
   const nativeFullscreenRef = useRef(false);
+  const auditIdentityRef = useRef(null);
+  const auditSubmissionRef = useRef(false);
+  const [auditSubmitting, setAuditSubmitting] = useState(false);
+  const [auditUnknownSubmission, setAuditUnknownSubmission] = useState(false);
   const prefsRef = useRef(loadTerminalPrefs());
   const trading = useTradingTerminal(markets);
   const { account, positions, pendingOrders, positionHistory, historyOrders, historyLoaded } = trading;
+  // Reuse the same fresh FX conversion quotes as the V4 desktop ticket.
+  const auditAccount = useMemo(() => mobileAudit ? { ...account, conversionMarkets: markets } : account, [account, markets, mobileAudit]);
   const readOnly = String(account?.status || '').toUpperCase() === 'BREACHED';
 
   const [timeframe, setTimeframe] = useState(prefsRef.current.timeframe || '1m');
@@ -136,6 +145,19 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const [overlay, setOverlay] = useState(null);
   const [notice, setNotice] = useState('');
   const exposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market, commandState: trading.commandState });
+
+  // Never let an account/symbol switch retain a previous account's draft or editors.
+  useEffect(() => {
+    if (!mobileAudit) return;
+    const identity = `${trading.accountId || ''}:${activeSymbol || ''}`;
+    if (auditIdentityRef.current && auditIdentityRef.current !== identity) {
+      setTradePlan(null);
+      setPositionProtectionDraft(null);
+      setOverlay(null);
+      setAuditUnknownSubmission(false);
+    }
+    auditIdentityRef.current = identity;
+  }, [mobileAudit, trading.accountId, activeSymbol]);
 
   useEffect(() => {
     if (chartFocus || typeof window === 'undefined') return;
@@ -264,6 +286,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const handleTradingError = (error, context = 'Trading command') => {
     const message = trading.errorMessage(error);
     const unknown = error?.code === 'EXECUTION_STATUS_UNKNOWN';
+    if (mobileAudit && unknown) setAuditUnknownSubmission(true);
     setExecutionEvent(current => current ? { ...current, status: unknown ? 'unknown' : 'rejected', message } : { status: unknown ? 'unknown' : 'rejected', message });
     logEvent(unknown ? 'warning' : 'error', `${context}: ${message}`);
     showNotice(message);
@@ -286,6 +309,12 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
         riskBudget,
         requestedPrice: Number.isFinite(base.requestedPrice) ? base.requestedPrice : null,
       });
+      if (mobileAudit && !(result?.position || result?.reconciled || String(result?.order?.status || '').toUpperCase() === 'FILLED')) {
+        setAuditUnknownSubmission(true);
+        setExecutionEvent({ ...base, status: 'unknown', message: 'Execution not yet confirmed. Check order history before trying again.' });
+        showNotice('Execution unconfirmed. Check your trades; do not submit again.');
+        return null;
+      }
       const filled = fillEvent(result, base);
       setExecutionEvent(filled);
       const instrument = markets.find(item => item.symbol === symbol) || market;
@@ -691,7 +720,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     }
   };
 
-  const startPlan = (side, requestedType = orderType) => {
+  const startPlan = (side, requestedType = orderType, auditOptions = {}) => {
     const marketPrice = Number(side === 'buy' ? market?.ask : market?.bid);
     if (!Number.isFinite(marketPrice) || marketPrice <= 0) {
       showNotice('Executable market price is unavailable');
@@ -710,7 +739,11 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     const limitPrice = requestedType === 'stop-limit'
       ? normalizePriceToTick(side === 'buy' ? entry + 1.5 * pip : entry - 1.5 * pip, market, pendingPriceDirection(requestedType, sideUpper, 'limit'))
       : null;
-    setTradePlan({ symbol: market?.symbol, side, entry, sl, tp, limitPrice, marketPrice, orderType: requestedType, pending, sizingMode, manualLots: lots, expiration: 'GTC', stage: 'planning', open: false });
+    setTradePlan({ symbol: market?.symbol, side, entry, sl: mobileAudit ? null : sl, tp: mobileAudit ? null : tp,
+      limitPrice, marketPrice, orderType: requestedType, pending, sizingMode, manualLots: lots,
+      expiration: 'GTC', stage: 'planning', open: false,
+      ...(mobileAudit ? { auditMode: auditOptions.auditMode || 'lots', auditValue: String(auditOptions.auditValue ?? lots), auditReviewRevision: 0 } : {}),
+    });
   };
 
 
@@ -801,6 +834,12 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   };
 
   const cancelPlan = () => {
+    // Audit cancellation is draft-only, and cannot route through live position close.
+    if (mobileAudit) {
+      if (tradePlan?.open) { showNotice('Use position management to close a live position.'); return; }
+      setTradePlan(null);
+      return;
+    }
     if (tradePlan?.open && tradePlan.positionId) {
       void closePosition(tradePlan.positionId, 100);
       return;
@@ -809,7 +848,8 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   };
 
   const executePlan = async () => {
-    if (!tradePlan || trading.commandState.pending) return;
+    if (!tradePlan || trading.commandState.pending || (mobileAudit && auditUnknownSubmission)) return;
+    if (mobileAudit && tradePlan.stage !== 'review') return;
     if (!exposure.allowed) { showNotice(exposure.reason); return; }
 
     const planSymbol = String(tradePlan.symbol || '').toUpperCase();
@@ -827,11 +867,23 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       return;
     }
     const basePlan = tradePlan.open ? tradePlan : effectiveTradePlan(tradePlan, planMarket);
-    const preview = resolveExecutionPreview({ plan: basePlan, riskPercent, manualLots: basePlan.manualLots ?? lots, account, instrument: planMarket });
-    const executionPlan = preview.plan || basePlan;
+    if (mobileAudit) {
+      const checked = validateTradePlanForExecution(basePlan, planMarket);
+      if (!checked.valid) { showNotice(checked.message); return; }
+    }
+    const auditSizing = mobileAudit ? resolveV4PositionSizing({
+      mode: tradePlan.auditMode, amount: tradePlan.auditValue, plan: basePlan, account: auditAccount, instrument: planMarket,
+    }) : null;
+    if (mobileAudit && !auditSizing?.canExecute) { showNotice(auditSizing?.message || 'Sizing unavailable'); return; }
+    const effectiveRiskPercent = mobileAudit && auditSizing.riskPercent != null ? auditSizing.riskPercent : riskPercent;
+    const sourcePlan = mobileAudit ? { ...basePlan, sizingMode: auditSizing.backendSizingMode, manualLots: auditSizing.manualLots ?? auditSizing.lots } : basePlan;
+    const preview = resolveExecutionPreview({ plan: sourcePlan, riskPercent: effectiveRiskPercent, manualLots: sourcePlan.manualLots ?? lots, account: auditAccount, instrument: planMarket });
+    const executionPlan = preview.plan || sourcePlan;
 
     let calculated;
-    if (executionPlan.sizingMode === 'risk') {
+    if (mobileAudit) {
+      calculated = auditSizing.lots;
+    } else if (executionPlan.sizingMode === 'risk') {
       const sizing = preview.sizing?.riskSizing;
       if (!sizing) {
         showNotice('Risk % sizing is unavailable because this instrument P&L requires currency conversion. Use Lots sizing.');
@@ -862,7 +914,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
         limitPrice: executionPlan.limitPrice,
         stopLoss: executionPlan.sl,
         takeProfit: executionPlan.tp,
-        riskBudget: executionPlan.sizingMode === 'risk' ? Number(account?.equity) * Number(riskPercent) / 100 : null,
+        riskBudget: executionPlan.sizingMode === 'risk' ? Number(account?.equity) * Number(effectiveRiskPercent) / 100 : null,
         timeInForce: executionPlan.expiration || 'GTC',
         expiresAt: executionPlan.expirationAt || executionPlan.expiresAt || null,
       };
@@ -871,6 +923,12 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
         const result = executionPlan.editingOrderId
           ? await trading.replacePendingOrder(executionPlan.editingOrderId, request)
           : await trading.placePendingOrder(request);
+        if (mobileAudit && !result?.order?.id) {
+          setAuditUnknownSubmission(true);
+          setExecutionEvent({ side: executionPlan.side, lots: volume, symbol: planSymbol, status: 'unknown', message: 'Order not yet confirmed. Check Orders before retrying.' });
+          showNotice('Pending-order outcome unconfirmed. Check Orders before retrying.');
+          return;
+        }
         setExecutionEvent({ side: executionPlan.side, lots: volume, symbol: planSymbol, requestedPrice: executionPlan.entry, status: 'pending', message: `${String(executionPlan.orderType).toUpperCase()} order waiting for trigger` });
         logEvent('order', `${String(executionPlan.side).toUpperCase()} ${String(executionPlan.orderType).toUpperCase()} ${volume.toFixed(2)} ${planSymbol} placed`, { orderId: result?.order?.id });
         setTradePlan(null);
@@ -888,9 +946,17 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       requestedPrice: executionPlan.entry,
       stopLoss: executionPlan.sl,
       takeProfit: executionPlan.tp,
-      riskBudget: executionPlan.sizingMode === 'risk' ? Number(account?.equity) * Number(riskPercent) / 100 : null,
+      riskBudget: executionPlan.sizingMode === 'risk' ? Number(account?.equity) * Number(effectiveRiskPercent) / 100 : null,
     });
     if (result?.position || result?.reconciled || String(result?.order?.status || '').toUpperCase() === 'FILLED') setTradePlan(null);
+  };
+
+  const executeAuditPlan = async () => {
+    if (auditSubmissionRef.current || auditUnknownSubmission) return;
+    auditSubmissionRef.current = true;
+    setAuditSubmitting(true);
+    try { await executePlan(); }
+    finally { auditSubmissionRef.current = false; setAuditSubmitting(false); }
   };
 
   const manualOrder = order => {
@@ -912,7 +978,9 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     setTradePlan(plan => {
       if (!plan) return plan;
       const planMarket = markets.find(item => String(item?.symbol || '').toUpperCase() === String(plan.symbol || '').toUpperCase()) || market;
-      return { ...plan, ...normalizeTradePlanPatch(plan, patch, planMarket) };
+      return { ...plan, ...normalizeTradePlanPatch(plan, patch, planMarket),
+        ...(mobileAudit && !plan.open ? { stage: patch?.stage === 'review' ? 'review' : 'planning' } : {}),
+      };
     });
   };
 
@@ -1038,7 +1106,19 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     if (!canonicalTradePlan || canonicalTradePlan.sizingMode !== 'risk') return null;
     return resolveExecutionPreview({ plan: canonicalTradePlan, riskPercent, manualLots: canonicalTradePlan.manualLots ?? lots, account, instrument: plannedRiskInstrument }).sizing?.riskSizing || null;
   }, [account, canonicalTradePlan, plannedRiskInstrument, riskPercent, lots]);
-  const tradePlanLots = canonicalTradePlan
+  const canonicalAuditSizing = useMemo(() => {
+    if (!mobileAudit || !canonicalTradePlan || canonicalTradePlan.open || !canonicalTradePlan.auditMode) return null;
+    return resolveV4PositionSizing({
+      mode: canonicalTradePlan.auditMode,
+      amount: canonicalTradePlan.auditValue,
+      plan: canonicalTradePlan,
+      account: auditAccount,
+      instrument: plannedRiskInstrument,
+    });
+  }, [mobileAudit, canonicalTradePlan, auditAccount, plannedRiskInstrument]);
+  const tradePlanLots = mobileAudit && canonicalTradePlan?.auditMode
+    ? (canonicalAuditSizing?.canExecute ? canonicalAuditSizing.lots : null)
+    : canonicalTradePlan
     ? normalizeVolumeToStep(
       canonicalTradePlan.sizingMode === 'risk'
         ? (canonicalRiskSizing?.requestedLots ?? canonicalTradePlan.manualLots ?? lots)
@@ -1046,7 +1126,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       plannedRiskInstrument,
     )
     : lots;
-  const plannedRisk = canonicalTradePlan && Number.isFinite(Number(tradePlanLots))
+  const plannedRisk = canonicalTradePlan && Number.isFinite(Number(tradePlanLots)) && Number(tradePlanLots) > 0
     ? estimateLossAtStopWithCosts(canonicalTradePlan, tradePlanLots, plannedRiskInstrument, account)
     : 0;
   const indicatorSheetProps = {
@@ -1065,7 +1145,16 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
   const chartContent = (
     <div className="acg-mobile-chart-shell flex h-dvh min-h-0 flex-col overflow-hidden overscroll-none bg-black">
-      <MobileTradingHeader
+      {mobileAudit ? <MobileAuditHeader
+        market={market}
+        account={account}
+        timeframe={timeframe}
+        onTimeframe={setTimeframe}
+        positionsCount={positions.length}
+        onSelectInstrument={() => setOverlay('markets')}
+        onOpenTrades={() => setOverlay('trades')}
+        onOpenAccount={() => setOverlay('account')}
+      /> : <MobileTradingHeader
         market={market}
         account={account}
         positionsCount={positions.length}
@@ -1073,13 +1162,24 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
         onSelectInstrument={() => setOverlay('markets')}
         onOpenTrades={() => setOverlay('trades')}
         onOpenAccount={() => setOverlay('account')}
-      />
-      <div className="acg-mobile-reference-content flex min-h-0 flex-1 flex-col px-2 pt-[10px]">
+      />}
+      <div className={`acg-mobile-reference-content flex min-h-0 flex-1 flex-col ${mobileAudit ? 'px-1.5 pt-1.5' : 'px-2 pt-[10px]'}`}>
         <div className="acg-mobile-reference-chart-wrap min-h-0 flex-1">
-          <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} accountCurrency={account.currency} account={account} riskPercent={riskPercent} onCreateRiskOrder={createPlanFromRiskTool} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onRemovePositionProtection={removePositionProtectionFromChart} onRequestPositionProtection={requestPositionProtectionChange} onClosePosition={closePosition} historicalPosition={historicalChartContext} onClearHistoricalPosition={() => setHistoricalChartContext(null)} selectedPositionId={selectedOpenPositionId} onSelectPosition={selectOpenPosition} positionProtectionDraft={positionProtectionDraft} onPositionProtectionDraftChange={updatePositionProtectionDraft} onSelectInstrument={() => setOverlay('markets')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} compactMobileToolbar fillAvailableHeight />
+          <MarketPanel market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} accountCurrency={account.currency} account={account} riskPercent={riskPercent} onCreateRiskOrder={createPlanFromRiskTool} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onRemovePositionProtection={removePositionProtectionFromChart} onRequestPositionProtection={requestPositionProtectionChange} onClosePosition={closePosition} historicalPosition={historicalChartContext} onClearHistoricalPosition={() => setHistoricalChartContext(null)} selectedPositionId={selectedOpenPositionId} onSelectPosition={selectOpenPosition} positionProtectionDraft={positionProtectionDraft} onPositionProtectionDraftChange={updatePositionProtectionDraft} onSelectInstrument={() => setOverlay('markets')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} compactMobileToolbar auditMobile={mobileAudit} fillAvailableHeight />
         </div>
-        <div className="acg-mobile-reference-order-wrap mt-1.5 shrink-0">
-          <ExecutionPanel
+        <div className={`acg-mobile-reference-order-wrap relative z-50 shrink-0 ${mobileAudit ? 'mt-1' : 'mt-1.5'}`}>
+          {mobileAudit ? <MobileAuditExecutionDock
+            market={market}
+            account={auditAccount}
+            tradePlan={canonicalTradePlan}
+            onStartPlan={startPlan}
+            onCancelPlan={cancelPlan}
+            onExecutePlan={executeAuditPlan}
+            onTradePlanChange={updatePlan}
+            exposureAllowed={exposure.allowed && !readOnly && !auditUnknownSubmission}
+            exposureBlockReason={auditUnknownSubmission ? 'Verify your previous order before submitting again.' : exposure.reason}
+            commandPending={auditSubmitting || trading.commandState.pending}
+          /> : <ExecutionPanel
             market={market}
             account={account}
             exposureAllowed={exposure.allowed}
@@ -1108,7 +1208,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
             onApplyPositionProtection={applyPositionProtection}
             onCancelPositionProtection={cancelPositionProtection}
             positionProtectionSaving={positionProtectionSaving}
-          />
+          />}
         </div>
         <div className="h-[max(5px,env(safe-area-inset-bottom))] shrink-0 bg-black" aria-hidden="true" />
       </div>
