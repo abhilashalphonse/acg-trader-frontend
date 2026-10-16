@@ -87,14 +87,17 @@ try {
   let before = await page.evaluate(() => window.mobileAuditQA.sizing);
   ok(before.canExecute && before.lots > 0, 'Risk sizing uses existing fee-aware adapter after SL');
   await page.evaluate(() => window.mobileAuditQA.editPlan({ sl: 1.1180 }));
+  await page.waitForFunction(() => window.mobileAuditQA.plan?.sl === 1.118);
   const changed = await page.evaluate(() => window.mobileAuditQA.sizing);
   ok(changed.lots < before.lots, 'Moving SL wider reduces volume for fixed risk budget');
   await page.evaluate(() => window.mobileAuditQA.editPlan({ tp: 1.1250 }));
+  await page.waitForFunction(() => window.mobileAuditQA.plan?.tp === 1.125);
   const afterTp = await page.evaluate(() => window.mobileAuditQA.sizing);
   eq(afterTp.lots, changed.lots, 'Moving TP never changes risk-sized volume');
   await dock.getByRole('button', { name: 'Review buy draft' }).click();
   eq(await page.evaluate(() => window.mobileAuditQA.stage), 'review', 'Reviewed risk trade has validated draft');
   await page.evaluate(() => window.mobileAuditQA.editPlan({ sl: 1.1185 }));
+  await page.waitForFunction(() => window.mobileAuditQA.stage === 'planning');
   eq(await page.evaluate(() => window.mobileAuditQA.stage), 'planning', 'Editing SL invalidates prior review');
   await dock.getByRole('button', { name: 'Review buy draft' }).click();
   await dock.getByRole('button', { name: 'Confirm buy order' }).dblclick();
