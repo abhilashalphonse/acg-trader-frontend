@@ -44,6 +44,7 @@ export default function MarketPanel({
   compactMobileToolbar = false,
   auditMobile = false,
   onChartReadout,
+  onCheckStatus, onBreakEven, onSetTrailing,
   onMobileManagementChange,
   mobileTradeSelection,
   managementDisabled = false,
@@ -76,6 +77,7 @@ export default function MarketPanel({
         price={market.bid}
         ask={market.ask}
         chartMode={chartMode}
+        onChartMode={setChartMode}
         selectedTool={selectedTool}
         onSelectTool={setSelectedTool}
         tradePlan={tradePlan}
@@ -105,6 +107,7 @@ export default function MarketPanel({
         mobileOverlayStyle={compactMobileToolbar}
         auditMobile={auditMobile}
         onChartReadout={onChartReadout}
+        onCheckStatus={onCheckStatus} onBreakEven={onBreakEven} onSetTrailing={onSetTrailing}
         onMobileManagementChange={onMobileManagementChange}
         mobileTradeSelection={mobileTradeSelection}
         managementDisabled={managementDisabled}

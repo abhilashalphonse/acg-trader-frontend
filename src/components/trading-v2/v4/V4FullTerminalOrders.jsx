@@ -3,13 +3,15 @@ import V4ChartOrderLayer from './V4ChartOrderLayer.jsx';
 import { projectV4AcceptedLevels } from './chartOrderModel.js';
 import { formatInstrumentPrice } from '../../../utils/instrumentFormatting.js';
 import { defaultPlannerStopDistance } from '../../../utils/tradingRisk.js';
+import { mobilePreciseChartEdit } from '../../../utils/mobileV4Preferences.js';
+import { isAmbiguousExecutionError } from '../../../utils/executionReconciliation.js';
 import { normalizeProtectionPrice } from '../../../utils/tradingCommandNormalization.js';
 
 // Runs behind desktop V4 or the separately opted-in mobile audit gate. Financial state is provided by
 // the existing store; drafts exist locally and never optimistically mutate it.
 export default function V4FullTerminalOrders({
   account, symbol, instrument, positions = [], pendingOrders = [],
-  mobile = false, mobileTradeSelection, onMobileManagementChange, managementDisabled = false,
+  mobile = false, onCheckStatus, onBreakEven, onSetTrailing, mobileTradeSelection, onMobileManagementChange, managementDisabled = false,
   coordinateApi, height, positionProtectionDraft, pendingOrderDraft = null,
   onPendingOrderDraftChange, onCancelPendingOrderDraft, isNewOrderPlanning = false,
   renderPositionEntries = null, hoveredPositionId = null,
@@ -18,6 +20,9 @@ export default function V4FullTerminalOrders({
   onPositionProtectionDraftChange,
   onSelectPosition, onSelectPending, onClosePosition, onCancelPending,
 }) {
+  const [recovery, setRecovery] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [mobileAdvanced, setMobileAdvanced] = useState(null);
   const [mobileClosing, setMobileClosing] = useState(null);
   const [mobileOwner, setMobileOwner] = useState(null);
   const mobileActions = useRef({});
@@ -30,12 +35,14 @@ export default function V4FullTerminalOrders({
   const [awaiting, setAwaiting] = useState(null);
   const [removing, setRemoving] = useState(null);
   const removalRequest = useRef(null);
+  const recoveryScope = useRef(null);
   const accepted = useMemo(() => projectV4AcceptedLevels({
     accountId, symbol, positions, pendingOrders,
   }), [accountId, symbol, positions, pendingOrders]);
 
   // Cancel any previous owner when the user switches account or instrument.
   useEffect(() => {
+    setRecovery(false); setChecking(false); setMobileAdvanced(null);
     setMobileClosing(null);
     setMobileOwner(null);
     setEdit(null);
@@ -46,6 +53,32 @@ export default function V4FullTerminalOrders({
     setError('');
   }, [accountId, symbol]);
 
+  // Retain in-flight amendments across reloads. Restoring an intent never
+  // sends a command; only a matching account snapshot can release its lock.
+  useEffect(() => {
+    if (!mobile || !accountId) return;
+    const scope=`${accountId}:${symbol}`;
+    const key=`acg-mobile-v4-chart-recovery:${scope}`;
+    if (recoveryScope.current !== scope) {
+      recoveryScope.current=scope;
+      try {
+        const saved=JSON.parse(localStorage.getItem(key) || 'null');
+        if (saved?.context===scope && (saved.awaiting || saved.removing || saved.closing || saved.advanced)) {
+          const target=saved.awaiting || saved.closing || (saved.advanced ? {objectType:'position',objectId:saved.advanced.id} : saved.edit || saved.removing);
+          setMobileOwner({objectType:target.objectType,objectId:String(target.objectId),context:scope});
+          setEdit(saved.edit);setAwaiting(saved.awaiting);setMobileClosing(saved.closing);setMobileAdvanced(saved.advanced);
+          if(saved.removing){const token={};removalRequest.current=token;setRemoving({...saved.removing,token,awaitingSnapshot:true});}
+          setSaving(true);setRecovery(true);setError('Previous change needs account confirmation. Check status.');
+        }
+      } catch { /* recovery storage may be unavailable */ }
+      return;
+    }
+    try {
+      if (saving && (awaiting || removing || mobileClosing || mobileAdvanced)) localStorage.setItem(key,JSON.stringify({context:scope,edit,awaiting,removing:removing ? {id:removing.id,objectType:removing.objectType,objectId:removing.objectId}:null,closing:mobileClosing,advanced:mobileAdvanced}));
+      else if (!saving && !awaiting && !removing && !mobileClosing && !mobileAdvanced) localStorage.removeItem(key);
+    } catch { /* no storage must not change execution behavior */ }
+  },[mobile,accountId,symbol,saving,awaiting,removing,mobileClosing,mobileAdvanced,edit]);
+
   // Clicking × is the removal command. Never optimistically erase accepted
   // prices: clear the chip only when the authoritative account snapshot does.
   useEffect(() => {
@@ -55,6 +88,7 @@ export default function V4FullTerminalOrders({
       removalRequest.current = null;
       setRemoving(null);
       setSaving(false);
+      setRecovery(false);
       setError('');
     }
   }, [accepted, removing]);
@@ -63,6 +97,7 @@ export default function V4FullTerminalOrders({
     const request = removing;
     const timeout = window.setTimeout(() => {
       if (removalRequest.current !== request.token) return;
+      if (mobile) {setRecovery(true);setError('Removal is not yet confirmed. Check status.');return;}
       removalRequest.current = null;
       setRemoving(null);
       setSaving(false);
@@ -126,6 +161,7 @@ export default function V4FullTerminalOrders({
       setEdit(null);
       setSaving(false);
       setError('');
+      setRecovery(false);
       onCancelPositionProtection?.();
       if(awaiting.objectType==='pending')onCancelPendingOrderDraft?.();
     }
@@ -133,6 +169,7 @@ export default function V4FullTerminalOrders({
   useEffect(() => {
     if (!awaiting) return undefined;
     const timer = window.setTimeout(() => {
+      if (mobile) {setRecovery(true);setError('Level change is not yet confirmed. Check status.');return;}
       setAwaiting(null);
       setSaving(false);
       setError('The server has not confirmed the new level. The accepted price is unchanged; refresh the account before retrying.');
@@ -256,25 +293,28 @@ export default function V4FullTerminalOrders({
     const commandContext = contextRef.current;
     setSaving(true);
     setError('');
+    const acceptedLimit=accepted.find(level=>level.objectType==='pending' &&
+      level.objectId===objectId && level.kind==='limitPrice');
+    const expectedLimitPrice = kind==='entry' &&
+      String(owner.orderType || '').toLowerCase().replaceAll('_','-')==='stop-limit' &&
+      acceptedLimit && original ? Number((acceptedLimit.price+price-original.price).toPrecision(12)) : null;
+    if (mobile) setAwaiting({ accountId, objectType, objectId, kind, price, expectedLimitPrice });
     try {
       const applied = objectType === 'position'
         ? await onUpdatePosition?.(objectId, { [kind]: price })
         : await onMovePending?.(objectId, price, kind);
       if (mobile && contextRef.current !== commandContext) return;
       if (applied === false || applied == null) {
+        if (mobile) setAwaiting(null);
         setError('Modification was not accepted. Review the price or Discard.');
         setSaving(false);
         return;
       }
-      // The backend/store must confirm price before the dotted preview clears.
-      const acceptedLimit=accepted.find(level=>level.objectType==='pending' &&
-        level.objectId===objectId && level.kind==='limitPrice');
-      const expectedLimitPrice = kind==='entry' &&
-        String(owner.orderType || '').toLowerCase().replaceAll('_','-')==='stop-limit' &&
-        acceptedLimit && original ? Number((acceptedLimit.price+price-original.price).toPrecision(12)) : null;
-      setAwaiting({ accountId, objectType, objectId, kind, price, expectedLimitPrice });
+      if (!mobile) setAwaiting({ accountId, objectType, objectId, kind, price, expectedLimitPrice });
     } catch (cause) {
       if (mobile && contextRef.current !== commandContext) return;
+      if (mobile && isAmbiguousExecutionError(cause)) {setRecovery(true);setError('Change is not yet confirmed. Check status.');return;}
+      if (mobile) setAwaiting(null);
       setError(cause?.message || 'Unable to confirm the chart modification.');
       setSaving(false);
     }
@@ -292,7 +332,7 @@ export default function V4FullTerminalOrders({
     if (!level) return;
     const token = {};
     removalRequest.current = token; // synchronous guard against double-clicks
-    setRemoving({ id: level.id, token, awaitingSnapshot: false });
+    setRemoving({ id: level.id, objectType:level.objectType,objectId:level.objectId,token, awaitingSnapshot: false });
     setSaving(true);
     setError('');
     try {
@@ -308,11 +348,12 @@ export default function V4FullTerminalOrders({
       } else {
         // A successful HTTP response is not sufficient confirmation. Only the
         // incoming account snapshot may remove the accepted chart level.
-        setRemoving({ id: level.id, token, awaitingSnapshot: true });
+        setRemoving({ id: level.id, objectType:level.objectType,objectId:level.objectId,token, awaitingSnapshot: true });
         return true;
       }
     } catch (cause) {
       if (removalRequest.current !== token) return;
+      if (mobile && isAmbiguousExecutionError(cause)) {setRemoving({id:level.id,objectType:level.objectType,objectId:level.objectId,token,awaitingSnapshot:true});setRecovery(true);setError('Removal is not yet confirmed. Check status.');return true;}
       removalRequest.current = null;
       setRemoving(null);
       setSaving(false);
@@ -330,15 +371,28 @@ export default function V4FullTerminalOrders({
     if (!mobileClosing) return undefined;
     const actual = accepted.find(level => level.objectType === mobileClosing.objectType && level.objectId === mobileClosing.objectId && level.kind === 'entry');
     if (!actual || (mobileClosing.percentage < 100 && Number(actual.volume) < mobileClosing.originalVolume)) {
-      setMobileClosing(null); setSaving(false); if (!actual) setMobileOwner(null); setError('');
+      setRecovery(false); setMobileClosing(null); setSaving(false); if (!actual) setMobileOwner(null); setError('');
       return undefined;
     }
     const timer = window.setTimeout(() => {
+      if (mobile) {setRecovery(true);setError('Account confirmation is delayed. Check status.');return;}
       setMobileClosing(null); setSaving(false);
       setError('Account confirmation is delayed. Refresh before retrying.');
-    },12000);
+    },Math.max(0,12000-(Date.now()-mobileClosing.startedAt)));
     return () => window.clearTimeout(timer);
   }, [mobileClosing, accepted]);
+
+  useEffect(() => {
+    if (!mobileAdvanced) return undefined;
+    const owner=positions.find(item=>String(item.id)===mobileAdvanced.id);
+    const tick=Number(instrument?.tickSize)||1e-8;
+    const confirmed=!owner || (mobileAdvanced.kind==='breakEven'
+      ? owner.sl != null && Math.abs(Number(owner.sl)-Number(owner.entry))<tick*.51
+      : Boolean(owner.trailingEnabled)===mobileAdvanced.enabled && (!mobileAdvanced.enabled || Math.abs(Number(owner.trailingPips)-mobileAdvanced.pips)<1e-8));
+    if (confirmed) {setMobileAdvanced(null);setSaving(false);setRecovery(false);setError('');return undefined;}
+    const timer=window.setTimeout(()=>{setRecovery(true);setError('Change is not yet confirmed. Check status.');},Math.max(0,12000-(Date.now()-mobileAdvanced.startedAt)));
+    return ()=>window.clearTimeout(timer);
+  },[mobileAdvanced,positions,instrument?.tickSize]);
 
   const chartEditActions = !isNewOrderPlanning && activeEdit?.objectType === 'position'
     ? { positionId: activeEdit.objectId, kind: activeEdit.kind, saving,
@@ -366,6 +420,18 @@ export default function V4FullTerminalOrders({
     done: () => { if (saving) return; discard(); setMobileOwner(null); },
     discard,
     confirm: () => confirm(activeEdit),
+    setPrice: value => {
+      if (saving || managementDisabled) return false;
+      const next = mobilePreciseChartEdit(activeEdit, value, instrument);
+      if (!next) return false;
+      changeEdit(next); setError(''); return true;
+    },
+    checkStatus: async () => {
+      if (checking) return;
+      setChecking(true);
+      try {await onCheckStatus?.();} catch {setError('Unable to refresh. Check your connection and try again.');}
+      finally {setChecking(false);}
+    },
     edit: kind => {
       if (!selectedOwner || saving || managementDisabled) return;
       const level = accepted.find(item => item.objectType === selectedType && item.objectId === String(selectedOwner.id) && item.kind === kind);
@@ -374,18 +440,37 @@ export default function V4FullTerminalOrders({
     },
     command: async kind => {
       if (!selectedOwner || saving || managementDisabled) return false;
+      if (selectedType === 'position' && (kind === 'breakEven' || /^trail(5|10|20|Off)$/.test(kind))) {
+        const context = contextRef.current;
+        const enabled = kind !== 'trailOff';
+        const pips = kind.startsWith('trail') && enabled ? Number(kind.slice(5)) : Number(selectedOwner.trailingPips) || 5;
+        const expected = {id:String(selectedOwner.id), kind, enabled, pips,startedAt:Date.now()};
+        setSaving(true);setError('');setMobileAdvanced(expected);
+        try {
+          const result = kind === 'breakEven' ? await onBreakEven?.(selectedOwner.id) : await onSetTrailing?.(selectedOwner.id,enabled,pips);
+          if (contextRef.current !== context) return false;
+          if (result === false || result == null) {setSaving(false);setMobileAdvanced(null);return false;}
+          return true;
+        } catch (cause) {
+          if (contextRef.current !== context) return false;
+          if (isAmbiguousExecutionError(cause)) {setRecovery(true);setError('Change is not yet confirmed. Check status.');return true;}
+          setSaving(false);setMobileAdvanced(null);setError(cause?.message || 'Change was not accepted.');return false;
+        }
+      }
       if (['close','close25','close50','close75','cancel'].includes(kind)) {
         const percentage = kind === 'close' ? 100 : Number(kind.slice(5));
         const context = contextRef.current;
         setSaving(true); setError('');
+        setMobileClosing({objectType:selectedType,objectId:String(selectedOwner.id),percentage,startedAt:Date.now(),originalVolume:Number(selectedOwner.volume ?? selectedOwner.lots)});
         try {
           const result = kind.startsWith('close') ? await onClosePosition?.(selectedOwner.id,percentage) : await onCancelPending?.(selectedOwner.id);
           if (contextRef.current !== context) return false;
-          if (result === false || result == null) {setSaving(false); return false;}
-          setMobileClosing({objectType:selectedType,objectId:String(selectedOwner.id),percentage,originalVolume:Number(selectedOwner.volume ?? selectedOwner.lots)});
+          if (result === false || result == null) {setMobileClosing(null);setSaving(false); return false;}
+          setMobileClosing({objectType:selectedType,objectId:String(selectedOwner.id),percentage,startedAt:Date.now(),originalVolume:Number(selectedOwner.volume ?? selectedOwner.lots)});
           return true;
         } catch (cause) {
-          if (contextRef.current === context) {setSaving(false);setError(cause?.message || 'Change was not accepted.');}
+          if (contextRef.current === context && isAmbiguousExecutionError(cause)) {setRecovery(true);setError('Outcome is not yet confirmed. Check status.');return true;}
+          if (contextRef.current === context) {setMobileClosing(null);setSaving(false);setError(cause?.message || 'Change was not accepted.');}
           return false;
         }
       }
@@ -394,15 +479,15 @@ export default function V4FullTerminalOrders({
       return false;
     },
   };
-  const stableMobileActions = useMemo(() => Object.fromEntries(['done','discard','confirm','edit','command'].map(key =>
+  const stableMobileActions = useMemo(() => Object.fromEntries(['done','discard','confirm','edit','command','setPrice','checkStatus'].map(key =>
     [key, (...args) => mobileActions.current[key](...args)])), []);
   useEffect(() => {
     if (!mobile || !onMobileManagementChange) return;
     onMobileManagementChange(!isNewOrderPlanning && selectedOwner ? {
       owner:selectedOwner, objectType:selectedType, edit:activeEdit, saving,
-      error, awaiting:Boolean(awaiting || mobileClosing || removing?.awaitingSnapshot), disabled:managementDisabled, actions:stableMobileActions,
+      error, recovery, checking, awaiting:Boolean(awaiting || mobileClosing || mobileAdvanced || removing?.awaitingSnapshot), disabled:managementDisabled, actions:stableMobileActions,
     } : null);
-  }, [mobile, onMobileManagementChange, isNewOrderPlanning, selectedOwner, selectedType, activeEdit, saving, error, awaiting, mobileClosing, removing, managementDisabled, stableMobileActions]);
+  }, [mobile, onMobileManagementChange, isNewOrderPlanning, selectedOwner, selectedType, activeEdit, saving, error, awaiting, mobileClosing, mobileAdvanced, removing, recovery, checking, managementDisabled, stableMobileActions]);
   useEffect(() => {
     if (isNewOrderPlanning) setMobileOwner(null);
   }, [isNewOrderPlanning]);

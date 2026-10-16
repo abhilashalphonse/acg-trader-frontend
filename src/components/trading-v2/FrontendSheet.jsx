@@ -22,6 +22,7 @@ export default function FrontendSheet({
   type,
   onClose,
   desktop = false,
+  auditMobile = false, onChartModeChange, onTimeframeChange,
   markets = [],
   activeSymbol,
   onSelectSymbol = () => {},
@@ -66,7 +67,7 @@ export default function FrontendSheet({
     const frame = window.requestAnimationFrame(() => {
       const root = sheetRef.current;
       if (!root || root.contains(document.activeElement)) return;
-      root.querySelector('input:not([disabled]), button:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')?.focus?.();
+      root.querySelector(auditMobile ? 'button:not([disabled])' : 'input:not([disabled]), button:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')?.focus?.();
     });
     return () => {
       window.cancelAnimationFrame(frame);
@@ -179,11 +180,12 @@ export default function FrontendSheet({
     );
   };
 
+  const sizingLabel = {lots:'Lots',margin:'Margin $',riskPercent:'Risk %',riskUSD:'Risk USD'}[terminalPrefs.sizingMode] || terminalPrefs.sizingMode || 'Lots';
   const isIndicators = type === 'indicators';
   const isMarketSheet = type === 'search' || type === 'instruments' || type === 'markets';
 
   return (
-    <div className={desktop ? "acg-v3-sheet fixed inset-0 z-[100] flex items-center justify-center bg-black/75 px-4" : "fixed inset-0 z-[100] flex items-end justify-center bg-black/55 px-2 backdrop-blur-[2px]"} onMouseDown={onClose}>
+    <div data-mobile-v4-surface={auditMobile ? type : undefined} className={auditMobile ? "acg-mobile-v4-sheet fixed inset-0 z-[110] flex bg-black" : desktop ? "acg-v3-sheet fixed inset-0 z-[100] flex items-center justify-center bg-black/75 px-4" : "fixed inset-0 z-[100] flex items-end justify-center bg-black/55 px-2 backdrop-blur-[2px]"} onMouseDown={onClose}>
       <section
         ref={sheetRef}
         role="dialog"
@@ -195,13 +197,13 @@ export default function FrontendSheet({
         onMouseDown={event => event.stopPropagation()}
         className={`${isMarketSheet ? 'flex h-[84dvh] min-h-0 flex-col bg-black' : isIndicators ? 'max-h-[90dvh] bg-[#080808]' : 'max-h-[84dvh] bg-[#080808]'} ${desktop ? 'mb-0 max-w-[560px] rounded-[10px] border-[#30343A] shadow-[0_15px_40px_rgba(0,0,0,.4)]' : 'mb-[max(8px,env(safe-area-inset-bottom))] max-w-[444px] rounded-[24px] border-white/[0.08] shadow-[0_30px_90px_rgba(0,0,0,.65)]'} w-full overflow-hidden border`}
       >
-        <header className={`flex shrink-0 items-start justify-between gap-3 border-b border-white/[0.08] ${isMarketSheet ? 'bg-black px-4 pb-4 pt-4' : 'px-4 py-3.5'}`}><div><h2 className={`${isMarketSheet ? 'text-[20px] tracking-[-0.035em]' : 'text-[15px]'} font-black text-[#f3f7fb]`}>{titleMap[type] || 'ACG Trader'}</h2><p className={`${isMarketSheet ? 'mt-1 text-[9px] text-[#718397]' : 'mt-0.5 text-[9px] text-[#6e8195]'}`}>{isIndicators ? 'Technical studies · live chart' : type === 'more' ? 'Profiles, preferences and shortcuts' : type === 'platform' ? 'Terminal preferences and trading profiles' : type === 'notifications' ? 'Terminal and risk alerts' : type === 'profile' ? 'Trading account summary' : type === 'help' ? 'Using ACG Trader' : 'Markets and terminal tools'}</p></div><button type="button" onClick={onClose} className="grid size-9 place-items-center rounded-md border border-white/[0.08] bg-[#101010] text-[#93a6b8]"><X size={17}/></button></header>
+        <header className={`flex shrink-0 items-start justify-between gap-3 border-b border-white/[0.08] ${isMarketSheet ? 'bg-black px-4 pb-4 pt-4' : 'px-4 py-3.5'}`}><div><h2 className={`${isMarketSheet ? 'text-[20px] tracking-[-0.035em]' : 'text-[15px]'} font-black text-[#f3f7fb]`}>{titleMap[type] || 'ACG Trader'}</h2><p className={`${isMarketSheet ? 'mt-1 text-[9px] text-[#718397]' : 'mt-0.5 text-[9px] text-[#6e8195]'}`}>{isIndicators ? 'Technical studies · live chart' : type === 'more' ? 'Profiles, preferences and shortcuts' : type === 'platform' ? 'Terminal preferences and trading profiles' : type === 'notifications' ? 'Terminal and risk alerts' : type === 'profile' ? 'Trading account summary' : type === 'help' ? 'Using ACG Trader' : 'Markets and terminal tools'}</p></div><button type="button" aria-label={auditMobile ? 'Back to chart' : 'Close panel'} onClick={onClose} className="grid size-9 place-items-center rounded-md border border-white/[0.08] bg-[#101010] text-[#93a6b8]"><X size={17}/></button></header>
         <div className={`${isMarketSheet ? 'flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-3 pt-2' : isIndicators ? 'max-h-[calc(90dvh-70px)] overflow-y-auto p-3' : 'max-h-[calc(84dvh-70px)] overflow-y-auto p-3'} [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
           {message && <div className="mb-3 rounded-md border border-white/[0.08] bg-[#101010] px-3 py-2.5 text-[9px] leading-4 text-[#a9c5d8]">{message}</div>}
           {isMarketSheet && (
             <div className="flex min-h-0 flex-1 flex-col">
               <div className="shrink-0">
-                <div className="mb-2 flex h-11 items-center gap-2 border-y border-white/[0.08] bg-black px-1"><Search size={15} className="text-[#6f8295]"/><input autoFocus={type === 'search'} value={query} onChange={e => setQuery(e.target.value)} placeholder={`Search ${markets.length || ""} markets…`} className="min-w-0 flex-1 bg-transparent text-[12px] text-[#eef4f8] outline-none placeholder:text-[#53677b]"/></div>
+                <div className="mb-2 flex h-11 items-center gap-2 border-y border-white/[0.08] bg-black px-1"><Search size={15} className="text-[#6f8295]"/><input autoFocus={!auditMobile && type === 'search'} value={query} onChange={e => setQuery(e.target.value)} placeholder={`Search ${markets.length || ""} markets…`} className="min-w-0 flex-1 bg-transparent text-[12px] text-[#eef4f8] outline-none placeholder:text-[#53677b]"/></div>
                 <div className="mb-3 flex gap-1 overflow-x-auto border-b border-white/[0.08] pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{MARKET_GROUPS.map(group => <button key={group} type="button" onClick={() => setMarketGroupFilter(group)} className={`shrink-0 border-b-2 px-2.5 py-1.5 text-[8px] font-black ${marketGroupFilter === group ? 'border-[#62cbff] text-[#dce9f2]' : 'border-transparent text-[#60758a]'}`}>{group}</button>)}</div>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -238,9 +240,15 @@ export default function FrontendSheet({
                 <div className="mt-3 grid grid-cols-2 gap-2 text-[8px]"><Pref label="Timeframe" value={terminalPrefs.timeframe || '1m'}/><Pref label="Chart" value={terminalPrefs.chartMode || 'candles'}/><Pref label="Sizing" value={terminalPrefs.sizingMode || 'lots'}/><Pref label="Risk" value={`${Number(terminalPrefs.riskPercent || 0.5).toFixed(2)}%`}/><Pref label="Lots" value={Number(terminalPrefs.lots || 0.1).toFixed(2)}/><Pref label="Order" value={terminalPrefs.orderType || 'market'}/></div>
               </section></div>
           )}
+          {auditMobile && type==='platform' && <section className="mb-3 rounded-[6px] border border-white/10 bg-[#101114] p-3">
+            <h3 className="mb-2 text-[12px] font-semibold">Chart preferences</h3>
+            <div className="mb-3 grid grid-cols-2 gap-1" role="group" aria-label="Chart type">{[['candles','Candles'],['line','Line']].map(([id,label])=><button type="button" key={id} aria-pressed={terminalPrefs.chartMode===id} onClick={()=>onChartModeChange?.(id)} className={`min-h-9 rounded-[5px] text-[12px] ${terminalPrefs.chartMode===id?'bg-[#e8eaeb] text-black':'bg-white/5 text-[#b7bec6]'}`}>{label}</button>)}</div>
+            <div className="grid grid-cols-4 gap-1" role="group" aria-label="Default timeframe">{['1m','5m','15m','30m','1H','4H','1D','1W'].map(tf=><button type="button" key={tf} aria-pressed={terminalPrefs.timeframe===tf} onClick={()=>onTimeframeChange?.(tf)} className={`min-h-9 rounded-[5px] text-[11px] ${terminalPrefs.timeframe===tf?'bg-[#e8eaeb] text-black':'bg-white/5 text-[#b7bec6]'}`}>{tf}</button>)}</div>
+            <p className="mt-3 text-[11px] text-[#aab3bc]">Sizing: {sizingLabel} · {terminalPrefs.sizingAmount || terminalPrefs.lots || '—'}. Change sizing in the trade dock.</p>
+          </section>}
           {type === 'platform' && (
             <div className="space-y-4">
-              <section>
+              {!auditMobile && <section>
                 <div className="mb-2 px-1"><b className="text-[9px] uppercase tracking-[0.12em] text-[#6b8195]">Terminal preferences</b></div>
                 <div className="grid grid-cols-2 gap-2">
                   <Pref label="Timeframe" value={terminalPrefs.timeframe || '1m'}/>
@@ -251,7 +259,8 @@ export default function FrontendSheet({
                   <Pref label="Order" value={terminalPrefs.orderType || 'market'}/>
                 </div>
                 <p className="mt-2 px-1 text-[8px] leading-4 text-[#60758a]">These preferences are saved automatically as you trade.</p>
-              </section>
+              </section>}
+
 
               <section>
                 <div className="mb-2 flex items-center justify-between px-1"><b className="text-[9px] uppercase tracking-[0.12em] text-[#6b8195]">Trading profiles</b><span className="text-[8px] text-[#52687b]">One tap setup</span></div>

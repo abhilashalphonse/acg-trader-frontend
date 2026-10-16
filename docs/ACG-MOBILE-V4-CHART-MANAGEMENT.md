@@ -48,3 +48,34 @@ Browser fixtures exercise real components with deterministic account snapshots
 and no trading transport. They verify behavior and responsive geometry, not
 authenticated production execution or final visual approval on a real phone.
 Review the deployed mobile audit URL before approving a public mobile rollout.
+
+## Completion update — 16 October 2026
+
+- Existing chart levels support precise local price editing. Tap a selected
+  badge or its dock readout, then tap the input to type. Preview normalizes to
+  instrument ticks; Apply/Discard retain the existing authoritative workflow.
+- Review replaces the same 118px dock with side/type, resolved lots, entry,
+  SL/TP, estimated loss at SL, Back/Edit and explicit Place order.
+- Sizing mode, amount and order type persist by account and instrument. The
+  new-order dock remains mounted during chart management. Profiles explicitly
+  update audit preferences and cannot interrupt an active trade operation.
+- Unknown new-order outcomes provide Check status and Trades. Recovery queries
+  the exact client order ID on the matching account; refresh alone or an absent
+  history result never releases the exposure lock. Recovery markers survive
+  reload. If the transport returned no usable client ID, the UI retains the
+  lock and directs the trader to verify Trades.
+- In-flight chart changes also survive reload without resubmission. Check
+  status refreshes account evidence; matching accepted state releases the lock.
+- The expanded chart palette contains Candles/Line, Fit and Return to live.
+  Starting a draft collapses the palette to preserve chart space.
+- Selected position actions include confirmed break-even, trailing-stop
+  presets/disable and existing partial/full close. Pending-order details show
+  size, protection and expiry policy; this update does not add volume/expiry
+  amendment controls.
+- Markets, Trades, Accounts and settings receive scoped V4 surfaces,
+  typography, corners and navigation. Settings expose working chart-type and
+  timeframe controls. Ordinary mobile and desktop do not use this style scope.
+
+Additional browser acceptance: `node tests/ui/mobile-v4-completion.mjs`.
+Real iOS/Android touch, keyboard and final visual acceptance remain owner review
+steps, independently of the automated browser checks.

@@ -4,6 +4,7 @@ import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
 import { normalizeVolumeToStep } from '../../utils/tradingCommandNormalization.js';
 import { resolveV4PositionSizing } from '../../utils/v4ExecutionPrecision.js';
 import { createDefaultTradePlan, validateTradePlanForExecution } from '../../utils/tradePlanExecution.js';
+import { mobileSizingPreferenceKey, readMobileSizingPreference } from '../../utils/mobileV4Preferences.js';
 import { mobileSizingModeValue, mobileSizingHelper } from '../../utils/mobileV4Sizing.js';
 import { mobileOrderTypePatch, mobileProtectionPatch } from '../../utils/mobileAuditDraft.js';
 import { v4ExitPriceFromInput, v4ExitValueFromPrice } from '../../utils/v4ProtectionPrecision.js';
@@ -36,23 +37,19 @@ function popTitle(field) {
 export default function MobileAuditExecutionDock({
   market, account, tradePlan, onStartPlan, onCancelPlan, onExecutePlan,
   onTradePlanChange, exposureAllowed, exposureBlockReason,
-  commandPending = false,
+  commandPending = false, recoveryRequired = false, onCheckStatus, recoveryMessage, onPreferenceChange, onOpenTrades,
 }) {
-  const [idleMode, setIdleMode] = useState('lots');
-  const [idleAmount, setIdleAmount] = useState('0.01');
-  const [idleOrderType, setIdleOrderType] = useState('market');
+  const preferenceKey = mobileSizingPreferenceKey(account?.id, market?.symbol);
+  const [initial] = useState(() => readMobileSizingPreference(globalThis.localStorage, preferenceKey, market?.minVolume || market?.volumeStep || 0.01));
+  const [idleMode, setIdleMode] = useState(initial.mode);
+  const [idleAmount, setIdleAmount] = useState(initial.amount);
+  const [idleOrderType, setIdleOrderType] = useState(initial.orderType);
   const [openPanel, setOpenPanel] = useState(null);
   const [editorText, setEditorText] = useState('');
   const [localError, setLocalError] = useState('');
   const [exitUnit, setExitUnit] = useState('price');
   const dockRef = useRef(null);
-  const baseLots = useRef(null);
-  useEffect(() => {
-    baseLots.current = null;
-    setIdleMode('lots');
-    setIdleAmount(fmtLots(market?.minVolume || market?.volumeStep || 0.01, market));
-    setOpenPanel(null); setLocalError('');
-  }, [account?.id, market?.symbol]);
+  const baseLots = useRef(initial.baseLots);
   const mode = tradePlan?.auditMode || (tradePlan?.editingOrderId ? 'lots' : idleMode);
   const amount = tradePlan?.auditValue ?? (tradePlan?.editingOrderId ? tradePlan.manualLots : idleAmount);
   const type = tradePlan?.orderType || idleOrderType;
@@ -66,12 +63,17 @@ export default function MobileAuditExecutionDock({
     ? resolveV4PositionSizing({ mode, amount, plan: createDefaultTradePlan({ side:'buy', market, protection:'none' }), account, instrument:market })
     : null, [editing, mode, amount, market, account]);
   const planCheck = editing ? validateTradePlanForExecution(tradePlan, market) : null;
-  const canReview = exposureAllowed && !commandPending && preview?.canExecute && planCheck?.valid;
+  const canReview = exposureAllowed && !recoveryRequired && !commandPending && preview?.canExecute && planCheck?.valid;
   const canSubmit = canReview && reviewing;
   const quotePrice = (side) => formatInstrumentPrice(side === 'buy' ? market?.ask : market?.bid, market) || '—';
-  const available = exposureAllowed && !commandPending && validPositive(market?.bid) && validPositive(market?.ask);
+  const available = exposureAllowed && !recoveryRequired && !commandPending && validPositive(market?.bid) && validPositive(market?.ask);
   const labels = { lots: 'Lots', margin: 'Margin $', riskPercent: 'Risk %', riskUSD: 'Risk USD' };
 
+  useEffect(() => {
+    if (recoveryRequired) return;
+    onPreferenceChange?.({mode,amount,orderType:type});
+    try { globalThis.localStorage?.setItem(preferenceKey, JSON.stringify({mode,amount,orderType:type,baseLots:tradePlan?.auditBaseLots || baseLots.current})); } catch { /* private browsing may disable storage */ }
+  }, [preferenceKey, mode, amount, type, tradePlan?.auditBaseLots, recoveryRequired, onPreferenceChange]);
   useEffect(() => {
     if (!openPanel) return undefined;
     const dismiss = event => { if (!dockRef.current?.contains(event.target)) setOpenPanel(null); };
@@ -194,6 +196,26 @@ export default function MobileAuditExecutionDock({
   if (!exposureAllowed) helper = exposureBlockReason || 'Trading unavailable';
 
   const showInput = openPanel && ['size', 'entry', 'sl', 'tp'].includes(openPanel);
+  if (recoveryRequired) return <section data-acg-mobile-audit-dock data-mobile-recovery className="mx-[6px] shrink-0 rounded-[8px] border border-white/10 bg-[#101114] p-2 text-[#eeeef0]">
+    <div className="flex h-8 items-center text-[12px] font-semibold">Check previous trade</div>
+    <div className="flex h-5 items-center truncate text-[11px] text-[#b7bec6]" role="status">{recoveryMessage || 'Outcome unconfirmed. New orders are paused.'}</div>
+    <div className="flex h-12 gap-[6px]"><button type="button" disabled={commandPending} onClick={onCheckStatus} className="h-12 flex-1 rounded-[6px] bg-[#e8eaeb] text-[12px] font-semibold text-black disabled:opacity-40">{commandPending ? 'Checking…' : 'Check status'}</button><button type="button" onClick={onOpenTrades} className="h-12 w-20 rounded-[6px] border border-white/10 text-[12px]">Trades</button></div>
+  </section>;
+  if (reviewing) return <section ref={dockRef} data-acg-mobile-audit-dock data-mobile-order-review className="relative mx-[6px] shrink-0 rounded-[8px] border border-white/10 bg-[#101114] p-2 text-[#eeeef0]">
+    <div className="flex h-8 items-center justify-between gap-2 text-[12px]">
+      <strong className="truncate">{direction.toUpperCase()} {type.toUpperCase()} · {fmtLots(preview?.lots, market)} lots</strong>
+      <button type="button" disabled={commandPending} onClick={() => onTradePlanChange({stage:'planning'})} className="h-8 px-2 text-[11px] text-[#b7bec6]">Edit</button>
+    </div>
+    <div className="grid h-5 grid-cols-3 gap-1 text-[10px] tabular-nums text-[#b7bec6]">
+      {[['Entry',preview?.referencePrice ?? tradePlan?.entry],['SL',tradePlan?.sl],['TP',tradePlan?.tp]].map(([label,value])=><span key={label} className="truncate" title={`${label} ${value == null ? 'Not set' : formatInstrumentPrice(value,market)}`}>{label} {value == null ? '—' : formatInstrumentPrice(value,market)}</span>)}
+    </div>
+    <div className="flex h-12 items-stretch gap-[6px]">
+      <div className="flex min-w-0 flex-1 flex-col justify-center text-[10px] text-[#aab3bc]"><span>Est. risk at SL</span><strong className="truncate text-[12px] text-[#e2e7ec]">{preview?.lossAtStop == null ? 'No SL set' : money(preview.lossAtStop,account?.currency)}</strong></div>
+      <button type="button" disabled={commandPending} onClick={() => onTradePlanChange({stage:'planning'})} className="w-[58px] rounded-[6px] border border-white/10 text-[12px]">Back</button>
+      <button type="button" disabled={!canSubmit} onClick={submit} aria-label={`Confirm ${direction} order`} className={`w-[108px] rounded-[6px] text-[12px] font-semibold text-white disabled:opacity-40 ${direction==='sell'?'bg-[#c83242]':'bg-[#195be1]'}`}>{commandPending?'Submitting…':'Place order'}</button>
+    </div>
+    {!canReview && <span role="status" className="absolute bottom-full left-0 w-full bg-[#101114] px-2 text-[10px] text-[#f27883]">{localError || preview?.message || planCheck?.message || exposureBlockReason}</span>}
+  </section>;
   return (
     <section ref={dockRef} data-acg-mobile-audit-dock className="relative z-50 mx-[6px] shrink-0 rounded-[8px] border border-white/[0.10] bg-[#101114] p-[8px] text-[#eeeef0]">
       {/* Row 1: order type and new-draft SL/TP controls */}
@@ -217,18 +239,6 @@ export default function MobileAuditExecutionDock({
       </div>
       {/* Row 3: direction, inline sizing and explicit review/confirmation. */}
       <div className="grid h-[48px] grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)] gap-[6px]">
-        {reviewing ? (
-          <>
-            <button type="button" disabled={commandPending} onClick={cancel} className="rounded-[6px] border border-white/[0.10] bg-[#1b1c1f] text-[12px] font-semibold text-[#d7dce1]">Cancel</button>
-            <button type="button" onClick={() => openEditor('size')} disabled={commandPending} className="min-w-0 overflow-hidden rounded-[6px] border border-white/[0.08] bg-[#090a0c] px-1 text-center">
-              <span className="block truncate font-mono text-[13px] font-semibold tabular-nums">{fmtLots(preview?.lots, market)}</span>
-              <span className="block text-[10px] text-[#a7afb8]">Lots · Edit</span>
-            </button>
-            <button type="button" disabled={!canSubmit} onClick={submit} className={`min-w-0 rounded-[6px] px-1 text-[11px] font-bold text-white disabled:opacity-40 ${direction === 'sell' ? 'bg-[#c83242]' : 'bg-[#195be1]'}`} aria-label={`Confirm ${direction} order`}>
-              {commandPending ? 'Submitting…' : `PLACE ${direction.toUpperCase()}`}
-            </button>
-          </>
-        ) : (
           <>
             <button type="button" disabled={!available} onClick={() => chooseSide('sell')} className={`flex min-w-0 flex-col items-center justify-center rounded-[6px] bg-[#c83242] px-1 text-white disabled:opacity-40 ${direction === 'sell' ? 'ring-1 ring-white/60' : ''}`} aria-label={direction === 'sell' ? 'Review sell draft' : 'Prepare sell draft'}>
               <span className="text-[10px] font-semibold tracking-[0.02em]">{direction === 'sell' ? 'REVIEW SELL' : 'SELL'}</span><strong title={quotePrice('sell')} className="max-w-full truncate font-mono text-[14px] font-semibold tabular-nums">{quotePrice('sell')}</strong>
@@ -245,7 +255,6 @@ export default function MobileAuditExecutionDock({
               <span className="text-[10px] font-semibold tracking-[0.02em]">{direction === 'buy' ? 'REVIEW BUY' : 'BUY'}</span><strong title={quotePrice('buy')} className="max-w-full truncate font-mono text-[14px] font-semibold tabular-nums">{quotePrice('buy')}</strong>
             </button>
           </>
-        )}
       </div>
       {/* Absolute panels overlay chart, never alter the dock's measured height. */}
       {openPanel === 'order' && <div className="absolute bottom-full left-0 z-[90] mb-1 w-[174px] rounded-[8px] border border-white/[0.12] bg-[#17191d] p-1 shadow-xl" role="group" aria-label="Order types">

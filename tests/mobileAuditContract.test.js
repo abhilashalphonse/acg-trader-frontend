@@ -19,7 +19,7 @@ test('Production defaults are preserved and mobile audit is opt-in only', () => 
   assert.match(app, /<MobileTraderShell \{\.\.\.sharedProps\} mobileAudit=\{MOBILE_AUDIT_ENABLED\}/);
   assert.match(shell, /mobileAudit \? <MobileAuditHeader/);
   assert.match(shell, /: <MobileTradingHeader/);
-  assert.match(shell, /mobileAudit \? auditManagement[\s\S]*?<MobileAuditManageDock[\s\S]*?<MobileAuditExecutionDock/);
+  assert.match(shell, /mobileAudit \? <>[\s\S]*?<MobileAuditManageDock[\s\S]*?<MobileAuditExecutionDock/);
   assert.match(shell, /: <ExecutionPanel/);
   assert.match(marketPanel, /\{!auditMobile && <ChartControls/);
   assert.match(marketPanel, /auditMobile=\{auditMobile\}/);

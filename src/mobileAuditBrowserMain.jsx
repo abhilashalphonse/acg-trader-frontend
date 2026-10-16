@@ -11,6 +11,11 @@ import V4FullTerminalOrders from './components/trading-v2/v4/V4FullTerminalOrder
 import MobileAuditManageDock from './components/trading-v2/MobileAuditManageDock.jsx';
 import { mobileProtectionPatch } from './utils/mobileAuditDraft.js';
 import { buildChartPendingAmendment } from './utils/pendingOrderChartMove.js';
+import './styles/mobileAuditSurfaces.css';
+import MobileInstrumentSheet from './components/trading-v2/MobileInstrumentSheet.jsx';
+import MobileTradesSheet from './components/trading-v2/MobileTradesSheet.jsx';
+import MobileAccountSheet from './components/trading-v2/MobileAccountSheet.jsx';
+import FrontendSheet from './components/trading-v2/FrontendSheet.jsx';
 import MobileAuditHeader from './components/trading-v2/MobileAuditHeader.jsx';
 import MobileAuditExecutionDock from './components/trading-v2/MobileAuditExecutionDock.jsx';
 import MobileAuditDrawingPalette from './components/trading-v2/MobileAuditDrawingPalette.jsx';
@@ -63,6 +68,11 @@ function FixtureChart({ market, account, plan, onChange, children }) {
 }
 function Demo() {
   const [market, setMarket] = useState(initialMarket);
+  const [chartMode,setChartMode]=useState('candles');
+  const [managed,setManaged]=useState(false);
+  const [recovery,setRecovery]=useState(false);
+  const [checks,setChecks]=useState(0);
+  const [fitCount,setFitCount]=useState(0);
   const [timeframe, setTimeframe] = useState('15m');
   const [plan, setPlan] = useState(null);
   const [pending, setPending] = useState(false);
@@ -74,6 +84,7 @@ function Demo() {
   const locked = useRef(false);
   const withPlan = plan ? effectiveTradePlan(plan, market) : null;
   window.mobileAuditQA = {
+    chartMode,fitCount,checks,setManaged,setRecovery,
     commands, attempts, stage: withPlan?.stage || 'idle', lastDestination, setReadout,
     chartChrome: auditMobile => renderToStaticMarkup(<AuthContext.Provider value={{authenticated:false}}><TradingContext.Provider value={{market:{candlesByKey:{}},connection:{status:'connected'}}}><TradingChart instrument={market} symbol={market.symbol} timeframe="M15" mobileReference auditMobile={auditMobile}/></TradingContext.Provider></AuthContext.Provider>),
     plan: withPlan, market, account, selectedTool,
@@ -124,14 +135,14 @@ function Demo() {
     <div className="acg-mobile-reference-content flex min-h-0 flex-1 flex-col">
       <div data-audit-fixture-chart className="relative min-h-0 flex-1 bg-[#09090b]">
         <FixtureChart market={market} account={account} plan={withPlan} onChange={onChange}>
-          <MobileAuditDrawingPalette selectedTool={selectedTool} onSelectTool={setSelectedTool}/>
+          <MobileAuditDrawingPalette tradePlanActive={Boolean(plan)} chartMode={chartMode} onChartMode={setChartMode} onFitView={()=>setFitCount(n=>n+1)} onResetView={()=>setFitCount(n=>n+1)} selectedTool={selectedTool} onSelectTool={setSelectedTool}/>
         </FixtureChart>
       </div>
       <div className="acg-mobile-reference-order-wrap relative z-50 shrink-0 bg-[#101114] pb-[max(5px,env(safe-area-inset-bottom))]">
-        <MobileAuditExecutionDock market={market} account={account} tradePlan={withPlan}
+        <div hidden={managed}><MobileAuditExecutionDock recoveryRequired={recovery} onCheckStatus={()=>setChecks(n=>n+1)} market={market} account={account} tradePlan={withPlan}
           onStartPlan={onStartPlan} onCancelPlan={() => setPlan(null)}
           onExecutePlan={onSubmit} onTradePlanChange={onChange}
-          exposureAllowed commandPending={pending}/>
+          exposureAllowed commandPending={pending}/></div>{managed&&<div data-fixture-managed className="h-[118px]">Managing position</div>}
       </div>
     </div>
   </div>;
@@ -145,15 +156,17 @@ function ManagedDemo() {
   const [accountId, setAccountId] = useState(account.id);
   const [disabled, setDisabled] = useState(false);
   const [failure, setFailure] = useState(false);
+  const [statusChecks,setStatusChecks]=useState(0);
   const [ack, setAck] = useState(null);
   const change = async (type, id, patch) => {
+    if (failure==='unknown') {setAck({type,id,patch});const error=new Error('timeout');error.code='REQUEST_TIMEOUT';throw error;}
     if (failure) return false;
     setCommands(prev=>[...prev,{type,id,patch}]);
     setAck({type,id,patch});
     return true;
   };
   window.mobileManageQA = {positions,orders,commands,draft,management:management ? {objectType:management.objectType,id:management.owner.id,edit:management.edit} : null,
-    setAccountId,setDisabled,setFailure,
+    setAccountId,setDisabled,setFailure,statusChecks,setPositions,setOrders,
     acknowledge:()=>{
       if (!ack) return;
       if (ack.type==='position') setPositions(prev=>prev.map(p=>p.id===ack.id?{...p,...ack.patch}:p));
@@ -170,6 +183,9 @@ function ManagedDemo() {
       <FixtureChart market={initialMarket} account={account} plan={null} onChange={()=>{}}>
         {(coordinateApi,height)=><V4FullTerminalOrders mobile account={{...account,id:accountId}} symbol="EURUSD" instrument={initialMarket} positions={positions} pendingOrders={orders} coordinateApi={coordinateApi} height={height}
           onMobileManagementChange={setManagement} managementDisabled={disabled}
+          onCheckStatus={()=>setStatusChecks(n=>n+1)}
+          onBreakEven={id=>change('position',id,{sl:positions.find(p=>p.id===id).entry})}
+          onSetTrailing={(id,enabled,pips)=>change('position',id,{trailingEnabled:enabled,trailingPips:pips})}
           positionProtectionDraft={draft}
           onRequestPositionProtection={(id,field,price)=>{
             const owner=positions.find(p=>p.id===id);
@@ -187,4 +203,21 @@ function ManagedDemo() {
     <div className="shrink-0 bg-[#101114] pb-[5px]">{management ? <MobileAuditManageDock management={management} market={initialMarket} account={account}/> : <div data-manage-idle className="flex h-[118px] items-center justify-center text-[11px] text-[#aab6c2]">Tap a position or pending order on chart</div>}</div>
   </div>;
 }
-createRoot(document.getElementById('root')).render(new URLSearchParams(location.search).has('manage') ? <ManagedDemo/> : <Demo/>);
+function SurfaceDemo({surface}) {
+  const [chartMode,setChartMode]=useState('candles');
+  const [timeframe,setTimeframe]=useState('15m');
+  const [selected,setSelected]=useState(account.id);
+  const [closed,setClosed]=useState(false);
+  const [watched,setWatched]=useState([]);
+  const [symbol,setSymbol]=useState(initialMarket.symbol);
+  window.mobileSurfacesQA={chartMode,timeframe,selected,closed,watched,symbol};
+  const markets=[{...initialMarket,name:'Euro / US Dollar',marketDataAvailable:true},{...initialMarket,symbol:'GBPUSD',displaySymbol:'GBP/USD',name:'British Pound / US Dollar',bid:1.3,ask:1.3001}];
+  const prefs={chartMode,timeframe,lots:0.1,sizingMode:'riskPercent',sizingAmount:'0.5',orderType:'market'};
+  if(closed)return <div data-surface-closed>Back on chart</div>;
+  if(surface==='markets')return <MobileInstrumentSheet auditMobile markets={markets} activeSymbol={symbol} onSelectSymbol={setSymbol} onClose={()=>setClosed(true)} watchlists={{activeSymbols:watched,toggleSymbol:id=>setWatched(prev=>prev.includes(id)?prev.filter(v=>v!==id):[...prev,id])}}/>;
+  if(surface==='trades')return <MobileTradesSheet auditMobile account={account} positions={[{id:'p1',symbol:'EURUSD',side:'BUY',volume:0.1,entry:1.12,pnl:4.32,sl:1.118,tp:1.124}]} pendingOrders={[]} positionHistory={[]} historyOrders={[]} historyLoaded markets={markets} onClose={()=>setClosed(true)}/>;
+  if(surface==='accounts')return <MobileAccountSheet auditMobile account={{...account,accountCode:'ACG-598D2F'}} accounts={[{...account,accountCode:'ACG-598D2F'},{...account,id:'second',accountCode:'ACG-SECOND'}]} activeAccountId={selected} onSelectAccount={setSelected} onClose={()=>setClosed(true)}/>;
+  return <FrontendSheet auditMobile type="platform" account={account} terminalPrefs={prefs} onChartModeChange={setChartMode} onTimeframeChange={setTimeframe} onClose={()=>setClosed(true)}/>;
+}
+const fixtureParams=new URLSearchParams(location.search);
+createRoot(document.getElementById('root')).render(fixtureParams.has('surface') ? <SurfaceDemo surface={fixtureParams.get('surface')}/> : fixtureParams.has('manage') ? <ManagedDemo/> : <Demo/>);
