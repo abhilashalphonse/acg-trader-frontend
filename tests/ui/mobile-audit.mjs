@@ -70,7 +70,7 @@ try {
   eq(await page.evaluate(() => window.mobileAuditQA.commands), 0, 'No order from draft selection');
   await dock.getByRole('button', { name: 'Review buy draft' }).click();
   eq(await page.evaluate(() => window.mobileAuditQA.stage), 'review', 'Second deliberate selection enters review');
-  await dock.getByRole('button', { name: 'Cancel' }).click();
+  await dock.getByRole('button', { name: 'Cancel', exact: true }).click();
   eq(await page.evaluate(() => window.mobileAuditQA.stage), 'idle', 'Cancel drops only draft');
   eq(await page.evaluate(() => window.mobileAuditQA.closedPositions), 0, 'Cancelling a draft cannot close a live position');
   eq(await page.evaluate(() => window.mobileAuditQA.commands), 0, 'Cancel never creates an order');
