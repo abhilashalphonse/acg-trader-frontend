@@ -2,16 +2,18 @@
 
 ## Visibility and deployment
 
-The production-default mobile shell is unchanged unless the page URL contains
-`?acg_mobile_audit=1`. The check is applied only after the existing
-`min-width: 1024px` desktop routing decision; desktop V4 is unchanged.
-A URL query is an opt-in rendering switch **not an access control**. Auth,
+Owner-approved public rollout: V4 is now the default mobile shell on the normal
+website URL. `?acg_mobile_audit=1` remains compatible, while
+`?acg_mobile_audit=0` explicitly selects the legacy mobile support fallback.
+The choice applies only after the existing `min-width: 1024px` desktop routing
+decision; desktop V4 is unchanged. The query is a rendering switch, **not an
+access control**. Auth,
 account permissions, and server trading checks remain authoritative.
 
 The audit path lives in the same production Firebase build. Changes use a
 technical PR and paired acceptance checks before merging into protected `main`.
 The merge triggers Firebase production deployment. Visual owner review happens
-on the real opt-in URL, not the Firebase PR preview.
+on the real website, not the Firebase PR preview.
 
 ## Reuse
 

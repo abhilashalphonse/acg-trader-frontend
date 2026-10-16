@@ -12,11 +12,12 @@ import { resolveActiveAccountId } from './utils/accountLifecycleRouting.js';
 import { riskCriticalMarketSymbols } from './utils/marketSubscriptions.js';
 import { conversionQuoteSymbolsForInstrument } from './utils/verifiedFxConversion.js';
 import { isV4DefaultEnabled } from './utils/chartOrderPresentation.js';
+import { isMobileV4Enabled } from './utils/mobileV4Presentation.js';
 
 const TradingTerminalV2 = lazy(() => import('./pages/TradingTerminalV2.jsx'));
 const MobileTraderShell = lazy(() => import('./pages/MobileTraderShell.jsx'));
-// Opt-in view only. Ordinary mobile and all desktop traffic keep their current shells.
-const MOBILE_AUDIT_ENABLED = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('acg_mobile_audit') === '1';
+// Approved V4 is the mobile default; desktop keeps its independent routing.
+const MOBILE_AUDIT_ENABLED = isMobileV4Enabled(typeof window !== 'undefined' ? window.location.search : '');
 
 const LAST_SYMBOL_STORAGE_KEY = 'acg-trader-last-symbol-v1';
 const FX_PRIORITY = ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD'];

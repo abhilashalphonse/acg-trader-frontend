@@ -6,10 +6,11 @@ const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 
 const origin='https://acg-trader.web.app/';
-const errors=[],failed=[],httpFailures=[];
 const browser=await chromium.launch({headless:true,channel:'chrome',args:['--no-sandbox']});
 try{
- const page=await browser.newPage({viewport:{width:1280,height:800}});
+ for(const viewport of [{width:1280,height:800},{width:393,height:852}]){
+ const errors=[],failed=[],httpFailures=[];
+ const page=await browser.newPage({viewport});
  page.on('pageerror',err=>errors.push(String(err.message).slice(0,350)));
  page.on('console',m=>{if(m.type()==='error')errors.push(m.text().slice(0,350));});
  page.on('requestfailed',req=>failed.push({url:new URL(req.url()).pathname,error:req.failure()?.errorText}));
@@ -24,6 +25,8 @@ try{
   mainScriptCount:document.querySelectorAll('script[type="module"]').length,
   bodyText:document.body?.innerText?.slice(0,180),
  }));
- console.log('LIVE_STARTUP_DIAGNOSTIC',JSON.stringify({pageStatus:resp?.status(),...result,errors,failed,httpFailures}));
+ console.log('LIVE_STARTUP_DIAGNOSTIC',JSON.stringify({viewport,pageStatus:resp?.status(),...result,errors,failed,httpFailures}));
  if(result.htmlBoot || result.loaderCount)process.exitCode=1;
+ await page.close();
+ }
 }finally{await browser.close();}
