@@ -79,3 +79,29 @@ Review the deployed mobile audit URL before approving a public mobile rollout.
 Additional browser acceptance: `node tests/ui/mobile-v4-completion.mjs`.
 Real iOS/Android touch, keyboard and final visual acceptance remain owner review
 steps, independently of the automated browser checks.
+
+## Trades, History and Accounts layout correction — 16 October 2026
+
+The earlier secondary-screen work styled legacy sheets. Mobile audit now mounts
+dedicated V4 components; the original sheets remain the default outside the flag.
+
+- Trades uses a compact account summary, Positions/Pending tabs, instrument
+  filtering and expandable trade cards. Chart management uses the existing
+  callbacks. Close, partial close, break-even and cancellation require inline
+  confirmation; accepted commands wait for matching account snapshots.
+- History separates closed positions from orders, keeps period/instrument
+  filters visible, supports explicit UTC date ranges, groups rows by date and
+  exposes full execution details on demand. Loading, failed, invalid-range and
+  empty states are distinct. Existing P&L, commission and swap fields are shown
+  without calculating fees a second time.
+- Accounts leads with equity and separates margin metrics, the account switcher
+  and expandable identity details. Switching uses the existing controlled account
+  selection and synchronization flow; errors stay visible for retry.
+- No screen focuses a text input on entry. Details and confirmations remain
+  inline. Settings and Help continue through the existing callbacks.
+
+Validation: `npm run check` (379 unit tests and production build), plus
+`node tests/ui/mobile-v4-workspaces.mjs` (104 responsive/interaction checks at
+360, 393 and 430px widths and landscape), and the existing mobile suites.
+Fixtures verify callback wiring and snapshot reconciliation without sending
+production trading commands. Real-device visual approval remains required.
