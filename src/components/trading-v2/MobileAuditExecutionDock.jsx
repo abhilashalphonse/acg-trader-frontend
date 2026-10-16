@@ -184,14 +184,14 @@ export default function MobileAuditExecutionDock({
               <span className="block truncate font-mono text-[13px] font-semibold tabular-nums">{fmtLots(preview?.lots, market)}</span>
               <span className="block text-[10px] text-[#a7afb8]">Lots · Edit</span>
             </button>
-            <button type="button" disabled={!canSubmit} onClick={submit} className={`min-w-0 rounded-[6px] px-1 text-[11px] font-bold text-white disabled:opacity-40 ${direction === 'sell' ? 'bg-[#a5313d]' : 'bg-[#245ca3]'}`} aria-label={`Confirm ${direction} order`}>
+            <button type="button" disabled={!canSubmit} onClick={submit} className={`min-w-0 rounded-[6px] px-1 text-[11px] font-bold text-white disabled:opacity-40 ${direction === 'sell' ? 'bg-[#c83242]' : 'bg-[#195be1]'}`} aria-label={`Confirm ${direction} order`}>
               {commandPending ? 'Submitting…' : `PLACE ${direction.toUpperCase()}`}
             </button>
           </>
         ) : (
           <>
-            <button type="button" disabled={!available} onClick={() => chooseSide('sell')} className={`flex min-w-0 flex-col items-center justify-center rounded-[6px] bg-[#a5313d] px-1 text-white disabled:opacity-40 ${direction === 'sell' ? 'ring-1 ring-white/60' : ''}`} aria-label={direction === 'sell' ? 'Review sell draft' : 'Prepare sell draft'}>
-              <strong className="max-w-full truncate font-mono text-[14px] font-semibold tabular-nums">{quotePrice('sell')}</strong><span className="text-[10px] font-semibold">{direction === 'sell' ? 'REVIEW SELL' : 'SELL'}</span>
+            <button type="button" disabled={!available} onClick={() => chooseSide('sell')} className={`flex min-w-0 flex-col items-center justify-center rounded-[6px] bg-[#c83242] px-1 text-white disabled:opacity-40 ${direction === 'sell' ? 'ring-1 ring-white/60' : ''}`} aria-label={direction === 'sell' ? 'Review sell draft' : 'Prepare sell draft'}>
+              <strong title={quotePrice('sell')} className="max-w-full truncate font-mono text-[clamp(10px,3.2vw,14px)] font-semibold tabular-nums">{quotePrice('sell')}</strong><span className="text-[10px] font-semibold">{direction === 'sell' ? 'REVIEW SELL' : 'SELL'}</span>
             </button>
             <div className="grid min-w-0 grid-cols-[30px_minmax(0,1fr)_30px] items-center rounded-[6px] border border-white/[0.09] bg-[#090a0c]">
               <button type="button" disabled={commandPending} onClick={() => changeAmountStep(-1)} aria-label="Decrease sizing amount" className="grid h-full min-w-[30px] place-items-center text-[#d6dce1] disabled:opacity-40"><Minus size={16}/></button>
@@ -201,8 +201,8 @@ export default function MobileAuditExecutionDock({
               </button>
               <button type="button" disabled={commandPending} onClick={() => changeAmountStep(1)} aria-label="Increase sizing amount" className="grid h-full min-w-[30px] place-items-center text-[#d6dce1] disabled:opacity-40"><Plus size={16}/></button>
             </div>
-            <button type="button" disabled={!available} onClick={() => chooseSide('buy')} className={`flex min-w-0 flex-col items-center justify-center rounded-[6px] bg-[#245ca3] px-1 text-white disabled:opacity-40 ${direction === 'buy' ? 'ring-1 ring-white/60' : ''}`} aria-label={direction === 'buy' ? 'Review buy draft' : 'Prepare buy draft'}>
-              <strong className="max-w-full truncate font-mono text-[14px] font-semibold tabular-nums">{quotePrice('buy')}</strong><span className="text-[10px] font-semibold">{direction === 'buy' ? 'REVIEW BUY' : 'BUY'}</span>
+            <button type="button" disabled={!available} onClick={() => chooseSide('buy')} className={`flex min-w-0 flex-col items-center justify-center rounded-[6px] bg-[#195be1] px-1 text-white disabled:opacity-40 ${direction === 'buy' ? 'ring-1 ring-white/60' : ''}`} aria-label={direction === 'buy' ? 'Review buy draft' : 'Prepare buy draft'}>
+              <strong title={quotePrice('buy')} className="max-w-full truncate font-mono text-[clamp(10px,3.2vw,14px)] font-semibold tabular-nums">{quotePrice('buy')}</strong><span className="text-[10px] font-semibold">{direction === 'buy' ? 'REVIEW BUY' : 'BUY'}</span>
             </button>
           </>
         )}
@@ -210,6 +210,7 @@ export default function MobileAuditExecutionDock({
       {/* Absolute panels overlay chart, never alter the dock's measured height. */}
       {openPanel === 'order' && <div className="absolute bottom-full left-0 z-[90] mb-1 w-[174px] rounded-[8px] border border-white/[0.12] bg-[#17191d] p-1 shadow-xl" role="group" aria-label="Order types">
         {ORDER_TYPES.map(([id, label]) => <button type="button" key={id} className={`block min-h-9 w-full rounded-[6px] px-3 text-left text-[12px] ${type === id ? 'bg-[#e8eaeb] text-black' : 'text-[#d1d8de]'}`} onClick={() => selectOrderType(id)}>{label}</button>)}
+        {editing && tradePlan?.pending && <button type="button" className="min-h-9 w-full border-t border-white/[0.08] px-3 text-left text-[12px] text-[#d1d8de]" onClick={() => openEditor('entry')}>Edit entry price</button>}
       </div>}
       {openPanel === 'modes' && <div className="absolute bottom-full left-1/3 z-[90] mb-1 w-[170px] rounded-[8px] border border-white/[0.12] bg-[#17191d] p-1 shadow-xl" role="group" aria-label="Sizing modes">
         {MODES.map(([id, label]) => <button type="button" key={id} className={`block min-h-9 w-full rounded-[6px] px-3 text-left text-[12px] ${mode === id ? 'bg-[#e8eaeb] text-black' : 'text-[#d1d8de]'}`} onClick={() => updateMode(id)}>{label}</button>)}
