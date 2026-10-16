@@ -296,6 +296,7 @@ function DetailHeader({ title, subtitle, onBack }) {
 }
 
 export default function MobileTradesSheet({
+  auditMobile = false,
   onClose = () => {},
   account = {},
   positions = [],
@@ -678,7 +679,7 @@ export default function MobileTradesSheet({
   };
 
   return (
-    <section className="fixed inset-0 z-[110] flex h-dvh w-full min-h-0 flex-col overflow-hidden bg-[#050505] text-[#f4f7fa]">
+    <section data-mobile-v4-surface={auditMobile ? 'MobileTradesSheet' : undefined} className={`${auditMobile ? 'acg-mobile-v4-sheet ' : ''}fixed inset-0 z-[110] flex h-dvh w-full min-h-0 flex-col overflow-hidden bg-[#050505] text-[#f4f7fa]`}>
       <header className="shrink-0 border-b border-white/[0.07] bg-[#070707] pt-[env(safe-area-inset-top)]">
         <div className="grid min-h-[58px] grid-cols-[44px_minmax(0,1fr)_74px] items-center px-2">
           <button type="button" onClick={onClose} className="grid size-10 place-items-center rounded-lg text-[#c6ced7] active:bg-white/[0.05]" aria-label="Back to chart">

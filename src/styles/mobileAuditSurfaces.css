@@ -1,0 +1,41 @@
+/* Explicit audit surface class: normal mobile and desktop retain their styles. */
+.acg-mobile-v4-sheet {
+  --v4-surface: #101114;
+  background: #09090b;
+  color: #eeeef0;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.acg-mobile-v4-sheet > header { background: #09090b; }
+.acg-mobile-v4-sheet > header > div:first-child { min-height: 48px; height: 48px; }
+.acg-mobile-v4-sheet h2 { font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
+.acg-mobile-v4-sheet [class*="font-black"] { font-weight: 600; }
+.acg-mobile-v4-sheet [class*="rounded-2xl"],
+.acg-mobile-v4-sheet [class*="rounded-xl"],
+.acg-mobile-v4-sheet [class*="rounded-lg"] { border-radius: 6px; }
+.acg-mobile-v4-sheet [class*="text-[7px]"],
+.acg-mobile-v4-sheet [class*="text-[8px]"] { font-size: 10px; }
+.acg-mobile-v4-sheet [class*="text-[9px]"] { font-size: 11px; }
+.acg-mobile-v4-sheet [class*="tracking-[0."] { letter-spacing: .025em; }
+.acg-mobile-v4-sheet input { font-size: 16px; }
+.acg-mobile-v4-sheet [class*="bg-[#0b0d10]"],
+.acg-mobile-v4-sheet [class*="bg-[#090b0e]"],
+.acg-mobile-v4-sheet [class*="bg-[#0d0f12]"] { background: var(--v4-surface); }
+.acg-mobile-v4-sheet [class*="bg-[#195be1]"]:not(button) { background-color: #eeeef0; }
+.acg-mobile-v4-sheet [class*="text-[#195be1]"] { color: #c5cbd2; }
+.acg-mobile-v4-sheet[data-mobile-v4-surface="platform"],
+.acg-mobile-v4-sheet[data-mobile-v4-surface="indicators"],
+.acg-mobile-v4-sheet[data-mobile-v4-surface="help"] { padding: 0; }
+.acg-mobile-v4-sheet > section[role="dialog"] {
+  display: flex; flex-direction: column;
+  width: 100%; max-width: none; height: 100dvh; max-height: 100dvh;
+  margin: 0; border: 0; border-radius: 0; background: #09090b;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.acg-mobile-v4-sheet > section[role="dialog"] > header { min-height: 48px; padding: 8px 12px; }
+.acg-mobile-v4-sheet > section[role="dialog"] > div:last-child { flex: 1; min-height: 0; max-height: none; overflow-y: auto; }
+.acg-mobile-v4-sheet [role="button"]:focus-visible,
+.acg-mobile-v4-sheet button:focus-visible { outline: 1px solid #b7bec6; outline-offset: 2px; }
+
+.acg-mobile-v4-sheet > header [class*="text-[15px]"] {font-size:14px;}

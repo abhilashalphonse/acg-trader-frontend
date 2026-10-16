@@ -131,7 +131,7 @@ export default function V4ChartOrderLayer({
     event.stopPropagation();
     const draft={
       accountId:level.accountId,objectType:level.objectType,objectId:level.objectId,
-      kind:level.kind,levelId:isPreview?level.sourceLevelId:level.id,
+      kind:level.kind,levelId:isPreview?(level.sourceLevelId || level.id):level.id,
       confirmedPrice:startingPrice,proposedPrice:level.price,
     };
     drag.current={draft,startY:event.clientY,startChartY:levelY,started:false,next:null};
@@ -156,7 +156,12 @@ export default function V4ChartOrderLayer({
       role="button" tabIndex={readOnly ? -1 : 0}
       aria-label={`${draft ? 'Proposed ' : ''}${label(level)}. ${level.kind === 'entry' && level.objectType === 'position' ? 'Manage position' : 'Drag to adjust'}`}
       onKeyDown={event => { if (!readOnly && !draft && ['Enter',' '].includes(event.key)) {event.preventDefault(); selectOwner(event,level);} }}
-      onClick={event => {if (!readOnly && !draft) selectOwner(event,level);}}
+      onClick={event => {
+        if (readOnly || ((draft ? level.sourceLevelId || level.id : level.id)===recentDrag.current.levelId&&Date.now()-recentDrag.current.at<250)) return;
+        if (draft) {onChangeEdit?.({...edit,precisionRequested:true});return;}
+        selectOwner(event,level);
+        if ((level.kind!=='entry' || level.objectType==='pending') && selected(level)) onBeginEdit?.({...v4ProtectionAction(accepted,level.id,'edit'),precisionRequested:true});
+      }}
       onPointerDown={event => beginDrag(event,level,draft)}
       className="pointer-events-auto absolute left-[58px] flex h-9 max-w-[calc(100%-126px)] touch-none cursor-pointer items-center outline-none focus-visible:ring-1 focus-visible:ring-white/70"
       style={{top}}>

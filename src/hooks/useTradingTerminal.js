@@ -9,6 +9,7 @@ import {
   normalizeVolumeToStep,
   pendingPriceDirection,
 } from '../utils/tradingCommandNormalization.js';
+import { findMobileExecutionOutcome } from '../utils/mobileExecutionRecovery.js';
 import { executeWithOrderReconciliation } from '../utils/executionReconciliation.js';
 import { accountValuationPresentation } from '../utils/accountValuationPresentation.js';
 import { pendingProtectionPatchValue } from '../utils/pendingOrderChartMove.js';
@@ -204,6 +205,7 @@ export function useTradingTerminal(markets = []) {
   const [history, setHistory] = useState({ accountId: null, orders: [], deals: [], positions: [], loaded: false, error: null });
   const [historyRefreshVersion, setHistoryRefreshVersion] = useState(0);
   const refreshHistory = useCallback(() => setHistoryRefreshVersion(v => v+1), []);
+  const unknownExecution = useRef(null);
   const [commandState, setCommandState] = useState({ pending: false, uncertain: false, error: null, lastResult: null });
   const [switchContext, setSwitchContext] = useState(null);
   const [switchRequestVersion, setSwitchRequestVersion] = useState(0);
@@ -412,6 +414,7 @@ export function useTradingTerminal(markets = []) {
       return result;
     } catch (error) {
       const uncertain = error?.code === 'EXECUTION_STATUS_UNKNOWN';
+      if (uncertain) unknownExecution.current=error;
       setCommandState(current => ({ ...current, pending: busyRef.current > 1, uncertain: current.uncertain || uncertain, error, lastResult: null }));
       throw error;
     } finally {
@@ -435,7 +438,7 @@ export function useTradingTerminal(markets = []) {
     },
     onReconciled: () => requestSnapshot([targetAccountId]),
   }).catch(error => {
-    if (error?.code === 'EXECUTION_STATUS_UNKNOWN') requestSnapshot([targetAccountId]);
+    if (error?.code === 'EXECUTION_STATUS_UNKNOWN') {error.accountId=targetAccountId;requestSnapshot([targetAccountId]);}
     throw error;
   }), [commands, requestSnapshot]);
 
@@ -610,5 +613,26 @@ export function useTradingTerminal(markets = []) {
     }));
   }, [commands, instrumentForSymbol, pendingOrders, requireAccount, run]);
 
-  return { accountId, activeAccountId, grantedAccountIds, accountGrants, accounts, selectAccount, accountSwitching, accountGrantMissing, accountSwitchError, lifecycleEvent, clearLifecycleEvent, account, rawAccount, valuation, positions, pendingOrders, positionHistory, historyOrders: history.accountId === accountId ? history.orders : [], historyDeals: history.accountId === accountId ? history.deals : [], historyPositions: history.accountId === accountId ? history.positions : [], historyLoaded: history.accountId === accountId && history.loaded, historyError: history.accountId === accountId ? history.error : null, refreshHistory, fills: trading.fills.filter(fill => String(fill?.accountId || '') === String(accountId || '')), orders: Object.values(trading.ordersById).filter(order => String(order?.accountId || '') === String(accountId || '')), connection, commandState, tradingReady: Boolean(accountId && !accountGrantMissing && rawAccount && account.tradingEnabled && connection.status === 'ready' && !commandState.uncertain && !accountSwitching), refreshState, getPolicyStatus, openMarketOrder, placePendingOrder, replacePendingOrder, cancelPendingOrder, closePosition, closeAllPositions, updatePosition, movePositionToBreakEven, setPositionTrailing, duplicatePosition, reversePosition, errorMessage };
+  // Explicit mobile recovery only: refresh never implies a failed submission.
+  // Release the unknown-exposure lock only after locating the exact client ID.
+  const checkExecutionStatus = useCallback(async restoredRecovery => {
+    const target=accountId;
+    if (!target) return {confirmed:false,message:'Select a trading account.'};
+    requestSnapshot([target]);
+    const unknown=unknownExecution.current || (commandState.error?.clientOrderId ? commandState.error : restoredRecovery);
+    const result=await findMobileExecutionOutcome({accountId:target,recovery:unknown,
+      findOrders:id=>commands.historyOrders(id,{limit:100})});
+    if (result.confirmed) {
+      setCommandState(current=>{
+        if (unknownExecution.current?.clientOrderId && unknownExecution.current.clientOrderId!==unknown.clientOrderId) return current;
+        if (current.error?.clientOrderId && current.error.clientOrderId!==unknown.clientOrderId) return current;
+        unknownExecution.current=null;
+        return {...current,uncertain:false,error:null,lastResult:{order:result.order,reconciled:true}};
+      });
+      requestSnapshot([target]);
+    }
+    return result;
+  },[accountId,commandState.error,commandState.uncertain,commands,requestSnapshot]);
+
+  return { accountId, activeAccountId, grantedAccountIds, accountGrants, accounts, selectAccount, accountSwitching, accountGrantMissing, accountSwitchError, lifecycleEvent, clearLifecycleEvent, account, rawAccount, valuation, positions, pendingOrders, positionHistory, historyOrders: history.accountId === accountId ? history.orders : [], historyDeals: history.accountId === accountId ? history.deals : [], historyPositions: history.accountId === accountId ? history.positions : [], historyLoaded: history.accountId === accountId && history.loaded, historyError: history.accountId === accountId ? history.error : null, refreshHistory, fills: trading.fills.filter(fill => String(fill?.accountId || '') === String(accountId || '')), orders: Object.values(trading.ordersById).filter(order => String(order?.accountId || '') === String(accountId || '')), connection, commandState, tradingReady: Boolean(accountId && !accountGrantMissing && rawAccount && account.tradingEnabled && connection.status === 'ready' && !commandState.uncertain && !accountSwitching), refreshState, checkExecutionStatus, getPolicyStatus, openMarketOrder, placePendingOrder, replacePendingOrder, cancelPendingOrder, closePosition, closeAllPositions, updatePosition, movePositionToBreakEven, setPositionTrailing, duplicatePosition, reversePosition, errorMessage };
 }

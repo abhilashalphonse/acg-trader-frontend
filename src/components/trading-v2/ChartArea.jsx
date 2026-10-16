@@ -1432,6 +1432,7 @@ export default function ChartArea({
   price,
   ask,
   chartMode,
+  onChartMode,
   selectedTool,
   onSelectTool,
   focusMode = false,
@@ -1480,6 +1481,7 @@ export default function ChartArea({
   drawingToolbarOverlay = false,
   mobileOverlayStyle = false,
   auditMobile = false,
+  onCheckStatus, onBreakEven, onSetTrailing,
   onMobileManagementChange,
   mobileTradeSelection,
   managementDisabled = false,
@@ -1748,6 +1750,8 @@ export default function ChartArea({
           onRemoveIndicator={onRemoveIndicator}
         />
         {auditMobilePalette && <MobileAuditDrawingPalette
+          chartMode={chartMode} onChartMode={onChartMode}
+          onFitView={() => coordinateApi?.fitContent?.()} onResetView={() => coordinateApi?.resetView?.()}
           selectedTool={selectedTool}
           onSelectTool={id => {
             if (tradePlan) return;
@@ -1859,6 +1863,7 @@ export default function ChartArea({
         )}
 
         {v4AuditLayer && <V4FullTerminalOrders
+          onCheckStatus={onCheckStatus} onBreakEven={onBreakEven} onSetTrailing={onSetTrailing}
           mobile={auditMobilePalette} mobileTradeSelection={mobileTradeSelection} onMobileManagementChange={onMobileManagementChange} managementDisabled={managementDisabled}
           hoveredPositionId={hoveredPositionId}
           renderPositionEntries={(chartEditActions, beginProtection) => (

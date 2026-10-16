@@ -33,6 +33,7 @@ jobs:
           npm install --no-save --no-audit --no-fund playwright@1.56.1
           node tests/ui/mobile-audit.mjs
           node tests/ui/mobile-v4-management.mjs
+          node tests/ui/mobile-v4-completion.mjs
       - name: Upload Mobile audit evidence
         if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feat/mobile-audit-') || startsWith(github.ref, 'refs/heads/fix/mobile-audit-') || startsWith(github.head_ref, 'fix/mobile-audit-') }}
         uses: actions/upload-artifact@v4

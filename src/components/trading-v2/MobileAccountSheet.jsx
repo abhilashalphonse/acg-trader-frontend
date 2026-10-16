@@ -31,6 +31,7 @@ function Action({ icon: Icon, title, subtitle, onClick }) {
 }
 
 export default function MobileAccountSheet({
+  auditMobile = false,
   account = {},
   accounts = [],
   activeAccountId = null,
@@ -47,7 +48,7 @@ export default function MobileAccountSheet({
   const pnlTone = floatingPnl > 0 ? 'text-[#31d79b]' : floatingPnl < 0 ? 'text-[#ff6975]' : 'text-[#d5dbe1]';
 
   return (
-    <section className="fixed inset-0 z-[110] flex h-dvh w-full min-h-0 flex-col overflow-hidden bg-[#050505] text-[#f4f7fa]">
+    <section data-mobile-v4-surface={auditMobile ? 'MobileAccountSheet' : undefined} className={`${auditMobile ? 'acg-mobile-v4-sheet ' : ''}fixed inset-0 z-[110] flex h-dvh w-full min-h-0 flex-col overflow-hidden bg-[#050505] text-[#f4f7fa]`}>
       <header className="shrink-0 border-b border-white/[0.07] bg-[#070707] pt-[env(safe-area-inset-top)]">
         <div className="flex h-14 items-center gap-2 px-3">
           <button type="button" onClick={onClose} className="grid size-10 shrink-0 place-items-center rounded-xl text-[#c4ccd4] active:bg-white/[0.06]" aria-label="Back to chart">

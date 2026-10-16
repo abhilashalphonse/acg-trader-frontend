@@ -36,7 +36,7 @@ try {
       const header = document.querySelector('[data-acg-mobile-audit-header]');
       const chart = document.querySelector('[data-audit-fixture-chart]');
       const palette = document.querySelector('[data-acg-mobile-audit-palette]');
-      const dockRegion = dock.parentElement;
+      const dockRegion = dock.closest('.acg-mobile-reference-order-wrap');
       const d = dock.getBoundingClientRect(), h = header.getBoundingClientRect(), c = chart.getBoundingClientRect();
       return {
         dockTop: d.top, dockHeight: d.height, dockLeft: d.left, dockRight: d.right,
@@ -139,7 +139,8 @@ try {
   eq(await page.evaluate(() => window.mobileAuditQA.commands), 0, 'No order from draft selection');
   await dock.getByRole('button', { name: 'Review buy draft' }).click();
   eq(await page.evaluate(() => window.mobileAuditQA.stage), 'review', 'Second deliberate selection enters review');
-  await dock.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await dock.getByRole('button', { name: 'Back', exact: true }).click();
+  await dock.getByRole('button', { name: 'Cancel draft', exact: true }).click();
   eq(await page.evaluate(() => window.mobileAuditQA.stage), 'idle', 'Cancel drops only draft');
   eq(await page.evaluate(() => window.mobileAuditQA.closedPositions), 0, 'Cancelling a draft cannot close a live position');
   eq(await page.evaluate(() => window.mobileAuditQA.commands), 0, 'Cancel never creates an order');

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Ellipsis, Eye, EyeOff, Lock, Magnet, Pin, Unlock, RotateCcw, Plus } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Ellipsis, Eye, EyeOff, Lock, Magnet, Pin, Unlock, RotateCcw, Plus, CandlestickChart, ChartNoAxesCombined, ScanLine } from 'lucide-react';
 import { V4_DRAWING_TOOL_SECTIONS, DRAWING_TOOL_LABELS } from '../../utils/drawingTools.js';
 import { DRAWING_TOOL_ICONS } from './DrawingToolIcons.jsx';
 
@@ -10,6 +10,7 @@ import { DRAWING_TOOL_ICONS } from './DrawingToolIcons.jsx';
  * Tool selection remains controlled by the parent chart and survives collapse.
  */
 export default function MobileAuditDrawingPalette({
+  chartMode = 'candles', onChartMode, onFitView, onResetView,
   selectedTool = 'cursor',
   onSelectTool = () => {},
   tradePlanActive = false,
@@ -26,6 +27,7 @@ export default function MobileAuditDrawingPalette({
   onTogglePin = () => {},
 }) {
   const [expanded, setExpanded] = useState(false);
+  useEffect(()=>{if(tradePlanActive)setExpanded(false);},[tradePlanActive]);
   const choice = (id) => {
     if (tradePlanActive) return;
     onSelectTool(id);
@@ -92,6 +94,10 @@ export default function MobileAuditDrawingPalette({
             );
           })}
           <div className="my-[3px] h-px w-[26px] shrink-0 bg-white/[0.12]" aria-hidden="true"/>
+          {onChartMode && controlButton('candles','Candlestick chart',CandlestickChart,()=>onChartMode('candles'),chartMode==='candles')}
+          {onChartMode && controlButton('line','Line chart',ChartNoAxesCombined,()=>onChartMode('line'),chartMode==='line')}
+          {onFitView && controlButton('fit','Fit chart',ScanLine,onFitView)}
+          {onResetView && controlButton('reset','Return to live chart',RotateCcw,onResetView)}
           {controlButton('eye', showDrawings ? 'Hide drawings' : 'Show drawings', showDrawings ? Eye : EyeOff, onToggleVisibility, !showDrawings)}
           {hiddenDrawingCount > 0 && controlButton('restore', 'Restore individually hidden drawings', RotateCcw, onRestoreHiddenDrawings)}
           {controlButton('magnet', `Drawing magnet: ${drawingSnap}`, Magnet, onCycleSnap, drawingSnap !== 'off', tradePlanActive)}

@@ -1,6 +1,10 @@
+import '../styles/mobileAuditSurfaces.css';
+import { mobileSizingPreferenceKey } from '../utils/mobileV4Preferences.js';
+import { mobileRecoveryKey } from '../utils/mobileExecutionRecovery.js';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import MobileTradingHeader from '../components/trading-v2/MobileTradingHeader.jsx';
 import MobileAuditHeader from '../components/trading-v2/MobileAuditHeader.jsx';
+import { isAmbiguousExecutionError } from '../utils/executionReconciliation.js';
 import { buildChartPendingAmendment } from '../utils/pendingOrderChartMove.js';
 import MobileAuditManageDock from '../components/trading-v2/MobileAuditManageDock.jsx';
 import MobileAuditExecutionDock from '../components/trading-v2/MobileAuditExecutionDock.jsx';
@@ -116,11 +120,14 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const nativeFullscreenRef = useRef(false);
   const auditIdentityRef = useRef(null);
   const auditSubmissionRef = useRef(false);
+  const restoredAuditRecovery = useRef(null);
   const [auditSubmitting, setAuditSubmitting] = useState(false);
   const [auditUnknownSubmission, setAuditUnknownSubmission] = useState(false);
   const prefsRef = useRef(loadTerminalPrefs());
   const trading = useTradingTerminal(markets);
   const { account, positions, pendingOrders, positionHistory, historyOrders, historyLoaded } = trading;
+  const activeAuditAccount = useRef(trading.accountId);
+  activeAuditAccount.current=trading.accountId;
   // Reuse the same fresh FX conversion quotes as the V4 desktop ticket.
   const auditAccount = useMemo(() => mobileAudit ? { ...account, conversionMarkets: markets } : account, [account, markets, mobileAudit]);
   const readOnly = String(account?.status || '').toUpperCase() === 'BREACHED';
@@ -137,6 +144,10 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const [orderType, setOrderType] = useState(prefsRef.current.orderType || 'market');
   const [tradePlan, setTradePlan] = useState(null);
   const [selectedOpenPositionId, setSelectedOpenPositionId] = useState(null);
+  const [auditPreferenceRevision,setAuditPreferenceRevision]=useState(0);
+  const [auditSizingPreference, setAuditSizingPreference] = useState(null);
+  const [auditRecoveryMessage, setAuditRecoveryMessage] = useState('');
+  const [auditCheckingStatus, setAuditCheckingStatus] = useState(false);
   const [auditChartSelection, setAuditChartSelection] = useState(null);
   const [auditManagement, setAuditManagement] = useState(null);
   const [positionProtectionDraft, setPositionProtectionDraft] = useState(null);
@@ -159,12 +170,29 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       setTradePlan(null);
       setPositionProtectionDraft(null);
       setOverlay(null);
-      setAuditUnknownSubmission(false);
       setAuditManagement(null);
       setAuditChartSelection(null);
     }
     auditIdentityRef.current = identity;
   }, [mobileAudit, trading.accountId, activeSymbol]);
+
+  useEffect(() => {
+    if (!mobileAudit || !trading.accountId) return;
+    restoredAuditRecovery.current=null;
+    setAuditUnknownSubmission(false);
+    try {
+      const saved=JSON.parse(localStorage.getItem(mobileRecoveryKey(trading.accountId)) || 'null');
+      if (String(saved?.accountId)===String(trading.accountId)) {restoredAuditRecovery.current=saved;setAuditUnknownSubmission(true);}
+    } catch { /* no persisted recovery */ }
+  },[mobileAudit,trading.accountId]);
+  useEffect(() => {
+    if (!mobileAudit || !trading.accountId || (!auditUnknownSubmission && !trading.commandState.uncertain)) return;
+    if (trading.commandState.uncertain && String(trading.commandState.error?.accountId)!==String(trading.accountId)) return;
+    if (!trading.commandState.uncertain && String(restoredAuditRecovery.current?.accountId)!==String(trading.accountId)) return;
+    const record={accountId:trading.accountId,clientOrderId:trading.commandState.error?.clientOrderId || restoredAuditRecovery.current?.clientOrderId || null};
+    restoredAuditRecovery.current=record;
+    try {localStorage.setItem(mobileRecoveryKey(trading.accountId),JSON.stringify(record));} catch { /* storage may be unavailable */ }
+  },[mobileAudit,trading.accountId,auditUnknownSubmission,trading.commandState.uncertain,trading.commandState.error]);
 
   useEffect(() => {
     if (chartFocus || typeof window === 'undefined') return;
@@ -292,8 +320,9 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
   const handleTradingError = (error, context = 'Trading command') => {
     const message = trading.errorMessage(error);
-    const unknown = error?.code === 'EXECUTION_STATUS_UNKNOWN';
-    if (mobileAudit && unknown) setAuditUnknownSubmission(true);
+    const unknownExposure = error?.code === 'EXECUTION_STATUS_UNKNOWN';
+    const unknown = unknownExposure || (mobileAudit && isAmbiguousExecutionError(error));
+    if (mobileAudit && unknownExposure) setAuditUnknownSubmission(true);
     setExecutionEvent(current => current ? { ...current, status: unknown ? 'unknown' : 'rejected', message } : { status: unknown ? 'unknown' : 'rejected', message });
     logEvent(unknown ? 'warning' : 'error', `${context}: ${message}`);
     showNotice(message);
@@ -317,6 +346,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
         requestedPrice: Number.isFinite(base.requestedPrice) ? base.requestedPrice : null,
       });
       if (mobileAudit && !(result?.position || result?.reconciled || String(result?.order?.status || '').toUpperCase() === 'FILLED')) {
+        restoredAuditRecovery.current={accountId:trading.accountId,clientOrderId:result?.order?.clientOrderId || null};
         setAuditUnknownSubmission(true);
         setExecutionEvent({ ...base, status: 'unknown', message: 'Execution not yet confirmed. Check order history before trying again.' });
         showNotice('Execution unconfirmed. Check your trades; do not submit again.');
@@ -345,6 +375,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       return true;
     } catch (error) {
       handleTradingError(error, `Close ${position.symbol}`);
+      if (mobileAudit && isAmbiguousExecutionError(error)) throw error;
       return false;
     }
   };
@@ -386,6 +417,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       return true;
     } catch (error) {
       handleTradingError(error, `Modify ${position.symbol}`);
+      if (mobileAudit && isAmbiguousExecutionError(error)) throw error;
       return false;
     }
   };
@@ -688,6 +720,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       return true;
     } catch (error) {
       handleTradingError(error, `Break-even ${position.symbol}`);
+      if (mobileAudit && isAmbiguousExecutionError(error)) throw error;
       return false;
     }
   };
@@ -713,8 +746,11 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       await trading.setPositionTrailing(id, enabled, pips);
       logEvent('modify', `${position.symbol} trailing stop ${enabled ? `${Math.max(1, Number(pips) || 5)} pips` : 'disabled'}`);
       showNotice(enabled ? 'Trailing stop updated' : 'Trailing stop disabled');
+      return true;
     } catch (error) {
       handleTradingError(error, `Trailing stop ${position.symbol}`);
+      if (mobileAudit && isAmbiguousExecutionError(error)) throw error;
+      return false;
     }
   };
 
@@ -936,6 +972,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
           ? await trading.replacePendingOrder(executionPlan.editingOrderId, request)
           : await trading.placePendingOrder(request);
         if (mobileAudit && !result?.order?.id) {
+          restoredAuditRecovery.current={accountId:trading.accountId,clientOrderId:null};
           setAuditUnknownSubmission(true);
           setExecutionEvent({ side: executionPlan.side, lots: volume, symbol: planSymbol, status: 'unknown', message: 'Order not yet confirmed. Check Orders before retrying.' });
           showNotice('Pending-order outcome unconfirmed. Check Orders before retrying.');
@@ -969,6 +1006,25 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     setAuditSubmitting(true);
     try { await executePlan(); }
     finally { auditSubmissionRef.current = false; setAuditSubmitting(false); }
+  };
+
+  const checkAuditStatus = async () => {
+    if (auditCheckingStatus) return;
+    const checkingAccount=trading.accountId;
+    setAuditCheckingStatus(true);
+    try {
+      const result=await trading.checkExecutionStatus(restoredAuditRecovery.current);
+      if (activeAuditAccount.current!==checkingAccount) return null;
+      if (result?.confirmed) {
+        setAuditUnknownSubmission(false);setTradePlan(null);
+        setAuditRecoveryMessage(`Previous order status: ${String(result.order?.status || 'confirmed').toUpperCase()}.`);
+        restoredAuditRecovery.current=null;
+        try {localStorage.removeItem(mobileRecoveryKey(trading.accountId));} catch { /* storage unavailable */ }
+        trading.refreshHistory();
+      } else setAuditRecoveryMessage(result?.message || 'Account refresh requested.');
+      return result;
+    } catch {setAuditRecoveryMessage('Unable to check status. Check your connection and try again.');return null;}
+    finally {setAuditCheckingStatus(false);}
   };
 
   const manualOrder = order => {
@@ -1006,6 +1062,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       return true;
     } catch (error) {
       handleTradingError(error, `Cancel ${order.symbol}`);
+      if (mobileAudit && isAmbiguousExecutionError(error)) throw error;
       return false;
     }
   };
@@ -1022,6 +1079,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       return true;
     } catch (error) {
       handleTradingError(error, `Modify ${order.symbol} pending ${field}`);
+      if (mobileAudit && isAmbiguousExecutionError(error)) throw error;
       return false;
     }
   };
@@ -1081,6 +1139,13 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
   const applyTradingProfile = profile => {
     if (!profile) return;
+    if (mobileAudit && (tradePlan || auditManagement?.saving || auditUnknownSubmission || trading.commandState.pending || trading.commandState.uncertain)) {showNotice('Finish or discard the current draft before applying a profile.');return;}
+    if (mobileAudit) {
+      const settings=profile.settings || {};
+      const next={mode:settings.sizingMode==='risk'?'riskPercent':'lots',amount:String(settings.sizingMode==='risk' ? settings.riskPercent || riskPercent : settings.lots || (auditSizingPreference?.mode==='lots'?auditSizingPreference.amount:lots)),orderType:settings.orderType || 'market'};
+      try {localStorage.setItem(mobileSizingPreferenceKey(account?.id,profile.symbol || market?.symbol),JSON.stringify(next));} catch { /* storage unavailable */ }
+      setAuditPreferenceRevision(value=>value+1);
+    }
     const settings = profile.settings || {};
     if (settings.timeframe) setTimeframe(normalizeTimeframePreference(settings.timeframe));
     if (settings.chartMode) setChartMode(settings.chartMode);
@@ -1172,7 +1237,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     onToggleIndicator: toggleIndicator,
     onUpdateIndicator: updateIndicator,
     onToggleIndicatorFavorite: toggleIndicatorFavorite,
-    terminalPrefs: { timeframe, chartMode, lots, sizingMode, riskPercent, orderType, hotkeysEnabled: false },
+    terminalPrefs: { timeframe, chartMode, lots, sizingMode, riskPercent, orderType, hotkeysEnabled: false, ...(mobileAudit && auditSizingPreference ? {sizingMode:auditSizingPreference.mode, sizingAmount:auditSizingPreference.amount, orderType:auditSizingPreference.orderType} : {}) },
     onToggleHotkeys: () => {},
     onApplyTradingProfile: applyTradingProfile,
     account,
@@ -1204,10 +1269,18 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       />}
       <div className={`acg-mobile-reference-content flex min-h-0 flex-1 flex-col ${mobileAudit ? 'px-0 pt-0' : 'px-2 pt-[10px]'}`}>
         <div className="acg-mobile-reference-chart-wrap min-h-0 flex-1">
-          <MarketPanel mobileTradeSelection={auditChartSelection} onMobileManagementChange={mobileAudit ? setAuditManagement : undefined} managementDisabled={readOnly || trading.commandState.pending} onMovePending={movePendingOnChart} onCancelPositionProtection={cancelPositionProtection} onChartReadout={mobileAudit ? setMobileChartReadout : undefined} market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} accountCurrency={account.currency} account={mobileAudit ? auditAccount : account} riskPercent={riskPercent} onCreateRiskOrder={createPlanFromRiskTool} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onRemovePositionProtection={mobileAudit ? (id, field) => updatePosition(id, {[field]:null}) : removePositionProtectionFromChart} onRequestPositionProtection={mobileAudit ? (id, field, value) => value == null ? beginPositionProtection(field, id) : requestPositionProtectionChange(id, field, value) : requestPositionProtectionChange} onClosePosition={closePosition} historicalPosition={historicalChartContext} onClearHistoricalPosition={() => setHistoricalChartContext(null)} selectedPositionId={selectedOpenPositionId} onSelectPosition={selectOpenPosition} positionProtectionDraft={positionProtectionDraft} onPositionProtectionDraftChange={updatePositionProtectionDraft} onSelectInstrument={() => setOverlay('markets')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} compactMobileToolbar auditMobile={mobileAudit} fillAvailableHeight />
+          <MarketPanel onCheckStatus={checkAuditStatus} onBreakEven={movePositionToBreakEven} onSetTrailing={setPositionTrailing} mobileTradeSelection={auditChartSelection} onMobileManagementChange={mobileAudit ? setAuditManagement : undefined} managementDisabled={readOnly || trading.commandState.pending || trading.commandState.uncertain} onMovePending={movePendingOnChart} onCancelPositionProtection={cancelPositionProtection} onChartReadout={mobileAudit ? setMobileChartReadout : undefined} market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} accountCurrency={account.currency} account={mobileAudit ? auditAccount : account} riskPercent={riskPercent} onCreateRiskOrder={createPlanFromRiskTool} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onRemovePositionProtection={mobileAudit ? (id, field) => updatePosition(id, {[field]:null}) : removePositionProtectionFromChart} onRequestPositionProtection={mobileAudit ? (id, field, value) => value == null ? beginPositionProtection(field, id) : requestPositionProtectionChange(id, field, value) : requestPositionProtectionChange} onClosePosition={closePosition} historicalPosition={historicalChartContext} onClearHistoricalPosition={() => setHistoricalChartContext(null)} selectedPositionId={selectedOpenPositionId} onSelectPosition={selectOpenPosition} positionProtectionDraft={positionProtectionDraft} onPositionProtectionDraftChange={updatePositionProtectionDraft} onSelectInstrument={() => setOverlay('markets')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} compactMobileToolbar auditMobile={mobileAudit} fillAvailableHeight />
         </div>
         <div className={`acg-mobile-reference-order-wrap relative z-50 shrink-0 ${mobileAudit ? 'mt-0 bg-[#101114] pb-[max(5px,env(safe-area-inset-bottom))]' : 'mt-1.5'}`}>
-          {mobileAudit ? auditManagement && !canonicalTradePlan ? <MobileAuditManageDock management={auditManagement} market={market} account={auditAccount}/> : <MobileAuditExecutionDock
+          {mobileAudit ? <>
+            {auditManagement && !canonicalTradePlan && <MobileAuditManageDock management={auditManagement} market={market} account={auditAccount}/>}
+            <div hidden={Boolean(auditManagement && !canonicalTradePlan)}><MobileAuditExecutionDock
+            key={`${account?.id}:${market?.symbol}:${auditPreferenceRevision}`}
+            onPreferenceChange={setAuditSizingPreference}
+            recoveryRequired={auditUnknownSubmission || trading.commandState.uncertain}
+            recoveryMessage={auditRecoveryMessage}
+            onCheckStatus={checkAuditStatus}
+            onOpenTrades={() => setOverlay('trades')}
             market={market}
             account={auditAccount}
             tradePlan={canonicalTradePlan}
@@ -1217,8 +1290,8 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
             onTradePlanChange={updatePlan}
             exposureAllowed={exposure.allowed && !readOnly && !auditUnknownSubmission}
             exposureBlockReason={auditUnknownSubmission ? 'Verify your previous order before submitting again.' : exposure.reason}
-            commandPending={auditSubmitting || trading.commandState.pending}
-          /> : <ExecutionPanel
+            commandPending={auditSubmitting || auditCheckingStatus || trading.commandState.pending}
+          /></div></> : <ExecutionPanel
             market={market}
             account={account}
             exposureAllowed={exposure.allowed}
@@ -1265,7 +1338,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
         {notice && <div className="fixed left-1/2 top-[52px] z-[120] w-[calc(100%-24px)] max-w-[420px] -translate-x-1/2 rounded-xl border border-white/[0.08] bg-[#101010]/95 px-3 py-2.5 text-center text-[10px] font-semibold text-[#dce9f2] shadow-[0_16px_48px_rgba(0,0,0,.45)] backdrop-blur-xl">{notice}</div>}
 
         {overlay === 'markets' && (
-          <MobileInstrumentSheet
+          <MobileInstrumentSheet auditMobile={mobileAudit}
             markets={markets}
             activeSymbol={activeSymbol}
             watchlists={watchlists}
@@ -1276,7 +1349,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
         )}
 
         {overlay === 'trades' && (
-          <MobileTradesSheet
+          <MobileTradesSheet auditMobile={mobileAudit}
             onClose={() => setOverlay(null)}
             account={account}
             positions={positions}
@@ -1302,7 +1375,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
         )}
 
         {overlay === 'account' && (
-          <MobileAccountSheet
+          <MobileAccountSheet auditMobile={mobileAudit}
             account={account}
             accounts={trading.accounts}
             activeAccountId={trading.activeAccountId}
@@ -1317,6 +1390,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
 
         {overlay && !['markets', 'trades', 'account'].includes(overlay) && (
           <FrontendSheet
+            auditMobile={mobileAudit} onChartModeChange={setChartMode} onTimeframeChange={setTimeframe}
             type={overlay}
             onClose={() => setOverlay(null)}
             markets={markets}
