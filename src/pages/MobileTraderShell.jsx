@@ -1144,7 +1144,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   };
 
   const chartContent = (
-    <div className="acg-mobile-chart-shell flex h-dvh min-h-0 flex-col overflow-hidden overscroll-none bg-black">
+    <div className={`acg-mobile-chart-shell flex h-dvh min-h-0 flex-col overflow-hidden overscroll-none bg-black ${mobileAudit ? 'acg-mobile-audit-shell' : ''}`}>
       {mobileAudit ? <MobileAuditHeader
         market={market}
         account={account}
