@@ -5,7 +5,7 @@ import { setTimeout as wait } from 'node:timers/promises';
 import { chromium } from 'playwright';
 import process from 'node:process';
 
-const server = spawn('npm', ['run', 'dev', '--', '--host', '127.0.0.1', '--port', '4178', '--strictPort'], {
+const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', '4178', '--strictPort'], {
   detached: true, stdio: ['ignore', 'pipe', 'pipe'],
 });
 let serverLog = '';
@@ -66,6 +66,7 @@ try {
     ok(Math.abs(geometry.paletteLeft - 12) <= 1, width + 'px: palette floats over chart at upper-left');
     ok(Math.abs(geometry.regionBottom - geometry.viewportHeight) <= 1, width + 'px: safe area belongs to dock region, not a separate blank strip');
     const beforeHeight = await dock.evaluate(el => el.getBoundingClientRect().height);
+    if (width === 393 && height === 852) await page.screenshot({ path:'artifacts/mobile-audit-ready.png' });
     await dock.getByRole('button', { name: 'Choose order type' }).click();
     await dock.getByRole('group', { name: 'Order types' }).getByRole('button', { name: 'Limit' }).click();
     eq(Math.round(await dock.evaluate(el => el.getBoundingClientRect().height)), Math.round(beforeHeight), width + 'px: anchored type picker does not expand dock');
@@ -101,13 +102,38 @@ try {
   eq(await page.evaluate(() => window.mobileAuditQA.closedPositions), 0, 'Cancelling a draft cannot close a live position');
   eq(await page.evaluate(() => window.mobileAuditQA.commands), 0, 'Cancel never creates an order');
 
-  await dock.getByRole('button', { name: 'Edit position sizing' }).click();
-  await dock.getByRole('button', { name: 'Lots', exact: false }).last().click();
+  await dock.getByRole('button', { name: 'Choose sizing mode' }).click();
+  eq(await page.evaluate(() => document.activeElement?.tagName === 'INPUT'), false, 'Sizing menu never focuses a numeric input');
   await dock.getByRole('group', { name: 'Sizing modes' }).getByRole('button', { name: 'Risk %' }).click();
   await dock.getByRole('button', { name: 'Prepare buy draft' }).click();
   eq(await page.evaluate(() => window.mobileAuditQA.sizing.code), 'STOP_REQUIRED', 'Risk mode blocked without SL');
   ok((await dock.textContent()).includes('Set a stop loss'), 'Missing SL helper is actionable');
   await dock.getByRole('button', { name: 'Set stop loss' }).click();
+  eq(await dock.getByRole('dialog', { name: 'Stop loss' }).count(), 0, 'First SL tap places the draft level directly on chart');
+  ok(await page.locator('[data-mobile-draft-level="sl"]').isVisible(), 'SL is visible in actual chart overlay');
+  eq(await page.evaluate(() => document.activeElement?.tagName === 'INPUT'), false, 'Chart protection placement never opens a keyboard');
+  const slHandle = page.locator('[data-mobile-draft-level="sl"] button');
+  const slBox = await slHandle.boundingBox();
+  const slBeforeDrag = await page.evaluate(() => window.mobileAuditQA.plan.sl);
+  await page.mouse.move(slBox.x + slBox.width / 2, slBox.y + slBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(slBox.x + slBox.width / 2, slBox.y + slBox.height / 2 + 12, {steps:3});
+  ok((await page.evaluate(() => window.mobileAuditQA.plan.sl)) < slBeforeDrag, 'Moving SL updates canonical draft during the drag');
+  await page.mouse.up();
+  ok((await page.evaluate(() => window.mobileAuditQA.plan.sl)) < slBeforeDrag, 'Releasing SL retains the local draft price');
+  const committedSl = await page.evaluate(() => window.mobileAuditQA.plan.sl);
+  const movedSlBox = await slHandle.boundingBox();
+  await slHandle.click();
+  eq(await page.evaluate(() => window.mobileAuditQA.plan.sl), committedSl, 'A tap without drag does not change the price');
+  await page.mouse.move(movedSlBox.x + movedSlBox.width / 2, movedSlBox.y + movedSlBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(movedSlBox.x + movedSlBox.width / 2, movedSlBox.y + movedSlBox.height / 2 + 15, {steps:3});
+  await page.evaluate(() => window.dispatchEvent(new PointerEvent('pointercancel', {pointerId:1,bubbles:true})));
+  await page.mouse.up();
+  eq(await page.evaluate(() => window.mobileAuditQA.plan.sl), committedSl, 'Pointer cancellation restores the pre-drag draft price');
+  eq(await page.evaluate(() => window.mobileAuditQA.commands), 0, 'Dragging a new chart protection never submits an order');
+  await dock.getByRole('button', { name: 'Set stop loss' }).click();
+  eq(await page.evaluate(() => document.activeElement?.tagName === 'INPUT'), false, 'Precise editor does not autofocus or summon keyboard');
   await dock.getByRole('dialog', { name: 'Stop loss' }).getByRole('textbox').fill('1.1190');
   await dock.getByRole('dialog', { name: 'Stop loss' }).getByRole('button', { name: 'Apply' }).click();
   let before = await page.evaluate(() => window.mobileAuditQA.sizing);
@@ -120,6 +146,17 @@ try {
   await page.waitForFunction(() => window.mobileAuditQA.plan?.tp === 1.125);
   const afterTp = await page.evaluate(() => window.mobileAuditQA.sizing);
   eq(afterTp.lots, changed.lots, 'Moving TP never changes risk-sized volume');
+  await page.screenshot({path:'artifacts/mobile-audit-chart-draft.png'});
+  await dock.getByRole('button', {name:'Choose order type'}).click();
+  await dock.getByRole('group', {name:'Order types'}).getByRole('button', {name:'Limit', exact:true}).click();
+  eq(await page.evaluate(() => window.mobileAuditQA.plan.auditValue), '0.50', 'Changing order type retains risk budget');
+  eq(await page.evaluate(() => window.mobileAuditQA.plan.sl), 1.118, 'Changing order type retains stop price');
+  eq(await page.evaluate(() => window.mobileAuditQA.plan.tp), 1.125, 'Changing order type retains target');
+  await dock.getByRole('button', {name:'Choose order type'}).click();
+  await dock.getByRole('group', {name:'Order types'}).getByRole('button', {name:'Market', exact:true}).click();
+  await dock.getByRole('button', {name:'Choose sizing mode'}).click();
+  await page.locator('[data-audit-fixture-chart]').click({position:{x:250,y:20}});
+  eq(await dock.getByRole('group', {name:'Sizing modes'}).count(), 0, 'Outside tap dismisses menu without draft changes');
   await dock.getByRole('button', { name: 'Review buy draft' }).click();
   eq(await page.evaluate(() => window.mobileAuditQA.stage), 'review', 'Reviewed risk trade has validated draft');
   await page.evaluate(() => window.mobileAuditQA.editPlan({ sl: 1.1185 }));

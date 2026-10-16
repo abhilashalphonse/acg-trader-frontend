@@ -41,6 +41,7 @@ test('Mobile audit routes through existing authoritative trading and FX contract
   assert.match(shell, /if \(mobileAudit && !result\?\.order\?\.id\)/);
   assert.match(shell, /if \(mobileAudit && !\(result\?\.position \|\| result\?\.reconciled/);
   assert.doesNotMatch(dock, /onManualOrder|tradingApi|openMarketOrder\(|placePendingOrder\(/);
+  assert.match(shell, /mobileAudit \? \{ auditMode: 'riskPercent', auditValue: String\(numericRisk\)/);
 });
 
 test('Cancelling an audit draft never executes the existing live-position close path', () => {
