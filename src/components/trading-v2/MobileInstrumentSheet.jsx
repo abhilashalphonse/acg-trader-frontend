@@ -3,6 +3,7 @@ import { ChevronLeft, Search, Star } from 'lucide-react';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import { isIndiaInstrument } from '../../utils/marketClassification.js';
 import { commodityDisplaySymbol, commoditySearchTerms } from '../../utils/commodityPresentation.js';
+import { v4StockListingCountry } from '../../utils/v4MarketsDiscovery.js';
 
 function symbolLabel(symbol = '') {
   const normalized = String(symbol || '').toUpperCase();
@@ -11,13 +12,13 @@ function symbolLabel(symbol = '') {
     : normalized;
 }
 
-function marketGroup(item) {
-  if (isIndiaInstrument(item)) return 'India';
+function marketGroup(item, auditMobile = false) {
+  if (!auditMobile && isIndiaInstrument(item)) return 'India';
 
   const assetClass = String(item?.assetClass || '').toUpperCase();
   if (assetClass === 'FOREX') return 'Forex';
   if (assetClass === 'METAL') return 'Metals';
-  if (assetClass === 'EQUITY') return 'Stocks';
+  if (assetClass === 'EQUITY' || (auditMobile && ['STOCK','STOCKS'].includes(assetClass))) return 'Stocks';
   if (assetClass === 'CRYPTO') return 'Crypto';
   if (assetClass === 'ENERGY' || assetClass === 'OTHER') return 'Commodities';
   return 'Other';
@@ -64,6 +65,7 @@ export default function MobileInstrumentSheet({
   const [tab, setTab] = useState('markets');
   const [query, setQuery] = useState('');
   const [group, setGroup] = useState('Forex');
+  const [stockCountry, setStockCountry] = useState('us');
   const [limit, setLimit] = useState(60);
   const watched = useMemo(() => new Set(watchlists?.activeSymbols || []), [watchlists?.activeSymbols]);
   const scrollRef = useRef(null);
@@ -78,9 +80,9 @@ export default function MobileInstrumentSheet({
   );
 
   const availableGroups = useMemo(() => {
-    const present = new Set(visibleMarkets.map(marketGroup));
-    return GROUPS.filter(item => item === 'All' || present.has(item));
-  }, [visibleMarkets]);
+    const present = new Set(visibleMarkets.map(item => marketGroup(item, auditMobile)));
+    return GROUPS.filter(item => (!auditMobile || item !== 'India') && (item === 'All' || present.has(item)));
+  }, [auditMobile, visibleMarkets]);
 
   const visibleSavedCount = useMemo(
     () => visibleMarkets.filter(item => watched.has(item.symbol)).length,
@@ -91,14 +93,20 @@ export default function MobileInstrumentSheet({
     const q = query.trim().toLowerCase();
     return visibleMarkets.filter(item => {
       if (tab === 'watchlist' && !watched.has(item.symbol)) return false;
-      const itemGroup = marketGroup(item);
+      const itemGroup = marketGroup(item, auditMobile);
       if (!q && group !== 'All' && itemGroup !== group) return false;
+      if (!q && auditMobile && group === 'Stocks' && v4StockListingCountry(item) !== stockCountry) return false;
       if (!q) return true;
-      return `${item.symbol || ''} ${item.displaySymbol || ''} ${item.name || ''} ${item.assetClass || ''} ${itemGroup} ${commoditySearchTerms(item)}`
+      return `${item.symbol || ''} ${item.displaySymbol || ''} ${item.name || ''} ${item.assetClass || ''} ${itemGroup} ${auditMobile ? v4StockListingCountry(item) || '' : ''} ${commoditySearchTerms(item)}`
         .toLowerCase()
         .includes(q);
     });
-  }, [group, query, tab, visibleMarkets, watched]);
+  }, [auditMobile, group, stockCountry, query, tab, visibleMarkets, watched]);
+
+  useEffect(() => {
+    setLimit(60);
+    scrollRef.current?.scrollTo({top:0});
+  }, [group, stockCountry, query, tab]);
 
   const list = source.slice(0, limit);
   const rowSymbolKey = list.map(item => item.symbol).join('|');
@@ -197,21 +205,28 @@ export default function MobileInstrumentSheet({
             className="min-w-0 flex-1 bg-transparent text-[12px] font-medium text-[#eef2f6] outline-none placeholder:text-[#59636d]"
           />
         </label>
-        <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div role="group" aria-label="Market categories" className={auditMobile ? 'mt-2 flex flex-wrap gap-1.5 pb-1' : 'mt-2 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'}>
           {availableGroups.map(item => (
             <button
               key={item}
               type="button"
               onClick={() => { setGroup(item); setLimit(60); }}
+              aria-pressed={group === item}
               className={`shrink-0 rounded-lg border px-3 py-2 text-[9px] font-bold transition ${group === item ? 'border-[#195be1]/60 bg-[#11151d] text-white' : 'border-white/[0.06] bg-[#090a0c] text-[#76818c]'}`}
             >
               {item}
             </button>
           ))}
         </div>
+        {auditMobile && group === 'Stocks' && !query.trim() && <div role="group" aria-label="Stock listing country" className="mt-1 flex gap-1.5 border-t border-white/[0.07] pt-2">
+          {[['us','US'],['india','India']].map(([id,label]) => <button key={id} type="button" aria-pressed={stockCountry === id} onClick={() => setStockCountry(id)} className={`min-h-8 rounded-md px-3 text-[11px] font-medium ${stockCountry === id ? 'bg-[#303035] text-[#f2f2f4]' : 'text-[#9497a2]'}`}>{label}</button>)}
+        </div>}
       </div>
 
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-3 pb-[max(12px,env(safe-area-inset-bottom))] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div ref={scrollRef} data-mobile-market-list aria-label="Market instruments" tabIndex={0} onScroll={auditMobile ? event => {
+        const node = event.currentTarget;
+        if (node.scrollHeight - node.scrollTop - node.clientHeight < 180) setLimit(current => Math.min(source.length, current + 60));
+      } : undefined} className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-3 pb-[max(12px,env(safe-area-inset-bottom))] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {!list.length && (
           <div className="grid min-h-52 place-items-center text-center">
             <div>
@@ -227,6 +242,7 @@ export default function MobileInstrumentSheet({
           return (
             <div
               key={item.symbol}
+              data-mobile-market-symbol={item.symbol}
               ref={node => {
                 if (node) rowRefs.current.set(item.symbol, node);
                 else rowRefs.current.delete(item.symbol);
@@ -240,7 +256,7 @@ export default function MobileInstrumentSheet({
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <b className="text-[12px] font-black text-[#f2f5f8]">{displayMarketSymbol(item)}</b>
-                      <span className="rounded bg-white/[0.05] px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.05em] text-[#6f7b87]">{marketGroup(item)}</span>
+                      <span className="rounded bg-white/[0.05] px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.05em] text-[#6f7b87]">{marketGroup(item, auditMobile)}</span>
                     </div>
                     <p className="mt-1 truncate text-[9px] text-[#68737e]">{item.name || item.symbol}</p>
                   </div>

@@ -35,6 +35,7 @@ jobs:
           node tests/ui/mobile-v4-management.mjs
           node tests/ui/mobile-v4-completion.mjs
           node tests/ui/mobile-v4-workspaces.mjs
+          node tests/ui/mobile-v4-markets.mjs
       - name: Upload Mobile audit evidence
         if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feat/mobile-audit-') || startsWith(github.ref, 'refs/heads/fix/mobile-audit-') || startsWith(github.head_ref, 'fix/mobile-audit-') }}
         uses: actions/upload-artifact@v4

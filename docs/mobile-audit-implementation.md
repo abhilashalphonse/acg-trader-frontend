@@ -17,6 +17,15 @@ on the real website, not the Firebase PR preview.
 
 ## Reuse
 
+Mobile Markets now keeps category controls visible by wrapping them at phone
+widths. Stocks contains US/India listing filters using the desktop V4 country
+classifier; India is not a top-level V4 category. The bounded instrument list
+loads another 60 rows near its bottom, retaining the explicit Show more fallback
+and viewport quote subscriptions. Category, country, search and watchlist changes
+return the list to the top. Legacy mobile retains its original categories.
+Acceptance: `node tests/ui/mobile-v4-markets.mjs` tests touch scrolling through a
+283-instrument catalog, country filtering, search, watchlists and landscape.
+
 - `MobileTraderShell` retains the real account, market, draft, market/pending
   execution, and reconciliation hooks.
 - `MarketPanel`/`ChartArea` reuse the existing price coordinates, order
