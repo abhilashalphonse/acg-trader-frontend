@@ -1,0 +1,29 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { shouldOpenLandingPreview } from '../src/landing/landing-routing.js';
+
+test('approved landing preview is opt-in and never intercepts federation or terminal audits', () => {
+  assert.equal(shouldOpenLandingPreview(''), false);
+  assert.equal(shouldOpenLandingPreview('?acg_landing_audit=0'), false);
+  assert.equal(shouldOpenLandingPreview('?acg_landing_audit=1'), true);
+  assert.equal(shouldOpenLandingPreview('?acg_landing_audit=1&ticket=federation'), false);
+  assert.equal(shouldOpenLandingPreview('?acg_landing_audit=1&acg_ticket=federation'), false);
+  assert.equal(shouldOpenLandingPreview('?acg_landing_audit=1&acg_login=1'), false);
+  assert.equal(shouldOpenLandingPreview('?acg_landing_audit=1&acg_v4_audit=1'), false);
+  assert.equal(shouldOpenLandingPreview('?acg_landing_audit=1&acg_mobile_audit=1'), false);
+});
+
+test('landing V6 retains approved value proposition and has a real sign-in route', () => {
+  const html = readFileSync(new URL('../public/acg-landing-v6.html', import.meta.url), 'utf8');
+  assert.match(html, /Global markets\.<br\/><span class="soft-text">One platform\./i);
+  assert.match(html, /Risk-based sizing\.<br\/><span>Chart-based trading\./i);
+  assert.match(html, /Bring ACG Trader<br\/><span>to your traders\./i);
+  assert.match(html, /href="\/\?acg_login=1"/);
+  assert.match(html, /href="#markets"/);
+  assert.match(html, /href="#trading"/);
+  assert.match(html, /href="#experience"/);
+  assert.match(html, /href="#business"/);
+  assert.match(html, /Futures, Options, Cloud and White Label are planned offerings/);
+  assert.doesNotMatch(html, /<script\b/i, 'Static landing must not add independent session or trading scripts');
+});
