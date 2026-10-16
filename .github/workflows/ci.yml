@@ -27,6 +27,18 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+      - name: Mobile audit real-Chrome responsive and interaction acceptance
+        if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feat/mobile-audit-') }}
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          node tests/ui/mobile-audit.mjs
+      - name: Upload Mobile audit evidence
+        if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feat/mobile-audit-') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-audit-responsive
+          path: artifacts/mobile-audit-*.png
+          retention-days: 7
       - name: Browser V4 330px and double-click smoke
         if: ${{ github.event_name == 'pull_request' }}
         run: node scripts/v4-browser-smoke.mjs
