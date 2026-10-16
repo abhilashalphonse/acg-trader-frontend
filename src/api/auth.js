@@ -19,17 +19,11 @@ export const authApi = Object.freeze({
     });
   },
 
-  bootstrapSupabase(token, signal) {
-    return apiRequest('/v1/identity/bootstrap', { method: 'POST', token, body: {}, signal });
-  },
-
-  supabaseOrganizations(token, signal) {
-    return apiRequest('/v1/auth/supabase/organizations', { token, signal });
-  },
-
-  exchangeSupabase(token, tenantId, signal) {
-    return apiRequest('/v1/auth/supabase/exchange', {
-      method: 'POST', token, body: { tenantId }, signal,
+  createPersonalDemo(token, signal) {
+    // Server selects the first-party demo namespace. No client-supplied
+    // tenant ID, account ID, balance or permission.
+    return apiRequest('/v1/auth/personal/demo', {
+      method: 'POST', token, body: {}, signal,
     });
   },
 

@@ -275,14 +275,20 @@ export function AuthProvider({ children }) {
     }
   }, [commitSession]);
 
-  const loginSupabase = useCallback(async (identityToken, tenantId) => {
+  const loginPersonalDemo = useCallback(async identityToken => {
     setStatus('authenticating');
     setError(null);
     try {
-      const response = await authApi.exchangeSupabase(identityToken, tenantId);
+      const response = await authApi.createPersonalDemo(identityToken);
       const next = sessionFromAuthResponse(response);
+      if (next?.principal?.authMethod !== 'SUPABASE' ||
+          !next?.principal?.accountIds?.length) {
+        throw new ApiError('Personal demo session is missing authorized trading access', {
+          code: 'INVALID_PERSONAL_DEMO_RESPONSE',
+        });
+      }
       commitSession(next);
-      return next;
+      return { ...next, personalDemo: response.personalDemo };
     } catch (nextError) {
       setStatus('anonymous');
       setError(nextError);
@@ -495,7 +501,7 @@ export function AuthProvider({ children }) {
     error,
     refreshing,
     login,
-    loginSupabase,
+    loginPersonalDemo,
     exchangeTicket,
     logout,
     refreshPrincipal,
@@ -509,7 +515,7 @@ export function AuthProvider({ children }) {
     exchangeTicket,
     invalidateSession,
     login,
-    loginSupabase,
+    loginPersonalDemo,
     logout,
     refreshPrincipal,
     refreshAccountGrants,
