@@ -15,8 +15,7 @@ the existing AuthProvider, SessionGate and V4 terminal as before.
 Federation tickets, existing V4/mobile audit params and explicit
 `?acg_login=1` are never redirected to marketing.
 
-The navbar **Sign in** link opens the feature-gated Supabase sign-in page;
-the hero's **Get started** opens registration. The existing terminal gate
+The navbar **Start Trading** opens the existing native Connect Prop login, with an opt-in tenant identifier field; the hero's **Try Demo** opens the feature-gated standalone Supabase registration. The existing ACG Funded terminal gate
 remains reachable at `/?acg_login=1`. Onboarding is visually reviewable in
 preview, but provider calls remain disabled until a dedicated build has
 `VITE_ACG_SUPABASE_AUTH_ENABLED=true` and the backend identity/session
@@ -41,3 +40,7 @@ from this landing-only milestone.
 ## Deployment
 
 No deployment, merge or change to production is authorized by the PR.
+
+### Tenant login contract
+
+The current backend `/v1/auth/login` resolves the tenant by its configured **slug**, rather than by the MongoDB ObjectId. The Connect Prop audit field accepts that identifier and routes to the existing password-based login, without adding a new authentication provider. Validate whether the business-facing 'Tenant ID' maps to this slug before expanding public Connect Prop.

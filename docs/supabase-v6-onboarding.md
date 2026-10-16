@@ -1,9 +1,11 @@
+> **Audit revision — 2026-10-16:** Approved final entry points are Start Trading → native Connect Prop, Try Demo → standalone Supabase demo signup, and For Businesses → separate B2B onboarding. The Supabase-to-partner-tenant organization selection below is legacy prototype work and **not approved for live rollout**. Both Supabase auth flags remain OFF; automatic $100K virtual-demo provisioning is still missing. See `docs/onboarding-v1-approved-contract.md`.
+
 # V6 landing → Supabase standalone onboarding
 
 **Source of truth:** Approved V6 static HTML. Its layout, typography, market
 claims, illustrations, business section and responsive rules are unchanged.
-Only the existing nav Sign in and hero primary CTA are linked to the new
-auth experience; hero CTA copy now says Get started.
+Only the existing nav and hero primary CTA are updated for the approved
+paths: Start Trading to opt-in native Connect Prop and Try Demo to disabled-by-default Supabase signup.
 
 ## Routes
 
