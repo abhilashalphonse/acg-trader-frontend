@@ -24,6 +24,7 @@ try {
   }
   ok(ready, 'Vite fixture server is ready: ' + serverLog.slice(-400));
   browser = await chromium.launch({ headless: true, channel: 'chrome', args: ['--no-sandbox'] });
+  await mkdir('artifacts', { recursive: true });
   for (const [width, height] of [[360, 740], [375, 720], [393, 852], [430, 932], [393, 540], [690, 360]]) {
     const page = await browser.newPage({ viewport: { width, height } });
     await page.goto(uri);
