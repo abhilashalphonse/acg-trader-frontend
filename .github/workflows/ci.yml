@@ -32,12 +32,15 @@ jobs:
         run: |
           npm install --no-save --no-audit --no-fund playwright@1.56.1
           node tests/ui/mobile-audit.mjs
+          node tests/ui/mobile-v4-management.mjs
       - name: Upload Mobile audit evidence
         if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feat/mobile-audit-') || startsWith(github.ref, 'refs/heads/fix/mobile-audit-') || startsWith(github.head_ref, 'fix/mobile-audit-') }}
         uses: actions/upload-artifact@v4
         with:
           name: mobile-audit-responsive
-          path: artifacts/mobile-audit-*.png
+          path: |
+            artifacts/mobile-audit-*.png
+            artifacts/mobile-v4-*.png
           retention-days: 7
       - name: Browser V4 330px and double-click smoke
         if: ${{ github.event_name == 'pull_request' }}

@@ -144,12 +144,27 @@ try {
   eq(await page.evaluate(() => window.mobileAuditQA.closedPositions), 0, 'Cancelling a draft cannot close a live position');
   eq(await page.evaluate(() => window.mobileAuditQA.commands), 0, 'Cancel never creates an order');
 
+  await dock.getByRole('button',{name:'Prepare buy draft'}).click();
+  await dock.getByRole('button',{name:'Set stop loss'}).click();
+  const preservedLots=await page.evaluate(()=>window.mobileAuditQA.sizing.lots);
+  for (const [label,mode] of [['Margin $','margin'],['Risk %','riskPercent'],['Risk USD','riskUSD'],['Lots','lots']]) {
+    await dock.getByRole('button',{name:'Choose sizing mode'}).click();
+    await dock.getByRole('group',{name:'Sizing modes'}).getByRole('button',{name:label,exact:true}).click();
+    await page.waitForFunction(mode=>window.mobileAuditQA.plan.auditMode===mode,mode);
+    const sizing=await page.evaluate(()=>window.mobileAuditQA.sizing);
+    ok(sizing.canExecute && Math.abs(sizing.lots-preservedLots)<=0.010000001,'Switch to '+label+' preserves the trade within volume step');
+    eq(await page.evaluate(()=>document.activeElement?.tagName==='INPUT'),false,'Switch to '+label+' never opens keyboard');
+  }
+  await dock.getByRole('button',{name:'Cancel draft',exact:true}).click();
   await dock.getByRole('button', { name: 'Choose sizing mode' }).click();
   eq(await page.evaluate(() => document.activeElement?.tagName === 'INPUT'), false, 'Sizing menu never focuses a numeric input');
   await dock.getByRole('group', { name: 'Sizing modes' }).getByRole('button', { name: 'Risk %' }).click();
+  await dock.getByRole('button', { name: 'Edit position sizing' }).click();
+  await dock.getByRole('textbox').fill('0.50');
+  await dock.getByRole('dialog').getByRole('button', {name:'Apply', exact:true}).click();
   await dock.getByRole('button', { name: 'Prepare buy draft' }).click();
   eq(await page.evaluate(() => window.mobileAuditQA.sizing.code), 'STOP_REQUIRED', 'Risk mode blocked without SL');
-  ok((await dock.textContent()).includes('Set a stop loss'), 'Missing SL helper is actionable');
+  ok((await dock.textContent()).includes('Place stop loss'), 'Missing SL helper is actionable');
   await dock.getByRole('button', { name: 'Set stop loss' }).click();
   eq(await dock.getByRole('dialog', { name: 'Stop loss' }).count(), 0, 'First SL tap places the draft level directly on chart');
   ok(await page.locator('[data-mobile-draft-level="sl"]').isVisible(), 'SL is visible in actual chart overlay');

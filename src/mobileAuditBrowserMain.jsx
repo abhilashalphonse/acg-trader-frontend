@@ -7,6 +7,10 @@ import TradingChart from './components/TradingChart.jsx';
 import { AuthContext } from './auth/AuthProvider.jsx';
 import { TradingContext } from './store/TradingProvider.jsx';
 import { mobileChartReadout } from './utils/mobileChartReadout.js';
+import V4FullTerminalOrders from './components/trading-v2/v4/V4FullTerminalOrders.jsx';
+import MobileAuditManageDock from './components/trading-v2/MobileAuditManageDock.jsx';
+import { mobileProtectionPatch } from './utils/mobileAuditDraft.js';
+import { buildChartPendingAmendment } from './utils/pendingOrderChartMove.js';
 import MobileAuditHeader from './components/trading-v2/MobileAuditHeader.jsx';
 import MobileAuditExecutionDock from './components/trading-v2/MobileAuditExecutionDock.jsx';
 import MobileAuditDrawingPalette from './components/trading-v2/MobileAuditDrawingPalette.jsx';
@@ -54,7 +58,7 @@ function FixtureChart({ market, account, plan, onChange, children }) {
   return <>
     <div ref={chartRef} className="absolute inset-0"/>
     <TradePlanOverlay plan={plan} instrument={market} account={account} accountCurrency={account.currency} coordinateApi={coordinates} onChange={onChange} auditStyle/>
-    {children}
+    {typeof children === 'function' ? children(coordinates, chartRef.current?.clientHeight || 480) : children}
   </>;
 }
 function Demo() {
@@ -132,4 +136,55 @@ function Demo() {
     </div>
   </div>;
 }
-createRoot(document.getElementById('root')).render(<Demo/>);
+function ManagedDemo() {
+  const [positions, setPositions] = useState([{id:'p1',symbol:'EURUSD',side:'SELL',volume:0.1,entry:1.122,sl:1.124,tp:1.118,pnl:12.34}]);
+  const [orders, setOrders] = useState([{id:'o1',symbol:'EURUSD',side:'BUY',volume:0.2,entry:1.1189,limitPrice:1.1192,orderType:'stop-limit',status:'PENDING',sl:null,tp:null}]);
+  const [draft, setDraft] = useState(null);
+  const [management, setManagement] = useState(null);
+  const [commands, setCommands] = useState([]);
+  const [accountId, setAccountId] = useState(account.id);
+  const [disabled, setDisabled] = useState(false);
+  const [failure, setFailure] = useState(false);
+  const [ack, setAck] = useState(null);
+  const change = async (type, id, patch) => {
+    if (failure) return false;
+    setCommands(prev=>[...prev,{type,id,patch}]);
+    setAck({type,id,patch});
+    return true;
+  };
+  window.mobileManageQA = {positions,orders,commands,draft,management:management ? {objectType:management.objectType,id:management.owner.id,edit:management.edit} : null,
+    setAccountId,setDisabled,setFailure,
+    acknowledge:()=>{
+      if (!ack) return;
+      if (ack.type==='position') setPositions(prev=>prev.map(p=>p.id===ack.id?{...p,...ack.patch}:p));
+      if (ack.type==='pending') setOrders(prev=>prev.map(p=>p.id===ack.id?{...p,entry:ack.patch.entry,limitPrice:ack.patch.limitPrice ?? p.limitPrice,sl:ack.patch.stopLoss,tp:ack.patch.takeProfit}:p));
+      if (ack.type==='close') setPositions(prev=>ack.patch.percentage < 100 ? prev.map(p=>p.id===ack.id?{...p,volume:p.volume*(1-ack.patch.percentage/100)}:p) : prev.filter(p=>p.id!==ack.id));
+      if (ack.type==='cancel') setOrders(prev=>prev.filter(p=>p.id!==ack.id));
+      setAck(null);
+    },
+    removePosition:()=>setPositions([]),
+  };
+  return <div className="flex h-dvh flex-col overflow-hidden bg-black text-white">
+    <div className="flex h-12 shrink-0 items-center px-4 text-[12px] font-semibold">EUR/USD · 15m <span className="ml-auto text-[10px] text-[#aab6c2]">Chart management</span></div>
+    <div className="relative min-h-0 flex-1">
+      <FixtureChart market={initialMarket} account={account} plan={null} onChange={()=>{}}>
+        {(coordinateApi,height)=><V4FullTerminalOrders mobile account={{...account,id:accountId}} symbol="EURUSD" instrument={initialMarket} positions={positions} pendingOrders={orders} coordinateApi={coordinateApi} height={height}
+          onMobileManagementChange={setManagement} managementDisabled={disabled}
+          positionProtectionDraft={draft}
+          onRequestPositionProtection={(id,field,price)=>{
+            const owner=positions.find(p=>p.id===id);
+            const base={...owner,positionId:id,side:owner.side.toLowerCase(),manualLots:owner.volume};
+            setDraft({...base,...(price==null?mobileProtectionPatch(base,field,initialMarket):{[field]:price}),activeField:field});
+          }}
+          onPositionProtectionDraftChange={patch=>setDraft(prev=>({...prev,...patch}))}
+          onCancelPositionProtection={()=>setDraft(null)}
+          onUpdatePosition={(id,patch)=>change('position',id,patch)}
+          onRemovePositionProtection={(id,field)=>change('position',id,{[field]:null})}
+          onMovePending={(id,price,field)=>change('pending',id,buildChartPendingAmendment(orders.find(o=>o.id===id),price,field))}
+          onClosePosition={(id,percentage)=>change('close',id,{percentage})} onCancelPending={id=>change('cancel',id,{})}/>}
+      </FixtureChart>
+    </div>
+    <div className="shrink-0 bg-[#101114] pb-[5px]">{management ? <MobileAuditManageDock management={management} market={initialMarket} account={account}/> : <div data-manage-idle className="flex h-[118px] items-center justify-center text-[11px] text-[#aab6c2]">Tap a position or pending order on chart</div>}</div>
+  </div>;
+}
+createRoot(document.getElementById('root')).render(new URLSearchParams(location.search).has('manage') ? <ManagedDemo/> : <Demo/>);

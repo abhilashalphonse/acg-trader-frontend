@@ -5,10 +5,11 @@ import { formatInstrumentPrice } from '../../../utils/instrumentFormatting.js';
 import { defaultPlannerStopDistance } from '../../../utils/tradingRisk.js';
 import { normalizeProtectionPrice } from '../../../utils/tradingCommandNormalization.js';
 
-// Runs ONLY behind the desktop V4 audit gate. Financial state is provided by
+// Runs behind desktop V4 or the separately opted-in mobile audit gate. Financial state is provided by
 // the existing store; drafts exist locally and never optimistically mutate it.
 export default function V4FullTerminalOrders({
   account, symbol, instrument, positions = [], pendingOrders = [],
+  mobile = false, mobileTradeSelection, onMobileManagementChange, managementDisabled = false,
   coordinateApi, height, positionProtectionDraft, pendingOrderDraft = null,
   onPendingOrderDraftChange, onCancelPendingOrderDraft, isNewOrderPlanning = false,
   renderPositionEntries = null, hoveredPositionId = null,
@@ -17,7 +18,12 @@ export default function V4FullTerminalOrders({
   onPositionProtectionDraftChange,
   onSelectPosition, onSelectPending, onClosePosition, onCancelPending,
 }) {
+  const [mobileClosing, setMobileClosing] = useState(null);
+  const [mobileOwner, setMobileOwner] = useState(null);
+  const mobileActions = useRef({});
   const accountId = account?.id == null ? null : String(account.id);
+  const contextRef = useRef(null);
+  contextRef.current = `${accountId}:${symbol}`;
   const [edit, setEdit] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -30,6 +36,8 @@ export default function V4FullTerminalOrders({
 
   // Cancel any previous owner when the user switches account or instrument.
   useEffect(() => {
+    setMobileClosing(null);
+    setMobileOwner(null);
     setEdit(null);
     setAwaiting(null);
     setRemoving(null);
@@ -89,7 +97,7 @@ export default function V4FullTerminalOrders({
 
   const parentEdit = useMemo(() => {
     const parent = positionProtectionDraft;
-    if (!parent || !['tp', 'sl'].includes(parent.activeField) ||
+    if (!parent || (mobile && parent.accountId != null && String(parent.accountId) !== accountId) || !['tp', 'sl'].includes(parent.activeField) ||
         String(parent.symbol).toUpperCase() !== String(symbol).toUpperCase() ||
         !Number.isFinite(Number(parent[parent.activeField])) ||
         Number(parent[parent.activeField]) <= 0 || !accountId) return null;
@@ -97,7 +105,7 @@ export default function V4FullTerminalOrders({
       accountId, objectType: 'position', objectId: String(parent.positionId),
       kind: parent.activeField, proposedPrice: Number(parent[parent.activeField]),
     };
-  }, [positionProtectionDraft, symbol, accountId]);
+  }, [positionProtectionDraft, symbol, accountId, mobile]);
   const activeEdit = isNewOrderPlanning ? null : edit || parentEdit || pendingOrderDraft;
 
   // Acknowledge only the matching server/store snapshot. Never paint a local
@@ -141,7 +149,8 @@ export default function V4FullTerminalOrders({
   }, [isNewOrderPlanning]);
 
   const begin = useCallback(value => {
-    if (!value || saving || isNewOrderPlanning) return;
+    if (!value || saving || isNewOrderPlanning || (mobile && managementDisabled)) return;
+    if (mobile) setMobileOwner({objectType:value.objectType, objectId:String(value.objectId), context:contextRef.current});
     // Switching levels replaces every draft visual from the previous edit.
     setEdit({ ...value, proposedPrice: value.proposedPrice ?? value.confirmedPrice });
     setError('');
@@ -159,7 +168,7 @@ export default function V4FullTerminalOrders({
       // into Manage Position and creates a shared position draft.
       onRequestPositionProtection?.(value.objectId,value.kind,value.proposedPrice);
     }
-  }, [parentEdit, onCancelPositionProtection, onRequestPositionProtection, onPendingOrderDraftChange, onSelectPending, saving, isNewOrderPlanning]);
+  }, [parentEdit, onCancelPositionProtection, onRequestPositionProtection, onPendingOrderDraftChange, onSelectPending, saving, isNewOrderPlanning, mobile, managementDisabled]);
 
   const changeEdit = useCallback(value => {
     setEdit(value);
@@ -182,7 +191,8 @@ export default function V4FullTerminalOrders({
   };
 
   const beginProtection = (id, kind, objectType='position') => {
-    if (saving || isNewOrderPlanning || !['tp','sl'].includes(kind)) return;
+    if (saving || isNewOrderPlanning || (mobile && managementDisabled) || !['tp','sl'].includes(kind)) return;
+    if (mobile) setMobileOwner({objectType, objectId:String(id), context:contextRef.current});
     if (objectType === 'pending') {
       const order = pendingOrders.find(item => String(item.id) === String(id) &&
         String(item.symbol).toUpperCase() === String(symbol).toUpperCase() &&
@@ -214,7 +224,7 @@ export default function V4FullTerminalOrders({
   };
 
   const confirm = async draft => {
-    if (!draft || saving || !accountId || isNewOrderPlanning) return;
+    if (!draft || saving || !accountId || isNewOrderPlanning || (mobile && managementDisabled)) return;
     const objectType = draft.objectType;
     const objectId = String(draft.objectId || '');
     const kind = draft.kind;
@@ -243,12 +253,14 @@ export default function V4FullTerminalOrders({
       setError('Move the proposed level at least one tick before confirming.');
       return;
     }
+    const commandContext = contextRef.current;
     setSaving(true);
     setError('');
     try {
       const applied = objectType === 'position'
         ? await onUpdatePosition?.(objectId, { [kind]: price })
         : await onMovePending?.(objectId, price, kind);
+      if (mobile && contextRef.current !== commandContext) return;
       if (applied === false || applied == null) {
         setError('Modification was not accepted. Review the price or Discard.');
         setSaving(false);
@@ -262,13 +274,14 @@ export default function V4FullTerminalOrders({
         acceptedLimit && original ? Number((acceptedLimit.price+price-original.price).toPrecision(12)) : null;
       setAwaiting({ accountId, objectType, objectId, kind, price, expectedLimitPrice });
     } catch (cause) {
+      if (mobile && contextRef.current !== commandContext) return;
       setError(cause?.message || 'Unable to confirm the chart modification.');
       setSaving(false);
     }
   };
 
   const remove = async action => {
-    if (!action || saving || removalRequest.current || isNewOrderPlanning ||
+    if (!action || saving || removalRequest.current || isNewOrderPlanning || (mobile && managementDisabled) ||
         action.accountId !== accountId || !['sl','tp'].includes(action.kind) ||
         !['position','pending'].includes(action.objectType)) return;
     // Reject stale or fabricated level targets: only an accepted level owned by
@@ -296,6 +309,7 @@ export default function V4FullTerminalOrders({
         // A successful HTTP response is not sufficient confirmation. Only the
         // incoming account snapshot may remove the accepted chart level.
         setRemoving({ id: level.id, token, awaitingSnapshot: true });
+        return true;
       }
     } catch (cause) {
       if (removalRequest.current !== token) return;
@@ -306,36 +320,118 @@ export default function V4FullTerminalOrders({
     }
   };
 
+  useEffect(() => {
+    if (!mobile || !edit || accepted.some(level => level.objectType === edit.objectType && level.objectId === String(edit.objectId) && level.kind === 'entry')) return;
+    setEdit(null); setAwaiting(null); setSaving(false); setError('');
+    setMobileOwner(null);
+  }, [mobile, edit, accepted]);
+
+  useEffect(() => {
+    if (!mobileClosing) return undefined;
+    const actual = accepted.find(level => level.objectType === mobileClosing.objectType && level.objectId === mobileClosing.objectId && level.kind === 'entry');
+    if (!actual || (mobileClosing.percentage < 100 && Number(actual.volume) < mobileClosing.originalVolume)) {
+      setMobileClosing(null); setSaving(false); if (!actual) setMobileOwner(null); setError('');
+      return undefined;
+    }
+    const timer = window.setTimeout(() => {
+      setMobileClosing(null); setSaving(false);
+      setError('Account confirmation is delayed. Refresh before retrying.');
+    },12000);
+    return () => window.clearTimeout(timer);
+  }, [mobileClosing, accepted]);
+
   const chartEditActions = !isNewOrderPlanning && activeEdit?.objectType === 'position'
     ? { positionId: activeEdit.objectId, kind: activeEdit.kind, saving,
         onConfirm: () => confirm(activeEdit), onDiscard: discard }
     : null;
 
+  // Publish a small view model to the existing mobile dock. Stable proxies
+  // use the latest handlers without triggering render/effect feedback loops.
+  const selectMobile = (objectType, objectId) => {
+    if (saving || isNewOrderPlanning) return;
+    discard();
+    setMobileOwner({objectType, objectId:String(objectId), context:contextRef.current});
+    if (objectType === 'position') onSelectPosition?.(objectId);
+    else onSelectPending?.(objectId);
+  };
+  useEffect(() => {
+    if (mobile && mobileTradeSelection?.id != null) setMobileOwner({objectType:mobileTradeSelection.objectType,objectId:String(mobileTradeSelection.id), context:contextRef.current});
+  }, [mobile, mobileTradeSelection]);
+  const currentOwner = mobileOwner?.context === contextRef.current ? mobileOwner : null;
+  const selectedType = currentOwner?.objectType || parentEdit?.objectType;
+  const selectedId = currentOwner?.objectId || parentEdit?.objectId;
+  const selectedOwner = (selectedType === 'pending' ? pendingOrders : positions).find(owner =>
+    String(owner.id) === String(selectedId) && String(owner.symbol).toUpperCase() === String(symbol).toUpperCase());
+  mobileActions.current = {
+    done: () => { if (saving) return; discard(); setMobileOwner(null); },
+    discard,
+    confirm: () => confirm(activeEdit),
+    edit: kind => {
+      if (!selectedOwner || saving || managementDisabled) return;
+      const level = accepted.find(item => item.objectType === selectedType && item.objectId === String(selectedOwner.id) && item.kind === kind);
+      if (level) begin({...level, levelId:level.id, confirmedPrice:level.price, proposedPrice:level.price});
+      else beginProtection(selectedOwner.id, kind, selectedType);
+    },
+    command: async kind => {
+      if (!selectedOwner || saving || managementDisabled) return false;
+      if (['close','close25','close50','close75','cancel'].includes(kind)) {
+        const percentage = kind === 'close' ? 100 : Number(kind.slice(5));
+        const context = contextRef.current;
+        setSaving(true); setError('');
+        try {
+          const result = kind.startsWith('close') ? await onClosePosition?.(selectedOwner.id,percentage) : await onCancelPending?.(selectedOwner.id);
+          if (contextRef.current !== context) return false;
+          if (result === false || result == null) {setSaving(false); return false;}
+          setMobileClosing({objectType:selectedType,objectId:String(selectedOwner.id),percentage,originalVolume:Number(selectedOwner.volume ?? selectedOwner.lots)});
+          return true;
+        } catch (cause) {
+          if (contextRef.current === context) {setSaving(false);setError(cause?.message || 'Change was not accepted.');}
+          return false;
+        }
+      }
+      const level = accepted.find(item => item.objectType === selectedType && item.objectId === String(selectedOwner.id) && item.kind === kind);
+      if (level) return remove({...level});
+      return false;
+    },
+  };
+  const stableMobileActions = useMemo(() => Object.fromEntries(['done','discard','confirm','edit','command'].map(key =>
+    [key, (...args) => mobileActions.current[key](...args)])), []);
+  useEffect(() => {
+    if (!mobile || !onMobileManagementChange) return;
+    onMobileManagementChange(!isNewOrderPlanning && selectedOwner ? {
+      owner:selectedOwner, objectType:selectedType, edit:activeEdit, saving,
+      error, awaiting:Boolean(awaiting || mobileClosing || removing?.awaitingSnapshot), disabled:managementDisabled, actions:stableMobileActions,
+    } : null);
+  }, [mobile, onMobileManagementChange, isNewOrderPlanning, selectedOwner, selectedType, activeEdit, saving, error, awaiting, mobileClosing, removing, managementDisabled, stableMobileActions]);
+  useEffect(() => {
+    if (isNewOrderPlanning) setMobileOwner(null);
+  }, [isNewOrderPlanning]);
+
   return <>
-    {renderPositionEntries?.(chartEditActions, beginProtection)}
-    <V4ChartOrderLayer accountId={accountId} symbol={symbol}
+    {!mobile && renderPositionEntries?.(chartEditActions, beginProtection)}
+    <V4ChartOrderLayer mobile={mobile} selectedOwner={mobileOwner} accountId={accountId} symbol={symbol}
       positions={positions} pendingOrders={pendingOrders}
       coordinateApi={coordinateApi} height={height}
       formatPrice={value => formatInstrumentPrice(value, instrument)}
       formatVolume={value => Number(value).toFixed(2) + ' lots'}
       formatPnl={value => Number.isFinite(Number(value)) ? Number(value).toFixed(2) + ' ' + (account?.currency || 'USD') : '—'}
       edit={activeEdit} saving={saving} removingLevelId={removing?.id || null} hoveredPositionId={hoveredPositionId}
-      hidePositionEntries readOnly={isNewOrderPlanning}
+      hidePositionEntries={!mobile} readOnly={isNewOrderPlanning || (mobile && managementDisabled)}
       instrument={instrument} accountCurrency={account?.currency || 'USD'}
       onBeginEdit={isNewOrderPlanning ? null : begin} onChangeEdit={isNewOrderPlanning ? null : changeEdit}
       onSaveEdit={isNewOrderPlanning ? null : confirm} onCancelEdit={isNewOrderPlanning ? null : discard}
       onAddProtection={isNewOrderPlanning ? null : beginProtection}
       onRemoveProtection={isNewOrderPlanning ? null : remove}
-      onSelectPosition={isNewOrderPlanning ? null : onSelectPosition}
-      onSelectPending={isNewOrderPlanning ? null : onSelectPending}
+      onSelectPosition={isNewOrderPlanning ? null : mobile ? id => selectMobile('position', id) : onSelectPosition}
+      onSelectPending={isNewOrderPlanning ? null : mobile ? id => selectMobile('pending', id) : onSelectPending}
       onClosePosition={isNewOrderPlanning ? null : onClosePosition}
       onCancelPending={isNewOrderPlanning ? null : onCancelPending}/>
-    {!isNewOrderPlanning && error && <div role="alert" data-v4-chart-error
+    {!mobile && !isNewOrderPlanning && error && <div role="alert" data-v4-chart-error
       className="pointer-events-auto absolute bottom-12 right-[148px] z-[70] max-w-[360px] rounded border border-[#a34556] bg-[#221116]/95 p-2 text-[11px] text-white">
       {error}
       <button type="button" className="ml-3 underline" onClick={discard}>Discard</button>
     </div>}
-    {!isNewOrderPlanning && awaiting && <div role="status" className="pointer-events-none absolute bottom-3 right-[148px] z-[70] rounded bg-[#15191e]/95 px-2 py-1 text-[10px] text-white">
+    {!mobile && !isNewOrderPlanning && awaiting && <div role="status" className="pointer-events-none absolute bottom-3 right-[148px] z-[70] rounded bg-[#15191e]/95 px-2 py-1 text-[10px] text-white">
       Waiting for confirmed server price…
     </div>}
   </>;

@@ -4,11 +4,12 @@ import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
 import { normalizeVolumeToStep } from '../../utils/tradingCommandNormalization.js';
 import { resolveV4PositionSizing } from '../../utils/v4ExecutionPrecision.js';
 import { createDefaultTradePlan, validateTradePlanForExecution } from '../../utils/tradePlanExecution.js';
+import { mobileSizingModeValue, mobileSizingHelper } from '../../utils/mobileV4Sizing.js';
 import { mobileOrderTypePatch, mobileProtectionPatch } from '../../utils/mobileAuditDraft.js';
 import { v4ExitPriceFromInput, v4ExitValueFromPrice } from '../../utils/v4ProtectionPrecision.js';
 
 const ORDER_TYPES = [['market', 'Market'], ['limit', 'Limit'], ['stop', 'Stop']];
-const MODES = [['lots', 'Lots'], ['margin', 'Margin'], ['riskPercent', 'Risk %'], ['riskUSD', 'Risk amount']];
+const MODES = [['lots', 'Lots'], ['margin', 'Margin $'], ['riskPercent', 'Risk %'], ['riskUSD', 'Risk USD']];
 const isRisk = mode => mode === 'riskPercent' || mode === 'riskUSD';
 const hasNumber = value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
 const validPositive = value => hasNumber(value) && Number(value) > 0;
@@ -45,7 +46,13 @@ export default function MobileAuditExecutionDock({
   const [localError, setLocalError] = useState('');
   const [exitUnit, setExitUnit] = useState('price');
   const dockRef = useRef(null);
-  const rememberedAmounts = useRef({});
+  const baseLots = useRef(null);
+  useEffect(() => {
+    baseLots.current = null;
+    setIdleMode('lots');
+    setIdleAmount(fmtLots(market?.minVolume || market?.volumeStep || 0.01, market));
+    setOpenPanel(null); setLocalError('');
+  }, [account?.id, market?.symbol]);
   const mode = tradePlan?.auditMode || (tradePlan?.editingOrderId ? 'lots' : idleMode);
   const amount = tradePlan?.auditValue ?? (tradePlan?.editingOrderId ? tradePlan.manualLots : idleAmount);
   const type = tradePlan?.orderType || idleOrderType;
@@ -63,7 +70,7 @@ export default function MobileAuditExecutionDock({
   const canSubmit = canReview && reviewing;
   const quotePrice = (side) => formatInstrumentPrice(side === 'buy' ? market?.ask : market?.bid, market) || '—';
   const available = exposureAllowed && !commandPending && validPositive(market?.bid) && validPositive(market?.ask);
-  const labels = { lots: 'Lots', margin: 'Margin', riskPercent: 'Risk %', riskUSD: 'Risk amount' };
+  const labels = { lots: 'Lots', margin: 'Margin $', riskPercent: 'Risk %', riskUSD: 'Risk USD' };
 
   useEffect(() => {
     if (!openPanel) return undefined;
@@ -80,10 +87,12 @@ export default function MobileAuditExecutionDock({
   };
   const updateMode = nextMode => {
     if (nextMode === mode) { setOpenPanel(null); return; }
-    rememberedAmounts.current[mode] = amount;
-    const currentValue = rememberedAmounts.current[nextMode] ?? (nextMode === 'lots' ? fmtLots(preview?.lots || market?.minVolume || market?.volumeStep || 0.01, market)
-      : nextMode === 'riskPercent' ? '0.50' : nextMode === 'margin' ? '100' : '50');
-    if (editing) invalidate({ auditMode: nextMode, auditValue: currentValue });
+    const resolved = (preview || indicative)?.lots ? (preview || indicative) :
+      resolveV4PositionSizing({mode:'lots', amount:tradePlan?.auditBaseLots || baseLots.current,
+        plan:tradePlan || createDefaultTradePlan({side:'buy',market,protection:'none'}), account, instrument:market});
+    const currentValue = mobileSizingModeValue({ nextMode, mode, amount, sizing: resolved, account });
+    baseLots.current = resolved?.lots || tradePlan?.auditBaseLots || baseLots.current;
+    if (editing) invalidate({ auditMode: nextMode, auditValue: currentValue, auditBaseLots: baseLots.current });
     setIdleMode(nextMode); setIdleAmount(currentValue);
     setOpenPanel(null);
   };
@@ -93,7 +102,7 @@ export default function MobileAuditExecutionDock({
   };
   const changeAmountStep = directionStep => {
     const raw = Number(amount);
-    const step = mode === 'lots' ? Number(market?.volumeStep) || 0.01 : mode === 'riskPercent' ? 0.1 : 1;
+    const step = mode === 'lots' ? Number(market?.volumeStep) || 0.01 : mode === 'riskPercent' ? 0.01 : 1;
     if (!Number.isFinite(raw)) return;
     const next = raw + directionStep * step;
     if (mode === 'lots') {
@@ -117,7 +126,7 @@ export default function MobileAuditExecutionDock({
     if (!available) return;
     if (!editing || direction !== side) {
       onStartPlan(side, type, {
-        auditMode: mode, auditValue: String(amount),
+        auditMode: mode, auditValue: String(amount), auditBaseLots: baseLots.current,
         stage: 'planning', sl: null, tp: null,
       });
     } else if (!reviewing) {
@@ -136,6 +145,11 @@ export default function MobileAuditExecutionDock({
     if (validPositive(tradePlan[field])) { openEditor(field); return; }
     const patch = mobileProtectionPatch(tradePlan, field, market);
     if (!patch) { setLocalError('Protection cannot be placed with the current instrument data.'); return; }
+    if (field === 'sl' && isRisk(mode) && !validPositive(amount)) {
+      const lots = tradePlan.auditBaseLots || baseLots.current;
+      const resolved = resolveV4PositionSizing({ mode:'lots', amount:lots, plan:{...tradePlan,...patch}, account, instrument:market });
+      patch.auditValue = mobileSizingModeValue({ nextMode:mode, mode:'lots', sizing:resolved, account });
+    }
     invalidate(patch);
     setOpenPanel(null);
   };
@@ -172,27 +186,11 @@ export default function MobileAuditExecutionDock({
     onExecutePlan();
   };
 
-  let helper;
-  if (editing && !preview?.canExecute) {
-    helper = isRisk(mode) && !validPositive(tradePlan?.sl)
-      ? 'Set a stop loss to calculate size.'
-      : preview?.message || 'Calculation unavailable';
-  } else if (!editing) {
-    const estimate = indicative?.notionalAccount != null ? money(indicative.notionalAccount, account?.currency) : indicative?.notionalQuote != null ? money(indicative.notionalQuote, market?.quoteCurrency) : null;
-    helper = isRisk(mode) ? 'Choose a side and set SL to calculate size.' : indicative?.canExecute && estimate
-      ? `${fmtLots(indicative.lots, market)} lots → ≈${estimate}${indicative.notionalAccountPercent == null ? '' : ` (${indicative.notionalAccountPercent.toFixed(2)}% balance)`}`
-      : indicative?.message || 'Choose Buy or Sell to estimate exposure.';
-  } else if (mode === 'lots') {
-    const exposure = preview.notionalAccount != null ? money(preview.notionalAccount, account?.currency) :
-      preview.notionalQuote != null ? `${money(preview.notionalQuote, market?.quoteCurrency)}` : 'Exposure unavailable';
-    helper = `${fmtLots(preview.lots, market)} lots → ${exposure}${preview.notionalAccountPercent == null ? '' : ` (${preview.notionalAccountPercent.toFixed(2)}% balance)`}`;
-  } else if (mode === 'margin') {
-    helper = `${money(amount, account?.currency)} margin → ${fmtLots(preview.lots, market)} lots`;
-  } else if (mode === 'riskPercent') {
-    helper = `${amount}% equity → ${money(Number(account?.equity) * Number(amount) / 100, account?.currency)} risk · ${fmtLots(preview.lots, market)} lots`;
-  } else {
-    helper = `${money(amount, account?.currency)} risk → ${fmtLots(preview.lots, market)} lots`;
-  }
+  let helper = !editing && isRisk(mode)
+    ? 'Choose a side and set SL to calculate size.'
+    : editing && isRisk(mode) && !validPositive(tradePlan?.sl)
+      ? 'Place stop loss on chart to calculate size.'
+      : mobileSizingHelper({ mode, sizing:preview || indicative, account, instrument:market, formatMoney:money, formatLots:fmtLots });
   if (!exposureAllowed) helper = exposureBlockReason || 'Trading unavailable';
 
   const showInput = openPanel && ['size', 'entry', 'sl', 'tp'].includes(openPanel);
@@ -238,7 +236,7 @@ export default function MobileAuditExecutionDock({
             <div className="grid min-w-0 grid-cols-[30px_minmax(0,1fr)_30px] items-center rounded-[6px] border border-white/[0.09] bg-[#090a0c]">
               <button type="button" disabled={commandPending} onClick={() => changeAmountStep(-1)} aria-label="Decrease sizing amount" className="mx-[2px] grid h-[40px] w-[26px] place-items-center rounded-[6px] border border-white/[0.12] bg-white/[0.07] text-[#e0e4e8] disabled:opacity-40"><Minus size={16}/></button>
               <div className="min-w-0 text-center">
-                <button type="button" disabled={commandPending} onClick={() => openEditor('size')} aria-label="Edit position sizing" className="block h-[26px] w-full overflow-hidden text-center font-mono text-[14px] font-semibold tabular-nums"><span className="block truncate">{amount}</span></button>
+                <button type="button" disabled={commandPending} onClick={() => openEditor('size')} aria-label="Edit position sizing" className="block h-[26px] w-full overflow-hidden text-center font-mono text-[14px] font-semibold tabular-nums"><span className="block truncate">{amount || '—'}</span></button>
                 <button type="button" disabled={commandPending} onClick={() => setOpenPanel(openPanel === 'modes' ? null : 'modes')} aria-label="Choose sizing mode" aria-expanded={openPanel === 'modes'} className="flex h-[22px] w-full items-center justify-center gap-0.5 overflow-hidden text-[10px] text-[#abb3bb]"><span className="truncate">{labels[mode]}</span><ChevronDown size={10}/></button>
               </div>
               <button type="button" disabled={commandPending} onClick={() => changeAmountStep(1)} aria-label="Increase sizing amount" className="mx-[2px] grid h-[40px] w-[26px] place-items-center rounded-[6px] border border-white/[0.12] bg-white/[0.07] text-[#e0e4e8] disabled:opacity-40"><Plus size={16}/></button>
