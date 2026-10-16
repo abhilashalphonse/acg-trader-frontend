@@ -1,3 +1,4 @@
+import MobileTradesV4 from './MobileTradesV4.jsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Check, ChevronLeft, Clock, X } from 'lucide-react';
 import { formatInstrumentPrice, instrumentForSymbol } from '../../utils/instrumentFormatting.js';
@@ -295,7 +296,7 @@ function DetailHeader({ title, subtitle, onBack }) {
   );
 }
 
-export default function MobileTradesSheet({
+function LegacyMobileTradesSheet({
   auditMobile = false,
   onClose = () => {},
   account = {},
@@ -914,4 +915,8 @@ function SummaryMetric({ label, value, valueClass = 'text-[#d7dde3]' }) {
       <span className={`font-mono font-medium tabular-nums ${valueClass}`}>{value}</span>
     </div>
   );
+}
+
+export default function MobileTradesSheet(props) {
+  return props.auditMobile ? <MobileTradesV4 {...props}/> : <LegacyMobileTradesSheet {...props}/>;
 }

@@ -43,7 +43,7 @@ try {
       await page.waitForFunction(()=>window.mobileSurfacesQA.selected==='second');checks++;
     }
     if(surface==='trades') {
-      await page.getByRole('button',{name:'History',exact:true}).click();
+      await page.getByRole('tab',{name:'History',exact:true}).click();
       ok((await page.locator('body').textContent()).includes('History'),'history navigation remains available');
     }
     eq(errors.length,0,surface+' no runtime errors: '+errors.join(';'));

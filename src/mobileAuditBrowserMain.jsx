@@ -210,13 +210,28 @@ function SurfaceDemo({surface}) {
   const [closed,setClosed]=useState(false);
   const [watched,setWatched]=useState([]);
   const [symbol,setSymbol]=useState(initialMarket.symbol);
-  window.mobileSurfacesQA={chartMode,timeframe,selected,closed,watched,symbol};
+  const [positions,setPositions]=useState([{id:'p1',symbol:'EURUSD',side:'BUY',volume:0.1,entry:1.12,pnl:4.32,sl:1.118,tp:1.124,margin:112,commission:0.5,swap:0,openedAtIso:new Date().toISOString()},{id:'p2',symbol:'GBPUSD',side:'SELL',volume:0.2,entry:1.31,pnl:-2.5,sl:null,tp:null,openedAtIso:new Date().toISOString()}]);
+  const [pendingOrders,setPendingOrders]=useState([{id:'o1',symbol:'GBPUSD',side:'SELL',orderType:'limit',volume:0.2,entry:1.31,sl:1.32,tp:1.29,status:'PENDING',expiration:'GTC'}]);
+  const [historyLoaded,setHistoryLoaded]=useState(true);
+  const [historyError,setHistoryError]=useState(null);
+  const [readOnly,setReadOnly]=useState(false);
+  const [commands,setCommands]=useState([]);
+  const [ack,setAck]=useState(null);
+  const [destination,setDestination]=useState(null);
+  const [failure,setFailure]=useState(false);
+  const [checks,setChecks]=useState(0);
+  const positionHistory=[{id:'h1',symbol:'EURUSD',side:'BUY',volume:0.1,entry:1.119,closePrice:1.12,pnl:12.34,commission:0.5,swap:-0.1,closedAtIso:new Date().toISOString(),openedAtIso:new Date(Date.now()-3600000).toISOString()},{id:'h2',symbol:'GBPUSD',side:'SELL',volume:0.2,entry:1.31,closePrice:1.32,pnl:-2.5,commission:0.4,swap:0,closedAtIso:new Date(Date.now()-35*86400000).toISOString()}];
+  const historyOrders=[{id:'ho1',symbol:'EURUSD',side:'BUY',orderType:'limit',volume:0.02,entry:1.11,status:'CANCELLED',createdAt:new Date().toISOString(),cancelledAt:new Date().toISOString()}];
+  const change=async(kind,id,percentage=100)=>{setCommands(prev=>[...prev,{kind,id,percentage}]);if(failure)return false;setAck({kind,id,percentage});return true;};
+  const overview={...account,accountCode:'ACG-598D2F',accountType:'CHALLENGE',usedMargin:112,marginLevel:89274.99};
+  window.mobileSurfacesQA={chartMode,timeframe,selected,closed,watched,symbol,commands,destination,checks,setHistoryLoaded,setHistoryError,setReadOnly,setFailure,positions,pendingOrders,
+    acknowledge:()=>{if(!ack)return;if(ack.kind==='close')setPositions(prev=>ack.percentage===100?prev.filter(p=>p.id!==ack.id):prev.map(p=>p.id===ack.id?{...p,volume:p.volume*(1-ack.percentage/100)}:p));if(ack.kind==='cancel')setPendingOrders(prev=>prev.filter(o=>o.id!==ack.id));if(ack.kind==='be')setPositions(prev=>prev.map(p=>p.id===ack.id?{...p,sl:p.entry}:p));setAck(null);}};
   const markets=[{...initialMarket,name:'Euro / US Dollar',marketDataAvailable:true},{...initialMarket,symbol:'GBPUSD',displaySymbol:'GBP/USD',name:'British Pound / US Dollar',bid:1.3,ask:1.3001}];
   const prefs={chartMode,timeframe,lots:0.1,sizingMode:'riskPercent',sizingAmount:'0.5',orderType:'market'};
   if(closed)return <div data-surface-closed>Back on chart</div>;
   if(surface==='markets')return <MobileInstrumentSheet auditMobile markets={markets} activeSymbol={symbol} onSelectSymbol={setSymbol} onClose={()=>setClosed(true)} watchlists={{activeSymbols:watched,toggleSymbol:id=>setWatched(prev=>prev.includes(id)?prev.filter(v=>v!==id):[...prev,id])}}/>;
-  if(surface==='trades')return <MobileTradesSheet auditMobile account={account} positions={[{id:'p1',symbol:'EURUSD',side:'BUY',volume:0.1,entry:1.12,pnl:4.32,sl:1.118,tp:1.124}]} pendingOrders={[]} positionHistory={[]} historyOrders={[]} historyLoaded markets={markets} onClose={()=>setClosed(true)}/>;
-  if(surface==='accounts')return <MobileAccountSheet auditMobile account={{...account,accountCode:'ACG-598D2F'}} accounts={[{...account,accountCode:'ACG-598D2F'},{...account,id:'second',accountCode:'ACG-SECOND'}]} activeAccountId={selected} onSelectAccount={setSelected} onClose={()=>setClosed(true)}/>;
+  if(surface==='trades')return <MobileTradesSheet auditMobile account={overview} positions={positions} pendingOrders={pendingOrders} positionHistory={positionHistory} historyOrders={historyOrders} historyLoaded={historyLoaded} historyError={historyError} readOnly={readOnly} markets={markets} onClose={()=>setClosed(true)} onRetryHistory={()=>{setHistoryError(null);setHistoryLoaded(true);}} onCheckStatus={()=>setChecks(n=>n+1)} onEditPositionOnChart={p=>setDestination({kind:'manage',id:p.id})} onModifyPending={id=>setDestination({kind:'pending',id})} onViewClosedPositionChart={p=>setDestination({kind:'history',id:p.id})} onOpenChart={s=>setDestination({kind:'chart',symbol:s})} onClosePosition={(id,pct)=>change('close',id,pct)} onCancelPending={id=>change('cancel',id)} onBreakEven={id=>change('be',id)}/>;
+  if(surface==='accounts')return <MobileAccountSheet auditMobile account={overview} accounts={[overview,{...account,id:'second',accountCode:'ACG-SECOND',accountType:'DEMO'}]} activeAccountId={selected} onSelectAccount={setSelected} onPlatformSettings={()=>setDestination({kind:'settings'})} onHelp={()=>setDestination({kind:'help'})} onClose={()=>setClosed(true)}/>;
   return <FrontendSheet auditMobile type="platform" account={account} terminalPrefs={prefs} onChartModeChange={setChartMode} onTimeframeChange={setTimeframe} onClose={()=>setClosed(true)}/>;
 }
 const fixtureParams=new URLSearchParams(location.search);

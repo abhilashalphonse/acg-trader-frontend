@@ -1,3 +1,4 @@
+import MobileAccountsV4 from './MobileAccountsV4.jsx';
 import React from 'react';
 import { Check, ChevronLeft, ChevronRight, CircleHelp, Loader2, Settings } from 'lucide-react';
 import { accountStatusLabel, accountStatusToneClass, accountTypeLabel } from '../../utils/accountPresentation.js';
@@ -30,7 +31,7 @@ function Action({ icon: Icon, title, subtitle, onClick }) {
   );
 }
 
-export default function MobileAccountSheet({
+function LegacyMobileAccountSheet({
   auditMobile = false,
   account = {},
   accounts = [],
@@ -132,4 +133,8 @@ export default function MobileAccountSheet({
       </div>
     </section>
   );
+}
+
+export default function MobileAccountSheet(props) {
+  return props.auditMobile ? <MobileAccountsV4 {...props}/> : <LegacyMobileAccountSheet {...props}/>;
 }
