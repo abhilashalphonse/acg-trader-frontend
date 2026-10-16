@@ -1367,7 +1367,7 @@ export default function TradingChart({
         </div>
       )}
     </div>}
-    {!desktopEnhanced && !isAtRealtime && !error && (
+    {!auditMobile && !desktopEnhanced && !isAtRealtime && !error && (
       <button
         type="button"
         onClick={returnToLive}
