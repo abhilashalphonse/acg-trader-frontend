@@ -49,6 +49,24 @@ on the real opt-in URL, not the Firebase PR preview.
 - Before direction selection, the Lots/Margin helper is explicitly indicative,
   based on the current buy quote and the existing adapter. It is not executable.
 
+## Compact header and supported navigation
+
+- The mobile audit chart suppresses TradingChart's duplicate instrument/OHLC
+  heading. Desktop and V3 continue rendering their existing chart headings.
+- TradingChart publishes the currently displayed candle readout through the
+  existing chart/container chain. The 48px header subtitle shows its close and
+  interval open-to-close change, or the current bid while candles load.
+  Symbol/timeframe identity checks reject stale readouts. Selected candles are
+  labelled CANDLE; rounded zero has neutral color and no negative sign.
+- Full OHLC appears only while inspecting a candle, inset clear of the vertical
+  tools. Indicator readouts remain available. The compact header does not grow.
+- The top-right overflow is a supported navigation menu: Markets, Trades,
+  Accounts, Indicators, Platform settings, and Help & support. Each opens its
+  existing shell destination; no new account/trading services are introduced.
+- Navigation and timeframe selectors are mutually exclusive. Outside press and
+  Escape dismiss them; Escape restores trigger focus. Menu arrows/Home/End are
+  keyboard accessible and never focus an input.
+
 ## Existing contract limitations
 
 - Risk Percent and Risk Amount require an SL and an instrument whose P&L

@@ -1,4 +1,5 @@
 import { candleReadout } from '../utils/candleReadout.js';
+import { mobileChartReadout } from '../utils/mobileChartReadout.js';
 import { initialChartRange, normalizeChartViewport } from '../utils/chartViewport.js';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -103,6 +104,8 @@ export default function TradingChart({
   showBidAskLines = false,
   showMobileQuoteMarkers = false,
   mobileReference = false,
+  auditMobile = false,
+  onChartReadout,
   showPositionPriceLines = true,
   priceScaleAnchors = [],
   showIndicatorControls = false,
@@ -149,9 +152,11 @@ export default function TradingChart({
   const chartRequestKey = `${String(symbol || '').toUpperCase()}:${timeframe}:${chartMode}`;
   const [readyKey, setReadyKey] = useState(null);
   const [displayBar, setDisplayBar] = useState(null);
+  const [inspectingCandle, setInspectingCandle] = useState(false);
   const selectedCandleTimeRef = useRef(null);
   const refreshDisplayBar = useCallback(() => {
     setDisplayBar(candleReadout(barsByTimeRef.current, lastBarRef.current, selectedCandleTimeRef.current));
+    setInspectingCandle(selectedCandleTimeRef.current != null);
   }, []);
   const [paneLayout, setPaneLayout] = useState([]);
   const [indicatorReadouts, setIndicatorReadouts] = useState([]);
@@ -1200,6 +1205,11 @@ export default function TradingChart({
   }, [refreshDisplayBar, chartMode, historyLimit, historyProfile.max, liveCandle, scheduleIndicatorUpdate, updateIndicatorData, symbol, timeframe]);
 
   const ohlc = displayBar;
+  useEffect(() => {
+    if (!auditMobile || !onChartReadout) return;
+    onChartReadout(readyKey === chartRequestKey && !error
+      ? mobileChartReadout({ symbol, timeframe, bar:displayBar, inspecting:inspectingCandle }) : null);
+  }, [auditMobile, onChartReadout, readyKey, chartRequestKey, error, symbol, timeframe, displayBar, inspectingCandle]);
   const format = value => value != null && Number.isFinite(Number(value)) ? Number(value).toFixed(decimals) : '—';
   const candleChange = ohlc && Number.isFinite(Number(ohlc.open)) && Number.isFinite(Number(ohlc.close))
     ? Number(ohlc.close) - Number(ohlc.open)
@@ -1297,11 +1307,13 @@ export default function TradingChart({
       </div>
     )}
     {readyKey !== chartRequestKey && !error && <ACGStartupLoader canvas />}
-    <div className={mobileReference
+    {(!auditMobile || (inspectingCandle && ohlc) || overlayIndicators.length > 0) && <div data-chart-instrument-info={auditMobile ? undefined : 'true'} className={auditMobile
+      ? 'pointer-events-none absolute left-[64px] right-[56px] top-2 z-20 text-[11px] text-[#a1a1aa]'
+      : mobileReference
       ? "acg-mobile-chart-info pointer-events-none absolute left-3 top-3 z-20 max-w-[78%] text-[#9ba8b6] [text-shadow:0_1px_2px_#000,0_0_8px_#000]"
       : "pointer-events-none absolute left-2.5 top-2.5 z-[70] max-w-[72%] px-1 text-[11px] leading-[1.45] text-[#8E99A5] [text-shadow:0_1px_2px_#000,0_0_6px_#000]"
     }>
-      {mobileReference ? (
+      {!auditMobile && (mobileReference ? (
         <>
           <div className="flex items-center gap-1.5 text-[14px] font-extrabold tracking-[-0.015em] text-[#f2f6f9]">
             <span>{symbol}</span>
@@ -1336,7 +1348,13 @@ export default function TradingChart({
           </div>
           {!compactContext && <div data-testid="chart-ohlc" className="mt-1 flex flex-wrap gap-x-2 whitespace-nowrap font-medium"><span>O <b className="text-[#aab9c8]">{format(ohlc?.open)}</b></span><span>H <b className="text-[#aab9c8]">{format(ohlc?.high)}</b></span><span>L <b className="text-[#aab9c8]">{format(ohlc?.low)}</b></span><span>C <b className="text-[#aab9c8]">{format(ohlc?.close)}</b></span>{candleChange != null && <span className={`font-semibold ${candleChangeTone}`}>{signed(candleChange, value => value.toFixed(decimals))}{candleChangePercent != null ? ` (${signed(candleChangePercent, value => value.toFixed(2))}%)` : ''}</span>}</div>}
         </>
-      )}
+      ))}
+      {auditMobile && inspectingCandle && ohlc && <div data-mobile-candle-inspection className="rounded-[4px] border border-white/[0.08] bg-[#09090b]/95 p-1.5 tabular-nums">
+        <div className="mb-0.5 text-[10px] text-[#96969f]">Selected candle</div>
+        <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
+          {[['O',ohlc.open],['H',ohlc.high],['L',ohlc.low],['C',ohlc.close]].map(([label,value]) => <span key={label}>{label} <b className="font-medium text-[#eeeef0]">{format(value)}</b></span>)}
+        </div>
+      </div>}
       {!compactContext && overlayIndicators.length > 0 && (
         <div className="mt-1.5 flex flex-wrap gap-x-1.5 gap-y-1 text-[9px] font-medium text-[#7F8A95]">
           {overlayIndicators.map(indicator => (
@@ -1348,7 +1366,7 @@ export default function TradingChart({
           ))}
         </div>
       )}
-    </div>
+    </div>}
     {!desktopEnhanced && !isAtRealtime && !error && (
       <button
         type="button"

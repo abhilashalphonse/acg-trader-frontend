@@ -2,6 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createChart, CandlestickSeries } from 'lightweight-charts';
 import { TradePlanOverlay } from './components/trading-v2/ChartArea.jsx';
 import { createRoot } from 'react-dom/client';
+import { renderToStaticMarkup } from 'react-dom/server';
+import TradingChart from './components/TradingChart.jsx';
+import { AuthContext } from './auth/AuthProvider.jsx';
+import { TradingContext } from './store/TradingProvider.jsx';
+import { mobileChartReadout } from './utils/mobileChartReadout.js';
 import MobileAuditHeader from './components/trading-v2/MobileAuditHeader.jsx';
 import MobileAuditExecutionDock from './components/trading-v2/MobileAuditExecutionDock.jsx';
 import MobileAuditDrawingPalette from './components/trading-v2/MobileAuditDrawingPalette.jsx';
@@ -60,10 +65,13 @@ function Demo() {
   const [commands, setCommands] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const [selectedTool, setSelectedTool] = useState('cursor');
+  const [lastDestination, setLastDestination] = useState(null);
+  const [readout, setReadout] = useState(() => mobileChartReadout({symbol:'EURUSD', timeframe:'M15', bar:{open:1.1208,close:1.12099}}));
   const locked = useRef(false);
   const withPlan = plan ? effectiveTradePlan(plan, market) : null;
   window.mobileAuditQA = {
-    commands, attempts, stage: withPlan?.stage || 'idle',
+    commands, attempts, stage: withPlan?.stage || 'idle', lastDestination, setReadout,
+    chartChrome: auditMobile => renderToStaticMarkup(<AuthContext.Provider value={{authenticated:false}}><TradingContext.Provider value={{market:{candlesByKey:{}},connection:{status:'connected'}}}><TradingChart instrument={market} symbol={market.symbol} timeframe="M15" mobileReference auditMobile={auditMobile}/></TradingContext.Provider></AuthContext.Provider>),
     plan: withPlan, market, account, selectedTool,
     sizing: withPlan ? resolveV4PositionSizing({
       mode: withPlan.auditMode, amount: withPlan.auditValue,
@@ -106,8 +114,9 @@ function Demo() {
     }
   };
   return <div className="acg-mobile-chart-shell acg-mobile-audit-shell flex h-dvh min-h-0 flex-col overflow-hidden bg-black text-white">
-    <MobileAuditHeader market={market} account={account} timeframe={timeframe} onTimeframe={setTimeframe}
-      positionsCount={3} onSelectInstrument={() => {}} onOpenTrades={() => {}} onOpenAccount={() => {}}/>
+    <MobileAuditHeader market={market} account={account} timeframe={timeframe} onTimeframe={setTimeframe} chartReadout={readout}
+      positionsCount={3} onSelectInstrument={() => setLastDestination('markets')} onOpenTrades={() => setLastDestination('trades')} onOpenAccount={() => setLastDestination('account')}
+      onOpenIndicators={() => setLastDestination('indicators')} onOpenSettings={() => setLastDestination('platform')} onOpenHelp={() => setLastDestination('help')}/>
     <div className="acg-mobile-reference-content flex min-h-0 flex-1 flex-col">
       <div data-audit-fixture-chart className="relative min-h-0 flex-1 bg-[#09090b]">
         <FixtureChart market={market} account={account} plan={withPlan} onChange={onChange}>

@@ -1480,6 +1480,7 @@ export default function ChartArea({
   drawingToolbarOverlay = false,
   mobileOverlayStyle = false,
   auditMobile = false,
+  onChartReadout,
   fillAvailableHeight = false,
 }) {
   const [clockNow, setClockNow] = useState(() => new Date());
@@ -1727,6 +1728,8 @@ export default function ChartArea({
           showBidAskLines={desktopEnhanced && !compactContext}
           showMobileQuoteMarkers={mobileReference}
           mobileReference={mobileReference}
+          auditMobile={auditMobilePalette}
+          onChartReadout={onChartReadout}
           showPositionPriceLines={false}
           priceScaleAnchors={priceScaleAnchors}
           showIndicatorControls={desktopEnhanced && !compactContext}
