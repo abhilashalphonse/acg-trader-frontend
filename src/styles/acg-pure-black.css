@@ -2545,3 +2545,33 @@ button:hover:not(:disabled){--acg-hover-surface:#181818}
     padding-right:6px!important;
   }
 }
+
+
+/* Approved chart-first mobile audit. Keep all existing default mobile
+   and desktop selectors unchanged. These override older phone-only sizing
+   rules that previously reserved a permanent left drawing-rail column. */
+@media (max-width:1023px) {
+  .acg-mobile-audit-shell .acg-mobile-reference-content {
+    padding:0!important;
+    min-height:0!important;
+  }
+  .acg-mobile-audit-shell .acg-mobile-reference-chart-frame {
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+  }
+  .acg-mobile-audit-shell .acg-mobile-reference-chart-area.acg-mobile-chart-surface.acg-mobile-audit-chart-area {
+    grid-template-columns:minmax(0,1fr)!important;
+    column-gap:0!important;
+    border-top:0!important;
+    background:#09090b!important;
+  }
+  .acg-mobile-audit-shell .acg-mobile-reference-order-wrap {
+    margin-top:0!important;
+    background:#101114;
+  }
+  .acg-mobile-audit-shell [data-acg-mobile-audit-palette] {
+    box-sizing:border-box;
+    touch-action:pan-y;
+  }
+}
