@@ -7,9 +7,13 @@ import { AuthProvider } from './auth/AuthProvider.jsx';
 import { TradingProvider } from './store/TradingProvider.jsx';
 import './index.css';
 import './styles/acg-pure-black.css';
+import { shouldOpenLandingPreview } from './landing/landing-routing.js';
 
-createRoot(document.getElementById('root')).render(
-  <AppErrorBoundary>
+if (shouldOpenLandingPreview(window.location.search)) {
+  window.location.replace('/acg-landing-v6.html');
+} else {
+  createRoot(document.getElementById('root')).render(
+    <AppErrorBoundary>
     <AuthProvider>
       <TradingProvider>
         <SessionGate>
@@ -17,5 +21,6 @@ createRoot(document.getElementById('root')).render(
         </SessionGate>
       </TradingProvider>
     </AuthProvider>
-  </AppErrorBoundary>,
-);
+    </AppErrorBoundary>,
+  );
+}
