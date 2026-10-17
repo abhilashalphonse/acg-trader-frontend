@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { Loader2, LogOut } from 'lucide-react';
-import { useTraderAuth } from '../../hooks/useTraderAuth.js';
+import { AuthContext } from '../../auth/AuthProvider.jsx';
 import { signOutDestination } from '../../utils/signOutDestination.js';
 
 // Place sign-out in account management rather than consuming trading/chart
 // space. Require a second click to avoid accidental loss of the session.
 export default function SignOutAction({ variant = 'desktop' }) {
-  const auth = useTraderAuth();
+  // Some standalone chart/account previews render without the trading
+  // AuthProvider. Do not crash those independent surfaces; production
+  // trading sessions always have a real AuthContext from the app shell.
+  const auth = useContext(AuthContext);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -25,6 +28,8 @@ export default function SignOutAction({ variant = 'desktop' }) {
       setBusy(false);
     }
   };
+
+  if (!auth?.logout || !auth?.authenticated) return null;
 
   return (
     <div data-v4-signout={variant} className={desktop

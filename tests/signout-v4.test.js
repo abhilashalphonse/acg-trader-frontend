@@ -41,3 +41,12 @@ test('backend revoke succeeds before clearing frontend session, never masks fail
   assert.doesNotMatch(call, /catch\s*\{[\s\S]*?\}/);
   assert.match(call, /wasSupabase.*new SupabaseBrowserAuth\(\)\.signOut\(\)/);
 });
+
+test('isolated mobile account QA fixtures need no AuthProvider', () => {
+  const action = source('../src/components/trading-v2/SignOutAction.jsx');
+  const fixture = source('../src/mobileAuditBrowserMain.jsx');
+  assert.match(action, /useContext\(AuthContext\)/);
+  assert.match(action, /if \(!auth\?\.logout \|\| !auth\?\.authenticated\) return null/);
+  assert.match(fixture, /<MobileAccountSheet auditMobile account=/);
+  assert.doesNotMatch(fixture, /<AuthProvider>/);
+});
