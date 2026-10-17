@@ -299,14 +299,12 @@ export function AuthProvider({ children }) {
   const logout = useCallback(async () => {
     const token = sessionRef.current?.accessToken || null;
     const wasSupabase = sessionRef.current?.principal?.authMethod === 'SUPABASE';
-    hardClearSession(null);
+    // Do not present a successful logout while the HttpOnly refresh cookie
+    // may still restore the session. A failed server revoke keeps the current
+    // session available so the user can retry.
+    await authApi.logout(token);
     if (wasSupabase) await new SupabaseBrowserAuth().signOut();
-    try {
-      await authApi.logout(token);
-    } catch {
-      // Local logout is immediate. Server-side revocation will normally
-      // succeed, but the UI should not trap a user when the network is down.
-    }
+    hardClearSession(null);
   }, [hardClearSession]);
 
   const refreshPrincipal = useCallback(async () => {
