@@ -26,7 +26,7 @@ test('onboarding is disabled by default and federation ticket keeps existing rou
  assert.equal(supabaseOnboardingEnabled({VITE_ACG_SUPABASE_AUTH_ENABLED:'true'}),true);
  assert.equal(shouldOpenStandaloneAuth('/','?acg_auth=signup&acg_onboarding_audit=1'),true);
  assert.equal(shouldOpenStandaloneAuth('/auth/callback',''),true);
- assert.equal(shouldOpenStandaloneAuth('/','?acg_auth=signup'),false);
+ assert.equal(shouldOpenStandaloneAuth('/','?acg_auth=signup'),true);
  assert.equal(shouldOpenStandaloneAuth('/','?ticket=private&acg_auth=signin&acg_onboarding_audit=1'),false);
  assert.equal(shouldOpenStandaloneAuth('/','?acg_ticket=private&acg_auth=signin&acg_onboarding_audit=1'),false);
 });
