@@ -8,8 +8,10 @@ import { AuthProvider } from './auth/AuthProvider.jsx';
 import { TradingProvider } from './store/TradingProvider.jsx';
 import './index.css';
 import './styles/acg-pure-black.css';
-import { shouldOpenLandingPreview, shouldOpenStandaloneAuth } from './landing/landing-routing.js';
+import { ACTIVE_TERMINAL_MARKER, shouldOpenLandingPreview, shouldOpenPublicHome, shouldOpenStandaloneAuth } from './landing/landing-routing.js';
 
+let activeTerminal = false;
+try { activeTerminal = window.sessionStorage.getItem(ACTIVE_TERMINAL_MARKER) === '1'; } catch { /* storage unavailable */ }
 if (shouldOpenLandingPreview(window.location.search)) {
   window.location.replace('/acg-landing-v6.html');
  } else if (shouldOpenStandaloneAuth(window.location.pathname, window.location.search)) {
@@ -18,6 +20,8 @@ if (shouldOpenLandingPreview(window.location.search)) {
       <AuthProvider><StandaloneAuthPage /></AuthProvider>
     </AppErrorBoundary>,
   );
+} else if (shouldOpenPublicHome(window.location.pathname, window.location.search, activeTerminal)) {
+  window.location.replace('/acg-landing-v6.html');
 } else {
   createRoot(document.getElementById('root')).render(
     <AppErrorBoundary>

@@ -61,7 +61,7 @@ export default function StandaloneAuthPage() {
     if (!token) { go('signin'); return; }
     try {
       await auth.loginPersonalDemo(token);
-      window.location.assign('/?acg_login=1');
+      window.location.assign('/terminal');
     } catch (nextError) {
       if (['PERSONAL_DEMO_LEDGER_UNAVAILABLE', 'PERSONAL_DEMO_UNAVAILABLE',
         'IDENTITY_CONFIRMATION_UNAVAILABLE', 'NETWORK_ERROR',
@@ -132,7 +132,7 @@ export default function StandaloneAuthPage() {
   const showBusy = busy && <Loader2 size={16} className="animate-spin" aria-hidden="true"/>;
   return <main className="min-h-dvh bg-[#f5f6f3] text-[#161817]">
     <header className="mx-auto flex max-w-[1280px] items-center justify-between px-5 py-6 sm:px-9">
-      <a href="/?acg_landing_audit=1" className="text-xl font-black tracking-[-.065em] text-[#111312] no-underline">
+      <a href="/" className="text-xl font-black tracking-[-.065em] text-[#111312] no-underline">
         ACG <span className="font-semibold tracking-[-.04em]">TRADER</span>
       </a>
       <a href="/?acg_connect_prop=1" className="text-xs font-semibold text-[#5b605d] hover:text-black">Connect Prop <ArrowRight size={13} className="inline" /></a>
@@ -155,7 +155,7 @@ export default function StandaloneAuthPage() {
           <p className="text-xs font-bold uppercase tracking-[.12em] text-[#7b8179]">PREVIEW</p>
           <h2 className="mt-3 text-[28px] font-black tracking-[-.045em]">Standalone onboarding</h2>
           <p className="mt-4 text-sm leading-6 text-[#656b64]">
-            Try Demo is being prepared for live signup. Email and Google registration remain disabled in this audit build; no personal account will be created here.
+            Try Demo is being prepared for live signup. Email and Google registration remain disabled in this audit build; no personal account can be created until registration is enabled.
           </p>
           <div className="mt-7"><a href="/?acg_login=1" className="block rounded-xl bg-[#141516] px-5 py-4 text-center text-sm font-bold text-white">Open existing login</a></div>
         </> : <>
@@ -203,7 +203,7 @@ export default function StandaloneAuthPage() {
               {mode === 'verify' ? 'Check your email' : mode === 'recovery-sent' ? 'Recovery link sent' : 'Password updated'}
             </h2>
             <p className="text-sm leading-6 text-[#656b64]">{mode === 'verify' ?
-              'Follow the verification link, then sign in to create your $100,000 virtual ACG Trader demo when public signup is enabled.' :
+              'Follow the verification link, then sign in to create your $100,000 virtual ACG Trader demo after email confirmation.' :
               mode === 'recovery-sent' ? 'If an account exists, you will receive a password recovery link.' :
               'Your password has been updated. Sign in to continue.'}</p>
             <Button onClick={()=>go('signin')}>Back to sign in</Button>
