@@ -34,6 +34,7 @@ import DesktopPositionManager from './desktop/DesktopPositionManager.jsx';
 import DesktopMultiChart from './desktop/DesktopMultiChart.jsx';
 import DesktopTradeReview from './desktop/DesktopTradeReview.jsx';
 import DesktopWorkspaceMenu from './desktop/DesktopWorkspaceMenu.jsx';
+import SignOutAction from './SignOutAction.jsx';
 import DesktopWatchlist from './desktop/DesktopWatchlist.jsx';
 import DesktopChartSettingsPopover from './desktop/DesktopChartSettingsPopover.jsx';
 import ChartObjectManager from './desktop/ChartObjectManager.jsx';
@@ -1308,6 +1309,7 @@ export default function DesktopTerminal({
                   ))}
                   {!groupedAccounts.length && <div className="px-3 py-4 text-center text-[8px] text-[#6F8191]">No trading accounts are available.</div>}
                 </div>
+                <SignOutAction variant="desktop" />
               </div>
             )}
           </div>

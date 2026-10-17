@@ -3,6 +3,7 @@ import {Check,ChevronDown,Loader2,Settings,CircleHelp} from 'lucide-react';
 import {accountStatusLabel,accountStatusToneClass,accountTypeLabel} from '../../utils/accountPresentation.js';
 import {MobileWorkspaceV4,WorkspaceMetric,WorkspaceDetails,workspaceMoney,workspaceTone,workspaceNumber} from './MobileWorkspaceV4.jsx';
 import '../../styles/mobileWorkspacesV4.css';
+import SignOutAction from './SignOutAction.jsx';
 
 export default function MobileAccountsV4({account={},accounts=[],activeAccountId,accountSwitching=false,accountSwitchError,onSelectAccount,onClose,onPlatformSettings,onHelp}) {
   const [details,setDetails]=useState(false);
@@ -42,6 +43,7 @@ export default function MobileAccountsV4({account={},accounts=[],activeAccountId
         ['Account ID',account.id],['Currency',currency],['Leverage',account.leverage?`1:${account.leverage}`:'—'],['Status',accountStatusLabel(account.status)],['Valuation',account.valuationStatus || 'Unavailable'],
       ]}/></div>}
       <div className="mw-account-footer"><button type="button" className="mw-action" onClick={onPlatformSettings}><Settings size={14}/>Settings</button><button type="button" className="mw-action" onClick={onHelp}><CircleHelp size={14}/>Help & support</button></div>
+      <SignOutAction variant="mobile-v4" />
     </div>
   </MobileWorkspaceV4>;
 }
