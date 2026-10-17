@@ -73,7 +73,7 @@ try {
   const native = await nativeContext.newPage();
   const pageErrors=[];
   native.on('pageerror',err=>pageErrors.push(err.name));
-  await native.goto(ui);
+  await native.goto(ui+'?acg_login=1');
   await native.getByRole('textbox',{name:'Trading Account ID'}).fill(privateData.nativeLogin);
   await native.getByLabel('Password',{exact:true}).fill(privateData.nativePassword);
   const nativeAuth = native.waitForResponse(response=>response.url().endsWith('/v1/auth/login')&&response.request().method()==='POST');

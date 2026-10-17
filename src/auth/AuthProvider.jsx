@@ -3,6 +3,7 @@ import { authApi } from '../api/auth.js';
 import { ApiError } from '../api/client.js';
 import { SESSION_STORAGE_KEY } from '../api/config.js';
 import { SupabaseBrowserAuth } from './supabase-browser.js';
+import { ACTIVE_TERMINAL_MARKER } from '../landing/landing-routing.js';
 
 export const AuthContext = createContext(null);
 
@@ -86,7 +87,10 @@ export function AuthProvider({ children }) {
     setSession(next);
     setStatus(next ? 'authenticated' : 'anonymous');
     setError(null);
-    if (next) clearLegacyStoredSession();
+    if (next) {
+      clearLegacyStoredSession();
+      try { window.sessionStorage.setItem(ACTIVE_TERMINAL_MARKER, '1'); } catch { /* private mode */ }
+    }
   }, []);
 
   const hardClearSession = useCallback((reason = null) => {
@@ -95,6 +99,7 @@ export function AuthProvider({ children }) {
     setStatus('anonymous');
     setError(reason ? (reason instanceof Error ? reason : new Error(String(reason))) : null);
     clearLegacyStoredSession();
+    try { window.sessionStorage.removeItem(ACTIVE_TERMINAL_MARKER); } catch { /* private mode */ }
   }, []);
 
   const markReauthRequired = useCallback(reason => {

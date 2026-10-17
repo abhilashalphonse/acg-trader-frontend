@@ -6,7 +6,7 @@ import { signOutDestination } from '../src/utils/signOutDestination.js';
 const source = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 
 test('sign out destination stays within its independently authenticated context', () => {
-  assert.equal(signOutDestination('SUPABASE'), '/?acg_auth=signin&acg_onboarding_audit=1');
+  assert.equal(signOutDestination('SUPABASE'), '/?acg_auth=signin');
   assert.equal(signOutDestination('PASSWORD', '?acg_connect_prop=1'), '/?acg_connect_prop=1');
   assert.equal(signOutDestination('PASSWORD', '?acg_v4_audit=1'), '/?acg_login=1');
   assert.equal(signOutDestination('FEDERATED', '?acg_ticket=ticket'), '/?acg_login=1');
