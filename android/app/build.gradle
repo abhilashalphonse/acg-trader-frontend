@@ -1,6 +1,19 @@
 apply plugin: 'com.android.application'
 
 android {
+    // Signing data is injected only by the protected release workflow.
+    // Development/debug builds never contain or depend on release secrets.
+    signingConfigs {
+        release {
+            def keyFile = System.getenv('ACG_ANDROID_KEYSTORE_FILE')
+            if (keyFile) {
+                storeFile file(keyFile)
+                storePassword System.getenv('ACG_ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ACG_ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('ACG_ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
     namespace = "com.acgtrader.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
@@ -18,6 +31,9 @@ android {
     }
     buildTypes {
         release {
+            if (System.getenv('ACG_ANDROID_KEYSTORE_FILE')) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
