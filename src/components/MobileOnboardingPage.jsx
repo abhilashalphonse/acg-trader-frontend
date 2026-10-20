@@ -4,6 +4,7 @@ import { AuthContext } from '../auth/AuthProvider.jsx';
 import { supabaseOnboardingEnabled } from '../auth/supabase-browser.js';
 import { mobileContextDestination } from '../utils/mobileOnboardingNavigation.js';
 import { isAndroidNativeRuntime } from '../native/androidRuntime.js';
+import NativeWelcomePage from './native/NativeWelcomePage.jsx';
 
 // Opt-in native-app-ready welcome route; never alters a desktop terminal,
 // ticket redemption, or the ACG Funded credential flow.
@@ -42,6 +43,17 @@ export default function MobileOnboardingPage() {
       setBusy(false);
     }
   };
+  if (native) return <NativeWelcomePage
+    restoring={restoring}
+    busy={busy}
+    sessionReady={Boolean(auth?.accessReady)}
+    openContext={openContext}
+    pendingContext={pendingContext}
+    setPendingContext={setPendingContext}
+    confirm={() => void confirm()}
+    error={error}
+  />;
+
   return (
     <main className="flex min-h-dvh w-full flex-col bg-[#050505] px-5 pb-[max(24px,env(safe-area-inset-bottom))] pt-[max(30px,env(safe-area-inset-top))] text-[#f4f4f4]">
       <div className="mx-auto flex w-full max-w-[440px] flex-1 flex-col">
