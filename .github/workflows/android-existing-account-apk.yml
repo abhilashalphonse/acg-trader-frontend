@@ -83,7 +83,7 @@ jobs:
         run: |
           npm run build
           test -d dist/assets
-          grep -qrF 'discerning-presence-staging.up.railway.app' dist/assets
+          grep -qrF 'acg-trader-backend-production.up.railway.app' dist/assets
           if grep -qrF 'discerning-presence-staging.up.railway.app' dist/assets; then
             echo '::error::Staging backend leaked into existing-account build'
             exit 1
