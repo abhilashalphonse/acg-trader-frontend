@@ -1,0 +1,12 @@
+{
+  "appId": "com.acgtrader.beta",
+  "appName": "ACG Trader",
+  "webDir": "dist",
+  "server": {
+    "hostname": "localhost",
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
