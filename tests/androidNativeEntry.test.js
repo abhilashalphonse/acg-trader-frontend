@@ -1,15 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { useNativeEntryScreens } from '../src/native/nativePresentation.js';
+import { shouldPresentNativeEntry } from '../src/native/nativePresentation.js';
 import { mayIssueExistingBetaRequest } from '../src/native/existingAccountBeta.js';
 
 test('native screens are unconditional only in actual Android; web preview needs a build flag',()=>{
   const android={Capacitor:{isNativePlatform:()=>true,getPlatform:()=> 'android'}};
   const web={Capacitor:{isNativePlatform:()=>false,getPlatform:()=> 'web'}};
-  assert.equal(useNativeEntryScreens(android,{}),true);
-  assert.equal(useNativeEntryScreens(web,{}),false);
-  assert.equal(useNativeEntryScreens(web,{VITE_ACG_NATIVE_UI_PREVIEW:'true'}),true);
-  assert.equal(useNativeEntryScreens(web,{VITE_ACG_NATIVE_UI_PREVIEW:'false'}),false);
+  assert.equal(shouldPresentNativeEntry(android,{}),true);
+  assert.equal(shouldPresentNativeEntry(web,{}),false);
+  assert.equal(shouldPresentNativeEntry(web,{VITE_ACG_NATIVE_UI_PREVIEW:'true'}),true);
+  assert.equal(shouldPresentNativeEntry(web,{VITE_ACG_NATIVE_UI_PREVIEW:'false'}),false);
 });
 
 test('existing-account production app remains read-only including profile changes',()=>{
