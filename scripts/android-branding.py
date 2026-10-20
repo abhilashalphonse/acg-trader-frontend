@@ -3,12 +3,14 @@
 No logo redesign and no example Capacitor icon. Used only after 'npx cap add android'.
 """
 from pathlib import Path
+from io import BytesIO
+import cairosvg
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 RES = ROOT / "android" / "app" / "src" / "main" / "res"
 MANIFEST = ROOT / "android" / "app" / "src" / "main" / "AndroidManifest.xml"
-SOURCE = ROOT / "public" / "acg-logo.png"
+SOURCE = ROOT / "public" / "acg-trader-wordmark.svg"
 
 sizes = {
     "mdpi": 48,
@@ -18,14 +20,14 @@ sizes = {
     "xxxhdpi": 192,
 }
 
-logo = Image.open(SOURCE).convert("RGBA")
-gray = logo.convert("RGB").convert("L")
-# The actual source asset is a white ACG wordmark on a black/transparent canvas.
-visible = gray.point(lambda v: 255 if v >= 90 else 0)
-bounds = visible.getbbox()
-if not bounds:
-    raise RuntimeError("ACG repo logo has no visible white mark")
-logo = logo.crop(bounds)
+# Use the founder-supplied ACG Trader wordmark traced to one source vector.
+# Do not substitute the old ACG-only image or a font recreation.
+logo = Image.open(BytesIO(cairosvg.svg2png(url=str(SOURCE), output_width=1024))).convert("RGBA")
+if not logo.getbbox():
+    raise RuntimeError("ACG Trader wordmark source is blank")
+# Square app icon uses the ACG glyphs from the exact same supplied wordmark,
+# whereas launch screens display the complete wordmark.
+icon_logo = logo.crop((0, 0, round(logo.width * 0.38), logo.height))
 
 for density, size in sizes.items():
     destination = RES / ("mipmap-" + density)
@@ -33,8 +35,8 @@ for density, size in sizes.items():
     canvas = Image.new("RGBA", (size, size), (0, 0, 0, 255))
     max_width = int(size * 0.83)
     max_height = int(size * 0.55)
-    scale = min(max_width / logo.width, max_height / logo.height)
-    resized = logo.resize((max(1, round(logo.width * scale)), max(1, round(logo.height * scale))), Image.Resampling.LANCZOS)
+    scale = min(max_width / icon_logo.width, max_height / icon_logo.height)
+    resized = icon_logo.resize((max(1, round(icon_logo.width * scale)), max(1, round(icon_logo.height * scale))), Image.Resampling.LANCZOS)
     x = (size - resized.width) // 2
     y = (size - resized.height) // 2
     canvas.alpha_composite(resized, (x, y))
@@ -113,5 +115,5 @@ if activity_source.exists():
     activity_target.parent.mkdir(parents=True, exist_ok=True)
     copyfile(activity_source, activity_target)
 
-print("Android icon, black launch splash, session cookie bridge prepared from official ACG assets")
+print("Android launcher glyphs and full wordmark splash are generated from supplied ACG Trader wordmark")
 
