@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, ArrowRight, ArrowUpRight, Eye, EyeOff, LockKeyhole, ShieldCheck } from 'lucide-react';
+import { Browser } from '@capacitor/browser';
 
 export default function NativeTradingLogin({ connectProp, tenant, form, setForm, submitting, ready, errorMessage, onSubmit, fundedUrl, isReadOnlyBeta }) {
   const [visible, setVisible] = useState(false);
@@ -51,9 +52,10 @@ export default function NativeTradingLogin({ connectProp, tenant, form, setForm,
         <p className="acg-native-form-hint"><LockKeyhole size={15}/> Use your trading account password, not your ACG Funded website password.</p>
       </form>
       <div className="acg-native-login-bottom">
-        {fundedUrl && <a className="acg-native-small-link" href={fundedUrl} target="_blank" rel="noopener noreferrer">
+        {fundedUrl && <button type="button" className="acg-native-small-link"
+          onClick={() => void Browser.open({ url: fundedUrl }).catch(() => {})}>
           Find credentials in ACG Funded <ArrowUpRight size={15}/>
-        </a>}
+        </button>}
         <a className="acg-native-small-link" href="/?acg_auth=signup&acg_onboarding_audit=1">
           New to ACG Trader? Create an account <ArrowRight size={15}/>
         </a>
