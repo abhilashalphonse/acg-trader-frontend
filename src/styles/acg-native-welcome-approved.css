@@ -149,3 +149,10 @@
 @media (prefers-reduced-motion:reduce) {
   .acg-native-welcome-v2 * {transition:none !important;}
 }
+
+/* The new wordmark belongs to the native sign-in/signup header too. */
+.acg-native-signin .acg-native-logo {
+  width:clamp(135px, 41vw, 160px);
+  aspect-ratio:1024 / 147;
+  object-fit:contain;
+}
