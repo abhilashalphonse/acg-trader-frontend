@@ -19,8 +19,8 @@ test('mobile onboarding is opt-in and never intercepts ticket or existing termin
     '?acg_mobile_onboarding=1&acg_v4_audit=1',
   ]) assert.equal(shouldOpenMobileOnboarding('/', search), false, search);
   assert.equal(shouldOpenMobileOnboarding('/terminal', '?acg_mobile_onboarding=1'), false);
-  assert.equal(shouldOpenPublicHome('/', '?acg_mobile_onboarding=1', false), true,
-    'Main entry route takes priority over public home for explicit mobile welcome');
+  assert.equal(shouldOpenPublicHome('/', '?acg_mobile_onboarding=1', false), false,
+    'Explicit mobile welcome is not a public landing route');
   assert.equal(shouldOpenStandaloneAuth('/', '?acg_auth=signin'), true);
 });
 
