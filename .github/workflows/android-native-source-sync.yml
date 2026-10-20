@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - '.github/workflows/android-native-source-sync.yml'
+      - 'scripts/android-branding.py'
+      - 'scripts/android/MainActivity.java'
+      - 'capacitor.config.json'
 
 permissions:
   contents: write
@@ -42,7 +45,7 @@ jobs:
         run: npm run build
       - name: Generate checked-in Capacitor Android platform
         run: |
-          npx cap add android
+          if [ ! -f android/gradlew ]; then npx cap add android; fi
           npx cap sync android
           python3 -m pip install --disable-pip-version-check --quiet --break-system-packages Pillow
           python3 scripts/android-branding.py
