@@ -9,7 +9,7 @@ export default function NativeTradingLogin({ connectProp, tenant, form, setForm,
     <div className="acg-native-frame">
       <header className="acg-native-brand-row">
         <a className="acg-native-back" href="/?acg_mobile_onboarding=1" aria-label="Back to welcome"><ArrowLeft size={20}/></a>
-        <img src="/acg-logo.png" alt="ACG Trader" className="acg-native-logo" draggable="false"/>
+        <img src="/acg-trader-wordmark.svg" alt="ACG Trader" className="acg-native-logo" draggable="false"/>
         <span className="acg-native-meta">CONNECT PROP</span>
       </header>
       <section className="acg-native-form-heading">
