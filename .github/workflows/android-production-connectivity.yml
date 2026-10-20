@@ -20,7 +20,7 @@ jobs:
         run: |
           set -euo pipefail
           base='https://acg-trader-backend-production.up.railway.app'
-          origin='https://localhost'
+          origin='https://acg-trader.web.app'
           curl --fail --silent --show-error --connect-timeout 10 --max-time 20 "$base/health/live" >/dev/null
           for endpoint in /v1/auth/login /v1/auth/refresh /v1/auth/logout /v1/auth/accounts; do
             method=POST
