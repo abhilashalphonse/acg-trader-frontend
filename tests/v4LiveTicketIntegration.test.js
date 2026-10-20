@@ -151,7 +151,7 @@ test('Audit bug regression: Risk % and Risk USD work before a chart SL exists',(
  assert.match(component,/onStartPlan\(side,orderType,\{protection/);
  assert.match(component,/const sl=positive\(effective\?\.sl\)\|\|defaultProtect\('sl'\)/);
  assert.match(component,/onRiskPercentChange\(percent\)/);
- assert.match(component,/if\(!result\.canExecute\)notice/);
+ assert.match(component,/if\(!result\.canExecute&&!tradePlan\)notice/);
 });
 
 test('Mobile execution and protected preview remain separate entry points',()=>{

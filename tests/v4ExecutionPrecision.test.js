@@ -227,8 +227,8 @@ test('BTC 2x: risk is limited by margin rather than an arbitrary 1 percent ceili
    const blocked=run(mode,amount,props);
    assert.equal(blocked.canExecute,false);
    assert.equal(blocked.code,'INSUFFICIENT_MARGIN');
-   assert.match(blocked.message,/Insufficient free margin/);
-   assert.match(blocked.message,/Estimated opening cost: USD/);
+   assert.match(blocked.message,/Insufficient margin/);
+   assert.ok(blocked.message.length<70);
    assert.ok(blocked.riskSizing.totalRequirement>funded.freeMargin);
    assert.ok(blocked.riskSizing.maxMarginLots>0);
  }
