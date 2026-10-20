@@ -13,6 +13,12 @@ function presentAuthError(error) {
   const code = String(error.code || '').toUpperCase();
   const status = Number(error.status || 0);
 
+  if (code === 'INVALID_TRADING_CREDENTIALS' || code === 'TRADING_TENANT_NOT_FOUND') {
+    return 'Account not found for this tenant. Verify your tenant, trading account ID and trading password.';
+  }
+  if (status === 423 || code === 'TRADING_LOGIN_LOCKED') {
+    return 'Too many failed attempts. Wait for the trading login lock to expire before retrying.';
+  }
   if (status === 401 || ['INVALID_CREDENTIALS', 'AUTH_INVALID', 'LOGIN_FAILED'].includes(code)) {
     return 'Trading Account ID or password is incorrect.';
   }
