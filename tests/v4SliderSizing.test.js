@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {deriveV4AffordableVolume,v4LotsFromTrack,v4TrackFromLots,v4CryptoQuantity} from '../src/utils/v4SliderSizing.js';
+import {deriveV4AffordableVolume,deriveV4AffordableRiskRange,v4LotsFromTrack,v4TrackFromLots,v4CryptoQuantity} from '../src/utils/v4SliderSizing.js';
+import {resolveV4PositionSizing} from '../src/utils/v4ExecutionPrecision.js';
 import {estimateOpeningRequirement} from '../src/utils/tradingRisk.js';
 import {estimateExecutionPrice} from '../src/utils/executionPricing.js';
 
@@ -94,4 +95,60 @@ test('USD account previews AUD/CAD margin only with fresh live USDCAD conversion
    assert.equal(estimateOpeningRequirement(0.99401,0.01,audcad,invalidAccount),null);
    assert.equal(deriveV4AffordableVolume({instrument:audcad,account:invalidAccount}).valid,false);
  }
+});
+
+test('Risk % and USD slider endpoints remain executable and stop below unaffordable BTC risk',()=>{
+ const plan={symbol:'BTCUSD',side:'buy',pending:false,orderType:'market',
+   entry:btc.ask,sl:btc.ask-400,tp:null,sizingMode:'risk'};
+ const available=calculate();
+ const range=deriveV4AffordableRiskRange({instrument:btc,account,plan,affordableLots:available.affordableLots});
+ assert.equal(range.valid,true,JSON.stringify(range));
+ assert.ok(range.percent.min>0 && range.percent.max<5,JSON.stringify(range));
+ assert.ok(range.usd.max<5000,JSON.stringify(range));
+ for(const [mode,r] of [['riskPercent',range.percent],['riskUSD',range.usd]]){
+   for(const amount of [r.min,r.max]){
+     const result=resolveV4PositionSizing({mode,amount,plan,account,instrument:btc});
+     assert.equal(result.canExecute,true,JSON.stringify({mode,amount,result}));
+     assert.ok(result.openingRequirement<=account.freeMargin+1e-8);
+   }
+ }
+ const beyond=resolveV4PositionSizing({mode:'riskUSD',amount:range.usd.max+100,plan,account,instrument:btc});
+ assert.equal(beyond.canExecute,false);
+ assert.equal(beyond.code,'INSUFFICIENT_MARGIN');
+});
+
+test('Risk slider re-evaluates on margin, stop distance, and side; unknown data fails closed',()=>{
+ const buy={symbol:'BTCUSD',side:'buy',pending:false,orderType:'market',entry:btc.ask,sl:btc.ask-400,sizingMode:'risk'};
+ const sell={...buy,side:'sell',entry:btc.bid,sl:btc.bid+400};
+ const make=(a,p,i=btc)=>{
+   const available=calculate(a,i,{side:p.side});
+   return deriveV4AffordableRiskRange({instrument:i,account:a,plan:p,affordableLots:available.affordableLots});
+ };
+ const full=make(account,buy);
+ const reduced=make({...account,freeMargin:50000},buy);
+ const tightStop=make(account,{...buy,sl:btc.ask-100});
+ const short=make(account,sell);
+ assert.equal(full.valid,true,JSON.stringify(full));
+ assert.equal(reduced.valid,true,JSON.stringify(reduced));
+ assert.equal(tightStop.valid,true,JSON.stringify(tightStop));
+ assert.equal(short.valid,true,JSON.stringify(short));
+ assert.ok(reduced.usd.max<full.usd.max);
+ assert.ok(reduced.percent.max<full.percent.max);
+ assert.ok(tightStop.usd.max<full.usd.max);
+ assert.equal(make(account,{...buy,sl:null}).valid,false);
+ assert.equal(make({...account,freeMargin:null},buy).valid,false);
+ assert.equal(make({...account,freeMargin:3},buy).valid,false);
+ assert.equal(make(account,{...buy,sl:btc.ask+50}).valid,false);
+ assert.equal(make(account,buy,{...btc,ask:null}).valid,false);
+});
+
+test('Risk slider uses opening fees and market liquidity bands rather than account percent alone',()=>{
+ const banded={...btc,spreadProfile:{volumeBands:[{upTo:1,extraPoints:0},{upTo:null,extraPoints:250000}]}};
+ const plan={symbol:'BTCUSD',side:'buy',pending:false,orderType:'market',entry:banded.ask,sl:banded.ask-400,sizingMode:'risk'};
+ const affordable=calculate(account,banded);
+ const range=deriveV4AffordableRiskRange({instrument:banded,account,plan,affordableLots:affordable.affordableLots});
+ assert.equal(range.valid,true,JSON.stringify(range));
+ const result=resolveV4PositionSizing({mode:'riskUSD',amount:range.usd.max,plan,account,instrument:banded});
+ assert.equal(result.canExecute,true,JSON.stringify(result));
+ assert.ok(result.openingRequirement<=account.freeMargin);
 });
