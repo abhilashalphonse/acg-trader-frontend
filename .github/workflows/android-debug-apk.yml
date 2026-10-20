@@ -48,6 +48,25 @@ jobs:
         run: |
           test -n "${ANDROID_HOME:-}" || { echo 'Android SDK missing on runner'; exit 1; }
           "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --install 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Verify installed Android HTTPS origin is allowed by staging API
+        run: |
+          set -euo pipefail
+          base="$VITE_ACG_TRADER_API_BASE"
+          origin='https://localhost'
+          for endpoint in /v1/auth/login /v1/auth/refresh; do
+            headers="$(curl --silent --show-error --connect-timeout 10 --max-time 20 --dump-header - --output /dev/null \
+              --request OPTIONS -H "Origin: $origin" \
+              -H 'Access-Control-Request-Method: POST' \
+              -H 'Access-Control-Request-Headers: content-type,x-acg-refresh' "$base$endpoint")"
+            printf '%s\n' "$headers" | grep -qiF "access-control-allow-origin: $origin" || {
+              echo "::error::Android origin denied on $endpoint; staging CORS must allow https://localhost"
+              exit 1
+            }
+            printf '%s\n' "$headers" | grep -qiF 'access-control-allow-credentials: true' || {
+              echo "::error::Android credentialed requests denied on $endpoint"; exit 1;
+            }
+          done
+          echo 'Staging accepts Android origin for credentialed login and refresh preflights.'
       - name: Install locked frontend dependencies
         run: npm ci
       - name: Install isolated native build toolchain (without changing web lockfile)
