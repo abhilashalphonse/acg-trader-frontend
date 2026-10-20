@@ -1,0 +1,151 @@
+/* Approved Android welcome reference: spacious black composition and bottom-reachable CTAs.
+   Native-only; does not restyle the Mobile V4 trading terminal or desktop. */
+.acg-native-welcome-v2 { background:#000; color:#f7f7f7; }
+.acg-native-welcome-v2 .acg-welcome-frame {
+  width:min(100%, 480px);
+  min-height:100dvh;
+  padding:
+    max(16px, env(safe-area-inset-top))
+    clamp(19px, 5.2vw, 27px)
+    max(14px, env(safe-area-inset-bottom));
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+}
+.acg-welcome-mark {
+  flex:none;
+  display:flex;
+  justify-content:center;
+  margin-top:clamp(84px, 12.4dvh, 178px);
+  width:100%;
+}
+.acg-welcome-mark img {
+  display:block;
+  width:min(100%, 370px);
+  height:auto;
+  aspect-ratio:1024 / 147;
+  object-fit:contain;
+  pointer-events:none;
+  user-select:none;
+}
+.acg-welcome-content {
+  margin-top:auto;
+  padding-top:clamp(32px, 6dvh, 90px);
+}
+.acg-welcome-content h1 {
+  font-size:clamp(29px, 8.4vw, 38px);
+  line-height:1.12;
+  letter-spacing:-.035em;
+  font-weight:650;
+  color:#f5f5f5;
+  margin:0;
+}
+.acg-welcome-subtitle {
+  margin-top:9px;
+  color:#94959a;
+  font-size:clamp(15px, 4.25vw, 18px);
+  line-height:1.45;
+  font-weight:400;
+}
+.acg-welcome-choices { display:flex; flex-direction:column; gap:12px; margin-top:28px; }
+.acg-welcome-connect, .acg-welcome-demo {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  width:100%;
+  min-height:55px;
+  padding:10px 14px;
+  border-radius:11px;
+  font-size:clamp(14px, 3.9vw, 17px);
+  font-weight:650;
+  letter-spacing:-.016em;
+  line-height:1.3;
+  transition:background .12s,border-color .12s;
+}
+.acg-welcome-connect {
+  color:#090909;
+  background:#f5f5f5;
+  border:1px solid #f5f5f5;
+}
+.acg-welcome-connect:active {background:#d8d8d8;}
+.acg-welcome-demo {
+  color:#f1f1f1;
+  background:linear-gradient(125deg,#0c0d0e,#131415 60%,#0d0e0f);
+  border:1px solid #36383d;
+}
+.acg-welcome-demo:active {background:#222326;}
+.acg-welcome-create {
+  color:#dadde2;
+  text-align:center;
+  font-size:14px;
+  font-weight:550;
+  margin-top:28px;
+  min-height:44px;
+  width:100%;
+}
+.acg-welcome-create:active, .acg-welcome-help:active {color:#fff;}
+.acg-welcome-connect:disabled,.acg-welcome-demo:disabled,.acg-welcome-create:disabled {
+  opacity:.45;cursor:wait;
+}
+.acg-welcome-status {margin:10px 0 0;color:#999;font-size:11px;text-align:center;}
+.acg-welcome-footer {
+  flex:none;
+  padding-top:clamp(22px, 5.8dvh, 74px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.acg-welcome-help {
+  color:#81848a;
+  font-size:14px;
+  line-height:1.5;
+  font-weight:500;
+  padding:8px 23px;
+  min-height:44px;
+}
+.acg-native-welcome-v2 button:focus-visible {outline:2px solid #ddd;outline-offset:4px;}
+.acg-welcome-help-backdrop {
+  position:fixed;
+  z-index:1200;
+  inset:0;
+  display:flex;
+  align-items:flex-end;
+  background:rgba(0,0,0,.72);
+}
+.acg-welcome-help-sheet {
+  background:#101010;
+  border:1px solid #363636;
+  border-radius:18px 18px 0 0;
+  color:#ededed;
+  width:100%;
+  max-width:480px;
+  margin:0 auto;
+  padding:23px 23px max(27px,env(safe-area-inset-bottom));
+  outline:none;
+  box-shadow:0 -10px 60px #0009;
+}
+.acg-welcome-help-heading {display:flex;align-items:start;gap:15px;justify-content:space-between;margin-bottom:21px;}
+.acg-welcome-help-heading h2 {font-size:20px;font-weight:650;line-height:1.2;}
+.acg-welcome-help-heading button {font-size:27px;color:#ddd;min-width:32px;min-height:32px;}
+.acg-welcome-help-sheet p {font-size:13px;line-height:1.65;color:#a5a5a5;margin-bottom:15px;}
+.acg-welcome-help-sheet strong {color:#ededed;}
+.acg-welcome-help-sheet .acg-native-primary {margin-top:18px;}
+@media (max-height:740px) {
+  .acg-welcome-mark {margin-top:clamp(42px, 8dvh, 70px);}
+  .acg-welcome-content {padding-top:28px;}
+  .acg-welcome-choices {margin-top:21px;gap:10px;}
+  .acg-welcome-connect,.acg-welcome-demo {min-height:50px;}
+  .acg-welcome-create {margin-top:16px;}
+  .acg-welcome-footer {padding-top:13px;}
+}
+@media (max-height:615px) {
+  .acg-welcome-mark {margin-top:20px;}
+  .acg-welcome-content {padding-top:15px;}
+  .acg-welcome-choices {margin-top:13px;}
+  .acg-welcome-create {margin-top:10px;}
+  .acg-welcome-footer {padding-top:4px;}
+}
+@media (prefers-reduced-motion:reduce) {
+  .acg-native-welcome-v2 * {transition:none !important;}
+}
