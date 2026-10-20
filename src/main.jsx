@@ -11,6 +11,7 @@ import './index.css';
 import './styles/acg-pure-black.css';
 import './styles/acg-native-auth.css';
 import './styles/acg-native-entry.css';
+import './styles/acg-native-welcome-approved.css';
 import { isAndroidNativeRuntime } from './native/androidRuntime.js';
 import { startAndroidLifecycle } from './native/androidLifecycle.js';
 import { ACTIVE_TERMINAL_MARKER, shouldOpenLandingPreview, shouldOpenMobileOnboarding, shouldOpenPublicHome, shouldOpenStandaloneAuth } from './landing/landing-routing.js';

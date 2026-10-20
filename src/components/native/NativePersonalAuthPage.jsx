@@ -13,14 +13,14 @@ export default function NativePersonalAuthPage({
     <div className="acg-native-frame">
       <header className="acg-native-brand-row">
         <a className="acg-native-back" href="/?acg_mobile_onboarding=1" aria-label="Back to welcome"><ArrowLeft size={20}/></a>
-        <img src="/acg-logo.png" alt="ACG Trader" className="acg-native-logo" draggable="false"/>
+        <img src="/acg-trader-wordmark.svg" alt="ACG Trader" className="acg-native-logo" draggable="false"/>
         <span className="acg-native-meta">PERSONAL ACCESS</span>
       </header>
       <section className="acg-native-form-heading">
         <p className="acg-native-eyebrow">ACG TRADER ACCOUNT</p>
         <h1>{isSignup ? 'Create your account.' : mode === 'recover' ? 'Reset your password.' : mode === 'reset' ? 'Set a new password.' : mode === 'signin' ? 'Sign in.' : mode === 'verify' ? 'Check your inbox.' : mode === 'setup' ? 'Finish setup.' : 'Account update.'}</h1>
         <p className="acg-native-description">{isSignup
-          ? 'Your independent personal identity, separate from any prop or broker account.'
+          ? 'Your independent demo identity, separate from prop-firm trading accounts.'
           : isRecovery ? 'Securely recover access to your personal account.'
           : 'Access your independent ACG Trader workspace.'}</p>
       </section>

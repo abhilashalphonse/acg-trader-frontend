@@ -27,6 +27,8 @@ test('mobile onboarding is opt-in and never intercepts ticket or existing termin
 test('personal demo and partner context destinations are distinct and never take tenant ids', () => {
   assert.equal(mobileContextDestination('personal'), '/?acg_auth=signin&acg_onboarding_audit=1');
   assert.equal(mobileContextDestination('partner'), '/?acg_connect_prop=1');
+  assert.equal(mobileContextDestination('signup'), '/?acg_auth=signup&acg_onboarding_audit=1');
+  assert.match(mobileContextDescription('signup'), /virtual practice/);
   assert.match(mobileContextDescription('personal'), /independent/);
   assert.match(mobileContextDescription('partner'), /its own trading credentials/);
   for (const invalid of [null, undefined, '', 'SUPABASE', 'FEDERATED', 'evil']) {

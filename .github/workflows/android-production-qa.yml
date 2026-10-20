@@ -9,13 +9,14 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'scripts/android-branding.py'
+      - 'public/acg-trader-wordmark.svg'
       - 'scripts/android/MainActivity.java'
       - '.github/workflows/android-production-qa.yml'
 permissions:
   contents: read
 jobs:
   android-qa:
-    if: ${{ startsWith(github.head_ref, 'feat/android-production-release-') }}
+    if: ${{ (startsWith(github.head_ref, 'feat/android-production-release-') || startsWith(github.head_ref, 'feat/android-approved-welcome-')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 50
     env:
@@ -67,7 +68,7 @@ jobs:
       - name: Synchronize native project and official ACG branding
         run: |
           npx cap sync android
-          python3 -m pip install --quiet --disable-pip-version-check --break-system-packages Pillow
+          python3 -m pip install --quiet --disable-pip-version-check --break-system-packages Pillow CairoSVG
           python3 scripts/android-branding.py
           test -f android/app/src/main/java/com/acgtrader/app/MainActivity.java
           grep -qF 'setAcceptThirdPartyCookies' android/app/src/main/java/com/acgtrader/app/MainActivity.java

@@ -66,7 +66,7 @@ export default function MobileOnboardingPage() {
           <div className="mb-4 flex size-11 items-center justify-center rounded-xl border border-white/[0.12] bg-[#151515]"><ChartNoAxesCombined size={23}/></div>
           <h1 className="text-[clamp(32px,8vw,44px)] font-bold leading-[1.08] tracking-[-.055em]">Your markets.<br/>Your workspace.</h1>
           <p className="mt-4 max-w-[350px] text-[13px] leading-6 text-[#a8a8a8]">
-            Trade on a connected broker or prop account, or explore markets using ACG Trader's independent virtual demo.
+            Connect a prop firm account or explore simulated markets using ACG Trader's independent virtual demo.
           </p>
         </div>
 
