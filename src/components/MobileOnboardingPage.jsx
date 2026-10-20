@@ -12,7 +12,7 @@ export default function MobileOnboardingPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const restoring = auth?.status === 'bootstrapping' || auth?.status === 'authenticating';
-  const authenticated = Boolean(auth?.accessReady);
+  const authenticated = Boolean(auth?.authenticated);
 
   const openContext = context => {
     if (restoring || busy) return;
@@ -50,7 +50,7 @@ export default function MobileOnboardingPage() {
           </p>
         </div>
 
-        {authenticated && (
+        {auth?.accessReady && (
           <a href="/terminal" className="mt-7 flex min-h-12 items-center justify-between rounded-xl border border-white/[0.18] bg-[#1b1b1b] px-4 text-[12px] font-bold text-white">
             Continue current trading session <ArrowRight size={17} />
           </a>
