@@ -3,6 +3,7 @@ import { ArrowUpRight, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react';
 import { useTraderAuth } from '../hooks/useTraderAuth.js';
 import ACGStartupLoader from './ACGStartupLoader.jsx';
 import { isAndroidNativeRuntime } from '../native/androidRuntime.js';
+import { isExistingAccountReadOnlyBeta } from '../native/existingAccountBeta.js';
 
 function presentAuthError(error) {
   if (!error) return '';
@@ -45,7 +46,13 @@ export default function SessionGate({ children }) {
     && new URLSearchParams(window.location.search).get('acg_connect_prop') === '1';
   const configuredTenant = String(import.meta.env.VITE_ACG_TRADER_TENANT || 'acg-funded').trim();
   const fundedUrl = String(import.meta.env.VITE_ACG_FUNDED_URL || 'https://acgfunded.com').trim();
-  const [form, setForm] = useState({ tenant: '', login: '', password: '' });
+  // Existing-account private beta defaults to our own trading tenant, while
+  // allowing partner traders to enter a different tenant explicitly.
+  const [form, setForm] = useState({
+    tenant: isExistingAccountReadOnlyBeta() ? 'acg-funded' : '',
+    login: '',
+    password: '',
+  });
   const tenant = connectProp ? form.tenant.trim() : configuredTenant;
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState('');
@@ -112,6 +119,11 @@ export default function SessionGate({ children }) {
                 ? 'Connect to a supported broker or prop firm using the tenant identifier and trading credentials they provided.'
                 : 'Access your trading workspace with the credentials issued from your ACG Funded account.'}
             </p>
+            {isExistingAccountReadOnlyBeta() && (
+              <p role="status" className="mt-3 text-[12px] font-semibold text-[#c4c4c4]">
+                READ-ONLY BETA · Use your existing trading account ID and password, not your website email login.
+              </p>
+            )}
           </header>
 
           <div className="mt-9 space-y-5 lg:mt-8 lg:space-y-4">
