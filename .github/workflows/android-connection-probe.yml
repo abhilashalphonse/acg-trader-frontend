@@ -34,4 +34,16 @@ jobs:
             echo "${allow_cred:-No Access-Control-Allow-Credentials}"
             echo
           done
-          echo 'Probe complete. The app may still need real-device cookie and WebSocket testing.'
+          echo 'Checking native WebSocket upgrade origin (unauthenticated, no trading access)...'
+          ws_status="$(curl --silent --show-error --http1.1 --connect-timeout 10 --max-time 20 \
+            --output /dev/null --write-out '%{http_code}' \
+            -H 'Origin: https://localhost' \
+            -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
+            -H 'Sec-WebSocket-Key: ZG9lc25vdG1hdHRlcmtleQ==' \
+            -H 'Sec-WebSocket-Version: 13' "$base/v1/ws")"
+          echo "Native-origin WebSocket response: HTTP $ws_status"
+          if [ "$ws_status" != '401' ]; then
+            echo "::error::Expected unauthorized (401) rather than origin-forbidden (403) WebSocket upgrade"
+            exit 1
+          fi
+          echo 'Probe complete: native origin reaches WebSocket authentication gate.'
