@@ -1,0 +1,65 @@
+name: Check in verified Android native source
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/android-native-source-sync.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  native-source:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'feat/android-existing-account-readonly-20261020' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout approved Android feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: true
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install locked web dependencies
+        run: npm ci
+      - name: Lock Capacitor 8 Android build toolchain in this repository
+        run: npm install --save-exact --no-audit --no-fund @capacitor/core@8.0.0 @capacitor/cli@8.0.0 @capacitor/android@8.0.0
+      - name: Build app-only web assets for Android native generation
+        env:
+          VITE_ACG_TRADER_API_BASE: https://acg-trader-backend-production.up.railway.app
+          VITE_ACG_TRADER_WS_URL: wss://acg-trader-backend-production.up.railway.app/v1/ws
+          VITE_ACG_ANDROID_READ_ONLY_BETA: 'true'
+          VITE_ACG_SUPABASE_AUTH_ENABLED: 'false'
+        run: npm run build
+      - name: Generate checked-in Capacitor Android platform
+        run: |
+          npx cap add android
+          npx cap sync android
+          python3 -m pip install --disable-pip-version-check --quiet --break-system-packages Pillow
+          python3 scripts/android-branding.py
+          test -f android/gradlew
+          test -f android/gradle/wrapper/gradle-wrapper.jar
+          test -f android/app/src/main/AndroidManifest.xml
+          test -f android/app/src/main/res/drawable/splash.png
+          grep -q 'setAcceptThirdPartyCookies' android/app/src/main/java/com/acgtrader/existingbeta/MainActivity.java
+      - name: Commit native source and exact dependency lockfile
+        run: |
+          set -euo pipefail
+          git config user.name 'ACG Trader Android Build'
+          git config user.email 'actions@users.noreply.github.com'
+          git add android/ package.json package-lock.json .gitignore
+          if git diff --cached --quiet; then
+            echo 'Native files already committed.'
+          else
+            git commit -m 'android: check in native Gradle project, launcher, splash and Capacitor lockfile'
+            git push origin HEAD:refs/heads/feat/android-existing-account-readonly-20261020
+          fi
