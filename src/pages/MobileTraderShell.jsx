@@ -20,6 +20,7 @@ import MobileAccountSheet from '../components/trading-v2/MobileAccountSheet.jsx'
 import { isExistingAccountReadOnlyBeta } from '../native/existingAccountBeta.js';
 import { useTradingTerminal } from '../hooks/useTradingTerminal.js';
 import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
+import { DEFAULT_CHART_TIMEFRAME, normalizeChartTimeframe, migrateChartStartupDefaults, initialChartIndicators, initialTerminalPreferences } from '../utils/chartStartupDefaults.js';
 import { calculateRiskOrderSizing, defaultPlannerStopDistance, estimateLossAtStopWithCosts, estimateStopRisk, evaluateRiskToolSetup } from '../utils/tradingRisk.js';
 import { resolveExecutionPreview } from '../utils/executionPricing.js';
 import { exposureAvailability } from '../utils/exposureAvailability.js';
@@ -39,12 +40,11 @@ const INDICATOR_FAVORITES_KEY = 'acg-trader-indicator-favorites-v1';
 const TERMINAL_PREFS_KEY = 'acg-trader-terminal-prefs-v1';
 
 function loadIndicators() {
-  if (typeof window === 'undefined') return [createIndicator('volume')].filter(Boolean);
+  if (typeof window === 'undefined') return [];
   try {
-    const stored = JSON.parse(window.localStorage.getItem(INDICATOR_STORAGE_KEY) || 'null');
-    if (Array.isArray(stored)) return stored;
-  } catch { /* defaults below */ }
-  return [createIndicator('volume')].filter(Boolean);
+    migrateChartStartupDefaults(window.localStorage);
+    return initialChartIndicators(window.localStorage);
+  } catch { return []; }
 }
 
 function loadIndicatorFavorites() {
@@ -57,24 +57,14 @@ function loadIndicatorFavorites() {
   return defaults;
 }
 
-const ALLOWED_TIMEFRAMES = new Set(['1m', '5m', '15m', '30m', '1H', '4H', '1D', '1W']);
-
-function normalizeTimeframePreference(value) {
-  const raw = String(value || '');
-  const aliases = { '1h': '1H', '4h': '4H', '1d': '1D', D: '1D', '1w': '1W' };
-  const normalized = aliases[raw] || raw;
-  return ALLOWED_TIMEFRAMES.has(normalized) ? normalized : '1m';
-}
+const normalizeTimeframePreference = normalizeChartTimeframe;
 
 function loadTerminalPrefs() {
-  if (typeof window === 'undefined') return {};
+  if (typeof window === 'undefined') return initialTerminalPreferences();
   try {
-    const stored = JSON.parse(window.localStorage.getItem(TERMINAL_PREFS_KEY) || '{}');
-    if (!stored || typeof stored !== 'object') return {};
-    return { ...stored, timeframe: normalizeTimeframePreference(stored.timeframe) };
-  } catch {
-    return {};
-  }
+    migrateChartStartupDefaults(window.localStorage);
+    return initialTerminalPreferences(window.localStorage);
+  } catch { return initialTerminalPreferences(); }
 }
 
 function formatMoneyForNotice(value, currency = 'USD') {
@@ -134,7 +124,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const existingAccountBeta = isExistingAccountReadOnlyBeta();
   const readOnly = existingAccountBeta || String(account?.status || '').toUpperCase() === 'BREACHED';
 
-  const [timeframe, setTimeframe] = useState(prefsRef.current.timeframe || '1m');
+  const [timeframe, setTimeframe] = useState(prefsRef.current.timeframe || DEFAULT_CHART_TIMEFRAME);
   const [chartMode, setChartMode] = useState(prefsRef.current.chartMode || 'candles');
   const [selectedTool, setSelectedTool] = useState('cursor');
   const favorite = watchlists?.isWatched?.(activeSymbol) === true;
