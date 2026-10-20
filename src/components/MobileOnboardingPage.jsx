@@ -3,7 +3,7 @@ import { ArrowRight, Building2, ChartNoAxesCombined, FlaskConical, Loader2, Shie
 import { AuthContext } from '../auth/AuthProvider.jsx';
 import { supabaseOnboardingEnabled } from '../auth/supabase-browser.js';
 import { mobileContextDestination } from '../utils/mobileOnboardingNavigation.js';
-import { useNativeEntryScreens } from '../native/nativePresentation.js';
+import { shouldPresentNativeEntry } from '../native/nativePresentation.js';
 import { isAndroidNativeRuntime } from '../native/androidRuntime.js';
 import NativeWelcomePage from './native/NativeWelcomePage.jsx';
 
@@ -16,7 +16,7 @@ export default function MobileOnboardingPage() {
   const [error, setError] = useState('');
   const restoring = auth?.status === 'bootstrapping' || auth?.status === 'authenticating';
   const authenticated = Boolean(auth?.authenticated);
-  const native = useNativeEntryScreens();
+  const native = shouldPresentNativeEntry();
   useEffect(() => {
     // The first launch shows onboarding; a valid restored trader session goes
     // straight into V4 on subsequent launches, without replacing auth grants.
