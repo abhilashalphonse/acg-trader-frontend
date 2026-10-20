@@ -151,7 +151,7 @@ test('Audit bug regression: Risk % and Risk USD work before a chart SL exists',(
  assert.match(component,/onStartPlan\(side,orderType,\{protection/);
  assert.match(component,/const sl=positive\(effective\?\.sl\)\|\|defaultProtect\('sl'\)/);
  assert.match(component,/onRiskPercentChange\(percent\)/);
- assert.match(component,/if\(!result\.canExecute\)notice/);
+ assert.match(component,/if\(!result\.canExecute&&!tradePlan\)notice/);
 });
 
 test('Mobile execution and protected preview remain separate entry points',()=>{
@@ -160,4 +160,11 @@ test('Mobile execution and protected preview remain separate entry points',()=>{
  assert.doesNotMatch(main,/OrderTicketV4Preview/);
  assert.match(read('src/pages/TradingTerminalV2.jsx'),/MobileScalperMode/);
  assert.doesNotMatch(component,/MobileScalperMode|ExecutionPanel/);
+});
+
+test('Risk sizing failures show the authoritative adapter reason rather than generic verification text',()=>{
+ assert.match(component,/const riskSizingPreview=useMemo/);
+ assert.match(component,/activeMode==='risk'&&riskSizingPreview&&!riskSizingPreview.canExecute/);
+ assert.match(component,/riskSizingPreview\.message/);
+ assert.match(component,/return riskSizingPreview\?\.canExecute\?riskSizingPreview\.lots:null/);
 });

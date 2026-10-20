@@ -19,6 +19,13 @@ const finitePositive = v => v !== null && v !== undefined && v !== '' && Number.
 const currency = v => String(v || '').trim().toUpperCase();
 const fail = (code, message, extra = {}) => ({ canExecute: false, code, message, lots: null, ...extra });
 
+function riskSizingFailureMessage(reason) {
+  if (reason === 'INSUFFICIENT_MARGIN') return 'Insufficient margin — reduce risk or widen SL.';
+  if (reason === 'MIN_VOLUME') return 'Risk is below the minimum position size.';
+  if (reason === 'MAX_VOLUME') return 'Risk exceeds the maximum position size.';
+  return 'Risk sizing unavailable — check SL and quotes.';
+}
+
 function instrumentVolumeSpec(instrument) {
   const step = finitePositive(instrument?.volumeStep);
   const minimum = finitePositive(instrument?.minVolume);
@@ -135,7 +142,8 @@ export function resolveV4PositionSizing({ mode, amount, plan, account, instrumen
     });
     const result = sizing?.sizing;
     if (!result?.canExecute || !finitePositive(result?.lots)) {
-      return fail(result?.blockReason || 'RISK_SIZING_UNAVAILABLE', 'Existing risk engine could not size this order.', {
+      const reason = result?.blockReason || 'RISK_SIZING_UNAVAILABLE';
+      return fail(reason, riskSizingFailureMessage(reason), {
         backendSizingMode: 'risk',
         riskPercent,
         riskSizing: result?.riskSizing || null,

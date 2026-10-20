@@ -211,3 +211,34 @@ test('Fresh USDCAD unlocks USD-denominated margin-budget sizing for AUD/CAD, sta
  assert.equal(blocked.canExecute,false);
  assert.equal(blocked.code,'MARGIN_CONVERSION_UNKNOWN');
 });
+
+test('BTC 2x: risk is limited by margin rather than an arbitrary 1 percent ceiling', () => {
+ const btc={...instrument,bid:82736.88,ask:82738.88,defaultLeverage:2,maxVolume:5,commissionPerLotPerSide:15};
+ const funded={...account,balance:101416,equity:101416,freeMargin:101416,leverage:100};
+ const protectedBuy={...plan,entry:82738.88,sl:82342.19,tp:null};
+ const props={instrument:btc,account:funded,plan:protectedBuy};
+ const valid=run('riskUSD',1047,props);
+ assert.equal(valid.canExecute,true,JSON.stringify(valid));
+ assert.ok(valid.lossAtStop<=1047);
+ assert.ok(valid.openingRequirement<=funded.freeMargin);
+ const validPercent=run('riskPercent',0.95,props);
+ assert.equal(validPercent.canExecute,true,JSON.stringify(validPercent));
+ for(const [mode,amount] of [['riskUSD',1463],['riskPercent',1.65]]) {
+   const blocked=run(mode,amount,props);
+   assert.equal(blocked.canExecute,false);
+   assert.equal(blocked.code,'INSUFFICIENT_MARGIN');
+   assert.match(blocked.message,/Insufficient margin/);
+   assert.ok(blocked.message.length<70);
+   assert.ok(blocked.riskSizing.totalRequirement>funded.freeMargin);
+   assert.ok(blocked.riskSizing.maxMarginLots>0);
+ }
+});
+
+test('V4 risk sizing reports minimum and maximum volume reasons, not a generic engine failure', () => {
+ const tooSmall=run('riskUSD',0.1);
+ assert.equal(tooSmall.code,'MIN_VOLUME');
+ assert.match(tooSmall.message,/minimum/);
+ const tooLarge=run('riskUSD',100000);
+ assert.equal(tooLarge.code,'MAX_VOLUME');
+ assert.match(tooLarge.message,/maximum/);
+});
