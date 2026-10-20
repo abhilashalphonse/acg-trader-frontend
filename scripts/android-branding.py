@@ -62,6 +62,23 @@ splash_logo = logo.resize((
 splash.paste(splash_logo, ((720 - splash_logo.width) // 2, (1280 - splash_logo.height) // 2), splash_logo)
 splash.save(splash_dir / "splash.png", optimize=True)
 
+# Android chooses drawable-port/land + density-qualified resources ahead of
+# drawable/splash.png. Replace every generated stock Capacitor splash in place.
+# Keep their original dimensions so high-density devices render sharply.
+for splash_asset in RES.glob("drawable*/splash.png"):
+    if splash_asset == splash_dir / "splash.png":
+        continue
+    with Image.open(splash_asset) as original:
+        width, height = original.size
+    canvas = Image.new("RGBA", (width, height), (0, 0, 0, 255))
+    target_width = max(24, round(width * 0.47))
+    target_height = max(12, round(height * 0.12))
+    ratio = min(target_width / logo.width, target_height / logo.height)
+    artwork = logo.resize((max(1, round(logo.width * ratio)),
+                           max(1, round(logo.height * ratio))), Image.Resampling.LANCZOS)
+    canvas.alpha_composite(artwork, ((width - artwork.width) // 2, (height - artwork.height) // 2))
+    canvas.convert("RGB").save(splash_asset, optimize=True)
+
 # Android 12+ shows a native splash controlled by the launch theme.
 styles = RES / "values" / "styles.xml"
 if styles.exists():
