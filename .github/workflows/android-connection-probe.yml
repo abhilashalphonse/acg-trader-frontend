@@ -1,0 +1,37 @@
+name: Android beta staging API access probe
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/android-connection-probe.yml'
+      - 'capacitor.config.json'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Probe native-origin CORS without trading credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://discerning-presence-staging.up.railway.app'
+          echo 'Checking backend readiness and native client CORS...'
+          curl --fail --silent --show-error --connect-timeout 10 --max-time 20 "$base/health/live" >/dev/null
+          for origin in 'https://localhost' 'http://localhost' 'https://acg-trader.web.app' 'https://acg-trader--pr-131-yh5zj97n.web.app'; do
+            echo "Origin: $origin"
+            headers="$(curl --silent --show-error --connect-timeout 10 --max-time 20 --dump-header - --output /dev/null --request OPTIONS \
+              -H "Origin: $origin" \
+              -H 'Access-Control-Request-Method: POST' \
+              -H 'Access-Control-Request-Headers: content-type,x-acg-refresh' \
+              "$base/v1/auth/refresh")"
+            status="$(printf '%s\n' "$headers" | head -1 | tr -d '\r')"
+            allow_origin="$(printf '%s\n' "$headers" | grep -i '^access-control-allow-origin:' || true)"
+            allow_cred="$(printf '%s\n' "$headers" | grep -i '^access-control-allow-credentials:' || true)"
+            echo "$status"
+            echo "${allow_origin:-No Access-Control-Allow-Origin}"
+            echo "${allow_cred:-No Access-Control-Allow-Credentials}"
+            echo
+          done
+          echo 'Probe complete. The app may still need real-device cookie and WebSocket testing.'
