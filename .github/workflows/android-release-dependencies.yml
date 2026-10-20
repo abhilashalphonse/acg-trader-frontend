@@ -1,0 +1,36 @@
+name: Pin Android lifecycle plugins
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/android-release-dependencies.yml'
+permissions:
+  contents: write
+jobs:
+  pin:
+    if: ${{ github.event.pull_request.head.ref == 'feat/android-production-release-20261020' && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/android-production-release-20261020
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm install --save-exact --no-audit --no-fund @capacitor/app@8.0.0 @capacitor/browser@8.0.0
+      - run: |
+          npm run build
+          npx cap sync android
+      - name: Commit verified plugin and Android source
+        run: |
+          set -euo pipefail
+          git config user.name 'ACG Trader Android CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git add package.json package-lock.json android/
+          if ! git diff --cached --quiet; then
+            git commit -m 'android: pin native app and browser lifecycle plugins'
+            git fetch origin feat/android-production-release-20261020
+            git rebase origin/feat/android-production-release-20261020
+            git push origin HEAD:refs/heads/feat/android-production-release-20261020
+          fi
