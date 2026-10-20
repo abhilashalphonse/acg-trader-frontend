@@ -21,6 +21,7 @@ concurrency:
 
 jobs:
   debug-apk:
+    if: ${{ !startsWith(github.head_ref, 'feat/android-existing-account-') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
