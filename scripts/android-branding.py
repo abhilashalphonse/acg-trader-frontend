@@ -46,5 +46,56 @@ for old in ('@mipmap/ic_launcher', '@mipmap/ic_launcher_round'):
         raise RuntimeError("Expected launcher resource missing from generated AndroidManifest: " + old)
 raw = raw.replace('@mipmap/ic_launcher_round', '@mipmap/acg_icon')
 raw = raw.replace('@mipmap/ic_launcher', '@mipmap/acg_icon')
+
 MANIFEST.write_text(raw)
-print("Android launcher stamped with public/acg-logo.png")
+
+# Native launch splash: the same genuine mark, never an invented alternate logo.
+# Capacitor's Android theme points to @drawable/splash.
+splash_dir = RES / "drawable"
+splash_dir.mkdir(parents=True, exist_ok=True)
+splash = Image.new("RGB", (720, 1280), (0, 0, 0))
+splash_scale = min(340 / logo.width, 125 / logo.height)
+splash_logo = logo.resize((
+    max(1, round(logo.width * splash_scale)),
+    max(1, round(logo.height * splash_scale))
+), Image.Resampling.LANCZOS)
+splash.paste(splash_logo, ((720 - splash_logo.width) // 2, (1280 - splash_logo.height) // 2), splash_logo)
+splash.save(splash_dir / "splash.png", optimize=True)
+
+# Android 12+ shows a native splash controlled by the launch theme.
+styles = RES / "values" / "styles.xml"
+if styles.exists():
+    text = styles.read_text()
+    if 'AppTheme.NoActionBarLaunch' in text:
+        from xml.etree import ElementTree as ET
+        tree = ET.parse(styles)
+        ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
+        ns = "{http://schemas.android.com/apk/res/android}"
+        root = tree.getroot()
+        target = next((node for node in root.findall("style")
+                       if node.get("name") == "AppTheme.NoActionBarLaunch"), None)
+        if target is not None:
+            for name, value in [
+                ("android:windowSplashScreenBackground", "#000000"),
+                ("android:windowSplashScreenAnimatedIcon", "@mipmap/acg_icon"),
+                ("android:statusBarColor", "#000000"),
+                ("android:navigationBarColor", "#000000"),
+            ]:
+                item_name = name if name.startswith("android:") else name
+                existing = next((i for i in target.findall("item") if i.get("name") == item_name), None)
+                if existing is None:
+                    existing = ET.SubElement(target, "item", {"name": item_name})
+                existing.text = value
+            tree.write(styles, encoding="utf-8", xml_declaration=True)
+
+# Keep Android native code in version control and copy it into the generated
+# Capacitor tree. This file does NOT change any backend authentication rule.
+activity_source = ROOT / "scripts" / "android" / "MainActivity.java"
+activity_target = ROOT / "android" / "app" / "src" / "main" / "java" / "com" / "acgtrader" / "existingbeta" / "MainActivity.java"
+if activity_source.exists():
+    from shutil import copyfile
+    activity_target.parent.mkdir(parents=True, exist_ok=True)
+    copyfile(activity_source, activity_target)
+
+print("Android icon, black launch splash, session cookie bridge prepared from official ACG assets")
+
