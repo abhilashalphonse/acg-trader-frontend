@@ -161,3 +161,10 @@ test('Mobile execution and protected preview remain separate entry points',()=>{
  assert.match(read('src/pages/TradingTerminalV2.jsx'),/MobileScalperMode/);
  assert.doesNotMatch(component,/MobileScalperMode|ExecutionPanel/);
 });
+
+test('Risk sizing failures show the authoritative adapter reason rather than generic verification text',()=>{
+ assert.match(component,/const riskSizingPreview=useMemo/);
+ assert.match(component,/activeMode==='risk'&&riskSizingPreview&&!riskSizingPreview.canExecute/);
+ assert.match(component,/riskSizingPreview\.message/);
+ assert.match(component,/return riskSizingPreview\?\.canExecute\?riskSizingPreview\.lots:null/);
+});
