@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, ShieldCheck } from 'lucide-react';
 import { useTraderAuth } from '../hooks/useTraderAuth.js';
 import { SupabaseBrowserAuth, supabaseOnboardingEnabled } from '../auth/supabase-browser.js';
-import { isAndroidNativeRuntime } from '../native/androidRuntime.js';
+import { useNativeEntryScreens } from '../native/nativePresentation.js';
 import NativePersonalAuthPage from './native/NativePersonalAuthPage.jsx';
 
 const isStrongEnough = password => typeof password === 'string' && password.length >= 12 && password.length <= 128;
@@ -46,7 +46,7 @@ export default function StandaloneAuthPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const enabled = supabaseOnboardingEnabled();
-  const native = isAndroidNativeRuntime();
+  const native = useNativeEntryScreens();
 
   const go = next => {
     setMode(next); setError(''); setPassword(''); setConfirmation('');
