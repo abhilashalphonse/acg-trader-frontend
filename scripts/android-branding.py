@@ -41,9 +41,8 @@ for density, size in sizes.items():
     canvas.convert("RGB").save(destination / "acg_icon.png", optimize=True)
 
 raw = MANIFEST.read_text()
-for old in ('@mipmap/ic_launcher', '@mipmap/ic_launcher_round'):
-    if old not in raw:
-        raise RuntimeError("Expected launcher resource missing from generated AndroidManifest: " + old)
+if '@mipmap/acg_icon' not in raw and '@mipmap/ic_launcher' not in raw:
+    raise RuntimeError("Expected ACG or generated launcher resource missing from AndroidManifest")
 raw = raw.replace('@mipmap/ic_launcher_round', '@mipmap/acg_icon')
 raw = raw.replace('@mipmap/ic_launcher', '@mipmap/acg_icon')
 
