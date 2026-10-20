@@ -1,7 +1,9 @@
 name: Check in verified Android native source
 
 on:
-  pull_request:
+  push:
+    branches:
+      - feat/android-existing-account-readonly-20261020
     paths:
       - '.github/workflows/android-native-source-sync.yml'
       - 'scripts/android-branding.py'
@@ -13,14 +15,14 @@ permissions:
 
 jobs:
   native-source:
-    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'feat/android-existing-account-readonly-20261020' }}
+    if: ${{ github.ref == 'refs/heads/feat/android-existing-account-readonly-20261020' }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - name: Checkout approved Android feature branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ github.ref_name }}
           persist-credentials: true
       - name: Node 22
         uses: actions/setup-node@v4
