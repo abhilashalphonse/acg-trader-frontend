@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   dual-commit-acceptance:
-    uses: abhilashalphonse/acg-trader-backend/.github/workflows/pr72-dual-commit-e2e.yml@8146071ad53dd5c1c98097ba17ab989d6599825c
+    uses: ./.github/workflows/pr72-dual-commit-e2e-impl.yml
     with:
       peer_pr: ${{ inputs.peer_pr || '' }}
     secrets: inherit

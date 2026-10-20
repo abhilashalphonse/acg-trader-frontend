@@ -201,13 +201,16 @@ export default function DesktopOrderTicketV4({
   const accountBalance=positive(account?.balance);
   const hasSl=tradePlan?positive(effective?.sl)!==null:wantSl;
   const hasTp=tradePlan?positive(effective?.tp)!==null:wantTp;
+  const riskSizingPreview=useMemo(()=>{
+    if(!effective||effective.sizingMode!=='risk')return null;
+    return resolveV4PositionSizing({mode:'riskPercent',amount:riskPercent,plan:effective,account:previewAccount,instrument:market});
+  },[effective,previewAccount,market,riskPercent]);
   const effectiveLots=useMemo(()=>{
     // Risk sizing without a side/SL is an uncommitted budget, not lots.
     if(!effective && ['riskPercent','riskUSD'].includes(uiMode))return null;
     if(!effective||effective.sizingMode!=='risk')return positive(lots);
-    const result=resolveV4PositionSizing({mode:'riskPercent',amount:riskPercent,plan:effective,account:previewAccount,instrument:market});
-    return result.canExecute?result.lots:null;
-  },[effective,previewAccount,market,lots,riskPercent,uiMode]);
+    return riskSizingPreview?.canExecute?riskSizingPreview.lots:null;
+  },[effective,lots,uiMode,riskSizingPreview]);
   const volume=positive(effectiveLots);
   const step=positive(market?.volumeStep)||0.01;
   const min=positive(market?.minVolume)||step;
@@ -397,11 +400,13 @@ export default function DesktopOrderTicketV4({
   const reviewedSide=String(effective?.side||'').toLowerCase();
   const pendingActionName=tradePlan?.editingOrderId?'Save Order Changes'
     :'Place '+reviewedSide.toUpperCase()+' '+String(effective?.orderType||orderType).replaceAll('-',' ').toUpperCase();
-  const executionDisabledReason=Number.isFinite(freeAfter)&&freeAfter<0
-    ? 'Insufficient free margin — reduce position size.'
-    : !financialVerified
-      ? (fxRequired&&!fxReady?fxMessage:'Opening margin, fees, and free margin must be verified before V4 execution.')
-      : !volume?'Position size is not executable.':null;
+  const executionDisabledReason=activeMode==='risk'&&riskSizingPreview&&!riskSizingPreview.canExecute
+    ? riskSizingPreview.message
+    : Number.isFinite(freeAfter)&&freeAfter<0
+      ? 'Insufficient free margin — reduce position size.'
+      : !financialVerified
+        ? (fxRequired&&!fxReady?fxMessage:'Opening margin, fees, and free margin must be verified before V4 execution.')
+        : !volume?'Position size is not executable.':null;
   const submitOnce=callback=>{
     if(submittingRef.current || executionCommandPending)return;
     submittingRef.current=true;
