@@ -3,13 +3,13 @@ import { ChevronDown, ChevronUp, CheckCircle2, Circle, Ellipsis, X, Minus, Plus,
 import InstrumentAvatar from '../InstrumentAvatar.jsx';
 import { formatInstrumentPrice, formatSpreadDisplay, instrumentPipSize } from '../../../utils/instrumentFormatting.js';
 import { normalizePriceToTick, normalizeProtectionPrice, normalizeVolumeToStep } from '../../../utils/tradingCommandNormalization.js';
-import { effectiveTradePlan, validateTradePlanForExecution } from '../../../utils/tradePlanExecution.js';
+import { effectiveTradePlan, createDefaultTradePlan, validateTradePlanForExecution } from '../../../utils/tradePlanExecution.js';
 import { deriveAccountCapabilities } from '../../../utils/accountCapabilities.js';
 import { estimateRequiredMargin, estimateLossAtStopWithCosts, effectiveLeverage, estimateOpeningRequirement, riskSizingSupported, defaultPlannerStopDistance } from '../../../utils/tradingRisk.js';
 import { resolveV4PositionSizing } from '../../../utils/v4ExecutionPrecision.js';
 import { v4ExitPriceFromInput, v4ExitValueFromPrice } from '../../../utils/v4ProtectionPrecision.js';
 import { estimateExecutionPrice } from '../../../utils/executionPricing.js';
-import { deriveV4AffordableVolume, v4LotsFromTrack, v4TrackFromLots, v4CryptoQuantity } from '../../../utils/v4SliderSizing.js';
+import { deriveV4AffordableVolume, deriveV4AffordableRiskRange, v4LotsFromTrack, v4TrackFromLots, v4CryptoQuantity } from '../../../utils/v4SliderSizing.js';
 import { convertFreshFx, conversionQuoteSymbolsForInstrument } from '../../../utils/verifiedFxConversion.js';
 import './DesktopOrderTicketV4.css';
 
@@ -299,7 +299,8 @@ export default function DesktopOrderTicketV4({
       const percent=uiMode==='riskUSD'?value/equity*100:value;
       onRiskPercentChange(percent);onSizingModeChange('risk');
       if(tradePlan)onTradePlanChange({sizingMode:'risk',manualLots:result.canExecute?result.lots:null,stage:'ready'});
-      if(!result.canExecute)notice(result.message||'Risk budget cannot be executed at this SL.');
+      // Inline reason is sufficient once a chart-linked risk plan exists.
+      if(!result.canExecute&&!tradePlan)notice(result.message||'Risk budget cannot be executed at this SL.');
     }
   };
   const changeSizing=next=>{
@@ -502,16 +503,29 @@ export default function DesktopOrderTicketV4({
     step,
   };
   const lotsTrackEnabled=affordable.valid&&Number(affordable.affordableLots)>=min;
+  const riskSliderPlan=useMemo(()=>effective||createDefaultTradePlan({
+    side:draftSide,requestedType:orderType,market,sizingMode:'risk',
+    lots,protection:'sl',
+  }),[effective,draftSide,orderType,market,lots]);
+  const riskSliderRange=useMemo(()=>deriveV4AffordableRiskRange({
+    instrument:market,account:previewAccount,plan:riskSliderPlan,
+    affordableLots:affordable.affordableLots,
+  }),[market,previewAccount,riskSliderPlan,affordable.affordableLots]);
+  const riskDomain=uiMode==='riskPercent'?riskSliderRange.percent:
+    uiMode==='riskUSD'?riskSliderRange.usd:null;
+  const riskTrackEnabled=Boolean(riskSliderRange.valid&&riskDomain&&riskDomain.max>=riskDomain.min);
   const baseSliderQuote=positive(market?.ask)||positive(market?.bid);
   const minMargin=baseSliderQuote?estimateRequiredMargin(baseSliderQuote,min,market,previewAccount):null;
   const maxMargin=baseSliderQuote?estimateRequiredMargin(baseSliderQuote,max,market,previewAccount):null;
   const marginCap=Number.isFinite(maxMargin)&&Number.isFinite(Number(account?.freeMargin))
     ?Math.min(maxMargin,Number(account.freeMargin)):null;
-  const slideMin=uiMode==='lots'?min:uiMode==='margin'?(positive(minMargin)||0):0;
+  const slideMin=uiMode==='lots'?min:
+    uiMode==='margin'?(positive(minMargin)||0):
+      riskDomain?.min??0;
   const slideMax=uiMode==='lots'?Math.max(min,max):
     uiMode==='margin'&&Number.isFinite(marginCap)?Math.max(slideMin+1,marginCap):
       uiMode==='margin'?Math.max(slideMin+1,100):
-      uiMode==='riskPercent'?5:positive(account?.equity)?Number(account.equity)*0.05:100;
+      riskDomain?.max??0;
   const slideStep=uiMode==='lots'?step:uiMode==='margin'?1:uiMode==='riskPercent'?0.01:1;
   const slideValue=Number.isFinite(selectedValue)?Math.max(slideMin,Math.min(slideMax,selectedValue)):slideMin;
   // Only the Lots track uses the affordability-aware logarithmic scale.
@@ -572,11 +586,14 @@ export default function DesktopOrderTicketV4({
           <button type="button" aria-label="Decrease position value" onClick={()=>applySize(Math.max(slideMin,Number(selectedValue||0)-slideStep))}><Minus size={18}/></button>
           <EditNumber key={uiMode} value={selectedValue} label="Position sizing amount"
             digits={uiMode==='lots'?Math.max(2,lotPrecision):2} onCommit={applySize}/>
-          <button type="button" aria-label="Increase position value" onClick={()=>applySize(Number(selectedValue||0)+slideStep)}><Plus size={18}/></button>
+          <button type="button" aria-label="Increase position value" onClick={()=>applySize(riskDomain&&riskTrackEnabled
+            ?Math.min(slideMax,Number(selectedValue||0)+slideStep)
+            :Number(selectedValue||0)+slideStep)}><Plus size={18}/></button>
         </div>
         <div className="v4-slider">
           <input type="range" aria-label="Position size slider" min={trackMin} max={trackMax} step={trackStep}
-            disabled={uiMode==='lots'&&!lotsTrackEnabled}
+            disabled={(uiMode==='lots'&&!lotsTrackEnabled)||
+              (['riskPercent','riskUSD'].includes(uiMode)&&!riskTrackEnabled)}
             value={trackValue} onChange={e=>{
               const requested=uiMode==='lots'
                 ?v4LotsFromTrack(Number(e.target.value),lotRange)
@@ -584,9 +601,12 @@ export default function DesktopOrderTicketV4({
               if(requested!=null)applySize(requested);
             }}
             style={{'--fill':((trackValue-trackMin)/Math.max(1e-8,trackMax-trackMin)*100)+'%'}}/>
-          <div className="v4-scale">{trackMarks.map((mark,i)=><span key={i}>{mark!=null?fmt(mark,uiMode==='lots'?2:0):'—'}</span>)}</div>
+          <div className="v4-scale">{trackMarks.map((mark,i)=><span key={i}>{mark!=null?fmt(mark,uiMode==='lots'||uiMode==='riskPercent'?2:0):'—'}</span>)}</div>
           {uiMode==='lots'&&!lotsTrackEnabled&&<span className="v4-slider-hint" role="status">
             {affordable.valid?'Minimum volume exceeds available margin.':fxRequired&&!fxReady?fxMessage:'Affordable range cannot be verified.'}
+          </span>}
+          {['riskPercent','riskUSD'].includes(uiMode)&&!riskTrackEnabled&&<span className="v4-slider-hint" role="status">
+            {!positive(riskSliderPlan?.sl)?'Set SL to enable risk slider.':'Risk slider unavailable — verify account margin.'}
           </span>}
         </div>
         <div className="v4-translation">{translation()}</div>
