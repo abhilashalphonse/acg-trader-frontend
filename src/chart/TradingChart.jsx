@@ -22,7 +22,7 @@ function makeCandles(symbol, timeframe, count = 150) {
   })
 }
 
-export default function TradingChart({ symbol, timeframe = 'M1', chartType = 'candles' }) {
+export default function TradingChart({ symbol, timeframe = 'M30', chartType = 'candles' }) {
   const ref = useRef(null)
   const timer = useRef(null)
   const chartRef = useRef(null)
