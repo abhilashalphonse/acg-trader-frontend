@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ArrowRight, Eye, EyeOff, KeyRound, Mail, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 
 export default function NativePersonalAuthPage({
   enabled, mode, go, busy, error, email, setEmail, password, setPassword,
-  confirmation, setConfirmation, onSubmit, startContext, signOut,
+  confirmation, setConfirmation, onSubmit, startContext,
 }) {
   const [visible, setVisible] = useState(false);
   const isSignup = mode === 'signup';
