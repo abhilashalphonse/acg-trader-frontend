@@ -111,6 +111,8 @@ jobs:
         run: |
           python3 -m pip install --disable-pip-version-check --quiet --break-system-packages Pillow
           python3 scripts/android-branding.py
+          grep -q 'setAcceptThirdPartyCookies' android/app/src/main/java/com/acgtrader/existingbeta/MainActivity.java
+          test -f android/app/src/main/res/drawable/splash.png
       - name: Compile private existing-account read-only APK
         run: |
           cd android
