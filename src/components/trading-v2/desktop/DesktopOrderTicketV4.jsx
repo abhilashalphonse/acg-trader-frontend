@@ -583,11 +583,13 @@ export default function DesktopOrderTicketV4({
         <Capsule label="Position sizing mode" className="v4-position-modes" options={pillModes}
           active={uiMode} onChange={changeSizing}/>
         <div className="v4-amount">
-          <button type="button" aria-label="Decrease position value" onClick={()=>applySize(Math.max(slideMin,Number(selectedValue||0)-slideStep))}><Minus size={18}/></button>
+          <button type="button" aria-label="Decrease position value" onClick={()=>applySize(riskDomain&&riskTrackEnabled
+            ?Math.max(slideMin,Math.min(slideMax,Number(selectedValue||0)-slideStep))
+            :Math.max(slideMin,Number(selectedValue||0)-slideStep))}><Minus size={18}/></button>
           <EditNumber key={uiMode} value={selectedValue} label="Position sizing amount"
             digits={uiMode==='lots'?Math.max(2,lotPrecision):2} onCommit={applySize}/>
           <button type="button" aria-label="Increase position value" onClick={()=>applySize(riskDomain&&riskTrackEnabled
-            ?Math.min(slideMax,Number(selectedValue||0)+slideStep)
+            ?Math.max(slideMin,Math.min(slideMax,Number(selectedValue||0)+slideStep))
             :Number(selectedValue||0)+slideStep)}><Plus size={18}/></button>
         </div>
         <div className="v4-slider">
