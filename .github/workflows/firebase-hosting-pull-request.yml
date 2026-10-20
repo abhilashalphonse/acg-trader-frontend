@@ -65,6 +65,8 @@ jobs:
           VITE_ACG_EXECUTION_V4_ENABLED: ${{ (github.event.pull_request.number == 90 || (github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels' || (startsWith(github.event.pull_request.head.ref, 'feat/android-v1-') || startsWith(github.event.pull_request.head.ref, 'feat/android-existing-account-')))) && 'true' || 'false' }}
           VITE_ACG_TRADER_HTTP_TIMEOUT_MS: 10000
           VITE_ACG_FUNDED_SUPPORT_BASE_URL: ${{ secrets.VITE_ACG_FUNDED_SUPPORT_STAGING_BASE_URL }}
+          # Native design preview is available only on Android PR preview builds.
+          VITE_ACG_NATIVE_UI_PREVIEW: ${{ startsWith(github.event.pull_request.head.ref, 'feat/android-existing-account-') && 'true' || 'false' }}
           VITE_GIT_SHA: ${{ github.event.pull_request.head.sha }}
 
       - name: Verify V4 PR staging isolation
