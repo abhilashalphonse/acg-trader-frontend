@@ -19,6 +19,29 @@ const finitePositive = v => v !== null && v !== undefined && v !== '' && Number.
 const currency = v => String(v || '').trim().toUpperCase();
 const fail = (code, message, extra = {}) => ({ canExecute: false, code, message, lots: null, ...extra });
 
+function riskSizingFailureMessage(reason, riskSizing, instrument, accountCurrency) {
+  if (reason === 'INSUFFICIENT_MARGIN') {
+    const required = Number(riskSizing?.totalRequirement);
+    const available = Number(riskSizing?.freeMargin);
+    const known = riskSizing?.totalRequirement != null && riskSizing?.freeMargin != null
+      && Number.isFinite(required) && Number.isFinite(available);
+    const amounts = known
+      ? ` Estimated opening cost: ${accountCurrency} ${required.toFixed(2)}; available: ${accountCurrency} ${available.toFixed(2)}.`
+      : '';
+    return `Insufficient free margin for this risk setting.${amounts} Reduce the risk amount or widen the stop loss.`;
+  }
+  if (reason === 'MIN_VOLUME') {
+    return `Selected risk is below the instrument minimum of ${instrument?.minVolume ?? instrument?.volumeStep ?? '—'} lots.`;
+  }
+  if (reason === 'MAX_VOLUME') {
+    return `Selected risk exceeds the instrument maximum of ${instrument?.maxVolume ?? '—'} lots. Reduce risk or widen the stop loss.`;
+  }
+  if (reason === 'SIZING_UNAVAILABLE') {
+    return 'Unable to calculate risk-based size from the current quote and stop loss. Verify the stop and market data.';
+  }
+  return 'Risk sizing is unavailable for this setup. Check your stop loss and account constraints.';
+}
+
 function instrumentVolumeSpec(instrument) {
   const step = finitePositive(instrument?.volumeStep);
   const minimum = finitePositive(instrument?.minVolume);
@@ -135,7 +158,8 @@ export function resolveV4PositionSizing({ mode, amount, plan, account, instrumen
     });
     const result = sizing?.sizing;
     if (!result?.canExecute || !finitePositive(result?.lots)) {
-      return fail(result?.blockReason || 'RISK_SIZING_UNAVAILABLE', 'Existing risk engine could not size this order.', {
+      const reason = result?.blockReason || 'RISK_SIZING_UNAVAILABLE';
+      return fail(reason, riskSizingFailureMessage(reason, result?.riskSizing, instrument, accountCurrency), {
         backendSizingMode: 'risk',
         riskPercent,
         riskSizing: result?.riskSizing || null,
