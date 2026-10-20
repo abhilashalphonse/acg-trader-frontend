@@ -28,7 +28,7 @@ jobs:
       - name: Build
         run: npm run build
       - name: Mobile audit real-Chrome responsive and interaction acceptance
-        if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feat/mobile-audit-') || startsWith(github.ref, 'refs/heads/fix/mobile-audit-') || startsWith(github.head_ref, 'fix/mobile-audit-') || startsWith(github.head_ref, 'fix/v4-signout-') || startsWith(github.head_ref, 'feat/mobile-onboarding-') || startsWith(github.ref, 'refs/heads/feat/mobile-onboarding-') }}
+        if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feat/mobile-audit-') || startsWith(github.ref, 'refs/heads/fix/mobile-audit-') || startsWith(github.head_ref, 'fix/mobile-audit-') || startsWith(github.head_ref, 'fix/v4-signout-') || startsWith(github.head_ref, 'feat/mobile-onboarding-') || startsWith(github.ref, 'refs/heads/feat/mobile-onboarding-') || startsWith(github.head_ref, 'feat/android-v1-') || startsWith(github.ref, 'refs/heads/feat/android-v1-') }}
         run: |
           npm install --no-save --no-audit --no-fund playwright@1.56.1
           node tests/ui/mobile-audit.mjs
@@ -38,7 +38,7 @@ jobs:
           node tests/ui/mobile-v4-markets.mjs
           node tests/ui/mobile-onboarding.mjs
       - name: Upload Mobile audit evidence
-        if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feat/mobile-audit-') || startsWith(github.ref, 'refs/heads/fix/mobile-audit-') || startsWith(github.head_ref, 'fix/mobile-audit-') || startsWith(github.head_ref, 'fix/v4-signout-') || startsWith(github.head_ref, 'feat/mobile-onboarding-') || startsWith(github.ref, 'refs/heads/feat/mobile-onboarding-') }}
+        if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feat/mobile-audit-') || startsWith(github.ref, 'refs/heads/fix/mobile-audit-') || startsWith(github.head_ref, 'fix/mobile-audit-') || startsWith(github.head_ref, 'fix/v4-signout-') || startsWith(github.head_ref, 'feat/mobile-onboarding-') || startsWith(github.ref, 'refs/heads/feat/mobile-onboarding-') || startsWith(github.head_ref, 'feat/android-v1-') || startsWith(github.ref, 'refs/heads/feat/android-v1-') }}
         uses: actions/upload-artifact@v4
         with:
           name: mobile-audit-responsive
