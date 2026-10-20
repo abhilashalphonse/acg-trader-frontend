@@ -57,7 +57,7 @@ export default function SessionGate({ children }) {
   // Existing-account private beta defaults to our own trading tenant, while
   // allowing partner traders to enter a different tenant explicitly.
   const [form, setForm] = useState({
-    tenant: isExistingAccountReadOnlyBeta() ? 'acg-funded' : '',
+    tenant: (isAndroidNativeRuntime() || isExistingAccountReadOnlyBeta()) ? 'acg-funded' : '',
     login: '',
     password: '',
   });
