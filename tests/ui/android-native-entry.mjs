@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
+import process from 'node:process';
 
 const origin = 'http://127.0.0.1:4197';
 const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js','--host','127.0.0.1','--port','4197','--strictPort'], {
