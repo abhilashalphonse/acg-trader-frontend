@@ -1385,6 +1385,8 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
             activeAccountId={trading.activeAccountId}
             accountSwitching={trading.accountSwitching}
             accountSwitchError={trading.accountSwitchError}
+            commandPending={trading.commandState.pending || auditSubmitting || auditCheckingStatus}
+            executionUncertain={trading.commandState.uncertain || auditUnknownSubmission}
             onSelectAccount={trading.selectAccount}
             onClose={() => setOverlay(null)}
             onPlatformSettings={() => setOverlay('platform')}
