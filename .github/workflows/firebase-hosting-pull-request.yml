@@ -32,7 +32,7 @@ jobs:
         run: npm ci
 
       - name: Verify V4 STAGING Trader readiness
-        if: ${{ (github.event.pull_request.number == 90 || (github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels' || startsWith(github.event.pull_request.head.ref, 'feat/android-v1-'))) }}
+        if: ${{ (github.event.pull_request.number == 90 || (github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels' || (startsWith(github.event.pull_request.head.ref, 'feat/android-v1-') || startsWith(github.event.pull_request.head.ref, 'feat/android-existing-account-')))) }}
         run: |
           set -euo pipefail
           base='https://discerning-presence-staging.up.railway.app'
@@ -60,15 +60,15 @@ jobs:
         env:
           # Chart-order and Android V1 beta review builds use STAGING, not production.
           # Other unrelated PRs retain their original endpoints and flags.
-          VITE_ACG_TRADER_API_BASE: ${{ (github.event.pull_request.number == 90 || (github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels' || startsWith(github.event.pull_request.head.ref, 'feat/android-v1-'))) && 'https://discerning-presence-staging.up.railway.app' || secrets.VITE_ACG_TRADER_API_BASE }}
-          VITE_ACG_TRADER_WS_URL: ${{ (github.event.pull_request.number == 90 || (github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels' || startsWith(github.event.pull_request.head.ref, 'feat/android-v1-'))) && 'wss://discerning-presence-staging.up.railway.app/v1/ws' || secrets.VITE_ACG_TRADER_WS_URL }}
-          VITE_ACG_EXECUTION_V4_ENABLED: ${{ (github.event.pull_request.number == 90 || (github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels' || startsWith(github.event.pull_request.head.ref, 'feat/android-v1-'))) && 'true' || 'false' }}
+          VITE_ACG_TRADER_API_BASE: ${{ (github.event.pull_request.number == 90 || (github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels' || (startsWith(github.event.pull_request.head.ref, 'feat/android-v1-') || startsWith(github.event.pull_request.head.ref, 'feat/android-existing-account-')))) && 'https://discerning-presence-staging.up.railway.app' || secrets.VITE_ACG_TRADER_API_BASE }}
+          VITE_ACG_TRADER_WS_URL: ${{ (github.event.pull_request.number == 90 || (github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels' || (startsWith(github.event.pull_request.head.ref, 'feat/android-v1-') || startsWith(github.event.pull_request.head.ref, 'feat/android-existing-account-')))) && 'wss://discerning-presence-staging.up.railway.app/v1/ws' || secrets.VITE_ACG_TRADER_WS_URL }}
+          VITE_ACG_EXECUTION_V4_ENABLED: ${{ (github.event.pull_request.number == 90 || (github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels' || (startsWith(github.event.pull_request.head.ref, 'feat/android-v1-') || startsWith(github.event.pull_request.head.ref, 'feat/android-existing-account-')))) && 'true' || 'false' }}
           VITE_ACG_TRADER_HTTP_TIMEOUT_MS: 10000
           VITE_ACG_FUNDED_SUPPORT_BASE_URL: ${{ secrets.VITE_ACG_FUNDED_SUPPORT_STAGING_BASE_URL }}
           VITE_GIT_SHA: ${{ github.event.pull_request.head.sha }}
 
       - name: Verify V4 PR staging isolation
-        if: ${{ (github.event.pull_request.number == 90 || (github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels' || startsWith(github.event.pull_request.head.ref, 'feat/android-v1-'))) }}
+        if: ${{ (github.event.pull_request.number == 90 || (github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels' || (startsWith(github.event.pull_request.head.ref, 'feat/android-v1-') || startsWith(github.event.pull_request.head.ref, 'feat/android-existing-account-')))) }}
         run: |
           test -d dist/assets
           # Vite includes the baked API/WS targets in the client bundle.
