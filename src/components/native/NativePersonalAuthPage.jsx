@@ -20,7 +20,7 @@ export default function NativePersonalAuthPage({
         <p className="acg-native-eyebrow">ACG TRADER ACCOUNT</p>
         <h1>{isSignup ? 'Create your account.' : mode === 'recover' ? 'Reset your password.' : mode === 'reset' ? 'Set a new password.' : mode === 'signin' ? 'Sign in.' : mode === 'verify' ? 'Check your inbox.' : mode === 'setup' ? 'Finish setup.' : 'Account update.'}</h1>
         <p className="acg-native-description">{isSignup
-          ? 'Your independent personal identity, separate from any prop or broker account.'
+          ? 'Your independent demo identity, separate from prop-firm trading accounts.'
           : isRecovery ? 'Securely recover access to your personal account.'
           : 'Access your independent ACG Trader workspace.'}</p>
       </section>
