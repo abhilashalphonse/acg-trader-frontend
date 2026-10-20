@@ -1,0 +1,88 @@
+name: Android signed production bundle (release gate)
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Approved version e.g. 1.0.0'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  signed-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: android-production
+    env:
+      VITE_ACG_TRADER_API_BASE: https://acg-trader-backend-production.up.railway.app
+      VITE_ACG_TRADER_WS_URL: wss://acg-trader-backend-production.up.railway.app/v1/ws
+      VITE_ACG_TRADER_TENANT: acg-funded
+      VITE_ACG_EXECUTION_V4_ENABLED: 'true'
+      VITE_ACG_ANDROID_READ_ONLY_BETA: 'false'
+      VITE_ACG_SUPABASE_AUTH_ENABLED: 'false'
+      VITE_ACG_NATIVE_AUTH_REDIRECT_ENABLED: 'false'
+      ACG_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ACG_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ACG_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      VITE_GIT_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Verify branch and release signing prerequisites
+        env:
+          SIGNING_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+          test "${{ github.ref }}" = 'refs/heads/main' || { echo '::error::Release must use main'; exit 1; }
+          test -n "$SIGNING_KEYSTORE_B64" || { echo '::error::Android release keystore secret missing'; exit 1; }
+          test -n "$ACG_ANDROID_KEY_ALIAS" && test -n "$ACG_ANDROID_KEYSTORE_PASSWORD" && test -n "$ACG_ANDROID_KEY_PASSWORD"
+          test "$(node -p 'require("./capacitor.config.json").appId')" = 'com.acgtrader.app'
+          test "${{ inputs.version }}" = "$(sed -n 's/.*versionName "\(.*\)".*/\1/p' android/app/build.gradle | head -1)"
+          echo "ACG_ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/acg-release-keystore.jks" >> "$GITHUB_ENV"
+          printf '%s' "$SIGNING_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/acg-release-keystore.jks"
+          chmod 600 "$RUNNER_TEMP/acg-release-keystore.jks"
+      - run: |
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --install 'platforms;android-36' 'build-tools;36.0.0'
+          npm ci
+          npm run lint
+          npm test
+          npm run build
+      - name: Verify release staging isolation and native protections
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --max-time 20 "$VITE_ACG_TRADER_API_BASE/health/ready" >/dev/null
+          grep -qrF 'acg-trader-backend-production.up.railway.app' dist/assets
+          if grep -qrF 'discerning-presence-staging.up.railway.app' dist/assets; then
+            echo '::error::Staging endpoint in production binary'; exit 1
+          fi
+          grep -qF 'android:allowBackup="false"' android/app/src/main/AndroidManifest.xml
+          npx cap sync android
+          python3 -m pip install --quiet --disable-pip-version-check --break-system-packages Pillow
+          python3 scripts/android-branding.py
+      - name: Compile signed release Android App Bundle and APK
+        run: |
+          cd android
+          ./gradlew --no-daemon --stacktrace bundleRelease assembleRelease
+          test -s app/build/outputs/bundle/release/app-release.aab
+          test -s app/build/outputs/apk/release/app-release.apk
+      - name: Upload signed production artifacts (not published to Google Play)
+        uses: actions/upload-artifact@v4
+        with:
+          name: acg-trader-signed-android-release
+          path: |
+            android/app/build/outputs/bundle/release/app-release.aab
+            android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 7
+      - name: Remove keystore from runner
+        if: always()
+        run: rm -f "$RUNNER_TEMP/acg-release-keystore.jks"

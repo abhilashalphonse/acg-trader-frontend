@@ -1,6 +1,6 @@
 {
-  "appId": "com.acgtrader.existingbeta",
-  "appName": "ACG Trader Beta",
+  "appId": "com.acgtrader.app",
+  "appName": "ACG Trader",
   "webDir": "dist",
   "server": {
     "hostname": "acg-trader.web.app",

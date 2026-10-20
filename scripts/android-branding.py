@@ -107,7 +107,7 @@ if styles.exists():
 # Keep Android native code in version control and copy it into the generated
 # Capacitor tree. This file does NOT change any backend authentication rule.
 activity_source = ROOT / "scripts" / "android" / "MainActivity.java"
-activity_target = ROOT / "android" / "app" / "src" / "main" / "java" / "com" / "acgtrader" / "existingbeta" / "MainActivity.java"
+activity_target = ROOT / "android" / "app" / "src" / "main" / "java" / "com" / "acgtrader" / "app" / "MainActivity.java"
 if activity_source.exists():
     from shutil import copyfile
     activity_target.parent.mkdir(parents=True, exist_ok=True)

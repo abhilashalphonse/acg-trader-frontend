@@ -12,7 +12,11 @@ import './styles/acg-pure-black.css';
 import './styles/acg-native-auth.css';
 import './styles/acg-native-entry.css';
 import { isAndroidNativeRuntime } from './native/androidRuntime.js';
+import { startAndroidLifecycle } from './native/androidLifecycle.js';
 import { ACTIVE_TERMINAL_MARKER, shouldOpenLandingPreview, shouldOpenMobileOnboarding, shouldOpenPublicHome, shouldOpenStandaloneAuth } from './landing/landing-routing.js';
+
+// Register Android navigation / resume before auth mounts. No effects on web.
+if (isAndroidNativeRuntime(window)) void startAndroidLifecycle();
 
 let activeTerminal = false;
 try { activeTerminal = window.sessionStorage.getItem(ACTIVE_TERMINAL_MARKER) === '1'; } catch { /* storage unavailable */ }

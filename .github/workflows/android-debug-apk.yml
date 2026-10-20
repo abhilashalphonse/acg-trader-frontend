@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   debug-apk:
-    if: ${{ !startsWith(github.head_ref, 'feat/android-existing-account-') }}
+    if: ${{ startsWith(github.head_ref, 'feat/android-v1-') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:

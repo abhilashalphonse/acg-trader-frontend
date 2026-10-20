@@ -1,11 +1,11 @@
-package com.acgtrader.existingbeta;
+package com.acgtrader.app;
 
 import android.os.Bundle;
 import android.webkit.CookieManager;
 import com.getcapacitor.BridgeActivity;
 
 /**
- * Native production-account beta. Keep refresh credentials HttpOnly inside
+ * Native production trading app. Keep refresh credentials HttpOnly inside
  * WebView's cookie jar; never store passwords or refresh tokens in JavaScript.
  * Server session revocation and account permissions stay authoritative.
  */

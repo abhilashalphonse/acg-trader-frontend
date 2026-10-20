@@ -164,6 +164,25 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const [notice, setNotice] = useState('');
   const exposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market, commandState: trading.commandState });
 
+  // Android back always dismisses the visible sheet or chart focus first.
+  // Never discard a trading draft or an unconfirmed execution via Back.
+  useEffect(() => {
+    const onNativeBack = event => {
+      if (overlay) {
+        event.detail.handled = true;
+        setOverlay(null);
+      } else if (chartFocus) {
+        event.detail.handled = true;
+        setChartFocus(false);
+      } else if (tradePlan || auditManagement || trading.commandState.pending || trading.commandState.uncertain || auditUnknownSubmission) {
+        event.detail.handled = true;
+        setNotice('Finish or discard the current trade edit before leaving the terminal.');
+      }
+    };
+    window.addEventListener('acg-android-back', onNativeBack);
+    return () => window.removeEventListener('acg-android-back', onNativeBack);
+  }, [overlay, chartFocus, tradePlan, auditManagement, trading.commandState.pending, trading.commandState.uncertain, auditUnknownSubmission]);
+
   // Never let an account/symbol switch retain a previous account's draft or editors.
   useEffect(() => {
     if (!mobileAudit) return;

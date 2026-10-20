@@ -1,0 +1,131 @@
+name: Android production-connected release candidate
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'android/**'
+      - 'capacitor.config.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'scripts/android-branding.py'
+      - 'scripts/android/MainActivity.java'
+      - '.github/workflows/android-production-qa.yml'
+permissions:
+  contents: read
+jobs:
+  android-qa:
+    if: ${{ startsWith(github.head_ref, 'feat/android-production-release-') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      VITE_ACG_TRADER_API_BASE: https://acg-trader-backend-production.up.railway.app
+      VITE_ACG_TRADER_WS_URL: wss://acg-trader-backend-production.up.railway.app/v1/ws
+      VITE_ACG_TRADER_TENANT: acg-funded
+      VITE_ACG_EXECUTION_V4_ENABLED: 'true'
+      VITE_ACG_ANDROID_READ_ONLY_BETA: 'false'
+      VITE_ACG_SUPABASE_AUTH_ENABLED: 'false'
+      VITE_ACG_NATIVE_AUTH_REDIRECT_ENABLED: 'false'
+      VITE_GIT_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install Android SDK 36
+        run: |
+          test -n "${ANDROID_HOME:-}"
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --install 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Check production API and OAuth release flags
+        run: |
+          set -euo pipefail
+          test "${VITE_ACG_ANDROID_READ_ONLY_BETA}" = false
+          test "${VITE_ACG_SUPABASE_AUTH_ENABLED}" = false
+          curl --fail --silent --show-error --max-time 20 "$VITE_ACG_TRADER_API_BASE/health/ready" >/dev/null
+          test "$(node -p 'require("./capacitor.config.json").appId')" = 'com.acgtrader.app'
+          grep -qF 'android:allowBackup="false"' android/app/src/main/AndroidManifest.xml
+          grep -qF 'android:usesCleartextTraffic="false"' android/app/src/main/AndroidManifest.xml
+          grep -qF 'acgtrader' android/app/src/main/AndroidManifest.xml
+          echo 'Production account backend reachable; personal onboarding withheld until active.'
+      - name: Test native and trading UI
+        run: |
+          npm ci
+          npm run lint
+          npm test
+          npm run build
+          test -d dist/assets
+          grep -qrF 'acg-trader-backend-production.up.railway.app' dist/assets
+          if grep -qrF 'discerning-presence-staging.up.railway.app' dist/assets; then
+            echo '::error::Release build references staging execution'
+            exit 1
+          fi
+      - name: Synchronize native project and official ACG branding
+        run: |
+          npx cap sync android
+          python3 -m pip install --quiet --disable-pip-version-check --break-system-packages Pillow
+          python3 scripts/android-branding.py
+          test -f android/app/src/main/java/com/acgtrader/app/MainActivity.java
+          grep -qF 'setAcceptThirdPartyCookies' android/app/src/main/java/com/acgtrader/app/MainActivity.java
+      - name: Build production-connected owner-test APK (debug signed, NOT store release)
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew --no-daemon --stacktrace assembleDebug
+      - name: Inspect APK package
+        run: |
+          pkg="$("${ANDROID_HOME}/build-tools/36.0.0/aapt" dump badging android/app/build/outputs/apk/debug/app-debug.apk | sed -n "s/^package: name='\([^']*\)'.*/\1/p")"
+          echo "Package: $pkg"
+          test "$pkg" = 'com.acgtrader.app'
+      - name: Upload candidate for controlled account testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: acg-trader-android-production-account-test
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
+          if-no-files-found: error
+  android-emulator-smoke:
+    needs: android-qa
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: acg-trader-android-production-account-test
+          path: app-apk
+      - name: Boot Android 15 emulator and inspect app startup
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          target: google_apis
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            adb install -r app-apk/app-debug.apk
+            adb shell am start -n com.acgtrader.app/.MainActivity
+            sleep 12
+            adb shell pidof com.acgtrader.app
+            mkdir -p artifacts
+            adb shell screencap -p /sdcard/acg-entry.png
+            adb pull /sdcard/acg-entry.png artifacts/android-emulator-launch.png
+            adb shell uiautomator dump /sdcard/window.xml
+            adb pull /sdcard/window.xml artifacts/android-emulator-window.xml
+            adb shell am force-stop com.acgtrader.app
+            adb shell am start -n com.acgtrader.app/.MainActivity
+            sleep 5
+            adb shell pidof com.acgtrader.app
+            adb logcat -d -t 3000 | grep -E 'FATAL EXCEPTION.*com.acgtrader.app' && exit 1 || true
+      - name: Upload native device evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: acg-trader-android-emulator-evidence
+          path: artifacts/
+          retention-days: 7
+          if-no-files-found: warn

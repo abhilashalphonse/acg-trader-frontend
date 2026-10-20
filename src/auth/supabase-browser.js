@@ -1,6 +1,9 @@
 // Dedicated ACG Trader Supabase Auth API. No service-role credentials are used.
 // This deliberately keeps provider access/refresh tokens separate from the
 // existing HttpOnly ACG Trader trading-session cookie.
+import { isAndroidNativeRuntime } from '../native/androidRuntime.js';
+import { Browser } from '@capacitor/browser';
+
 const STORE_KEY = 'acg-trader-supabase-session-v1';
 const PKCE_KEY = 'acg-trader-supabase-pkce-v1';
 const PKCE_MAX_AGE_MS = 10 * 60 * 1000;
@@ -11,7 +14,11 @@ export const SUPABASE_PROJECT_REF = 'mwkwvchaqjqtyfgmialk';
 export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_jWU1C6V6HsdSM8JMb2KoKg_cnyPduhV';
 
 export function supabaseOnboardingEnabled(env = import.meta.env) {
-  return String(env.VITE_ACG_SUPABASE_AUTH_ENABLED || '').toLowerCase() === 'true';
+  const enabled = String(env.VITE_ACG_SUPABASE_AUTH_ENABLED || '').toLowerCase() === 'true';
+  // Mobile personal auth needs an allowlisted app deep link and enabled
+  // backend provisioning. Do not expose incomplete signup on a release APK.
+  return enabled && (!isAndroidNativeRuntime() ||
+    String(env.VITE_ACG_NATIVE_AUTH_REDIRECT_ENABLED || '').toLowerCase() === 'true');
 }
 
 export function onboardingPreview(search = '') {
@@ -81,7 +88,7 @@ export class SupabaseBrowserAuth {
   callbackUrl() {
     // Fixed path on the CURRENT same origin. Untrusted query params never
     // determine the OAuth redirect target.
-    return `${this.location.origin}/auth/callback`;
+    return isAndroidNativeRuntime() ? 'acgtrader://auth/callback' : `${this.location.origin}/auth/callback`;
   }
 
   async preparePkce(kind) {
@@ -120,7 +127,13 @@ export class SupabaseBrowserAuth {
       code_challenge: challenge,
       code_challenge_method: 's256',
     });
-    this.location.assign(`${this.root}/authorize?${params}`);
+    const url = `${this.root}/authorize?${params}`;
+    if (isAndroidNativeRuntime()) {
+      // Google policy: authenticate in an OS-controlled browser, not a WebView.
+      await Browser.open({ url });
+      return;
+    }
+    this.location.assign(url);
   }
 
   async recover(email) {
