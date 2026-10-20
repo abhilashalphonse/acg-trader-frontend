@@ -1,0 +1,136 @@
+/* ACG native entry: one disciplined graphite system, no blue UI accents.
+   Scope to the Android flow, never to desktop V4 or Firebase public landing. */
+.acg-native-screen {
+  --acg-n-bg: #000;
+  --acg-n-surface: #101010;
+  --acg-n-border: rgba(255,255,255,.12);
+  --acg-n-muted: #999999;
+  min-height: 100dvh;
+  width: 100%;
+  overflow-x: hidden;
+  background: var(--acg-n-bg);
+  color: #f4f4f4;
+  -webkit-font-smoothing: antialiased;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "tnum" 1;
+}
+.acg-native-frame {
+  width: min(100%, 460px);
+  min-height: 100dvh;
+  margin: auto;
+  padding: max(24px, env(safe-area-inset-top)) 24px max(22px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+}
+.acg-native-brand-row { display:flex; align-items:center; gap:14px; min-height:46px; }
+.acg-native-logo { width:83px; height:auto; object-fit:contain; }
+.acg-native-brand-row .acg-native-meta { margin-left:auto; }
+.acg-native-meta { color:#7e7e7e; font-size:9px; font-weight:700; letter-spacing:.145em; white-space:nowrap; }
+.acg-native-back {
+  display:grid; place-items:center; flex:none; width:44px; height:44px; margin-left:-12px;
+  color:#d5d5d5; border-radius:10px; text-decoration:none;
+}
+.acg-native-back:focus-visible { outline:1px solid #fff; outline-offset:2px; }
+.acg-native-welcome-hero { padding-top:clamp(70px,14dvh,156px); }
+.acg-native-line { width:28px; height:2px; background:#a7a7a7; margin-bottom:20px; }
+.acg-native-eyebrow { font-size:10px; font-weight:750; color:#949494; letter-spacing:.16em; line-height:1.3; }
+.acg-native-welcome-hero h1 {
+  margin-top:14px; color:#f9f9f9; font-size:clamp(37px,10vw,48px);
+  line-height:1.045; font-weight:700; letter-spacing:-.055em;
+}
+.acg-native-welcome-hero h1 span { color:#888; }
+.acg-native-description { color:#a0a0a0; font-size:14px; font-weight:400; line-height:1.7; }
+.acg-native-welcome-hero .acg-native-description { max-width:315px; margin-top:18px; }
+.acg-native-welcome-actions { margin-top:clamp(50px,9dvh,105px); display:flex; flex-direction:column; gap:12px; }
+.acg-native-access {
+  width:100%; min-height:83px; display:flex; align-items:center; gap:14px; padding:16px 16px;
+  border:1px solid var(--acg-n-border); border-radius:12px; background:#090909; color:#f4f4f4;
+  text-align:left; transition:background .14s; cursor:pointer;
+}
+.acg-native-access:active { background:#1a1a1a; }
+.acg-native-access-primary { background:#141414; border-color:#454545; }
+.acg-native-access-icon {
+  flex:none; display:grid; place-items:center; width:40px; height:40px;
+  border-radius:9px; background:#1c1c1c; color:#d8d8d8;
+}
+.acg-native-access-copy { min-width:0; flex:1; display:flex; flex-direction:column; gap:5px; }
+.acg-native-access-copy strong { font-size:14px; font-weight:650; letter-spacing:-.014em; color:#f7f7f7; }
+.acg-native-access-copy small { font-size:11px; font-weight:400; line-height:1.48; color:#969696; }
+.acg-native-access-arrow { flex:none; color:#bbb; }
+.acg-native-resume { margin-bottom:4px; }
+.acg-native-primary, .acg-native-secondary {
+  display:flex; align-items:center; justify-content:center; gap:10px; min-height:51px;
+  width:100%; padding:0 15px; font-size:13px; font-weight:700; border-radius:10px;
+  border:1px solid transparent; text-decoration:none; cursor:pointer;
+}
+.acg-native-primary { background:#f2f2f2; color:#050505; }
+.acg-native-primary:active { background:#d5d5d5; }
+.acg-native-secondary { background:#141414; color:#dedede; border-color:#3d3d3d; }
+.acg-native-primary:disabled, .acg-native-secondary:disabled, .acg-native-access:disabled { opacity:.42; cursor:not-allowed; }
+.acg-native-welcome-footer {
+  padding-top:48px; margin-top:auto; display:flex; align-items:start; flex-wrap:wrap; gap:12px 18px;
+  font-size:10px; line-height:1.6; font-weight:500; color:#777;
+}
+.acg-native-welcome-footer span, .acg-native-form-footer { display:flex; align-items:center; gap:7px; }
+.acg-native-footer-note { color:#646464; }
+.acg-native-inline-status { font-size:11px; color:#a2a2a2; margin-top:14px; }
+.acg-native-confirm {
+  margin-top:20px; padding:16px; border:1px solid #333; border-radius:12px; background:#121212;
+}
+.acg-native-confirm h2 { color:#f7f7f7; font-size:17px; font-weight:650; margin-top:10px; }
+.acg-native-confirm p:not(.acg-native-eyebrow) { margin-top:9px; font-size:12px; line-height:1.6; color:#a5a5a5; }
+.acg-native-confirm-actions { margin-top:18px; display:flex; gap:10px; }
+.acg-native-confirm-actions button { flex:1; }
+.acg-native-form-heading { margin-top:clamp(72px,12dvh,128px); }
+.acg-native-form-heading h1 { font-size:clamp(30px,8.5vw,42px); font-weight:700; letter-spacing:-.048em; line-height:1.05; margin:13px 0 0; }
+.acg-native-form-heading .acg-native-description { max-width:330px; margin-top:15px; }
+.acg-native-form { margin-top:35px; display:flex; flex-direction:column; gap:21px; }
+.acg-native-field { display:flex; flex-direction:column; gap:9px; min-width:0; }
+.acg-native-field>span { font-size:11px; font-weight:700; letter-spacing:.015em; color:#c0c0c0; }
+.acg-native-field>small { color:#777; font-size:10px; padding-left:3px; }
+.acg-native-field input {
+  height:53px; width:100%; min-width:0; background:#101010; color:#f4f4f4;
+  padding:0 16px; font:500 16px Inter,system-ui,sans-serif; border:1px solid #343434;
+  border-radius:10px; outline:none; box-shadow:none; transition:border-color .14s;
+}
+.acg-native-field input:focus { border-color:#a1a1a1; box-shadow:0 0 0 1px rgba(255,255,255,.12); }
+.acg-native-field input::placeholder { color:#656565; font-weight:400; }
+.acg-native-field input[readonly] { color:#a7a7a7; border-color:#292929; }
+.acg-native-field input:disabled { opacity:.6; }
+.acg-native-password { width:100%; position:relative; }
+.acg-native-password input { padding-right:58px; }
+.acg-native-password button { position:absolute; right:0; top:0; width:52px; height:53px; display:grid;place-items:center;color:#999; }
+.acg-native-password button:focus-visible { outline:1px solid #fff; outline-offset:-4px; border-radius:10px; }
+.acg-native-submit { margin-top:2px; justify-content:space-between; height:54px; }
+.acg-native-form-hint { color:#818181; font-size:11px; line-height:1.5; display:flex; align-items:start; gap:8px; }
+.acg-native-form-hint svg { flex:none; }
+.acg-native-login-bottom { display:flex; flex-direction:column; gap:10px; margin-top:32px; }
+.acg-native-small-link {
+  display:flex; align-items:center; justify-content:center; gap:7px;
+  color:#bcbcbc; text-decoration:none; font-size:11px; font-weight:550; min-height:41px;
+}
+.acg-native-small-link:active { color:#fff; }
+.acg-native-form-footer {
+  margin-top:auto; padding-top:36px; color:#707070;
+  font-size:9px; letter-spacing:.08em; line-height:1.5;
+}
+.acg-native-error {
+  color:#ff9da6; background:#210e12; border:1px solid #573039;
+  font-size:12px; line-height:1.6; border-radius:9px; padding:11px 12px;
+}
+.acg-native-segmented { display:grid; grid-template-columns:1fr 1fr; margin-top:27px; background:#111; padding:4px; border-radius:10px; border:1px solid #282828; }
+.acg-native-segmented button { min-height:42px; font-size:12px; color:#969696; border-radius:7px; font-weight:600; }
+.acg-native-segmented button[aria-pressed="true"] { background:#f1f1f1; color:#060606; }
+.acg-native-segmented+.acg-native-form { margin-top:25px; }
+.acg-native-disabled { background:#101010; border:1px solid #292929; border-radius:10px; padding:14px; margin-top:22px; }
+.acg-native-disabled p { font-size:12px; line-height:1.6; color:#a4a4a4; margin-top:7px; }
+.acg-native-text-link { color:#bdbdbd; text-align:center; padding:10px; font-size:12px; }
+.acg-native-screen button:focus-visible, .acg-native-screen a:focus-visible { outline:2px solid #bbb; outline-offset:3px; }
+@media(max-height:690px) { .acg-native-welcome-hero { padding-top:52px; } .acg-native-welcome-actions { margin-top:36px; } .acg-native-form-heading { margin-top:52px; } }
+@media(max-width:360px) {
+  .acg-native-frame { padding-left:18px; padding-right:18px; }
+  .acg-native-meta { font-size:8px; }
+  .acg-native-welcome-hero h1 { font-size:36px; }
+  .acg-native-access { padding:12px; }
+}
+@media(prefers-reduced-motion:reduce) { .acg-native-screen * { transition:none !important; animation:none !important; } }
