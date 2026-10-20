@@ -51,3 +51,13 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Checked-in Capacitor Android native project: local/generated state only
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/local.properties
+/android/captures/
+/android/.idea/
+/android/**/*.keystore
+/android/**/*.jks
