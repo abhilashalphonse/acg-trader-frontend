@@ -32,6 +32,17 @@ jobs:
             exit 1
           fi
 
+      - name: Check private/backend repository access before acceptance
+        env:
+          GH_TOKEN: ${{ secrets.ACG_E2E_REPO_READ_TOKEN }}
+        run: |
+          for repo in abhilashalphonse/acg-trader-backend abhilashalphonse/acg-trader-frontend; do
+            if ! gh api "repos/$repo/commits/main" --jq .sha >/dev/null 2>&1; then
+              echo "::error::ACG_E2E_REPO_READ_TOKEN cannot read $repo/main. Grant Contents:read and Pull requests:read on both repositories. Preserve the paired release gate."
+              exit 1
+            fi
+          done
+
       - name: Resolve immutable pair without draft or fixed-PR dependencies
         id: commits
         uses: actions/github-script@v7
