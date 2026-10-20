@@ -1,0 +1,48 @@
+name: Android existing-account production connectivity (read only)
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/android-production-connectivity.yml'
+      - 'capacitor.config.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe production API and native CORS without credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://acg-trader-backend-production.up.railway.app'
+          origin='https://localhost'
+          curl --fail --silent --show-error --connect-timeout 10 --max-time 20 "$base/health/live" >/dev/null
+          for endpoint in /v1/auth/login /v1/auth/refresh /v1/auth/logout /v1/auth/accounts; do
+            method=POST
+            [ "$endpoint" = /v1/auth/accounts ] && method=GET
+            headers="$(curl --silent --show-error --connect-timeout 10 --max-time 20 --dump-header - --output /dev/null \
+              --request OPTIONS -H "Origin: $origin" -H "Access-Control-Request-Method: $method" \
+              -H 'Access-Control-Request-Headers: content-type,x-acg-refresh,authorization' "$base$endpoint")"
+            echo "$endpoint: $(printf '%s\n' "$headers" | head -1 | tr -d '\r')"
+            if ! printf '%s\n' "$headers" | grep -qiF "access-control-allow-origin: $origin"; then
+              echo "::error::Production does not allow native Android origin for $endpoint"
+              exit 1
+            fi
+            if ! printf '%s\n' "$headers" | grep -qiF 'access-control-allow-credentials: true'; then
+              echo "::error::Production does not allow credentialed native Android request for $endpoint"
+              exit 1
+            fi
+          done
+          echo 'Production origin preflight passed without sending credentials or orders.'
+          ws_status="$(curl --silent --show-error --http1.1 --connect-timeout 10 --max-time 20 \
+            --output /dev/null --write-out '%{http_code}' -H "Origin: $origin" \
+            -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
+            -H 'Sec-WebSocket-Key: ZG9lc25vdG1hdHRlcmtleQ==' \
+            -H 'Sec-WebSocket-Version: 13' "$base/v1/ws")"
+          echo "Native WebSocket: HTTP $ws_status"
+          [ "$ws_status" = 401 ] || { echo '::error::WebSocket native origin denied'; exit 1; }
