@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowUpRight, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react';
 import { useTraderAuth } from '../hooks/useTraderAuth.js';
 import ACGStartupLoader from './ACGStartupLoader.jsx';
+import { isAndroidNativeRuntime } from '../native/androidRuntime.js';
 
 function presentAuthError(error) {
   if (!error) return '';
@@ -77,7 +78,7 @@ export default function SessionGate({ children }) {
   };
 
   return (
-    <main className="relative min-h-dvh overflow-x-hidden overflow-y-auto bg-black text-white">
+    <main className={`relative min-h-dvh overflow-x-hidden overflow-y-auto bg-black text-white ${isAndroidNativeRuntime() ? 'acg-native-login' : ''}`}>
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 hidden lg:block"

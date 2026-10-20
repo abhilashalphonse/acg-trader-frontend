@@ -9,6 +9,8 @@ import { AuthProvider } from './auth/AuthProvider.jsx';
 import { TradingProvider } from './store/TradingProvider.jsx';
 import './index.css';
 import './styles/acg-pure-black.css';
+import './styles/acg-native-auth.css';
+import { isAndroidNativeRuntime } from './native/androidRuntime.js';
 import { ACTIVE_TERMINAL_MARKER, shouldOpenLandingPreview, shouldOpenMobileOnboarding, shouldOpenPublicHome, shouldOpenStandaloneAuth } from './landing/landing-routing.js';
 
 let activeTerminal = false;
@@ -21,7 +23,7 @@ if (shouldOpenLandingPreview(window.location.search)) {
       <AuthProvider><StandaloneAuthPage /></AuthProvider>
     </AppErrorBoundary>,
   );
-} else if (shouldOpenMobileOnboarding(window.location.pathname, window.location.search)) {
+} else if (shouldOpenMobileOnboarding(window.location.pathname, window.location.search, isAndroidNativeRuntime(window))) {
   createRoot(document.getElementById('root')).render(
     <AppErrorBoundary>
       <AuthProvider><MobileOnboardingPage /></AuthProvider>

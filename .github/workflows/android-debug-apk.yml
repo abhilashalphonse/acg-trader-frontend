@@ -1,0 +1,109 @@
+name: Android V1 — staging debug APK
+
+on:
+  pull_request:
+    paths:
+      - 'capacitor.config.json'
+      - 'src/**'
+      - 'public/acg-logo.png'
+      - 'scripts/android-branding.py'
+      - '.github/workflows/android-debug-apk.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: acg-trader-android-beta-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  debug-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      # The private beta must not call any production trading service.
+      VITE_ACG_TRADER_API_BASE: https://discerning-presence-staging.up.railway.app
+      VITE_ACG_TRADER_WS_URL: wss://discerning-presence-staging.up.railway.app/v1/ws
+      VITE_ACG_TRADER_HTTP_TIMEOUT_MS: '10000'
+      VITE_ACG_EXECUTION_V4_ENABLED: 'true'
+      VITE_ACG_SUPABASE_AUTH_ENABLED: 'false'
+      VITE_GIT_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Use runner Android SDK and install API 36
+        run: |
+          test -n "${ANDROID_HOME:-}" || { echo 'Android SDK missing on runner'; exit 1; }
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --install 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Verify installed Android HTTPS origin is allowed by staging API
+        run: |
+          set -euo pipefail
+          base="$VITE_ACG_TRADER_API_BASE"
+          origin='https://localhost'
+          for endpoint in /v1/auth/login /v1/auth/refresh; do
+            headers="$(curl --silent --show-error --connect-timeout 10 --max-time 20 --dump-header - --output /dev/null \
+              --request OPTIONS -H "Origin: $origin" \
+              -H 'Access-Control-Request-Method: POST' \
+              -H 'Access-Control-Request-Headers: content-type,x-acg-refresh' "$base$endpoint")"
+            printf '%s\n' "$headers" | grep -qiF "access-control-allow-origin: $origin" || {
+              echo "::error::Android origin denied on $endpoint; staging CORS must allow https://localhost"
+              exit 1
+            }
+            printf '%s\n' "$headers" | grep -qiF 'access-control-allow-credentials: true' || {
+              echo "::error::Android credentialed requests denied on $endpoint"; exit 1;
+            }
+          done
+          echo 'Staging accepts Android origin for credentialed login and refresh preflights.'
+      - name: Install locked frontend dependencies
+        run: npm ci
+      - name: Install isolated native build toolchain (without changing web lockfile)
+        run: |
+          npm install --no-save --package-lock=false --no-audit --no-fund \
+            @capacitor/core@8.0.0 @capacitor/cli@8.0.0 @capacitor/android@8.0.0
+      - name: Validate existing React tests
+        run: |
+          npm run lint
+          npm test
+      - name: Build staging-only bundled app assets
+        run: |
+          npm run build
+          test -d dist/assets
+          grep -qrF 'discerning-presence-staging.up.railway.app' dist/assets
+          if grep -qrF 'acg-trader-backend-production.up.railway.app' dist/assets; then
+            echo '::error::Production backend URL detected in Android beta assets'
+            exit 1
+          fi
+          test "${VITE_ACG_SUPABASE_AUTH_ENABLED}" = false
+      - name: Generate Android native project
+        run: |
+          npx cap add android
+          npx cap sync android
+      - name: Apply official ACG brand to Android launcher
+        run: |
+          python3 -m pip install --disable-pip-version-check --quiet --break-system-packages Pillow
+          python3 scripts/android-branding.py
+      - name: Compile private debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew --no-daemon --stacktrace assembleDebug
+      - name: Upload installable Android beta
+        uses: actions/upload-artifact@v4
+        with:
+          name: acg-trader-android-staging-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, ShieldCheck } from 'lucide-react';
 import { useTraderAuth } from '../hooks/useTraderAuth.js';
 import { SupabaseBrowserAuth, supabaseOnboardingEnabled } from '../auth/supabase-browser.js';
+import { isAndroidNativeRuntime } from '../native/androidRuntime.js';
 
 const isStrongEnough = password => typeof password === 'string' && password.length >= 12 && password.length <= 128;
 
@@ -12,24 +13,24 @@ function authMode() {
 }
 
 function ScreenCard({ children }) {
-  return <section className="w-full rounded-[24px] border border-[#dddfd9] bg-white p-6 shadow-[0_20px_70px_rgba(12,16,14,.05)] sm:p-9">
+  return <section className="acg-auth-card w-full rounded-[24px] border border-[#dddfd9] bg-white p-6 shadow-[0_20px_70px_rgba(12,16,14,.05)] sm:p-9">
     {children}
   </section>;
 }
 
 function Button({ children, secondary = false, disabled = false, onClick, submit = false }) {
   return <button type={submit ? 'submit' : 'button'} onClick={onClick} disabled={disabled}
-    className={`flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black disabled:cursor-not-allowed disabled:opacity-45 ${secondary
+    className={`acg-auth-button-${secondary ? 'secondary' : 'primary'} flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black disabled:cursor-not-allowed disabled:opacity-45 ${secondary
       ? 'border border-[#d6d9d4] bg-white text-[#171919] hover:bg-[#f5f6f3]'
       : 'bg-[#141516] text-white hover:bg-[#303233]'}`}>{children}</button>;
 }
 
 function Input({ label, type = 'text', value, onChange, autoComplete, required = true, minLength }) {
   return <label className="block space-y-2">
-    <span className="text-xs font-bold text-[#484d4a]">{label}</span>
+    <span className="acg-auth-label text-xs font-bold text-[#484d4a]">{label}</span>
     <input required={required} type={type} value={value} autoComplete={autoComplete}
       minLength={minLength} onChange={event => onChange(event.target.value)}
-      className="block min-h-12 w-full rounded-xl border border-[#d2d5ce] bg-[#fafbf8] px-4 text-base text-[#151715] outline-none focus:border-[#262825] focus:ring-2 focus:ring-[#262825]/10"
+      className="acg-auth-input-field block min-h-12 w-full rounded-xl border border-[#d2d5ce] bg-[#fafbf8] px-4 text-base text-[#151715] outline-none focus:border-[#262825] focus:ring-2 focus:ring-[#262825]/10"
     />
   </label>;
 }
@@ -44,6 +45,7 @@ export default function StandaloneAuthPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const enabled = supabaseOnboardingEnabled();
+  const native = isAndroidNativeRuntime();
 
   const go = next => {
     setMode(next); setError(''); setPassword(''); setConfirmation('');
@@ -130,15 +132,15 @@ export default function StandaloneAuthPage() {
   };
 
   const showBusy = busy && <Loader2 size={16} className="animate-spin" aria-hidden="true"/>;
-  return <main className="min-h-dvh bg-[#f5f6f3] text-[#161817]">
+  return <main className={`${native ? 'acg-native-auth ' : ''}min-h-dvh bg-[#f5f6f3] text-[#161817]`}>
     <header className="mx-auto flex max-w-[1280px] items-center justify-between px-5 py-6 sm:px-9">
       <a href="/" className="text-xl font-black tracking-[-.065em] text-[#111312] no-underline">
-        ACG <span className="font-semibold tracking-[-.04em]">TRADER</span>
+        {native ? <img src="/acg-logo.png" alt="ACG Trader" className="h-auto w-[82px]" /> : <>ACG <span className="font-semibold tracking-[-.04em]">TRADER</span></>}
       </a>
       <a href="/?acg_connect_prop=1" className="text-xs font-semibold text-[#5b605d] hover:text-black">Connect Prop <ArrowRight size={13} className="inline" /></a>
     </header>
     <div className="mx-auto grid min-h-[calc(100dvh-150px)] max-w-[1160px] items-center gap-10 px-5 pb-16 pt-8 sm:px-9 lg:grid-cols-[1fr_440px] lg:gap-24">
-      <div className="max-w-[520px]">
+      <div className="acg-auth-hero max-w-[520px]">
         <p className="mb-4 text-xs font-bold uppercase tracking-[.18em] text-[#757a74]">ACG TRADER / YOUR WORKSPACE</p>
         <h1 className="text-[clamp(42px,5.4vw,76px)] font-black leading-[.99] tracking-[-.068em]">
           Global markets.<br/><span className="text-[#8d938b]">One platform.</span>
@@ -157,7 +159,7 @@ export default function StandaloneAuthPage() {
           <p className="mt-4 text-sm leading-6 text-[#656b64]">
             Try Demo is being prepared for live signup. Email and Google registration remain disabled in this audit build; no personal account can be created until registration is enabled.
           </p>
-          <div className="mt-7"><a href="/?acg_login=1" className="block rounded-xl bg-[#141516] px-5 py-4 text-center text-sm font-bold text-white">Open existing login</a></div>
+          <div className="mt-7"><a href="/?acg_login=1" className="acg-native-preview-link block rounded-xl bg-[#141516] px-5 py-4 text-center text-sm font-bold text-white">Open existing login</a></div>
         </> : <>
           {['signin','signup','recover','reset'].includes(mode) && <form onSubmit={handleSubmit} className="space-y-5">
             <div>
