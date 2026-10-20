@@ -1,0 +1,68 @@
+/* Native-only corrections: browser V6 and desktop remain unchanged. */
+.acg-native-auth {
+  min-height: 100dvh;
+  background: #000 !important;
+  color: #f5f5f5 !important;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+}
+.acg-native-auth .acg-auth-hero { display: none; }
+.acg-native-auth .acg-auth-card {
+  background: #080808 !important;
+  color: #f5f5f5 !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  border-radius: 14px !important;
+  box-shadow: none !important;
+}
+.acg-native-auth .acg-auth-card h2 { color: #f5f5f5 !important; }
+.acg-native-auth .acg-auth-card p:not([role="alert"]),
+.acg-native-auth .acg-auth-card .acg-auth-label {
+  color: #aaa !important;
+}
+.acg-native-auth .acg-auth-input-field {
+  background: #101010 !important;
+  color: #f5f5f5 !important;
+  border-color: rgba(255,255,255,.14) !important;
+  border-radius: 9px !important;
+  box-shadow: none !important;
+}
+.acg-native-auth .acg-auth-input-field:focus {
+  border-color: rgba(255,255,255,.55) !important;
+  outline: none !important;
+}
+.acg-native-auth .acg-auth-button-primary {
+  background: #f5f5f5 !important;
+  color: #050505 !important;
+  border-radius: 9px !important;
+}
+.acg-native-auth .acg-auth-button-secondary {
+  background: #101010 !important;
+  color: #f5f5f5 !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+  border-radius: 9px !important;
+}
+.acg-native-auth .acg-auth-card button.underline { color: #f5f5f5 !important; }
+.acg-native-auth .acg-auth-card p[role="alert"] {
+  color: #f0a0a8 !important;
+  background: #180b0e !important;
+}
+.acg-native-auth .acg-auth-card .acg-native-preview-link {
+  background: #f5f5f5 !important;
+  color: #080808 !important;
+}
+.acg-native-login {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.acg-native-login button[type="submit"]:not(:disabled) {
+  background: #f5f5f5 !important;
+  color: #050505 !important;
+  border: 1px solid #f5f5f5 !important;
+  box-shadow: none !important;
+}
+.acg-native-login input:focus { border-color: #d4d4d4 !important; box-shadow: none !important; }
+@media(max-width: 760px) {
+  .acg-native-auth .acg-auth-card { padding: 23px 18px !important; }
+  .acg-native-auth .acg-auth-card h2 { font-size: 24px !important; }
+}
