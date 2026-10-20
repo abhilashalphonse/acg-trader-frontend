@@ -105,7 +105,7 @@ jobs:
         run: |
           grep -qF '"appId": "com.acgtrader.existingbeta"' capacitor.config.json
           grep -qF '"hostname": "acg-trader.web.app"' capacitor.config.json
-          npx cap add android
+          if [ ! -f android/gradlew ]; then npx cap add android; fi
           npx cap sync android
       - name: Apply official ACG brand to Android launcher
         run: |
