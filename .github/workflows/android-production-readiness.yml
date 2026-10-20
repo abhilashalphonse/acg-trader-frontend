@@ -18,5 +18,8 @@ jobs:
           http=$(curl --silent --show-error --max-time 20 --output /tmp/personal.json --write-out '%{http_code}' -X POST -H 'content-type: application/json' -d '{}' "$api/v1/auth/personal/demo")
           echo "Personal demo registration probe: $http"
           test "$http" = '401' || test "$http" = '404'
-          curl --silent --show-error --max-time 20 'https://mwkwvchaqjqtyfgmialk.supabase.co/auth/v1/settings' | python3 -c 'import sys,json; j=json.load(sys.stdin); print(json.dumps({k:j.get(k) for k in ("disable_signup","external","mailer_autoconfirm") if k in j})[:2000])'
+          curl --silent --show-error --max-time 20 \
+            -H 'apikey: sb_publishable_jWU1C6V6HsdSM8JMb2KoKg_cnyPduhV' \
+            'https://mwkwvchaqjqtyfgmialk.supabase.co/auth/v1/settings' \
+            | python3 -c 'import sys,json; j=json.load(sys.stdin); print("Supabase public settings:",json.dumps({k:j.get(k) for k in ("disable_signup","external","mailer_autoconfirm","external_google") if k in j})[:1200])'
           echo 'No authentication or trade performed.'
