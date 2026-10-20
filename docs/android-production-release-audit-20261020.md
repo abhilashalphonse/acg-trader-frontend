@@ -31,3 +31,15 @@ This app uses ACG Trader's production backend and may execute funded/challenge t
 - Do not test trading commands with real money or unauthorized accounts. The ACG Funded challenge environment is simulated, but production changes still affect real customer state.
 - Release GitHub Actions/Play signing only after previous gates are green; do not change app package ID after public Play listing.
 - Debug APK is not a shipped version, regardless of whether it targets production API.
+
+## Dependency findings and resolution (follow-up)
+- Initial npm production audit reported 5 high and 2 critical vulnerabilities, mostly inherited from Capacitor 8.0.0 and unused Firebase JavaScript dependencies.
+- Updated the pinned Capacitor core/android/cli toolchain to **8.5.3** and removed the Firebase browser SDK after verifying there were no frontend runtime imports.
+- Follow-up GitHub Actions npm production audit reports **0 high, 0 critical and 3 moderate** vulnerabilities. The app must continue to track upstream fixes for the moderate findings.
+- This security upgrade has been checked by frontend lint, unit tests and native compile CI on the release branch.
+
+## Production-connected owner test
+- `.github/workflows/android-production-qa.yml` compiles the full V4 execution candidate with release package ID `com.acgtrader.app` and `VITE_ACG_ANDROID_READ_ONLY_BETA=false`.
+- The debug-signed APK is distributed privately only. It is not a Google Play release and must not be represented as a fully signed production build.
+- Android emulator startup/relaunch is an additional acceptance job, separate from Gradle build success.
+- Production personal demo endpoint still returns HTTP 404 without authorization; Supabase `external.google=false`, `disable_signup=false`, `external.email=true`. Do not claim personal signup is finished.
