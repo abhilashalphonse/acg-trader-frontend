@@ -37,6 +37,7 @@ jobs:
           node tests/ui/mobile-v4-workspaces.mjs
           node tests/ui/mobile-v4-markets.mjs
           node tests/ui/mobile-onboarding.mjs
+          node tests/ui/android-native-entry.mjs
       - name: Upload Mobile audit evidence
         if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feat/mobile-audit-') || startsWith(github.ref, 'refs/heads/fix/mobile-audit-') || startsWith(github.head_ref, 'fix/mobile-audit-') || startsWith(github.head_ref, 'fix/v4-signout-') || startsWith(github.head_ref, 'feat/mobile-onboarding-') || startsWith(github.ref, 'refs/heads/feat/mobile-onboarding-') || startsWith(github.head_ref, 'feat/android-v1-') || startsWith(github.ref, 'refs/heads/feat/android-v1-') || startsWith(github.head_ref, 'feat/android-existing-account-') || startsWith(github.ref, 'refs/heads/feat/android-existing-account-') }}
         uses: actions/upload-artifact@v4
@@ -45,6 +46,7 @@ jobs:
           path: |
             artifacts/mobile-audit-*.png
             artifacts/mobile-v4-*.png
+            artifacts/native-*.png
           retention-days: 7
       - name: Browser V4 330px and double-click smoke
         if: ${{ github.event_name == 'pull_request' }}
