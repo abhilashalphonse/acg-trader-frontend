@@ -60,7 +60,10 @@ export default function SessionGate({ children }) {
   const [localError, setLocalError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  if (auth.status === 'bootstrapping' || auth.status === 'authenticating') {
+  // Keep the native form mounted while authenticating: changing to a full-screen
+  // loader after pressing Sign in would dismiss the keyboard and lose form state.
+  if (auth.status === 'bootstrapping' ||
+      (auth.status === 'authenticating' && !shouldPresentNativeEntry())) {
     return <ACGStartupLoader />;
   }
 
