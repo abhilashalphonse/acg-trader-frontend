@@ -8,7 +8,8 @@
  * maximum and never the backend's execution validation.
  */
 import { estimateExecutionPrice } from './executionPricing.js';
-import { estimateOpeningRequirement } from './tradingRisk.js';
+import { estimateOpeningRequirement, estimateLossAtStopWithCosts } from './tradingRisk.js';
+import { resolveV4PositionSizing } from './v4ExecutionPrecision.js';
 
 const positive = value => value !== '' && value != null && Number.isFinite(Number(value)) && Number(value) > 0
   ? Number(value) : null;
@@ -63,6 +64,73 @@ export function deriveV4AffordableVolume({ instrument,account,side='buy',pending
     else right=mid-1;
   }
   return {valid:true,affordableLots:volumeFromUnits(accepted,step),minLots:volumeFromUnits(low,step),reason:null};
+}
+
+/**
+ * Risk slider limits use the same verified execution adapter as the ticket.
+ * The cap is the risk at the maximum affordable (step-rounded) volume, not
+ * a hard-coded percent of equity. Manual typed budgets remain unrestricted
+ * and are always validated at submission.
+ */
+export function deriveV4AffordableRiskRange({ instrument, account, plan, affordableLots }={}) {
+  const equity=positive(account?.equity);
+  const lots=positive(affordableLots);
+  const minLots=positive(instrument?.minVolume);
+  const step=positive(instrument?.volumeStep);
+  const sl=positive(plan?.sl);
+  const side=String(plan?.side||'').toLowerCase();
+  const invalid={valid:false,reason:'RISK_RANGE_UNAVAILABLE'};
+  if(!equity||!lots||!minLots||!step||lots<minLots||!sl||!validSide(side))return invalid;
+
+  const entryFor=volume=>plan?.pending
+    ?positive(plan?.orderType==='stop-limit'?plan?.limitPrice:plan?.entry)
+    :positive(estimateExecutionPrice(instrument,side,volume)?.price);
+  const lossFor=volume=>{
+    const entry=entryFor(volume);
+    if(!entry || (side==='buy'?sl>=entry:sl<=entry))return null;
+    return positive(estimateLossAtStopWithCosts({...plan,entry},volume,instrument,account));
+  };
+  const minRisk=lossFor(minLots);
+  const upperRisk=lossFor(lots);
+  if(!minRisk||!upperRisk||upperRisk<minRisk)return invalid;
+
+  const isExecutable=(mode,amount)=>Number.isFinite(amount)&&amount>0
+    &&resolveV4PositionSizing({mode,amount,plan,account,instrument}).canExecute===true;
+  const usdWorks=amount=>isExecutable('riskUSD',amount);
+  let firstValid=null;
+  // Find a known executable budget before searching upward. Risk amounts
+  // below the minimum volume must not be mistaken for the maximum.
+  for(let n=0;n<=24;n++){
+    const candidate=minRisk+(upperRisk-minRisk)*n/24+upperRisk*1e-10;
+    if(usdWorks(candidate)){firstValid=candidate;break;}
+  }
+  if(firstValid===null)return invalid;
+
+  let ceiling=upperRisk;
+  if(!usdWorks(upperRisk)){
+    let low=firstValid, high=upperRisk;
+    for(let i=0;i<26;i++){
+      const mid=(low+high)/2;
+      if(usdWorks(mid))low=mid;
+      else high=mid;
+    }
+    ceiling=low;
+  }
+
+  const floorStep=(v,increment)=>Number((Math.floor((v+1e-10)/increment)*increment).toPrecision(12));
+  const ceilStep=(v,increment)=>Number((Math.ceil((v-1e-10)/increment)*increment).toPrecision(12));
+  const modeRange=(mode,increment,convert)=>{
+    const min=ceilStep(convert(minRisk),increment);
+    const max=floorStep(convert(ceiling),increment);
+    if(!Number.isFinite(min)||!Number.isFinite(max)||min>max||min<=0)return null;
+    // Converted, quantized endpoints must remain executable as prices move.
+    if(!isExecutable(mode,min)||!isExecutable(mode,max))return null;
+    return {min,max};
+  };
+  const usd=modeRange('riskUSD',1,risk=>risk);
+  const percent=modeRange('riskPercent',0.01,risk=>risk/equity*100);
+  if(!usd&&!percent)return invalid;
+  return {valid:true,usd,percent,affordableLots:lots};
 }
 
 /** Logarithmic mapping: precise around min lots, reaches full affordable cap. */
