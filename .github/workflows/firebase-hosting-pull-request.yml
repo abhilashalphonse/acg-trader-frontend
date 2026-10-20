@@ -58,8 +58,8 @@ jobs:
       - name: Build preview
         run: npm run build
         env:
-          # The chart-order feature branch also builds against STAGING; never test new chart actions against production.
-          # Every other PR retains its original endpoints and legacy UI.
+          # Chart-order and Android V1 beta review builds use STAGING, not production.
+          # Other unrelated PRs retain their original endpoints and flags.
           VITE_ACG_TRADER_API_BASE: ${{ (github.event.pull_request.number == 90 || (github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels' || startsWith(github.event.pull_request.head.ref, 'feat/android-v1-'))) && 'https://discerning-presence-staging.up.railway.app' || secrets.VITE_ACG_TRADER_API_BASE }}
           VITE_ACG_TRADER_WS_URL: ${{ (github.event.pull_request.number == 90 || (github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels' || startsWith(github.event.pull_request.head.ref, 'feat/android-v1-'))) && 'wss://discerning-presence-staging.up.railway.app/v1/ws' || secrets.VITE_ACG_TRADER_WS_URL }}
           VITE_ACG_EXECUTION_V4_ENABLED: ${{ (github.event.pull_request.number == 90 || (github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels' || startsWith(github.event.pull_request.head.ref, 'feat/android-v1-'))) && 'true' || 'false' }}
@@ -86,7 +86,7 @@ jobs:
           expires: 7d
 
       - name: Verify chart-order preview Origin against STAGING CORS
-        if: ${{ (github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels' || startsWith(github.event.pull_request.head.ref, 'feat/android-v1-')) }}
+        if: ${{ github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels' }}
         run: |
           set -euo pipefail
           origin='https://acg-trader--pr-97-v1thyrgt.web.app'
