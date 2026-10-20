@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Building2, ChartNoAxesCombined, ChevronLeft, CircleHelp, FlaskConical, LockKeyhole, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Building2, ChartNoAxesCombined, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { supabaseOnboardingEnabled } from '../../auth/supabase-browser.js';
 
 export default function NativeWelcomePage({ restoring, busy, sessionReady, openContext, pendingContext, setPendingContext, confirm, error }) {
