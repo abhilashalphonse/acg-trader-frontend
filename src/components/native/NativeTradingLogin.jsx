@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, ArrowRight, ArrowUpRight, Eye, EyeOff, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { Browser } from '@capacitor/browser';
+import { isAndroidNativeRuntime } from '../../native/androidRuntime.js';
 
 export default function NativeTradingLogin({ connectProp, tenant, form, setForm, submitting, ready, errorMessage, onSubmit, fundedUrl, isReadOnlyBeta }) {
   const [visible, setVisible] = useState(false);
@@ -53,7 +54,14 @@ export default function NativeTradingLogin({ connectProp, tenant, form, setForm,
       </form>
       <div className="acg-native-login-bottom">
         {fundedUrl && <button type="button" className="acg-native-small-link"
-          onClick={() => void Browser.open({ url: fundedUrl }).catch(() => {})}>
+          onClick={() => {
+            try {
+              const url = new URL(fundedUrl);
+              if (url.protocol !== 'https:') return;
+              if (isAndroidNativeRuntime()) void Browser.open({ url: url.href }).catch(() => {});
+              else window.open(url.href, '_blank', 'noopener,noreferrer');
+            } catch { /* invalid configured URL: remain inside the trusted app */ }
+          }}>
           Find credentials in ACG Funded <ArrowUpRight size={15}/>
         </button>}
         <a className="acg-native-small-link" href="/?acg_auth=signup&acg_onboarding_audit=1">
