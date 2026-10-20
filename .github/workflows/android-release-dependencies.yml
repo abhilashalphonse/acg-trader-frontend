@@ -18,7 +18,17 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npm install --save-exact --no-audit --no-fund @capacitor/app@8.0.0 @capacitor/browser@8.0.0
+      - name: Remove unused Firebase client and update patched Capacitor
+        run: |
+          set -euo pipefail
+          if grep -R -E "from ['\"]firebase|import\\(['\"]firebase|require\\(['\"]firebase" src/ 2>/dev/null; then
+            echo "::error::Firebase JS is in use; do not remove it without a targeted refactor"
+            exit 1
+          fi
+          npm uninstall --save --no-audit --no-fund firebase
+          npm install --save-exact --no-audit --no-fund \
+            @capacitor/core@8.5.3 @capacitor/cli@8.5.3 @capacitor/android@8.5.3 \
+            @capacitor/app@8.0.0 @capacitor/browser@8.0.0
       - run: |
           npm run build
           npx cap sync android
