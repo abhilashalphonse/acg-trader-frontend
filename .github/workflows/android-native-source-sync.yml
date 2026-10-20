@@ -61,5 +61,9 @@ jobs:
             echo 'Native files already committed.'
           else
             git commit -m 'android: check in native Gradle project, launcher, splash and Capacitor lockfile'
+            # The Android branch may receive lint/CI fixes while this job generates
+            # the platform. Rebase our generated source without force-pushing.
+            git fetch origin feat/android-existing-account-readonly-20261020
+            git rebase origin/feat/android-existing-account-readonly-20261020
             git push origin HEAD:refs/heads/feat/android-existing-account-readonly-20261020
           fi
