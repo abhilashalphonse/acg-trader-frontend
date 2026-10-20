@@ -113,10 +113,13 @@ jobs:
             sleep 12
             adb shell pidof com.acgtrader.app
             mkdir -p artifacts
-            adb shell screencap -p /sdcard/acg-entry.png
-            adb pull /sdcard/acg-entry.png artifacts/android-emulator-launch.png
-            adb shell uiautomator dump /sdcard/window.xml
-            adb pull /sdcard/window.xml artifacts/android-emulator-window.xml
+            # Stream screenshots straight to the CI workspace: Android 15
+            # can deny shell writes to shared /sdcard despite a healthy app.
+            adb exec-out screencap -p > artifacts/android-emulator-launch.png
+            test -s artifacts/android-emulator-launch.png
+            adb shell uiautomator dump /data/local/tmp/acg-window.xml
+            adb pull /data/local/tmp/acg-window.xml artifacts/android-emulator-window.xml
+            test -s artifacts/android-emulator-window.xml
             adb shell am force-stop com.acgtrader.app
             adb shell am start -n com.acgtrader.app/.MainActivity
             sleep 5
