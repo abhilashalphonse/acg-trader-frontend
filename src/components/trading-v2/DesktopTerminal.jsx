@@ -69,7 +69,7 @@ function normalizeDesktopTimeframe(value) {
   const raw = String(value || '');
   const aliases = { '1h': '1H', '4h': '4H', '1d': '1D', D: '1D', '1w': '1W' };
   const normalized = aliases[raw] || raw;
-  return timeframes.some(([id]) => id === normalized) ? normalized : '1m';
+  return timeframes.some(([id]) => id === normalized) ? normalized : '30m';
 }
 const DESKTOP_LAYOUT_KEY = 'acg-trader-desktop-layout-v2';
 const MULTI_CHART_KEY = 'acg-trader-multi-chart-v1';
@@ -215,7 +215,7 @@ function loadMultiChart(activeSymbol, timeframe, indicators = []) {
     linked: false,
     activeCell: 0,
     cells: [
-      { symbol: activeSymbol || '', timeframe: timeframe || '1m', indicators: cloneIndicators(indicators) },
+      { symbol: activeSymbol || '', timeframe: timeframe || '30m', indicators: cloneIndicators(indicators) },
       { symbol: '', timeframe: '5m', indicators: cloneIndicators(indicators) },
       { symbol: '', timeframe: '15m', indicators: cloneIndicators(indicators) },
       { symbol: '', timeframe: '1H', indicators: cloneIndicators(indicators) },
@@ -350,7 +350,7 @@ export default function DesktopTerminal({
   accountSwitching = false,
   accountSwitchError = null,
   onSelectAccount = () => false,
-  timeframe = '1m',
+  timeframe = '30m',
   onTimeframeChange = () => {},
   chartMode = 'candles',
   onChartModeChange = () => {},
