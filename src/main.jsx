@@ -10,6 +10,7 @@ import { TradingProvider } from './store/TradingProvider.jsx';
 import './index.css';
 import './styles/acg-pure-black.css';
 import './styles/acg-native-auth.css';
+import './styles/acg-native-entry.css';
 import { isAndroidNativeRuntime } from './native/androidRuntime.js';
 import { ACTIVE_TERMINAL_MARKER, shouldOpenLandingPreview, shouldOpenMobileOnboarding, shouldOpenPublicHome, shouldOpenStandaloneAuth } from './landing/landing-routing.js';
 

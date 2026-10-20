@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import { ArrowUpRight, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react';
 import { useTraderAuth } from '../hooks/useTraderAuth.js';
 import ACGStartupLoader from './ACGStartupLoader.jsx';
+import { shouldPresentNativeEntry } from '../native/nativePresentation.js';
 import { isAndroidNativeRuntime } from '../native/androidRuntime.js';
+import { isExistingAccountReadOnlyBeta } from '../native/existingAccountBeta.js';
+import NativeTradingLogin from './native/NativeTradingLogin.jsx';
 
 function presentAuthError(error) {
   if (!error) return '';
@@ -45,13 +48,22 @@ export default function SessionGate({ children }) {
     && new URLSearchParams(window.location.search).get('acg_connect_prop') === '1';
   const configuredTenant = String(import.meta.env.VITE_ACG_TRADER_TENANT || 'acg-funded').trim();
   const fundedUrl = String(import.meta.env.VITE_ACG_FUNDED_URL || 'https://acgfunded.com').trim();
-  const [form, setForm] = useState({ tenant: '', login: '', password: '' });
+  // Existing-account private beta defaults to our own trading tenant, while
+  // allowing partner traders to enter a different tenant explicitly.
+  const [form, setForm] = useState({
+    tenant: isExistingAccountReadOnlyBeta() ? 'acg-funded' : '',
+    login: '',
+    password: '',
+  });
   const tenant = connectProp ? form.tenant.trim() : configuredTenant;
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  if (auth.status === 'bootstrapping' || auth.status === 'authenticating') {
+  // Keep the native form mounted while authenticating: changing to a full-screen
+  // loader after pressing Sign in would dismiss the keyboard and lose form state.
+  if (auth.status === 'bootstrapping' ||
+      (auth.status === 'authenticating' && !shouldPresentNativeEntry())) {
     return <ACGStartupLoader />;
   }
 
@@ -76,6 +88,15 @@ export default function SessionGate({ children }) {
       setSubmitting(false);
     }
   };
+
+  if (shouldPresentNativeEntry()) {
+    return <NativeTradingLogin
+      connectProp={connectProp} tenant={tenant} form={form} setForm={setForm}
+      submitting={submitting} ready={ready} errorMessage={errorMessage}
+      onSubmit={submit} fundedUrl={fundedUrl}
+      isReadOnlyBeta={isExistingAccountReadOnlyBeta()}
+    />;
+  }
 
   return (
     <main className={`relative min-h-dvh overflow-x-hidden overflow-y-auto bg-black text-white ${isAndroidNativeRuntime() ? 'acg-native-login' : ''}`}>
@@ -112,6 +133,11 @@ export default function SessionGate({ children }) {
                 ? 'Connect to a supported broker or prop firm using the tenant identifier and trading credentials they provided.'
                 : 'Access your trading workspace with the credentials issued from your ACG Funded account.'}
             </p>
+            {isExistingAccountReadOnlyBeta() && (
+              <p role="status" className="mt-3 text-[12px] font-semibold text-[#c4c4c4]">
+                READ-ONLY BETA · Use your existing trading account ID and password, not your website email login.
+              </p>
+            )}
           </header>
 
           <div className="mt-9 space-y-5 lg:mt-8 lg:space-y-4">

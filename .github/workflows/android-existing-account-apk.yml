@@ -1,0 +1,127 @@
+name: Android existing-account read-only beta APK
+
+on:
+  pull_request:
+    paths:
+      - 'capacitor.config.json'
+      - 'src/**'
+      - 'public/acg-logo.png'
+      - 'scripts/android-branding.py'
+      - '.github/workflows/android-existing-account-apk.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: acg-trader-android-existing-beta-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  debug-apk:
+    if: ${{ startsWith(github.head_ref, 'feat/android-existing-account-') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      # This beta uses production identity/account data; all trading mutations are blocked locally.
+      VITE_ACG_TRADER_API_BASE: https://acg-trader-backend-production.up.railway.app
+      VITE_ACG_TRADER_WS_URL: wss://acg-trader-backend-production.up.railway.app/v1/ws
+      VITE_ACG_TRADER_HTTP_TIMEOUT_MS: '10000'
+      VITE_ACG_EXECUTION_V4_ENABLED: 'true'
+      VITE_ACG_SUPABASE_AUTH_ENABLED: 'false'
+      VITE_ACG_ANDROID_READ_ONLY_BETA: 'true'
+      VITE_GIT_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Use runner Android SDK and install API 36
+        run: |
+          test -n "${ANDROID_HOME:-}" || { echo 'Android SDK missing on runner'; exit 1; }
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --install 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Verify read-only beta is allowed by production app-origin CORS
+        run: |
+          set -euo pipefail
+          base="$VITE_ACG_TRADER_API_BASE"
+          origin='https://acg-trader.web.app'
+          for endpoint in /v1/auth/login /v1/auth/refresh; do
+            headers="$(curl --silent --show-error --connect-timeout 10 --max-time 20 --dump-header - --output /dev/null \
+              --request OPTIONS -H "Origin: $origin" \
+              -H 'Access-Control-Request-Method: POST' \
+              -H 'Access-Control-Request-Headers: content-type,x-acg-refresh' "$base$endpoint")"
+            printf '%s\n' "$headers" | grep -qiF "access-control-allow-origin: $origin" || {
+              echo "::error::Beta local app origin denied on $endpoint; production origin must be first-party HTTPS"
+              exit 1
+            }
+            printf '%s\n' "$headers" | grep -qiF 'access-control-allow-credentials: true' || {
+              echo "::error::Android credentialed requests denied on $endpoint"; exit 1;
+            }
+          done
+          echo 'Production permits existing app-owned origin for login and refresh; no credentials were sent.'
+      - name: Install locked frontend dependencies
+        run: npm ci
+      - name: Install isolated native build toolchain (without changing web lockfile)
+        run: |
+          npm install --no-save --package-lock=false --no-audit --no-fund \
+            @capacitor/core@8.0.0 @capacitor/cli@8.0.0 @capacitor/android@8.0.0
+      - name: Validate existing React tests
+        run: |
+          npm run lint
+          npm test
+      - name: Build read-only existing-account assets
+        run: |
+          npm run build
+          test -d dist/assets
+          grep -qrF 'acg-trader-backend-production.up.railway.app' dist/assets
+          if grep -qrF 'discerning-presence-staging.up.railway.app' dist/assets; then
+            echo '::error::Staging backend leaked into existing-account build'
+            exit 1
+          fi
+          test "${VITE_ACG_SUPABASE_AUTH_ENABLED}" = false
+          test "${VITE_ACG_ANDROID_READ_ONLY_BETA}" = true
+          grep -qrF 'ANDROID_BETA_READ_ONLY' dist/assets
+          node --input-type=module -e "
+            import {strict as assert} from 'node:assert';
+            import {mayIssueExistingBetaRequest} from './src/native/existingAccountBeta.js';
+            for(const path of ['/v1/trading/orders/market','/v1/trading/positions/1/close',
+              '/v1/trading/orders/pending','/v1/profile']) {
+              assert.equal(mayIssueExistingBetaRequest('POST',path),false);
+            }
+            assert.equal(mayIssueExistingBetaRequest('POST','/v1/auth/login'),true);
+          "
+          echo 'Read-only production account build verified; no mutation permits.'
+      - name: Generate Android native project
+        run: |
+          grep -qF '"appId": "com.acgtrader.existingbeta"' capacitor.config.json
+          grep -qF '"hostname": "acg-trader.web.app"' capacitor.config.json
+          if [ ! -f android/gradlew ]; then npx cap add android; fi
+          npx cap sync android
+      - name: Apply official ACG brand to Android launcher
+        run: |
+          python3 -m pip install --disable-pip-version-check --quiet --break-system-packages Pillow
+          python3 scripts/android-branding.py
+          grep -q 'setAcceptThirdPartyCookies' android/app/src/main/java/com/acgtrader/existingbeta/MainActivity.java
+          test -f android/app/src/main/res/drawable/splash.png
+      - name: Compile private existing-account read-only APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew --no-daemon --stacktrace assembleDebug
+      - name: Upload installable existing-account Android beta
+        uses: actions/upload-artifact@v4
+        with:
+          name: acg-trader-existing-accounts-readonly
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7

@@ -17,6 +17,7 @@ import ExecutionStatus from '../components/trading-v2/ExecutionStatus.jsx';
 import MobileInstrumentSheet from '../components/trading-v2/MobileInstrumentSheet.jsx';
 import MobileTradesSheet from '../components/trading-v2/MobileTradesSheet.jsx';
 import MobileAccountSheet from '../components/trading-v2/MobileAccountSheet.jsx';
+import { isExistingAccountReadOnlyBeta } from '../native/existingAccountBeta.js';
 import { useTradingTerminal } from '../hooks/useTradingTerminal.js';
 import { createIndicator, INDICATOR_LIBRARY } from '../utils/indicators.js';
 import { calculateRiskOrderSizing, defaultPlannerStopDistance, estimateLossAtStopWithCosts, estimateStopRisk, evaluateRiskToolSetup } from '../utils/tradingRisk.js';
@@ -130,7 +131,8 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   activeAuditAccount.current=trading.accountId;
   // Reuse the same fresh FX conversion quotes as the V4 desktop ticket.
   const auditAccount = useMemo(() => mobileAudit ? { ...account, conversionMarkets: markets } : account, [account, markets, mobileAudit]);
-  const readOnly = String(account?.status || '').toUpperCase() === 'BREACHED';
+  const existingAccountBeta = isExistingAccountReadOnlyBeta();
+  const readOnly = existingAccountBeta || String(account?.status || '').toUpperCase() === 'BREACHED';
 
   const [timeframe, setTimeframe] = useState(prefsRef.current.timeframe || '1m');
   const [chartMode, setChartMode] = useState(prefsRef.current.chartMode || 'candles');
@@ -304,9 +306,11 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     setTradePlan(null);
     setSelectedOpenPositionId(null);
     setPositionProtectionDraft(null);
-    setOverlay('trades');
-    showNotice('This account is breached and read-only. Trading history remains available.');
-  }, [readOnly, trading.accountId]);
+    if (!existingAccountBeta) setOverlay('trades');
+    showNotice(existingAccountBeta
+      ? 'Android beta: read-only access to your existing account. Trading is disabled.'
+      : 'This account is breached and read-only. Trading history remains available.');
+  }, [readOnly, existingAccountBeta, trading.accountId]);
 
   const logEvent = (type, message, details = {}) => {
     const item = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, time: stamp(), type, message, ...details };
@@ -1272,7 +1276,12 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
           <MarketPanel onCheckStatus={checkAuditStatus} onBreakEven={movePositionToBreakEven} onSetTrailing={setPositionTrailing} mobileTradeSelection={auditChartSelection} onMobileManagementChange={mobileAudit ? setAuditManagement : undefined} managementDisabled={readOnly || trading.commandState.pending || trading.commandState.uncertain} onMovePending={movePendingOnChart} onCancelPositionProtection={cancelPositionProtection} onChartReadout={mobileAudit ? setMobileChartReadout : undefined} market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} accountCurrency={account.currency} account={mobileAudit ? auditAccount : account} riskPercent={riskPercent} onCreateRiskOrder={createPlanFromRiskTool} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onRemovePositionProtection={mobileAudit ? (id, field) => updatePosition(id, {[field]:null}) : removePositionProtectionFromChart} onRequestPositionProtection={mobileAudit ? (id, field, value) => value == null ? beginPositionProtection(field, id) : requestPositionProtectionChange(id, field, value) : requestPositionProtectionChange} onClosePosition={closePosition} historicalPosition={historicalChartContext} onClearHistoricalPosition={() => setHistoricalChartContext(null)} selectedPositionId={selectedOpenPositionId} onSelectPosition={selectOpenPosition} positionProtectionDraft={positionProtectionDraft} onPositionProtectionDraftChange={updatePositionProtectionDraft} onSelectInstrument={() => setOverlay('markets')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} compactMobileToolbar auditMobile={mobileAudit} fillAvailableHeight />
         </div>
         <div className={`acg-mobile-reference-order-wrap relative z-50 shrink-0 ${mobileAudit ? 'mt-0 bg-[#101114] pb-[max(5px,env(safe-area-inset-bottom))]' : 'mt-1.5'}`}>
-          {mobileAudit ? <>
+          {existingAccountBeta
+            ? <div role="status" aria-label="Read-only Android account beta" className="flex min-h-10 items-center justify-between gap-2 border-t border-white/[0.08] bg-[#101010] px-3 text-[11px] text-[#d9d9d9]">
+                <strong className="font-semibold tracking-[0.08em] text-white">READ-ONLY BETA</strong>
+                <span className="text-[#a3a3a3]">Existing account · Trading disabled</span>
+              </div>
+            : mobileAudit ? <>
             {auditManagement && !canonicalTradePlan && <MobileAuditManageDock management={auditManagement} market={market} account={auditAccount}/>}
             <div hidden={Boolean(auditManagement && !canonicalTradePlan)}><MobileAuditExecutionDock
             key={`${account?.id}:${market?.symbol}:${auditPreferenceRevision}`}
@@ -1294,7 +1303,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
           /></div></> : <ExecutionPanel
             market={market}
             account={account}
-            exposureAllowed={exposure.allowed}
+            exposureAllowed={exposure.allowed && !readOnly}
             exposureBlockReason={exposure.reason}
             lots={lots}
             onLotsChange={setLots}
@@ -1331,7 +1340,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     <div className="min-h-dvh bg-black font-sans text-[#f5f8fb] antialiased">
       <main ref={shellRef} className={`relative mx-auto h-dvh w-full overflow-hidden overscroll-none bg-black ${chartFocus ? 'max-w-none' : 'max-w-[460px]'}`}>
         {chartFocus ? (
-          <MobileScalperMode market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} lots={lots} setLots={setLots} sizingMode={sizingMode} setSizingMode={setSizingMode} riskPercent={riskPercent} setRiskPercent={setRiskPercent} orderType={orderType} setOrderType={setOrderType} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} onCreateRiskOrder={createPlanFromRiskTool} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onRemovePositionProtection={removePositionProtectionFromChart} onRequestPositionProtection={requestPositionProtectionChange} onClosePosition={closePosition} historicalPosition={historicalChartContext} onClearHistoricalPosition={() => setHistoricalChartContext(null)} selectedPositionId={selectedOpenPositionId} onSelectPosition={selectOpenPosition} positionProtectionDraft={positionProtectionDraft} onPositionProtectionDraftChange={updatePositionProtectionDraft} selectedPosition={selectedOpenPosition} positionProtectionAvailable={positionProtectionAvailable} onBeginPositionProtection={beginPositionProtection} onApplyPositionProtection={applyPositionProtection} onCancelPositionProtection={cancelPositionProtection} positionProtectionSaving={positionProtectionSaving} onIndicators={() => setOverlay('indicators')} indicators={indicators} account={account} plannedRisk={plannedRisk} exposureAllowed={exposure.allowed} exposureBlockReason={exposure.reason} onExit={exitChartFocus} />
+          <MobileScalperMode market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} lots={lots} setLots={setLots} sizingMode={sizingMode} setSizingMode={setSizingMode} riskPercent={riskPercent} setRiskPercent={setRiskPercent} orderType={orderType} setOrderType={setOrderType} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} onStartPlan={startPlan} onCancelPlan={cancelPlan} onExecutePlan={executePlan} onModifyPlan={modifyPlan} onManualOrder={manualOrder} onTradePlanChange={updatePlan} onCreateRiskOrder={createPlanFromRiskTool} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onRemovePositionProtection={removePositionProtectionFromChart} onRequestPositionProtection={requestPositionProtectionChange} onClosePosition={closePosition} historicalPosition={historicalChartContext} onClearHistoricalPosition={() => setHistoricalChartContext(null)} selectedPositionId={selectedOpenPositionId} onSelectPosition={selectOpenPosition} positionProtectionDraft={positionProtectionDraft} onPositionProtectionDraftChange={updatePositionProtectionDraft} selectedPosition={selectedOpenPosition} positionProtectionAvailable={positionProtectionAvailable} onBeginPositionProtection={beginPositionProtection} onApplyPositionProtection={applyPositionProtection} onCancelPositionProtection={cancelPositionProtection} positionProtectionSaving={positionProtectionSaving} onIndicators={() => setOverlay('indicators')} indicators={indicators} account={account} plannedRisk={plannedRisk} exposureAllowed={exposure.allowed && !readOnly} exposureBlockReason={exposure.reason} onExit={exitChartFocus} />
         ) : chartContent}
 
         <ExecutionStatus event={executionEvent} instrument={market} onDismiss={() => setExecutionEvent(null)} />

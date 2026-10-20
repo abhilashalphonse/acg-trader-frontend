@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, ShieldCheck } from 'lucide-react';
 import { useTraderAuth } from '../hooks/useTraderAuth.js';
 import { SupabaseBrowserAuth, supabaseOnboardingEnabled } from '../auth/supabase-browser.js';
-import { isAndroidNativeRuntime } from '../native/androidRuntime.js';
+import { shouldPresentNativeEntry } from '../native/nativePresentation.js';
+import NativePersonalAuthPage from './native/NativePersonalAuthPage.jsx';
 
 const isStrongEnough = password => typeof password === 'string' && password.length >= 12 && password.length <= 128;
 
@@ -45,7 +46,7 @@ export default function StandaloneAuthPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const enabled = supabaseOnboardingEnabled();
-  const native = isAndroidNativeRuntime();
+  const native = shouldPresentNativeEntry();
 
   const go = next => {
     setMode(next); setError(''); setPassword(''); setConfirmation('');
@@ -130,6 +131,16 @@ export default function StandaloneAuthPage() {
     try { await browser.signOut(); go('signin'); }
     finally { setBusy(false); }
   };
+
+  if (native) {
+    return <NativePersonalAuthPage
+      enabled={enabled} mode={mode} go={go} busy={busy} error={error}
+      email={email} setEmail={setEmail}
+      password={password} setPassword={setPassword}
+      confirmation={confirmation} setConfirmation={setConfirmation}
+      onSubmit={handleSubmit} startContext={() => void startContext().catch(e => setError(e.message))}
+    />;
+  }
 
   const showBusy = busy && <Loader2 size={16} className="animate-spin" aria-hidden="true"/>;
   return <main className={`${native ? 'acg-native-auth ' : ''}min-h-dvh bg-[#f5f6f3] text-[#161817]`}>

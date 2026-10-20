@@ -1,4 +1,5 @@
 import { traderConfig } from './config.js';
+import { isExistingAccountReadOnlyBeta, mayIssueExistingBetaRequest } from '../native/existingAccountBeta.js';
 
 export class ApiError extends Error {
   constructor(message, { status = 0, code = 'REQUEST_FAILED', details = null, requestId = null, cause = null } = {}) {
@@ -59,6 +60,14 @@ export async function apiRequest(path, {
   signal = null,
   timeoutMs = traderConfig.requestTimeoutMs,
 } = {}) {
+  // Exact build-time safeguard: never send state-changing trading/profile
+  // requests from the existing-account Android beta, even through hidden UI.
+  if (isExistingAccountReadOnlyBeta() && !mayIssueExistingBetaRequest(method, path)) {
+    throw new ApiError('This Android preview is read-only. Use the existing web terminal to trade.', {
+      code: 'ANDROID_BETA_READ_ONLY',
+      status: 403,
+    });
+  }
   const abort = combineAbortSignals(signal, timeoutMs);
   const requestHeaders = new Headers(headers);
   requestHeaders.set('Accept', 'application/json');
