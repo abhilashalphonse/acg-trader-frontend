@@ -19,7 +19,7 @@ jobs:
           base='https://discerning-presence-staging.up.railway.app'
           echo 'Checking backend readiness and native client CORS...'
           curl --fail --silent --show-error --connect-timeout 10 --max-time 20 "$base/health/live" >/dev/null
-          for origin in 'https://localhost' 'http://localhost' 'https://acg-trader.web.app' 'https://acg-trader--pr-131-yh5zj97n.web.app'; do
+          for origin in 'https://localhost' 'http://localhost' 'https://acg-trader.web.app' 'https://acg-trader--pr-131-yh5zj97n.web.app' 'https://acg-trader--pr-90-ois6tr16.web.app' 'https://acg-trader--pr-97-v1thyrgt.web.app' 'http://localhost:5174'; do
             echo "Origin: $origin"
             headers="$(curl --silent --show-error --connect-timeout 10 --max-time 20 --dump-header - --output /dev/null --request OPTIONS \
               -H "Origin: $origin" \
