@@ -44,11 +44,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - name: Android SDK
-        uses: android-actions/setup-android@v3
-      - name: Install Android 36 SDK
+      - name: Use runner Android SDK and install API 36
         run: |
-          sdkmanager --install 'platforms;android-36' 'build-tools;36.0.0'
+          test -n "${ANDROID_HOME:-}" || { echo 'Android SDK missing on runner'; exit 1; }
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --install 'platforms;android-36' 'build-tools;36.0.0'
       - name: Install locked frontend dependencies
         run: npm ci
       - name: Install isolated native build toolchain (without changing web lockfile)
