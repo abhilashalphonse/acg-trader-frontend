@@ -4,6 +4,7 @@ import { useTraderAuth } from '../hooks/useTraderAuth.js';
 import ACGStartupLoader from './ACGStartupLoader.jsx';
 import { isAndroidNativeRuntime } from '../native/androidRuntime.js';
 import { isExistingAccountReadOnlyBeta } from '../native/existingAccountBeta.js';
+import NativeTradingLogin from './native/NativeTradingLogin.jsx';
 
 function presentAuthError(error) {
   if (!error) return '';
@@ -83,6 +84,15 @@ export default function SessionGate({ children }) {
       setSubmitting(false);
     }
   };
+
+  if (isAndroidNativeRuntime()) {
+    return <NativeTradingLogin
+      connectProp={connectProp} tenant={tenant} form={form} setForm={setForm}
+      submitting={submitting} ready={ready} errorMessage={errorMessage}
+      onSubmit={submit} fundedUrl={fundedUrl}
+      isReadOnlyBeta={isExistingAccountReadOnlyBeta()}
+    />;
+  }
 
   return (
     <main className={`relative min-h-dvh overflow-x-hidden overflow-y-auto bg-black text-white ${isAndroidNativeRuntime() ? 'acg-native-login' : ''}`}>
