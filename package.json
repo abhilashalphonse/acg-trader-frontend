@@ -13,12 +13,11 @@
     "test:ui": "node tests/ui/chart-tools.mjs"
   },
   "dependencies": {
-    "@capacitor/android": "8.0.0",
+    "@capacitor/android": "8.5.3",
     "@capacitor/app": "8.0.0",
     "@capacitor/browser": "8.0.0",
-    "@capacitor/cli": "8.0.0",
-    "@capacitor/core": "8.0.0",
-    "firebase": "^12.19.0",
+    "@capacitor/cli": "8.5.3",
+    "@capacitor/core": "8.5.3",
     "lightweight-charts": "5.2.1",
     "lucide-react": "^0.468.0",
     "react": "^19.2.8",
