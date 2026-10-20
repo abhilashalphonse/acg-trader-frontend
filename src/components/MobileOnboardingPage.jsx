@@ -1,8 +1,9 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { ArrowRight, Building2, ChartNoAxesCombined, FlaskConical, Loader2, ShieldCheck } from 'lucide-react';
 import { AuthContext } from '../auth/AuthProvider.jsx';
 import { supabaseOnboardingEnabled } from '../auth/supabase-browser.js';
 import { mobileContextDestination } from '../utils/mobileOnboardingNavigation.js';
+import { isAndroidNativeRuntime } from '../native/androidRuntime.js';
 
 // Opt-in native-app-ready welcome route; never alters a desktop terminal,
 // ticket redemption, or the ACG Funded credential flow.
@@ -13,6 +14,12 @@ export default function MobileOnboardingPage() {
   const [error, setError] = useState('');
   const restoring = auth?.status === 'bootstrapping' || auth?.status === 'authenticating';
   const authenticated = Boolean(auth?.authenticated);
+  const native = isAndroidNativeRuntime();
+  useEffect(() => {
+    // The first launch shows onboarding; a valid restored trader session goes
+    // straight into V4 on subsequent launches, without replacing auth grants.
+    if (native && auth?.accessReady && !busy && !pendingContext) window.location.replace('/terminal');
+  }, [native, auth?.accessReady, busy, pendingContext]);
 
   const openContext = context => {
     if (restoring || busy) return;
@@ -40,7 +47,7 @@ export default function MobileOnboardingPage() {
       <div className="mx-auto flex w-full max-w-[440px] flex-1 flex-col">
         <header className="flex items-center justify-between gap-3">
           <img src="/acg-logo.png" alt="ACG Trader" className="h-auto w-[82px]" />
-          <span className="text-[10px] font-semibold uppercase tracking-[.12em] text-[#969696]">Mobile</span>
+          {!native && <span className="text-[10px] font-semibold uppercase tracking-[.12em] text-[#969696]">Mobile</span>}
         </header>
         <div className="mt-[clamp(32px,9dvh,100px)]">
           <div className="mb-4 flex size-11 items-center justify-center rounded-xl border border-white/[0.12] bg-[#151515]"><ChartNoAxesCombined size={23}/></div>
