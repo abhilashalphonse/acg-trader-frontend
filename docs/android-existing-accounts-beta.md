@@ -33,3 +33,14 @@ Status: **private APK candidate, not verified on an actual Android phone; no tra
 On draft PR for `feat/android-existing-account-readonly-20261020`, `Android existing-account read-only beta APK` builds the APK. Download `acg-trader-existing-accounts-readonly` from its successful workflow run's Artifacts. CI runs a public unauthenticated production CORS and WS probe and checks bundle endpoints/read-only lock, then compiles with Capacitor 8 + Android SDK 36. The Firebase PR preview remains connected to **staging** and is not the same as this native production-account build.
 
 This APK is debug-signed only and may be shared privately for device testing. Never publish it to Google Play as a production release.
+
+## Native user experience and maintainable source (October 20)
+
+- Android startup is branded with the exact `public/acg-logo.png` white mark on pure black, including portrait, landscape, and density-specific splash resources. Startup progress uses neutral silver, not blue.
+- A unified native entry design is implemented in `src/components/native/`: welcome, returning trading account, personal sign-in, signup, and recovery pages. Their visual style uses Inter, compact graphite controls and monochrome primary actions. No additional bottom navigation is introduced.
+- Existing trading-account login uses `acg-funded` as the default partner tenant. The form makes clear that it requires the trading account ID and **trading password**, not the website email/password.
+- Personal signup UI is complete as a feature-gated screen. **Registration remains disabled in this existing-account production beta** until Supabase personal onboarding, secure native callback, and authoritative personal-demo provisioning are enabled and accepted. The UI must never fake successful account creation.
+- App credentials and opaque trading sessions remain separated; native Android WebView accepts Secure, HttpOnly refresh-cookie responses from the production API. Real-device persistence still requires acceptance.
+- The Android Gradle project, launcher/splash assets and exact Capacitor dependencies are checked into this branch so future Android releases do not rely on an ephemeral CI-only scaffold.
+- The native entry screenshots are exercised at 360, 393 and 430 pixels through `tests/ui/android-native-entry.mjs` and uploaded as CI artifacts.
+- The production-connected APK remains **read-only**: an API-client request guard blocks trading, position modifications, and profile writes, and the mobile order dock is replaced by a compact read-only label.
