@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { ArrowUpRight, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react';
 import { useTraderAuth } from '../hooks/useTraderAuth.js';
 import ACGStartupLoader from './ACGStartupLoader.jsx';
-import { useNativeEntryScreens } from '../native/nativePresentation.js';
+import { shouldPresentNativeEntry } from '../native/nativePresentation.js';
+import { isAndroidNativeRuntime } from '../native/androidRuntime.js';
 import { isExistingAccountReadOnlyBeta } from '../native/existingAccountBeta.js';
 import NativeTradingLogin from './native/NativeTradingLogin.jsx';
 
@@ -85,7 +86,7 @@ export default function SessionGate({ children }) {
     }
   };
 
-  if (useNativeEntryScreens()) {
+  if (shouldPresentNativeEntry()) {
     return <NativeTradingLogin
       connectProp={connectProp} tenant={tenant} form={form} setForm={setForm}
       submitting={submitting} ready={ready} errorMessage={errorMessage}
