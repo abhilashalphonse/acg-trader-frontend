@@ -23,6 +23,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Supabase PKCE result only; validated again in androidLifecycle.js. -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="acgtrader" android:host="auth" android:path="/callback" />
+            </intent-filter>
+
         </activity>
 
         <provider
