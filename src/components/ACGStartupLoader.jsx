@@ -22,7 +22,7 @@ export default function ACGStartupLoader({ canvas = false }) {
             : 'mt-5 h-px w-16 overflow-hidden rounded-full bg-white/[0.07]'}
           aria-hidden="true"
         >
-          <span className="block h-full w-1/2 animate-[acg-loader-sweep_1.05s_ease-in-out_infinite] bg-[#195be1]" />
+          <span className="block h-full w-1/2 animate-[acg-loader-sweep_1.05s_ease-in-out_infinite] bg-[#aaaaaa]" />
         </div>
       </div>
       <style>{`
