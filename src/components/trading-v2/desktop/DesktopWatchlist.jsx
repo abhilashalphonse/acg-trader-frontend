@@ -6,6 +6,7 @@ import { formatInstrumentPrice, instrumentPipSize } from '../../../utils/instrum
 import { isV4DefaultEnabled } from '../../../utils/chartOrderPresentation.js';
 import { buildV4MarketSections, selectV4Markets, v4MarketPricePresentation } from '../../../utils/v4MarketsDiscovery.js';
 import { marketCategoryId, marketVenue } from '../../../utils/marketClassification.js';
+import { isIndiaMarketVisible } from '../../../utils/indiaMarketAvailability.js';
 import { commodityDisplaySymbol, commoditySearchTerms, commoditySubgroup, isCommodityInstrument } from '../../../utils/commodityPresentation.js';
 
 const V4_MARKETS_ENABLED = isV4DefaultEnabled(
@@ -43,7 +44,6 @@ const CATEGORY_OPTIONS = [
   ['forex', 'Forex'],
   ['commodities', 'Commodities'],
   ['indices', 'Indices'],
-  ['india', 'India'],
   ['crypto', 'Crypto'],
   ['stocks', 'Stocks'],
 ];
@@ -52,7 +52,7 @@ const COMMODITY_VIEWS = [
   ['metals', 'Metals'],
   ['energy', 'Energy'],
 ];
-const POPULAR_SYMBOLS = ['EURUSD','GBPUSD','USDJPY','XAUUSD','XAGUSD','BTCUSD','ETHUSD','US100','NAS100','US30','SPX500','GER40','UK100','RELIANCE','TCS','HDFCBANK','INFY','SBIN'];
+const POPULAR_SYMBOLS = ['EURUSD','GBPUSD','USDJPY','XAUUSD','XAGUSD','BTCUSD','ETHUSD','US100','NAS100','US30','SPX500','GER40','UK100'];
 
 function loadPrefs() {
   const fallback = { columns: ['last', 'changeValue', 'change'] };
@@ -257,7 +257,7 @@ export default function DesktopWatchlist({
     return()=>document.removeEventListener('pointerdown',outside);
   },[v4SortOpen]);
   const availableMarkets = useMemo(
-    () => markets.filter(item => item?.marketDataAvailable !== false),
+    () => markets.filter(item => isIndiaMarketVisible(item) && item?.marketDataAvailable !== false),
     [markets],
   );
   const availableCategories = useMemo(() => {
@@ -505,10 +505,6 @@ export default function DesktopWatchlist({
             onClick={()=>changeV4Category(id)}
             className={`acg-v4-market-category ${v4Category===id?'is-selected':''}`}>{label}</button>)}
         </nav>
-        {v4Category==='stocks'&&<nav aria-label="Stock markets" className="flex shrink-0 gap-1.5 border-b border-white/[0.06] px-3 py-2">
-          {[['us','US'],['india','India']].map(([id,label])=><button type="button" key={id} aria-pressed={stockCountry===id}
-            onClick={()=>setStockCountry(id)} className={`min-h-7 rounded-md px-3 text-[10px] font-medium ${stockCountry===id?'bg-[#303035] text-[#F2F2F4]':'text-[#9497A2] hover:bg-[#242427] hover:text-white'}`}>{label}</button>)}
-        </nav>}
         {v4Category==='commodities'&&<nav aria-label="Commodity categories" className="flex shrink-0 gap-1.5 border-b border-white/[0.06] px-3 py-2">
           {COMMODITY_VIEWS.map(([id,label])=><button key={id} type="button" aria-pressed={commodityView===id}
             onClick={()=>setCommodityView(id)} className={`min-h-7 rounded-md px-2.5 text-[10px] ${commodityView===id?'bg-[#303035] font-semibold text-white':'text-[#92949E] hover:bg-[#242427] hover:text-white'}`}>{label}</button>)}
