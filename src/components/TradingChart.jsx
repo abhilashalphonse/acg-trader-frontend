@@ -93,7 +93,7 @@ function indicatorLabel(indicator) {
 export default function TradingChart({
   symbol = 'EURUSD',
   instrument = null,
-  timeframe = 'M1',
+  timeframe = 'M30',
   tick = null,
   chartMode = 'candles',
   bidPrice = null,
