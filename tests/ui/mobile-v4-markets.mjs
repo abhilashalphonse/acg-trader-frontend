@@ -45,37 +45,38 @@ try {
     await page.waitForFunction(()=>document.querySelector('[data-mobile-market-list]').scrollTop>0);
     checks++;
     for(let i=0;i<5;i++){await list.evaluate(el=>el.scrollTo({top:el.scrollHeight}));await wait(100);}
-    eq(await page.locator('[data-mobile-market-symbol]').count(),130,'scrolling reaches rows beyond the initial 60');
-    await page.waitForFunction(()=>window.marketQA.subscriptions.includes('FX129'));
+    eq(await page.locator('[data-mobile-market-symbol]').count(),129,'scrolling reaches all 129 licensed Forex rows beyond the initial 60');
+    eq(await page.locator('[data-mobile-market-symbol="FX129"]').count(),0,'Kolkata-classified FX fixture remains hidden');
+    await page.waitForFunction(()=>window.marketQA.subscriptions.includes('FX128'));
     checks++;
     await categories.getByRole('button',{name:'Stocks',exact:true}).click();
     eq(await list.evaluate(el=>el.scrollTop),0,'changing category resets the list to its top');
     const countries=page.getByRole('group',{name:'Stock listing country'});
-    eq(await countries.getByRole('button',{name:'US',exact:true}).getAttribute('aria-pressed'),'true','Stocks defaults to US like desktop');
-    eq(await page.locator('[data-mobile-market-symbol^="IN"]').count(),0,'US excludes Indian shares');
-    await countries.getByRole('button',{name:'India',exact:true}).click();
-    eq(await page.locator('[data-mobile-market-symbol^="US"]').count(),0,'India excludes US shares');
+    eq(await countries.count(),0,'unlicensed India country selector is absent');
+    eq(await page.locator('[data-mobile-market-symbol^="IN"]').count(),0,'Indian shares are hidden from Stocks');
     for(let i=0;i<3;i++){await list.evaluate(el=>el.scrollTo({top:el.scrollHeight}));await wait(100);}
-    eq(await page.locator('[data-mobile-market-symbol="IN074"]').count(),1,'last Indian share is reachable');
+    eq(await page.locator('[data-mobile-market-symbol="US074"]').count(),1,'last licensed US share is reachable');
+    await page.getByRole('textbox').fill('IN074');
+    eq(await page.locator('[data-mobile-market-symbol]').count(),0,'search cannot reveal an unlicensed Indian share');
     await page.getByRole('textbox').fill('US074');
-    eq(await page.locator('[data-mobile-market-symbol]').count(),1,'search finds instruments across country filters');
+    eq(await page.locator('[data-mobile-market-symbol]').count(),1,'search finds the last licensed US share');
     await page.locator('[data-mobile-market-symbol="US074"]').getByRole('button').first().click();
     eq(await page.evaluate(()=>window.marketQA.selected),'US074','search result opens its actual chart');
     await page.getByRole('textbox').fill('');
     await page.getByRole('button',{name:'Watchlist',exact:true}).click();
-    eq(await page.locator('[data-mobile-market-symbol="IN074"]').count(),1,'watchlist respects India selection');
-    await countries.getByRole('button',{name:'US',exact:true}).click();
-    eq(await page.locator('[data-mobile-market-symbol="US074"]').count(),1,'watchlist respects US selection');
+    eq(await page.locator('[data-mobile-market-symbol="IN074"]').count(),0,'saved unlicensed India symbol is not exposed');
+    eq(await page.locator('[data-mobile-market-symbol="US074"]').count(),1,'licensed US share remains in saved watchlist');
     await page.getByRole('button',{name:'Markets',exact:true}).click();
     await categories.getByRole('button',{name:'All',exact:true}).click();
     for(let i=0;i<8;i++){await list.evaluate(el=>el.scrollTo({top:el.scrollHeight}));await wait(100);}
-    eq(await page.locator('[data-mobile-market-symbol]').count(),283,'All can load the complete mixed catalog');
+    eq(await page.locator('[data-mobile-market-symbol]').count(),207,'All loads only the 207 licensed instruments');
     eq(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'page has no horizontal overflow');
     eq(errors.length,0,'no runtime errors');
-    if(width===393){await categories.getByRole('button',{name:'Stocks',exact:true}).click();await countries.getByRole('button',{name:'India',exact:true}).click();await page.screenshot({path:'artifacts/mobile-v4-markets-india.png'});}
+    if(width===393){await categories.getByRole('button',{name:'Stocks',exact:true}).click();await page.screenshot({path:'artifacts/mobile-v4-markets-licensed-us.png'});}
     await page.goto(origin+'/mobile-audit-browser.html?legacy=1');
-    await page.getByRole('group',{name:'Market categories'}).getByRole('button',{name:'India',exact:true}).waitFor();checks++;
-    eq(await page.getByRole('group',{name:'Stock listing country'}).count(),0,'legacy mobile retains its existing categories');
+    await page.getByRole('group',{name:'Market categories'}).waitFor();checks++;
+    eq(await page.getByRole('group',{name:'Market categories'}).getByRole('button',{name:'India',exact:true}).count(),0,'legacy mode also hides unlicensed India');
+    eq(await page.getByRole('group',{name:'Stock listing country'}).count(),0,'legacy mobile has no unlicensed country selector');
     await page.close();
   }
   console.log('MOBILE_V4_MARKETS_PASS',checks);
