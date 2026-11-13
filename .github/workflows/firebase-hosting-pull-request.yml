@@ -79,6 +79,8 @@ jobs:
       - name: Deploy preview channel
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
+          # v15.36.0 fixes Hosting API permission-check failures with least-privilege deploy accounts.
+          firebaseToolsVersion: '15.36.0'
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ACG_TRADER }}
           projectId: acg-trader

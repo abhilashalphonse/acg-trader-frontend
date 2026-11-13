@@ -78,7 +78,7 @@ export function normalizeWatchlistWorkspace(workspace, instruments = []) {
       name: String(list?.name || 'Watchlist').trim() || 'Watchlist',
       symbols: uniqueSymbols(list?.symbols, available),
     };
-  });
+  }).filter(list => list.id !== 'india' || list.symbols.length > 0);
 
   if (!lists.length) lists.push(...buildDefaultWatchlists(instruments));
   const requestedActive = String(workspace?.activeListId || '');

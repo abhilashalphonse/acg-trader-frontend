@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, Search, Star } from 'lucide-react';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import { isIndiaInstrument } from '../../utils/marketClassification.js';
+import { isIndiaMarketVisible } from '../../utils/indiaMarketAvailability.js';
 import { commodityDisplaySymbol, commoditySearchTerms } from '../../utils/commodityPresentation.js';
 import { v4StockListingCountry } from '../../utils/v4MarketsDiscovery.js';
 
@@ -24,7 +25,7 @@ function marketGroup(item, auditMobile = false) {
   return 'Other';
 }
 
-const GROUPS = ['All', 'Forex', 'Metals', 'Commodities', 'India', 'Stocks', 'Crypto'];
+const GROUPS = ['All', 'Forex', 'Metals', 'Commodities', 'Stocks', 'Crypto'];
 
 function finiteValue(...values) {
   for (const value of values) {
@@ -73,7 +74,8 @@ export default function MobileInstrumentSheet({
 
   const visibleMarkets = useMemo(
     () => markets.filter(item => (
-      item?.marketDataAvailable !== false
+      isIndiaMarketVisible(item)
+      && item?.marketDataAvailable !== false
       && String(item?.assetClass || '').toUpperCase() !== 'INDEX'
     )),
     [markets],
@@ -81,7 +83,7 @@ export default function MobileInstrumentSheet({
 
   const availableGroups = useMemo(() => {
     const present = new Set(visibleMarkets.map(item => marketGroup(item, auditMobile)));
-    return GROUPS.filter(item => (!auditMobile || item !== 'India') && (item === 'All' || present.has(item)));
+    return GROUPS.filter(item => item === 'All' || present.has(item));
   }, [auditMobile, visibleMarkets]);
 
   const visibleSavedCount = useMemo(
@@ -218,9 +220,6 @@ export default function MobileInstrumentSheet({
             </button>
           ))}
         </div>
-        {auditMobile && group === 'Stocks' && !query.trim() && <div role="group" aria-label="Stock listing country" className="mt-1 flex gap-1.5 border-t border-white/[0.07] pt-2">
-          {[['us','US'],['india','India']].map(([id,label]) => <button key={id} type="button" aria-pressed={stockCountry === id} onClick={() => setStockCountry(id)} className={`min-h-8 rounded-md px-3 text-[11px] font-medium ${stockCountry === id ? 'bg-[#303035] text-[#f2f2f4]' : 'text-[#9497a2]'}`}>{label}</button>)}
-        </div>}
       </div>
 
       <div ref={scrollRef} data-mobile-market-list aria-label="Market instruments" tabIndex={0} onScroll={auditMobile ? event => {

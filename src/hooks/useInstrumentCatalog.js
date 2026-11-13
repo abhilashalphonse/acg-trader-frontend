@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { marketApi } from '../api/market.js';
+import { isIndiaMarketVisible } from '../utils/indiaMarketAvailability.js';
 
 function normalizeInstrument(item) {
   if (!item?.symbol) return null;
@@ -61,7 +62,7 @@ export function useInstrumentCatalog() {
           marketApi.status(controller.signal),
         ]);
         if (disposed || controller.signal.aborted) return;
-        const allInstruments = (catalogResponse?.instruments || []).map(normalizeInstrument).filter(Boolean);
+        const allInstruments = (catalogResponse?.instruments || []).map(normalizeInstrument).filter(Boolean).filter(isIndiaMarketVisible);
         const configured = new Set((statusResponse?.symbols || []).map(item => String(item?.symbol || '').toUpperCase()).filter(Boolean));
         const instruments = allInstruments.filter(item => configured.has(item.symbol));
         setState({ instruments, allInstruments, loading: false, error: null, asOf: catalogResponse?.asOf || null });
