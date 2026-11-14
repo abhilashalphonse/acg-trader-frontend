@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Copy, Check, ChevronRight } from 'lucide-react';
+import { Copy, Check, ChevronRight } from 'lucide-react';
 import {
   finiteOrNull, money, fixedNumber, pnlTone,
   positionExposure, positionMargin, positionOpened,
@@ -10,45 +10,49 @@ import { formatInstrumentPrice, instrumentForSymbol } from '../../utils/instrume
 import { estimatePositionPnlAtPrice } from '../../utils/tradingRisk.js';
 import { positionLifecycleEvents } from '../../utils/v4PositionLifecycle.js';
 
-// Presentation is always derived from the authoritative account and position
-// records. Never reconstruct used margin from leverage or fabricate activities.
-export function PositionsAccountSummary({ account }) {
+// Read-only metrics always come from the authoritative account snapshot.
+// Laptop abbreviations retain exact values in their accessible names and tooltips.
+function compactMoney(value,currency,signed){
+  const amount=finiteOrNull(value);
+  if(amount==null||Math.abs(amount)<1000)return money(value,currency,signed);
+  try {
+    const formatted=new Intl.NumberFormat('en-US',{
+      style:'currency',currency,notation:'compact',maximumFractionDigits:1,
+    }).format(amount);
+    return signed&&amount>0?'+'+formatted:formatted;
+  } catch {return money(value,currency,signed);}
+}
+export function PositionsAccountSummary({account}){
   const metrics=[
-    ['Equity',account?.equity,false],
-    ['Used margin',account?.usedMargin??account?.margin,false],
-    ['Free margin',account?.freeMargin,false],
-    ['Unrealized P&L',account?.floatingPnl,true],
+    ['Equity','Eq',account?.equity,false],
+    ['Used margin','Used',account?.usedMargin??account?.margin,false],
+    ['Free margin','Free',account?.freeMargin,false],
+    ['Unrealized P&L','P&L',account?.floatingPnl,true],
   ];
   const currency=account?.currency||'USD';
   return <div className="v4-positions-account-summary" aria-label="Account trading metrics">
-    {metrics.map(([label,value,signed])=><div className="v4-positions-metric" key={label}>
-      <span>{label}</span>
+    {metrics.map(([label,shortLabel,value,signed])=><div className="v4-positions-metric" key={label}>
+      <span className="v4-positions-metric-label">
+        <span className="v4p-label-full">{label}</span>
+        <span className="v4p-label-short" aria-hidden="true">{shortLabel}</span>
+      </span>
       <strong className={signed&&finiteOrNull(value)!=null?'v4-position-pnl '+pnlTone(value):''}
-        title={label+' · '+currency}>{money(value,currency,signed)}</strong>
+        aria-label={label+' '+money(value,currency,signed)}
+        title={label+' · '+money(value,currency,signed)}>
+        <span className="v4p-money-full">{money(value,currency,signed)}</span>
+        <span className="v4p-money-compact" aria-hidden="true">{compactMoney(value,currency,signed)}</span>
+      </strong>
     </div>)}
   </div>;
 }
-// Fixed, deliberate view presets: no user-editable Columns control.
-export function PositionsToolbar({view,onView,query,onQuery,instrument,onInstrument,instruments,entity='position'}) {
-  return <div className="v4-positions-toolbar">
-    <div className="v4-positions-filters">
-      <label className="v4-positions-search">
-        <Search size={16} aria-hidden="true"/>
-        <input type="search" value={query} onChange={e=>onQuery(e.target.value)}
-          placeholder={'Find '+entity+'...'} aria-label={'Find '+entity}/>
-      </label>
-      <select className="v4-positions-instrument-filter" aria-label="Filter by instrument"
-        value={instrument} onChange={e=>onInstrument(e.target.value)}>
-        <option value="">All instruments</option>
-        {instruments.map(symbol=><option value={symbol} key={symbol}>{symbol}</option>)}
-      </select>
-    </div>
-    <div className="v4-positions-tools">
-      <div className="v4-positions-selector" role="group" aria-label={entity==='order'?'Pending orders table view':'Positions table view'}>
-        {['compact','risk','execution'].map(mode=><button key={mode} type="button"
-          aria-pressed={mode===view} className={mode===view?'is-active':''}
-          onClick={()=>onView(mode)}>{mode[0].toUpperCase()+mode.slice(1)}</button>)}
-      </div>
+// The view controls live inside the same 44px row as tabs and account metrics.
+// Search/instrument filters were intentionally removed for every desktop width.
+export function PositionsToolbar({view,onView,entity='position'}){
+  return <div className="v4-positions-tools">
+    <div className="v4-positions-selector" role="group" aria-label={entity==='order'?'Pending orders table view':'Positions table view'}>
+      {['compact','risk','execution'].map(mode=><button key={mode} type="button"
+        aria-pressed={mode===view} className={mode===view?'is-active':''}
+        onClick={()=>onView(mode)}>{mode[0].toUpperCase()+mode.slice(1)}</button>)}
     </div>
   </div>;
 }
