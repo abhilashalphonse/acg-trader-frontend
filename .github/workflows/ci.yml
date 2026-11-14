@@ -28,7 +28,7 @@ jobs:
       - name: Build
         run: npm run build
       - name: Verify V4 dock public preview mounts in Chrome
-        if: ${{ github.head_ref == 'ui/v4-single-row-dock-20261114' }}
+        if: ${{ github.head_ref == 'ui/v4-single-row-dock-20261114' || github.ref == 'refs/heads/ui/v4-single-row-dock-20261114' }}
         run: |
           npm install --no-save --no-audit --no-fund playwright@1.56.1
           VITE_ACG_EXECUTION_V4_ENABLED=true npm run dev -- --host 127.0.0.1 >/tmp/v4-dock-preview-vite.log 2>&1 &
