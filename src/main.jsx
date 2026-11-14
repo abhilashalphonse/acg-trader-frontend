@@ -12,7 +12,9 @@ import { ACTIVE_TERMINAL_MARKER, shouldOpenLandingPreview, shouldOpenPublicHome,
 
 let activeTerminal = false;
 try { activeTerminal = window.sessionStorage.getItem(ACTIVE_TERMINAL_MARKER) === '1'; } catch { /* storage unavailable */ }
-if (shouldOpenLandingPreview(window.location.search)) {
+if (import.meta.env.VITE_ACG_PUBLIC_DOCK_PREVIEW === 'true') {
+  window.location.replace('/v4-dock-preview.html');
+} else if (shouldOpenLandingPreview(window.location.search)) {
   window.location.replace('/acg-landing-v6.html');
  } else if (shouldOpenStandaloneAuth(window.location.pathname, window.location.search)) {
   createRoot(document.getElementById('root')).render(
