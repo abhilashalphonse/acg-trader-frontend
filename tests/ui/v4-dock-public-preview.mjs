@@ -40,10 +40,36 @@ try{
  assert.equal(before.header,44,'One toolbar row');checks++;
  assert.equal(before.visible,2,'Two complete rows visible at minimum height');checks++;
  assert.equal(await dock.getByRole('searchbox').count(),0,'Removed search does not return');checks++;
+ const overviewButton=dock.getByRole('button',{name:'Account overview and margin details'});
+ await overviewButton.click();
+ const overview=page.getByRole('dialog',{name:'Account overview'});
+ assert.equal(await overview.count(),1,'Account overview accessible from compact dock');checks++;
+ const overviewText=await overview.innerText();
+ for(const item of ['Equity','Used margin','Free margin','Unrealized P&L','Gross (USD)','Net directional (USD)']){
+   assert.ok(overviewText.includes(item),'Missing account/exposure item: '+item);checks++;
+ }
+ await page.keyboard.press('Escape');
+ assert.equal(await overview.count(),0,'Overview dismisses with Escape');checks++;
+
  await dock.getByRole('button',{name:'Risk',exact:true}).click();
  assert.equal(await dock.getAttribute('data-v4-position-view'),'risk','Risk mode works');checks++;
  await page.getByRole('button',{name:'Laptop · 1024'}).click();
  assert.equal(await dock.locator('.v4-positions-header').evaluate(el=>el.getBoundingClientRect().height),44,'Laptop still single-row');checks++;
+ assert.equal(Math.round(await page.locator('.dock-review-screen').evaluate(el=>el.getBoundingClientRect().width)),1024,
+  'Laptop preset uses real 1024px layout width');checks++;
+ const compactRows=await dock.evaluate(el=>{
+   const scroller=el.querySelector('.v4-positions-scroller').getBoundingClientRect();
+   return [...el.querySelectorAll('tr[data-v4-position-id]')].filter(row=>{
+     const bounds=row.getBoundingClientRect();
+     return bounds.top>=scroller.top-1&&bounds.bottom<=scroller.bottom+1;
+   }).length;
+ });
+ assert.equal(compactRows,2,'Two full risk rows fit with horizontal scrollbar at 1024px');checks++;
+ await page.getByRole('button',{name:'Wide · 1920'}).click();
+ assert.equal(Math.round(await page.locator('.dock-review-screen').evaluate(el=>el.getBoundingClientRect().width)),1920,
+  'Wide preset is genuine 1920px, not scaled to the browser');checks++;
+ await page.getByRole('button',{name:'Desktop · 1440'}).click();
+
  await dock.getByRole('button',{name:/Pending/}).click();
  assert.equal(await page.locator('[data-v4-pending="true"]').count(),1,'Pending switches');checks++;
  await page.locator('[data-v4-pending="true"]').getByRole('button',{name:'History',exact:true}).click();
