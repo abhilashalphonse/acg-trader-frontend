@@ -405,3 +405,100 @@
   .acg-v4-positions .v4-position-opened{font-size:11px}
   .acg-v4-positions .v4-positions-footer{flex-wrap:wrap;gap:4px;height:auto;min-height:34px;padding-top:7px;padding-bottom:7px}
 }
+
+/* V4 unified desktop trading dock — one 44px row at every desktop width. */
+.acg-v4-positions .v4-positions-header{
+  height:44px;min-height:44px;max-height:44px;flex-wrap:nowrap!important;
+  padding:0 10px!important;gap:10px;overflow:hidden;
+}
+.acg-v4-positions .v4-positions-tabs{
+  flex:0 1 auto;height:44px;min-height:44px;gap:16px;
+  white-space:nowrap;overflow-x:auto;
+}
+.acg-v4-positions .v4-positions-tab{
+  min-height:43px;height:43px;font-size:11px;gap:5px;
+}
+.acg-v4-positions .v4-positions-tab.is-active{font-size:12px}
+.acg-v4-positions .v4-positions-count{font-size:10px}
+.acg-v4-positions .v4-positions-header-right{
+  flex:1 1 auto;justify-content:flex-end;align-items:center;
+  flex-wrap:nowrap;gap:12px;min-width:0;margin-left:auto;padding:0!important;
+}
+.acg-v4-positions .v4-positions-account-summary{
+  flex:0 1 auto;gap:16px;flex-wrap:nowrap!important;justify-content:flex-end!important;
+}
+.acg-v4-positions .v4-positions-metric{
+  min-width:0;flex:0 1 auto;gap:1px;white-space:nowrap;
+}
+.acg-v4-positions .v4-positions-metric>span{
+  font-size:9px;line-height:11px;white-space:nowrap;
+}
+.acg-v4-positions .v4-positions-metric>strong{
+  font-size:11px;line-height:15px;
+}
+.acg-v4-positions .v4p-label-short,
+.acg-v4-positions .v4p-money-compact{display:none}
+.acg-v4-positions .v4-positions-tools{
+  display:flex;align-items:center;flex:none;min-width:0;
+  padding-left:12px;border-left:1px solid var(--v4p-border);
+}
+.acg-v4-positions .v4-positions-selector{
+  height:28px;padding:2px;border-radius:7px;
+}
+.acg-v4-positions .v4-positions-selector button{
+  height:22px;min-width:52px;padding:0 9px;font-size:11px;line-height:18px;border-radius:5px;
+}
+.acg-v4-positions .v4-positions-expand{
+  height:28px;width:28px;flex:none;
+}
+.acg-v4-positions .v4-positions-table th{height:28px;padding:0 9px;font-size:10px}
+.acg-v4-positions .v4-positions-table td{height:34px;padding:0 9px;font-size:11px}
+.acg-v4-positions .v4-position-row{height:34px}
+.acg-v4-positions .v4-position-row.is-execution,
+.acg-v4-positions .v4-position-row.is-execution td{height:36px}
+.acg-v4-positions .v4-position-row.is-selected td:first-child{padding-left:7px}
+.acg-v4-positions .v4-position-side{font-size:10px}
+.acg-v4-positions .v4-position-avatar{flex:0 0 22px;width:22px;height:22px}
+.acg-v4-positions .v4-position-instrument{gap:5px}
+.acg-v4-positions .v4-position-actions{gap:4px}
+.acg-v4-positions .v4-position-control{height:26px}
+.acg-v4-positions .v4-positions-empty{min-height:68px}
+.acg-v4-positions .v4-positions-skeleton td{height:34px}
+.acg-v4-positions .v4-activity-inline{
+  display:flex;align-items:center;gap:8px;min-width:0;flex:none;
+  padding-left:10px;border-left:1px solid var(--v4p-border);
+}
+.acg-v4-positions .v4-activity-range{
+  height:26px;padding:0 5px;background:var(--v4p-control);border:1px solid var(--v4p-border);
+  color:var(--v4p-primary);border-radius:5px;font:500 11px/18px inherit;cursor:pointer;
+}
+.acg-v4-positions .v4-activity-header-pnl{font-size:10px;white-space:nowrap}
+.acg-v4-positions .v4-activity-position-filter{max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acg-v4-positions .v4-activity-position-filter button{border:0;background:transparent;color:var(--v4p-primary);cursor:pointer}
+@container (max-width:1120px){
+  .acg-v4-positions .v4-positions-header{gap:7px}
+  .acg-v4-positions .v4-positions-tabs{gap:10px}
+  .acg-v4-positions .v4-positions-header-right{gap:8px}
+  .acg-v4-positions .v4-positions-account-summary{gap:9px}
+  .acg-v4-positions .v4-positions-tools{padding-left:8px}
+  .acg-v4-positions .v4-positions-selector button{min-width:47px;padding:0 7px}
+  .acg-v4-positions .v4p-label-full{display:none}
+  .acg-v4-positions .v4p-label-short{display:inline}
+}
+@container (max-width:980px){
+  .acg-v4-positions .v4p-money-full{display:none}
+  .acg-v4-positions .v4p-money-compact{display:inline}
+  .acg-v4-positions .v4-positions-tabs{gap:9px}
+  .acg-v4-positions .v4-positions-header{padding:0 7px!important}
+  .acg-v4-positions .v4-positions-account-summary{gap:8px}
+  .acg-v4-positions .v4-positions-selector button{min-width:43px;padding:0 6px;font-size:10px}
+  .acg-v4-positions .v4-activity-header-pnl{display:none}
+}
+@container (max-width:760px){
+  .acg-v4-positions .v4-positions-metric:nth-child(2){display:none}
+  .acg-v4-positions .v4-positions-account-summary{gap:7px}
+  .acg-v4-positions .v4-positions-tabs{flex:1 1 auto;gap:8px}
+  .acg-v4-positions .v4-positions-metric>strong{font-size:10px}
+  .acg-v4-positions .v4-positions-tools{padding-left:6px}
+  .acg-v4-positions .v4-positions-selector button{min-width:40px;padding:0 4px}
+}
