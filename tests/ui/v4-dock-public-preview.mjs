@@ -50,6 +50,15 @@ try{
  assert.equal(await page.locator('[data-v4-activity="history"]').count(),1,'History switches');checks++;
  await page.locator('[data-v4-activity="history"]').getByRole('combobox',{name:'History date range'}).selectOption('7D');
  assert.equal(await page.locator('[data-v4-activity="history"]').getAttribute('data-v4-activity-range'),'7D','Range updates');checks++;
+ if(target.startsWith('https://')){
+   // The original PR channel root URL must lead directly to review, not auth.
+   const homepage=await browser.newPage();
+   await homepage.goto(new URL('/',target).toString(),{waitUntil:'domcontentloaded',timeout:25000});
+   await homepage.waitForURL('**/v4-dock-preview.html',{timeout:15000});
+   assert.equal(await homepage.locator('.dock-review-page').count(),1,'PR homepage redirects to public design review');
+   await homepage.close();
+   checks++;
+ }
  console.log('V4_DOCK_PUBLIC_PREVIEW_PASS',JSON.stringify({checks,before}));
  await page.close();
 }finally{await browser.close();}
