@@ -60,8 +60,8 @@ jobs:
         env:
           # The chart-order feature branch also builds against STAGING; never test new chart actions against production.
           # Every other PR retains its original endpoints and legacy UI.
-          VITE_ACG_TRADER_API_BASE: ${{ (github.event.pull_request.number == 90 || github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels') && 'https://discerning-presence-staging.up.railway.app' || secrets.VITE_ACG_TRADER_API_BASE }}
-          VITE_ACG_TRADER_WS_URL: ${{ (github.event.pull_request.number == 90 || github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels') && 'wss://discerning-presence-staging.up.railway.app/v1/ws' || secrets.VITE_ACG_TRADER_WS_URL }}
+          VITE_ACG_TRADER_API_BASE: ${{ github.event.pull_request.number == 142 && 'https://mock-preview.invalid' || (github.event.pull_request.number == 90 || github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels') && 'https://discerning-presence-staging.up.railway.app' || secrets.VITE_ACG_TRADER_API_BASE }}
+          VITE_ACG_TRADER_WS_URL: ${{ github.event.pull_request.number == 142 && 'wss://mock-preview.invalid/v1/ws' || (github.event.pull_request.number == 90 || github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels') && 'wss://discerning-presence-staging.up.railway.app/v1/ws' || secrets.VITE_ACG_TRADER_WS_URL }}
           VITE_ACG_EXECUTION_V4_ENABLED: ${{ (github.event.pull_request.number == 90 || github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels') && 'true' || 'false' }}
           VITE_ACG_TRADER_HTTP_TIMEOUT_MS: 10000
           VITE_ACG_FUNDED_SUPPORT_BASE_URL: ${{ secrets.VITE_ACG_FUNDED_SUPPORT_STAGING_BASE_URL }}
