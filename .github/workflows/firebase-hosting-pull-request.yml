@@ -56,7 +56,11 @@ jobs:
           echo 'Staging CORS permits the isolated V4 preview Origin.'
 
       - name: Build preview
-        run: npm run build
+        run: |
+          cp preview-order-ticket.html index.html
+          npm run build
+          grep -q 'ACG Trader V4 Execution Design Preview' dist/index.html
+          ! grep -q 'Loading ACG Trader' dist/index.html
         env:
           # The chart-order feature branch also builds against STAGING; never test new chart actions against production.
           # Every other PR retains its original endpoints and legacy UI.
