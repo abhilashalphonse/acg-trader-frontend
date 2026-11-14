@@ -99,6 +99,7 @@ try{
   await dock.getByRole('button',{name:'Expand position details for BTC/USD'}).click();
   ok((await dock.locator('[data-v4-position-detail="position-btc-2"]').innerText()).includes('No verified execution records available.'),
     'Unavailable backend activity is not invented');
+  await dock.getByRole('button',{name:'Collapse position details for BTC/USD'}).click();
   const geometry=await dock.evaluate(el=>{
     const rect=selector=>el.querySelector(selector).getBoundingClientRect();
     const rows=el.querySelectorAll('tr[data-v4-position-id]');
