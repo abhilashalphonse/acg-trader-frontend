@@ -1,0 +1,67 @@
+html,body,#v4-dock-preview-root{margin:0;min-height:100%;background:#070709;color:#F4F4F5}
+.dock-review-page{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+.dock-review-page *{box-sizing:border-box}
+.dock-review-top{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  min-height:64px;padding:12px clamp(15px,3vw,44px);border-bottom:1px solid #29292e;
+  background:#101012;
+}
+.dock-review-brand{display:flex;align-items:center;gap:12px}
+.dock-review-brand-mark{display:grid;place-items:center;width:39px;height:39px;border:1px solid #55555f;border-radius:10px;font-weight:800;font-size:11px;font-style:italic;letter-spacing:-1px}
+.dock-review-brand strong{display:block;font-size:15px;letter-spacing:-.4px}
+.dock-review-brand small{display:block;font-size:11px;color:#9999a3;line-height:19px}
+.dock-review-notice{display:flex;align-items:center;gap:8px;font-size:11px;color:#b8bac4}
+.dock-review-settings{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:22px clamp(15px,3vw,44px)}
+.dock-review-settings strong{font-size:16px;font-weight:600}
+.dock-review-settings p{margin:6px 0 0;color:#a1a1aa;font-size:12px;line-height:1.5}
+.dock-review-device-list{display:flex;gap:4px;align-items:center;padding:3px;background:#16161a;border:1px solid #313138;border-radius:8px;flex-wrap:wrap}
+.dock-review-device-list button{border:0;background:transparent;color:#aaaab3;cursor:pointer;border-radius:6px;padding:9px 12px;font-size:11px;font-weight:550;font-family:inherit}
+.dock-review-device-list button.is-active{background:#f4f4f5;color:#111113;font-weight:650}
+.dock-review-device-list button:focus-visible,.dock-review-bottom-controls button:focus-visible,.dock-review-resize:focus-visible{outline:2px solid #F4F4F5;outline-offset:2px}
+.dock-review-stage{padding:0 clamp(8px,2vw,36px) 18px;overflow-x:auto}
+.dock-review-screen{margin:auto;overflow:hidden;min-width:0;border:1px solid #34343b;background:#09090b;border-radius:12px;box-shadow:0 16px 45px #0009}
+.dock-review-screen-header{
+ display:flex;align-items:center;gap:9px;min-width:0;min-height:47px;padding:0 14px;border-bottom:1px solid #29292e;
+ background:#101012;font-size:12px;color:#e7e7ed;
+}
+.dock-review-screen-header>strong{white-space:nowrap;font-size:13px}
+.dock-review-screen-header svg{color:#9f9fa8}
+.dock-review-market{font-size:10px;color:#a1a1aa}
+.dock-review-times{white-space:nowrap;margin:auto;color:#a1a1aa;font-size:11px}
+.dock-review-times b{display:inline-block;color:#0e0e10;background:#f4f4f5;padding:6px 7px;border-radius:5px}
+.dock-review-account{font-size:10px;color:#92929c;white-space:nowrap}
+.dock-review-chart{
+ position:relative;min-height:220px;height:clamp(220px,37vw,390px);background:#07080b;
+ background-image:linear-gradient(to right,#20212764 1px,transparent 1px),linear-gradient(to bottom,#20212764 1px,transparent 1px);
+ background-size:12.5% 25%;
+ border-bottom:1px solid #24242a;overflow:hidden;
+}
+.dock-review-chart-label{
+ position:absolute;top:16px;left:18px;z-index:1;display:flex;gap:9px;align-items:center;
+ font-size:13px;font-weight:650;color:#eeeef0;
+}
+.dock-review-chart-label span{font-size:11px;font-weight:500;color:#a1a1aa}
+.dock-review-chart-label .chart-note{padding-left:10px;margin-left:5px;border-left:1px solid #37373e;font-size:9px;letter-spacing:1px}
+.dock-review-chart svg{width:100%;height:100%;opacity:.90}
+.dock-review-chart-watermark{position:absolute;bottom:15px;left:18px;color:#d6d6de;font-size:15px;font-style:italic;font-weight:800;letter-spacing:-1px}
+.dock-review-resize{display:flex;align-items:center;justify-content:center;position:relative;height:8px;cursor:ns-resize;background:#09090b;color:#747480;touch-action:none}
+.dock-review-resize svg{position:absolute;z-index:3;top:-5px;background:#1b1b20;border-radius:10px}
+.dock-review-dock{min-height:44px;overflow:hidden;background:#09090b}
+.dock-review-dock>.acg-v4-positions{height:100%}
+.dock-review-bottom-controls{
+ display:flex;gap:15px;align-items:center;justify-content:space-between;padding:8px 12px;
+ color:#858590;border-top:1px solid #29292e;font-size:10px;background:#101012;
+}
+.dock-review-bottom-controls button{display:flex;align-items:center;gap:8px;color:#d8d8df;padding:6px 8px;border:1px solid #37373c;border-radius:6px;background:#1b1b20;font-family:inherit;font-size:10px;cursor:pointer}
+.dock-review-footnote{max-width:800px;margin:0 auto;padding:8px 16px 28px;text-align:center;color:#83838e;font-size:11px;line-height:1.5}
+@media(max-width:750px){
+ .dock-review-notice{font-size:10px}
+ .dock-review-settings{padding:14px}
+ .dock-review-screen-header{gap:6px}
+ .dock-review-times{display:none}
+ .dock-review-account{margin-left:auto;font-size:9px}
+ .dock-review-chart{height:260px}
+ .dock-review-chart-label .chart-note{display:none}
+ .dock-review-device-list button{font-size:10px;padding:7px}
+}
+@media(prefers-reduced-motion:reduce){.dock-review-page *{animation:none!important;transition:none!important}}
