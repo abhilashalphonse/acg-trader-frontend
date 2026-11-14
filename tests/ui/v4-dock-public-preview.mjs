@@ -9,9 +9,9 @@ const browser=await chromium.launch({headless:true,channel:'chrome',args:['--no-
 let checks=0;
 try{
  const page=await browser.newPage({viewport:{width:1440,height:900}});
- const errors=[],httpErrors=[];
+ const errors=[],consoleErrors=[],httpErrors=[];
  page.on('pageerror',error=>errors.push(error.stack||error.message));
- page.on('console',message=>{if(message.type()==='error')errors.push('CONSOLE: '+message.text());});
+ page.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text());});
  page.on('response',response=>{if(response.status()>=400)httpErrors.push({url:response.url(),status:response.status()});});
  const response=await page.goto(target,{waitUntil:'domcontentloaded',timeout:25000});
  await page.waitForTimeout(1700);
@@ -21,7 +21,7 @@ try{
    bodyText:document.body?.innerText?.slice(0,300)||'',
    rootHTML:document.querySelector('#v4-dock-preview-root')?.innerHTML?.slice(0,300)||'',
  }));
- console.log('DOCK_PREVIEW_BOOT',JSON.stringify({target,status:response?.status(),...pageState,errors,httpErrors}));
+ console.log('DOCK_PREVIEW_BOOT',JSON.stringify({target,status:response?.status(),...pageState,errors,consoleErrors,httpErrors}));
  assert.equal(response?.status(),200,'HTML must exist in deployed preview');
  assert.ok(pageState.rootChildren>0,'Blank page: React never mounted the public review');
  assert.equal(errors.length,0,'Unexpected browser runtime errors');
