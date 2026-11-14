@@ -139,7 +139,7 @@ function PendingRow({order,market,account,view,selected,expanded,onSelect,onExpa
   </>;
 }
 export default function PendingDockV4({
-  orders=[],markets=[],account={},counts={},onTabChange=()=>{},selectedOrderId=null,
+  orders=[],positions=[],markets=[],account={},counts={},onTabChange=()=>{},selectedOrderId=null,
   onInspect=()=>{},onManage=()=>{},onReviewCancel=()=>{},
   collapsed=false,compactDock=false,expanded=false,onToggleExpanded=()=>{},
   loading=false,error=null,onRetry=()=>{},readOnly=false,
@@ -163,7 +163,7 @@ export default function PendingDockV4({
           onClick={()=>onTabChange(key)}>{label}{(key==='positions'||key==='orders')&&<span className="v4-positions-count">{counts[key]??0}</span>}</button>)}
       </nav>
       <div className="v4-positions-header-right">
-        <PositionsAccountSummary account={account}/>
+        <PositionsAccountSummary account={account} positions={positions} markets={markets}/>
         <PositionsToolbar entity="order" view={view} onView={setView}/>
         <button type="button" className="v4-positions-expand" onClick={onToggleExpanded}
           aria-label={expanded?'Restore pending workspace':'Expand pending workspace'}>
