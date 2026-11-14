@@ -502,3 +502,10 @@
   .acg-v4-positions .v4-positions-tools{padding-left:6px}
   .acg-v4-positions .v4-positions-selector button{min-width:40px;padding:0 4px}
 }
+
+.acg-v4-positions .v4-activity-context{
+  font-size:10px;color:var(--v4p-secondary);white-space:nowrap;
+}
+@container (max-width:980px){
+  .acg-v4-positions .v4-activity-context{display:none}
+}
