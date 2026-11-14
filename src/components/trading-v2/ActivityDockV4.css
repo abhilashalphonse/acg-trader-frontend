@@ -43,3 +43,6 @@
 .acg-v4-activity-dock .v4-activity-position-events h4{font-size:12px;margin:0 0 8px;color:#f2f2f4}
 .acg-v4-activity-dock .v4-activity-position-event{display:flex;gap:20px;align-items:center;padding:3px 0;font-size:12px}
 .acg-v4-activity-dock .v4-activity-position-event time{color:#a1a1aa}
+
+/* Match the dense V4 position rows in History and Journal. */
+.acg-v4-activity-dock .v4-activity-row td{height:34px}

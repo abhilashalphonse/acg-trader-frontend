@@ -405,3 +405,198 @@
   .acg-v4-positions .v4-position-opened{font-size:11px}
   .acg-v4-positions .v4-positions-footer{flex-wrap:wrap;gap:4px;height:auto;min-height:34px;padding-top:7px;padding-bottom:7px}
 }
+
+/* V2 — compact, high-legibility trading dock; no trading behaviors changed.
+   At 164px the workspace holds 44px chrome + 27px headings + two complete
+   36px execution rows + 17px reserved horizontal-scroll room and borders. */
+.acg-v4-positions{--v4p-header:#101114;--v4p-border:#27292F;--v4p-canvas:#090A0D}
+.acg-v4-positions .v4-positions-header{
+  height:44px;min-height:44px;max-height:44px;flex:0 0 44px;
+  padding:0 12px!important;gap:12px;flex-wrap:nowrap!important;
+  overflow:visible;border-bottom:1px solid var(--v4p-border);
+}
+.acg-v4-positions .v4-positions-tabs{
+  display:flex;align-self:stretch;align-items:center;
+  flex:1 1 320px;min-width:180px;gap:18px;height:44px;min-height:44px;
+  overflow-x:auto;overflow-y:hidden;white-space:nowrap;
+  scrollbar-width:none;
+}
+.acg-v4-positions .v4-positions-tab,
+.acg-v4-positions .v4-positions-tab.is-active{
+  display:inline-flex;flex:0 0 auto;align-items:center;
+  height:43px;min-height:43px;padding:0;
+  font-size:12px;line-height:18px;letter-spacing:-.01em;
+}
+.acg-v4-positions .v4-positions-tab.is-active{font-weight:650}
+.acg-v4-positions .v4-positions-count{font-size:10px}
+.acg-v4-positions .v4-positions-header-right{
+  display:flex;align-items:center;justify-content:flex-end;
+  min-width:0;flex:0 0 auto;gap:12px;
+  margin-left:auto;padding:0!important;flex-wrap:nowrap;
+}
+.acg-v4-positions .v4-positions-account-summary{
+  display:flex;align-items:center;justify-content:flex-end!important;
+  gap:14px;min-width:0;flex:0 0 auto;flex-wrap:nowrap!important;
+}
+.acg-v4-positions .v4-positions-metric{
+  display:flex;flex-direction:column;justify-content:center;
+  gap:1px;min-width:0;flex:0 0 auto;white-space:nowrap;
+}
+.acg-v4-positions .v4-positions-metric .v4-positions-metric-label{
+  font-size:9.5px;line-height:12px;color:#989BA5;
+}
+.acg-v4-positions .v4-positions-metric>strong{
+  font-size:11.5px;line-height:16px;font-weight:650;
+  letter-spacing:-.012em;font-variant-numeric:tabular-nums;
+}
+.acg-v4-positions .v4p-label-short,.acg-v4-positions .v4p-money-compact{display:none}
+.acg-v4-positions .v4-account-overview-trigger{
+  flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  gap:6px;padding:0 9px;height:28px;min-width:32px;
+  border:1px solid #35363d;border-radius:6px;
+  color:#B8BBC5;background:#191A1F;font-size:11px;font-weight:550;
+  white-space:nowrap;
+}
+.acg-v4-positions .v4-account-overview-trigger:hover,
+.acg-v4-positions .v4-account-overview-trigger[aria-expanded=true]{
+  color:#F4F4F5;background:#272930;border-color:#4A4B53;
+}
+.acg-v4-positions .v4-positions-tools{
+  display:flex;align-items:center;flex:0 0 auto;min-width:0;
+  padding-left:10px;gap:0;border-left:1px solid #33343A;
+}
+.acg-v4-positions .v4-positions-selector{height:28px;padding:2px;border-radius:6px}
+.acg-v4-positions .v4-positions-selector button{
+  height:22px;min-width:54px;padding:0 8px;
+  font-size:11px;font-weight:550;line-height:18px;border-radius:4px;
+}
+.acg-v4-positions .v4-positions-view-select{
+  display:none;height:28px;max-width:106px;
+  border:1px solid #34353c;border-radius:6px;background:#22232a;
+  padding:0 6px;color:#F4F4F5;font:550 11px/18px inherit;cursor:pointer;
+}
+.acg-v4-positions .v4-positions-expand{
+  flex:0 0 28px;height:28px;width:28px;
+}
+.acg-v4-positions .v4-positions-table th{
+  height:27px;padding:0 9px;font-size:10.5px;line-height:15px;
+  letter-spacing:0;font-weight:550;color:#9C9EA9;
+}
+.acg-v4-positions .v4-positions-table td{
+  height:34px;padding:0 9px;font-size:11.5px;line-height:17px;
+}
+.acg-v4-positions .v4-position-row,
+.acg-v4-positions .v4-position-row td{height:34px}
+.acg-v4-positions .v4-position-row.is-execution,
+.acg-v4-positions .v4-position-row.is-execution td{height:36px}
+.acg-v4-positions .v4-position-row.is-selected td:first-child{padding-left:7px}
+.acg-v4-positions .v4-position-instrument{gap:5px}
+.acg-v4-positions .v4-position-instrument strong{font-size:11.5px;letter-spacing:-.01em}
+.acg-v4-positions .v4-position-avatar{width:22px;flex:0 0 22px;height:22px}
+.acg-v4-positions .v4-position-side{
+  height:18px;padding:0 5px;font-size:10px;line-height:15px;
+  border-radius:4px;
+}
+.acg-v4-positions .v4-position-side.is-buy{background:#15283b;color:#6CAAF6}
+.acg-v4-positions .v4-position-side.is-sell{background:#351D24;color:#FF777D}
+.acg-v4-positions .v4-position-actions{gap:4px}
+.acg-v4-positions .v4-position-control{height:27px}
+.acg-v4-positions .v4-position-close{
+  border:1px solid #4E3539;background:#21181B;
+  color:#FF949A;font-weight:600;
+}
+.acg-v4-positions .v4-position-close:not(:disabled):hover{
+  background:#352125;border-color:#805058
+}
+.acg-v4-positions .v4-positions-empty{min-height:68px}
+.acg-v4-positions .v4-positions-skeleton td{height:34px}
+.acg-v4-positions .v4-activity-inline{
+  display:flex;align-items:center;gap:8px;
+  min-width:0;flex:0 0 auto;padding-left:10px;
+  border-left:1px solid #33343A;
+}
+.acg-v4-positions .v4-activity-range{
+  height:28px;background:#22232A;border:1px solid #38393F;
+  color:#F4F4F5;border-radius:6px;padding:0 8px;
+  font:550 11px/18px inherit;cursor:pointer;
+}
+.acg-v4-positions .v4-activity-header-pnl{font-size:11px;white-space:nowrap}
+.acg-v4-positions .v4-activity-context,
+.acg-v4-positions .v4-activity-records{font-size:10px;color:#A1A1AA;white-space:nowrap}
+.acg-v4-positions .v4-activity-position-filter{
+  display:flex;align-items:center;gap:5px;min-width:0;
+  max-width:148px;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;font-size:10px;
+}
+.acg-v4-positions .v4-activity-position-filter button{
+  background:#292930;color:#E7E7ED;border:0;
+  border-radius:3px;cursor:pointer;padding:3px 6px;
+}
+/* Header adapts by priority. No account metric is discarded: Overview
+   exposes every exact value, and primary Equity/P&L stay in the toolbar. */
+@container (max-width:1260px){
+  .acg-v4-positions .v4-positions-header{gap:9px}
+  .acg-v4-positions .v4-positions-header-right{gap:9px}
+  .acg-v4-positions .v4-positions-tabs{gap:13px}
+  .acg-v4-positions .v4-positions-account-summary{gap:10px}
+  .acg-v4-positions .v4-positions-metric.metric-used,
+  .acg-v4-positions .v4-positions-metric.metric-free{display:none}
+  .acg-v4-positions .v4-positions-tools{padding-left:8px}
+  .acg-v4-positions .v4-activity-context{display:none}
+}
+@container (max-width:980px){
+  .acg-v4-positions .v4-positions-header{padding:0 8px!important;gap:7px}
+  .acg-v4-positions .v4-positions-tabs{gap:10px}
+  .acg-v4-positions .v4-positions-header-right{gap:7px}
+  .acg-v4-positions .v4p-label-full{display:none}
+  .acg-v4-positions .v4p-label-short{display:inline}
+  .acg-v4-positions .v4-positions-metric.metric-equity .v4p-money-full{display:none}
+  .acg-v4-positions .v4-positions-metric.metric-equity .v4p-money-compact{display:inline}
+  .acg-v4-positions .v4-positions-selector{display:none}
+  .acg-v4-positions .v4-positions-view-select{display:block}
+  .acg-v4-positions .v4-activity-records,
+  .acg-v4-positions .v4-activity-header-pnl{display:none}
+}
+@container (max-width:820px){
+  .acg-v4-positions .v4-positions-account-summary{gap:7px}
+  .acg-v4-positions .v4-account-overview-trigger{padding:0 7px}
+  .acg-v4-positions .v4-account-overview-trigger>span{display:none}
+  .acg-v4-positions .v4-positions-tabs{gap:8px}
+  .acg-v4-positions .v4-positions-metric>strong{font-size:10.5px}
+  .acg-v4-positions .v4-positions-tab,
+  .acg-v4-positions .v4-positions-tab.is-active{font-size:11px}
+}
+@container (max-width:640px){
+  .acg-v4-positions .v4-positions-metric.metric-equity{display:none}
+  .acg-v4-positions .v4-positions-tabs{min-width:120px;flex:1 1 auto}
+  .acg-v4-positions .v4-positions-account-summary{gap:5px}
+  .acg-v4-positions .v4-positions-tools{padding-left:5px}
+  .acg-v4-positions .v4-positions-view-select{max-width:90px}
+}
+/* This popover is portaled to document.body above the dock's clipping layer. */
+.v4-account-overview-popover{
+  width:296px;max-width:calc(100vw - 16px);color:#F1F2F5;
+  background:#17181D;border:1px solid #42434C;border-radius:10px;
+  padding:14px;box-shadow:0 20px 60px #000a;
+  font-family:Inter,ui-sans-serif,system-ui,sans-serif;
+  font-variant-numeric:tabular-nums;
+}
+.v4-account-overview-title{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  margin-bottom:13px;
+}
+.v4-account-overview-title strong{font-size:12px}
+.v4-account-overview-title span{font-size:10px;color:#92959F}
+.v4-account-overview-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 15px}
+.v4-account-overview-field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.v4-account-overview-field>span{font-size:10px;color:#A0A2AD}
+.v4-account-overview-field>strong{font-size:12px;white-space:nowrap}
+.v4-account-overview-popover .v4-position-pnl.profit{color:#27C5A0}
+.v4-account-overview-popover .v4-position-pnl.loss{color:#F06B70}
+.v4-account-exposure{margin-top:13px;padding-top:12px;border-top:1px solid #34353F}
+.v4-account-exposure-title{font-size:10px;font-weight:650;color:#C9CBD4;margin-bottom:7px}
+.v4-account-exposure>div:not(.v4-account-exposure-title){
+  display:flex;gap:8px;justify-content:space-between;align-items:center;
+  margin-top:6px;font-size:10px;color:#A1A3B0;
+}
+.v4-account-exposure>div>strong{font-size:11px;color:#F4F4F5;font-weight:600}

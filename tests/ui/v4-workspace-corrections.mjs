@@ -100,17 +100,17 @@ try{
  const history=page.locator('[data-v4-activity="history"]');
  await history.waitFor({state:'visible'});
  eq(await history.locator('.v4-positions-count').count(),2,'Only Positions and Pending display counts');
- eq(await history.getByRole('group',{name:'History date range'}).count(),1,'History has date selectors');
+ eq(await history.getByRole('combobox',{name:'History date range'}).count(),1,'History has date selectors');
  eq(await history.getAttribute('data-v4-activity-range'),'30D','History initially shows last 30 days');
  eq(await history.locator('tr.v4-activity-row').count(),2,'30D displays only two recent closed positions');
  eq(await history.getByText('closed-old').count(),0,'Oldest record not included');
- ok((await history.locator('.v4-activity-summary').innerText()).includes('Realized P&L'),'History summarizes realized P&L');
+ ok((await history.locator('.v4-activity-header-pnl').innerText()).includes('Realized'),'History summarizes realized P&L');
  eq(await history.locator('thead th').allTextContents(),
    ['Instrument','Side','Size','Entry','Exit','Opened','Closed','Realized P&L','Commission','Swap','Close reason'],
    'History includes broker-grade financial columns');
- await history.getByRole('button',{name:'7D',exact:true}).click();
+ await history.getByRole('combobox',{name:'History date range'}).selectOption('7D');
  eq(await history.locator('tr.v4-activity-row').count(),1,'7D limits visible history');
- await history.getByRole('button',{name:'1M',exact:true}).click();
+ await history.getByRole('combobox',{name:'History date range'}).selectOption('1M');
  eq(await history.locator('tr.v4-activity-row').count(),2,'1M includes prior-month data but no older history');
 
  await history.getByRole('button',{name:'Journal',exact:true}).click();
@@ -120,74 +120,53 @@ try{
  eq(await journal.locator('tr.v4-activity-row').count(),1,'Old local journal record hidden');
  ok((await journal.locator('tr.v4-activity-row').first().innerText()).includes('SL modification requested'),
    'Journal shows available local event description');
- ok((await journal.locator('.v4-activity-summary').innerText()).includes('Local activity journal'),
+ ok((await journal.locator('.v4-activity-context').innerText()).includes('Local journal'),
    'Journal clearly labeled local, not a durable broker execution ledger');
- await journal.getByRole('button',{name:'7D',exact:true}).click();
+ await journal.getByRole('combobox',{name:'Journal date range'}).selectOption('7D');
  eq(await journal.locator('tr.v4-activity-row').count(),1,'Journal 7D filters current records');
- await journal.getByRole('button',{name:'1M',exact:true}).click();
+ await journal.getByRole('combobox',{name:'Journal date range'}).selectOption('1M');
  eq(await journal.locator('tr.v4-activity-row').count(),1,'Journal 1M never shows data older than one month');
 
- // User screenshot: 1105 x 910, saved 420px legacy dock. One-time density
- // migration should free roughly 120px for the chart without changing fullscreen.
+ // Keep user-controlled dock heights intact when the viewport allows.
  const densityPage=await browser.newPage({viewport:{width:1105,height:910}});
  const auditUrl='http://127.0.0.1:5174/v4-positions-audit.html?acg_v4_audit=1';
  await densityPage.goto(auditUrl,{waitUntil:'domcontentloaded'});
- await densityPage.evaluate(()=>{
-   localStorage.setItem('acg-trader-desktop-layout-v2',JSON.stringify({
-     dockHeight:420,sidebarCollapsed:false,dockCollapsed:false,sidebarWidth:360
-   }));
-   // Reproduce the actual existing-user state: both older migration
-   // flags already set, but an oversized dock height is still persisted.
-   localStorage.setItem('acg-v4-positions-workspace-sized-v1','true');
-   localStorage.setItem('acg-v4-positions-dock-density-v2','true');
-   localStorage.removeItem('acg-v4-positions-dock-density-v3');
- });
+ await densityPage.evaluate(()=>localStorage.setItem('acg-trader-desktop-layout-v2',JSON.stringify({
+   dockHeight:420,sidebarCollapsed:false,dockCollapsed:false,sidebarWidth:360,
+ })));
  await densityPage.reload({waitUntil:'domcontentloaded'});
  const denseDock=densityPage.locator('[data-v4-positions="true"]');
  await denseDock.waitFor({state:'visible'});
  await densityPage.waitForFunction(()=>{
    const el=document.querySelector('[data-v4-positions="true"]');
-   return el&&el.getBoundingClientRect().height>=295&&el.getBoundingClientRect().height<=330;
- },null,{timeout:5000});
- const compactHeight=await denseDock.evaluate(el=>el.getBoundingClientRect().height);
- eq(await densityPage.evaluate(()=>JSON.parse(localStorage.getItem('acg-trader-desktop-layout-v2')).dockHeight),
-   309,'Correct compact height is persisted to the actual desktop layout key');
- ok(compactHeight>=295&&compactHeight<=330,
-   'At screenshot viewport, old 420px dock reduces by about 120px to ~309px');
- eq(await densityPage.evaluate(()=>localStorage.getItem('acg-v4-positions-dock-density-v3')),
-   'true','V3 initial-layout hydration corrects even previously v2-migrated oversized docks');
-
- // A trader's subsequent manual resize is a preference, not something the
- // one-time migration should erase on next login/reload.
+   return el&&el.getBoundingClientRect().height>=416;
+ });
+ const retainedHeight=await denseDock.evaluate(el=>el.getBoundingClientRect().height);
+ ok(retainedHeight>=416&&retainedHeight<=422,'420px custom dock is preserved');
  await densityPage.evaluate(()=>{
-   const key='acg-trader-desktop-layout-v2';
-   const value=JSON.parse(localStorage.getItem(key)||'{}');
+   const key='acg-trader-desktop-layout-v2',value=JSON.parse(localStorage.getItem(key)||'{}');
    localStorage.setItem(key,JSON.stringify({...value,dockHeight:365,dockCollapsed:false}));
  });
  await densityPage.reload({waitUntil:'domcontentloaded'});
  await denseDock.waitFor({state:'visible'});
  await densityPage.waitForFunction(()=>{
    const el=document.querySelector('[data-v4-positions="true"]');
-   return el&&el.getBoundingClientRect().height>=352;
+   return el&&el.getBoundingClientRect().height>=360&&el.getBoundingClientRect().height<=370;
  });
- ok((await denseDock.evaluate(el=>el.getBoundingClientRect().height))>=352,
-   'After first migration, custom manual dock height persists across reload');
-
- // A shorter screen receives the same responsive proportional correction.
+ ok((await denseDock.evaluate(el=>el.getBoundingClientRect().height))>=360,
+   'Manual 365px height persists after reload');
  await densityPage.evaluate(()=>{
-   const key='acg-trader-desktop-layout-v2';
-   const value=JSON.parse(localStorage.getItem(key)||'{}');
+   const key='acg-trader-desktop-layout-v2',value=JSON.parse(localStorage.getItem(key)||'{}');
    localStorage.setItem(key,JSON.stringify({...value,dockHeight:320,dockCollapsed:false}));
-   localStorage.removeItem('acg-v4-positions-dock-density-v3');
  });
  await densityPage.setViewportSize({width:1105,height:760});
  await densityPage.reload({waitUntil:'domcontentloaded'});
  await densityPage.waitForFunction(()=>{
    const el=document.querySelector('[data-v4-positions="true"]');
-   return el&&el.getBoundingClientRect().height>=250&&el.getBoundingClientRect().height<=280;
+   return el&&el.getBoundingClientRect().height>=316&&el.getBoundingClientRect().height<=322;
  });
- ok((await denseDock.evaluate(el=>el.getBoundingClientRect().height))<=280,
-   'Shorter 760px screen uses proportional ~260px Positions dock');
+ ok((await denseDock.evaluate(el=>el.getBoundingClientRect().height))<=322,
+   '760px viewport respects responsive 320px dock ceiling');
  await densityPage.close();
 
   console.log('V4_WORKSPACE_CORRECTIONS_PASS',JSON.stringify({checks,heights,menu:before}));

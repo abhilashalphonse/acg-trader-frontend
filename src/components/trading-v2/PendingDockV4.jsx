@@ -139,7 +139,7 @@ function PendingRow({order,market,account,view,selected,expanded,onSelect,onExpa
   </>;
 }
 export default function PendingDockV4({
-  orders=[],markets=[],account={},counts={},onTabChange=()=>{},selectedOrderId=null,
+  orders=[],positions=[],markets=[],account={},counts={},onTabChange=()=>{},selectedOrderId=null,
   onInspect=()=>{},onManage=()=>{},onReviewCancel=()=>{},
   collapsed=false,compactDock=false,expanded=false,onToggleExpanded=()=>{},
   loading=false,error=null,onRetry=()=>{},readOnly=false,
@@ -150,14 +150,9 @@ export default function PendingDockV4({
     catch {return 'compact';}
   });
   useEffect(()=>{try {window.localStorage.setItem('acg-v4-pending-view-v1',view);}catch{ /* no storage */ }},[view]);
-  const [query,setQuery]=useState('');
-  const [filter,setFilter]=useState('');
   const [expandedIds,setExpandedIds]=useState(()=>new Set());
   const ids=orders.map(order=>String(order.id));
-  const symbols=[...new Set(orders.map(o=>o.symbol).filter(Boolean))].sort();
-  const shownOrders=orders.filter(order=>
-    (!filter||order.symbol===filter)&&(!query.trim()||
-      [order.id,order.clientOrderId,order.symbol,order.orderType,order.side].some(v=>String(v||'').toLowerCase().includes(query.trim().toLowerCase()))));
+  const shownOrders=orders;
   const columns=COLUMN_SPECS[view];
   const tabs=[['positions','Positions'],['orders','Pending'],['history','History'],['journal','Journal']];
   return <div className="acg-v4-positions" data-v4-pending="true" data-v4-pending-view={view}>
@@ -168,7 +163,8 @@ export default function PendingDockV4({
           onClick={()=>onTabChange(key)}>{label}{(key==='positions'||key==='orders')&&<span className="v4-positions-count">{counts[key]??0}</span>}</button>)}
       </nav>
       <div className="v4-positions-header-right">
-        <PositionsAccountSummary account={account}/>
+        <PositionsAccountSummary account={account} positions={positions} markets={markets}/>
+        <PositionsToolbar entity="order" view={view} onView={setView}/>
         <button type="button" className="v4-positions-expand" onClick={onToggleExpanded}
           aria-label={expanded?'Restore pending workspace':'Expand pending workspace'}>
           {expanded?<Minimize2 size={16}/>:<Maximize2 size={16}/>}
@@ -176,9 +172,6 @@ export default function PendingDockV4({
       </div>
     </div>
     {!collapsed&&!compactDock&&<>
-      <PositionsToolbar entity="order" view={view} onView={setView} query={query} onQuery={setQuery}
-        instrument={filter} onInstrument={setFilter} instruments={symbols}
-        />
       <div className="v4-positions-scroller">
         <table className="v4-positions-table" style={{minWidth:MIN_WIDTH[view]}}>
           <colgroup>{columns.map(([name,width])=><col key={name} style={{width}}/>)}</colgroup>
@@ -186,7 +179,6 @@ export default function PendingDockV4({
           <tbody>
             {loading&&!orders.length&&Array.from({length:3},(_,i)=><tr key={i} className="v4-positions-skeleton" aria-hidden="true">{columns.map(([name])=><td key={name}><span/></td>)}</tr>)}
             {!loading&&!error&&!orders.length&&<tr><td colSpan={columns.length}><div className="v4-positions-empty"><strong>No pending orders</strong><span>Orders awaiting execution will appear here.</span></div></td></tr>}
-            {!loading&&!error&&orders.length>0&&!shownOrders.length&&<tr><td colSpan={columns.length}><div className="v4-positions-empty"><strong>No matching orders</strong><span>Change the search or instrument filter.</span></div></td></tr>}
             {shownOrders.map(order=><PendingRow key={order.id} order={order}
               market={instrumentForSymbol(markets,order.symbol)} account={account} view={view}
               visible={columns.map(([name])=>name)} readOnly={readOnly}
@@ -197,10 +189,10 @@ export default function PendingDockV4({
         </table>
         {error&&<div className="v4-positions-error" role="alert"><span>{String(error)}</span><button type="button" onClick={onRetry}>Retry</button></div>}
       </div>
-      <div className="v4-positions-footer">
+      {expanded&&<div className="v4-positions-footer">
         <span>{orders.length} pending {orders.length===1?'order':'orders'}</span>
         <span className="v4-positions-exposures">{ids.length} awaiting review / execution</span>
-      </div>
+      </div>}
     </>}
   </div>;
 }
