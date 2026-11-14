@@ -230,7 +230,7 @@ export default function PositionsDockV4({
         </button>)}
       </nav>
       <div className="v4-positions-header-right">
-        <PositionsAccountSummary account={account}/>
+        <PositionsAccountSummary account={account} positions={positions} markets={markets}/>
         <PositionsToolbar view={view} onView={setView}/>
         <button type="button" className="v4-positions-expand" onClick={onToggleExpanded}
           aria-label={expanded?'Restore positions workspace':'Expand positions workspace'}
