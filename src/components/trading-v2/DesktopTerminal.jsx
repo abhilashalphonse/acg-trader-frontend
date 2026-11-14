@@ -107,9 +107,9 @@ function desktopHeightBounds(viewportHeight, dockCollapsed = false, dockHeight =
   const compact = height <= 900;
   // V4 needs space for a 44px unified toolbar, a 28px table heading,
   // and two 36px position rows plus the dock border. V3 stays unchanged.
-  const dockMin = V4_DESKTOP_EXECUTION_ENABLED ? 148 : 52;
+  const dockMin = V4_DESKTOP_EXECUTION_ENABLED ? 164 : 52;
   const dockMax = compact ? Math.min(320, Math.floor(height * 0.44)) : height <= 1050 ? Math.min(420, Math.floor(height * 0.46)) : Math.min(520, Math.floor(height * 0.48));
-  const defaultDock = V4_DESKTOP_EXECUTION_ENABLED ? 148 : 52;
+  const defaultDock = V4_DESKTOP_EXECUTION_ENABLED ? 164 : 52;
   const effectiveDock = dockCollapsed ? 0 : clamp(dockHeight || defaultDock, dockMin, dockMax);
   const upperWorkspaceHeight = Math.max(0, height - 48 - effectiveDock);
 
