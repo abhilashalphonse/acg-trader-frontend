@@ -25,7 +25,7 @@ try{
   ok((await rows().first().innerText()).includes('STOP LIMIT'),'Order type not mislabeled');
   ok((await rows().first().innerText()).includes('1.11980'),'Stop-Limit has actual limit price');
   const header=pending.locator('.v4-positions-header');
-  eq(await header.evaluate(el=>el.getBoundingClientRect().height),48,'Header matches approved 48px');
+  eq(await header.evaluate(el=>el.getBoundingClientRect().height),44,'Pending shares the 44px unified header');
   await rows().first().click();
   eq(await rows().first().getAttribute('aria-selected'),'true','Row inspection highlights pending');
   eq(await page.locator('[data-v4-manage-pending]').count(),0,'Clicking pending row never opens right side management');
