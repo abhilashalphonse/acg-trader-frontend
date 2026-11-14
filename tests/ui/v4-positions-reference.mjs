@@ -18,12 +18,20 @@ try{
   const dock=page.locator('[data-v4-positions="true"]');
   await dock.waitFor({state:'visible'});
   eq(await dock.getAttribute('data-v4-position-view'),'compact','Compact remains default');
-  const header=await dock.locator('.v4-positions-account-summary').innerText();
-  ok(header.includes('Equity'),'Reference header includes Equity');
-  ok(header.includes('$99,999.17'),'Actual account equity shown');
-  ok(header.includes('Used margin')&&header.includes('$11.16'),'Actual used margin shown');
-  ok(header.includes('Free margin')&&header.includes('$99,988.01'),'Actual free margin shown');
-  ok(header.includes('Unrealized P&L')&&header.includes('−$0.83'),'Actual floating P&L shown');
+  const overviewTrigger=dock.getByRole('button',{name:'Account overview and margin details'});
+  eq(await overviewTrigger.count(),1,'Every account snapshot stays accessible');
+  await overviewTrigger.click();
+  const overview=page.getByRole('dialog',{name:'Account overview'});
+  await overview.waitFor({state:'visible'});
+  const metrics=await overview.innerText();
+  ok(metrics.includes('Equity')&&metrics.includes('$99,999.17'),'Verified account equity');
+  ok(metrics.includes('Used margin')&&metrics.includes('$11.16'),'Reserved margin is never hidden');
+  ok(metrics.includes('Free margin')&&metrics.includes('$99,988.01'),'Full free margin remains available');
+  ok(metrics.includes('Unrealized P&L')&&metrics.includes('−$0.83'),'Exact signed P&L stays available');
+  ok(metrics.includes('Gross (USD)')&&metrics.includes('Net directional (USD)'),
+    'Verified exposure reachable without fullscreen');
+  await page.keyboard.press('Escape');
+  eq(await overview.count(),0,'Escape closes account overview');
   eq(await dock.locator('.v4-positions-toolbar').count(),0,'Standalone filter/view toolbar removed');
   eq(await dock.getByRole('searchbox').count(),0,'No position search on desktop');
   eq(await dock.getByRole('combobox',{name:'Filter by instrument'}).count(),0,'No instrument filter');
@@ -99,9 +107,9 @@ try{
       tableHead:rect('.v4-positions-table thead').height,
       visibleRows:[...rows].filter(row=>{const box=row.getBoundingClientRect();return box.top>=scroller.top-1&&box.bottom<=scroller.bottom+1;}).length};
   });
-  ok(geometry.container>=148,'Expanded dock is at least 148px high');
+  ok(geometry.container>=164,'Expanded dock reserves two rows and horizontal-scroll room');
   eq(geometry.header,44,'Unified toolbar remains 44px high');
-  eq(geometry.tableHead,28,'Dense table header is 28px high');
+  eq(geometry.tableHead,27,'Compact column-heading row is 27px high');
   await page.setViewportSize({width:768,height:850});
   const narrow=await dock.evaluate(el=>{
     const header=el.querySelector('.v4-positions-header').getBoundingClientRect();
@@ -114,6 +122,19 @@ try{
   ok(narrow.singleRow,'Narrow dock retains one toolbar row');
   eq(narrow.height,44,'Narrow dock stays 44px tall');
   ok(narrow.horizontal,'Narrow table scrolls horizontally without wrapping the toolbar');
+  const selector=dock.getByRole('combobox',{name:'Positions table view'});
+  eq(await selector.count(),1,'Narrow desktop retains all three trading view modes');
+  await selector.selectOption('execution');
+  eq(await dock.getAttribute('data-v4-position-view'),'execution','Execution remains selectable at laptop widths');
+  const narrowRows=await dock.evaluate(el=>{
+    const viewport=el.querySelector('.v4-positions-scroller').getBoundingClientRect();
+    return [...el.querySelectorAll('tr[data-v4-position-id]')].filter(row=>{
+      const box=row.getBoundingClientRect();
+      return box.top>=viewport.top-1&&box.bottom<=viewport.bottom+1;
+    }).length;
+  });
+  eq(narrowRows,2,'Two entire Execution rows fit even with horizontal scrollbar');
+
   await page.setViewportSize({width:1440,height:900});
   await rows().first().getByRole('button',{name:'Expand position details for EUR/USD'}).click();
   await dock.locator('[data-v4-position-detail="position-eur-1"]').getByRole('button',{name:/View history/}).click();
