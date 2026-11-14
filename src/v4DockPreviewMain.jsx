@@ -12,10 +12,12 @@ import './v4DockPreview.css';
 // account provisioning, backend commands or production session are present.
 const BTC={symbol:'BTCUSD',displaySymbol:'BTC/USD',name:'Bitcoin / US Dollar',assetClass:'CRYPTO',
   baseCurrency:'BTC',quoteCurrency:'USD',contractSize:1,defaultLeverage:2,tickSize:0.01,
-  bid:65548.26,ask:65550.26,price:65549.26,sessionOpen:true,marketState:'LIVE',isStale:false};
+  bid:65548.26,ask:65550.26,price:65549.26,sessionOpen:true,marketState:'LIVE',isStale:false,
+  identity:{status:'READY',checkedAt:'2026-11-14T00:00:00Z'}};
 const GOLD={symbol:'XAUUSD',displaySymbol:'XAU/USD',name:'Gold / US Dollar',assetClass:'COMMODITY',
   baseCurrency:'XAU',quoteCurrency:'USD',contractSize:100,defaultLeverage:50,tickSize:0.01,
-  bid:2683.4,ask:2683.75,price:2683.5,sessionOpen:true,marketState:'LIVE',isStale:false};
+  bid:2683.4,ask:2683.75,price:2683.5,sessionOpen:true,marketState:'LIVE',isStale:false,
+  identity:{status:'READY',checkedAt:'2026-11-14T00:00:00Z'}};
 const MARKETS=[BTC,GOLD];
 const ACCOUNT={id:'dock-preview-example',currency:'USD',balance:100000,equity:100432.5,
   usedMargin:3200,freeMargin:97232.5,floatingPnl:432.5,valuationStatus:'LIVE'};
