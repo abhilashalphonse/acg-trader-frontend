@@ -9,7 +9,7 @@ const ok=(value,label)=>{assert.ok(value,label);checks++};
 try{
   await page.addInitScript(()=>{
     window.localStorage.setItem('acg-trader-desktop-layout-v2',JSON.stringify({
-      dockHeight:180,sidebarCollapsed:false,dockCollapsed:false,sidebarWidth:360
+      dockHeight:52,sidebarCollapsed:false,dockCollapsed:false,sidebarWidth:360
     }));
     window.localStorage.removeItem('acg-v4-positions-view-v1');
   });
@@ -44,6 +44,15 @@ try{
   const rows=()=>dock.locator('tr[data-v4-position-id]');
   const ids=()=>rows().evaluateAll(items=>items.map(x=>x.getAttribute('data-v4-position-id')));
   const originalIds=await ids();
+  const visible=await dock.evaluate(el=>{
+    const scroller=el.querySelector('.v4-positions-scroller').getBoundingClientRect();
+    return [...el.querySelectorAll('tr[data-v4-position-id]')].filter(row=>{
+      const box=row.getBoundingClientRect();
+      return box.top>=scroller.top-1&&box.bottom<=scroller.bottom+1;
+    }).length;
+  });
+  eq(visible,2,'Two entire position rows fit in the minimum-height workspace');
+
   eq(await ids(),originalIds,'All positions remain present without filtering');
   eq(await dock.locator('thead th').count(),5,'Compact columns are fixed');
   eq(await dock.locator('.v4-positions-account-summary').count(),1,'Account metrics remain visible');
