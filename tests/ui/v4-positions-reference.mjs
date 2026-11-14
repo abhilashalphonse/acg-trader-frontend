@@ -24,37 +24,30 @@ try{
   ok(header.includes('Used margin')&&header.includes('$11.16'),'Actual used margin shown');
   ok(header.includes('Free margin')&&header.includes('$99,988.01'),'Actual free margin shown');
   ok(header.includes('Unrealized P&L')&&header.includes('−$0.83'),'Actual floating P&L shown');
-  eq(await dock.locator('.v4-positions-toolbar').count(),1,'Complete reference toolbar');
-  const search=dock.getByRole('searchbox',{name:'Find position'});
-  const instruments=dock.getByRole('combobox',{name:'Filter by instrument'});
-  eq(await search.count(),1,'Search field available');
-  eq(await instruments.count(),1,'Instrument dropdown available');
-  eq(await dock.getByRole('button',{name:'Positions display settings'}).count(),0,'Redundant settings icon removed');
-  eq(await dock.getByRole('button',{name:'Columns'}).count(),0,'Columns control removed');
+  eq(await dock.locator('.v4-positions-toolbar').count(),0,'Standalone filter/view toolbar removed');
+  eq(await dock.getByRole('searchbox').count(),0,'No position search on desktop');
+  eq(await dock.getByRole('combobox',{name:'Filter by instrument'}).count(),0,'No instrument filter');
+  eq(await dock.getByRole('button',{name:'Positions display settings'}).count(),0,'No redundant settings');
+  eq(await dock.getByRole('button',{name:'Columns'}).count(),0,'No editable columns');
   const footer=dock.locator('[data-v4-exposure-footer]');
-  eq(await footer.count(),1,'Portfolio exposure footer available');
+  eq(await footer.count(),0,'Footer yields space for two rows in normal dock');
+  await dock.getByRole('button',{name:'Expand positions workspace'}).click();
+  eq(await footer.count(),1,'Exposure remains available in expanded workspace');
   ok((await footer.innerText()).includes('2 open positions'),'Open count footer correct');
-  ok((await footer.innerText()).includes('Gross exposure (USD)'),'Mixed units shown only as verified USD notional');
-  ok((await footer.innerText()).includes('$2,479.35'),'Gross exposure includes complete BTC and EUR USD notionals');
-  ok((await footer.innerText()).includes('+$244.65'),'Net directional USD signs SELL and BUY correctly');
+  ok((await footer.innerText()).includes('Gross exposure (USD)'),'USD notional only when verified');
+  ok((await footer.innerText()).includes('$2,479.35'),'Verified gross exposure preserved');
+  ok((await footer.innerText()).includes('+$244.65'),'Directional net preserved');
+  await dock.getByRole('button',{name:'Restore positions workspace'}).click();
   eq(await dock.locator('tr[data-v4-position-id="position-btc-2"] [data-v4-single-asset]').count(),1,
     'BTC position uses one primary Bitcoin mark');
 
   const rows=()=>dock.locator('tr[data-v4-position-id]');
   const ids=()=>rows().evaluateAll(items=>items.map(x=>x.getAttribute('data-v4-position-id')));
   const originalIds=await ids();
-  await search.fill('BTC');
-  eq(await ids(),['position-btc-2'],'Search filters by symbol without altering base list');
-  await search.fill('position-eur-1');
-  eq(await ids(),['position-eur-1'],'Search filters by exact position ID');
-  await search.fill('');
-  await instruments.selectOption('BTCUSD');
-  eq(await ids(),['position-btc-2'],'Dropdown filters instrument');
-  await instruments.selectOption('');
-  eq(await ids(),originalIds,'Clear filtering restores previous order');
+  eq(await ids(),originalIds,'All positions remain present without filtering');
   eq(await dock.locator('thead th').count(),5,'Compact columns are fixed');
-  eq(await dock.locator('.v4-positions-account-summary').count(),1,'Overview remains visible');
-  eq(await footer.count(),1,'Verified exposure footer remains visible');
+  eq(await dock.locator('.v4-positions-account-summary').count(),1,'Account metrics remain visible');
+  eq(await footer.count(),0,'Normal two-row workspace keeps footer out of the viewport');
   await page.keyboard.press('Escape');
   await dock.getByRole('button',{name:'Risk',exact:true}).click();
   eq(await dock.getAttribute('data-v4-position-view'),'risk','Risk view swaps table columns only');
@@ -91,28 +84,33 @@ try{
     'Unavailable backend activity is not invented');
   const geometry=await dock.evaluate(el=>{
     const rect=selector=>el.querySelector(selector).getBoundingClientRect();
-    return {header:rect('.v4-positions-header').height,toolbar:rect('.v4-positions-toolbar').height,
-      footer:rect('.v4-positions-footer').height,container:el.getBoundingClientRect().height};
+    const rows=el.querySelectorAll('tr[data-v4-position-id]');
+    const head=rect('.v4-positions-header'), scroller=rect('.v4-positions-scroller');
+    return {header:head.height,container:el.getBoundingClientRect().height,
+      tableHead:rect('.v4-positions-table thead').height,
+      visibleRows:[...rows].filter(row=>{const box=row.getBoundingClientRect();return box.top>=scroller.top-1&&box.bottom<=scroller.bottom+1;}).length};
   });
-  ok(geometry.container>=290,'Legacy saved 180px dock is upgraded once to fit V4 header, toolbar, table and footer');
-  eq(geometry.header,48,'Reference header height remains 48px at desktop width');
-  ok(geometry.toolbar>=44,'Toolbar fits controls without overflow');
-  ok(geometry.footer>=34,'Footer stays above minimum height');
+  ok(geometry.container>=148,'Expanded dock is at least 148px high');
+  eq(geometry.header,44,'Unified toolbar remains 44px high');
+  eq(geometry.tableHead,28,'Dense table header is 28px high');
   await page.setViewportSize({width:768,height:850});
   const narrow=await dock.evaluate(el=>{
-    const filters=el.querySelector('.v4-positions-filters').getBoundingClientRect();
+    const header=el.querySelector('.v4-positions-header').getBoundingClientRect();
+    const tabs=el.querySelector('.v4-positions-tabs').getBoundingClientRect();
     const tools=el.querySelector('.v4-positions-tools').getBoundingClientRect();
     const scroll=el.querySelector('.v4-positions-scroller');
-    return {stacked:tools.top>=filters.bottom-1,horizontal:scroll.scrollWidth>scroll.clientWidth};
+    return {singleRow:Math.abs(header.top-tabs.top)<2&&Math.abs(header.top-tools.top)<12,
+      height:header.height,horizontal:scroll.scrollWidth>scroll.clientWidth};
   });
-  ok(narrow.stacked,'At narrow widths view selector shifts below search/filter toolbar');
-  ok(narrow.horizontal,'At narrow widths table scrolls horizontally');
+  ok(narrow.singleRow,'Narrow dock retains one toolbar row');
+  eq(narrow.height,44,'Narrow dock stays 44px tall');
+  ok(narrow.horizontal,'Narrow table scrolls horizontally without wrapping the toolbar');
   await page.setViewportSize({width:1440,height:900});
   await rows().first().getByRole('button',{name:'Expand position details for EUR/USD'}).click();
   await dock.locator('[data-v4-position-detail="position-eur-1"]').getByRole('button',{name:/View history/}).click();
   const scopedHistory=page.locator('[data-v4-activity="history"]');
   await scopedHistory.waitFor({state:'visible'});
-  ok((await scopedHistory.locator('.v4-activity-summary').innerText()).includes('position-eur-1'),
+  ok((await scopedHistory.locator('.v4-activity-position-filter').innerText()).includes('position-eur-1'),
     'History link scopes to the selected position rather than unrelated records');
   ok((await scopedHistory.locator('.v4-activity-position-events').innerText()).includes('Position filled'),
     'Scoped history shows authoritative order and deal events for an active position');
