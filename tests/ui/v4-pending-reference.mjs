@@ -56,7 +56,7 @@ try{
   eq(await page.locator('[data-v4-manage-pending="pending-eur-1"]').getByRole('dialog',{name:'Confirm order cancellation'}).count(),1,'Pending cancel opens established confirmation, not direct execution');
   const narrowBefore=await pending.locator('.v4-positions-scroller').evaluate(el=>el.scrollWidth);
   await page.setViewportSize({width:768,height:850});
-  await pending.getByRole('button',{name:'Risk',exact:true}).click();
+  await pending.getByRole('combobox',{name:'Pending orders table view'}).selectOption('risk');
   const sizes=await pending.locator('.v4-positions-scroller').evaluate(el=>({width:el.clientWidth,scroll:el.scrollWidth}));
   ok(sizes.scroll>sizes.width,'Narrow Pending Risk scrolls horizontally');
   ok(narrowBefore>0,'Dock table scroll region exists');
