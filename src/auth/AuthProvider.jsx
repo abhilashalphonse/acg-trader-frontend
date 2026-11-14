@@ -301,14 +301,22 @@ export function AuthProvider({ children }) {
     }
   }, [commitSession]);
 
+  // Context changes revoke only the active opaque trader session. The
+  // independent personal identity may stay signed in for a later explicit
+  // return to Try Demo; it never authenticates the partner session.
+  const leaveTradingSession = useCallback(async () => {
+    const token = sessionRef.current?.accessToken || null;
+    await authApi.logout(token);
+    hardClearSession(null);
+  }, [hardClearSession]);
+
   const logout = useCallback(async () => {
     const token = sessionRef.current?.accessToken || null;
-    const wasSupabase = sessionRef.current?.principal?.authMethod === 'SUPABASE';
-    // Do not present a successful logout while the HttpOnly refresh cookie
-    // may still restore the session. A failed server revoke keeps the current
-    // session available so the user can retry.
+    // A full sign-out must clear a cached personal identity even if the
+    // trader most recently switched into a native partner session.
+    // Keep the current session on revoke failure so the user can retry.
     await authApi.logout(token);
-    if (wasSupabase) await new SupabaseBrowserAuth().signOut();
+    await new SupabaseBrowserAuth().signOut();
     hardClearSession(null);
   }, [hardClearSession]);
 
@@ -507,6 +515,7 @@ export function AuthProvider({ children }) {
     loginPersonalDemo,
     exchangeTicket,
     logout,
+    leaveTradingSession,
     refreshPrincipal,
     refreshAccountGrants,
     refreshSession,
@@ -520,6 +529,7 @@ export function AuthProvider({ children }) {
     login,
     loginPersonalDemo,
     logout,
+    leaveTradingSession,
     refreshPrincipal,
     refreshAccountGrants,
     refreshSession,

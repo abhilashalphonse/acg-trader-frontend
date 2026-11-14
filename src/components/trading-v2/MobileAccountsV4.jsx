@@ -4,8 +4,9 @@ import {accountStatusLabel,accountStatusToneClass,accountTypeLabel} from '../../
 import {MobileWorkspaceV4,WorkspaceMetric,WorkspaceDetails,workspaceMoney,workspaceTone,workspaceNumber} from './MobileWorkspaceV4.jsx';
 import '../../styles/mobileWorkspacesV4.css';
 import SignOutAction from './SignOutAction.jsx';
+import MobileContextActions from './MobileContextActions.jsx';
 
-export default function MobileAccountsV4({account={},accounts=[],activeAccountId,accountSwitching=false,accountSwitchError,onSelectAccount,onClose,onPlatformSettings,onHelp}) {
+export default function MobileAccountsV4({account={},accounts=[],activeAccountId,accountSwitching=false,accountSwitchError,onSelectAccount,onClose,onPlatformSettings,onHelp,commandPending=false,executionUncertain=false}) {
   const [details,setDetails]=useState(false);
   const [switching,setSwitching]=useState(false);
   const [error,setError]=useState('');
@@ -43,6 +44,7 @@ export default function MobileAccountsV4({account={},accounts=[],activeAccountId
         ['Account ID',account.id],['Currency',currency],['Leverage',account.leverage?`1:${account.leverage}`:'—'],['Status',accountStatusLabel(account.status)],['Valuation',account.valuationStatus || 'Unavailable'],
       ]}/></div>}
       <div className="mw-account-footer"><button type="button" className="mw-action" onClick={onPlatformSettings}><Settings size={14}/>Settings</button><button type="button" className="mw-action" onClick={onHelp}><CircleHelp size={14}/>Help & support</button></div>
+      <MobileContextActions blocked={busy} commandPending={commandPending} executionUncertain={executionUncertain} />
       <SignOutAction variant="mobile-v4" />
     </div>
   </MobileWorkspaceV4>;

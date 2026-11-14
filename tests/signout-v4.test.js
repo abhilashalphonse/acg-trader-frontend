@@ -39,7 +39,17 @@ test('backend revoke succeeds before clearing frontend session, never masks fail
   assert.ok(call.indexOf('await authApi.logout(token)') > 0);
   assert.ok(call.indexOf('hardClearSession(null)') > call.indexOf('await authApi.logout(token)'));
   assert.doesNotMatch(call, /catch\s*\{[\s\S]*?\}/);
-  assert.match(call, /wasSupabase.*new SupabaseBrowserAuth\(\)\.signOut\(\)/);
+  assert.match(call, /await new SupabaseBrowserAuth\(\)\.signOut\(\)/);
+  assert.ok(call.indexOf('hardClearSession(null)') > call.indexOf('await new SupabaseBrowserAuth().signOut()'));
+});
+
+test('mobile context exit revokes the trader session without logging out the personal provider', () => {
+  const provider = source('../src/auth/AuthProvider.jsx');
+  const call = provider.slice(provider.indexOf('const leaveTradingSession = useCallback'), provider.indexOf('const logout = useCallback'));
+  assert.match(call, /await authApi\.logout\(token\)/);
+  assert.match(call, /hardClearSession\(null\)/);
+  assert.doesNotMatch(call, /SupabaseBrowserAuth|signOut/);
+  assert.ok(call.indexOf('hardClearSession(null)') > call.indexOf('await authApi.logout(token)'));
 });
 
 test('isolated mobile account QA fixtures need no AuthProvider', () => {

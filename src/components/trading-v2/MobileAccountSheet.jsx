@@ -1,4 +1,5 @@
 import MobileAccountsV4 from './MobileAccountsV4.jsx';
+import MobileContextActions from './MobileContextActions.jsx';
 import SignOutAction from './SignOutAction.jsx';
 import React from 'react';
 import { Check, ChevronLeft, ChevronRight, CircleHelp, Loader2, Settings } from 'lucide-react';
@@ -39,6 +40,8 @@ function LegacyMobileAccountSheet({
   activeAccountId = null,
   accountSwitching = false,
   accountSwitchError = null,
+  commandPending = false,
+  executionUncertain = false,
   onSelectAccount = () => false,
   onClose = () => {},
   onPlatformSettings = () => {},
@@ -131,6 +134,7 @@ function LegacyMobileAccountSheet({
           <Action icon={Settings} title="Platform settings" subtitle="Chart, terminal and trading preferences" onClick={onPlatformSettings} />
           <Action icon={CircleHelp} title="Help & support" subtitle="Trading, platform and account assistance" onClick={onHelp} />
         </section>
+        <MobileContextActions blocked={accountSwitching} commandPending={commandPending} executionUncertain={executionUncertain} />
         <SignOutAction variant="mobile-legacy" />
       </div>
     </section>
