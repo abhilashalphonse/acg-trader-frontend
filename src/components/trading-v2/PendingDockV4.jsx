@@ -189,10 +189,10 @@ export default function PendingDockV4({
         </table>
         {error&&<div className="v4-positions-error" role="alert"><span>{String(error)}</span><button type="button" onClick={onRetry}>Retry</button></div>}
       </div>
-      <div className="v4-positions-footer">
+      {expanded&&<div className="v4-positions-footer">
         <span>{orders.length} pending {orders.length===1?'order':'orders'}</span>
         <span className="v4-positions-exposures">{ids.length} awaiting review / execution</span>
-      </div>
+      </div>}
     </>}
   </div>;
 }
