@@ -13,6 +13,7 @@ export default defineConfig({
       input: {
         main: 'index.html',
         v4ChartPreview: 'v4-chart-preview.html',
+        v4DockPreview: 'v4-dock-preview.html',
       },
     },
   },
