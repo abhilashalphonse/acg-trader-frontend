@@ -1,6 +1,6 @@
 import React,{useState,useRef} from 'react';
 import {createRoot} from 'react-dom/client';
-import {ChevronDown,GripHorizontal,LockKeyhole,Monitor,PanelBottomClose,PanelBottomOpen} from 'lucide-react';
+import {ChevronDown,GripHorizontal,LockKeyhole,PanelBottomClose,PanelBottomOpen} from 'lucide-react';
 import PositionsDockV4 from './components/trading-v2/PositionsDockV4.jsx';
 import PendingDockV4 from './components/trading-v2/PendingDockV4.jsx';
 import ActivityDockV4 from './components/trading-v2/ActivityDockV4.jsx';
@@ -41,8 +41,8 @@ const CANDLES=[694,690,688,693,698,693,697,695,692,690,689,691,683,680,678,679,6
 const MINI_CANDLES=CANDLES.map((value,i)=>{
   const prev=i===0?value+3:CANDLES[i-1];
   const up=value>prev;
-  const open=672-(prev-652)*4.1;
-  const close=672-(value-652)*4.1;
+  const open=260-(prev-652)*4.1;
+  const close=260-(value-652)*4.1;
   const y=Math.min(open,close),h=Math.max(3,Math.abs(open-close));
   return {x:42+i*30,up,y,h,wick:Math.max(6,h+15),mid:(open+close)/2};
 });
