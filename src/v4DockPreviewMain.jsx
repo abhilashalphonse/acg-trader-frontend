@@ -99,14 +99,14 @@ function Review(){
     <div className="dock-review-notice"><LockKeyhole size={14} aria-hidden="true"/> Public read-only mock data · No sign-in required</div>
   </header>
   <section className="dock-review-settings">
-    <div><strong>Responsive desktop preview</strong><p>Change width, switch tabs and views, or drag the top edge of the dock. No trading is enabled.</p></div>
+    <div><strong>Responsive desktop preview</strong><p>Select a real layout width, inspect every tab and view, or drag the dock edge. Wider frames scroll horizontally; all trading actions are disabled.</p></div>
     <div className="dock-review-device-list" aria-label="Review viewport widths">
       {DEVICE_PRESETS.map(([id,label])=><button type="button" key={id} aria-pressed={preset===id}
         className={preset===id?'is-active':''} onClick={()=>setPreset(id)}>{label}</button>)}
     </div>
   </section>
   <main className="dock-review-stage">
-    <div className="dock-review-screen" style={{width:chosen[2]+'px',maxWidth:'100%'}}>
+    <div className="dock-review-screen" style={{width:chosen[2]+'px',minWidth:chosen[2]+'px'}}>
       <div className="dock-review-screen-header">
         <strong>BTC/USD</strong><ChevronDown size={13}/><span className="dock-review-market">● Sample market</span>
         <div className="dock-review-times">1m &nbsp; 5m &nbsp; 15m &nbsp; 30m &nbsp; <b>1H</b> &nbsp; 4H &nbsp; 1D</div>
@@ -139,7 +139,7 @@ function Review(){
         {collapsed?<PanelBottomOpen size={15}/>:<PanelBottomClose size={15}/>}
         {collapsed?'Open dock':'Collapse dock'}
        </button>
-       <span>Dock {effectiveHeight}px · Toolbar 44px · Positions 34–36px</span>
+       <span>Dock {effectiveHeight}px · Toolbar 44px · Table header 27px · Trades 34–36px</span>
       </div>
     </div>
   </main>
