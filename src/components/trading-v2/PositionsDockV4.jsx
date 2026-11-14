@@ -167,8 +167,6 @@ export default function PositionsDockV4({
   const scrollerRef=useRef(null);
   const revealRef=useRef(null);
   const [menu,setMenu]=useState(null);
-  const [query,setQuery]=useState('');
-  const [instrumentFilter,setInstrumentFilter]=useState('');
   const onCloseMenu=()=>setMenu(null);
   useEffect(()=>{
     try {window.localStorage.setItem(STORAGE_KEY,view);} catch { /* storage disabled */ }
@@ -210,7 +208,7 @@ export default function PositionsDockV4({
       const rowBounds=row.getBoundingClientRect();
       // Preserve the dock height. Put the expanded position below the sticky
       // column headings when needed; longer details scroll inside this dock.
-      const delta=rowBounds.top-bounds.top-33;
+      const delta=rowBounds.top-bounds.top-29;
       if(delta>1)current.scrollTo({top:current.scrollTop+delta,behavior:'auto'});
       revealRef.current=null;
     });
@@ -221,14 +219,7 @@ export default function PositionsDockV4({
     setMenu({position,rect:event.currentTarget.getBoundingClientRect(),closeDisabled:!closeAvailability.allowed});
   };
   const visibleColumns=columns[view];
-  const validSymbols=[...new Set(positions.map(item=>String(item.symbol||'').trim()).filter(Boolean))].sort();
-  const visiblePositions=positions.filter(position=>{
-    if(instrumentFilter&&position.symbol!==instrumentFilter)return false;
-    if(!query.trim())return true;
-    const pattern=query.trim().toLowerCase();
-    return [position.symbol,position.positionId,position.id,position.side]
-      .some(value=>String(value||'').toLowerCase().includes(pattern));
-  });
+  const visiblePositions=positions;
   const tabs=[['positions','Positions'],['orders','Pending'],['history','History'],['journal','Journal']];
   return <div className="acg-v4-positions" data-v4-positions="true" data-v4-position-view={view}>
     <div className="v4-positions-header">
@@ -240,6 +231,7 @@ export default function PositionsDockV4({
       </nav>
       <div className="v4-positions-header-right">
         <PositionsAccountSummary account={account}/>
+        <PositionsToolbar view={view} onView={setView}/>
         <button type="button" className="v4-positions-expand" onClick={onToggleExpanded}
           aria-label={expanded?'Restore positions workspace':'Expand positions workspace'}
           title={expanded?'Restore workspace':'Expand positions workspace'}>
@@ -248,9 +240,6 @@ export default function PositionsDockV4({
       </div>
     </div>
     {!collapsed&&!compactDock&&<>
-      <PositionsToolbar view={view} onView={setView} query={query} onQuery={setQuery}
-        instrument={instrumentFilter} onInstrument={setInstrumentFilter} instruments={validSymbols}
-/>
       <div ref={scrollerRef} className="v4-positions-scroller" data-v4-position-scroller="true">
         <table className="v4-positions-table" style={{minWidth:V4_POSITION_MIN_WIDTHS[view]}}>
           <colgroup>{visibleColumns.map(([label,width])=><col key={label} style={{width}}/>)}</colgroup>
@@ -261,9 +250,6 @@ export default function PositionsDockV4({
             </tr>)}
             {!loading&&!error&&!positions.length&&<tr><td colSpan={visibleColumns.length}>
               <div className="v4-positions-empty"><strong>No open positions</strong><span>Your active positions will appear here.</span></div>
-            </td></tr>}
-            {!loading&&!error&&positions.length>0&&!visiblePositions.length&&<tr><td colSpan={visibleColumns.length}>
-              <div className="v4-positions-empty"><strong>No matching positions</strong><span>Change your search or instrument filter.</span></div>
             </td></tr>}
             {visiblePositions.map(position=>{
               const id=positionIdentity(position);
@@ -280,7 +266,7 @@ export default function PositionsDockV4({
           <span>{String(error)}</span><button type="button" onClick={onRetry}>Retry</button>
         </div>}
       </div>
-      <PositionsExposureFooter positions={positions} markets={markets}/>
+      {expanded&&<PositionsExposureFooter positions={positions} markets={markets}/>}
     </>}
     <CloseMenu menu={menu} onClose={onCloseMenu} onManagePosition={onManagePosition}
       onRequestClose={onRequestClose} onEditProtection={onEditProtection} onBreakEven={onBreakEven} onSetTrailing={onSetTrailing} closeDisabled={menu?.closeDisabled||readOnly} readOnly={readOnly}/>
