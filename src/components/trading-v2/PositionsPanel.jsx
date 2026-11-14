@@ -305,7 +305,7 @@ export default function PositionsPanel({
   }
     if (v4Positions && desktopDense && tab === 'orders') {
     return <section className="acg-desktop-positions acg-dock-v3 h-full min-h-0 overflow-hidden" aria-label="Pending orders workspace">
-      <PendingDockV4 orders={pendingOrders} markets={markets} account={account} counts={counts}
+      <PendingDockV4 orders={pendingOrders} positions={positions} markets={markets} account={account} counts={counts}
         selectedOrderId={selectedPendingId} onInspect={onInspectPending} onManage={onManagePending}
         onReviewCancel={onReviewCancelPending} onTabChange={onV4TabChange}
         collapsed={collapsed} compactDock={compactDock} expanded={expanded}
