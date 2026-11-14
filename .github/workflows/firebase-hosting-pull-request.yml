@@ -87,6 +87,21 @@ jobs:
           channelId: pr-${{ github.event.pull_request.number }}
           expires: 7d
 
+      - name: Verify public V4 dock preview on deployed Firebase channel
+        if: ${{ github.event.pull_request.number == 142 }}
+        run: |
+          set -euo pipefail
+          url='https://acg-trader--pr-142-9oqw9ofs.web.app/v4-dock-preview.html'
+          test -f dist/v4-dock-preview.html
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 "$url" -o /tmp/acg-dock-preview-response.html
+          if ! grep -q 'id="v4-dock-preview-root"' /tmp/acg-dock-preview-response.html; then
+            echo '::error::Firebase served a different HTML entrypoint; expected the public V4 dock review.'
+            head -c 500 /tmp/acg-dock-preview-response.html
+            exit 1
+          fi
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          V4_DOCK_PREVIEW_URL="$url" node tests/ui/v4-dock-public-preview.mjs
+
       - name: Verify chart-order preview Origin against STAGING CORS
         if: ${{ github.event.pull_request.head.ref == 'feat/desktop-chart-order-levels' }}
         run: |
