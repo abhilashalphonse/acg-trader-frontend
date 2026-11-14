@@ -64,7 +64,7 @@ const DEVICE_PRESETS=[['laptop','Laptop · 1024',1024],['desktop','Desktop · 14
 function Review(){
  const [tab,setTab]=useState('positions');
  const [preset,setPreset]=useState('desktop');
- const [customHeight,setCustomHeight]=useState(148);
+ const [customHeight,setCustomHeight]=useState(164);
  const [collapsed,setCollapsed]=useState(false);
  const [fullscreen,setFullscreen]=useState(false);
  const [selectedId,setSelectedId]=useState(null);
@@ -87,7 +87,7 @@ function Review(){
  const dragMove=event=>{
    if(!drag.current)return;
    const delta=drag.current.y-event.clientY;
-   setCustomHeight(Math.max(148,Math.min(420,Math.round(drag.current.height+delta))));
+   setCustomHeight(Math.max(164,Math.min(420,Math.round(drag.current.height+delta))));
  };
  const dragEnd=()=>{drag.current=null;};
  const toggleExpanded=()=>{setCollapsed(false);setFullscreen(x=>!x);};
@@ -117,7 +117,7 @@ function Review(){
         onPointerDown={dragStart} onPointerMove={dragMove} onPointerUp={dragEnd} onPointerCancel={dragEnd}
         tabIndex={0} onKeyDown={event=>{
          if(event.key==='ArrowUp'){event.preventDefault();setCustomHeight(h=>Math.min(420,h+12));}
-         if(event.key==='ArrowDown'){event.preventDefault();setCustomHeight(h=>Math.max(148,h-12));}
+         if(event.key==='ArrowDown'){event.preventDefault();setCustomHeight(h=>Math.max(164,h-12));}
         }}><GripHorizontal size={17}/></div>}
       <section className="dock-review-dock" style={{height:effectiveHeight}}>
         {tab==='positions'&&<PositionsDockV4 key="positions" positions={POSITIONS} markets={MARKETS}
