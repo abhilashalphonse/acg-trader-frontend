@@ -105,12 +105,11 @@ function desktopMarketPanelBounds(viewportWidth, orderPanelWidth = 380) {
 function desktopHeightBounds(viewportHeight, dockCollapsed = false, dockHeight = 0) {
   const height = Number(viewportHeight) || 900;
   const compact = height <= 900;
-  const dockMin = 52;
-  // The original compact dock sizing is shared by V3 and the V4 opt-in.
-  // Inline position expansion scrolls inside the dock; only the explicit
-  // maximize control can expand it into the large workspace.
+  // V4 needs space for a 44px unified toolbar, a 28px table heading,
+  // and two 36px position rows plus the dock border. V3 stays unchanged.
+  const dockMin = V4_DESKTOP_EXECUTION_ENABLED ? 148 : 52;
   const dockMax = compact ? Math.min(320, Math.floor(height * 0.44)) : height <= 1050 ? Math.min(420, Math.floor(height * 0.46)) : Math.min(520, Math.floor(height * 0.48));
-  const defaultDock = 52;
+  const defaultDock = V4_DESKTOP_EXECUTION_ENABLED ? 148 : 52;
   const effectiveDock = dockCollapsed ? 0 : clamp(dockHeight || defaultDock, dockMin, dockMax);
   const upperWorkspaceHeight = Math.max(0, height - 48 - effectiveDock);
 
@@ -149,24 +148,9 @@ function loadDesktopLayout() {
     const requestedDockHeight = Number.isFinite(storedDockHeight) && storedDockHeight > 72
       ? storedDockHeight
       : fallback.dockHeight;
-    // One-time compact-workspace migration happens *during initial layout
-    // hydration*. This avoids a later effect restoring a stale 400px+ dock
-    // (including browsers that have already run the earlier v1/v2 migration).
-    // After this version is marked complete, user-driven dock resizing is
-    // respected on every subsequent load.
-    let dockHeight=clamp(requestedDockHeight,initialBounds.dockMin,initialBounds.dockMax);
-    if (V4_DESKTOP_EXECUTION_ENABLED) {
-      const migrationKey='acg-v4-positions-dock-density-v3';
-      const migrationComplete=window.localStorage.getItem(migrationKey)==='true';
-      if(!migrationComplete) {
-        if(!dockCollapsed&&dockHeight>initialBounds.dockMin+8) {
-          const preferred=clamp(Math.round(viewportHeight*0.34),260,360);
-          const target=clamp(preferred,initialBounds.dockMin,initialBounds.dockMax);
-          if (dockHeight>target+16 || dockHeight<target-60) dockHeight=target;
-        }
-        window.localStorage.setItem(migrationKey,'true');
-      }
-    }
+    // Respect previously resized docks; any older 52px height is clamped to
+    // the new V4 two-row minimum. Explicit collapsed state still uses 44px.
+    const dockHeight=clamp(requestedDockHeight,initialBounds.dockMin,initialBounds.dockMax);
     const bounds = desktopHeightBounds(viewportHeight, dockCollapsed, dockHeight);
     return {
       sidebarWidth: clamp(stored.sidebarWidth || fallback.sidebarWidth, widthBounds.sidebarMin, widthBounds.sidebarMax),
@@ -798,7 +782,7 @@ export default function DesktopTerminal({
   );
   const visibleDockHeight = clamp(
     V4_DESKTOP_EXECUTION_ENABLED
-      ? Math.max(300, Math.round(viewportHeight * 0.32))
+      ? heightBounds.defaultDock
       : Math.max(180, Math.round(viewportHeight * 0.22)),
     heightBounds.dockMin,
     heightBounds.dockMax,
