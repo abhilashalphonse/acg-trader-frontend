@@ -124,7 +124,7 @@ function Review(){
           account={ACCOUNT} counts={counts} readOnly onTabChange={onTabChange}
           selectedPositionId={selectedId} onSelectPosition={setSelectedId} onToggleExpanded={toggleExpanded}
           expanded={fullscreen} collapsed={collapsed} compactDock={collapsed} />}
-        {tab==='orders'&&<PendingDockV4 key="pending" orders={PENDING} markets={MARKETS}
+        {tab==='orders'&&<PendingDockV4 key="pending" orders={PENDING} positions={POSITIONS} markets={MARKETS}
           account={ACCOUNT} counts={counts} readOnly onTabChange={onTabChange}
           selectedOrderId={selectedPending} onInspect={setSelectedPending} onToggleExpanded={toggleExpanded}
           expanded={fullscreen} collapsed={collapsed} compactDock={collapsed} />}
