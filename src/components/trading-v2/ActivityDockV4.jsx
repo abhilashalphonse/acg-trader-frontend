@@ -47,9 +47,10 @@ export default function ActivityDockV4({
         </button>)}
       </nav>
       <div className="v4-positions-header-right">
-        <PositionsAccountSummary account={account}/>
+        <PositionsAccountSummary account={account} positions={positions} markets={markets}/>
         <div className="v4-activity-inline" aria-label={isHistory?'History controls':'Journal controls'}>
           <span className="v4-activity-context">{isHistory?'Closed trades':'Local journal'}</span>
+          <span className="v4-activity-records" title={data.length+' records in '+range}>{data.length} {data.length===1?'record':'records'}</span>
           {historyScope&&<span className="v4-activity-position-filter" title={'Position '+historyScope}>
             Position {historyScope}
             <button type="button" onClick={onClearHistoryPosition} aria-label="Show all position history">×</button>
