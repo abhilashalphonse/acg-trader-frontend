@@ -31,7 +31,7 @@ jobs:
         if: ${{ github.head_ref == 'ui/v4-single-row-dock-20261114' }}
         run: |
           npm install --no-save --no-audit --no-fund playwright@1.56.1
-          npm run dev -- --host 127.0.0.1 >/tmp/v4-dock-preview-vite.log 2>&1 &
+          VITE_ACG_EXECUTION_V4_ENABLED=true npm run dev -- --host 127.0.0.1 >/tmp/v4-dock-preview-vite.log 2>&1 &
           curl --fail --retry 30 --retry-delay 1 --retry-connrefused http://127.0.0.1:5174/v4-dock-preview.html >/dev/null
           node tests/ui/v4-dock-public-preview.mjs
           node tests/ui/v4-positions-reference.mjs
