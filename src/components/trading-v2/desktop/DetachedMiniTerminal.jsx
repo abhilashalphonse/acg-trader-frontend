@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, ExternalLink, PictureInPicture2, X } from 'lucide-react';
 import { formatInstrumentPrice } from '../../../utils/instrumentFormatting.js';
+import {positionMargin,positionUnrealizedPnl,money} from '../../../utils/v4PositionsPresentation.js';
 import './DetachedMiniTerminal.css';
 
 const amount = (value, currency) => value == null || !Number.isFinite(Number(value)) ? '—'
@@ -117,16 +118,53 @@ export default function DetachedMiniTerminal({
   const dock = () => { const child = windowRef.current; restoreRef.current?.(); child?.close(); };
   const back = () => setSelection(null);
   const instrumentFor = item => markets.find(instrument => instrument.symbol === item.symbol) || null;
+  const formatPrice = (value,instrument) => value==null?'—':formatInstrumentPrice(value,instrument);
+  const renderRow = item => {
+    const instrument=instrumentFor(item);
+    const isPosition=tab==='positions';
+    const pnl=isPosition?positionUnrealizedPnl(item,account):null;
+    const margin=isPosition?positionMargin(item):null;
+    return <button type="button" className="acg-mini-row" key={item.id}
+      onClick={() => setSelection({kind:isPosition?'position':'pending',id:String(item.id)})}>
+      <span className="acg-mini-row-head">
+        <span className="acg-mini-row-identity">
+          <strong>{instrument?.displaySymbol||item.symbol||'—'}</strong>
+          <small>{String(item.side||'—').toUpperCase()} · {item.volume??item.lots??'—'} lots{!isPosition?' · '+String(item.orderType||'Pending').toUpperCase():''}</small>
+        </span>
+        <span className="acg-mini-manage">Manage ›</span>
+      </span>
+      <span className="acg-mini-facts">
+        {isPosition ? <>
+          <span><small>Entry</small><b>{formatPrice(item.entry,instrument)}</b></span>
+          <span><small>Current</small><b>{formatPrice(item.closePrice,instrument)}</b></span>
+          <span><small>SL / TP</small><b>{formatPrice(item.sl,instrument)} / {formatPrice(item.tp,instrument)}</b></span>
+          <span><small>Margin</small><b>{money(margin,currency)}</b></span>
+          <span className="acg-mini-pnl"><small>Unrealized P&L</small>
+            <b className={pnl.value==null?'':pnl.value<0?'negative':pnl.value>0?'positive':''}>{money(pnl.value,pnl.currency,true)}</b>
+          </span>
+        </> : <>
+          <span><small>Trigger</small><b>{formatPrice(item.stopPrice??item.entry,instrument)}</b></span>
+          <span><small>Limit</small><b>{formatPrice(item.limitPrice,instrument)}</b></span>
+          <span><small>SL / TP</small><b>{formatPrice(item.sl,instrument)} / {formatPrice(item.tp,instrument)}</b></span>
+          <span><small>Status</small><b>{String(item.status||'pending').toUpperCase()}</b></span>
+        </>}
+      </span>
+    </button>;
+  };
   const rows = tab === 'positions' ? positions : pendingOrders;
   return <>
     <div ref={host} hidden={!visible || detached}/>
     {detached && visible && <button type="button" className="acg-mini-launch" onClick={openWindow}><PictureInPicture2 size={14}/> Mini terminal is open</button>}
     {createPortal(detached ? (
       <section className="acg-mini-terminal acg-desktop-v3" aria-label="ACG mini terminal">
-        <header className="acg-mini-titlebar"><strong><span>ACG</span> TRADER</strong><small>{mode}</small>
+        <header className="acg-mini-titlebar" title="Keep the main ACG Trader tab open while using this window"><strong><span>ACG</span> TRADER</strong><small>{mode}</small>
           <button type="button" onClick={dock} aria-label="Return mini terminal to chart" title="Return to chart"><PictureInPicture2 size={16}/></button>
         </header>
         <div className="acg-mini-account"><span>{account?.accountCode || account?.id || 'Account unavailable'}</span><b>{currency}</b></div>
+        <div className="acg-mini-metrics" aria-label="Account overview">
+          <span>Equity <b>{amount(account?.equity,currency)}</b></span>
+          <span>Free margin <b>{amount(account?.freeMargin,currency)}</b></span>
+        </div>
         <label className="acg-mini-instrument">Instrument
           <select aria-label="Mini terminal instrument" value={market?.symbol || ''} onChange={event => onSelectSymbol(event.target.value)}>
             {markets.map(item => <option key={item.symbol} value={item.symbol}>{item.displaySymbol || item.symbol}</option>)}
@@ -142,15 +180,15 @@ export default function DetachedMiniTerminal({
               : positionsError ? <div className="acg-mini-empty" role="alert">Account activity is unavailable.<button type="button" onClick={onRetryPositions}>Retry</button></div>
                 : selected ? <><button type="button" className="acg-mini-back" onClick={back}><ArrowLeft size={14}/> All {tab}</button>
                   {selection.kind === 'position' ? renderPosition(selected, instrumentFor(selected), back) : renderPending(selected, instrumentFor(selected), back)}</>
-                  : rows.length ? <div className="acg-mini-rows">{rows.map(item => <button type="button" className="acg-mini-row" key={item.id}
-                    onClick={() => setSelection({ kind: tab === 'positions' ? 'position' : 'pending', id: String(item.id) })}>
-                    <span><strong>{item.symbol}</strong><small>{String(item.side).toUpperCase()} · {item.volume ?? item.lots} lots{tab === 'orders' ? ` · ${item.orderType || 'Pending'}` : ''}</small></span>
-                    <span><b className={Number(item.pnl) >= 0 ? 'positive' : 'negative'}>{tab === 'positions' ? amount(item.pnl, item.pnlCurrency || currency) : formatInstrumentPrice(item.entry, instrumentFor(item))}</b><small>Manage →</small></span>
-                  </button>)}</div> : <p className="acg-mini-empty">{tab === 'positions' ? 'No open positions' : 'No pending orders'}</p>}
+                  : rows.length ? <div className="acg-mini-rows">{rows.map(renderRow)}</div>
+                  : <div className="acg-mini-empty" role="status">
+                    <strong>{tab==='positions'?'No open positions':'No pending orders'}</strong>
+                    <span>{tab==='positions'?'Your active positions will appear here.':'Orders awaiting execution will appear here.'}</span>
+                  </div>}
           </>}
         </main>
-        <footer className="acg-mini-footer"><span>Equity <b>{amount(account?.equity, currency)}</b></span><span>Free margin <b>{amount(account?.freeMargin, currency)}</b></span></footer>
-        <div className="acg-mini-footnote">Keep the main ACG Trader tab open.{mode === 'Separate window' && ' This browser uses a regular window; it will not stay on top.'}</div>
+        {mode==='Separate window'&&tab==='trade'&&
+          <div className="acg-mini-fallback-note" role="status">Regular window: this browser does not support always-on-top.</div>}
       </section>
     ) : <div className="acg-mini-attached">
       <div className="acg-mini-launchbar"><button type="button" onClick={openWindow} title="Trade while browsing other tabs"><ExternalLink size={13}/> Pop out mini terminal</button></div>
