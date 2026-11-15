@@ -1,4 +1,4 @@
-import React,{useState} from 'react';
+import React,{useEffect,useState} from 'react';
 import {Maximize2,Minimize2} from 'lucide-react';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import {instrumentForSymbol,formatInstrumentPrice} from '../../utils/instrumentFormatting.js';
@@ -21,6 +21,7 @@ export default function ActivityDockV4({
   collapsed=false,compactDock=false,expanded=false,onToggleExpanded=()=>{},
   historyError=null,historyLoading=false,onRetry=()=>{},
   historyPositionFilter=null,onClearHistoryPosition=()=>{},positions=[],positionActivityOrders=[],positionActivityDeals=[],positionActivityFills=[],
+  onActivityEmptyChange=null,
 }){
   const [rangeByTab,setRangeByTab]=useState({history:'30D',journal:'30D'});
   const range=rangeByTab[tab]||'30D';
@@ -33,6 +34,13 @@ export default function ActivityDockV4({
   const scopedEvents=activePosition?filterActivity(positionLifecycleEvents(activePosition,{
     orders:positionActivityOrders,deals:positionActivityDeals,fills:positionActivityFills,
   }),range,'journal'):[];
+  const isEmpty = data.length===0 && scopedEvents.length===0
+    && !(isHistory&&(historyLoading||historyError));
+  // Tell the parent about the *visible date-filtered* state, not simply the
+  // unfiltered record count (which could contain only older records).
+  useEffect(()=>{
+    if(onActivityEmptyChange)onActivityEmptyChange(tab,isEmpty);
+  },[tab,isEmpty,onActivityEmptyChange]);
   const pnl=isHistory?data.reduce((sum,item)=>sum+(finiteOrNull(item.pnl)??0),0):0;
   const pnlValid=isHistory&&data.some(item=>finiteOrNull(item.pnl)!=null);
   const currency=account?.currency||'USD';
@@ -72,14 +80,19 @@ export default function ActivityDockV4({
       </div>
     </div>
     {!collapsed&&!compactDock&&<>
-      <div className="v4-positions-scroller v4-activity-scroller">
+      {isEmpty
+        ? <div className="v4-positions-empty" role="status">
+            <strong>{isHistory?(historyScope?'No closed trades for this position in the selected period':'No closed positions in this period'):'No local journal activity in this period'}</strong>
+            <span>{isHistory?'Closed trades with verified timestamps will appear here.':'Journal entries are local to this browser.'}</span>
+          </div>
+        : <div className="v4-positions-scroller v4-activity-scroller">
         {historyScope&&scopedEvents.length>0&&<section className="v4-activity-position-events" aria-label="Verified position events">
           <h4>Verified order and fill events</h4>
           {scopedEvents.map(event=><div key={event.id} className="v4-activity-position-event">
             <time dateTime={event.timestamp}>{formatStamp(Date.parse(event.timestamp))}</time><span>{event.label}</span>
           </div>)}
         </section>}
-        {isHistory?<table className="v4-positions-table v4-activity-table" style={{minWidth:1120}}>
+        {data.length>0&&(isHistory?<table className="v4-positions-table v4-activity-table" style={{minWidth:1120}}>
           <thead><tr>
             {['Instrument','Side','Size','Entry','Exit','Opened','Closed','Realized P&L','Commission','Swap','Close reason'].map((label,i)=>
               <th key={label} scope="col" className={i===0||i===5||i===6||i===10?'is-left':'is-right'}>{label}</th>)}
@@ -116,18 +129,14 @@ export default function ActivityDockV4({
             <td title={String(item.message||'')}>{item.message||'—'}</td>
             <td title={String(item.positionId||item.orderId||'')}>{item.positionId||item.orderId||item.latencyMs!=null&&('Execution '+item.latencyMs+'ms')||'—'}</td>
           </tr>)}</tbody>
-        </table>}
-        {!(isHistory&&(historyLoading||historyError))&&data.length===0&&<div className="v4-positions-empty">
-          <strong>{isHistory?(historyScope?'No closed trades for this position in the selected period':'No closed positions in this period'):'No local journal activity in this period'}</strong>
-          <span>{isHistory?'Closed trades with verified timestamps will appear here.':'Journal entries are local to this browser.'}</span>
-        </div>}
+        </table>)}
         {isHistory&&historyLoading&&<div className="v4-positions-empty" role="status">Loading trade history…</div>}
         {isHistory&&historyError&&<div className="v4-positions-error" role="alert">
           <span>History unavailable: {String(historyError)}</span>
           <button type="button" onClick={onRetry}>Retry</button>
         </div>}
-      </div>
-      {expanded&&<div className="v4-positions-footer">
+      </div>}
+      {expanded&&(data.length>0||scopedEvents.length>0)&&<div className="v4-positions-footer">
         <span>{isHistory?'Closed trades':'Local journal events'} · {range}</span>
         <span>Older than 1 calendar month is not displayed</span>
       </div>}

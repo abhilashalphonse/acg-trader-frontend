@@ -164,13 +164,17 @@ export default function PendingDockV4({
       </div>
     </div>
     {!collapsed&&!compactDock&&<>
-      <div className="v4-positions-scroller">
+      {!loading&&!error&&orders.length===0
+        ? <div className="v4-positions-empty" role="status">
+            <strong>No pending orders</strong>
+            <span>Orders awaiting execution will appear here.</span>
+          </div>
+        : <div className="v4-positions-scroller">
         <table className="v4-positions-table" style={{minWidth:MIN_WIDTH[view]}}>
           <colgroup>{columns.map(([name,width])=><col key={name} style={{width}}/>)}</colgroup>
           <thead className={view==='unified'||view==='compact'?'v4-compact-head':''}><tr>{columns.map(([name,,align])=><th key={name} scope="col" className={align==='left'?'is-left':'is-right'}>{name}</th>)}</tr></thead>
           <tbody>
             {loading&&!orders.length&&Array.from({length:3},(_,i)=><tr key={i} className="v4-positions-skeleton" aria-hidden="true">{columns.map(([name])=><td key={name}><span/></td>)}</tr>)}
-            {!loading&&!error&&!orders.length&&<tr><td colSpan={columns.length}><div className="v4-positions-empty"><strong>No pending orders</strong><span>Orders awaiting execution will appear here.</span></div></td></tr>}
             {shownOrders.map(order=><PendingRow key={order.id} order={order}
               market={instrumentForSymbol(markets,order.symbol)} account={account} view={view}
               visible={columns.map(([name])=>name)} readOnly={readOnly}
@@ -180,8 +184,8 @@ export default function PendingDockV4({
           </tbody>
         </table>
         {error&&<div className="v4-positions-error" role="alert"><span>{String(error)}</span><button type="button" onClick={onRetry}>Retry</button></div>}
-      </div>
-      {expanded&&<div className="v4-positions-footer">
+      </div>}
+      {expanded&&orders.length>0&&<div className="v4-positions-footer">
         <span>{orders.length} pending {orders.length===1?'order':'orders'}</span>
         <span className="v4-positions-exposures">{ids.length} awaiting review / execution</span>
       </div>}

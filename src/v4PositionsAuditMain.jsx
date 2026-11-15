@@ -48,6 +48,11 @@ const JOURNAL_FIXTURE=[
 const publicReview=new URLSearchParams(window.location.search).get('public_review')==='1';
 function PositionsQA(){
  const [positions,setPositions]=useState(POSITIONS);
+ const [pending,setPending]=useState(PENDING);
+ const [history,setHistory]=useState(HISTORY_FIXTURE);
+ const [journal,setJournal]=useState(JOURNAL_FIXTURE);
+ const [historyLoading,setHistoryLoading]=useState(false);
+ const [historyError,setHistoryError]=useState(null);
  const [loading,setLoading]=useState(false);
  const [error,setError]=useState(null);
  const [account,setAccount]=useState(ACCOUNT);
@@ -65,6 +70,13 @@ function PositionsQA(){
   setLoading(value){setLoading(Boolean(value));},
   setError(value){setError(value);},
   setPositions(value){setPositions(value);},
+  setPending(value){setPending(value);},
+  setHistory(value){setHistory(value);},
+  setJournal(value){setJournal(value);},
+  setHistoryLoading(value){setHistoryLoading(Boolean(value));},
+  setHistoryError(value){setHistoryError(value);},
+  olderHistory(){return HISTORY_FIXTURE[2];},
+  olderJournal(){return JOURNAL_FIXTURE[1];},
   setAccount(value){setAccount(current=>({...current,...value}));},
  };
  return <>
@@ -73,7 +85,8 @@ function PositionsQA(){
  </div>}
  <DesktopTerminal readOnly={false} market={market} tick={market} markets={markets} activeSymbol={symbol}
   onSelectSymbol={setSymbol} account={account} accounts={[account]} activeAccountId={account.id}
-  positions={positions} pendingOrders={PENDING} positionHistory={HISTORY_FIXTURE} journal={JOURNAL_FIXTURE}
+  positions={positions} pendingOrders={pending} positionHistory={history} journal={journal}
+  historyLoading={historyLoading} historyError={historyError} onRetryHistory={()=>setHistoryError(null)}
   positionActivityOrders={[{id:'order-eur-1',positionId:'position-eur-1',createdAt:new Date(Date.now()-2*86400000).toISOString(),side:'SELL',requestedVolume:'0.01',type:'MARKET'}]}
   positionActivityDeals={[{id:'deal-eur-1',positionId:'position-eur-1',executedAt:new Date(Date.now()-2*86400000).toISOString(),price:'1.11652',volume:'0.01',type:'OPEN'}]}
   positionsLoading={loading} positionsError={error}

@@ -111,6 +111,7 @@ export default function PositionsPanel({
   v4Positions = false,
   dockAudit = false,
   onDockTabChange = () => {},
+  onDockActivityEmptyChange = null,
   readOnly = false,
   onReviewClosePosition = () => {},
   positionsLoading = false,
@@ -317,7 +318,8 @@ export default function PositionsPanel({
         positions={positions} positionActivityOrders={positionActivityOrders} positionActivityDeals={positionActivityDeals} positionActivityFills={positionActivityFills}
         expanded={expanded} onToggleExpanded={onToggleExpanded}
         collapsed={collapsed} compactDock={compactDock}
-        historyError={historyError} historyLoading={historyLoading} onRetry={onRetryHistory}/>
+        historyError={historyError} historyLoading={historyLoading} onRetry={onRetryHistory}
+        onActivityEmptyChange={dockAudit?onDockActivityEmptyChange:null}/>
       </React.Suspense>
     </section>;
   }
