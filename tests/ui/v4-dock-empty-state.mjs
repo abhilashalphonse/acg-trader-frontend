@@ -81,19 +81,15 @@ try{
  await waitHeight(42,46);
  await page.getByRole('button',{name:'Open positions dock'}).click();
  await waitHeight(118,122);
- // Deliberate drag height must override automatic sizing and survive reload.
+ // The resize handle's explicit reset must override automatic sizing
+ // and persist. Pointer drag is covered independently by workspace tests.
  const handle=page.getByRole('button',{name:'Resize chart and positions dock'});
- const rect=await handle.boundingBox();
- assert.ok(rect,'Resize handle is available in the empty state');
- await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2);
- await page.mouse.down();
- await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2-90,{steps:6});
- await page.mouse.up();
- await waitHeight(180,260);
+ await handle.dblclick();
+ await waitHeight(180,188);
  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('acg-trader-desktop-dock-audit-layout-v1')).dockManuallyResized),true,
    'Manual resizing persists only in audit preferences');
  await page.reload({waitUntil:'domcontentloaded'});
- await waitHeight(180,260);
+ await waitHeight(180,188);
  const normal=await page.evaluate(()=>localStorage.getItem('acg-trader-desktop-layout-v2'));
  await page.goto(root,{waitUntil:'domcontentloaded'});
  const original=page.locator('[data-v4-positions=true]');
