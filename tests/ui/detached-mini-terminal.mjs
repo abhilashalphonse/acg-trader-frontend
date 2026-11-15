@@ -3,7 +3,7 @@ import process from 'node:process';
 import { chromium } from 'playwright';
 
 const browser = await chromium.launch({ headless: true, channel: process.env.PLAYWRIGHT_CHANNEL || 'chrome' });
-const base = process.env.MINI_TERMINAL_QA_URL || 'http://127.0.0.1:5174/v4-positions-audit.html?acg_v4_audit=1';
+const base = process.env.MINI_TERMINAL_QA_URL || 'http://127.0.0.1:5174/v4-positions-audit.html?acg_v4_audit=1&acg_dock_audit=1';
 const errors = [];
 let checks = 0;
 const check = (condition, label) => { assert.ok(condition, label); checks++; };
@@ -12,7 +12,7 @@ async function setup(fallback = false) {
   page.on('pageerror', error => errors.push(error.message));
   await page.addInitScript(({ fallback }) => {
     if (location.protocol !== 'http:') return;
-    localStorage.setItem('acg-trader-desktop-layout-v2', JSON.stringify({ sidebarCollapsed: true, sidebarWidth: 360, dockCollapsed: false, dockHeight: 300 }));
+    localStorage.setItem('acg-trader-desktop-dock-audit-layout-v1', JSON.stringify({ sidebarCollapsed: true, sidebarWidth: 360, dockCollapsed: false, dockHeight: 300 }));
     if (fallback) Object.defineProperty(window, 'documentPictureInPicture', { value: undefined });
   }, { fallback });
   await page.goto(base);
@@ -20,6 +20,12 @@ async function setup(fallback = false) {
   return page;
 }
 try {
+  const normal=await browser.newPage({viewport:{width:1440,height:900}});
+  await normal.goto(base.replace('&acg_dock_audit=1',''),{waitUntil:'domcontentloaded'});
+  await normal.locator('[data-v4-positions=true]').waitFor({state:'visible'});
+  check(await normal.getByRole('button',{name:'Pop out mini terminal'}).count()===0,
+    'Normal customer V4 does not load mini feature');
+  await normal.close();
   const page = await setup();
   check(await page.evaluate(() => Boolean(window.documentPictureInPicture)), 'Chrome supports native document PiP');
   await page.getByRole('button', { name: 'Pop out mini terminal' }).click();
@@ -29,6 +35,12 @@ try {
   check(await pip(() => documentPictureInPicture.window.getComputedStyle(documentPictureInPicture.window.document.querySelector('.acg-mini-titlebar')).display === 'flex'), 'Styles are copied into native window');
   await pip(() => [...documentPictureInPicture.window.document.querySelectorAll('nav button')].find(b => b.textContent.startsWith('Positions')).click());
   await page.waitForFunction(() => documentPictureInPicture.window.document.querySelectorAll('.acg-mini-row').length === 2);
+  check(await pip(() => !documentPictureInPicture.window.document.querySelector('.acg-mini-footer')),
+    'Detached Positions has no bottom footer');
+  check(await pip(() => {
+    const text=documentPictureInPicture.window.document.querySelector('.acg-mini-row')?.textContent||'';
+    return ['Entry','Current','SL / TP','Margin','Unrealized P&L'].every(field=>text.includes(field));
+  }), 'Mini position presents unified prices, risk and P&L');
   await page.evaluate(() => window.v4PositionsQA.setPnl('position-eur-1', 123.45));
   await page.waitForFunction(() => documentPictureInPicture.window.document.querySelector('.acg-mini-rows').textContent.includes('123.45'));
   check(true, 'Native window receives live position updates from main terminal');
@@ -38,6 +50,21 @@ try {
   await page.evaluate(() => window.v4PositionsQA.setAccount({ id: 'switched-account', accountCode: 'NEW-ACCOUNT' }));
   await page.waitForFunction(() => !documentPictureInPicture.window.document.querySelector('.acg-mini-back'));
   check(await pip(() => documentPictureInPicture.window.document.querySelector('.acg-mini-account').textContent.includes('NEW-ACCOUNT')), 'Account switch clears selected management and updates identity');
+  await page.evaluate(()=>window.v4PositionsQA.setPositions([]));
+  await page.waitForFunction(()=>documentPictureInPicture.window?.document.querySelector('.acg-mini-empty'));
+  check(await pip(()=>{
+    const d=documentPictureInPicture.window.document;
+    return d.querySelector('.acg-mini-empty strong')?.textContent==='No open positions'
+      && d.querySelector('.acg-mini-empty span')?.textContent==='Your active positions will appear here.'
+      && !d.querySelector('.acg-mini-footer');
+  }),'Empty detached positions show only the two-line message and no footer');
+  await page.evaluate(()=>window.v4PositionsQA.setPositions([
+    {id:'position-eur-1',positionId:'position-eur-1',symbol:'EURUSD',side:'SELL',volume:0.01,
+      entry:1.11652,closePrice:1.11735,pnl:123.45,pnlCurrency:'USD',valuationStatus:'LIVE'},
+    {id:'position-btc-2',positionId:'position-btc-2',symbol:'BTCUSD',side:'BUY',volume:0.02,
+      entry:67800,closePrice:68100,pnl:6,pnlCurrency:'USD',sl:67000,tp:70000}
+  ]));
+  await page.waitForFunction(()=>documentPictureInPicture.window?.document.querySelectorAll('.acg-mini-row').length===2);
   await pip(() => documentPictureInPicture.window.document.querySelector('[aria-label="Return mini terminal to chart"]').click());
   await page.getByRole('button', { name: 'Pop out mini terminal' }).waitFor();
   check(await page.locator('.acg-floating-order').count() === 1, 'Dock restores exactly one compact ticket');
@@ -55,8 +82,11 @@ try {
   popup.on('pageerror', error => errors.push(error.message));
   await popup.getByRole('navigation', { name: 'Mini terminal sections' }).waitFor();
   check(await popup.getByText('Separate window', { exact: true }).count() === 1, 'Unsupported browser gets a regular window');
-  check(await popup.getByText(/will not stay on top/).count() === 1, 'Fallback describes its actual behavior');
+  check(await popup.getByText(/will not stay on top/).count() === 1, 'Fallback describes its actual behavior near the header');
+  check(await popup.locator('.acg-mini-footer').count()===0,'Mini terminal never renders a footer');
   await popup.getByRole('button', { name: 'Orders (1)', exact: true }).click();
+  check((await popup.locator('.acg-mini-row').innerText()).includes('SL / TP'),
+    'Mini Pending row also exposes protection and status');
   await popup.locator('.acg-mini-row').click();
   check(await popup.locator('.acg-mini-back').isVisible(), 'Pending order editor works in pop-out');
   await popup.getByRole('button', { name: 'Positions (2)', exact: true }).click();
