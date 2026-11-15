@@ -42,8 +42,10 @@ try{
  assert.equal(await dock.locator('.v4-positions-scroller').count(),0,'Empty positions show only toolbar');
  console.log('EMPTY_POSITIONS_AUTO_COMPACT',JSON.stringify({height:await dockHeight()}));
  await dock.getByRole('button',{name:/Pending/}).click();
+ await page.locator('[data-v4-pending=true]').waitFor({state:'visible',timeout:12000});
  await waitHeight(160,166);
- assert.equal(await page.locator('[data-v4-pending=true]').count(),1,'Pending order remains accessible');
+ assert.equal(await page.locator('[data-v4-pending=true] .v4-position-row').count(),1,
+   'Pending order remains accessible after lazy module load');
  await page.locator('[data-v4-pending=true]').getByRole('button',{name:/Positions/}).click();
  await waitHeight(42,46);
  // Loading and errors are visible, never silently collapsed.
