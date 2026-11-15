@@ -1,5 +1,5 @@
 import { CircleHelp } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Bell,
   BookOpen,
@@ -434,6 +434,11 @@ export default function DesktopTerminal({
   const [positionEditRequest, setPositionEditRequest] = useState(null);
   const [requestedDockTab, setRequestedDockTab] = useState(null);
   const [activeAuditDockTab, setActiveAuditDockTab] = useState('positions');
+  const [auditActivityEmpty, setAuditActivityEmpty] = useState({history:null,journal:null});
+  const onDockActivityEmptyChange = useCallback((tab,empty)=>{
+    if(tab!=='history'&&tab!=='journal')return;
+    setAuditActivityEmpty(current=>current[tab]===empty?current:{...current,[tab]:empty});
+  },[]);
   const [positionsExpanded, setPositionsExpanded] = useState(false);
   const [desktopLayout, setDesktopLayout] = useState(loadDesktopLayout);
   // Initial V4 dock sizing is resolved in loadDesktopLayout(), so render
@@ -817,21 +822,22 @@ export default function DesktopTerminal({
     heightBounds.dockMin,
     heightBounds.dockMax,
   );
-  // In the audit, an empty Positions workspace keeps its two-line message
-  // visible in a short 120px region, with no vacant bottom footer/scrollbar.
-  // Pending stays toolbar-only when empty. Explicit user sizing still wins.
+  // Same short, message-only empty dock for all four audit tabs.
+  // Use filtered visible activity rather than raw History/Journal totals:
+  // a date range can be empty even when older records exist.
   const auditEmptyDock = DOCK_AUDIT_ENABLED
     && !desktopLayout.dockManuallyResized && !desktopLayout.dockCollapsed
-    && !positionsLoading && !positionsError
-    && ((activeAuditDockTab==='positions' && positions.length===0)
-      || (activeAuditDockTab==='orders' && pendingOrders.length===0));
+    && ((activeAuditDockTab==='positions' && !positionsLoading && !positionsError && positions.length===0)
+      || (activeAuditDockTab==='orders' && !positionsLoading && !positionsError && pendingOrders.length===0)
+      || (activeAuditDockTab==='history' && !historyLoading && !historyError
+        && (auditActivityEmpty.history??positionHistory.length===0))
+      || (activeAuditDockTab==='journal'
+        && (auditActivityEmpty.journal??journal.length===0)));
   const dockHeight = positionsExpanded
     ? expandedDockHeight
     : desktopLayout.dockCollapsed
       ? collapsedDockHeight
-      : auditEmptyDock
-        ? (activeAuditDockTab==='positions' ? 120 : collapsedDockHeight)
-        : desktopLayout.dockHeight;
+      : auditEmptyDock ? 120 : desktopLayout.dockHeight;
   const dockBodyVisible = positionsExpanded
     || (!desktopLayout.dockCollapsed && dockHeight > compactDockThreshold);
   const tradeSidebarOpen = !desktopLayout.sidebarCollapsed && activeNav === 'trade' && !positionsExpanded;
@@ -1628,7 +1634,7 @@ export default function DesktopTerminal({
           />
 
           <div className="acg-desktop-dock-shell min-h-0 overflow-hidden rounded-[9px] border border-[#292d31] bg-[#09090B] transition-[height,transform,opacity] duration-300 ease-out" style={{ gridColumn: '1 / 4', gridRow: '2' }}>
-            <PositionsPanel v4Positions={V4_DESKTOP_EXECUTION_ENABLED} dockAudit={DOCK_AUDIT_ENABLED} onDockTabChange={setActiveAuditDockTab} readOnly={readOnly}
+            <PositionsPanel v4Positions={V4_DESKTOP_EXECUTION_ENABLED} dockAudit={DOCK_AUDIT_ENABLED} onDockTabChange={setActiveAuditDockTab} onDockActivityEmptyChange={onDockActivityEmptyChange} readOnly={readOnly}
               onReviewClosePosition={reviewDockPositionClose}
               positionsLoading={positionsLoading} positionsError={positionsError} onRetryPositions={onRetryPositions}
               desktopDense collapsed={desktopLayout.dockCollapsed} compactDock={dockHeight <= compactDockThreshold && !positionsExpanded} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} historyError={historyError} historyLoading={historyLoading} onRetryHistory={onRetryHistory} pendingOrders={pendingOrders} journal={journal} positionActivityOrders={positionActivityOrders} positionActivityDeals={positionActivityDeals} positionActivityFills={positionActivityFills} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={updateDesktopProtection} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={V4_DESKTOP_EXECUTION_ENABLED ? (inspectedPositionId ?? selectedPositionId) : selectedPositionId} onSelectPosition={V4_DESKTOP_EXECUTION_ENABLED ? inspectDockPosition : selectPosition} onManagePosition={selectPosition} onEditProtection={editPositionProtection}
