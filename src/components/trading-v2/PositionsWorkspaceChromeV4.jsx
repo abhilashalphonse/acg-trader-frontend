@@ -113,20 +113,6 @@ export function PositionsAccountSummary({account,positions=null,markets=[]}){
     )}
   </div>;
 }
-export function PositionsToolbar({view,onView,entity='position'}){
-  const label=entity==='order'?'Pending orders table view':'Positions table view';
-  return <div className="v4-positions-tools">
-    <div className="v4-positions-selector" role="group" aria-label={label}>
-      {['compact','risk','execution'].map(mode=><button key={mode} type="button"
-        aria-pressed={mode===view} className={mode===view?'is-active':''}
-        onClick={()=>onView(mode)}>{mode[0].toUpperCase()+mode.slice(1)}</button>)}
-    </div>
-    <select className="v4-positions-view-select" aria-label={label} value={view}
-      onChange={event=>onView(event.target.value)}>
-      <option value="compact">Compact</option><option value="risk">Risk</option><option value="execution">Execution</option>
-    </select>
-  </div>;
-}
 function DisplayField({label,value,action=null}){
   return <div className="v4-position-detail-field">
     <span>{label}</span><strong>{value}</strong>{action}
