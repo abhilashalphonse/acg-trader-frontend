@@ -153,7 +153,7 @@ export default function DetachedMiniTerminal({
   };
   const rows = tab === 'positions' ? positions : pendingOrders;
   return <>
-    <div ref={host} hidden />
+    <div ref={host} className="acg-mini-portal-host" aria-hidden={detached || !error} />
     {visible && <button type="button" className="acg-mini-rail-launcher mb-1 grid size-9 place-items-center rounded-md"
       data-acg-mini-launcher="true" aria-label="Pop out mini terminal"
       title={detached?'Focus mini terminal':'Open mini terminal'}
