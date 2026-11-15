@@ -226,7 +226,12 @@ export default function PositionsDockV4({
       </div>
     </div>
     {!collapsed&&!compactDock&&<>
-      <div ref={scrollerRef} className="v4-positions-scroller" data-v4-position-scroller="true">
+      {!loading&&!error&&positions.length===0
+        ? <div className="v4-positions-empty" role="status">
+            <strong>No open positions</strong>
+            <span>Your active positions will appear here.</span>
+          </div>
+        : <div ref={scrollerRef} className="v4-positions-scroller" data-v4-position-scroller="true">
         <table className="v4-positions-table" style={{minWidth:960}}>
           <colgroup>{visibleColumns.map(([label,width])=><col key={label} style={{width}}/>)}</colgroup>
           <thead className={view==='unified'||view==='compact'?'v4-compact-head':''}><tr>{visibleColumns.map(([label,,align])=><th scope="col" key={label} className={align==='left'?'is-left':'is-right'}>{label}</th>)}</tr></thead>
@@ -234,9 +239,6 @@ export default function PositionsDockV4({
             {loading&&!positions.length&&Array.from({length:3},(_,i)=><tr key={i} className="v4-positions-skeleton" aria-hidden="true">
               {visibleColumns.map(([label])=><td key={label}><span/></td>)}
             </tr>)}
-            {!loading&&!error&&!positions.length&&<tr><td colSpan={visibleColumns.length}>
-              <div className="v4-positions-empty"><strong>No open positions</strong><span>Your active positions will appear here.</span></div>
-            </td></tr>}
             {visiblePositions.map(position=>{
               const id=positionIdentity(position);
               return <TableRow key={id} position={position} instrument={instrumentForSymbol(markets,position.symbol)} markets={markets}
@@ -251,8 +253,8 @@ export default function PositionsDockV4({
         {error&&<div className="v4-positions-error" role="alert">
           <span>{String(error)}</span><button type="button" onClick={onRetry}>Retry</button>
         </div>}
-      </div>
-      {expanded&&<PositionsExposureFooter positions={positions} markets={markets}/>}
+      </div>}
+      {expanded&&positions.length>0&&<PositionsExposureFooter positions={positions} markets={markets}/>}
     </>}
     <CloseMenu menu={menu} onClose={onCloseMenu} onManagePosition={onManagePosition}
       onRequestClose={onRequestClose} onEditProtection={onEditProtection} onBreakEven={onBreakEven} onSetTrailing={onSetTrailing} closeDisabled={menu?.closeDisabled||readOnly} readOnly={readOnly}/>
