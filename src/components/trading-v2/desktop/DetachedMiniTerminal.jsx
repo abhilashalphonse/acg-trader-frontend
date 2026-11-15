@@ -64,8 +64,8 @@ export default function DetachedMiniTerminal({
     try {
       const pip = Boolean(window.documentPictureInPicture?.requestWindow);
       child = pip
-        ? await window.documentPictureInPicture.requestWindow({ width: 390, height: 680 })
-        : window.open('about:blank', '_blank', 'popup=yes,width=390,height=680');
+        ? await window.documentPictureInPicture.requestWindow({ width: 390, height: 600 })
+        : window.open('about:blank', '_blank', 'popup=yes,width=390,height=600');
       if (!child) throw new Error('Allow pop-ups for ACG Trader, then try again.');
       if (!mounted.current) { child.close(); return; }
       windowRef.current = child;
@@ -164,10 +164,6 @@ export default function DetachedMiniTerminal({
           Regular window: it will not stay on top.
         </div>}
         <div className="acg-mini-account"><span>{account?.accountCode || account?.id || 'Account unavailable'}</span><b>{currency}</b></div>
-        <div className="acg-mini-metrics" aria-label="Account overview">
-          <span>Equity <b>{amount(account?.equity,currency)}</b></span>
-          <span>Free margin <b>{amount(account?.freeMargin,currency)}</b></span>
-        </div>
         <label className="acg-mini-instrument">Instrument
           <select aria-label="Mini terminal instrument" value={market?.symbol || ''} onChange={event => onSelectSymbol(event.target.value)}>
             {markets.map(item => <option key={item.symbol} value={item.symbol}>{item.displaySymbol || item.symbol}</option>)}

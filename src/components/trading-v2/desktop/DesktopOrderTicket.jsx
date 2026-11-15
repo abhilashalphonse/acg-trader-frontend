@@ -589,6 +589,112 @@ export default function DesktopOrderTicket({
     return false;
   };
 
+  // The detached mini is the *existing quick-order engine* with a larger
+  // touch-friendly layout. It never mounts the advanced execution panel
+  // or reimplements command execution and account authorization.
+  if (variant === 'mini') {
+    const isPending = orderFamily === 'pending';
+    const quoteAvailable = Boolean(executableQuote);
+    return (
+      <section className="acg-mini-quick-order" data-acg-mini-simple-ticket="true" aria-label="Compact trade ticket">
+        <div className="acg-mini-quote" aria-live="off">
+          <span className="acg-mini-quote-main">
+            <span className="acg-mini-quote-label">{marketClosed ? 'Market closed' : quoteAvailable ? 'Bid / Ask' : 'Quote unavailable'}</span>
+            <strong>{quoteAvailable ? marketSellPrice+' / '+marketBuyPrice : '—'}</strong>
+          </span>
+          <span className="acg-mini-quote-status" data-market-open={marketClosed ? 'false' : quoteAvailable ? 'true' : 'waiting'}>
+            {marketClosed ? 'CLOSED' : quoteAvailable ? 'LIVE' : 'WAITING'}
+          </span>
+        </div>
+        <div className="acg-mini-quick-actions">
+          <button type="button" className="acg-mini-buy" disabled={sideDisabled('buy')}
+            onClick={() => handleSide('buy')} aria-label="Buy at quoted price">
+            <span>{isPending ? pendingBuyLabel : 'Buy'}</span><strong>{isPending&&tradePlan?.pending ? formatInstrumentPrice(tradePlan.entry,market):marketBuyPrice}</strong>
+          </button>
+          <button type="button" className="acg-mini-sell" disabled={sideDisabled('sell')}
+            onClick={() => handleSide('sell')} aria-label="Sell at quoted price">
+            <span>{isPending ? pendingSellLabel : 'Sell'}</span><strong>{isPending&&tradePlan?.pending ? formatInstrumentPrice(tradePlan.entry,market):marketSellPrice}</strong>
+          </button>
+        </div>
+        <div className="acg-mini-quick-margin">
+          <span>Free margin</span><strong>{Number.isFinite(freeMargin) ? money(freeMargin,currency) : '—'}</strong>
+        </div>
+        <div className="acg-mini-order-family" role="group" aria-label="Order type">
+          <button type="button" aria-pressed={!isPending} onClick={()=>chooseFamily('market')}>Market</button>
+          <button type="button" aria-pressed={isPending} onClick={()=>chooseFamily('pending')}>Pending</button>
+        </div>
+        {isPending && <div className="acg-mini-field">
+          <label htmlFor="acg-mini-trigger-price">Trigger / entry price</label>
+          <input id="acg-mini-trigger-price" aria-label="Pending entry price" inputMode="decimal"
+            placeholder={tradePlan?.pending?'Enter price':'Choose Buy or Sell to plan'}
+            disabled={!tradePlan?.pending || editing}
+            value={tradePlan?.pending ? entryInput : ''}
+            onFocus={event=>{setEntryFocused(true);selectInputNextFrame(event);}}
+            onChange={event=>updateEntryInput(event.target.value)}
+            onBlur={commitEntry}
+            onKeyDown={event=>{if(event.key==='Enter')event.currentTarget.blur();if(event.key==='Escape'){setEntryInput(priceInputValue(tradePlan?.entry,market));event.currentTarget.blur();}}}/>
+        </div>}
+        <div className="acg-mini-sizer">
+          <span>Size by {activeSizingMode === 'risk' ? 'risk' : 'lots'}</span>
+          <button type="button" disabled={!riskSupported}
+            aria-label="Toggle mini risk sizing"
+            aria-pressed={activeSizingMode==='risk'}
+            onClick={()=>setMode(activeSizingMode==='risk'?'lots':'risk')}>
+            {activeSizingMode==='risk'?'Switch to lots':'Use risk %'}
+          </button>
+        </div>
+        {activeSizingMode==='risk'&&<div className="acg-mini-field">
+          <label htmlFor="acg-mini-risk-percent">Risk per trade <span>% of equity</span></label>
+          <input id="acg-mini-risk-percent" aria-label="Risk percent" inputMode="decimal"
+            value={riskInput}
+            onFocus={event=>{setRiskFocused(true);setRiskUnit('percent');selectInputNextFrame(event);}}
+            onChange={event=>setRiskInput(event.target.value)}
+            onBlur={commitRisk}
+            onKeyDown={event=>{if(event.key==='Enter')event.currentTarget.blur();}}/>
+        </div>}
+        <div className="acg-mini-field">
+          <label htmlFor="acg-mini-lot-size">Quantity <span>Lots</span></label>
+          <div className="acg-mini-quantity">
+            <button type="button" aria-label="Decrease lot size" disabled={activeSizingMode==='risk'}
+              onClick={()=>setLots(Math.max(minVolume,normalizedLots-volumeStep))}><Minus size={15}/></button>
+            <input id="acg-mini-lot-size" aria-label="Lot size" inputMode="decimal"
+              disabled={activeSizingMode==='risk'}
+              value={activeSizingMode==='risk' ? (Number.isFinite(Number(effectiveLots))?String(Number(effectiveLots).toFixed(lotDecimals)):'') : lotInput}
+              onFocus={event=>{lotCancelRef.current=false;setLotFocused(true);selectInputNextFrame(event);}}
+              onChange={event=>setLotInput(event.target.value)}
+              onBlur={commitLot}
+              onKeyDown={event=>{if(event.key==='Enter')event.currentTarget.blur();if(event.key==='Escape'){event.preventDefault();lotCancelRef.current=true;setLotInput(Number(normalizedLots).toFixed(lotDecimals));event.currentTarget.blur();}}}/>
+            <button type="button" aria-label="Increase lot size" disabled={activeSizingMode==='risk'}
+              onClick={()=>setLots(Math.min(maxVolume,normalizedLots+volumeStep))}><Plus size={15}/></button>
+          </div>
+        </div>
+        <div className="acg-mini-risk-row">
+          <span>SL / TP</span>
+          <div>
+            <button type="button" aria-pressed={hasStopLoss || protectionIntent==='sl'}
+              onClick={()=>addProtection('sl')}>SL {hasStopLoss ? '✓' : '+'}</button>
+            <button type="button" aria-pressed={hasTakeProfit || protectionIntent==='tp'}
+              onClick={()=>addProtection('tp')}>TP {hasTakeProfit ? '✓' : '+'}</button>
+          </div>
+        </div>
+        <div className="acg-mini-estimate">
+          <span>Estimated margin</span>
+          <strong>{Number.isFinite(previewMargin)?money(previewMargin,currency):'—'}</strong>
+        </div>
+        {(warning || (activeSizingMode==='risk'&&!hasStopLoss)) && <div className="acg-mini-quick-warning" role="status">
+          {activeSizingMode==='risk'&&!hasStopLoss?'Set SL to calculate a risk-based quantity.':warning}
+        </div>}
+        {marketClosed && <div className="acg-mini-closed" role="status">Market closed</div>}
+        {accountCapabilities.stopLossRequiredForManualLots && activeSizingMode==='lots' && <p className="acg-mini-policy-note">
+          This account requires stop loss for manual-lot exposure.
+        </p>}
+        <p className="acg-mini-quick-hint">{isPending
+          ? 'Select Buy or Sell to plan a pending order. Review its entry before confirming.'
+          : 'Buy or Sell may execute immediately. Existing account restrictions apply.'}</p>
+      </section>
+    );
+  }
+
   if (variant === 'floating') {
     const floatingLots = Number.isFinite(Number(effectiveLots)) ? Number(effectiveLots) : normalizedLots;
     const floatingLotText = Number.isFinite(Number(floatingLots))

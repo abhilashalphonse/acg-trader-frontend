@@ -54,3 +54,138 @@
 .acg-mini-launchbar button, .acg-mini-launch { display:flex; align-items:center; gap:6px; border:1px solid #36363b; border-radius:6px; background:#151519; color:#E3E5E9; padding:6px 9px; font:11px Inter,system-ui,sans-serif; cursor:pointer; }
 .acg-mini-launchbar button:hover, .acg-mini-launch:hover { background:#25252b; }
 @media (max-width:340px) { .acg-mini-titlebar small { display:none; } .acg-mini-tabs { gap:12px; } }
+
+
+/* Bybit-like simplicity, built on ACG's *existing* floating quick-ticket
+   execution logic. The advanced V4 ticket is never mounted in this popup. */
+.acg-mini-window .acg-mini-quick-order{
+  display:flex;flex-direction:column;gap:11px;
+  padding:13px 12px 16px;
+  min-width:0;width:100%;
+  color:#F0F0F2;background:#09090B;
+}
+.acg-mini-window .acg-mini-quote{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;padding:3px 0 0;
+}
+.acg-mini-window .acg-mini-quote-main{display:flex;flex-direction:column;gap:4px;min-width:0}
+.acg-mini-window .acg-mini-quote-label{font-size:10px;color:#91929E}
+.acg-mini-window .acg-mini-quote-main strong{
+  font-size:16px;font-weight:650;font-variant-numeric:tabular-nums;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.acg-mini-window .acg-mini-quote-status{
+  font-size:9px;font-weight:650;letter-spacing:.04em;
+  padding:5px 8px;border-radius:20px;border:1px solid #343438;color:#D4D6DA;
+}
+.acg-mini-window .acg-mini-quote-status[data-market-open="false"]{
+  border-color:#59443D;color:#E7B6A2;
+}
+.acg-mini-window .acg-mini-quick-actions{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;
+}
+.acg-mini-window .acg-mini-quick-actions button{
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  gap:5px;min-width:0;height:47px;border:1px solid #3A3A40;
+  border-radius:5px;color:#EDEEF0;background:#1D1F23;
+}
+.acg-mini-window .acg-mini-quick-actions button:not(:disabled):hover{filter:brightness(1.18)}
+.acg-mini-window .acg-mini-quick-actions button:disabled{opacity:.42;cursor:not-allowed}
+.acg-mini-window .acg-mini-quick-actions span{
+  font-weight:600;font-size:10px;white-space:nowrap;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis
+}
+.acg-mini-window .acg-mini-quick-actions strong{font-size:12px;font-weight:650;font-variant-numeric:tabular-nums}
+.acg-mini-window .acg-mini-quick-actions .acg-mini-buy:not(:disabled){border-color:#244D81;background:#10213D}
+.acg-mini-window .acg-mini-quick-actions .acg-mini-sell:not(:disabled){border-color:#6E323C;background:#321920}
+.acg-mini-window .acg-mini-quick-margin,.acg-mini-window .acg-mini-estimate{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  min-height:24px;font-size:11px;color:#9798A5
+}
+.acg-mini-window .acg-mini-quick-margin strong,.acg-mini-window .acg-mini-estimate strong{
+  color:#E8EAEE;font-size:11px;font-weight:650;
+  font-variant-numeric:tabular-nums
+}
+.acg-mini-window .acg-mini-order-family{
+  display:grid;grid-template-columns:1fr 1fr;gap:4px;
+  background:#16171A;border:1px solid #313136;border-radius:6px;padding:3px
+}
+.acg-mini-window .acg-mini-order-family button{
+  padding:7px 8px;border:0;border-radius:4px;background:none;
+  color:#9B9CAA;font-size:11px;font-weight:550
+}
+.acg-mini-window .acg-mini-order-family button[aria-pressed="true"]{
+  background:#303239;color:#F4F5F6
+}
+.acg-mini-window .acg-mini-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.acg-mini-window .acg-mini-field label{
+  display:flex;justify-content:space-between;gap:12px;
+  color:#9798A5;font-size:10px
+}
+.acg-mini-window .acg-mini-field label span{font-weight:650;color:#C5C6CE}
+.acg-mini-window .acg-mini-field>input,.acg-mini-window .acg-mini-quantity{
+  width:100%;height:41px;border-radius:5px;
+  background:#1C1D22;border:1px solid #36363C;color:#F0F1F2
+}
+.acg-mini-window .acg-mini-field>input{
+  min-width:0;text-align:right;padding:0 12px;
+  font-variant-numeric:tabular-nums;outline:none
+}
+.acg-mini-window .acg-mini-field>input:disabled{color:#858690;opacity:.8}
+.acg-mini-window .acg-mini-field>input::placeholder{color:#777985;text-align:left}
+.acg-mini-window .acg-mini-quantity{
+  display:grid;grid-template-columns:40px minmax(0,1fr) 40px;align-items:center;
+}
+.acg-mini-window .acg-mini-quantity button{
+  height:100%;border:0;background:transparent;color:#B7BAC2;
+  display:grid;place-items:center
+}
+.acg-mini-window .acg-mini-quantity button:disabled{opacity:.3}
+.acg-mini-window .acg-mini-quantity input{
+  min-width:0;width:100%;text-align:center;background:transparent;
+  border:0;outline:none;color:#F5F5F6;
+  font-size:13px;font-weight:650;font-variant-numeric:tabular-nums;
+}
+.acg-mini-window .acg-mini-risk-row{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;color:#9798A5;font-size:10px
+}
+.acg-mini-window .acg-mini-risk-row>div{display:flex;gap:6px}
+.acg-mini-window .acg-mini-risk-row button{
+  height:28px;min-width:61px;
+  border-radius:5px;border:1px solid #393A41;
+  background:#18191D;color:#C5C7CC
+}
+.acg-mini-window .acg-mini-risk-row button[aria-pressed="true"]{
+  border-color:#878991;color:#F0F1F3;background:#2A2C30
+}
+.acg-mini-window .acg-mini-estimate{border-top:1px solid #27272D;padding-top:11px}
+.acg-mini-window .acg-mini-quick-warning{
+  font-size:10px;line-height:1.5;color:#E4C091;
+  background:#282319;padding:9px;border-radius:5px
+}
+.acg-mini-window .acg-mini-closed{
+  display:grid;place-items:center;width:100%;height:36px;
+  border:1px solid #606166;border-radius:40px;
+  color:#A0A2AB;font-size:11px;font-weight:600
+}
+.acg-mini-window .acg-mini-policy-note,.acg-mini-window .acg-mini-quick-hint{
+  color:#898B97;font-size:10px;line-height:1.4;margin:0
+}
+.acg-mini-window .acg-mini-quick-hint{padding:0 2px}
+@media(max-width:340px){
+  .acg-mini-window .acg-mini-quick-order{padding:9px 9px 12px}
+  .acg-mini-window .acg-mini-quick-actions{gap:6px}
+}
+
+
+.acg-mini-window .acg-mini-sizer{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;color:#9496A0;font-size:10px
+}
+.acg-mini-window .acg-mini-sizer button{
+  border:0;background:transparent;color:#D4D6DA;font-weight:600;
+  font-size:10px;padding:4px 0;text-decoration:underline;
+  text-underline-offset:3px
+}
+.acg-mini-window .acg-mini-sizer button:disabled{opacity:.35;text-decoration:none}
