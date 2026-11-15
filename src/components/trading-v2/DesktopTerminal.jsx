@@ -112,11 +112,11 @@ function desktopMarketPanelBounds(viewportWidth, orderPanelWidth = 380) {
 function desktopHeightBounds(viewportHeight, dockCollapsed = false, dockHeight = 0) {
   const height = Number(viewportHeight) || 900;
   const compact = height <= 900;
-  // V4 needs space for a 44px unified toolbar, a 28px table heading,
-  // and two 36px position rows plus the dock border. V3 stays unchanged.
-  const dockMin = DOCK_AUDIT_ENABLED ? 164 : 52;
+  // Audit-only: 44px toolbar + two 60px unified position rows +
+  // room for a horizontal scrollbar and dock borders. Normal V4 untouched.
+  const dockMin = DOCK_AUDIT_ENABLED ? 184 : 52;
   const dockMax = compact ? Math.min(320, Math.floor(height * 0.44)) : height <= 1050 ? Math.min(420, Math.floor(height * 0.46)) : Math.min(520, Math.floor(height * 0.48));
-  const defaultDock = DOCK_AUDIT_ENABLED ? 164 : 52;
+  const defaultDock = DOCK_AUDIT_ENABLED ? 184 : 52;
   const effectiveDock = dockCollapsed ? 0 : clamp(dockHeight || defaultDock, dockMin, dockMax);
   const upperWorkspaceHeight = Math.max(0, height - 48 - effectiveDock);
 
