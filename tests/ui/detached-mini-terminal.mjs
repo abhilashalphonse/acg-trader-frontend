@@ -117,6 +117,7 @@ try {
       contextHeight:ctx?.height,tabsHeight:tabs?.height,
       actionsHeight:actions?.height,metricsHeight:margins?.height};
   });
+  console.log('MINI_DENSITY_GEOMETRY',JSON.stringify(density));
   check(density.contextHeight<=46&&density.tabsHeight<=32&&density.actionsHeight>=42,
     'Dense header and 44px execution buttons retain usable size');
   check(density.metricsHeight<=40,'Both margin metrics share one compact row');
