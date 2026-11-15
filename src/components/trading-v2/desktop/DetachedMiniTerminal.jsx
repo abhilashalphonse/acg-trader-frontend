@@ -160,6 +160,9 @@ export default function DetachedMiniTerminal({
         <header className="acg-mini-titlebar" title="Keep the main ACG Trader tab open while using this window"><strong><span>ACG</span> TRADER</strong><small>{mode}</small>
           <button type="button" onClick={dock} aria-label="Return mini terminal to chart" title="Return to chart"><PictureInPicture2 size={16}/></button>
         </header>
+        {mode==='Separate window'&&<div className="acg-mini-fallback-note" role="status">
+          Regular window: it will not stay on top.
+        </div>}
         <div className="acg-mini-account"><span>{account?.accountCode || account?.id || 'Account unavailable'}</span><b>{currency}</b></div>
         <div className="acg-mini-metrics" aria-label="Account overview">
           <span>Equity <b>{amount(account?.equity,currency)}</b></span>
@@ -187,8 +190,7 @@ export default function DetachedMiniTerminal({
                   </div>}
           </>}
         </main>
-        {mode==='Separate window'&&tab==='trade'&&
-          <div className="acg-mini-fallback-note" role="status">Regular window: this browser does not support always-on-top.</div>}
+
       </section>
     ) : <div className="acg-mini-attached">
       <div className="acg-mini-launchbar"><button type="button" onClick={openWindow} title="Trade while browsing other tabs"><ExternalLink size={13}/> Pop out mini terminal</button></div>
