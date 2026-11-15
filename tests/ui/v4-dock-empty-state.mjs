@@ -18,7 +18,15 @@ async function waitHeight(min,max){
 }
 try{
  await page.addInitScript(()=>{
-   localStorage.removeItem('acg-trader-desktop-dock-audit-layout-v1');
+   if(!sessionStorage.getItem('v4-dock-empty-test-seeded')){
+     localStorage.removeItem('acg-trader-desktop-dock-audit-layout-v1');
+     sessionStorage.setItem('v4-dock-empty-test-seeded','1');
+   }
+   if(!localStorage.getItem('acg-trader-desktop-layout-v2')){
+     localStorage.setItem('acg-trader-desktop-layout-v2',JSON.stringify({
+       dockHeight:260,dockCollapsed:false,sidebarCollapsed:false,sidebarWidth:360,
+     }));
+   }
    localStorage.setItem('acg-v4-positions-dock-density-v3','true');
  });
  await page.goto(root+'&acg_dock_audit=1',{waitUntil:'domcontentloaded'});
@@ -30,7 +38,7 @@ try{
  // A closed final position is reflected in the actual parent layout, not just hidden by CSS.
  await page.evaluate(()=>window.v4PositionsQA.setPositions([]));
  await waitHeight(42,46);
- assert.equal(await dock.getByRole('button',{name:'Positions',exact:false}).count(),1);
+ assert.equal(await dock.locator('.v4-positions-tab.is-active').innerText(),'Positions 0');
  assert.equal(await dock.locator('.v4-positions-scroller').count(),0,'Empty positions show only toolbar');
  console.log('EMPTY_POSITIONS_AUTO_COMPACT',JSON.stringify({height:await dockHeight()}));
  await dock.getByRole('button',{name:/Pending/}).click();
