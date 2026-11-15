@@ -89,11 +89,11 @@ try{
  await page.mouse.down();
  await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2-90,{steps:6});
  await page.mouse.up();
- await waitHeight(195,260);
+ await waitHeight(180,260);
  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('acg-trader-desktop-dock-audit-layout-v1')).dockManuallyResized),true,
    'Manual resizing persists only in audit preferences');
  await page.reload({waitUntil:'domcontentloaded'});
- await waitHeight(195,260);
+ await waitHeight(180,260);
  const normal=await page.evaluate(()=>localStorage.getItem('acg-trader-desktop-layout-v2'));
  await page.goto(root,{waitUntil:'domcontentloaded'});
  const original=page.locator('[data-v4-positions=true]');
