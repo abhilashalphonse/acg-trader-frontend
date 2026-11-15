@@ -8,7 +8,7 @@ const eq=(actual,expected,label)=>{assert.deepEqual(actual,expected,label);check
 const ok=(condition,label)=>{assert.ok(condition,label);checks++;};
 try{
  await page.addInitScript(()=>{
-   window.localStorage.setItem('acg-trader-desktop-layout-v2',JSON.stringify({
+   window.localStorage.setItem('acg-trader-desktop-dock-audit-layout-v1',JSON.stringify({
      dockHeight:285,sidebarCollapsed:false,dockCollapsed:false,sidebarWidth:370
    }));
    window.localStorage.removeItem('acg-v4-positions-view-v1');
@@ -131,7 +131,7 @@ try{
  const densityPage=await browser.newPage({viewport:{width:1105,height:910}});
  const auditUrl='http://127.0.0.1:5174/v4-positions-audit.html?acg_v4_audit=1&acg_dock_audit=1';
  await densityPage.goto(auditUrl,{waitUntil:'domcontentloaded'});
- await densityPage.evaluate(()=>localStorage.setItem('acg-trader-desktop-layout-v2',JSON.stringify({
+ await densityPage.evaluate(()=>localStorage.setItem('acg-trader-desktop-dock-audit-layout-v1',JSON.stringify({
    dockHeight:420,sidebarCollapsed:false,dockCollapsed:false,sidebarWidth:360,
  })));
  await densityPage.reload({waitUntil:'domcontentloaded'});
@@ -144,7 +144,7 @@ try{
  const retainedHeight=await denseDock.evaluate(el=>el.getBoundingClientRect().height);
  ok(retainedHeight>=416&&retainedHeight<=422,'420px custom dock is preserved');
  await densityPage.evaluate(()=>{
-   const key='acg-trader-desktop-layout-v2',value=JSON.parse(localStorage.getItem(key)||'{}');
+   const key='acg-trader-desktop-dock-audit-layout-v1',value=JSON.parse(localStorage.getItem(key)||'{}');
    localStorage.setItem(key,JSON.stringify({...value,dockHeight:365,dockCollapsed:false}));
  });
  await densityPage.reload({waitUntil:'domcontentloaded'});
@@ -156,7 +156,7 @@ try{
  ok((await denseDock.evaluate(el=>el.getBoundingClientRect().height))>=360,
    'Manual 365px height persists after reload');
  await densityPage.evaluate(()=>{
-   const key='acg-trader-desktop-layout-v2',value=JSON.parse(localStorage.getItem(key)||'{}');
+   const key='acg-trader-desktop-dock-audit-layout-v1',value=JSON.parse(localStorage.getItem(key)||'{}');
    localStorage.setItem(key,JSON.stringify({...value,dockHeight:320,dockCollapsed:false}));
  });
  await densityPage.setViewportSize({width:1105,height:760});
