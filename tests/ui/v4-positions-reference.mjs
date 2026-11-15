@@ -8,7 +8,7 @@ const eq=(actual,expected,label)=>{assert.deepEqual(actual,expected,label);check
 const ok=(value,label)=>{assert.ok(value,label);checks++};
 try{
   await page.addInitScript(()=>{
-    window.localStorage.setItem('acg-trader-desktop-layout-v2',JSON.stringify({
+    window.localStorage.setItem('acg-trader-desktop-dock-audit-layout-v1',JSON.stringify({
       dockHeight:52,sidebarCollapsed:false,dockCollapsed:false,sidebarWidth:360
     }));
     window.localStorage.removeItem('acg-v4-positions-view-v1');
