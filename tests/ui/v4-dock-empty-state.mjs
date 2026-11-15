@@ -33,7 +33,7 @@ try{
  const dock=page.locator('[data-acg-dock-audit=true]');
  await dock.waitFor({state:'visible'});
  await dock.getByRole('button',{name:'Account overview and margin details'}).waitFor();
- await waitHeight(160,166);
+ await waitHeight(180,186);
  assert.equal(await dock.locator('tr[data-v4-position-id]').count(),2,'Existing positions have 2 trade rows');
  // A closed final position is reflected in the actual parent layout, not just hidden by CSS.
  await page.evaluate(()=>window.v4PositionsQA.setPositions([]));
@@ -43,27 +43,27 @@ try{
  console.log('EMPTY_POSITIONS_AUTO_COMPACT',JSON.stringify({height:await dockHeight()}));
  await dock.getByRole('button',{name:/Pending/}).click();
  await page.locator('[data-v4-pending=true]').waitFor({state:'visible',timeout:12000});
- await waitHeight(160,166);
+ await waitHeight(180,186);
  assert.equal(await page.locator('[data-v4-pending=true] .v4-position-row').count(),1,
    'Pending order remains accessible after lazy module load');
  await page.locator('[data-v4-pending=true]').getByRole('button',{name:/Positions/}).click();
  await waitHeight(42,46);
  // Loading and errors are visible, never silently collapsed.
  await page.evaluate(()=>window.v4PositionsQA.setLoading(true));
- await waitHeight(160,166);
+ await waitHeight(180,186);
  await page.evaluate(()=>window.v4PositionsQA.setLoading(false));
  await waitHeight(42,46);
  await page.evaluate(()=>window.v4PositionsQA.setError('Fixture network error'));
- await waitHeight(160,166);
+ await waitHeight(180,186);
  await page.getByRole('button',{name:'Retry',exact:true}).click();
  await waitHeight(42,46);
  // Explicit Open dock control overrides auto compact while leaving account untouched.
  await page.getByRole('button',{name:'Open positions dock'}).click();
- await waitHeight(160,166);
+ await waitHeight(180,186);
  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('acg-trader-desktop-dock-audit-layout-v1')).dockManuallyResized),true,
    'User override is persisted within audit preferences');
  await page.reload({waitUntil:'domcontentloaded'});
- await waitHeight(160,166);
+ await waitHeight(180,186);
  const normal=await page.evaluate(()=>localStorage.getItem('acg-trader-desktop-layout-v2'));
  await page.goto(root,{waitUntil:'domcontentloaded'});
  const original=page.locator('[data-v4-positions=true]');
