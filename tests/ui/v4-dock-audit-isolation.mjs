@@ -45,8 +45,10 @@ try{
   assert.equal(await audit.getByRole('searchbox').count(),0,'Audit removes search only in flagged sessions');
   assert.equal(await audit.getByRole('combobox',{name:'Filter by instrument'}).count(),0,
     'Audit removes instrument filter only in flagged sessions');
+  await audit.getByRole('button',{name:'Account overview and margin details'})
+    .waitFor({state:'visible',timeout:12000});
   assert.equal(await audit.getByRole('button',{name:'Account overview and margin details'}).count(),1,
-    'Audit renders redesigned metric disclosure');
+    'Audit renders redesigned metric disclosure after lazy module load');
   const status=await audit.evaluate(el=>{
     const rootRect=el.getBoundingClientRect();
     const viewport=el.querySelector('.v4-positions-scroller').getBoundingClientRect();
