@@ -7,7 +7,7 @@ const eq=(a,b,label)=>{assert.deepEqual(a,b,label);checks++;};
 const ok=(a,label)=>{assert.ok(a,label);checks++;};
 try{
   await page.addInitScript(()=>{
-    window.localStorage.setItem('acg-trader-desktop-layout-v2',JSON.stringify({
+    window.localStorage.setItem('acg-trader-desktop-dock-audit-layout-v1',JSON.stringify({
       dockHeight:320,sidebarCollapsed:false,dockCollapsed:false,sidebarWidth:360
     }));
     window.localStorage.removeItem('acg-v4-pending-view-v1');
