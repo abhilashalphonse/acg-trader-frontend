@@ -1451,20 +1451,20 @@ export default function DesktopTerminal({
                     positionsLoading={positionsLoading} positionsError={positionsError} onRetryPositions={onRetryPositions}
                     notice={notice} readOnly={readOnly || accountSwitching}
                     onSelectSymbol={onSelectSymbol}
-                    renderTrade={dock => <DesktopOrderTicketV4
-                      key={`mini-trade-${account?.id || 'none'}-${market?.symbol || 'none'}`}
-                      market={market} account={account} conversionMarkets={markets}
-                      exposureAllowed={exposureAllowed && !readOnly && !accountSwitching}
+                    renderTrade={dock => <DesktopOrderTicket
+                      key={`mini-quick-${account?.id || 'none'}`}
+                      variant="mini" floatingV2Theme={V4_DESKTOP_EXECUTION_ENABLED}
+                      market={market} account={account}
+                      exposureAllowed={exposureAllowed && !readOnly && !accountSwitching && !executionCommandPending}
                       exposureBlockReason={exposureBlockReason}
-                      lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange}
+                      lots={lots} onLotsChange={onLotsChange}
+                      sizingMode={sizingMode} onSizingModeChange={onSizingModeChange}
                       riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange}
-                      orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan}
-                      orderExecutionPreview={orderExecutionPreview}
+                      orderType={orderType} onOrderTypeChange={onOrderTypeChange}
+                      tradePlan={tradePlan} orderExecutionPreview={orderExecutionPreview}
                       onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan}
-                      onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} onNotice={setNotice}
-                      executionCommandPending={executionCommandPending || accountSwitching || readOnly}
-                      onOpenMarkets={() => setNotice('Choose an instrument from the selector above.')}
-                      onCloseTicket={dock}
+                      onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange}
+                      onNotice={setNotice} onOpenFullTrade={()=>{dock();openSidebarView('trade');}}
                     />}
                     renderPosition={(position, instrument, back) => <DesktopManagePositionV4
                       key={`mini-position-${account?.id}-${position.id}`}
