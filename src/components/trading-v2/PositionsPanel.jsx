@@ -22,12 +22,15 @@ import { positionCloseAvailability } from '../../utils/marketExecutionAvailabili
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import './PositionsPanel.desktop.css';
 import SharePositionSheet from './SharePositionSheet.jsx';
-import PositionsDockV4 from './PositionsDockV4.jsx';
-import PendingDockV4 from './PendingDockV4.jsx';
-import ActivityDockV4 from './ActivityDockV4.jsx';
+
 import PositionsDockBaselineV4 from './PositionsDockBaselineV4.jsx';
 import PendingDockBaselineV4 from './PendingDockBaselineV4.jsx';
 import ActivityDockBaselineV4 from './ActivityDockBaselineV4.jsx';
+
+// Keep audit-only code and CSS out of ordinary customer bundles.
+const PositionsDockV4 = React.lazy(() => import('./PositionsDockV4.jsx'));
+const PendingDockV4 = React.lazy(() => import('./PendingDockV4.jsx'));
+const ActivityDockV4 = React.lazy(() => import('./ActivityDockV4.jsx'));
 
 const tabs = [
   { id: 'positions', label: 'Positions' },
@@ -302,6 +305,7 @@ export default function PositionsPanel({
   // Other tabs retain their current implementation until their own V4 milestones.
   if (v4Positions && desktopDense && (tab === 'history' || tab === 'journal')) {
     return <section className={`acg-desktop-positions acg-dock-v3 h-full min-h-0 overflow-hidden ${dockAudit ? "acg-dock-audit" : ""}`} data-acg-dock-audit={dockAudit ? "true" : undefined} aria-label={tab === 'history' ? 'Trading history workspace' : 'Trading journal workspace'}>
+      <React.Suspense fallback={<div className="flex h-full items-center px-4 text-xs text-[#A1A1AA]" role="status">Loading dock review…</div>}>
       <ActivityDock tab={tab} onTabChange={onV4TabChange} counts={counts}
         account={account} markets={markets} history={positionHistory} journal={journal}
         historyPositionFilter={historyPositionFilter} onClearHistoryPosition={()=>setHistoryPositionFilter(null)}
@@ -309,20 +313,24 @@ export default function PositionsPanel({
         expanded={expanded} onToggleExpanded={onToggleExpanded}
         collapsed={collapsed} compactDock={compactDock}
         historyError={historyError} historyLoading={historyLoading} onRetry={onRetryHistory}/>
+      </React.Suspense>
     </section>;
   }
     if (v4Positions && desktopDense && tab === 'orders') {
     return <section className={`acg-desktop-positions acg-dock-v3 h-full min-h-0 overflow-hidden ${dockAudit ? "acg-dock-audit" : ""}`} data-acg-dock-audit={dockAudit ? "true" : undefined} aria-label="Pending orders workspace">
+      <React.Suspense fallback={<div className="flex h-full items-center px-4 text-xs text-[#A1A1AA]" role="status">Loading dock review…</div>}>
       <PendingDock orders={pendingOrders} positions={positions} markets={markets} account={account} counts={counts}
         selectedOrderId={selectedPendingId} onInspect={onInspectPending} onManage={onManagePending}
         onReviewCancel={onReviewCancelPending} onTabChange={onV4TabChange}
         collapsed={collapsed} compactDock={compactDock} expanded={expanded}
         onToggleExpanded={onToggleExpanded} loading={positionsLoading}
         error={positionsError} onRetry={onRetryPositions} readOnly={readOnly}/>
+      </React.Suspense>
     </section>;
   }
   if (v4Positions && desktopDense && tab === 'positions') {
     return <section className={`acg-desktop-positions acg-dock-v3 h-full min-h-0 overflow-hidden ${dockAudit ? "acg-dock-audit" : ""}`} data-acg-dock-audit={dockAudit ? "true" : undefined} aria-label="Positions workspace">
+      <React.Suspense fallback={<div className="flex h-full items-center px-4 text-xs text-[#A1A1AA]" role="status">Loading dock review…</div>}>
       <PositionsDock
         positions={positions} markets={markets} account={account} counts={counts} journal={journal} positionActivityOrders={positionActivityOrders} positionActivityDeals={positionActivityDeals} positionActivityFills={positionActivityFills} readOnly={readOnly}
         onTabChange={onV4TabChange} selectedPositionId={selectedPositionId}
@@ -330,6 +338,7 @@ export default function PositionsPanel({
         onRequestClose={onReviewClosePosition} onBreakEven={onBreakEven} onSetTrailing={onSetTrailing} collapsed={collapsed} compactDock={compactDock}
         expanded={expanded} onToggleExpanded={onToggleExpanded}
         loading={positionsLoading} error={positionsError} onRetry={onRetryPositions}/>
+      </React.Suspense>
     </section>;
   }
 
