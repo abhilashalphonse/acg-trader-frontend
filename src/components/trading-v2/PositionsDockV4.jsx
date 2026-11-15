@@ -74,9 +74,12 @@ function InstrumentCell({position,instrument,onToggle,expanded}){
     <span className={'v4-position-side '+(side==='BUY'?'is-buy':'is-sell')}>{side||'—'}</span>
   </span>;
 }
-function Cell({children,align='right',title,className=''}) {
+function Cell({children,align='right',title,className='',label=null}) {
   return <td className={'v4-position-cell '+(align==='left'?'is-left':'is-right')+' '+className} title={title}>
-    <span className="v4-position-cell-inner">{children}</span>
+    {label?<span className="v4-compact-cell">
+      <span className="v4-compact-label" aria-hidden="true">{label}</span>
+      <span className="v4-compact-value">{children}</span>
+    </span>:<span className="v4-position-cell-inner">{children}</span>}
   </td>;
 }
 function Amount({position,account}){
@@ -104,9 +107,9 @@ function TableRow({position,instrument,markets,account,view,visibleColumns,selec
       onKeyDown={event=>{if(event.target!==event.currentTarget)return;if(event.key==='Enter'||event.key===' '){event.preventDefault();onSelect(id);}}}>
       <Cell align="left"><InstrumentCell position={position} instrument={instrument} expanded={expanded} onToggle={()=>{onSelect(id);onToggle();}}/></Cell>
       {view==='compact'&&<>
-        {visibleColumns.includes('Size')&&<Cell>{fixedNumber(position.volume,2)} lots</Cell>}
-        {visibleColumns.includes('Current price')&&<Cell>{currentPrice==null?'—':formatInstrumentPrice(currentPrice,instrument)}</Cell>}
-        {visibleColumns.includes('Unrealized P&L')&&<Cell><Amount position={position} account={account}/></Cell>}
+        {visibleColumns.includes('Size')&&<Cell label="Size">{fixedNumber(position.volume,2)} lots</Cell>}
+        {visibleColumns.includes('Current price')&&<Cell label="Current">{currentPrice==null?'—':formatInstrumentPrice(currentPrice,instrument)}</Cell>}
+        {visibleColumns.includes('Unrealized P&L')&&<Cell label="Floating P&L"><Amount position={position} account={account}/></Cell>}
 
       </>}
       {view==='risk'&&<>
@@ -243,7 +246,7 @@ export default function PositionsDockV4({
       <div ref={scrollerRef} className="v4-positions-scroller" data-v4-position-scroller="true">
         <table className="v4-positions-table" style={{minWidth:V4_POSITION_MIN_WIDTHS[view]}}>
           <colgroup>{visibleColumns.map(([label,width])=><col key={label} style={{width}}/>)}</colgroup>
-          <thead><tr>{visibleColumns.map(([label,,align])=><th scope="col" key={label} className={align==='left'?'is-left':'is-right'}>{label}</th>)}</tr></thead>
+          <thead className={view==='compact'?'v4-compact-head':''}><tr>{visibleColumns.map(([label,,align])=><th scope="col" key={label} className={align==='left'?'is-left':'is-right'}>{label}</th>)}</tr></thead>
           <tbody>
             {loading&&!positions.length&&Array.from({length:3},(_,i)=><tr key={i} className="v4-positions-skeleton" aria-hidden="true">
               {visibleColumns.map(([label])=><td key={label}><span/></td>)}
