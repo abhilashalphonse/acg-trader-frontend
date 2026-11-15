@@ -18,9 +18,11 @@ const errors=[];
 page.on('pageerror',err=>errors.push(err.message));
 try{
   await page.addInitScript(()=>{
-    localStorage.setItem('acg-trader-desktop-layout-v2',JSON.stringify({
-      dockHeight:286,sidebarCollapsed:false,dockCollapsed:false,sidebarWidth:360,
-    }));
+    if(!localStorage.getItem('acg-trader-desktop-layout-v2')) {
+      localStorage.setItem('acg-trader-desktop-layout-v2',JSON.stringify({
+        dockHeight:286,sidebarCollapsed:false,dockCollapsed:false,sidebarWidth:360,
+      }));
+    }
     localStorage.setItem('acg-v4-positions-dock-density-v3','true');
     localStorage.removeItem('acg-trader-desktop-dock-audit-layout-v1');
   });
@@ -55,7 +57,9 @@ try{
   });
   assert.equal(status.header,44,'Audit toolbar uses one row');
   assert.equal(status.visibleRows,2,'Audit shows two complete positions');
-  assert.equal(await page.evaluate(()=>localStorage.getItem('acg-trader-desktop-layout-v2')),normalLayout,
+  const auditNormalKey=await page.evaluate(()=>localStorage.getItem('acg-trader-desktop-layout-v2'));
+  console.log('AUDIT_LAYOUT_KEY_CHECK',JSON.stringify({normalLayout,auditNormalKey}));
+  assert.equal(auditNormalKey,normalLayout,
     'Audit loading never mutates normal saved layout');
   await page.locator('[data-v4-positions=true]').getByRole('button',{name:'Expand positions workspace'}).click();
   await page.waitForTimeout(100);
