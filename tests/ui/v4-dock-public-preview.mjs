@@ -100,7 +100,7 @@ try{
    await homepage.close();
    checks++;
    const terminal=await browser.newPage({viewport:{width:1280,height:800}});
-   const terminalUrl=new URL('/v4-positions-audit.html?acg_v4_audit=1&public_review=1',target).toString();
+   const terminalUrl=new URL('/v4-positions-audit.html?acg_v4_audit=1&acg_dock_audit=1&public_review=1',target).toString();
    const terminalRes=await terminal.goto(terminalUrl,{waitUntil:'domcontentloaded',timeout:25000});
    assert.equal(terminalRes?.status(),200,'Public full-terminal HTML exists');checks++;
    await terminal.locator('[data-v4-positions="true"]').waitFor({state:'visible',timeout:20000});
