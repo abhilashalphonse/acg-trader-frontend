@@ -654,3 +654,85 @@
  .acg-dock-audit .acg-v4-positions[data-v4-pending-view=compact] .v4-position-avatar{display:none}
  .acg-dock-audit .acg-v4-positions .v4-compact-label{font-size:9px}
 }
+
+/* Unified derivatives-style desktop dock: information is grouped in every
+   row rather than split across mutually-exclusive display modes. This is
+   scoped to the authenticated acg_dock_audit opt-in only. */
+.acg-dock-audit .acg-v4-positions[data-v4-position-view="unified"] .v4-position-row,
+.acg-dock-audit .acg-v4-positions[data-v4-pending-view="unified"] .v4-position-row,
+.acg-dock-audit .acg-v4-positions[data-v4-position-view="unified"] .v4-position-row td,
+.acg-dock-audit .acg-v4-positions[data-v4-pending-view="unified"] .v4-position-row td{
+  height:60px!important;
+}
+.acg-dock-audit .acg-v4-positions[data-v4-position-view="unified"] .v4-positions-table td,
+.acg-dock-audit .acg-v4-positions[data-v4-pending-view="unified"] .v4-positions-table td{
+  padding:0 8px;font-size:11.5px;vertical-align:middle;
+}
+.acg-dock-audit .acg-v4-positions[data-v4-position-view="unified"] .v4-position-row.is-selected td:first-child{
+  padding-left:6px;
+}
+.acg-dock-audit .acg-v4-positions .v4-unified-identity{
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+  gap:3px;min-width:0;max-width:100%;white-space:nowrap;
+}
+.acg-dock-audit .acg-v4-positions .v4-unified-identity .v4-position-instrument{
+  gap:5px;max-width:100%;
+}
+.acg-dock-audit .acg-v4-positions .v4-unified-identity .v4-position-instrument strong{
+  font-size:12px;font-weight:650;
+}
+.acg-dock-audit .acg-v4-positions .v4-unified-size{
+  display:block;color:#A3A6B0;font-size:10px;line-height:13px;white-space:nowrap;
+  margin-left:33px;overflow:hidden;text-overflow:ellipsis;max-width:calc(100% - 33px);
+}
+.acg-dock-audit .acg-v4-positions .v4-unified-lines{
+  display:flex;flex-direction:column;justify-content:center;gap:3px;width:100%;
+}
+.acg-dock-audit .acg-v4-positions .v4-unified-line{
+  display:flex;justify-content:space-between;align-items:center;gap:7px;
+  min-width:0;min-height:21px;white-space:nowrap;line-height:16px;
+}
+.acg-dock-audit .acg-v4-positions .v4-unified-label{
+  color:#8F94A1;font-size:10px;line-height:14px;font-weight:500;white-space:nowrap;
+}
+.acg-dock-audit .acg-v4-positions .v4-unified-line strong{
+  color:#E8E9ED;font-size:11.5px;font-weight:600;letter-spacing:-.01em;
+  overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;
+}
+.acg-dock-audit .acg-v4-positions .v4-unified-line .v4-unified-protection{
+  display:inline-flex;align-items:center;justify-content:flex-end;max-width:100%;
+  min-width:54px;height:23px;padding:0 6px;
+  font-size:11.5px;font-weight:600;border:1px solid #35373D;
+  background:#191B20;color:#EFF0F3;border-radius:5px;
+}
+.acg-dock-audit .acg-v4-positions .v4-unified-protection:not(:disabled):hover{
+  background:#2C2E36;border-color:#777B85;
+}
+.acg-dock-audit .acg-v4-positions .v4-unified-pnl{
+  display:flex;flex-direction:column;justify-content:center;
+  align-items:flex-end;gap:4px;min-width:0;white-space:nowrap;
+}
+.acg-dock-audit .acg-v4-positions .v4-unified-pnl .v4-position-pnl{
+  font-size:14px;line-height:17px;font-weight:700;
+  font-variant-numeric:tabular-nums;
+}
+.acg-dock-audit .acg-v4-positions .v4-unified-status{
+  display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:4px;
+}
+.acg-dock-audit .acg-v4-positions .v4-unified-status strong{
+  font-size:11.5px;font-weight:650;color:#DEE0E6;
+}
+.acg-dock-audit .acg-v4-positions .v4-unified-status small{
+  color:#9A9EAA;font-size:9.5px;white-space:nowrap;
+}
+.acg-dock-audit .acg-v4-positions[data-v4-position-view="unified"] .v4-position-control,
+.acg-dock-audit .acg-v4-positions[data-v4-pending-view="unified"] .v4-position-control{
+  height:29px;font-size:11px;
+}
+.acg-dock-audit .acg-v4-positions .v4-unified-valuation-note{
+  font-size:9px;color:#E4B86D;
+}
+@container (max-width:990px){
+  .acg-dock-audit .acg-v4-positions[data-v4-position-view="unified"] .v4-position-avatar,
+  .acg-dock-audit .acg-v4-positions[data-v4-pending-view="unified"] .v4-position-avatar{display:none}
+}
