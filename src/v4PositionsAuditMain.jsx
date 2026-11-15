@@ -57,6 +57,10 @@ function PositionsQA(){
  const [error,setError]=useState(null);
  const [account,setAccount]=useState(ACCOUNT);
  const [symbol,setSymbol]=useState('EURUSD');
+ const [orderType,setOrderType]=useState('market');
+ const [lots,setLots]=useState(0.01);
+ const [sizingMode,setSizingMode]=useState('lots');
+ const [riskPercent,setRiskPercent]=useState(0.5);
  const [commands,setCommands]=useState([]);
  const [retries,setRetries]=useState(0);
  const [protectionDraft,setProtectionDraft]=useState(null);
@@ -85,6 +89,10 @@ function PositionsQA(){
  </div>}
  <DesktopTerminal readOnly={false} market={market} tick={market} markets={markets} activeSymbol={symbol}
   onSelectSymbol={setSymbol} account={account} accounts={[account]} activeAccountId={account.id}
+   orderType={orderType} onOrderTypeChange={setOrderType}
+   lots={lots} onLotsChange={setLots}
+   sizingMode={sizingMode} onSizingModeChange={setSizingMode}
+   riskPercent={riskPercent} onRiskPercentChange={setRiskPercent}
   positions={positions} pendingOrders={pending} positionHistory={history} journal={journal}
   historyLoading={historyLoading} historyError={historyError} onRetryHistory={()=>setHistoryError(null)}
   positionActivityOrders={[{id:'order-eur-1',positionId:'position-eur-1',createdAt:new Date(Date.now()-2*86400000).toISOString(),side:'SELL',requestedVolume:'0.01',type:'MARKET'}]}
