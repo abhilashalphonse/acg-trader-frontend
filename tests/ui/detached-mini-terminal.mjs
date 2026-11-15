@@ -95,15 +95,38 @@ try {
   await popup.screenshot({ path: 'tests/ui/artifacts/mini-terminal-position.png' });
   await popup.getByRole('button', { name: 'Trade', exact: true }).click();
   await popup.screenshot({ path: 'tests/ui/artifacts/mini-terminal-trade.png' });
-  check(await popup.locator('.v4-ticket').isVisible(), 'Reuses full V4 ticket with protection and sizing');
+  check(await popup.locator('[data-acg-mini-simple-ticket=true]').isVisible(),
+    'Trade tab uses original floating quick-order logic in a simple popup');
+  check(await popup.locator('.v4-ticket').count()===0,
+    'Full V4 execution terminal is not mounted inside popup');
+  check(await popup.getByRole('button',{name:'Buy at quoted price'}).count()===1
+    && await popup.getByRole('button',{name:'Sell at quoted price'}).count()===1,
+    'Simple Buy and Sell quotes are immediately visible');
+  check(await popup.getByRole('textbox',{name:'Lot size'}).isVisible(),
+    'Quantity entry is always visible');
+  await popup.getByRole('button',{name:'Pending',exact:true}).click();
+  await popup.getByRole('textbox',{name:'Pending entry price'}).waitFor();
+  check(await popup.getByRole('textbox',{name:'Pending entry price'}).isDisabled(),
+    'Pending entry waits for original chart planning instead of inventing an order');
+  await popup.getByRole('button',{name:'Market',exact:true}).click();
+  const riskSwitch=popup.getByRole('button',{name:'Toggle mini risk sizing'});
+  if(await riskSwitch.isEnabled()){
+    await riskSwitch.click();
+    check(await popup.getByRole('textbox',{name:'Risk percent'}).isVisible(),
+      'Simple popup preserves original risk-based sizing');
+    await riskSwitch.click();
+  }
+  check(await popup.getByRole('textbox',{name:'Lot size'}).isEnabled(),
+    'Lots remain editable after returning from risk mode');
   check(await popup.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'No horizontal window overflow');
-  await fallback.evaluate(() => window.v4PositionsQA.setAccount({ equity: 54321.12 }));
-  await popup.getByText('54,321.12 USD', { exact: true }).waitFor();
-  check(true, 'Regular window receives updated account equity');
+  await fallback.evaluate(() => window.v4PositionsQA.setAccount({ freeMargin: 54321.12 }));
+  await popup.getByText('$54,321.12', { exact: true }).waitFor();
+  check(true, 'Popup receives updated authoritative free margin without footer');
   await popup.setViewportSize({ width: 320, height: 500 });
   check(await popup.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Narrow resized window fits');
   await fallback.bringToFront();
-  check(await popup.locator('.v4-ticket').count() === 1, 'Terminal remains mounted while opener is active');
+  check(await popup.locator('[data-acg-mini-simple-ticket=true]').count() === 1,
+    'Quick-order widget remains mounted while opener is active');
   await popup.close();
   await fallback.getByRole('button', { name: 'Pop out mini terminal' }).waitFor();
   check(await fallback.evaluate(() => window.v4PositionsQA.commands.length === 0), 'Window lifecycle and navigation never submit a trade');
