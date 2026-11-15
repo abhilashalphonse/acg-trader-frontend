@@ -13,7 +13,7 @@ try{
    }));
    window.localStorage.removeItem('acg-v4-positions-view-v1');
  });
- const response=await page.goto('http://127.0.0.1:5174/v4-positions-audit.html?acg_v4_audit=1',{waitUntil:'domcontentloaded'});
+ const response=await page.goto('http://127.0.0.1:5174/v4-positions-audit.html?acg_v4_audit=1&acg_dock_audit=1',{waitUntil:'domcontentloaded'});
  eq(response?.status(),200,'V4 workspace corrections fixture responds');
  const dock=page.locator('[data-v4-positions="true"]');
  await dock.waitFor({state:'visible'});
@@ -129,7 +129,7 @@ try{
 
  // Keep user-controlled dock heights intact when the viewport allows.
  const densityPage=await browser.newPage({viewport:{width:1105,height:910}});
- const auditUrl='http://127.0.0.1:5174/v4-positions-audit.html?acg_v4_audit=1';
+ const auditUrl='http://127.0.0.1:5174/v4-positions-audit.html?acg_v4_audit=1&acg_dock_audit=1';
  await densityPage.goto(auditUrl,{waitUntil:'domcontentloaded'});
  await densityPage.evaluate(()=>localStorage.setItem('acg-trader-desktop-layout-v2',JSON.stringify({
    dockHeight:420,sidebarCollapsed:false,dockCollapsed:false,sidebarWidth:360,
