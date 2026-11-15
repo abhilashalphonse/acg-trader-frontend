@@ -107,20 +107,20 @@ try {
   check(await popup.locator('.acg-mini-footer').count()===0,'Mini terminal never renders a footer');
   const fallbackHeight=await popup.evaluate(()=>innerHeight);
   await popup.getByRole('button', { name: 'Orders (1)', exact: true }).click();
-  check(await popup.evaluate(()=>innerHeight===fallbackHeight),
+  check(await popup.evaluate(expected=>innerHeight===expected,fallbackHeight),
     'Regular popup height stays unchanged on Orders tab');
   check((await popup.locator('.acg-mini-row').innerText()).includes('SL / TP'),
     'Mini Pending row also exposes protection and status');
   await popup.locator('.acg-mini-row').click();
   check(await popup.locator('.acg-mini-back').isVisible(), 'Pending order editor works in pop-out');
   await popup.getByRole('button', { name: 'Positions (2)', exact: true }).click();
-  check(await popup.evaluate(()=>innerHeight===fallbackHeight),
+  check(await popup.evaluate(expected=>innerHeight===expected,fallbackHeight),
     'Regular popup height stays unchanged on Positions tab');
   await popup.locator('.acg-mini-row').first().click();
   check(await popup.locator('.acg-mini-back').isVisible(), 'Position editor works in pop-out');
   await popup.screenshot({ path: 'tests/ui/artifacts/mini-terminal-position.png' });
   await popup.getByRole('button', { name: 'Trade', exact: true }).click();
-  check(await popup.evaluate(()=>innerHeight===fallbackHeight),
+  check(await popup.evaluate(expected=>innerHeight===expected,fallbackHeight),
     'Regular popup height stays unchanged on Trade tab');
   await popup.screenshot({ path: 'tests/ui/artifacts/mini-terminal-trade.png' });
   const density=await popup.evaluate(()=>{
