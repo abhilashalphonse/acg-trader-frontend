@@ -100,9 +100,16 @@ function Review(){
   </header>
   <section className="dock-review-settings">
     <div><strong>Responsive desktop preview</strong><p>Select a real layout width, inspect every tab and view, or drag the dock edge. Wider frames scroll horizontally; all trading actions are disabled.</p></div>
+    <div className="dock-review-preview-actions">
+      <a className="dock-review-full-terminal-link"
+        href="/v4-positions-audit.html?acg_v4_audit=1&public_review=1" target="_blank" rel="noopener noreferrer"
+        title="Open the real ACG Trader desktop component with mock positions, no API trading">
+        View in full terminal ↗
+      </a>
     <div className="dock-review-device-list" aria-label="Review viewport widths">
       {DEVICE_PRESETS.map(([id,label])=><button type="button" key={id} aria-pressed={preset===id}
         className={preset===id?'is-active':''} onClick={()=>setPreset(id)}>{label}</button>)}
+    </div>
     </div>
   </section>
   <main className="dock-review-stage">
@@ -139,11 +146,11 @@ function Review(){
         {collapsed?<PanelBottomOpen size={15}/>:<PanelBottomClose size={15}/>}
         {collapsed?'Open dock':'Collapse dock'}
        </button>
-       <span>Dock {effectiveHeight}px · Toolbar 44px · Table header 27px · Trades 34–36px</span>
+       <span>Dock {effectiveHeight}px · Toolbar 44px · Compact trades 46px · Risk / Execution headers 27px</span>
       </div>
     </div>
   </main>
-  <p className="dock-review-footnote">This is the actual V4 Positions/Pending/Activity dock UI rendered with isolated mock data. It is not connected to the authenticated trading terminal, prices or order execution.</p>
+  <p className="dock-review-footnote">This isolated design review uses the real V4 dock components with invented sample data. For chart-space review, open the full terminal fixture; both pages are disconnected from live execution.</p>
  </div>;
 }
 createRoot(document.getElementById('v4-dock-preview-root')).render(<Review/>);
