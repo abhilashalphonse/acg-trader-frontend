@@ -65,3 +65,13 @@ html,body,#v4-dock-preview-root{margin:0;min-height:100%;background:#070709;colo
  .dock-review-device-list button{font-size:10px;padding:7px}
 }
 @media(prefers-reduced-motion:reduce){.dock-review-page *{animation:none!important;transition:none!important}}
+
+.dock-review-preview-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dock-review-full-terminal-link{
+  display:inline-flex;align-items:center;justify-content:center;min-height:34px;
+  padding:0 12px;border-radius:7px;border:1px solid #565862;
+  background:#25272D;color:#F2F3F5;text-decoration:none;
+  font-size:11px;font-weight:650;white-space:nowrap;
+}
+.dock-review-full-terminal-link:hover{background:#31343B;border-color:#9498A4}
+.dock-review-full-terminal-link:focus-visible{outline:2px solid #F4F4F5;outline-offset:2px}
