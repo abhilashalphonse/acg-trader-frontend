@@ -1,18 +1,19 @@
-import React,{useEffect,useState} from 'react';
+import React,{useState} from 'react';
 import {ChevronDown,ChevronRight,Maximize2,Minimize2,MoreHorizontal} from 'lucide-react';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
-import {PositionsAccountSummary,PositionsToolbar} from './PositionsWorkspaceChromeV4.jsx';
+import {PositionsAccountSummary} from './PositionsWorkspaceChromeV4.jsx';
 import {instrumentForSymbol,formatInstrumentPrice} from '../../utils/instrumentFormatting.js';
 import {estimateRequiredMargin,estimatePositionPnlAtPrice} from '../../utils/tradingRisk.js';
 import {finiteOrNull,fixedNumber,money,positionExposure} from '../../utils/v4PositionsPresentation.js';
 import './PositionsDockV4.css';
 
 const COLUMN_SPECS={
+  unified:[['Trade','21%','left'],['Trigger / limit','18%','right'],['SL / TP','18%','right'],['Est. cost / risk','18%','right'],['Status','12%','right'],['Actions','13%','right']],
   compact:[['Instrument','23%','left'],['Type','14%','left'],['Size','13%','right'],['Trigger / Limit','23%','right'],['Status','13%','right'],['Actions','14%','right']],
   risk:[['Instrument','22%','left'],['Projected exposure','19%','right'],['Est. margin','13%','right'],['Stop loss','13%','right'],['Take profit','13%','right'],['Est. risk','12%','right'],['Status','8%','right']],
   execution:[['Instrument','22%','left'],['Type','13%','left'],['Trigger','13%','right'],['Limit','13%','right'],['Created','16%','left'],['Expires','14%','left'],['Order ID','9%','right']],
 };
-const MIN_WIDTH={compact:760,risk:960,execution:900};
+const MIN_WIDTH={unified:980,compact:760,risk:960,execution:900};
 const dateParts=value=>{
   const d=new Date(value);
   if(!value||!Number.isFinite(d.getTime()))return null;
@@ -77,7 +78,38 @@ function PendingRow({order,market,account,view,selected,expanded,onSelect,onExpa
         <span className="v4-position-avatar" aria-hidden="true"><InstrumentAvatar instrument={market} size={24}/></span>
         <strong title={label}>{label}</strong>
         <span className={'v4-position-side '+(side==='BUY'?'is-buy':'is-sell')}>{side}</span>
-      </span></PendingCell>
+      </span>{view==='unified'&&<span className="v4-unified-size">{typ} · {fixedNumber(order.volume,2)} lots</span>}</PendingCell>
+      {view==='unified'&&<>
+        <PendingCell><span className="v4-unified-lines">
+          <span className="v4-unified-line"><span className="v4-unified-label">Trigger</span><strong>{price}</strong></span>
+          <span className="v4-unified-line"><span className="v4-unified-label">Limit</span><strong>{stopLimit?orderPrice(order,market,'limitPrice'):'—'}</strong></span>
+        </span></PendingCell>
+        <PendingCell><span className="v4-unified-lines">
+          {['sl','tp'].map(field=><span className="v4-unified-line" key={field}>
+            <span className="v4-unified-label">{field.toUpperCase()}</span>
+            <button type="button" className="v4-position-protection v4-unified-protection"
+              aria-label={(order[field]==null?'Add ':'Edit ')+(field==='sl'?'stop loss':'take profit')+' for '+label}
+              title="Review pending order protection" disabled={readOnly}
+              onClick={event=>{event.stopPropagation();onManage(id);}}>
+              {order[field]==null?'+ Add':orderPrice(order,market,field)}
+            </button>
+          </span>)}
+        </span></PendingCell>
+        <PendingCell><span className="v4-unified-lines">
+          <span className="v4-unified-line"><span className="v4-unified-label">Est. margin</span><strong title="Only estimated if filled; no margin is reserved">{money(proj.margin,account.currency)}</strong></span>
+          <span className="v4-unified-line"><span className="v4-unified-label">Est. SL loss</span><strong>{proj.loss==null?'—':money(proj.loss,account.currency)}</strong></span>
+        </span></PendingCell>
+        <PendingCell><span className="v4-unified-status"><strong>{status}</strong><small title={created?created.date+' · '+created.time:'Creation time not recorded'}>{created?'Created '+created.date:'Time unavailable'}</small></span></PendingCell>
+        <PendingCell><span className="v4-position-actions">
+          <button className="v4-position-control v4-position-close" type="button"
+            onClick={event=>{event.stopPropagation();onManage(id);}}>Manage</button>
+          <button className="v4-position-control v4-position-more" type="button"
+            aria-label={'Review cancel for '+label} disabled={readOnly}
+            title="Review pending order cancellation" onClick={event=>{event.stopPropagation();onReviewCancel(id);}}>
+            <MoreHorizontal size={16}/>
+          </button>
+        </span></PendingCell>
+      </>}
       {view==='compact'&&<>
         {shown('Type')&&<PendingCell left label="Order type">{typ}</PendingCell>}
         {shown('Size')&&<PendingCell label="Size">{fixedNumber(order.volume,2)} lots</PendingCell>}
@@ -147,12 +179,7 @@ export default function PendingDockV4({
   collapsed=false,compactDock=false,expanded=false,onToggleExpanded=()=>{},
   loading=false,error=null,onRetry=()=>{},readOnly=false,
 }){
-  const [view,setView]=useState(()=>{
-    if(typeof window==='undefined')return 'compact';
-    try {const stored=window.localStorage.getItem('acg-v4-dock-audit-pending-view-v1');return ['compact','risk','execution'].includes(stored)?stored:'compact';}
-    catch {return 'compact';}
-  });
-  useEffect(()=>{try {window.localStorage.setItem('acg-v4-dock-audit-pending-view-v1',view);}catch{ /* no storage */ }},[view]);
+  const view='unified';
   const [expandedIds,setExpandedIds]=useState(()=>new Set());
   const ids=orders.map(order=>String(order.id));
   const shownOrders=orders;
@@ -167,7 +194,6 @@ export default function PendingDockV4({
       </nav>
       <div className="v4-positions-header-right">
         <PositionsAccountSummary account={account} positions={positions} markets={markets}/>
-        <PositionsToolbar entity="order" view={view} onView={setView}/>
         <button type="button" className="v4-positions-expand" onClick={onToggleExpanded}
           aria-label={expanded?'Restore pending workspace':'Expand pending workspace'}>
           {expanded?<Minimize2 size={16}/>:<Maximize2 size={16}/>}
@@ -178,7 +204,7 @@ export default function PendingDockV4({
       <div className="v4-positions-scroller">
         <table className="v4-positions-table" style={{minWidth:MIN_WIDTH[view]}}>
           <colgroup>{columns.map(([name,width])=><col key={name} style={{width}}/>)}</colgroup>
-          <thead className={view==='compact'?'v4-compact-head':''}><tr>{columns.map(([name,,align])=><th key={name} scope="col" className={align==='left'?'is-left':'is-right'}>{name}</th>)}</tr></thead>
+          <thead className={view==='unified'||view==='compact'?'v4-compact-head':''}><tr>{columns.map(([name,,align])=><th key={name} scope="col" className={align==='left'?'is-left':'is-right'}>{name}</th>)}</tr></thead>
           <tbody>
             {loading&&!orders.length&&Array.from({length:3},(_,i)=><tr key={i} className="v4-positions-skeleton" aria-hidden="true">{columns.map(([name])=><td key={name}><span/></td>)}</tr>)}
             {!loading&&!error&&!orders.length&&<tr><td colSpan={columns.length}><div className="v4-positions-empty"><strong>No pending orders</strong><span>Orders awaiting execution will appear here.</span></div></td></tr>}
