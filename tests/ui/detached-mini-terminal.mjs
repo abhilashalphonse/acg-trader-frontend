@@ -51,7 +51,7 @@ try {
       && content.scrollHeight<=content.clientHeight+4;
   }), 'Default 390px PiP fits compact trade without duplicated quotes or vertical scrolling');
   await pip(() => [...documentPictureInPicture.window.document.querySelectorAll('nav button')].find(b => b.textContent.startsWith('Positions')).click());
-  check(await pip(()=>documentPictureInPicture.window.innerHeight===nativeHeight),
+  check(await page.evaluate(expected=>documentPictureInPicture.window.innerHeight===expected,nativeHeight),
     'Native popup height stays unchanged when switching to Positions');
   await page.waitForFunction(() => documentPictureInPicture.window.document.querySelectorAll('.acg-mini-row').length === 2);
   check(await pip(() => !documentPictureInPicture.window.document.querySelector('.acg-mini-footer')),
