@@ -36,6 +36,11 @@ try {
       localStorage.removeItem('acg-trader-desktop-dock-audit-layout-v1');
       sessionStorage.setItem('all-empty-tabs-seeded','1');
     }
+    if(!localStorage.getItem('acg-trader-desktop-layout-v2')){
+      localStorage.setItem('acg-trader-desktop-layout-v2',JSON.stringify({
+        dockHeight:286,dockCollapsed:false,sidebarCollapsed:false,sidebarWidth:360,
+      }));
+    }
   });
   await page.goto(url,{waitUntil:'domcontentloaded'});
   await page.locator('[data-acg-dock-audit=true]').waitFor({state:'visible'});
@@ -115,6 +120,7 @@ try {
   await page.goto(url.replace('&acg_dock_audit=1',''),{waitUntil:'domcontentloaded'});
   const original=page.locator('[data-v4-positions=true]');
   await original.waitFor({state:'visible'});
+  await original.getByRole('searchbox',{name:'Find position'}).waitFor({state:'attached',timeout:12000});
   assert.equal(await original.getByRole('searchbox',{name:'Find position'}).count(),1,
     'Unflagged original V4 is untouched');
   console.log('V4_ALL_EMPTY_TABS_NO_FOOTER_PASS');
