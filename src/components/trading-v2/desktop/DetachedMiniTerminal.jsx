@@ -64,8 +64,8 @@ export default function DetachedMiniTerminal({
     try {
       const pip = Boolean(window.documentPictureInPicture?.requestWindow);
       child = pip
-        ? await window.documentPictureInPicture.requestWindow({ width: 390, height: 480 })
-        : window.open('about:blank', '_blank', 'popup=yes,width=390,height=480');
+        ? await window.documentPictureInPicture.requestWindow({ width: 360, height: 480 })
+        : window.open('about:blank', '_blank', 'popup=yes,width=360,height=480');
       if (!child) throw new Error('Allow pop-ups for ACG Trader, then try again.');
       if (!mounted.current) { child.close(); return; }
       windowRef.current = child;
