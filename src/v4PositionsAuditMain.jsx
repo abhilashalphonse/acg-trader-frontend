@@ -69,9 +69,9 @@ function PositionsQA(){
  };
  return <>
  {publicReview&&<div role="status" style={{position:'relative',zIndex:50,display:'flex',alignItems:'center',justifyContent:'center',height:30,background:'#191B20',borderBottom:'1px solid #43464D',color:'#E5E6EA',font:'500 11px Inter,system-ui,sans-serif'}}>
-  ACG Trader V4 · FULL TERMINAL DESIGN REVIEW · Simulated account / no market feed / trading disabled
+  ACG Trader V4 · FULL TERMINAL DESIGN REVIEW · Simulated account · No real market data · Actions affect mock data only
  </div>}
- <DesktopTerminal readOnly={publicReview} market={market} tick={market} markets={markets} activeSymbol={symbol}
+ <DesktopTerminal readOnly={false} market={market} tick={market} markets={markets} activeSymbol={symbol}
   onSelectSymbol={setSymbol} account={account} accounts={[account]} activeAccountId={account.id}
   positions={positions} pendingOrders={PENDING} positionHistory={HISTORY_FIXTURE} journal={JOURNAL_FIXTURE}
   positionActivityOrders={[{id:'order-eur-1',positionId:'position-eur-1',createdAt:new Date(Date.now()-2*86400000).toISOString(),side:'SELL',requestedVolume:'0.01',type:'MARKET'}]}
@@ -88,7 +88,7 @@ function PositionsQA(){
    setPositions(v=>v.filter(p=>p.id!==id));
    return true;
   }}
-  onManualOrder={()=>{throw Error('Fixture must never place an order');}}
+  onManualOrder={()=>{if(publicReview)return false;throw Error('Fixture must never place an order');}}
  />
  </>;
 }
