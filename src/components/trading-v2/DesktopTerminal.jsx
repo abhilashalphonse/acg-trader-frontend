@@ -817,9 +817,9 @@ export default function DesktopTerminal({
     heightBounds.dockMin,
     heightBounds.dockMax,
   );
-  // An empty audit Positions/Pending workspace requires only the 44px toolbar.
-  // Counts are authoritative. Loading and errors must still reveal their bodies,
-  // and intentional resizing must always override the automatic compact mode.
+  // In the audit, an empty Positions workspace keeps its two-line message
+  // visible in a short 120px region, with no vacant bottom footer/scrollbar.
+  // Pending stays toolbar-only when empty. Explicit user sizing still wins.
   const auditEmptyDock = DOCK_AUDIT_ENABLED
     && !desktopLayout.dockManuallyResized && !desktopLayout.dockCollapsed
     && !positionsLoading && !positionsError
@@ -829,7 +829,9 @@ export default function DesktopTerminal({
     ? expandedDockHeight
     : desktopLayout.dockCollapsed
       ? collapsedDockHeight
-      : auditEmptyDock ? collapsedDockHeight : desktopLayout.dockHeight;
+      : auditEmptyDock
+        ? (activeAuditDockTab==='positions' ? 120 : collapsedDockHeight)
+        : desktopLayout.dockHeight;
   const dockBodyVisible = positionsExpanded
     || (!desktopLayout.dockCollapsed && dockHeight > compactDockThreshold);
   const tradeSidebarOpen = !desktopLayout.sidebarCollapsed && activeNav === 'trade' && !positionsExpanded;
@@ -893,11 +895,6 @@ export default function DesktopTerminal({
     window.addEventListener('pointercancel', finish, { once: true });
   };
   const toggleDock = () => {
-    // The rail's “Open dock” control explicitly overrides auto-compact.
-    if (auditEmptyDock && !positionsExpanded) {
-      setDesktopLayout(current=>({...current,dockCollapsed:false,dockManuallyResized:true}));
-      return;
-    }
     if (positionsExpanded) {
       setPositionsExpanded(false);
       setDesktopLayout(current => ({
