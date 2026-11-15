@@ -13,7 +13,7 @@ try{
     }));
     window.localStorage.removeItem('acg-v4-positions-view-v1');
   });
-  const response=await page.goto('http://127.0.0.1:5174/v4-positions-audit.html?acg_v4_audit=1',{waitUntil:'domcontentloaded'});
+  const response=await page.goto('http://127.0.0.1:5174/v4-positions-audit.html?acg_v4_audit=1&acg_dock_audit=1',{waitUntil:'domcontentloaded'});
   eq(response?.status(),200,'Full workspace fixture startup');
   const dock=page.locator('[data-v4-positions="true"]');
   await dock.waitFor({state:'visible'});
