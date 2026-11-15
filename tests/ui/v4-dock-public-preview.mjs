@@ -29,6 +29,18 @@ try{
  const dock=page.locator('[data-v4-positions="true"]');
  assert.equal(await dock.count(),1,'Real V4 Positions dock rendered');checks++;
  assert.equal(await dock.locator('tr[data-v4-position-id]').count(),2,'Two sample trades rendered');checks++;
+ const compactGeometry=await dock.evaluate(el=>{
+   const head=el.querySelector('.v4-compact-head').getBoundingClientRect();
+   const rows=[...el.querySelectorAll('tr[data-v4-position-id]')].map(row=>row.getBoundingClientRect().height);
+   return {headHeight:head.height,rows,
+     labels:[...el.querySelectorAll('.v4-compact-label')].map(label=>label.textContent)};
+ });
+ assert.ok(compactGeometry.headHeight<=1,'Compact has no redundant column-heading strip');checks++;
+ assert.ok(compactGeometry.rows.every(height=>height===46),'Compact trades are 46px with labels');checks++;
+ for(const label of ['Size','Current','Floating P&L']){
+   assert.ok(compactGeometry.labels.includes(label),'Compact trade labels '+label);checks++;
+ }
+
  const before=await dock.evaluate(el=>{
    const header=el.querySelector('.v4-positions-header').getBoundingClientRect();
    const list=el.querySelector('.v4-positions-scroller').getBoundingClientRect();
@@ -53,6 +65,9 @@ try{
 
  await dock.getByRole('button',{name:'Risk',exact:true}).click();
  assert.equal(await dock.getAttribute('data-v4-position-view'),'risk','Risk mode works');checks++;
+ const riskHeadingHeight=await dock.locator('.v4-positions-table thead').evaluate(el=>el.getBoundingClientRect().height);
+ assert.equal(riskHeadingHeight,27,'Risk preserves readable structured table headings');checks++;
+
  await page.getByRole('button',{name:'Laptop · 1024'}).click();
  assert.equal(await dock.locator('.v4-positions-header').evaluate(el=>el.getBoundingClientRect().height),44,'Laptop still single-row');checks++;
  assert.equal(Math.round(await page.locator('.dock-review-screen').evaluate(el=>el.getBoundingClientRect().width)),1024,
@@ -84,6 +99,24 @@ try{
    assert.equal(await homepage.locator('.dock-review-page').count(),1,'PR homepage redirects to public design review');
    await homepage.close();
    checks++;
+   const terminal=await browser.newPage({viewport:{width:1280,height:800}});
+   const terminalUrl=new URL('/v4-positions-audit.html?acg_v4_audit=1&public_review=1',target).toString();
+   const terminalRes=await terminal.goto(terminalUrl,{waitUntil:'domcontentloaded',timeout:25000});
+   assert.equal(terminalRes?.status(),200,'Public full-terminal HTML exists');checks++;
+   await terminal.locator('[data-v4-positions="true"]').waitFor({state:'visible',timeout:20000});
+   assert.equal(await terminal.getByText(/FULL TERMINAL DESIGN REVIEW/).count(),1,
+     'Full terminal identifies mock data and disabled trading');checks++;
+   assert.equal(await terminal.locator('tr[data-v4-position-id]').count(),2,
+     'Real terminal renders the same two-position trade workspace');checks++;
+   const terminalRows=await terminal.locator('[data-v4-positions="true"]').evaluate(el=>{
+     const rect=el.querySelector('.v4-positions-scroller').getBoundingClientRect();
+     return [...el.querySelectorAll('tr[data-v4-position-id]')].filter(row=>{
+       const box=row.getBoundingClientRect();
+       return box.top>=rect.top-1&&box.bottom<=rect.bottom+1;
+     }).length;
+   });
+   assert.equal(terminalRows,2,'Full terminal displays two complete trading rows');checks++;
+   await terminal.close();
  }
  console.log('V4_DOCK_PUBLIC_PREVIEW_PASS',JSON.stringify({checks,before}));
  await page.close();
