@@ -23,7 +23,6 @@ export default function ActivityDockV4({
   historyPositionFilter=null,onClearHistoryPosition=()=>{},positions=[],positionActivityOrders=[],positionActivityDeals=[],positionActivityFills=[],
 }){
   const [rangeByTab,setRangeByTab]=useState({history:'30D',journal:'30D'});
-  const [showAccount,setShowAccount]=useState(true);
   const range=rangeByTab[tab]||'30D';
   const isHistory=tab==='history';
   const historyScope=isHistory&&historyPositionFilter?String(historyPositionFilter):null;
@@ -48,7 +47,24 @@ export default function ActivityDockV4({
         </button>)}
       </nav>
       <div className="v4-positions-header-right">
-        {showAccount&&<PositionsAccountSummary account={account}/>}
+        <PositionsAccountSummary account={account} positions={positions} markets={markets}/>
+        <div className="v4-activity-inline" aria-label={isHistory?'History controls':'Journal controls'}>
+          <span className="v4-activity-context">{isHistory?'Closed trades':'Local journal'}</span>
+          <span className="v4-activity-records" title={data.length+' records in '+range}>{data.length} {data.length===1?'record':'records'}</span>
+          {historyScope&&<span className="v4-activity-position-filter" title={'Position '+historyScope}>
+            Position {historyScope}
+            <button type="button" onClick={onClearHistoryPosition} aria-label="Show all position history">×</button>
+          </span>}
+          <select className="v4-activity-range" value={range}
+            aria-label={isHistory?'History date range':'Journal date range'}
+            onChange={event=>setRangeByTab(current=>({...current,[tab]:event.target.value}))}>
+            {V4_ACTIVITY_RANGES.map(option=><option value={option} key={option}>{option}</option>)}
+          </select>
+          {pnlValid&&<span className={'v4-activity-header-pnl v4-position-pnl '+pnlTone(pnl)}
+            title={'Realized P&L '+money(pnl,currency,true)}>
+            Realized {money(pnl,currency,true)}
+          </span>}
+        </div>
         <button type="button" className="v4-positions-expand" onClick={onToggleExpanded}
           aria-label={expanded?'Restore workspace':'Expand workspace'} title={expanded?'Restore workspace':'Expand workspace'}>
           {expanded?<Minimize2 size={16}/>:<Maximize2 size={16}/>}
@@ -56,26 +72,6 @@ export default function ActivityDockV4({
       </div>
     </div>
     {!collapsed&&!compactDock&&<>
-      <div className="v4-activity-toolbar">
-        <div className="v4-activity-summary">
-          <strong>{historyScope?'Position history':isHistory?'Closed positions':'Local activity journal'}</strong>
-          {historyScope&&<span className="v4-activity-position-filter">
-            Position {historyScope}
-            <button type="button" onClick={onClearHistoryPosition} aria-label="Show all position history">Clear filter</button>
-          </span>}
-          <span>{data.length} {data.length===1?'record':'records'} in selected range</span>
-          {pnlValid&&<span>Realized P&amp;L <b className={'v4-position-pnl '+pnlTone(pnl)}>{money(pnl,currency,true)}</b></span>}
-        </div>
-        <div className="v4-activity-options">
-          <div className="v4-positions-selector" role="group" aria-label={isHistory?'History date range':'Journal date range'}>
-            {V4_ACTIVITY_RANGES.map(option=><button key={option} type="button"
-              aria-pressed={range===option} className={range===option?'is-active':''}
-              onClick={()=>setRangeByTab(current=>({...current,[tab]:option}))}>{option}</button>)}
-          </div>
-          <button type="button" className="v4-activity-toggle" aria-pressed={showAccount}
-            onClick={()=>setShowAccount(x=>!x)} title="Toggle account summary">Overview</button>
-        </div>
-      </div>
       <div className="v4-positions-scroller v4-activity-scroller">
         {historyScope&&scopedEvents.length>0&&<section className="v4-activity-position-events" aria-label="Verified position events">
           <h4>Verified order and fill events</h4>
@@ -131,10 +127,10 @@ export default function ActivityDockV4({
           <button type="button" onClick={onRetry}>Retry</button>
         </div>}
       </div>
-      <div className="v4-positions-footer">
+      {expanded&&<div className="v4-positions-footer">
         <span>{isHistory?'Closed trades':'Local journal events'} · {range}</span>
         <span>Older than 1 calendar month is not displayed</span>
-      </div>
+      </div>}
     </>}
   </div>;
 }

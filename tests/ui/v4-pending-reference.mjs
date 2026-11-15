@@ -7,12 +7,12 @@ const eq=(a,b,label)=>{assert.deepEqual(a,b,label);checks++;};
 const ok=(a,label)=>{assert.ok(a,label);checks++;};
 try{
   await page.addInitScript(()=>{
-    window.localStorage.setItem('acg-trader-desktop-layout-v2',JSON.stringify({
+    window.localStorage.setItem('acg-trader-desktop-dock-audit-layout-v1',JSON.stringify({
       dockHeight:320,sidebarCollapsed:false,dockCollapsed:false,sidebarWidth:360
     }));
     window.localStorage.removeItem('acg-v4-pending-view-v1');
   });
-  const response=await page.goto('http://127.0.0.1:5174/v4-positions-audit.html?acg_v4_audit=1',{waitUntil:'domcontentloaded'});
+  const response=await page.goto('http://127.0.0.1:5174/v4-positions-audit.html?acg_v4_audit=1&acg_dock_audit=1',{waitUntil:'domcontentloaded'});
   eq(response?.status(),200,'Full-terminal pending fixture loads');
   await page.locator('[data-v4-positions="true"]').getByRole('button',{name:/Pending/}).click();
   const pending=page.locator('[data-v4-pending="true"]');
@@ -25,7 +25,7 @@ try{
   ok((await rows().first().innerText()).includes('STOP LIMIT'),'Order type not mislabeled');
   ok((await rows().first().innerText()).includes('1.11980'),'Stop-Limit has actual limit price');
   const header=pending.locator('.v4-positions-header');
-  eq(await header.evaluate(el=>el.getBoundingClientRect().height),48,'Header matches approved 48px');
+  eq(await header.evaluate(el=>el.getBoundingClientRect().height),44,'Pending shares the 44px unified header');
   await rows().first().click();
   eq(await rows().first().getAttribute('aria-selected'),'true','Row inspection highlights pending');
   eq(await page.locator('[data-v4-manage-pending]').count(),0,'Clicking pending row never opens right side management');
@@ -56,7 +56,7 @@ try{
   eq(await page.locator('[data-v4-manage-pending="pending-eur-1"]').getByRole('dialog',{name:'Confirm order cancellation'}).count(),1,'Pending cancel opens established confirmation, not direct execution');
   const narrowBefore=await pending.locator('.v4-positions-scroller').evaluate(el=>el.scrollWidth);
   await page.setViewportSize({width:768,height:850});
-  await pending.getByRole('button',{name:'Risk',exact:true}).click();
+  await pending.getByRole('combobox',{name:'Pending orders table view'}).selectOption('risk');
   const sizes=await pending.locator('.v4-positions-scroller').evaluate(el=>({width:el.clientWidth,scroll:el.scrollWidth}));
   ok(sizes.scroll>sizes.width,'Narrow Pending Risk scrolls horizontally');
   ok(narrowBefore>0,'Dock table scroll region exists');

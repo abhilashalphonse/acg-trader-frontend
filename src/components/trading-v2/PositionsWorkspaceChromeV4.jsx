@@ -1,5 +1,6 @@
 import React from 'react';
-import { Search, Copy, Check, ChevronRight } from 'lucide-react';
+import {createPortal} from 'react-dom';
+import { Copy, Check, ChevronRight, ChevronDown, Wallet } from 'lucide-react';
 import {
   finiteOrNull, money, fixedNumber, pnlTone,
   positionExposure, positionMargin, positionOpened,
@@ -10,46 +11,120 @@ import { formatInstrumentPrice, instrumentForSymbol } from '../../utils/instrume
 import { estimatePositionPnlAtPrice } from '../../utils/tradingRisk.js';
 import { positionLifecycleEvents } from '../../utils/v4PositionLifecycle.js';
 
-// Presentation is always derived from the authoritative account and position
-// records. Never reconstruct used margin from leverage or fabricate activities.
-export function PositionsAccountSummary({ account }) {
-  const metrics=[
-    ['Equity',account?.equity,false],
-    ['Used margin',account?.usedMargin??account?.margin,false],
-    ['Free margin',account?.freeMargin,false],
-    ['Unrealized P&L',account?.floatingPnl,true],
-  ];
+// The trading-account snapshot remains authoritative. Compact labels never
+// change values and every metric remains available through the Overview control.
+function compactMoney(value,currency,signed){
+  const amount=finiteOrNull(value);
+  if(amount==null||Math.abs(amount)<1000)return money(value,currency,signed);
+  try {
+    const display=new Intl.NumberFormat('en-US',{
+      style:'currency',currency,notation:'compact',maximumFractionDigits:1,
+    }).format(amount);
+    return signed&&amount>0?'+'+display:display;
+  }catch{return money(value,currency,signed);}
+}
+const OVERVIEW_FIELDS=[
+  ['equity','Equity','Eq',false],
+  ['used','Used margin','Used',false],
+  ['free','Free margin','Free',false],
+  ['pnl','Unrealized P&L','P&L',true],
+];
+export function PositionsAccountSummary({account,positions=null,markets=[]}){
+  const [open,setOpen]=React.useState(false);
+  const buttonRef=React.useRef(null);
+  const popupRef=React.useRef(null);
+  const [placement,setPlacement]=React.useState({left:8,top:8});
   const currency=account?.currency||'USD';
+  const amounts={
+    equity:account?.equity,
+    used:account?.usedMargin??account?.margin,
+    free:account?.freeMargin,
+    pnl:account?.floatingPnl,
+  };
+  const snapshot=OVERVIEW_FIELDS.map(([key,label,short,signed])=>({
+    key,label,short,signed,value:amounts[key],
+    full:money(amounts[key],currency,signed),
+  }));
+  const exposure=Array.isArray(positions)?portfolioExposureSummary(positions,markets):null;
+  const show=()=>{
+    const rect=buttonRef.current?.getBoundingClientRect();
+    if(rect){
+      const width=296,height=exposure?272:222;
+      const left=Math.max(8,Math.min(window.innerWidth-width-8,rect.right-width));
+      const top=rect.top-height-8>=8?rect.top-height-8:Math.min(window.innerHeight-height-8,rect.bottom+7);
+      setPlacement({left,top});
+    }
+    setOpen(value=>!value);
+  };
+  React.useEffect(()=>{
+    if(!open)return undefined;
+    const outside=event=>{
+      if(popupRef.current?.contains(event.target)||buttonRef.current?.contains(event.target))return;
+      setOpen(false);
+    };
+    const escape=event=>{if(event.key==='Escape'){setOpen(false);buttonRef.current?.focus();}};
+    document.addEventListener('pointerdown',outside);
+    document.addEventListener('keydown',escape);
+    return ()=>{document.removeEventListener('pointerdown',outside);document.removeEventListener('keydown',escape);};
+  },[open]);
   return <div className="v4-positions-account-summary" aria-label="Account trading metrics">
-    {metrics.map(([label,value,signed])=><div className="v4-positions-metric" key={label}>
-      <span>{label}</span>
-      <strong className={signed&&finiteOrNull(value)!=null?'v4-position-pnl '+pnlTone(value):''}
-        title={label+' · '+currency}>{money(value,currency,signed)}</strong>
+    {snapshot.map(metric=><div className={'v4-positions-metric metric-'+metric.key} key={metric.key}
+      title={metric.label+' · '+metric.full}>
+      <span className="v4-positions-metric-label">
+        <span className="v4p-label-full">{metric.label}</span>
+        <span className="v4p-label-short" aria-hidden="true">{metric.short}</span>
+      </span>
+      <strong className={metric.signed&&finiteOrNull(metric.value)!=null?'v4-position-pnl '+pnlTone(metric.value):''}
+        aria-label={metric.label+' '+metric.full}>
+        <span className="v4p-money-full">{metric.full}</span>
+        <span className="v4p-money-compact" aria-hidden="true">{compactMoney(metric.value,currency,metric.signed)}</span>
+      </strong>
     </div>)}
+    <button type="button" className="v4-account-overview-trigger" ref={buttonRef} onClick={show}
+      aria-expanded={open} aria-haspopup="dialog" aria-label="Account overview and margin details"
+      title="View all account metrics and verified exposure">
+      <Wallet size={14} aria-hidden="true"/><span>Overview</span><ChevronDown size={12} aria-hidden="true"/>
+    </button>
+    {open&&createPortal(
+      <section ref={popupRef} className="v4-account-overview-popover" role="dialog"
+        aria-label="Account overview" style={{position:'fixed',...placement,zIndex:9999}}>
+        <div className="v4-account-overview-title">
+          <strong>Account overview</strong>
+          <span>{account?.valuationStatus||'Account snapshot'}</span>
+        </div>
+        <div className="v4-account-overview-grid">
+          {snapshot.map(metric=><div className="v4-account-overview-field" key={metric.key}>
+            <span>{metric.label}</span>
+            <strong className={metric.signed?'v4-position-pnl '+pnlTone(metric.value):''}>
+              {metric.full}
+            </strong>
+          </div>)}
+        </div>
+        {exposure&&<div className="v4-account-exposure">
+          <div className="v4-account-exposure-title">Verified portfolio exposure</div>
+          <div><span>Gross (USD)</span><strong title="Sum of absolute notionals, only when every position is priced">
+            {exposure.complete?money(exposure.gross,'USD'):'Unavailable · '+exposure.priced+'/'+exposure.total+' priced'}
+          </strong></div>
+          <div><span>Net directional (USD)</span><strong title="Signed sum, not a hedging or risk offset measure">
+            {exposure.complete?money(exposure.net,'USD',true):'Unavailable'}
+          </strong></div>
+        </div>}
+      </section>,document.body
+    )}
   </div>;
 }
-// Fixed, deliberate view presets: no user-editable Columns control.
-export function PositionsToolbar({view,onView,query,onQuery,instrument,onInstrument,instruments,entity='position'}) {
-  return <div className="v4-positions-toolbar">
-    <div className="v4-positions-filters">
-      <label className="v4-positions-search">
-        <Search size={16} aria-hidden="true"/>
-        <input type="search" value={query} onChange={e=>onQuery(e.target.value)}
-          placeholder={'Find '+entity+'...'} aria-label={'Find '+entity}/>
-      </label>
-      <select className="v4-positions-instrument-filter" aria-label="Filter by instrument"
-        value={instrument} onChange={e=>onInstrument(e.target.value)}>
-        <option value="">All instruments</option>
-        {instruments.map(symbol=><option value={symbol} key={symbol}>{symbol}</option>)}
-      </select>
+export function PositionsToolbar({view,onView,entity='position'}){
+  const label=entity==='order'?'Pending orders table view':'Positions table view';
+  return <div className="v4-positions-tools">
+    <div className="v4-positions-selector" role="group" aria-label={label}>
+      {['compact','risk','execution'].map(mode=><button key={mode} type="button"
+        aria-pressed={mode===view} className={mode===view?'is-active':''}
+        onClick={()=>onView(mode)}>{mode[0].toUpperCase()+mode.slice(1)}</button>)}
     </div>
-    <div className="v4-positions-tools">
-      <div className="v4-positions-selector" role="group" aria-label={entity==='order'?'Pending orders table view':'Positions table view'}>
-        {['compact','risk','execution'].map(mode=><button key={mode} type="button"
-          aria-pressed={mode===view} className={mode===view?'is-active':''}
-          onClick={()=>onView(mode)}>{mode[0].toUpperCase()+mode.slice(1)}</button>)}
-      </div>
-    </div>
+    <select className="v4-positions-view-select" aria-label={label} value={view}
+      onChange={event=>onView(event.target.value)}>
+      <option value="compact">Compact</option><option value="risk">Risk</option><option value="execution">Execution</option>
+    </select>
   </div>;
 }
 function DisplayField({label,value,action=null}){

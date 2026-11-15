@@ -13,7 +13,7 @@ import {
 import { PositionsAccountSummary,PositionsToolbar,PositionsExpandedDetails,PositionsExposureFooter } from './PositionsWorkspaceChromeV4.jsx';
 import './PositionsDockV4.css';
 
-const STORAGE_KEY='acg-v4-positions-view-v1';
+const STORAGE_KEY='acg-v4-dock-audit-positions-view-v1';
 const columns={
   compact:[['Instrument','26%','left'],['Size','15%','right'],['Current price','21%','right'],['Unrealized P&L','20%','right'],['Actions','18%','right']],
   risk:[['Instrument','20%','left'],['Exposure','12%','right'],['Margin','10%','right'],['Stop loss','10%','right'],['Take profit','10%','right'],['Risk at stop','10%','right'],['Unrealized P&L','13%','right'],['Actions','15%','right']],
@@ -74,9 +74,12 @@ function InstrumentCell({position,instrument,onToggle,expanded}){
     <span className={'v4-position-side '+(side==='BUY'?'is-buy':'is-sell')}>{side||'—'}</span>
   </span>;
 }
-function Cell({children,align='right',title,className=''}) {
+function Cell({children,align='right',title,className='',label=null}) {
   return <td className={'v4-position-cell '+(align==='left'?'is-left':'is-right')+' '+className} title={title}>
-    <span className="v4-position-cell-inner">{children}</span>
+    {label?<span className="v4-compact-cell">
+      <span className="v4-compact-label" aria-hidden="true">{label}</span>
+      <span className="v4-compact-value">{children}</span>
+    </span>:<span className="v4-position-cell-inner">{children}</span>}
   </td>;
 }
 function Amount({position,account}){
@@ -104,9 +107,9 @@ function TableRow({position,instrument,markets,account,view,visibleColumns,selec
       onKeyDown={event=>{if(event.target!==event.currentTarget)return;if(event.key==='Enter'||event.key===' '){event.preventDefault();onSelect(id);}}}>
       <Cell align="left"><InstrumentCell position={position} instrument={instrument} expanded={expanded} onToggle={()=>{onSelect(id);onToggle();}}/></Cell>
       {view==='compact'&&<>
-        {visibleColumns.includes('Size')&&<Cell>{fixedNumber(position.volume,2)} lots</Cell>}
-        {visibleColumns.includes('Current price')&&<Cell>{currentPrice==null?'—':formatInstrumentPrice(currentPrice,instrument)}</Cell>}
-        {visibleColumns.includes('Unrealized P&L')&&<Cell><Amount position={position} account={account}/></Cell>}
+        {visibleColumns.includes('Size')&&<Cell label="Size">{fixedNumber(position.volume,2)} lots</Cell>}
+        {visibleColumns.includes('Current price')&&<Cell label="Current">{currentPrice==null?'—':formatInstrumentPrice(currentPrice,instrument)}</Cell>}
+        {visibleColumns.includes('Unrealized P&L')&&<Cell label="Floating P&L"><Amount position={position} account={account}/></Cell>}
 
       </>}
       {view==='risk'&&<>
@@ -167,8 +170,6 @@ export default function PositionsDockV4({
   const scrollerRef=useRef(null);
   const revealRef=useRef(null);
   const [menu,setMenu]=useState(null);
-  const [query,setQuery]=useState('');
-  const [instrumentFilter,setInstrumentFilter]=useState('');
   const onCloseMenu=()=>setMenu(null);
   useEffect(()=>{
     try {window.localStorage.setItem(STORAGE_KEY,view);} catch { /* storage disabled */ }
@@ -210,7 +211,7 @@ export default function PositionsDockV4({
       const rowBounds=row.getBoundingClientRect();
       // Preserve the dock height. Put the expanded position below the sticky
       // column headings when needed; longer details scroll inside this dock.
-      const delta=rowBounds.top-bounds.top-33;
+      const delta=rowBounds.top-bounds.top-29;
       if(delta>1)current.scrollTo({top:current.scrollTop+delta,behavior:'auto'});
       revealRef.current=null;
     });
@@ -221,14 +222,7 @@ export default function PositionsDockV4({
     setMenu({position,rect:event.currentTarget.getBoundingClientRect(),closeDisabled:!closeAvailability.allowed});
   };
   const visibleColumns=columns[view];
-  const validSymbols=[...new Set(positions.map(item=>String(item.symbol||'').trim()).filter(Boolean))].sort();
-  const visiblePositions=positions.filter(position=>{
-    if(instrumentFilter&&position.symbol!==instrumentFilter)return false;
-    if(!query.trim())return true;
-    const pattern=query.trim().toLowerCase();
-    return [position.symbol,position.positionId,position.id,position.side]
-      .some(value=>String(value||'').toLowerCase().includes(pattern));
-  });
+  const visiblePositions=positions;
   const tabs=[['positions','Positions'],['orders','Pending'],['history','History'],['journal','Journal']];
   return <div className="acg-v4-positions" data-v4-positions="true" data-v4-position-view={view}>
     <div className="v4-positions-header">
@@ -239,7 +233,8 @@ export default function PositionsDockV4({
         </button>)}
       </nav>
       <div className="v4-positions-header-right">
-        <PositionsAccountSummary account={account}/>
+        <PositionsAccountSummary account={account} positions={positions} markets={markets}/>
+        <PositionsToolbar view={view} onView={setView}/>
         <button type="button" className="v4-positions-expand" onClick={onToggleExpanded}
           aria-label={expanded?'Restore positions workspace':'Expand positions workspace'}
           title={expanded?'Restore workspace':'Expand positions workspace'}>
@@ -248,22 +243,16 @@ export default function PositionsDockV4({
       </div>
     </div>
     {!collapsed&&!compactDock&&<>
-      <PositionsToolbar view={view} onView={setView} query={query} onQuery={setQuery}
-        instrument={instrumentFilter} onInstrument={setInstrumentFilter} instruments={validSymbols}
-/>
       <div ref={scrollerRef} className="v4-positions-scroller" data-v4-position-scroller="true">
         <table className="v4-positions-table" style={{minWidth:V4_POSITION_MIN_WIDTHS[view]}}>
           <colgroup>{visibleColumns.map(([label,width])=><col key={label} style={{width}}/>)}</colgroup>
-          <thead><tr>{visibleColumns.map(([label,,align])=><th scope="col" key={label} className={align==='left'?'is-left':'is-right'}>{label}</th>)}</tr></thead>
+          <thead className={view==='compact'?'v4-compact-head':''}><tr>{visibleColumns.map(([label,,align])=><th scope="col" key={label} className={align==='left'?'is-left':'is-right'}>{label}</th>)}</tr></thead>
           <tbody>
             {loading&&!positions.length&&Array.from({length:3},(_,i)=><tr key={i} className="v4-positions-skeleton" aria-hidden="true">
               {visibleColumns.map(([label])=><td key={label}><span/></td>)}
             </tr>)}
             {!loading&&!error&&!positions.length&&<tr><td colSpan={visibleColumns.length}>
               <div className="v4-positions-empty"><strong>No open positions</strong><span>Your active positions will appear here.</span></div>
-            </td></tr>}
-            {!loading&&!error&&positions.length>0&&!visiblePositions.length&&<tr><td colSpan={visibleColumns.length}>
-              <div className="v4-positions-empty"><strong>No matching positions</strong><span>Change your search or instrument filter.</span></div>
             </td></tr>}
             {visiblePositions.map(position=>{
               const id=positionIdentity(position);
@@ -280,7 +269,7 @@ export default function PositionsDockV4({
           <span>{String(error)}</span><button type="button" onClick={onRetry}>Retry</button>
         </div>}
       </div>
-      <PositionsExposureFooter positions={positions} markets={markets}/>
+      {expanded&&<PositionsExposureFooter positions={positions} markets={markets}/>}
     </>}
     <CloseMenu menu={menu} onClose={onCloseMenu} onManagePosition={onManagePosition}
       onRequestClose={onRequestClose} onEditProtection={onEditProtection} onBreakEven={onBreakEven} onSetTrailing={onSetTrailing} closeDisabled={menu?.closeDisabled||readOnly} readOnly={readOnly}/>
