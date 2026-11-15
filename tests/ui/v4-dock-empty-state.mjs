@@ -38,7 +38,7 @@ try{
  // A closed final position is reflected in the actual parent layout, not just hidden by CSS.
  await page.evaluate(()=>window.v4PositionsQA.setPositions([]));
  await waitHeight(42,46);
- assert.equal(await dock.locator('.v4-positions-tab.is-active').innerText(),'Positions 0');
+ assert.match((await dock.locator('.v4-positions-tab.is-active').innerText()).replace(/\s+/g,' '),/^Positions 0$/);
  assert.equal(await dock.locator('.v4-positions-scroller').count(),0,'Empty positions show only toolbar');
  console.log('EMPTY_POSITIONS_AUTO_COMPACT',JSON.stringify({height:await dockHeight()}));
  await dock.getByRole('button',{name:/Pending/}).click();
