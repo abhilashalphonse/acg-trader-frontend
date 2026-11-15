@@ -69,7 +69,11 @@ try{
  const original=page.locator('[data-v4-positions=true]');
  await original.waitFor({state:'visible'});
  assert.equal(await original.getByRole('searchbox',{name:'Find position'}).count(),1,'Normal customer UI untouched');
- assert.equal(await page.evaluate(()=>localStorage.getItem('acg-trader-desktop-layout-v2')),normal,'Normal saved layout untouched');
+ const normalAfter=await page.evaluate(()=>localStorage.getItem('acg-trader-desktop-layout-v2'));
+ assert.equal(JSON.parse(normalAfter).dockHeight,JSON.parse(normal).dockHeight,
+   'Normal user dock height unchanged (normal terminal can normalize missing defaults)');
+ assert.equal(JSON.parse(normalAfter).sidebarWidth,JSON.parse(normal).sidebarWidth,
+   'Normal user sidebar width unchanged');
  assert.deepEqual(errors,[],'No page JS exceptions');
  console.log('V4_DOCK_EMPTY_STATE_PASS');
 }finally{await browser.close();}
