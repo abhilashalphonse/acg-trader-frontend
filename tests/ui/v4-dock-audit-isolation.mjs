@@ -61,12 +61,17 @@ try{
   });
   assert.equal(status.header,44,'Audit toolbar uses one row');
   assert.equal(status.visibleRows,2,'Audit shows two complete positions');
-  await audit.getByRole('button',{name:'Risk',exact:true}).click();
-  assert.equal(await audit.getAttribute('data-v4-position-view'),'risk','Audit view selection works');
+  assert.equal(await audit.getAttribute('data-v4-position-view'),'unified','Audit shows all data in one view');
+  for(const label of ['Compact','Risk','Execution']){
+    assert.equal(await audit.getByRole('button',{name:label,exact:true}).count(),0,
+      'Audit removes '+label+' selector');
+  }
+  const rowText=await audit.locator('tr[data-v4-position-id]').first().innerText();
+  for(const label of ['Entry','Current','SL','TP','Margin','Unrealized P&L']){
+    assert.ok(rowText.includes(label),'Unified row displays '+label);
+  }
   assert.equal(await page.evaluate(()=>localStorage.getItem('acg-v4-positions-view-v1')),normalView,
-    'Audit view selection never modifies the original workspace preference');
-  assert.equal(await page.evaluate(()=>localStorage.getItem('acg-v4-dock-audit-positions-view-v1')),'risk',
-    'Audit view persists separately from the original workspace');
+    'Audit never updates normal display preferences');
   const auditNormalKey=await page.evaluate(()=>localStorage.getItem('acg-trader-desktop-layout-v2'));
   console.log('AUDIT_LAYOUT_KEY_CHECK',JSON.stringify({normalLayout,auditNormalKey}));
   assert.equal(auditNormalKey,normalLayout,
@@ -80,7 +85,7 @@ try{
   assert.equal(await root.getByRole('searchbox',{name:'Find position'}).count(),1,
     'Turning flag off restores original dock');
   assert.equal(await root.getAttribute('data-v4-position-view'),'compact',
-    'Normal original view remains compact after audit Risk view');
+    'Normal original view remains compact after reviewing unified layout');
 
   assert.equal(await page.locator('[data-acg-dock-audit=true]').count(),0);
   assert.deepEqual(errors,[],'No React runtime exceptions');
