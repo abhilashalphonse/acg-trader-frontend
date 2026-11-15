@@ -141,6 +141,7 @@ function loadDesktopLayout() {
   const fallback = {
     sidebarWidth: widthBounds.defaultSidebar,
     dockHeight: initialBounds.defaultDock,
+    ...(DOCK_AUDIT_ENABLED ? {dockManuallyResized:false} : {}),
     sidebarCollapsed: true,
     dockCollapsed: false,
     marketPanelWidth: desktopMarketPanelBounds(viewportWidth, widthBounds.defaultSidebar).defaultPanel,
@@ -177,6 +178,7 @@ function loadDesktopLayout() {
     return {
       sidebarWidth: clamp(stored.sidebarWidth || fallback.sidebarWidth, widthBounds.sidebarMin, widthBounds.sidebarMax),
       dockHeight,
+      ...(DOCK_AUDIT_ENABLED ? {dockManuallyResized:stored.dockManuallyResized===true} : {}),
       sidebarCollapsed: stored.sidebarCollapsed === true,
       dockCollapsed,
       marketPanelWidth: clamp(
@@ -428,6 +430,7 @@ export default function DesktopTerminal({
   const [pendingOrderDraft,setPendingOrderDraft]=useState(null);
   const [positionEditRequest, setPositionEditRequest] = useState(null);
   const [requestedDockTab, setRequestedDockTab] = useState(null);
+  const [activeAuditDockTab, setActiveAuditDockTab] = useState('positions');
   const [positionsExpanded, setPositionsExpanded] = useState(false);
   const [desktopLayout, setDesktopLayout] = useState(loadDesktopLayout);
   // Initial V4 dock sizing is resolved in loadDesktopLayout(), so render
@@ -811,11 +814,19 @@ export default function DesktopTerminal({
     heightBounds.dockMin,
     heightBounds.dockMax,
   );
+  // An empty audit Positions/Pending workspace requires only the 44px toolbar.
+  // Counts are authoritative. Loading and errors must still reveal their bodies,
+  // and intentional resizing must always override the automatic compact mode.
+  const auditEmptyDock = DOCK_AUDIT_ENABLED
+    && !desktopLayout.dockManuallyResized && !desktopLayout.dockCollapsed
+    && !positionsLoading && !positionsError
+    && ((activeAuditDockTab==='positions' && positions.length===0)
+      || (activeAuditDockTab==='orders' && pendingOrders.length===0));
   const dockHeight = positionsExpanded
     ? expandedDockHeight
     : desktopLayout.dockCollapsed
       ? collapsedDockHeight
-      : desktopLayout.dockHeight;
+      : auditEmptyDock ? collapsedDockHeight : desktopLayout.dockHeight;
   const dockBodyVisible = positionsExpanded
     || (!desktopLayout.dockCollapsed && dockHeight > compactDockThreshold);
   const tradeSidebarOpen = !desktopLayout.sidebarCollapsed && activeNav === 'trade' && !positionsExpanded;
@@ -833,7 +844,8 @@ export default function DesktopTerminal({
   const updateDockHeight = value => setDesktopLayout(current => {
     const bounds = desktopHeightBounds(viewportHeight, false, value);
     const nextDock = clamp(value, bounds.dockMin, bounds.dockMax);
-    return { ...current, dockHeight: nextDock, dockCollapsed: false };
+    return { ...current, dockHeight: nextDock, dockCollapsed: false,
+      ...(DOCK_AUDIT_ENABLED ? {dockManuallyResized:true} : {}) };
   });
   const toggleSidebar = () => setDesktopLayout(current => ({ ...current, sidebarCollapsed: !current.sidebarCollapsed }));
   const openSidebarView = view => {
@@ -878,6 +890,11 @@ export default function DesktopTerminal({
     window.addEventListener('pointercancel', finish, { once: true });
   };
   const toggleDock = () => {
+    // The rail's “Open dock” control explicitly overrides auto-compact.
+    if (auditEmptyDock && !positionsExpanded) {
+      setDesktopLayout(current=>({...current,dockCollapsed:false,dockManuallyResized:true}));
+      return;
+    }
     if (positionsExpanded) {
       setPositionsExpanded(false);
       setDesktopLayout(current => ({
@@ -908,6 +925,7 @@ export default function DesktopTerminal({
     setDesktopLayout({
       sidebarWidth: desktopWidthBounds(window.innerWidth).defaultSidebar,
       dockHeight: bounds.defaultDock,
+      ...(DOCK_AUDIT_ENABLED ? {dockManuallyResized:false} : {}),
       sidebarCollapsed: false,
       dockCollapsed: false,
       marketPanelWidth: desktopMarketPanelBounds(window.innerWidth, desktopWidthBounds(window.innerWidth).defaultSidebar).defaultPanel,
@@ -1610,7 +1628,7 @@ export default function DesktopTerminal({
           />
 
           <div className="acg-desktop-dock-shell min-h-0 overflow-hidden rounded-[9px] border border-[#292d31] bg-[#09090B] transition-[height,transform,opacity] duration-300 ease-out" style={{ gridColumn: '1 / 4', gridRow: '2' }}>
-            <PositionsPanel v4Positions={V4_DESKTOP_EXECUTION_ENABLED} dockAudit={DOCK_AUDIT_ENABLED} readOnly={readOnly}
+            <PositionsPanel v4Positions={V4_DESKTOP_EXECUTION_ENABLED} dockAudit={DOCK_AUDIT_ENABLED} onDockTabChange={setActiveAuditDockTab} readOnly={readOnly}
               onReviewClosePosition={reviewDockPositionClose}
               positionsLoading={positionsLoading} positionsError={positionsError} onRetryPositions={onRetryPositions}
               desktopDense collapsed={desktopLayout.dockCollapsed} compactDock={dockHeight <= compactDockThreshold && !positionsExpanded} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} historyError={historyError} historyLoading={historyLoading} onRetryHistory={onRetryHistory} pendingOrders={pendingOrders} journal={journal} positionActivityOrders={positionActivityOrders} positionActivityDeals={positionActivityDeals} positionActivityFills={positionActivityFills} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={updateDesktopProtection} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={V4_DESKTOP_EXECUTION_ENABLED ? (inspectedPositionId ?? selectedPositionId) : selectedPositionId} onSelectPosition={V4_DESKTOP_EXECUTION_ENABLED ? inspectDockPosition : selectPosition} onManagePosition={selectPosition} onEditProtection={editPositionProtection}
@@ -1636,7 +1654,7 @@ export default function DesktopTerminal({
           {!desktopLayout.dockCollapsed && !positionsExpanded && (
             <ResizeHandle
               axis="y"
-              value={desktopLayout.dockHeight}
+              value={dockHeight}
               min={heightBounds.dockMin}
               max={heightBounds.dockMax}
               deltaMultiplier={-1}
