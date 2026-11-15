@@ -35,6 +35,8 @@ try{
   assert.equal(await root.getByRole('combobox',{name:'Filter by instrument'}).count(),1,
     'Default V4 retains instrument filter');
   const normalLayout=await page.evaluate(()=>localStorage.getItem('acg-trader-desktop-layout-v2'));
+  const normalView=await page.evaluate(()=>localStorage.getItem('acg-v4-positions-view-v1'));
+  assert.equal(normalView,'compact','Original view preference is compact');
   const normalDockHeight=await root.evaluate(el=>el.getBoundingClientRect().height);
   console.log('NORMAL_DOCK_BASELINE',JSON.stringify({normalDockHeight,normalLayout}));
   await page.goto(host+'&acg_dock_audit=1',{waitUntil:'domcontentloaded'});
@@ -57,6 +59,12 @@ try{
   });
   assert.equal(status.header,44,'Audit toolbar uses one row');
   assert.equal(status.visibleRows,2,'Audit shows two complete positions');
+  await audit.getByRole('button',{name:'Risk',exact:true}).click();
+  assert.equal(await audit.getAttribute('data-v4-position-view'),'risk','Audit view selection works');
+  assert.equal(await page.evaluate(()=>localStorage.getItem('acg-v4-positions-view-v1')),normalView,
+    'Audit view selection never modifies the original workspace preference');
+  assert.equal(await page.evaluate(()=>localStorage.getItem('acg-v4-dock-audit-positions-view-v1')),'risk',
+    'Audit view persists separately from the original workspace');
   const auditNormalKey=await page.evaluate(()=>localStorage.getItem('acg-trader-desktop-layout-v2'));
   console.log('AUDIT_LAYOUT_KEY_CHECK',JSON.stringify({normalLayout,auditNormalKey}));
   assert.equal(auditNormalKey,normalLayout,
@@ -69,6 +77,9 @@ try{
   await root.waitFor({state:'visible'});
   assert.equal(await root.getByRole('searchbox',{name:'Find position'}).count(),1,
     'Turning flag off restores original dock');
+  assert.equal(await root.getAttribute('data-v4-position-view'),'compact',
+    'Normal original view remains compact after audit Risk view');
+
   assert.equal(await page.locator('[data-acg-dock-audit=true]').count(),0);
   assert.deepEqual(errors,[],'No React runtime exceptions');
   console.log('V4_DOCK_AUDIT_ISOLATION_PASS',JSON.stringify(status));
