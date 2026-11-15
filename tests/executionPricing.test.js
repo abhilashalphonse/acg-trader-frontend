@@ -107,7 +107,10 @@ test('desktop chart and fixed/floating tickets receive the same canonical previe
   const chart = src('ChartArea.jsx');
   const ticket = src('desktop/DesktopOrderTicket.jsx');
   assert.match(desktop, /const orderExecutionPreview = React\.useMemo/);
-  assert.equal((desktop.match(/orderExecutionPreview=\{orderExecutionPreview\}/g) || []).length, 3);
+  // Chart + fixed ticket + original floating ticket + audit floating ticket
+  // + detachable V4 ticket each receive the *same* canonical preview.
+  assert.equal((desktop.match(/orderExecutionPreview=\{orderExecutionPreview\}/g) || []).length, 5);
+  assert.match(desktop,/DOCK_AUDIT_ENABLED \? \(floatingExecutionVisible/);
   assert.match(multiChart, /orderExecutionPreview=\{isActive \? orderExecutionPreview : null\}/);
   assert.match(chart, /!dragPreviewActive && orderExecutionPreview/);
   assert.match(ticket, /tradePlan && orderExecutionPreview \? orderExecutionPreview : localExecutionPreview/);
