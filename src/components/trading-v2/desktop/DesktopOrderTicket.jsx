@@ -590,7 +590,7 @@ export default function DesktopOrderTicket({
   };
 
   // The detached mini is the *existing quick-order engine* with a larger
-  // touch-friendly layout. It intentionally never mounts DesktopOrderTicketV4
+  // touch-friendly layout. It never mounts the advanced execution panel
   // or reimplements command execution and account authorization.
   if (variant === 'mini') {
     const isPending = orderFamily === 'pending';
