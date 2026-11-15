@@ -178,7 +178,10 @@ function loadDesktopLayout() {
     return {
       sidebarWidth: clamp(stored.sidebarWidth || fallback.sidebarWidth, widthBounds.sidebarMin, widthBounds.sidebarMax),
       dockHeight,
-      ...(DOCK_AUDIT_ENABLED ? {dockManuallyResized:stored.dockManuallyResized===true} : {}),
+      ...(DOCK_AUDIT_ENABLED ? {dockManuallyResized:
+        stored.dockManuallyResized === true
+        || (!Object.prototype.hasOwnProperty.call(stored,'dockManuallyResized')
+          && storedDockHeight > initialBounds.defaultDock + 2)} : {}),
       sidebarCollapsed: stored.sidebarCollapsed === true,
       dockCollapsed,
       marketPanelWidth: clamp(
