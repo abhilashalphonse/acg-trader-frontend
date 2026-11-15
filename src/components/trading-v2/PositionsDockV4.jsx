@@ -13,7 +13,7 @@ import {
 import { PositionsAccountSummary,PositionsToolbar,PositionsExpandedDetails,PositionsExposureFooter } from './PositionsWorkspaceChromeV4.jsx';
 import './PositionsDockV4.css';
 
-const STORAGE_KEY='acg-v4-positions-view-v1';
+const STORAGE_KEY='acg-v4-dock-audit-positions-view-v1';
 const columns={
   compact:[['Instrument','26%','left'],['Size','15%','right'],['Current price','21%','right'],['Unrealized P&L','20%','right'],['Actions','18%','right']],
   risk:[['Instrument','20%','left'],['Exposure','12%','right'],['Margin','10%','right'],['Stop loss','10%','right'],['Take profit','10%','right'],['Risk at stop','10%','right'],['Unrealized P&L','13%','right'],['Actions','15%','right']],
