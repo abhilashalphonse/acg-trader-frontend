@@ -37,33 +37,65 @@ try{
  assert.equal(await dock.locator('tr[data-v4-position-id]').count(),2,'Existing positions have 2 trade rows');
  // A closed final position is reflected in the actual parent layout, not just hidden by CSS.
  await page.evaluate(()=>window.v4PositionsQA.setPositions([]));
- await waitHeight(42,46);
+ await waitHeight(118,122);
  assert.match((await dock.locator('.v4-positions-tab.is-active').innerText()).replace(/\s+/g,' '),/^Positions 0$/);
- assert.equal(await dock.locator('.v4-positions-scroller').count(),0,'Empty positions show only toolbar');
- console.log('EMPTY_POSITIONS_AUTO_COMPACT',JSON.stringify({height:await dockHeight()}));
+ const empty=dock.getByRole('status').filter({hasText:'No open positions'});
+ await empty.waitFor({state:'visible'});
+ assert.equal(await empty.locator('strong').innerText(),'No open positions');
+ assert.equal(await empty.locator('span').innerText(),'Your active positions will appear here.');
+ assert.equal(await dock.locator('.v4-positions-scroller').count(),0,'No empty table or horizontal scrollbar');
+ assert.equal(await dock.locator('.v4-positions-footer').count(),0,'No footer underneath empty message');
+ const background=await empty.evaluate(el=>{
+   const bottom=el.getBoundingClientRect().bottom;
+   const textBottom=el.querySelector('span').getBoundingClientRect().bottom;
+   return {bottom,textBottom};
+ });
+ assert.ok(background.bottom-background.textBottom>=5,'Leave a plain empty region beneath message');
+ await dock.getByRole('button',{name:'Expand positions workspace'}).click();
+ await page.waitForTimeout(450);
+ assert.equal(await dock.getByRole('status').filter({hasText:'No open positions'}).count(),1,
+   'Fullscreen empty workspace retains the message');
+ assert.equal(await dock.locator('.v4-positions-footer').count(),0,
+   'Fullscreen empty workspace also has no footer');
+ await dock.getByRole('button',{name:'Restore positions workspace'}).click();
+ await waitHeight(118,122);
+ console.log('EMPTY_POSITIONS_NO_FOOTER',JSON.stringify({height:await dockHeight(),background}));
  await dock.getByRole('button',{name:/Pending/}).click();
  await page.locator('[data-v4-pending=true]').waitFor({state:'visible',timeout:12000});
  await waitHeight(180,186);
  assert.equal(await page.locator('[data-v4-pending=true] .v4-position-row').count(),1,
    'Pending order remains accessible after lazy module load');
  await page.locator('[data-v4-pending=true]').getByRole('button',{name:/Positions/}).click();
- await waitHeight(42,46);
+ await waitHeight(118,122);
  // Loading and errors are visible, never silently collapsed.
  await page.evaluate(()=>window.v4PositionsQA.setLoading(true));
  await waitHeight(180,186);
  await page.evaluate(()=>window.v4PositionsQA.setLoading(false));
- await waitHeight(42,46);
+ await waitHeight(118,122);
  await page.evaluate(()=>window.v4PositionsQA.setError('Fixture network error'));
  await waitHeight(180,186);
  await page.getByRole('button',{name:'Retry',exact:true}).click();
+ await waitHeight(118,122);
+ // Collapse is explicit: hiding the whole dock is distinct from a short empty state.
+ await page.getByRole('button',{name:'Close positions dock'}).click();
  await waitHeight(42,46);
- // Explicit Open dock control overrides auto compact while leaving account untouched.
  await page.getByRole('button',{name:'Open positions dock'}).click();
- await waitHeight(180,186);
- assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('acg-trader-desktop-dock-audit-layout-v1')).dockManuallyResized),true,
-   'User override is persisted within audit preferences');
+ await waitHeight(118,122);
+ // Retain an existing manually saved audit height. This is a persistence
+ // test; pointer resizing belongs to the dedicated workspace acceptance suite.
+ await page.evaluate(()=>{
+   const key='acg-trader-desktop-dock-audit-layout-v1';
+   const saved=JSON.parse(localStorage.getItem(key)||'{}');
+   localStorage.setItem(key,JSON.stringify({...saved,
+     dockHeight:210,dockCollapsed:false,dockManuallyResized:true,
+   }));
+ });
  await page.reload({waitUntil:'domcontentloaded'});
- await waitHeight(180,186);
+ await waitHeight(205,215);
+ assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('acg-trader-desktop-dock-audit-layout-v1')).dockManuallyResized),true,
+   'Previously saved manual dock height remains respected');
+ assert.equal(await page.locator('.v4-positions-footer').count(),0,
+   'Even with a manually sized empty dock, there is no footer');
  const normal=await page.evaluate(()=>localStorage.getItem('acg-trader-desktop-layout-v2'));
  await page.goto(root,{waitUntil:'domcontentloaded'});
  const original=page.locator('[data-v4-positions=true]');
