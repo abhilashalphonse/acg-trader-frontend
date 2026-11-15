@@ -45,6 +45,7 @@ const JOURNAL_FIXTURE=[
  {id:'journal-old',type:'order',timestamp:fixtureDaysAgo(55),time:'07:44:19',
   message:'Old browser journal item',orderId:'old-order'}
 ];
+const publicReview=new URLSearchParams(window.location.search).get('public_review')==='1';
 function PositionsQA(){
  const [positions,setPositions]=useState(POSITIONS);
  const [loading,setLoading]=useState(false);
@@ -56,7 +57,7 @@ function PositionsQA(){
  const [protectionDraft,setProtectionDraft]=useState(null);
  const market=symbol==='BTCUSD'?BTC:EURO;
  const markets=useMemo(()=>[EURO,BTC],[]);
- window.v4PositionsQA={
+ if(!publicReview)window.v4PositionsQA={
   get commands(){return commands;},
   get retries(){return retries;},
   get positions(){return positions;},
@@ -66,7 +67,11 @@ function PositionsQA(){
   setPositions(value){setPositions(value);},
   setAccount(value){setAccount(current=>({...current,...value}));},
  };
- return <DesktopTerminal market={market} tick={market} markets={markets} activeSymbol={symbol}
+ return <>
+ {publicReview&&<div role="status" style={{position:'relative',zIndex:50,display:'flex',alignItems:'center',justifyContent:'center',height:30,background:'#191B20',borderBottom:'1px solid #43464D',color:'#E5E6EA',font:'500 11px Inter,system-ui,sans-serif'}}>
+  ACG Trader V4 · FULL TERMINAL DESIGN REVIEW · Simulated account / no market feed / trading disabled
+ </div>}
+ <DesktopTerminal readOnly={publicReview} market={market} tick={market} markets={markets} activeSymbol={symbol}
   onSelectSymbol={setSymbol} account={account} accounts={[account]} activeAccountId={account.id}
   positions={positions} pendingOrders={PENDING} positionHistory={HISTORY_FIXTURE} journal={JOURNAL_FIXTURE}
   positionActivityOrders={[{id:'order-eur-1',positionId:'position-eur-1',createdAt:new Date(Date.now()-2*86400000).toISOString(),side:'SELL',requestedVolume:'0.01',type:'MARKET'}]}
@@ -84,7 +89,8 @@ function PositionsQA(){
    return true;
   }}
   onManualOrder={()=>{throw Error('Fixture must never place an order');}}
- />;
+ />
+ </>;
 }
 createRoot(document.getElementById('v4-positions-fixture')).render(
  <AuthProvider><TradingProvider><PositionsQA/></TradingProvider></AuthProvider>
