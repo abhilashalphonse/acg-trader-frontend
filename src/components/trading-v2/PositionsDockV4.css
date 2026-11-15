@@ -736,3 +736,16 @@
   .acg-dock-audit .acg-v4-positions[data-v4-position-view="unified"] .v4-position-avatar,
   .acg-dock-audit .acg-v4-positions[data-v4-pending-view="unified"] .v4-position-avatar{display:none}
 }
+
+/* Zero-position audit: a plain two-line message, no table, scrollbar,
+   row border or exposure footer underneath. Keep the unused area blank. */
+.acg-dock-audit .acg-v4-positions > .v4-positions-empty {
+  flex:1 1 auto;
+  min-height:0;
+  width:100%;
+  align-content:start;
+  padding:14px 12px 0;
+  border:0;
+  background:transparent;
+  text-align:center;
+}
