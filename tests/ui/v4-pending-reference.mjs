@@ -17,11 +17,11 @@ try{
   await page.locator('[data-v4-positions="true"]').getByRole('button',{name:/Pending/}).click();
   const pending=page.locator('[data-v4-pending="true"]');
   await pending.waitFor({state:'visible'});
-  eq(await pending.getAttribute('data-v4-pending-view'),'compact','Pending starts Compact');
+  eq(await pending.getAttribute('data-v4-pending-view'),'unified','Pending uses one comprehensive view');
   const rows=()=>pending.locator('tr[data-v4-pending-id]');
   eq(await rows().count(),1,'One confirmed pending fixture');
   eq(await pending.locator('thead th').allTextContents(),
-    ['Instrument','Type','Size','Trigger / Limit','Status','Actions'],'Compact pending headings');
+    ['Trade','Trigger / limit','SL / TP','Est. cost / risk','Status','Actions'],'Unified pending accessible headings');
   ok((await rows().first().innerText()).includes('STOP LIMIT'),'Order type not mislabeled');
   ok((await rows().first().innerText()).includes('1.11980'),'Stop-Limit has actual limit price');
   const header=pending.locator('.v4-positions-header');
@@ -38,27 +38,23 @@ try{
   ok(detailText.includes('Order activity'),'Expanded activity section');
   ok(detailText.includes('Order recorded'),'Creation only from real timestamp');
   await rows().first().getByRole('button',{name:'Collapse order details for EUR/USD'}).click();
-  await pending.getByRole('button',{name:'Risk',exact:true}).click();
-  eq(await pending.locator('thead th').allTextContents(),
-    ['Instrument','Projected exposure','Est. margin','Stop loss','Take profit','Est. risk','Status'],'Risk pending headings');
-  const riskText=await rows().first().innerText();
-  ok(riskText.includes('$3,360.00'),'Projected USD notional shows estimate not stored exposure');
-  ok(riskText.includes('$15.00'),'Risk at stop uses quote-safe projected outcome');
-  eq(await page.locator('[data-v4-manage-pending]').count(),0,'Risk switch does not open management');
-  await pending.getByRole('button',{name:'Execution',exact:true}).click();
-  eq(await pending.locator('thead th').allTextContents(),
-    ['Instrument','Type','Trigger','Limit','Created','Expires','Order ID'],'Execution pending headings');
-  ok((await rows().first().innerText()).includes('13 Oct 2026'),'Actual creation timestamp');
-  ok((await rows().first().innerText()).includes('GTC'),'Correct time in force');
-  await pending.getByRole('button',{name:'Compact',exact:true}).click();
+  const unifiedText=await rows().first().innerText();
+  for(const label of ['STOP LIMIT','Trigger','Limit','SL','TP','Est. margin','Est. SL loss','PENDING'])
+    ok(unifiedText.includes(label),'One pending row exposes '+label);
+  ok(unifiedText.includes('$15.00'),'Projected stop-loss risk remains visible');
+  ok(unifiedText.includes('13 Oct 2026'),'Actual order creation date remains visible');
+  eq(await pending.getByRole('button',{name:'Risk',exact:true}).count(),0,'No Risk mode');
+  eq(await pending.getByRole('button',{name:'Execution',exact:true}).count(),0,'No Execution mode');
+  eq(await pending.getByRole('button',{name:'Compact',exact:true}).count(),0,'No Compact mode');
+  eq(await page.locator('[data-v4-manage-pending]').count(),0,'Viewing unified order does not open manager');
   await rows().first().getByRole('button',{name:'Review cancel for EUR/USD'}).click();
   eq(await page.locator('[data-v4-manage-pending="pending-eur-1"]').count(),1,'Explicit cancel review opens existing Pending Manager');
   eq(await page.locator('[data-v4-manage-pending="pending-eur-1"]').getByRole('dialog',{name:'Confirm order cancellation'}).count(),1,'Pending cancel opens established confirmation, not direct execution');
   const narrowBefore=await pending.locator('.v4-positions-scroller').evaluate(el=>el.scrollWidth);
   await page.setViewportSize({width:768,height:850});
-  await pending.getByRole('combobox',{name:'Pending orders table view'}).selectOption('risk');
+  eq(await pending.getByRole('combobox',{name:'Pending orders table view'}).count(),0,'No hidden mobile mode selector');
   const sizes=await pending.locator('.v4-positions-scroller').evaluate(el=>({width:el.clientWidth,scroll:el.scrollWidth}));
-  ok(sizes.scroll>sizes.width,'Narrow Pending Risk scrolls horizontally');
+  ok(sizes.scroll>sizes.width,'Unified Pending scrolls horizontally on narrow screens');
   ok(narrowBefore>0,'Dock table scroll region exists');
   console.log('V4_PENDING_REFERENCE_PASS',JSON.stringify({checks,sizes}));
 }catch(error){console.error('V4_PENDING_REFERENCE_FAIL',error);throw error;}
