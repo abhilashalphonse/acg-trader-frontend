@@ -51,6 +51,7 @@ import { resolveExecutionPreview } from '../../utils/executionPricing.js';
 import { validateOpenPositionProtection } from '../../utils/openPositionPresentation.js';
 import { loadDesktopChartSettings, normalizeDesktopChartSettings, saveDesktopChartSettings } from '../../utils/desktopChartSettings.js';
 import { isV4DefaultEnabled } from '../../utils/chartOrderPresentation.js';
+import { isDockAuditEnabled } from '../../utils/dockAuditMode.js';
 import { v4HeaderMarketStatus, v4HeaderAccountLabel, v4HeaderAccountType } from '../../utils/v4HeaderPresentation.js';
 import { effectiveLeverage } from '../../utils/tradingRisk.js';
 import { positionCloseAvailability } from '../../utils/marketExecutionAvailability.js';
@@ -63,6 +64,10 @@ const V4_DESKTOP_EXECUTION_ENABLED = isV4DefaultEnabled(
   typeof window !== 'undefined' ? window.location.search : '',
 );
 
+const DOCK_AUDIT_ENABLED = V4_DESKTOP_EXECUTION_ENABLED && isDockAuditEnabled(
+  typeof window !== 'undefined' ? window.location.search : '',
+);
+
 const timeframes = [['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], ['1H', '1H'], ['4H', '4H'], ['1D', '1D'], ['1W', '1W']];
 
 function normalizeDesktopTimeframe(value) {
@@ -72,6 +77,8 @@ function normalizeDesktopTimeframe(value) {
   return timeframes.some(([id]) => id === normalized) ? normalized : '1m';
 }
 const DESKTOP_LAYOUT_KEY = 'acg-trader-desktop-layout-v2';
+const ACTIVE_DESKTOP_LAYOUT_KEY = DOCK_AUDIT_ENABLED
+  ? 'acg-trader-desktop-dock-audit-layout-v1' : DESKTOP_LAYOUT_KEY;
 const MULTI_CHART_KEY = 'acg-trader-multi-chart-v1';
 const FLOATING_ORDER_KEY = 'acg-trader-floating-order-v1';
 
@@ -107,9 +114,9 @@ function desktopHeightBounds(viewportHeight, dockCollapsed = false, dockHeight =
   const compact = height <= 900;
   // V4 needs space for a 44px unified toolbar, a 28px table heading,
   // and two 36px position rows plus the dock border. V3 stays unchanged.
-  const dockMin = V4_DESKTOP_EXECUTION_ENABLED ? 164 : 52;
+  const dockMin = DOCK_AUDIT_ENABLED ? 164 : 52;
   const dockMax = compact ? Math.min(320, Math.floor(height * 0.44)) : height <= 1050 ? Math.min(420, Math.floor(height * 0.46)) : Math.min(520, Math.floor(height * 0.48));
-  const defaultDock = V4_DESKTOP_EXECUTION_ENABLED ? 164 : 52;
+  const defaultDock = DOCK_AUDIT_ENABLED ? 164 : 52;
   const effectiveDock = dockCollapsed ? 0 : clamp(dockHeight || defaultDock, dockMin, dockMax);
   const upperWorkspaceHeight = Math.max(0, height - 48 - effectiveDock);
 
@@ -141,16 +148,31 @@ function loadDesktopLayout() {
   };
   if (typeof window === 'undefined') return fallback;
   try {
-    const stored = JSON.parse(window.localStorage.getItem(DESKTOP_LAYOUT_KEY) || 'null');
+    const stored = JSON.parse(window.localStorage.getItem(ACTIVE_DESKTOP_LAYOUT_KEY) || 'null');
     if (!stored || typeof stored !== 'object') return fallback;
     const dockCollapsed = stored.dockCollapsed === true;
     const storedDockHeight = Number(stored.dockHeight);
     const requestedDockHeight = Number.isFinite(storedDockHeight) && storedDockHeight > 72
       ? storedDockHeight
       : fallback.dockHeight;
-    // Respect previously resized docks; any older 52px height is clamped to
-    // the new V4 two-row minimum. Explicit collapsed state still uses 44px.
-    const dockHeight=clamp(requestedDockHeight,initialBounds.dockMin,initialBounds.dockMax);
+    // One-time compact-workspace migration happens *during initial layout
+    // hydration*. This avoids a later effect restoring a stale 400px+ dock
+    // (including browsers that have already run the earlier v1/v2 migration).
+    // After this version is marked complete, user-driven dock resizing is
+    // respected on every subsequent load.
+    let dockHeight=clamp(requestedDockHeight,initialBounds.dockMin,initialBounds.dockMax);
+    if (V4_DESKTOP_EXECUTION_ENABLED && !DOCK_AUDIT_ENABLED) {
+      const migrationKey='acg-v4-positions-dock-density-v3';
+      const migrationComplete=window.localStorage.getItem(migrationKey)==='true';
+      if(!migrationComplete) {
+        if(!dockCollapsed&&dockHeight>initialBounds.dockMin+8) {
+          const preferred=clamp(Math.round(viewportHeight*0.34),260,360);
+          const target=clamp(preferred,initialBounds.dockMin,initialBounds.dockMax);
+          if (dockHeight>target+16 || dockHeight<target-60) dockHeight=target;
+        }
+        window.localStorage.setItem(migrationKey,'true');
+      }
+    }
     const bounds = desktopHeightBounds(viewportHeight, dockCollapsed, dockHeight);
     return {
       sidebarWidth: clamp(stored.sidebarWidth || fallback.sidebarWidth, widthBounds.sidebarMin, widthBounds.sidebarMax),
@@ -571,7 +593,7 @@ export default function DesktopTerminal({
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(DESKTOP_LAYOUT_KEY, JSON.stringify(desktopLayout));
+      window.localStorage.setItem(ACTIVE_DESKTOP_LAYOUT_KEY, JSON.stringify(desktopLayout));
     } catch {
       // Layout persistence is optional.
     }
@@ -781,9 +803,11 @@ export default function DesktopTerminal({
     viewportHeight - 46 - 12 - expandedChartStripHeight,
   );
   const visibleDockHeight = clamp(
-    V4_DESKTOP_EXECUTION_ENABLED
+    DOCK_AUDIT_ENABLED
       ? heightBounds.defaultDock
-      : Math.max(180, Math.round(viewportHeight * 0.22)),
+      : V4_DESKTOP_EXECUTION_ENABLED
+        ? Math.max(300, Math.round(viewportHeight * 0.32))
+        : Math.max(180, Math.round(viewportHeight * 0.22)),
     heightBounds.dockMin,
     heightBounds.dockMax,
   );
@@ -1586,7 +1610,7 @@ export default function DesktopTerminal({
           />
 
           <div className="acg-desktop-dock-shell min-h-0 overflow-hidden rounded-[9px] border border-[#292d31] bg-[#09090B] transition-[height,transform,opacity] duration-300 ease-out" style={{ gridColumn: '1 / 4', gridRow: '2' }}>
-            <PositionsPanel v4Positions={V4_DESKTOP_EXECUTION_ENABLED} readOnly={readOnly}
+            <PositionsPanel v4Positions={V4_DESKTOP_EXECUTION_ENABLED} dockAudit={DOCK_AUDIT_ENABLED} readOnly={readOnly}
               onReviewClosePosition={reviewDockPositionClose}
               positionsLoading={positionsLoading} positionsError={positionsError} onRetryPositions={onRetryPositions}
               desktopDense collapsed={desktopLayout.dockCollapsed} compactDock={dockHeight <= compactDockThreshold && !positionsExpanded} expanded={positionsExpanded} onToggleExpanded={togglePositionsExpanded} requestedTab={requestedDockTab} activeSymbol={activeSymbol} account={account} positions={positions} markets={markets} positionHistory={positionHistory} historyError={historyError} historyLoading={historyLoading} onRetryHistory={onRetryHistory} pendingOrders={pendingOrders} journal={journal} positionActivityOrders={positionActivityOrders} positionActivityDeals={positionActivityDeals} positionActivityFills={positionActivityFills} onClosePosition={onClosePosition} onCloseAll={onCloseAllPositions} onCloseWinners={onCloseWinners} onCloseLosers={onCloseLosers} onCloseSymbol={onCloseSymbolPositions} onBreakEven={onBreakEven} onReverse={onReversePosition} onUpdatePosition={updateDesktopProtection} onSetTrailing={onSetTrailing} onDuplicate={onDuplicatePosition} onCancelPending={onCancelPending} onModifyPending={onModifyPending} selectedPositionId={V4_DESKTOP_EXECUTION_ENABLED ? (inspectedPositionId ?? selectedPositionId) : selectedPositionId} onSelectPosition={V4_DESKTOP_EXECUTION_ENABLED ? inspectDockPosition : selectPosition} onManagePosition={selectPosition} onEditProtection={editPositionProtection}
