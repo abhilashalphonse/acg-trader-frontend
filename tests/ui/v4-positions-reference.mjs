@@ -17,7 +17,10 @@ try{
   eq(response?.status(),200,'Full workspace fixture startup');
   const dock=page.locator('[data-v4-positions="true"]');
   await dock.waitFor({state:'visible'});
-  eq(await dock.getAttribute('data-v4-position-view'),'compact','Compact remains default');
+  eq(await dock.getAttribute('data-v4-position-view'),'unified','Only unified position layout is rendered');
+  eq(await dock.getByRole('button',{name:'Compact',exact:true}).count(),0,'No compact view button');
+  eq(await dock.getByRole('button',{name:'Risk',exact:true}).count(),0,'No risk view button');
+  eq(await dock.getByRole('button',{name:'Execution',exact:true}).count(),0,'No execution view button');
   const overviewTrigger=dock.getByRole('button',{name:'Account overview and margin details'});
   eq(await overviewTrigger.count(),1,'Every account snapshot stays accessible');
   await overviewTrigger.click();
@@ -62,14 +65,17 @@ try{
   eq(visible,2,'Two entire position rows fit in the minimum-height workspace');
 
   eq(await ids(),originalIds,'All positions remain present without filtering');
-  eq(await dock.locator('thead th').count(),5,'Compact columns are fixed');
+  eq(await dock.locator('thead th').count(),6,'Unified screenreader table headings');
+  const rowsText=await rows().first().innerText();
+  for(const label of ['Size','Entry','Current','SL','TP','Margin','Est. at SL','Unrealized P&L'])
+    ok(rowsText.includes(label),'Unified first position shows '+label);
+  ok(rowsText.includes('1.11652')&&rowsText.includes('1.11735'),'Entry and current values available together');
   eq(await dock.locator('.v4-positions-account-summary').count(),1,'Account metrics remain visible');
   eq(await footer.count(),0,'Normal two-row workspace keeps footer out of the viewport');
   await page.keyboard.press('Escape');
-  await dock.getByRole('button',{name:'Risk',exact:true}).click();
-  eq(await dock.getAttribute('data-v4-position-view'),'risk','Risk view swaps table columns only');
-  eq(await ids(),originalIds,'Risk retains identity/order');
-  eq(await dock.getByRole('button',{name:'Expand position details for EUR/USD'}).count(),1,'Risk supports reference expand chevron');
+  eq(await ids(),originalIds,'Unified screen preserves position identities');
+  eq(await dock.getByRole('button',{name:'Expand position details for EUR/USD'}).count(),1,
+    'Inline position details remain accessible');
   await dock.getByRole('button',{name:'Expand position details for EUR/USD'}).click();
   const detail=dock.locator('[data-v4-position-detail="position-eur-1"]');
   eq(await detail.count(),1,'Expanded section inserted under correct row');
@@ -90,12 +96,9 @@ try{
   eq(await detail.getByRole('button',{name:/Copy Order ID/}).count(),1,'Copy Order ID');
   eq(await detail.getByRole('button',{name:/Copy Deal ID/}).count(),1,'Copy Deal ID');
   await detail.locator('summary').click();
-  const commonDetails=await detail.locator('.v4-position-detail-columns').innerText();
-  await dock.getByRole('button',{name:'Execution',exact:true}).click();
-  eq(await detail.locator('.v4-position-detail-columns').innerText(),commonDetails,'Detail content remains identical across Risk and Execution');
   await dock.getByRole('button',{name:'Collapse position details for EUR/USD'}).click();
   eq(await detail.count(),0,'Chevron can collapse details');
-  eq(await ids(),originalIds,'Execution retains same rows');
+  eq(await ids(),originalIds,'Unified view retains every trade');
   await dock.getByRole('button',{name:'Expand position details for BTC/USD'}).click();
   ok((await dock.locator('[data-v4-position-detail="position-btc-2"]').innerText()).includes('No verified execution records available.'),
     'Unavailable backend activity is not invented');
@@ -109,34 +112,27 @@ try{
       visibleRows:[...rows].filter(row=>{const box=row.getBoundingClientRect();return box.top>=scroller.top-1&&box.bottom<=scroller.bottom+1;}).length};
   });
   console.log('V4_DOCK_ACTUAL_GEOMETRY',JSON.stringify(geometry));
-  ok(geometry.container>=148,'Workspace reserves two visible rows despite terminal chrome');
+  ok(geometry.container>=178,'Unified dock reserves both 60px rows and scrollbar room');
   eq(geometry.header,44,'Unified toolbar remains 44px high');
-  eq(geometry.tableHead,27,'Compact column-heading row is 27px high');
+  ok(geometry.tableHead<=1,'Unified rows have no redundant visual column headings');
   await page.setViewportSize({width:768,height:850});
   const narrow=await dock.evaluate(el=>{
     const header=el.querySelector('.v4-positions-header').getBoundingClientRect();
     const tabs=el.querySelector('.v4-positions-tabs').getBoundingClientRect();
-    const tools=el.querySelector('.v4-positions-tools').getBoundingClientRect();
-    const scroll=el.querySelector('.v4-positions-scroller');
-    return {singleRow:Math.abs(header.top-tabs.top)<2&&Math.abs(header.top-tools.top)<12,
-      height:header.height,horizontal:scroll.scrollWidth>scroll.clientWidth};
+    const scroller=el.querySelector('.v4-positions-scroller');
+    const region=scroller.getBoundingClientRect();
+    return {singleRow:Math.abs(header.top-tabs.top)<2,height:header.height,
+      horizontal:scroller.scrollWidth>scroller.clientWidth,
+      visible:[...el.querySelectorAll('tr[data-v4-position-id]')].filter(row=>{
+        const r=row.getBoundingClientRect();return r.top>=region.top-1&&r.bottom<=region.bottom+1;
+      }).length};
   });
-  ok(narrow.singleRow,'Narrow dock retains one toolbar row');
-  eq(narrow.height,44,'Narrow dock stays 44px tall');
-  ok(narrow.horizontal,'Narrow table scrolls horizontally without wrapping the toolbar');
-  const selector=dock.getByRole('combobox',{name:'Positions table view'});
-  eq(await selector.count(),1,'Narrow desktop retains all three trading view modes');
-  await selector.selectOption('execution');
-  eq(await dock.getAttribute('data-v4-position-view'),'execution','Execution remains selectable at laptop widths');
-  const narrowRows=await dock.evaluate(el=>{
-    const viewport=el.querySelector('.v4-positions-scroller').getBoundingClientRect();
-    return [...el.querySelectorAll('tr[data-v4-position-id]')].filter(row=>{
-      const box=row.getBoundingClientRect();
-      return box.top>=viewport.top-1&&box.bottom<=viewport.bottom+1;
-    }).length;
-  });
-  eq(narrowRows,2,'Two entire Execution rows fit even with horizontal scrollbar');
-
+  ok(narrow.singleRow,'No second toolbar row even on laptop widths');
+  eq(narrow.height,44,'Toolbar stays 44px');
+  ok(narrow.horizontal,'At narrow widths the grouped trade table scrolls horizontally');
+  eq(narrow.visible,2,'Two complete unified trades remain visible at minimum dock height');
+  eq(await dock.getByRole('combobox',{name:'Positions table view'}).count(),0,
+    'No replacement mode selector on laptops');
   await page.setViewportSize({width:1440,height:900});
   await rows().first().getByRole('button',{name:'Expand position details for EUR/USD'}).click();
   await dock.locator('[data-v4-position-detail="position-eur-1"]').getByRole('button',{name:/View history/}).click();
