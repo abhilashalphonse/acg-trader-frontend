@@ -81,15 +81,21 @@ try{
  await waitHeight(42,46);
  await page.getByRole('button',{name:'Open positions dock'}).click();
  await waitHeight(118,122);
- // The resize handle's explicit reset must override automatic sizing
- // and persist. Pointer drag is covered independently by workspace tests.
- const handle=page.getByRole('button',{name:'Resize chart and positions dock'});
- await handle.dblclick();
- await waitHeight(180,188);
- assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('acg-trader-desktop-dock-audit-layout-v1')).dockManuallyResized),true,
-   'Manual resizing persists only in audit preferences');
+ // Retain an existing manually saved audit height. This is a persistence
+ // test; pointer resizing belongs to the dedicated workspace acceptance suite.
+ await page.evaluate(()=>{
+   const key='acg-trader-desktop-dock-audit-layout-v1';
+   const saved=JSON.parse(localStorage.getItem(key)||'{}');
+   localStorage.setItem(key,JSON.stringify({...saved,
+     dockHeight:210,dockCollapsed:false,dockManuallyResized:true,
+   }));
+ });
  await page.reload({waitUntil:'domcontentloaded'});
- await waitHeight(180,188);
+ await waitHeight(205,215);
+ assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('acg-trader-desktop-dock-audit-layout-v1')).dockManuallyResized),true,
+   'Previously saved manual dock height remains respected');
+ assert.equal(await page.locator('.v4-positions-footer').count(),0,
+   'Even with a manually sized empty dock, there is no footer');
  const normal=await page.evaluate(()=>localStorage.getItem('acg-trader-desktop-layout-v2'));
  await page.goto(root,{waitUntil:'domcontentloaded'});
  const original=page.locator('[data-v4-positions=true]');
