@@ -27,6 +27,12 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+      - name: Assert production bundle contains no public dock mock pages
+        if: ${{ github.head_ref == 'ui/v4-single-row-dock-20261114' || github.ref == 'refs/heads/ui/v4-single-row-dock-20261114' }}
+        run: |
+          test ! -f dist/v4-dock-preview.html
+          test ! -f dist/v4-positions-audit.html
+          echo 'Only the authenticated URL-gated audit is available in production builds.'
       - name: Verify V4 dock public preview mounts in Chrome
         if: ${{ github.head_ref == 'ui/v4-single-row-dock-20261114' || github.ref == 'refs/heads/ui/v4-single-row-dock-20261114' }}
         run: |
