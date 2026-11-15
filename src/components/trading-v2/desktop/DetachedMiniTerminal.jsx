@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, ExternalLink, PictureInPicture2, X } from 'lucide-react';
+import { ArrowLeft, ExternalLink, X } from 'lucide-react';
 import { formatInstrumentPrice } from '../../../utils/instrumentFormatting.js';
 import {positionMargin,positionUnrealizedPnl,money} from '../../../utils/v4PositionsPresentation.js';
 import './DetachedMiniTerminal.css';
@@ -17,7 +17,7 @@ function MiniTrade({ render, onDock }) {
 export default function DetachedMiniTerminal({
   visible, account, market, markets, positions, pendingOrders, notice,
   positionsLoading, positionsError, onRetryPositions, readOnly,
-  onSelectSymbol, renderCompact, renderTrade, renderPosition, renderPending,
+  onSelectSymbol, renderTrade, renderPosition, renderPending,
 }) {
   const host = useRef(null);
   const [container] = useState(() => document.createElement('div'));
@@ -153,12 +153,17 @@ export default function DetachedMiniTerminal({
   };
   const rows = tab === 'positions' ? positions : pendingOrders;
   return <>
-    <div ref={host} hidden={!visible || detached}/>
-    {detached && visible && <button type="button" className="acg-mini-launch" onClick={openWindow}><PictureInPicture2 size={14}/> Mini terminal is open</button>}
+    <div ref={host} hidden />
+    {visible && <button type="button" className="acg-mini-rail-launcher mb-1 grid size-9 place-items-center rounded-md"
+      data-acg-mini-launcher="true" aria-label="Pop out mini terminal"
+      title={detached?'Focus mini terminal':'Open mini terminal'}
+      aria-pressed={detached} onClick={openWindow}>
+      <ExternalLink size={17} strokeWidth={1.8}/>
+    </button>}
     {createPortal(detached ? (
       <section className="acg-mini-terminal acg-desktop-v3" aria-label="ACG mini terminal">
         <header className="acg-mini-titlebar" title="Keep the main ACG Trader tab open while using this window"><strong><span>ACG</span> TRADER</strong><small>{mode}</small>
-          <button type="button" onClick={dock} aria-label="Return mini terminal to chart" title="Return to chart"><PictureInPicture2 size={16}/></button>
+          <button type="button" onClick={dock} aria-label="Close mini terminal" title="Close mini terminal"><X size={16}/></button>
         </header>
         {mode==='Separate window'&&<div className="acg-mini-fallback-note" role="status">
           Regular window: it will not stay on top.
@@ -194,10 +199,9 @@ export default function DetachedMiniTerminal({
         </main>
 
       </section>
-    ) : <div className="acg-mini-attached">
-      <div className="acg-mini-launchbar"><button type="button" onClick={openWindow} title="Trade while browsing other tabs"><ExternalLink size={13}/> Pop out mini terminal</button></div>
-      {error && <div className="acg-mini-error" role="alert">{error}<button type="button" aria-label="Dismiss pop-out error" onClick={() => setError('')}><X size={12}/></button></div>}
-      {renderCompact()}
-    </div>, container)}
+    ) : (error ? <div className="acg-mini-launcher-error" role="alert">
+      <span>{error}</span>
+      <button type="button" aria-label="Dismiss pop-out error" onClick={() => setError('')}><X size={12}/></button>
+    </div> : null), container)}
   </>;
 }
