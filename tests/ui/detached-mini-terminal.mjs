@@ -33,6 +33,18 @@ try {
   const pip = expression => page.evaluate(expression);
   check(await pip(() => documentPictureInPicture.window.document.body.textContent.includes('Always on top')), 'Native always-on-top window opens');
   check(await pip(() => documentPictureInPicture.window.getComputedStyle(documentPictureInPicture.window.document.querySelector('.acg-mini-titlebar')).display === 'flex'), 'Styles are copied into native window');
+  check(await pip(()=>{
+    const d=documentPictureInPicture.window.document;
+    const mini=d.querySelector('.acg-mini-quick-order');
+    const content=d.querySelector('.acg-mini-content');
+    const buttons=d.querySelectorAll('.acg-mini-quick-actions button');
+    const metrics=d.querySelector('.acg-mini-margin-summary');
+    const context=d.querySelector('.acg-mini-context');
+    return mini&&metrics&&context&&buttons.length===2
+      && !d.querySelector('.acg-mini-quote-main')
+      && d.querySelectorAll('.acg-mini-order-family').length===1
+      && content.scrollHeight<=content.clientHeight+4;
+  }), 'Default 390px PiP fits compact trade without duplicated quotes or vertical scrolling');
   await pip(() => [...documentPictureInPicture.window.document.querySelectorAll('nav button')].find(b => b.textContent.startsWith('Positions')).click());
   await page.waitForFunction(() => documentPictureInPicture.window.document.querySelectorAll('.acg-mini-row').length === 2);
   check(await pip(() => !documentPictureInPicture.window.document.querySelector('.acg-mini-footer')),
@@ -95,6 +107,21 @@ try {
   await popup.screenshot({ path: 'tests/ui/artifacts/mini-terminal-position.png' });
   await popup.getByRole('button', { name: 'Trade', exact: true }).click();
   await popup.screenshot({ path: 'tests/ui/artifacts/mini-terminal-trade.png' });
+  const density=await popup.evaluate(()=>{
+    const content=document.querySelector('.acg-mini-content');
+    const ctx=document.querySelector('.acg-mini-context')?.getBoundingClientRect();
+    const tabs=document.querySelector('.acg-mini-tabs')?.getBoundingClientRect();
+    const actions=document.querySelector('.acg-mini-quick-actions')?.getBoundingClientRect();
+    const margins=document.querySelector('.acg-mini-margin-summary')?.getBoundingClientRect();
+    return {scroll:content?.scrollHeight,visible:content?.clientHeight,
+      contextHeight:ctx?.height,tabsHeight:tabs?.height,
+      actionsHeight:actions?.height,metricsHeight:margins?.height};
+  });
+  console.log('MINI_DENSITY_GEOMETRY',JSON.stringify(density));
+  check(density.contextHeight<=46&&density.tabsHeight<=32&&density.actionsHeight>=42,
+    'Dense header and 44px execution buttons retain usable size');
+  check(density.metricsHeight<=40,'Both margin metrics share one compact row');
+  check(density.scroll<=density.visible+4,'Default detached trade fits without a vertical scrollbar');
   check(await popup.locator('[data-acg-mini-simple-ticket=true]').isVisible(),
     'Trade tab uses original floating quick-order logic in a simple popup');
   check(await popup.locator('.v4-ticket').count()===0,

@@ -64,8 +64,8 @@ export default function DetachedMiniTerminal({
     try {
       const pip = Boolean(window.documentPictureInPicture?.requestWindow);
       child = pip
-        ? await window.documentPictureInPicture.requestWindow({ width: 390, height: 600 })
-        : window.open('about:blank', '_blank', 'popup=yes,width=390,height=600');
+        ? await window.documentPictureInPicture.requestWindow({ width: 390, height: 480 })
+        : window.open('about:blank', '_blank', 'popup=yes,width=390,height=480');
       if (!child) throw new Error('Allow pop-ups for ACG Trader, then try again.');
       if (!mounted.current) { child.close(); return; }
       windowRef.current = child;
@@ -163,12 +163,18 @@ export default function DetachedMiniTerminal({
         {mode==='Separate window'&&<div className="acg-mini-fallback-note" role="status">
           Regular window: it will not stay on top.
         </div>}
-        <div className="acg-mini-account"><span>{account?.accountCode || account?.id || 'Account unavailable'}</span><b>{currency}</b></div>
-        <label className="acg-mini-instrument">Instrument
-          <select aria-label="Mini terminal instrument" value={market?.symbol || ''} onChange={event => onSelectSymbol(event.target.value)}>
-            {markets.map(item => <option key={item.symbol} value={item.symbol}>{item.displaySymbol || item.symbol}</option>)}
-          </select>
-        </label>
+        <div className="acg-mini-context">
+          <label className="acg-mini-instrument">
+            <span className="acg-mini-visually-hidden">Instrument</span>
+            <select aria-label="Mini terminal instrument" value={market?.symbol || ''} onChange={event => onSelectSymbol(event.target.value)}>
+              {markets.map(item => <option key={item.symbol} value={item.symbol}>{item.displaySymbol || item.symbol}</option>)}
+            </select>
+          </label>
+          <div className="acg-mini-account" title={account?.accountCode || account?.id || 'Account unavailable'}>
+            <span>{account?.accountCode || account?.id || 'Account unavailable'}</span>
+            <b>{currency}</b>
+          </div>
+        </div>
         <nav className="acg-mini-tabs" aria-label="Mini terminal sections">{[
           ['trade', 'Trade'], ['orders', `Orders (${pendingOrders.length})`], ['positions', `Positions (${positions.length})`],
         ].map(([id, label]) => <button type="button" key={id} aria-pressed={tab === id} onClick={() => { setTab(id); back(); }}>{label}</button>)}</nav>

@@ -597,13 +597,14 @@ export default function DesktopOrderTicket({
     const quoteAvailable = Boolean(executableQuote);
     return (
       <section className="acg-mini-quick-order" data-acg-mini-simple-ticket="true" aria-label="Compact trade ticket">
-        <div className="acg-mini-quote" aria-live="off">
-          <span className="acg-mini-quote-main">
-            <span className="acg-mini-quote-label">{marketClosed ? 'Market closed' : quoteAvailable ? 'Bid / Ask' : 'Quote unavailable'}</span>
-            <strong>{quoteAvailable ? marketSellPrice+' / '+marketBuyPrice : '—'}</strong>
-          </span>
-          <span className="acg-mini-quote-status" data-market-open={marketClosed ? 'false' : quoteAvailable ? 'true' : 'waiting'}>
-            {marketClosed ? 'CLOSED' : quoteAvailable ? 'LIVE' : 'WAITING'}
+        <div className="acg-mini-order-header">
+          <div className="acg-mini-order-family" role="group" aria-label="Order type">
+            <button type="button" aria-pressed={!isPending} onClick={()=>chooseFamily('market')}>Market</button>
+            <button type="button" aria-pressed={isPending} onClick={()=>chooseFamily('pending')}>Pending</button>
+          </div>
+          <span className="acg-mini-quote-status" role="status"
+            data-market-open={marketClosed ? 'false' : quoteAvailable ? 'true' : 'waiting'}>
+            {marketClosed ? 'Market closed' : quoteAvailable ? 'LIVE QUOTE' : 'QUOTE UNAVAILABLE'}
           </span>
         </div>
         <div className="acg-mini-quick-actions">
@@ -616,12 +617,9 @@ export default function DesktopOrderTicket({
             <span>{isPending ? pendingSellLabel : 'Sell'}</span><strong>{isPending&&tradePlan?.pending ? formatInstrumentPrice(tradePlan.entry,market):marketSellPrice}</strong>
           </button>
         </div>
-        <div className="acg-mini-quick-margin">
-          <span>Free margin</span><strong>{Number.isFinite(freeMargin) ? money(freeMargin,currency) : '—'}</strong>
-        </div>
-        <div className="acg-mini-order-family" role="group" aria-label="Order type">
-          <button type="button" aria-pressed={!isPending} onClick={()=>chooseFamily('market')}>Market</button>
-          <button type="button" aria-pressed={isPending} onClick={()=>chooseFamily('pending')}>Pending</button>
+        <div className="acg-mini-margin-summary" aria-label="Account and order margin">
+          <span><small>Free margin</small><strong>{Number.isFinite(freeMargin) ? money(freeMargin,currency) : '—'}</strong></span>
+          <span><small>Est. margin</small><strong>{Number.isFinite(previewMargin)?money(previewMargin,currency):'—'}</strong></span>
         </div>
         {isPending && <div className="acg-mini-field">
           <label htmlFor="acg-mini-trigger-price">Trigger / entry price</label>
@@ -634,15 +632,7 @@ export default function DesktopOrderTicket({
             onBlur={commitEntry}
             onKeyDown={event=>{if(event.key==='Enter')event.currentTarget.blur();if(event.key==='Escape'){setEntryInput(priceInputValue(tradePlan?.entry,market));event.currentTarget.blur();}}}/>
         </div>}
-        <div className="acg-mini-sizer">
-          <span>Size by {activeSizingMode === 'risk' ? 'risk' : 'lots'}</span>
-          <button type="button" disabled={!riskSupported}
-            aria-label="Toggle mini risk sizing"
-            aria-pressed={activeSizingMode==='risk'}
-            onClick={()=>setMode(activeSizingMode==='risk'?'lots':'risk')}>
-            {activeSizingMode==='risk'?'Switch to lots':'Use risk %'}
-          </button>
-        </div>
+
         {activeSizingMode==='risk'&&<div className="acg-mini-field">
           <label htmlFor="acg-mini-risk-percent">Risk per trade <span>% of equity</span></label>
           <input id="acg-mini-risk-percent" aria-label="Risk percent" inputMode="decimal"
@@ -653,7 +643,14 @@ export default function DesktopOrderTicket({
             onKeyDown={event=>{if(event.key==='Enter')event.currentTarget.blur();}}/>
         </div>}
         <div className="acg-mini-field">
-          <label htmlFor="acg-mini-lot-size">Quantity <span>Lots</span></label>
+          <div className="acg-mini-quantity-label">
+            <label htmlFor="acg-mini-lot-size">Quantity <span>· Lots</span></label>
+            <button type="button" disabled={!riskSupported} className="acg-mini-sizing-switch"
+              aria-label="Toggle mini risk sizing" aria-pressed={activeSizingMode==='risk'}
+              onClick={()=>setMode(activeSizingMode==='risk'?'lots':'risk')}>
+              {activeSizingMode==='risk'?'Use lots':'Use risk %'}
+            </button>
+          </div>
           <div className="acg-mini-quantity">
             <button type="button" aria-label="Decrease lot size" disabled={activeSizingMode==='risk'}
               onClick={()=>setLots(Math.max(minVolume,normalizedLots-volumeStep))}><Minus size={15}/></button>
@@ -677,20 +674,16 @@ export default function DesktopOrderTicket({
               onClick={()=>addProtection('tp')}>TP {hasTakeProfit ? '✓' : '+'}</button>
           </div>
         </div>
-        <div className="acg-mini-estimate">
-          <span>Estimated margin</span>
-          <strong>{Number.isFinite(previewMargin)?money(previewMargin,currency):'—'}</strong>
-        </div>
+
         {(warning || (activeSizingMode==='risk'&&!hasStopLoss)) && <div className="acg-mini-quick-warning" role="status">
           {activeSizingMode==='risk'&&!hasStopLoss?'Set SL to calculate a risk-based quantity.':warning}
         </div>}
-        {marketClosed && <div className="acg-mini-closed" role="status">Market closed</div>}
         {accountCapabilities.stopLossRequiredForManualLots && activeSizingMode==='lots' && <p className="acg-mini-policy-note">
           This account requires stop loss for manual-lot exposure.
         </p>}
         <p className="acg-mini-quick-hint">{isPending
-          ? 'Select Buy or Sell to plan a pending order. Review its entry before confirming.'
-          : 'Buy or Sell may execute immediately. Existing account restrictions apply.'}</p>
+          ? 'Choose Buy or Sell to plan; confirm the entry before placing.'
+          : 'Buy or Sell may execute immediately, subject to account restrictions.'}</p>
       </section>
     );
   }
