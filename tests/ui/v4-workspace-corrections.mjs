@@ -23,8 +23,8 @@ try{
  eq(await dock.getByRole('button',{name:/Pending/}).locator('.v4-positions-count').count(),1,'Pending retains count');
 
  const rows=()=>dock.locator('tr[data-v4-position-id]');
- eq(await dock.getAttribute('data-v4-position-view'),'compact','Compact default');
- eq(await rows().first().getByRole('button',{name:'Expand position details for EUR/USD'}).count(),1,'Compact view includes detail chevron');
+ eq(await dock.getAttribute('data-v4-position-view'),'unified','One comprehensive layout');
+ eq(await rows().first().getByRole('button',{name:'Expand position details for EUR/USD'}).count(),1,'Unified row includes detail chevron');
  const baseDockHeight=await dock.evaluate(el=>el.getBoundingClientRect().height);
  await rows().first().click();
  eq(await dock.locator('[data-v4-position-detail="position-eur-1"]').count(),0,'Row selection does not expand');
@@ -38,7 +38,7 @@ try{
    scrollHeight:el.querySelector('.v4-positions-scroller').scrollHeight,
  }));
  ok(Math.abs(heights.dock-baseDockHeight)<=2,
-   'Inline row expansion never changes the compact dock height');
+   'Inline row expansion never changes the user-sized dock height');
  ok(heights.scrollHeight>heights.scroller,
    'Expanded three-column details scroll inside the original dock');
  const scroll=await dock.locator('.v4-positions-scroller').evaluate(el=>{
@@ -62,19 +62,17 @@ try{
    return el&&el.getBoundingClientRect().height<=321;
  });
  ok((await dock.evaluate(el=>el.getBoundingClientRect().height))<=321,
-   'Restoring fullscreen returns to original compact dock size');
+   'Restoring fullscreen returns to saved dock size');
  const detail=dock.locator('[data-v4-position-detail="position-eur-1"]');
  const info=await detail.innerText();
  ok(info.includes('Commission')&&info.includes('$2.50'),'Recorded commission shown');
  ok(!info.includes('Current bid/ask spread')&&!info.includes('R-multiple'),'Market spread and ungrounded R multiple omitted');
- await dock.getByRole('button',{name:'Risk',exact:true}).click();
- eq(await detail.count(),1,'Expanded details persist across Risk view');
- await dock.getByRole('button',{name:'Execution',exact:true}).click();
- eq(await detail.count(),1,'Expanded details persist across Execution view');
+ eq(await detail.count(),1,'Expanded details persist in the unified view');
+ eq(await dock.getByRole('button',{name:'Compact',exact:true}).count(),0,'No Compact control');
+ eq(await dock.getByRole('button',{name:'Risk',exact:true}).count(),0,'No Risk control');
+ eq(await dock.getByRole('button',{name:'Execution',exact:true}).count(),0,'No Execution control');
  await rows().first().getByRole('button',{name:'Collapse position details for EUR/USD'}).click();
- eq(await detail.count(),0,'Chevron collapses in Execution view');
-
- await dock.getByRole('button',{name:'Compact',exact:true}).click();
+ eq(await detail.count(),0,'Chevron collapses details in unified view');
  await rows().first().getByRole('button',{name:'More actions for EURUSD'}).click();
  const menu=page.getByRole('menu',{name:'Actions for EURUSD'});
  await menu.waitFor({state:'visible'});
