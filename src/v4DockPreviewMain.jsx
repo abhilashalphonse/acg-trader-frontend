@@ -102,7 +102,7 @@ function Review(){
     <div><strong>Responsive desktop preview</strong><p>Select a real layout width, inspect every tab and view, or drag the dock edge. Wider frames scroll horizontally; all trading actions are disabled.</p></div>
     <div className="dock-review-preview-actions">
       <a className="dock-review-full-terminal-link"
-        href="/v4-positions-audit.html?acg_v4_audit=1&public_review=1" target="_blank" rel="noopener noreferrer"
+        href="/v4-positions-audit.html?acg_v4_audit=1&acg_dock_audit=1&public_review=1" target="_blank" rel="noopener noreferrer"
         title="Open the real ACG Trader desktop component with mock positions, no API trading">
         View in full terminal ↗
       </a>
@@ -126,7 +126,7 @@ function Review(){
          if(event.key==='ArrowUp'){event.preventDefault();setCustomHeight(h=>Math.min(420,h+12));}
          if(event.key==='ArrowDown'){event.preventDefault();setCustomHeight(h=>Math.max(164,h-12));}
         }}><GripHorizontal size={17}/></div>}
-      <section className="dock-review-dock" style={{height:effectiveHeight}}>
+      <section className="dock-review-dock acg-dock-audit" style={{height:effectiveHeight}}>
         {tab==='positions'&&<PositionsDockV4 key="positions" positions={POSITIONS} markets={MARKETS}
           account={ACCOUNT} counts={counts} readOnly onTabChange={onTabChange}
           selectedPositionId={selectedId} onSelectPosition={setSelectedId} onToggleExpanded={toggleExpanded}
