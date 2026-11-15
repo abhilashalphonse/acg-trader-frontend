@@ -1441,84 +1441,7 @@ export default function DesktopTerminal({
             </div>
 
 
-            {DOCK_AUDIT_ENABLED ? (floatingExecutionVisible && (
-              <div ref={floatingOrderRef} className="absolute z-[90] hidden lg:block" style={{ left: floatingOrder.x, top: floatingOrder.y }}>
-                <React.Suspense fallback={null}>
-                  <DetachedMiniTerminal
-                    visible={floatingExecutionVisible}
-                    account={account} market={market} markets={markets}
-                    positions={positions} pendingOrders={pendingOrders}
-                    positionsLoading={positionsLoading} positionsError={positionsError} onRetryPositions={onRetryPositions}
-                    notice={notice} readOnly={readOnly || accountSwitching}
-                    onSelectSymbol={onSelectSymbol}
-                    renderTrade={dock => <DesktopOrderTicket
-                      key={`mini-quick-${account?.id || 'none'}`}
-                      variant="mini" floatingV2Theme={V4_DESKTOP_EXECUTION_ENABLED}
-                      market={market} account={account}
-                      exposureAllowed={exposureAllowed && !readOnly && !accountSwitching && !executionCommandPending}
-                      exposureBlockReason={exposureBlockReason}
-                      lots={lots} onLotsChange={onLotsChange}
-                      sizingMode={sizingMode} onSizingModeChange={onSizingModeChange}
-                      riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange}
-                      orderType={orderType} onOrderTypeChange={onOrderTypeChange}
-                      tradePlan={tradePlan} orderExecutionPreview={orderExecutionPreview}
-                      onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan}
-                      onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange}
-                      onNotice={setNotice} onOpenFullTrade={()=>{dock();openSidebarView('trade');}}
-                    />}
-                    renderPosition={(position, instrument, back) => <DesktopManagePositionV4
-                      key={`mini-position-${account?.id}-${position.id}`}
-                      position={position} instrument={instrument} account={account}
-                      protectionDraft={positionProtectionDraft} protectionSaving={positionProtectionSaving}
-                      onBeginProtection={field => editPositionProtection(position.id, field)}
-                      onProtectionDraftChange={onPositionProtectionDraftChange}
-                      onApplyProtection={onApplyPositionProtection} onCancelProtection={onCancelPositionProtection}
-                      onUpdateProtection={updateDesktopProtection}
-                      onClosePosition={onClosePosition} onBreakEven={onBreakEven} onSetTrailing={onSetTrailing}
-                      onNotice={setNotice} readOnly={readOnly || accountSwitching || executionCommandPending}
-                      onDismiss={() => { onCancelPositionProtection(); back(); }}
-                    />}
-                    renderPending={(order, instrument, back) => <DesktopManagePendingV4
-                      key={`mini-pending-${account?.id}-${order.id}`}
-                      order={order} instrument={instrument} account={account} draft={pendingOrderDraft}
-                      onDraftChange={setPendingOrderDraft} onDiscard={clearPendingDraft}
-                      onMovePending={onMovePending} onCancelPending={onCancelPending}
-                      onNotice={setNotice} readOnly={readOnly || accountSwitching || executionCommandPending}
-                      onDismiss={() => { clearPendingDraft(); back(); }}
-                    />}
-                    renderCompact={() => <DesktopOrderTicket
-                  key={`floating-order-${account?.id || 'none'}`}
-                  variant="floating"
-                  floatingV2Theme={V4_DESKTOP_EXECUTION_ENABLED}
-                  onFloatingDragStart={beginFloatingOrderDrag}
-                  onOpenFullTrade={() => openSidebarView('trade')}
-                  market={market}
-                  account={account}
-                  exposureAllowed={exposureAllowed}
-                  exposureBlockReason={exposureBlockReason}
-                  lots={lots}
-                  onLotsChange={onLotsChange}
-                  sizingMode={sizingMode}
-                  onSizingModeChange={onSizingModeChange}
-                  riskPercent={riskPercent}
-                  onRiskPercentChange={onRiskPercentChange}
-                  orderType={orderType}
-                  onOrderTypeChange={onOrderTypeChange}
-                  tradePlan={tradePlan}
-                  orderExecutionPreview={orderExecutionPreview}
-                  onStartPlan={onStartPlan}
-                  onCancelPlan={onCancelPlan}
-                  onExecutePlan={onExecutePlan}
-                  onManualOrder={submitOneClick}
-                  onTradePlanChange={onTradePlanChange}
-                  onNotice={setNotice}
-                />
-                    }
-                  />
-                </React.Suspense>
-              </div>
-            )) : <>
-            {floatingExecutionVisible && (
+            {!DOCK_AUDIT_ENABLED && floatingExecutionVisible && (
               <div ref={floatingOrderRef} className="absolute z-[90] hidden lg:block" style={{ left: floatingOrder.x, top: floatingOrder.y }}>
                 <DesktopOrderTicket
                   key={`floating-order-${account?.id || 'none'}`}
@@ -1549,7 +1472,6 @@ export default function DesktopTerminal({
                 />
               </div>
             )}
-            </>}
           </section>
 
           {!desktopLayout.sidebarCollapsed && !positionsExpanded && (
@@ -1660,6 +1582,53 @@ export default function DesktopTerminal({
             >
               <ChartNoAxesCombined size={17}/>
             </button>
+            {DOCK_AUDIT_ENABLED && (
+              <React.Suspense fallback={<span className="mb-1 block size-9" aria-hidden="true" />}>
+                  <DetachedMiniTerminal
+                    visible={true}
+                    account={account} market={market} markets={markets}
+                    positions={positions} pendingOrders={pendingOrders}
+                    positionsLoading={positionsLoading} positionsError={positionsError} onRetryPositions={onRetryPositions}
+                    notice={notice} readOnly={readOnly || accountSwitching}
+                    onSelectSymbol={onSelectSymbol}
+                    renderTrade={dock => <DesktopOrderTicket
+                      key={`mini-quick-${account?.id || 'none'}`}
+                      variant="mini" floatingV2Theme={V4_DESKTOP_EXECUTION_ENABLED}
+                      market={market} account={account}
+                      exposureAllowed={exposureAllowed && !readOnly && !accountSwitching && !executionCommandPending}
+                      exposureBlockReason={exposureBlockReason}
+                      lots={lots} onLotsChange={onLotsChange}
+                      sizingMode={sizingMode} onSizingModeChange={onSizingModeChange}
+                      riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange}
+                      orderType={orderType} onOrderTypeChange={onOrderTypeChange}
+                      tradePlan={tradePlan} orderExecutionPreview={orderExecutionPreview}
+                      onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan}
+                      onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange}
+                      onNotice={setNotice} onOpenFullTrade={()=>{dock();openSidebarView('trade');}}
+                    />}
+                    renderPosition={(position, instrument, back) => <DesktopManagePositionV4
+                      key={`mini-position-${account?.id}-${position.id}`}
+                      position={position} instrument={instrument} account={account}
+                      protectionDraft={positionProtectionDraft} protectionSaving={positionProtectionSaving}
+                      onBeginProtection={field => editPositionProtection(position.id, field)}
+                      onProtectionDraftChange={onPositionProtectionDraftChange}
+                      onApplyProtection={onApplyPositionProtection} onCancelProtection={onCancelPositionProtection}
+                      onUpdateProtection={updateDesktopProtection}
+                      onClosePosition={onClosePosition} onBreakEven={onBreakEven} onSetTrailing={onSetTrailing}
+                      onNotice={setNotice} readOnly={readOnly || accountSwitching || executionCommandPending}
+                      onDismiss={() => { onCancelPositionProtection(); back(); }}
+                    />}
+                    renderPending={(order, instrument, back) => <DesktopManagePendingV4
+                      key={`mini-pending-${account?.id}-${order.id}`}
+                      order={order} instrument={instrument} account={account} draft={pendingOrderDraft}
+                      onDraftChange={setPendingOrderDraft} onDiscard={clearPendingDraft}
+                      onMovePending={onMovePending} onCancelPending={onCancelPending}
+                      onNotice={setNotice} readOnly={readOnly || accountSwitching || executionCommandPending}
+                      onDismiss={() => { clearPendingDraft(); back(); }}
+                    />}
+                  />
+              </React.Suspense>
+            )}
             <button
               type="button"
               onClick={() => {
