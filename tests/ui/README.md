@@ -33,9 +33,13 @@ close confirmation and callback routing, resizing, docking/reopening, popup bloc
 and cleanup when the owner navigates away. All trading commands use fixture callbacks;
 no live account is accessed. Screenshots are saved under `tests/ui/artifacts/`.
 
-In the desktop terminal, collapse the Trade sidebar to show the floating ticket,
-then select **Pop out mini terminal**. Supported browsers open an always-on-top
-window; others open a regular window and explain that it cannot stay on top.
-Keep the main terminal tab open. The return button or closing the window restores
-the compact ticket. The mini terminal reuses the existing V4 order and management
-editors and the opener's React state, auth context and command callbacks.
+In the authenticated desktop audit (`?acg_dock_audit=1`), choose the small
+**Pop out mini terminal** icon in the right-hand terminal rail. The chart has **no
+attached floating order ticket**. The launcher works even when the full Trade
+sidebar is open. Supported browsers open an always-on-top Picture-in-Picture
+window; others open a regular popup that cannot stay on top. Keep the main
+terminal tab open. Closing the popup leaves only the icon; no ticket returns
+to the chart. The 360 × 480 px initial window keeps the same height while
+switching Trade, Orders and Positions; longer forms scroll within that window.
+The popup reuses the original quick-order and V4 management callbacks, session
+and account state. Outside the audit flag the customer layout is unchanged.
