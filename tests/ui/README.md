@@ -19,3 +19,23 @@ Screenshots and results are written to ignored `tests/ui/artifacts/`, or to `CHA
 Coverage includes full-name search, adding instances, invalid numeric inputs, Apply/Cancel, line creation and appearance, cancelling a live drag, zoom without changing stored coordinates, restricting drawings to the price pane, narrow viewport overflow, touch drawing creation, and indicator/drawing timeframe visibility.
 
 These checks exercise the analysis UI. They do not validate a live broker connection, real-time feed latency, or execution.
+
+## Detached mini terminal
+
+With the Vite server running, run `npm run test:ui:mini`. This uses the isolated
+`v4-positions-audit.html` fixture and Chrome (override with `PLAYWRIGHT_CHANNEL`).
+Set `VITE_ACG_EXECUTION_V4_ENABLED=true` when starting Vite to exercise the V4
+desktop theme too. `MINI_TERMINAL_QA_URL` can override the fixture URL.
+
+The checks cover actual Document Picture-in-Picture, the regular popup fallback,
+copied styles, shared position/account updates, management tabs, account switching,
+close confirmation and callback routing, resizing, docking/reopening, popup blocking,
+and cleanup when the owner navigates away. All trading commands use fixture callbacks;
+no live account is accessed. Screenshots are saved under `tests/ui/artifacts/`.
+
+In the desktop terminal, collapse the Trade sidebar to show the floating ticket,
+then select **Pop out mini terminal**. Supported browsers open an always-on-top
+window; others open a regular window and explain that it cannot stay on top.
+Keep the main terminal tab open. The return button or closing the window restores
+the compact ticket. The mini terminal reuses the existing V4 order and management
+editors and the opener's React state, auth context and command callbacks.
