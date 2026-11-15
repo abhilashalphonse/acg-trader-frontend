@@ -7,7 +7,7 @@ import {estimatePositionPnlAtPrice} from '../../utils/tradingRisk.js';
 import {positionCloseAvailability} from '../../utils/marketExecutionAvailability.js';
 import {
   finiteOrNull,fixedNumber,money,
-  pnlTone,positionMargin,positionExposure,positionOpened,
+  pnlTone,positionMargin,
   positionUnrealizedPnl,positionRiskAtStop,positionIdentity,
 } from '../../utils/v4PositionsPresentation.js';
 import { PositionsAccountSummary,PositionsExpandedDetails,PositionsExposureFooter } from './PositionsWorkspaceChromeV4.jsx';
@@ -15,9 +15,7 @@ import './PositionsDockV4.css';
 
 const columns={
   unified:[['Trade','21%','left'],['Prices','17%','right'],['SL / TP','17%','right'],['Margin / risk','18%','right'],['Unrealized P&L','15%','right'],['Actions','12%','right']],
-  compact:[['Instrument','26%','left'],['Size','15%','right'],['Current price','21%','right'],['Unrealized P&L','20%','right'],['Actions','18%','right']],
-  risk:[['Instrument','20%','left'],['Exposure','12%','right'],['Margin','10%','right'],['Stop loss','10%','right'],['Take profit','10%','right'],['Risk at stop','10%','right'],['Unrealized P&L','13%','right'],['Actions','15%','right']],
-  execution:[['Instrument','24%','left'],['Size','13%','right'],['Entry price','17%','right'],['Opened','20%','left'],['Unrealized P&L','11%','right'],['Actions','15%','right']],
+
 };
 
 const classForPnl=value=>'v4-position-pnl '+pnlTone(value);
@@ -89,15 +87,13 @@ function TableRow({position,instrument,markets,account,view,visibleColumns,selec
   onReviewClose,onOpenMenu,onOpenJournal,journal,activityOrders,activityDeals,activityFills,readOnly}) {
   const id=positionIdentity(position);
   const margin=positionMargin(position);
-  const exposure=positionExposure(position,instrument);
-  const opened=positionOpened(position);
   const validClose=positionCloseAvailability(instrument);
   const sl=finiteOrNull(position.sl),tp=finiteOrNull(position.tp);
   const currentPrice=finiteOrNull(position.closePrice);
   const stopRisk=positionRiskAtStop(position,instrument,account,estimatePositionPnlAtPrice);
-  const rowLabel=(position.symbol||'Instrument')+' '+(position.side||'')+', '+view+' position';
+  const rowLabel=(position.symbol||'Instrument')+' '+(position.side||'')+', position';
   return <>
-    <tr key={id} className={'v4-position-row '+(selected?'is-selected ':'')+(view==='execution'?'is-execution':'')}
+    <tr key={id} className={'v4-position-row '+(selected?'is-selected':'')}
       data-v4-position-id={id} aria-selected={selected} tabIndex={0} aria-label={rowLabel}
       onClick={()=>onSelect(id)}
       onKeyDown={event=>{if(event.target!==event.currentTarget)return;if(event.key==='Enter'||event.key===' '){event.preventDefault();onSelect(id);}}}>
@@ -128,37 +124,6 @@ function TableRow({position,instrument,markets,account,view,visibleColumns,selec
           <span className="v4-unified-label">Unrealized P&L</span><Amount position={position} account={account}/>
           {position.valuationStatus&&position.valuationStatus!=='LIVE'&&<span className="v4-unified-label">Valuation {position.valuationStatus}</span>}
         </span></Cell>
-      </>}
-      {view==='compact'&&<>
-        {visibleColumns.includes('Size')&&<Cell label="Size">{fixedNumber(position.volume,2)} lots</Cell>}
-        {visibleColumns.includes('Current price')&&<Cell label="Current">{currentPrice==null?'—':formatInstrumentPrice(currentPrice,instrument)}</Cell>}
-        {visibleColumns.includes('Unrealized P&L')&&<Cell label="Floating P&L"><Amount position={position} account={account}/></Cell>}
-
-      </>}
-      {view==='risk'&&<>
-        {visibleColumns.includes('Exposure')&&<Cell title={exposure?.description}>{exposure?fixedNumber(exposure.quantity,Number.isInteger(exposure.quantity)?0:exposure.quantity<1?4:2)+' '+exposure.unit:'—'}</Cell>}
-        {visibleColumns.includes('Margin')&&<Cell title="Position-level reserved margin; account currency">{money(margin,account?.currency)}</Cell>}
-        {['sl','tp'].map(field=>{
-          const label=field==='sl'?'Stop loss':'Take profit';
-          if(!visibleColumns.includes(label))return null;
-          const value=field==='sl'?sl:tp;
-          return <Cell key={field}><button type="button" className="v4-position-protection"
-            title={(value==null?'Add ':'Edit ')+(field==='sl'?'stop loss':'take profit')+' for '+position.symbol}
-            aria-label={(value==null?'Add ':'Edit ')+(field==='sl'?'stop loss':'take profit')+' for '+position.symbol}
-            disabled={readOnly} onClick={event=>{event.stopPropagation();onEditProtection(id,field);}}>
-            {value==null?'+ Add':formatInstrumentPrice(value,instrument)}
-          </button></Cell>;
-        })}
-        {visibleColumns.includes('Risk at stop')&&<Cell title={sl==null?'No stop loss configured':'Estimated adverse P&L to stop in account currency; fees and swaps are not independently included'}>{sl==null||stopRisk==null?'—':money(stopRisk,account?.currency)}</Cell>}
-        {visibleColumns.includes('Unrealized P&L')&&<Cell><Amount position={position} account={account}/></Cell>}
-      </>}
-      {view==='execution'&&<>
-        {visibleColumns.includes('Size')&&<Cell>{fixedNumber(position.volume,2)} lots</Cell>}
-        {visibleColumns.includes('Entry price')&&<Cell>{formatInstrumentPrice(position.entry,instrument)}</Cell>}
-        {visibleColumns.includes('Opened')&&<Cell align="left" title={opened?.iso||'Fill timestamp unavailable'}>
-          <span className="v4-position-time">{opened?<><span>{opened.date}</span><span>{opened.time} {opened.offset}</span></>:'—'}</span>
-        </Cell>}
-        {visibleColumns.includes('Unrealized P&L')&&<Cell><Amount position={position} account={account}/></Cell>}
       </>}
         {visibleColumns.includes('Actions')&&<Cell className="v4-position-actions-cell">
           <span className="v4-position-actions">
