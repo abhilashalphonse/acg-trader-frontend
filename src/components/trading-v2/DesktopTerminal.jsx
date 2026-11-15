@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import DesktopOrderTicket from './desktop/DesktopOrderTicket.jsx';
 import DesktopOrderTicketV4 from './desktop/DesktopOrderTicketV4.jsx';
+// Audit-only; ordinary customer sessions do not download detachable-window code.
+const DetachedMiniTerminal = React.lazy(() => import('./desktop/DetachedMiniTerminal.jsx'));
 import DesktopManagePositionV4 from './desktop/DesktopManagePositionV4.jsx';
 import DesktopManagePendingV4 from './desktop/DesktopManagePendingV4.jsx';
 import './desktop/DesktopTerminal.theme.css';
@@ -1438,6 +1440,84 @@ export default function DesktopTerminal({
               />
             </div>
 
+
+            {DOCK_AUDIT_ENABLED ? (floatingExecutionVisible && (
+              <div ref={floatingOrderRef} className="absolute z-[90] hidden lg:block" style={{ left: floatingOrder.x, top: floatingOrder.y }}>
+                <React.Suspense fallback={null}>
+                  <DetachedMiniTerminal
+                    visible={floatingExecutionVisible}
+                    account={account} market={market} markets={markets}
+                    positions={positions} pendingOrders={pendingOrders}
+                    positionsLoading={positionsLoading} positionsError={positionsError} onRetryPositions={onRetryPositions}
+                    notice={notice} readOnly={readOnly || accountSwitching}
+                    onSelectSymbol={onSelectSymbol}
+                    renderTrade={dock => <DesktopOrderTicketV4
+                      key={`mini-trade-${account?.id || 'none'}-${market?.symbol || 'none'}`}
+                      market={market} account={account} conversionMarkets={markets}
+                      exposureAllowed={exposureAllowed && !readOnly && !accountSwitching}
+                      exposureBlockReason={exposureBlockReason}
+                      lots={lots} onLotsChange={onLotsChange} sizingMode={sizingMode} onSizingModeChange={onSizingModeChange}
+                      riskPercent={riskPercent} onRiskPercentChange={onRiskPercentChange}
+                      orderType={orderType} onOrderTypeChange={onOrderTypeChange} tradePlan={tradePlan}
+                      orderExecutionPreview={orderExecutionPreview}
+                      onStartPlan={onStartPlan} onCancelPlan={onCancelPlan} onExecutePlan={onExecutePlan}
+                      onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} onNotice={setNotice}
+                      executionCommandPending={executionCommandPending || accountSwitching || readOnly}
+                      onOpenMarkets={() => setNotice('Choose an instrument from the selector above.')}
+                      onCloseTicket={dock}
+                    />}
+                    renderPosition={(position, instrument, back) => <DesktopManagePositionV4
+                      key={`mini-position-${account?.id}-${position.id}`}
+                      position={position} instrument={instrument} account={account}
+                      protectionDraft={positionProtectionDraft} protectionSaving={positionProtectionSaving}
+                      onBeginProtection={field => editPositionProtection(position.id, field)}
+                      onProtectionDraftChange={onPositionProtectionDraftChange}
+                      onApplyProtection={onApplyPositionProtection} onCancelProtection={onCancelPositionProtection}
+                      onUpdateProtection={updateDesktopProtection}
+                      onClosePosition={onClosePosition} onBreakEven={onBreakEven} onSetTrailing={onSetTrailing}
+                      onNotice={setNotice} readOnly={readOnly || accountSwitching || executionCommandPending}
+                      onDismiss={() => { onCancelPositionProtection(); back(); }}
+                    />}
+                    renderPending={(order, instrument, back) => <DesktopManagePendingV4
+                      key={`mini-pending-${account?.id}-${order.id}`}
+                      order={order} instrument={instrument} account={account} draft={pendingOrderDraft}
+                      onDraftChange={setPendingOrderDraft} onDiscard={clearPendingDraft}
+                      onMovePending={onMovePending} onCancelPending={onCancelPending}
+                      onNotice={setNotice} readOnly={readOnly || accountSwitching || executionCommandPending}
+                      onDismiss={() => { clearPendingDraft(); back(); }}
+                    />}
+                    renderCompact={() => <DesktopOrderTicket
+                  key={`floating-order-${account?.id || 'none'}`}
+                  variant="floating"
+                  floatingV2Theme={V4_DESKTOP_EXECUTION_ENABLED}
+                  onFloatingDragStart={beginFloatingOrderDrag}
+                  onOpenFullTrade={() => openSidebarView('trade')}
+                  market={market}
+                  account={account}
+                  exposureAllowed={exposureAllowed}
+                  exposureBlockReason={exposureBlockReason}
+                  lots={lots}
+                  onLotsChange={onLotsChange}
+                  sizingMode={sizingMode}
+                  onSizingModeChange={onSizingModeChange}
+                  riskPercent={riskPercent}
+                  onRiskPercentChange={onRiskPercentChange}
+                  orderType={orderType}
+                  onOrderTypeChange={onOrderTypeChange}
+                  tradePlan={tradePlan}
+                  orderExecutionPreview={orderExecutionPreview}
+                  onStartPlan={onStartPlan}
+                  onCancelPlan={onCancelPlan}
+                  onExecutePlan={onExecutePlan}
+                  onManualOrder={submitOneClick}
+                  onTradePlanChange={onTradePlanChange}
+                  onNotice={setNotice}
+                />
+                    }
+                  />
+                </React.Suspense>
+              </div>
+            )) : <>
             {floatingExecutionVisible && (
               <div ref={floatingOrderRef} className="absolute z-[90] hidden lg:block" style={{ left: floatingOrder.x, top: floatingOrder.y }}>
                 <DesktopOrderTicket
@@ -1469,6 +1549,7 @@ export default function DesktopTerminal({
                 />
               </div>
             )}
+            </>}
           </section>
 
           {!desktopLayout.sidebarCollapsed && !positionsExpanded && (
