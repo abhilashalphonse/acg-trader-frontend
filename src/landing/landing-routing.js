@@ -26,6 +26,7 @@ export function shouldOpenPublicHome(path = '/', search = '', activeTerminal = f
   if (p.has('ticket') || p.has('acg_ticket')) return false;
   if (p.has('acg_login') || p.has('acg_connect_prop') || p.has('acg_terminal')) return false;
   if (p.has('acg_v4_audit') || p.has('acg_mobile_audit')) return false;
+  if (p.get('acg_dock_audit') === '1') return false;
   if (p.has('acg_auth') || p.has('acg_onboarding_audit')) return false;
   return true;
 }
