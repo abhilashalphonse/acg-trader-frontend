@@ -600,3 +600,56 @@
   margin-top:6px;font-size:10px;color:#A1A3B0;
 }
 .v4-account-exposure>div>strong{font-size:11px;color:#F4F4F5;font-weight:600}
+
+/* V3 — Compact is a trade list, not a miniature spreadsheet.
+   Keep semantic column headers for screen readers; show field micro-labels
+   inside every position. Risk/Execution retain broker-grade table headings. */
+.acg-v4-positions .v4-positions-table thead.v4-compact-head{
+  position:absolute!important;width:1px!important;height:1px!important;
+  padding:0!important;margin:-1px!important;overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;
+}
+.acg-v4-positions[data-v4-position-view=compact] .v4-position-row,
+.acg-v4-positions[data-v4-pending-view=compact] .v4-position-row,
+.acg-v4-positions[data-v4-position-view=compact] .v4-position-row td,
+.acg-v4-positions[data-v4-pending-view=compact] .v4-position-row td{
+  height:46px!important;
+}
+.acg-v4-positions .v4-compact-cell{
+  display:flex;flex-direction:column;align-items:flex-end;justify-content:center;
+  gap:2px;white-space:nowrap;font-variant-numeric:tabular-nums;
+}
+.acg-v4-positions .is-left .v4-compact-cell{align-items:flex-start}
+.acg-v4-positions .v4-compact-label{
+  color:#858996;font-size:9px;line-height:11px;
+  font-weight:550;letter-spacing:.015em;
+}
+.acg-v4-positions .v4-compact-value{
+  display:block;color:#E9EAEE;font-size:12px;line-height:16px;
+  font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;
+}
+.acg-v4-positions .v4-compact-value .v4-position-pnl{
+  font-size:12px;font-weight:650;
+}
+.acg-v4-positions[data-v4-position-view=compact] .v4-position-instrument,
+.acg-v4-positions[data-v4-pending-view=compact] .v4-position-instrument{gap:7px}
+.acg-v4-positions[data-v4-position-view=compact] .v4-position-instrument strong,
+.acg-v4-positions[data-v4-pending-view=compact] .v4-position-instrument strong{font-size:12px}
+.acg-v4-positions[data-v4-position-view=compact] .v4-position-row:hover,
+.acg-v4-positions[data-v4-pending-view=compact] .v4-position-row:hover{background:#17191E}
+.acg-v4-positions[data-v4-position-view=compact] .v4-position-row.is-selected,
+.acg-v4-positions[data-v4-pending-view=compact] .v4-position-row.is-selected{background:#1B1E24}
+.acg-v4-positions[data-v4-position-view=compact] .v4-position-close{
+  height:29px;min-width:54px;padding:0 10px;
+}
+.acg-v4-positions[data-v4-position-view=compact] .v4-position-more,
+.acg-v4-positions[data-v4-pending-view=compact] .v4-position-more{height:29px;width:29px}
+.acg-v4-positions[data-v4-pending-view=compact] .v4-position-control{height:29px}
+.acg-v4-positions .v4-positions-tab.is-active::after{background:#C4C8CE;height:2px}
+@container (max-width:900px){
+ .acg-v4-positions[data-v4-position-view=compact] .v4-position-row td,
+ .acg-v4-positions[data-v4-pending-view=compact] .v4-position-row td{padding-left:7px;padding-right:7px}
+ .acg-v4-positions[data-v4-position-view=compact] .v4-position-avatar,
+ .acg-v4-positions[data-v4-pending-view=compact] .v4-position-avatar{display:none}
+ .acg-v4-positions .v4-compact-label{font-size:9px}
+}
