@@ -1517,7 +1517,7 @@ export default function DesktopTerminal({
                   />
                 </React.Suspense>
               </div>
-            )) : (
+            )) : <>
             {floatingExecutionVisible && (
               <div ref={floatingOrderRef} className="absolute z-[90] hidden lg:block" style={{ left: floatingOrder.x, top: floatingOrder.y }}>
                 <DesktopOrderTicket
@@ -1549,7 +1549,7 @@ export default function DesktopTerminal({
                 />
               </div>
             )}
-            )}
+            </>}
           </section>
 
           {!desktopLayout.sidebarCollapsed && !positionsExpanded && (
