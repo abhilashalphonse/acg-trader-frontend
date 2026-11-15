@@ -634,6 +634,24 @@ export default function DesktopOrderTicket({
             onBlur={commitEntry}
             onKeyDown={event=>{if(event.key==='Enter')event.currentTarget.blur();if(event.key==='Escape'){setEntryInput(priceInputValue(tradePlan?.entry,market));event.currentTarget.blur();}}}/>
         </div>}
+        <div className="acg-mini-sizer">
+          <span>Size by {activeSizingMode === 'risk' ? 'risk' : 'lots'}</span>
+          <button type="button" disabled={!riskSupported}
+            aria-label="Toggle mini risk sizing"
+            aria-pressed={activeSizingMode==='risk'}
+            onClick={()=>setMode(activeSizingMode==='risk'?'lots':'risk')}>
+            {activeSizingMode==='risk'?'Switch to lots':'Use risk %'}
+          </button>
+        </div>
+        {activeSizingMode==='risk'&&<div className="acg-mini-field">
+          <label htmlFor="acg-mini-risk-percent">Risk per trade <span>% of equity</span></label>
+          <input id="acg-mini-risk-percent" aria-label="Risk percent" inputMode="decimal"
+            value={riskInput}
+            onFocus={event=>{setRiskFocused(true);setRiskUnit('percent');selectInputNextFrame(event);}}
+            onChange={event=>setRiskInput(event.target.value)}
+            onBlur={commitRisk}
+            onKeyDown={event=>{if(event.key==='Enter')event.currentTarget.blur();}}/>
+        </div>}
         <div className="acg-mini-field">
           <label htmlFor="acg-mini-lot-size">Quantity <span>Lots</span></label>
           <div className="acg-mini-quantity">
