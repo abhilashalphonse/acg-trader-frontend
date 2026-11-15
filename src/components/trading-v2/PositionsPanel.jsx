@@ -110,6 +110,7 @@ export default function PositionsPanel({
   onEditProtection = () => {},
   v4Positions = false,
   dockAudit = false,
+  onDockTabChange = () => {},
   readOnly = false,
   onReviewClosePosition = () => {},
   positionsLoading = false,
@@ -121,11 +122,15 @@ export default function PositionsPanel({
   const onV4TabChange=(next,positionId=null)=>{
     setHistoryPositionFilter(next==='history'&&positionId?String(positionId):null);
     setTab(next);
+    if (dockAudit) onDockTabChange(next);
   };
 
   useEffect(() => {
-    if (requestedTab && tabs.some(item => item.id === requestedTab)) setTab(requestedTab);
-  }, [requestedTab]);
+    if (requestedTab && tabs.some(item => item.id === requestedTab)) {
+      setTab(requestedTab);
+      if (dockAudit) onDockTabChange(requestedTab);
+    }
+  }, [requestedTab, dockAudit, onDockTabChange]);
   const [expandedId, setExpandedId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editingField, setEditingField] = useState(null);
