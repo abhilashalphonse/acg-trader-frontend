@@ -64,6 +64,15 @@ jobs:
           node tests/ui/v4-dock-empty-state.mjs
           node tests/ui/v4-dock-audit-isolation.mjs
           node tests/ui/v4-workspace-corrections.mjs
+      - name: No-position message without footer (browser acceptance)
+        if: ${{ github.head_ref == 'fix/v4-audit-empty-message-no-footer-20261115' || github.ref == 'refs/heads/fix/v4-audit-empty-message-no-footer-20261115' }}
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          VITE_ACG_EXECUTION_V4_ENABLED=true npm run dev -- --host 127.0.0.1 >/tmp/v4-empty-message.log 2>&1 &
+          curl --fail --retry 30 --retry-delay 1 --retry-connrefused http://127.0.0.1:5174/v4-positions-audit.html >/dev/null
+          node tests/ui/v4-dock-empty-state.mjs
+          node tests/ui/v4-dock-audit-isolation.mjs
+          node tests/ui/v4-positions-reference.mjs
       - name: Mobile audit real-Chrome responsive and interaction acceptance
         if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feat/mobile-audit-') || startsWith(github.ref, 'refs/heads/fix/mobile-audit-') || startsWith(github.head_ref, 'fix/mobile-audit-') || startsWith(github.head_ref, 'fix/v4-signout-') }}
         run: |
