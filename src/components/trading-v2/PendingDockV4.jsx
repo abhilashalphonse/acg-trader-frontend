@@ -149,10 +149,10 @@ export default function PendingDockV4({
 }){
   const [view,setView]=useState(()=>{
     if(typeof window==='undefined')return 'compact';
-    try {const stored=window.localStorage.getItem('acg-v4-pending-view-v1');return ['compact','risk','execution'].includes(stored)?stored:'compact';}
+    try {const stored=window.localStorage.getItem('acg-v4-dock-audit-pending-view-v1');return ['compact','risk','execution'].includes(stored)?stored:'compact';}
     catch {return 'compact';}
   });
-  useEffect(()=>{try {window.localStorage.setItem('acg-v4-pending-view-v1',view);}catch{ /* no storage */ }},[view]);
+  useEffect(()=>{try {window.localStorage.setItem('acg-v4-dock-audit-pending-view-v1',view);}catch{ /* no storage */ }},[view]);
   const [expandedIds,setExpandedIds]=useState(()=>new Set());
   const ids=orders.map(order=>String(order.id));
   const shownOrders=orders;
