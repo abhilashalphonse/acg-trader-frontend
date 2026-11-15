@@ -43,9 +43,12 @@ function pendingProjections(order,instrument,account){
     gain:gain!=null?Math.max(0,gain):null,
     rr:loss!=null&&loss<0&&gain!=null&&gain>0?gain/-loss:null};
 }
-function PendingCell({children,left=false}) {
+function PendingCell({children,left=false,label=null}) {
   return <td className={'v4-position-cell '+(left?'is-left':'is-right')}>
-    <span className="v4-position-cell-inner">{children}</span>
+    {label?<span className="v4-compact-cell">
+      <span className="v4-compact-label" aria-hidden="true">{label}</span>
+      <span className="v4-compact-value">{children}</span>
+    </span>:<span className="v4-position-cell-inner">{children}</span>}
   </td>;
 }
 function PendingRow({order,market,account,view,selected,expanded,onSelect,onExpand,onManage,onReviewCancel,readOnly,visible}){
@@ -76,12 +79,12 @@ function PendingRow({order,market,account,view,selected,expanded,onSelect,onExpa
         <span className={'v4-position-side '+(side==='BUY'?'is-buy':'is-sell')}>{side}</span>
       </span></PendingCell>
       {view==='compact'&&<>
-        {shown('Type')&&<PendingCell left>{typ}</PendingCell>}
-        {shown('Size')&&<PendingCell>{fixedNumber(order.volume,2)} lots</PendingCell>}
-        {shown('Trigger / Limit')&&<PendingCell>
+        {shown('Type')&&<PendingCell left label="Order type">{typ}</PendingCell>}
+        {shown('Size')&&<PendingCell label="Size">{fixedNumber(order.volume,2)} lots</PendingCell>}
+        {shown('Trigger / Limit')&&<PendingCell label="Trigger / Limit">
           {stopLimit?price+' / '+orderPrice(order,market,'limitPrice'):price}
         </PendingCell>}
-        {shown('Status')&&<PendingCell>{status}</PendingCell>}
+        {shown('Status')&&<PendingCell label="Status">{status}</PendingCell>}
         {shown('Actions')&&<PendingCell><span className="v4-position-actions">
           <button className="v4-position-control v4-position-close" type="button"
             onClick={e=>{e.stopPropagation();onManage(id);}}>Manage</button>
@@ -175,7 +178,7 @@ export default function PendingDockV4({
       <div className="v4-positions-scroller">
         <table className="v4-positions-table" style={{minWidth:MIN_WIDTH[view]}}>
           <colgroup>{columns.map(([name,width])=><col key={name} style={{width}}/>)}</colgroup>
-          <thead><tr>{columns.map(([name,,align])=><th key={name} scope="col" className={align==='left'?'is-left':'is-right'}>{name}</th>)}</tr></thead>
+          <thead className={view==='compact'?'v4-compact-head':''}><tr>{columns.map(([name,,align])=><th key={name} scope="col" className={align==='left'?'is-left':'is-right'}>{name}</th>)}</tr></thead>
           <tbody>
             {loading&&!orders.length&&Array.from({length:3},(_,i)=><tr key={i} className="v4-positions-skeleton" aria-hidden="true">{columns.map(([name])=><td key={name}><span/></td>)}</tr>)}
             {!loading&&!error&&!orders.length&&<tr><td colSpan={columns.length}><div className="v4-positions-empty"><strong>No pending orders</strong><span>Orders awaiting execution will appear here.</span></div></td></tr>}
