@@ -2,6 +2,7 @@
 // or submit credentials/trading commands. This diagnoses the deployed HTML/JS.
 import { createRequire } from 'node:module';
 import process from 'node:process';
+import { liveStartupFailures } from './live-startup-gate.mjs';
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 
@@ -26,7 +27,11 @@ try{
   bodyText:document.body?.innerText?.slice(0,180),
  }));
  console.log('LIVE_STARTUP_DIAGNOSTIC',JSON.stringify({viewport,pageStatus:resp?.status(),...result,errors,failed,httpFailures}));
- if(result.htmlBoot || result.loaderCount)process.exitCode=1;
+ const failures = liveStartupFailures({pageStatus:resp?.status() ?? null,...result});
+ if(failures.length){
+   console.error('LIVE_STARTUP_FAILED',JSON.stringify({viewport,failures}));
+   process.exitCode=1;
+ }
  await page.close();
  }
 }finally{await browser.close();}
