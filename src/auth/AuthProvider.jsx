@@ -409,14 +409,11 @@ export function AuthProvider({ children }) {
             clearLegacyStoredSession();
             setStatus('anonymous');
             setError(null);
-          } else if (legacy?.accessToken && new Date(legacy.expiresAt).getTime() > Date.now()) {
-            // One-time deployment compatibility: if the API is temporarily
-            // unreachable, keep the still-valid legacy access session in memory.
-            sessionRef.current = legacy;
-            setSession(legacy);
-            setStatus('authenticated');
-            setError(nextError);
           } else {
+            // Never present the protected terminal as authenticated when the
+            // backend cannot verify the session, including legacy access tokens.
+            // A network outage must fail closed rather than trusting cached JSON.
+            clearLegacyStoredSession();
             setStatus('anonymous');
             setError(nextError);
           }
@@ -498,7 +495,9 @@ export function AuthProvider({ children }) {
     principal: session?.principal || null,
     expiresAt: session?.expiresAt || null,
     refreshExpiresAt: session?.refreshExpiresAt || null,
-    authenticated: Boolean(session?.principal) && status !== 'anonymous',
+    // A revoked, expired or reauthentication-required session may retain UI
+    // metadata for recovery, but must never expose the protected workspace.
+    authenticated: status === 'authenticated' && Boolean(session?.principal) && Boolean(session?.accessToken),
     accessReady: status === 'authenticated' && Boolean(session?.accessToken),
     status,
     error,
