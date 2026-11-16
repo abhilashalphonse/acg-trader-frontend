@@ -114,11 +114,13 @@ try {
   const pendingText=await popup.locator('.acg-mini-row').innerText();
   check(['Trigger','Limit','SL','TP'].every(field=>pendingText.includes(field)),
     'Mini Pending row exposes trigger, limit, SL and TP');
+  await popup.screenshot({path:'tests/ui/artifacts/mini-terminal-orders-list.png'});
   await popup.locator('.acg-mini-row').click();
   check(await popup.locator('.acg-mini-back').isVisible(), 'Pending order editor works in pop-out');
   await popup.getByRole('button', { name: 'Positions (2)', exact: true }).click();
   check(await popup.evaluate(expected=>innerHeight===expected,fallbackHeight),
     'Regular popup height stays unchanged on Positions tab');
+  await popup.screenshot({path:'tests/ui/artifacts/mini-terminal-positions-list.png'});
   await popup.locator('.acg-mini-row').first().click();
   check(await popup.locator('.acg-mini-back').isVisible(), 'Position editor works in pop-out');
   await popup.screenshot({ path: 'tests/ui/artifacts/mini-terminal-position.png' });
@@ -137,6 +139,13 @@ try {
   check(await popup.locator('.acg-mini-spread strong').innerText()==='28',
     'Real bid/ask and tick size produce reference spread');
   await popup.screenshot({ path: 'tests/ui/artifacts/mini-terminal-trade.png' });
+  await popup.getByRole('button',{name:'Orders (1)',exact:true}).click();
+  await fallback.evaluate(()=>window.v4PositionsQA.setPending([]));
+  await popup.getByRole('button',{name:'Orders (0)',exact:true}).waitFor();
+  check(await popup.locator('.acg-mini-empty').getByText('No pending orders').isVisible(),
+    'Empty Orders shows reference centred message and no footer');
+  await popup.screenshot({path:'tests/ui/artifacts/mini-terminal-orders-empty.png'});
+  await popup.getByRole('button',{name:'Trade',exact:true}).click();
   const density=await popup.evaluate(()=>{
     const content=document.querySelector('.acg-mini-content');
     const ctx=document.querySelector('.acg-mini-context')?.getBoundingClientRect();
