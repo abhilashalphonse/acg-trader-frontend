@@ -10,7 +10,7 @@ import {
   estimateLossAtStopWithCosts,
   riskSizingSupported,
 } from '../../../utils/tradingRisk.js';
-import { formatInstrumentPrice, instrumentPipSize } from '../../../utils/instrumentFormatting.js';
+import { formatInstrumentPrice, instrumentDigits, instrumentPipSize } from '../../../utils/instrumentFormatting.js';
 import { effectiveTradePlan, validateTradePlanForExecution } from '../../../utils/tradePlanExecution.js';
 import { resolveExecutionPreview } from '../../../utils/executionPricing.js';
 import { deriveAccountCapabilities } from '../../../utils/accountCapabilities.js';
@@ -595,10 +595,12 @@ export default function DesktopOrderTicket({
   if (variant === 'mini') {
     const isPending = orderFamily === 'pending';
     const displayQuote = value => {
-      const numeric = Number(value);
-      return Number.isFinite(numeric) && numeric>0
-        ? formatInstrumentPrice(numeric,market).replace(/\B(?=(\d{3})+(?!\d))/g,',')
-        : String(value ?? '—');
+      const numeric=Number(value);
+      if(!Number.isFinite(numeric)||numeric<=0)return String(value??'—');
+      const digits=instrumentDigits(market);
+      return numeric.toLocaleString('en-US',{
+        minimumFractionDigits:digits,maximumFractionDigits:digits,
+      });
     };
     const bid = finitePositive(market?.bid);
     const ask = finitePositive(market?.ask);
