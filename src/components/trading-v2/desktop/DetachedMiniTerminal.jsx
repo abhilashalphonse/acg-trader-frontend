@@ -182,7 +182,7 @@ export default function DetachedMiniTerminal({
       <ExternalLink size={17} strokeWidth={1.8}/>
     </button>}
     {createPortal(detached ? (
-      <section className="acg-mini-terminal acg-desktop-v3" aria-label="ACG mini terminal">
+      <section className="acg-mini-terminal acg-desktop-v3" aria-label="ACG mini terminal" data-window-mode={mode}>
         <header className="acg-mini-titlebar" title={account?.accountCode||account?.id||'ACG Trader'}>
           <span className="acg-mini-brand">
             <img src="/acg-logo.png" alt="" />
