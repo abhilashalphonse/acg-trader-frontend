@@ -38,7 +38,9 @@ jobs:
             'https://acg-trader.web.app/' \
             'https://acg-trader.web.app/googleee018f2d5cc05ee0.html' \
             'https://acg-trader.firebaseapp.com/' \
-            'https://acg-trader.firebaseapp.com/googleee018f2d5cc05ee0.html'
+            'https://acg-trader.firebaseapp.com/googleee018f2d5cc05ee0.html' \
+            'https://acg-trader--pr-154-lv0d7x1r.web.app/' \
+            'https://acg-trader--pr-154-lv0d7x1r.web.app/googleee018f2d5cc05ee0.html'
           do
             echo "Checking: $url"
             status="$(curl --silent --show-error --location \
