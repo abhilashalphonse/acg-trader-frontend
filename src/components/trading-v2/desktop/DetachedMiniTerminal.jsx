@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, ChevronDown, ClipboardList, ExternalLink, X } from 'lucide-react';
 import InstrumentAvatar from '../InstrumentAvatar.jsx';
-import { formatInstrumentPrice } from '../../../utils/instrumentFormatting.js';
+import { formatInstrumentPrice, instrumentDigits } from '../../../utils/instrumentFormatting.js';
 import {positionUnrealizedPnl,money} from '../../../utils/v4PositionsPresentation.js';
 import './DetachedMiniTerminal.css';
 
@@ -52,8 +52,15 @@ export default function DetachedMiniTerminal({
       value=>value!==null && value!==undefined && value!=='' && Number.isFinite(Number(value)));
   const change = changeSource===undefined ? null : Number(changeSource);
   const changeTone=change===null?'neutral':change>0?'positive':change<0?'negative':'neutral';
-  const displayMarketPrice = value => formatInstrumentPrice(value,market).replace(
-    /\B(?=(\d{3})+(?!\d))/g,',');
+  const displayMarketPrice = value => {
+    const raw=formatInstrumentPrice(value,market);
+    const numeric=Number(raw);
+    if(!Number.isFinite(numeric))return raw;
+    const digits=instrumentDigits(market);
+    return numeric.toLocaleString('en-US',{
+      minimumFractionDigits:digits,maximumFractionDigits:digits,
+    });
+  };
   const marketType=String(market?.instrumentType||market?.type||'').toUpperCase();
   const showCfd=marketType==='CFD'||['METAL','ENERGY','INDEX'].includes(
     String(market?.assetClass||'').toUpperCase());
