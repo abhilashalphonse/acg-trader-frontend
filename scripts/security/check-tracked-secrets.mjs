@@ -4,6 +4,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { extname, basename } from 'node:path';
+import process from 'node:process';
 
 const names = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' }).split('\0').filter(Boolean);
 const configName = /^\.env(?:\..*)?$/i;
