@@ -112,7 +112,7 @@ export default function SessionGate({ children }) {
             </h1>
             <p className="mt-3 max-w-[360px] text-[14px] leading-6 text-[#8b8d93] lg:text-[13px] lg:leading-5">
               {connectProp
-                ? 'Connect to a supported broker or prop firm using the tenant identifier and trading credentials they provided.'
+                ? 'Only connect an account issued by an organization explicitly integrated with ACG Trader. Enter the tenant ID and trading credentials your provider gave you.'
                 : 'Access your trading workspace with the credentials issued from your ACG Funded account.'}
             </p>
           </header>
@@ -165,6 +165,15 @@ export default function SessionGate({ children }) {
             {submitting ? 'Signing in…' : 'Sign in'}
           </button>
 
+          {connectProp && (
+            <p className="mt-4 text-center text-[12px] leading-5 text-[#8c8f96]">
+              Have an ACG Funded trading account?{' '}
+              <a href="/?acg_login=1" className="font-semibold text-[#e4e5e8] underline underline-offset-2 hover:text-white">
+                Use ACG Funded sign in
+              </a>
+            </p>
+          )}
+
           {!connectProp && fundedUrl && (
             <a
               href={fundedUrl}
@@ -179,12 +188,15 @@ export default function SessionGate({ children }) {
 
           <div className="mt-8 flex items-center justify-center gap-2 border-t border-white/[0.06] pt-5 text-[11px] font-medium text-[#5f6269] lg:mt-7">
             <ShieldCheck size={14} aria-hidden="true" />
-            <span>Secure trading access</span>
+            <span>ACG Trader · Authorized trading-account access</span>
           </div>
           <p className="mt-3 text-center text-[11px] leading-5 text-[#777b82]">
             Use only the trading-account credentials issued by ACG Funded or your authorized provider.
             Never enter a Google, email or banking password here.{' '}
             <a href="/account-security.html" className="underline underline-offset-2 hover:text-white">About this sign-in</a>
+          </p>
+          <p className="mt-3 text-center text-[10px] leading-4 text-[#777b82]">
+            Platform developed by ACG-MANAGEMENT, UNIPESSOAL LDA, Portugal.
           </p>
         </form>
       </div>
