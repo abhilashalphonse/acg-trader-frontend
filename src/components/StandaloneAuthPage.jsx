@@ -149,6 +149,10 @@ export default function StandaloneAuthPage() {
         <div className="mt-8 flex items-center gap-2 text-xs font-semibold text-[#6b716b]">
           <ShieldCheck size={15}/> Secure identity and account access
         </div>
+        <p className="mt-3 text-xs leading-5 text-[#697069]">
+          This form is for ACG Trader personal accounts. Google sign-in redirects to Google; do not enter your Google password here.{" "}
+          <a className="font-semibold underline underline-offset-2" href="/account-security.html">Account security</a>
+        </p>
       </div>
       <ScreenCard>
         {!enabled ? <>

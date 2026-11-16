@@ -177,6 +177,11 @@ export default function SessionGate({ children }) {
             <ShieldCheck size={14} aria-hidden="true" />
             <span>Secure trading access</span>
           </div>
+          <p className="mt-3 text-center text-[11px] leading-5 text-[#777b82]">
+            Use only the trading-account credentials issued by ACG Funded or your authorized provider.
+            Never enter a Google, email or banking password here.{' '}
+            <a href="/account-security.html" className="underline underline-offset-2 hover:text-white">About this sign-in</a>
+          </p>
         </form>
       </div>
     </main>

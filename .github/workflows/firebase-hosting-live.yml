@@ -40,8 +40,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Block high-severity production dependency advisories
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Build production frontend
         run: npm run build
+
+      - name: Assert published first-party account-security page exists
+        run: |
+          set -euo pipefail
+          test -f dist/account-security.html
+          grep -Fq 'Know where you are signing in' dist/account-security.html
 
       - name: Verify Google ownership resources in production build
         run: |

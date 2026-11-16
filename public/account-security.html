@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="How ACG Trader authenticates authorized trading accounts and protects users from account impersonation." />
+  <title>Account security | ACG Trader</title>
+  <style>
+    :root { color-scheme: light; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f5f6f3; color: #161817; }
+    .wrap { width: min(760px, calc(100% - 40px)); margin: 0 auto; }
+    header { background: #101214; color: white; padding: 25px 0; }
+    header a { color: white; font-size: 18px; font-weight: 780; text-decoration: none; letter-spacing: -.045em; }
+    main { padding: 65px 0 84px; }
+    h1 { margin: 10px 0 24px; font-size: clamp(36px, 6vw, 55px); line-height: 1.05; letter-spacing: -.055em; }
+    h2 { margin: 40px 0 12px; font-size: 20px; letter-spacing: -.035em; }
+    p, li { line-height: 1.75; color: #454b47; font-size: 15px; }
+    .eyebrow { font-size: 11px; font-weight: 750; color: #707870; letter-spacing: .12em; text-transform: uppercase; }
+    ul { padding-left: 21px; }
+    li { margin-bottom: 9px; }
+    a { color: #1d453c; }
+    .note { border-top: 1px solid #d3d8d2; padding-top: 22px; margin-top: 40px; }
+    footer { border-top: 1px solid #d3d8d2; padding: 25px 0 40px; color: #747a75; font-size: 12px; }
+  </style>
+</head>
+<body>
+<header><div class="wrap"><a href="/">ACG TRADER</a></div></header>
+<main class="wrap">
+  <div class="eyebrow">Account access and identity</div>
+  <h1>Know where you are signing in.</h1>
+  <p>ACG Trader is a trading and simulated-market platform. ACG Trader's Firebase Hosting address is <strong>acg-trader.web.app</strong>. The platform is developed by ACG-MANAGEMENT, UNIPESSOAL LDA, Portugal.</p>
+
+  <h2>Existing ACG Funded trading accounts</h2>
+  <p>The ACG Trader login accepts a trading account ID and the trading-account password issued for that account by ACG Funded. Check your own account with <a href="https://acgfunded.com/" rel="noopener noreferrer">ACG Funded</a> before entering trading credentials. This is not a Google, email-provider, banking or payment-service login form.</p>
+
+  <h2>Connect Prop and other providers</h2>
+  <p>The Connect Prop form also requests a provider or organization identifier. Enter a trading-account password only if it was issued by your authorized trading provider for use with ACG Trader. Do not enter unrelated account passwords.</p>
+
+  <h2>Independent personal account sign-in</h2>
+  <p>Where personal registration is enabled, ACG Trader uses Supabase authentication for its own email-based accounts. Selecting “Continue with Google” redirects to the Google sign-in provider; the ACG Trader form does not ask for your Google password. Personal demo accounts are simulated and do not represent cash deposits or funded brokerage balances.</p>
+
+  <h2>Protect your account</h2>
+  <ul>
+    <li>Check the browser address bar before entering any credentials.</li>
+    <li>Never share one-time codes, recovery links, banking passwords, wallet seed phrases or Google account passwords with a trading-account login form.</li>
+    <li>If you encounter a browser security warning, do not bypass it. Contact the organization that issued your trading credentials through its independently verified website.</li>
+  </ul>
+
+  <p class="note">ACG Trader does not request bank passwords or wallet recovery phrases to access a trading workspace. If a page asks for these, stop and verify its origin.</p>
+  <p><a href="/">Return to ACG Trader</a></p>
+</main>
+<footer><div class="wrap">ACG Trader · Account security information · Trading product and demo availability varies.</div></footer>
+</body>
+</html>

@@ -14,13 +14,13 @@ test('approved landing preview is opt-in and never intercepts federation or term
   assert.equal(shouldOpenLandingPreview('?acg_landing_audit=1&acg_mobile_audit=1'), false);
 });
 
-test('landing V6 retains approved value proposition and keeps approved three-path entry navigation', () => {
+test('landing V6 retains value proposition, approved three-path navigation and honest demo availability', () => {
   const html = readFileSync(new URL('../public/acg-landing-v6.html', import.meta.url), 'utf8');
   assert.match(html, /Global markets\.<br\/><span class="soft-text">One platform\./i);
   assert.match(html, /Risk-based sizing\.<br\/><span>Chart-based trading\./i);
   assert.match(html, /Bring ACG Trader<br\/><span>to your traders\./i);
   assert.match(html, /href="\/\?acg_connect_prop=1"[^>]*>Start Trading/);
-  assert.match(html, /href="\/\?acg_auth=signup">Try Demo/);
+  assert.match(html, /href="\/\?acg_auth=signup"[^>]*>Demo \(coming soon\)/);
   assert.match(html, /href="#markets"/);
   assert.match(html, /href="#trading"/);
   assert.match(html, /href="#experience"/);
