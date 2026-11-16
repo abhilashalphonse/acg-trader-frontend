@@ -52,6 +52,8 @@ export default function DetachedMiniTerminal({
       value=>value!==null && value!==undefined && value!=='' && Number.isFinite(Number(value)));
   const change = changeSource===undefined ? null : Number(changeSource);
   const changeTone=change===null?'neutral':change>0?'positive':change<0?'negative':'neutral';
+  const displayMarketPrice = value => formatInstrumentPrice(value,market).replace(
+    /\B(?=(\d{3})+(?!\d))/g,',');
   const marketType=String(market?.instrumentType||market?.type||'').toUpperCase();
   const showCfd=marketType==='CFD'||['METAL','ENERGY','INDEX'].includes(
     String(market?.assetClass||'').toUpperCase());
@@ -226,7 +228,7 @@ export default function DetachedMiniTerminal({
           </div>
           <div className="acg-mini-market-price" data-tone={changeTone}
             aria-label="Market price and reported price change">
-            <strong>{displayedPrice!==null?formatInstrumentPrice(displayedPrice,market):'—'}</strong>
+            <strong>{displayedPrice!==null?displayMarketPrice(displayedPrice):'—'}</strong>
             {change!==null
               ? <small>{change>0?'+':''}{change.toFixed(2)}%</small>
               : !freshQuote?<small>Market unavailable</small>:null}
