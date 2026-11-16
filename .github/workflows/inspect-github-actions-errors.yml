@@ -1,0 +1,37 @@
+name: Inspect recent GitHub Actions failures (read-only)
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/inspect-github-actions-errors.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  inspect:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Summarize recent workflow runs and failing job steps
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          echo 'RECENT_ACTIONS_RUNS_BEGIN'
+          gh api "/repos/$GH_REPO/actions/runs?per_page=35" \
+            --jq '.workflow_runs[] | [.id, .name, .event, .head_branch, .head_sha[0:10], .status, (.conclusion // "-"), .created_at, .html_url] | @tsv' \
+            | head -35
+          echo 'RECENT_ACTIONS_RUNS_END'
+          echo 'RECENT_NON_SUCCESS_JOBS_BEGIN'
+          failures=$(gh api "/repos/$GH_REPO/actions/runs?per_page=50" \
+            --jq '[.workflow_runs[] | select(.conclusion=="failure" or .conclusion=="cancelled" or .conclusion=="timed_out") | .id] | .[:8] | .[]')
+          for run in $failures; do
+            echo "FAILED_RUN_ID $run"
+            gh api "/repos/$GH_REPO/actions/runs/$run/jobs?per_page=60" \
+              --jq '.jobs[] | select(.conclusion=="failure" or .conclusion=="cancelled" or .conclusion=="timed_out") | "JOB|\\(.id)|\\(.name)|\\(.conclusion)|\\(.html_url)",(.steps[]? | select(.conclusion=="failure") | "FAILED_STEP|\\(.name)")' || true
+          done
+          echo 'RECENT_NON_SUCCESS_JOBS_END'
