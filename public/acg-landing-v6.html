@@ -294,14 +294,23 @@ body{background:#f5f6f3}
 .v6-free-number{font-size:70px;line-height:.9;font-weight:730;letter-spacing:-.09em}
 .v6-business-free strong{font-size:15px;letter-spacing:-.02em}
 .v6-business-free p{font-size:11px;color:#717d72;margin:7px 0 0;line-height:1.5}
-.v6-footer{background:#121514;color:#fff;padding:48px 0 35px}
-.v6-footer-top{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #39413a;padding-bottom:27px}
-.v6-footer-top a{font-size:12px;color:#b2bcb3}
+.v6-footer{background:#121514;color:#fff;padding:52px 0 34px}
+.v6-footer-main{display:grid;grid-template-columns:minmax(0,1fr) minmax(160px,240px);gap:40px;align-items:start;padding-bottom:37px}
 .v6-footer-mark{display:flex;align-items:center;gap:13px}
 .v6-footer-mark b{font-size:26px;letter-spacing:-.13em;font-weight:900}
 .v6-footer-mark span{border-left:1px solid #737f74;padding-left:12px;font-size:12px;font-weight:800}
-.v6-footer-row{display:flex;justify-content:space-between;gap:15px;color:#c0c9bf;font-size:12px;padding-top:22px}
-.v6-footer p{font-size:10px;color:#808e82;line-height:1.7;max-width:960px;margin:20px 0 0}
+.v6-footer-tagline{margin:12px 0 0!important;color:#b4beb8!important;font-size:12px!important;font-weight:500;line-height:1.6}
+.v6-footer-kicker{margin:30px 0 8px;font-size:10px;letter-spacing:.1em;font-weight:700;text-transform:uppercase;color:#b7c1bb}
+.v6-footer-nav{display:flex;flex-direction:column;align-items:flex-start;gap:14px;padding-top:5px}
+.v6-footer-nav a{display:inline-flex;min-height:24px;align-items:center;font-size:12px;line-height:1.6;font-weight:550;color:#e5ebe7;text-decoration:none;text-underline-offset:4px;transition:color .15s}
+.v6-footer-nav a:hover,.v6-footer-bottom a:hover{color:#fff;text-decoration:underline}
+.v6-footer a:focus-visible{outline:2px solid #e5ebe7;outline-offset:5px;border-radius:2px}
+.v6-footer-identity{border-top:1px solid #39413a;padding:22px 0}
+.v6-footer .v6-footer-operator{font-size:11px;color:#d3dbd5;line-height:1.7;margin:0;max-width:900px}
+.v6-footer .v6-footer-disclaimer{font-size:10px;color:#9aa69e;line-height:1.8;margin:11px 0 0;max-width:1040px}
+.v6-footer-bottom{display:flex;align-items:center;justify-content:space-between;gap:20px;border-top:1px solid #303833;padding-top:21px;color:#89958d;font-size:10px;line-height:1.6}
+.v6-footer-bottom a{color:#b6c1b9;font-size:11px;text-decoration:none}
+@media(max-width:500px){.v6-footer{padding:38px 0 25px}.v6-footer-main{grid-template-columns:1fr;gap:29px;padding-bottom:30px}.v6-footer-nav{display:grid;grid-template-columns:1fr 1fr;gap:13px 22px;padding-top:0}.v6-footer-kicker{margin-top:22px}.v6-footer-bottom{align-items:flex-start;flex-wrap:wrap;gap:12px}}
 @media(max-width:1000px){
  .v6-feature,.v6-feature-reverse{grid-template-columns:1fr 1fr}
  .v6-feature-copy{padding:38px 28px}
@@ -462,5 +471,24 @@ body{background:#f5f6f3}
 </div></section>
 
 </main>
-<footer class="v6-footer"><div class="container"><div class="v6-footer-top"><div class="v6-footer-mark"><b>ACG</b><span>TRADER</span></div><a href="#top">Back to top ↑</a></div><div class="v6-footer-row"><span>One trading platform for the markets ahead.</span><span>ACG Trader · Global markets. One platform.</span></div><p>Interface visuals contain illustrative simulated prices and account values. Instrument availability varies. Futures, Options, Cloud and White Label are planned offerings, not generally available today.</p><p>ACG Trader is developed by ACG-MANAGEMENT, UNIPESSOAL LDA, Portugal. <a href="/account-security.html" style="text-decoration:underline;text-underline-offset:3px">Account security and authorized sign-in</a>.</p></div></footer>
+<footer class="v6-footer"><div class="container">
+<div class="v6-footer-main">
+  <div class="v6-footer-brand">
+    <div class="v6-footer-mark"><b>ACG</b><span>TRADER</span></div>
+    <p class="v6-footer-tagline">Global markets. One platform.</p>
+    <div class="v6-footer-kicker">Account security and transparency</div>
+  </div>
+  <nav class="v6-footer-nav" aria-label="Account security, legal information and contact">
+    <a href="/account-security.html">Account security</a>
+    <a href="/privacy.html">Privacy Policy</a>
+    <a href="/terms.html">Terms of Service</a>
+    <a href="/contact.html">Contact</a>
+  </nav>
+</div>
+<div class="v6-footer-identity">
+  <p class="v6-footer-operator">Developed by ACG-MANAGEMENT, UNIPESSOAL LDA, Portugal.</p>
+  <p class="v6-footer-disclaimer">ACG Trader provides trading technology and simulated trading environments. Simulated accounts do not represent live brokerage accounts. Interface visuals contain illustrative simulated prices and account values. Instrument availability varies; Futures, Options, Cloud and White Label are planned offerings, not generally available today.</p>
+</div>
+<div class="v6-footer-bottom"><span>© 2026 ACG-MANAGEMENT, UNIPESSOAL LDA. All rights reserved.</span><a href="#top">Back to top ↑</a></div>
+</div></footer>
 </body></html>
