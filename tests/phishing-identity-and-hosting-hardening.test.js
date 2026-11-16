@@ -35,7 +35,8 @@ test('each sign-in mode states the correct credentials and offers a security exp
 
 test('public marketing does not imply demo registration is already enabled', () => {
   const landing = source('public/acg-landing-v6.html');
-  assert.match(landing, /Demo \(coming soon\)/);
+  assert.match(landing, /Personal demo registration is coming soon/);
+  assert.doesNotMatch(landing, /href="\/\?acg_auth=signup"/);
   assert.match(landing, /href="\/account-security\.html"/);
   assert.match(landing, /ACG-MANAGEMENT, UNIPESSOAL LDA/);
 });
