@@ -126,8 +126,8 @@
 
 /* Trade layout: screenshot order (not a stack of forms) */
 .acg-mini-quick-order{
-  display:flex;flex-direction:column;gap:7px;
-  padding:11px 12px 10px;min-width:0;width:100%;
+  display:flex;flex-direction:column;gap:5px;
+  padding:7px 12px 5px;min-width:0;width:100%;
   background:#0A0E14;color:#F3F4F7;
 }
 .acg-mini-quick-actions{
@@ -182,7 +182,7 @@
 .acg-mini-field label{color:#BEC7D2;font-size:11px;line-height:16px}
 .acg-mini-field label span{color:#A0A9B8}
 .acg-mini-quantity-label{
-  min-height:28px;display:flex;align-items:center;
+  min-height:26px;display:flex;align-items:center;
   justify-content:space-between;gap:8px;
 }
 .acg-mini-quantity-label label{color:#BEC6D1;font-size:11px}
@@ -233,7 +233,7 @@
 .acg-mini-estimate{
   flex:0 0 25px;min-height:25px;
   border-top:1px solid #313944;
-  padding-top:4px;margin-top:1px;
+  padding-top:3px;margin-top:0;
 }
 .acg-mini-quick-warning,.acg-mini-closed,.acg-mini-policy-note {
   padding:7px 9px;margin:0;
