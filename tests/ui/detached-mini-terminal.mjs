@@ -28,10 +28,15 @@ try {
   await normal.close();
   const page = await setup();
   check(await page.evaluate(() => Boolean(window.documentPictureInPicture)), 'Chrome supports native document PiP');
+  check(await page.locator('.acg-floating-order').count()===0,'Audit never renders in-chart floating trade widget');
+  check(await page.locator('.acg-mini-attached').count()===0,'Audit does not mount an attached mini ticket');
+  check(await page.locator('[data-acg-mini-launcher=true]').count()===1,'One icon-only launcher in desktop rail');
+  check((await page.locator('[data-acg-mini-launcher=true]').innerText()).trim()==='','Launcher has no text label');
   await page.getByRole('button', { name: 'Pop out mini terminal' }).click();
   await page.waitForFunction(() => documentPictureInPicture.window?.document.querySelector('.acg-mini-tabs'));
   const pip = expression => page.evaluate(expression);
   check(await pip(() => documentPictureInPicture.window.document.body.textContent.includes('Always on top')), 'Native always-on-top window opens');
+  const nativeHeight=await pip(()=>documentPictureInPicture.window.innerHeight);
   check(await pip(() => documentPictureInPicture.window.getComputedStyle(documentPictureInPicture.window.document.querySelector('.acg-mini-titlebar')).display === 'flex'), 'Styles are copied into native window');
   check(await pip(()=>{
     const d=documentPictureInPicture.window.document;
@@ -46,6 +51,8 @@ try {
       && content.scrollHeight<=content.clientHeight+4;
   }), 'Default 390px PiP fits compact trade without duplicated quotes or vertical scrolling');
   await pip(() => [...documentPictureInPicture.window.document.querySelectorAll('nav button')].find(b => b.textContent.startsWith('Positions')).click());
+  check(await page.evaluate(expected=>documentPictureInPicture.window.innerHeight===expected,nativeHeight),
+    'Native popup height stays unchanged when switching to Positions');
   await page.waitForFunction(() => documentPictureInPicture.window.document.querySelectorAll('.acg-mini-row').length === 2);
   check(await pip(() => !documentPictureInPicture.window.document.querySelector('.acg-mini-footer')),
     'Detached Positions has no bottom footer');
@@ -77,14 +84,16 @@ try {
       entry:67800,closePrice:68100,pnl:6,pnlCurrency:'USD',sl:67000,tp:70000}
   ]));
   await page.waitForFunction(()=>documentPictureInPicture.window?.document.querySelectorAll('.acg-mini-row').length===2);
-  await pip(() => documentPictureInPicture.window.document.querySelector('[aria-label="Return mini terminal to chart"]').click());
+  await pip(() => documentPictureInPicture.window.document.querySelector('[aria-label="Close mini terminal"]').click());
   await page.getByRole('button', { name: 'Pop out mini terminal' }).waitFor();
-  check(await page.locator('.acg-floating-order').count() === 1, 'Dock restores exactly one compact ticket');
+  check(await page.locator('.acg-floating-order').count() === 0,
+    'Closing popup never recreates the old floating widget');
+  check(await page.locator('[data-acg-mini-launcher=true]').count()===1,'Rail launcher remains available');
   await page.getByRole('button', { name: 'Pop out mini terminal' }).click();
   await page.waitForFunction(() => documentPictureInPicture.window?.document.querySelector('.acg-mini-tabs'));
   await pip(() => documentPictureInPicture.window.close());
   await page.getByRole('button', { name: 'Pop out mini terminal' }).waitFor();
-  check(true, 'Native window close restores the widget and allows reopening');
+  check(await page.locator('.acg-floating-order').count()===0,'Native close preserves popup-only mode');
   await page.close();
 
   const fallback = await setup(true);
@@ -96,16 +105,23 @@ try {
   check(await popup.getByText('Separate window', { exact: true }).count() === 1, 'Unsupported browser gets a regular window');
   check(await popup.getByText(/will not stay on top/).count() === 1, 'Fallback describes its actual behavior near the header');
   check(await popup.locator('.acg-mini-footer').count()===0,'Mini terminal never renders a footer');
+  const fallbackHeight=await popup.evaluate(()=>innerHeight);
   await popup.getByRole('button', { name: 'Orders (1)', exact: true }).click();
+  check(await popup.evaluate(expected=>innerHeight===expected,fallbackHeight),
+    'Regular popup height stays unchanged on Orders tab');
   check((await popup.locator('.acg-mini-row').innerText()).includes('SL / TP'),
     'Mini Pending row also exposes protection and status');
   await popup.locator('.acg-mini-row').click();
   check(await popup.locator('.acg-mini-back').isVisible(), 'Pending order editor works in pop-out');
   await popup.getByRole('button', { name: 'Positions (2)', exact: true }).click();
+  check(await popup.evaluate(expected=>innerHeight===expected,fallbackHeight),
+    'Regular popup height stays unchanged on Positions tab');
   await popup.locator('.acg-mini-row').first().click();
   check(await popup.locator('.acg-mini-back').isVisible(), 'Position editor works in pop-out');
   await popup.screenshot({ path: 'tests/ui/artifacts/mini-terminal-position.png' });
   await popup.getByRole('button', { name: 'Trade', exact: true }).click();
+  check(await popup.evaluate(expected=>innerHeight===expected,fallbackHeight),
+    'Regular popup height stays unchanged on Trade tab');
   await popup.screenshot({ path: 'tests/ui/artifacts/mini-terminal-trade.png' });
   const density=await popup.evaluate(()=>{
     const content=document.querySelector('.acg-mini-content');
@@ -175,7 +191,10 @@ try {
   await fallback.evaluate(() => { window.open = () => null; });
   await fallback.getByRole('button', { name: 'Pop out mini terminal' }).click();
   await fallback.getByRole('alert').filter({ hasText: 'Allow pop-ups' }).waitFor();
-  check(await fallback.locator('.acg-floating-order').isVisible(), 'Blocked popup leaves current ticket usable');
+  check(await fallback.locator('.acg-floating-order').count()===0,
+    'Blocked popup must not recreate the in-chart widget');
+  check(await fallback.locator('[data-acg-mini-launcher=true]').isVisible(),
+    'Blocked popup leaves rail launcher available to retry');
   await fallback.close();
   const owner = await setup(true);
   const ownerPopupPromise = owner.waitForEvent('popup');
