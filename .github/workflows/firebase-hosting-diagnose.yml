@@ -1,0 +1,65 @@
+name: Diagnose ACG Trader Hosting 404 (read-only)
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/firebase-hosting-diagnose.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-hosting:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ACG_TRADER }}
+      FIREBASE_CLI_VERSION: '15.36.0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Authenticate with existing deploy service account
+        run: |
+          set -euo pipefail
+          test -n "$FIREBASE_SERVICE_ACCOUNT_JSON"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/firebase-sa.json"
+          chmod 600 "$RUNNER_TEMP/firebase-sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-sa.json" >> "$GITHUB_ENV"
+      - name: Read Firebase Hosting site metadata
+        run: |
+          set -euo pipefail
+          echo '=== Sites in Firebase project ==='
+          npx --yes firebase-tools@$FIREBASE_CLI_VERSION hosting:sites:list --project acg-trader --json \
+            > /tmp/sites.json
+          jq '{status, result, error}' /tmp/sites.json
+          echo '=== Exact Hosting site ==='
+          npx --yes firebase-tools@$FIREBASE_CLI_VERSION hosting:sites:get acg-trader --project acg-trader --json \
+            > /tmp/site.json
+          jq '{status, result, error}' /tmp/site.json
+      - name: Read live and preview channel versions
+        run: |
+          set -euo pipefail
+          npx --yes firebase-tools@$FIREBASE_CLI_VERSION hosting:channel:list --site acg-trader --project acg-trader --json \
+            > /tmp/channels.json
+          jq '{status, result, error}' /tmp/channels.json
+      - name: Public Hosting HTTP probe (no bypass)
+        if: always()
+        run: |
+          set -euo pipefail
+          for u in \
+            'https://acg-trader.web.app' \
+            'https://acg-trader.web.app/' \
+            'https://acg-trader.web.app/googleee018f2d5cc05ee0.html' \
+            'https://acg-trader.firebaseapp.com/'
+          do
+            code="$(curl -sS -L --connect-timeout 10 --max-time 20 -o /tmp/response.html -w '%{http_code}' "$u" || true)"
+            printf '%s HTTP %s\n' "$u" "$code"
+            grep -Eo '<title>[^<]*</title>' /tmp/response.html | head -1 || true
+          done
+      - name: Remove temporary credentials
+        if: always()
+        run: rm -f "$RUNNER_TEMP/firebase-sa.json"
