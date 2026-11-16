@@ -201,9 +201,9 @@ export default function DetachedMiniTerminal({
             </button>
           </span>
         </header>
-        {mode==='Separate window'&&<div className="acg-mini-fallback-note" role="status">
+        {mode==='Separate window'&&<span className="acg-mini-visually-hidden" role="status">
           Regular window: it will not stay on top.
-        </div>}
+        </span>}
         <div className="acg-mini-context">
           <span className="acg-mini-market-avatar" aria-hidden="true">
             <InstrumentAvatar instrument={market} size={40}/>
