@@ -1,4 +1,6 @@
 import fs from 'node:fs';
+import { Buffer } from 'node:buffer';
+import process from 'node:process';
 import path from 'node:path';
 
 const SKIP = new Set(['.git','node_modules','dist','.cache','coverage','android','ios']);
