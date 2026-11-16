@@ -73,7 +73,15 @@ export default function StandaloneAuthPage() {
   };
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      // A disabled onboarding feature must not leave OAuth codes or recovery
+      // tokens in the browser address bar or history.
+      if (window.location.pathname === '/auth/callback') {
+        browser.clearCallbackUrl();
+        browser.clearPkce();
+      }
+      return;
+    }
     let active = true;
     const initialise = async () => {
       setBusy(true); setError('');
