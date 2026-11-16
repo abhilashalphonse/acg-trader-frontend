@@ -4,6 +4,7 @@ import { ApiError } from '../api/client.js';
 import { SESSION_STORAGE_KEY } from '../api/config.js';
 import { SupabaseBrowserAuth } from './supabase-browser.js';
 import { ACTIVE_TERMINAL_MARKER } from '../landing/landing-routing.js';
+import { canRenderTraderWorkspace } from './sessionAuthorization.js';
 
 export const AuthContext = createContext(null);
 
@@ -497,7 +498,7 @@ export function AuthProvider({ children }) {
     refreshExpiresAt: session?.refreshExpiresAt || null,
     // A revoked, expired or reauthentication-required session may retain UI
     // metadata for recovery, but must never expose the protected workspace.
-    authenticated: status === 'authenticated' && Boolean(session?.principal) && Boolean(session?.accessToken),
+    authenticated: canRenderTraderWorkspace(status, session),
     accessReady: status === 'authenticated' && Boolean(session?.accessToken),
     status,
     error,
