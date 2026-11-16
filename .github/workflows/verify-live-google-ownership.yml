@@ -30,18 +30,41 @@ jobs:
           jq -r '.workflow_runs[] | "Production deployment: run=\(.id) status=\(.status) conclusion=\(.conclusion) url=\(.html_url)"' /tmp/acg-production-runs.json
           jq -e '.workflow_runs | any(.status == "completed" and .conclusion == "success")' /tmp/acg-production-runs.json
 
+      - name: Probe Firebase public domains and report HTTP evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          for url in \
+            'https://acg-trader.web.app/' \
+            'https://acg-trader.web.app/googleee018f2d5cc05ee0.html' \
+            'https://acg-trader.firebaseapp.com/' \
+            'https://acg-trader.firebaseapp.com/googleee018f2d5cc05ee0.html'
+          do
+            echo "Checking: $url"
+            status="$(curl --silent --show-error --location \
+              --connect-timeout 10 --max-time 25 -D /tmp/acg-headers.txt \
+              -o /tmp/acg-response.txt -w '%{http_code}' "$url" || true)"
+            printf 'HTTP status: %s\\n' "$status"
+            grep -Ei '^(server|content-type|location|cache-control|x-served-by):' /tmp/acg-headers.txt || true
+            echo 'Response prefix:'
+            head -c 220 /tmp/acg-response.txt || true
+            echo
+            if [[ "$url" == 'https://acg-trader.web.app/' ]] && [ "$status" = "200" ]; then
+              grep -Fq '<meta name="google-site-verification" content="B8nc-U0CFH1hL6WNjYY64nEoGAYLExP5krS4MRyzkWQ" />' /tmp/acg-response.txt
+              echo 'PASS: primary homepage has exact verification tag'
+            fi
+          done
+
       - name: Verify live Firebase serves exact HTML meta and verification file
         if: always()
         run: |
           set -euo pipefail
           base='https://acg-trader.web.app'
-          curl --fail --silent --show-error --location --retry 3 --retry-delay 2 \
-            --connect-timeout 10 --max-time 25 \
-            "$base/" -o /tmp/acg-live-index.html
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 1 \
+            --connect-timeout 10 --max-time 25 "$base/" -o /tmp/acg-live-index.html
           grep -Fq '<meta name="google-site-verification" content="B8nc-U0CFH1hL6WNjYY64nEoGAYLExP5krS4MRyzkWQ" />' /tmp/acg-live-index.html
-          echo "PASS: live Firebase homepage serves exact Search Console meta tag"
-          curl --fail --silent --show-error --location --retry 3 --retry-delay 2 \
-            --connect-timeout 10 --max-time 25 \
-            "$base/googleee018f2d5cc05ee0.html" -o /tmp/acg-google-file.html
+          echo "PASS: primary homepage meta verified"
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 1 \
+            --connect-timeout 10 --max-time 25 "$base/googleee018f2d5cc05ee0.html" -o /tmp/acg-google-file.html
           grep -Fxq 'google-site-verification: googleee018f2d5cc05ee0.html' /tmp/acg-google-file.html
-          echo "PASS: live Firebase serves exact Google HTML verification file"
+          echo "PASS: HTML file verified"
