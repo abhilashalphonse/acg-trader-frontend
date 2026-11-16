@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowUpRight, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react';
 import { useTraderAuth } from '../hooks/useTraderAuth.js';
 import ACGStartupLoader from './ACGStartupLoader.jsx';
+import { approvedFundedUrl } from '../security/approvedAuthUrls.js';
 
 function presentAuthError(error) {
   if (!error) return '';
@@ -33,7 +34,8 @@ function presentAuthError(error) {
     return 'ACG Trader is temporarily unavailable. Try again shortly.';
   }
 
-  return error.message || 'Unable to sign in.';
+  // Do not reflect arbitrary API error text into a credential form.
+  return 'Unable to sign in. Check your trading credentials and try again.';
 }
 
 export default function SessionGate({ children }) {
@@ -43,7 +45,7 @@ export default function SessionGate({ children }) {
   const connectProp = typeof window !== 'undefined'
     && new URLSearchParams(window.location.search).get('acg_connect_prop') === '1';
   const configuredTenant = String(import.meta.env.VITE_ACG_TRADER_TENANT || 'acg-funded').trim();
-  const fundedUrl = String(import.meta.env.VITE_ACG_FUNDED_URL || 'https://acgfunded.com').trim();
+  const fundedUrl = approvedFundedUrl(import.meta.env.VITE_ACG_FUNDED_URL || 'https://acgfunded.com');
   const [form, setForm] = useState({ tenant: '', login: '', password: '' });
   const tenant = connectProp ? form.tenant.trim() : configuredTenant;
   const [submitting, setSubmitting] = useState(false);
@@ -72,6 +74,8 @@ export default function SessionGate({ children }) {
     } catch (nextError) {
       setLocalError(presentAuthError(nextError));
     } finally {
+      // Avoid keeping submitted credentials in React state after any attempt.
+      setForm(current => ({ ...current, password: '' }));
       setSubmitting(false);
     }
   };
@@ -165,7 +169,7 @@ export default function SessionGate({ children }) {
             <a
               href={fundedUrl}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="mt-4 flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl text-[13px] font-semibold text-[#8c8f96] transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#195be1]"
             >
               Find credentials in ACG Funded
@@ -219,6 +223,7 @@ function PasswordField({ value, onChange, visible, onToggle }) {
         <input
           type={visible ? 'text' : 'password'}
           autoComplete="current-password"
+          maxLength={256}
           value={value}
           placeholder="Enter password"
           onChange={event => onChange(event.target.value)}
