@@ -35,7 +35,7 @@ try {
   await page.getByRole('button', { name: 'Pop out mini terminal' }).click();
   await page.waitForFunction(() => documentPictureInPicture.window?.document.querySelector('.acg-mini-tabs'));
   const pip = expression => page.evaluate(expression);
-  check(await pip(() => documentPictureInPicture.window.document.body.textContent.includes('Always on top')), 'Native always-on-top window opens');
+  check(await pip(() => documentPictureInPicture.window.document.querySelector('.acg-mini-terminal')?.dataset.windowMode==='Always on top'), 'Native always-on-top window opens');
   const nativeHeight=await pip(()=>documentPictureInPicture.window.innerHeight);
   check(await pip(() => documentPictureInPicture.window.getComputedStyle(documentPictureInPicture.window.document.querySelector('.acg-mini-titlebar')).display === 'flex'), 'Styles are copied into native window');
   check(await pip(()=>{
@@ -43,13 +43,15 @@ try {
     const mini=d.querySelector('.acg-mini-quick-order');
     const content=d.querySelector('.acg-mini-content');
     const buttons=d.querySelectorAll('.acg-mini-quick-actions button');
-    const metrics=d.querySelector('.acg-mini-margin-summary');
+    const free=d.querySelector('.acg-mini-free-margin');
+    const estimate=d.querySelector('.acg-mini-estimate');
+    const spread=d.querySelector('.acg-mini-spread');
     const context=d.querySelector('.acg-mini-context');
-    return mini&&metrics&&context&&buttons.length===2
+    return mini&&free&&estimate&&spread&&context&&buttons.length===2
       && !d.querySelector('.acg-mini-quote-main')
       && d.querySelectorAll('.acg-mini-order-family').length===1
       && content.scrollHeight<=content.clientHeight+4;
-  }), 'Default 390px PiP fits compact trade without duplicated quotes or vertical scrolling');
+  }), 'Default 360px PiP fits reference trade without duplicated quotes or vertical scrolling');
   await pip(() => [...documentPictureInPicture.window.document.querySelectorAll('nav button')].find(b => b.textContent.startsWith('Positions')).click());
   check(await page.evaluate(expected=>documentPictureInPicture.window.innerHeight===expected,nativeHeight),
     'Native popup height stays unchanged when switching to Positions');
@@ -58,7 +60,7 @@ try {
     'Detached Positions has no bottom footer');
   check(await pip(() => {
     const text=documentPictureInPicture.window.document.querySelector('.acg-mini-row')?.textContent||'';
-    return ['Entry','Current','SL / TP','Margin','Unrealized P&L'].every(field=>text.includes(field));
+    return ['Entry','Current','SL','TP'].every(field=>text.includes(field)) && Boolean(documentPictureInPicture.window.document.querySelector('.acg-mini-row-head>b'));
   }), 'Mini position presents unified prices, risk and P&L');
   await page.evaluate(() => window.v4PositionsQA.setPnl('position-eur-1', 123.45));
   await page.waitForFunction(() => documentPictureInPicture.window.document.querySelector('.acg-mini-rows').textContent.includes('123.45'));
@@ -68,7 +70,7 @@ try {
   check(await page.evaluate(() => window.v4PositionsQA.commands.length === 0), 'Opening position management never sends a command');
   await page.evaluate(() => window.v4PositionsQA.setAccount({ id: 'switched-account', accountCode: 'NEW-ACCOUNT' }));
   await page.waitForFunction(() => !documentPictureInPicture.window.document.querySelector('.acg-mini-back'));
-  check(await pip(() => documentPictureInPicture.window.document.querySelector('.acg-mini-account').textContent.includes('NEW-ACCOUNT')), 'Account switch clears selected management and updates identity');
+  check(await pip(() => documentPictureInPicture.window.document.querySelector('.acg-mini-titlebar').title==='NEW-ACCOUNT'), 'Account switch clears selected management and updates identity');
   await page.evaluate(()=>window.v4PositionsQA.setPositions([]));
   await page.waitForFunction(()=>documentPictureInPicture.window?.document.querySelector('.acg-mini-empty'));
   check(await pip(()=>{
@@ -102,15 +104,16 @@ try {
   const popup = await popupPromise;
   popup.on('pageerror', error => errors.push(error.message));
   await popup.getByRole('navigation', { name: 'Mini terminal sections' }).waitFor();
-  check(await popup.getByText('Separate window', { exact: true }).count() === 1, 'Unsupported browser gets a regular window');
+  check(await popup.locator('[data-window-mode="Separate window"]').count()===1, 'Unsupported browser gets a regular window');
   check(await popup.getByText(/will not stay on top/).count() === 1, 'Fallback describes its actual behavior near the header');
   check(await popup.locator('.acg-mini-footer').count()===0,'Mini terminal never renders a footer');
   const fallbackHeight=await popup.evaluate(()=>innerHeight);
   await popup.getByRole('button', { name: 'Orders (1)', exact: true }).click();
   check(await popup.evaluate(expected=>innerHeight===expected,fallbackHeight),
     'Regular popup height stays unchanged on Orders tab');
-  check((await popup.locator('.acg-mini-row').innerText()).includes('SL / TP'),
-    'Mini Pending row also exposes protection and status');
+  const pendingText=await popup.locator('.acg-mini-row').innerText();
+  check(['Trigger','Limit','SL','TP'].every(field=>pendingText.includes(field)),
+    'Mini Pending row exposes trigger, limit, SL and TP');
   await popup.locator('.acg-mini-row').click();
   check(await popup.locator('.acg-mini-back').isVisible(), 'Pending order editor works in pop-out');
   await popup.getByRole('button', { name: 'Positions (2)', exact: true }).click();
@@ -122,21 +125,37 @@ try {
   await popup.getByRole('button', { name: 'Trade', exact: true }).click();
   check(await popup.evaluate(expected=>innerHeight===expected,fallbackHeight),
     'Regular popup height stays unchanged on Trade tab');
+  await fallback.evaluate(()=>window.v4PositionsQA.setSymbol('XAUUSD'));
+  await popup.getByRole('combobox',{name:'Mini terminal instrument'}).selectOption('XAUUSD');
+  await popup.locator('.acg-mini-market-price strong').getByText('3,881.77').waitFor();
+  check(await popup.locator('.acg-mini-cfd').innerText()==='CFD',
+    'Reference instrument CFD badge is visible');
+  check(await popup.locator('.acg-mini-market-name').innerText()==='Gold / US Dollar',
+    'Reference instrument subtitle is visible');
+  check(await popup.locator('.acg-mini-market-price small').innerText()==='+0.10%',
+    'Show a percentage only when supplied by the market feed');
+  check(await popup.locator('.acg-mini-spread strong').innerText()==='28',
+    'Real bid/ask and tick size produce reference spread');
   await popup.screenshot({ path: 'tests/ui/artifacts/mini-terminal-trade.png' });
   const density=await popup.evaluate(()=>{
     const content=document.querySelector('.acg-mini-content');
     const ctx=document.querySelector('.acg-mini-context')?.getBoundingClientRect();
     const tabs=document.querySelector('.acg-mini-tabs')?.getBoundingClientRect();
     const actions=document.querySelector('.acg-mini-quick-actions')?.getBoundingClientRect();
-    const margins=document.querySelector('.acg-mini-margin-summary')?.getBoundingClientRect();
+    const free=document.querySelector('.acg-mini-free-margin')?.getBoundingClientRect();
+    const est=document.querySelector('.acg-mini-estimate')?.getBoundingClientRect();
+    const header=document.querySelector('.acg-mini-titlebar')?.getBoundingClientRect();
     return {scroll:content?.scrollHeight,visible:content?.clientHeight,
       contextHeight:ctx?.height,tabsHeight:tabs?.height,
-      actionsHeight:actions?.height,metricsHeight:margins?.height};
+      actionsHeight:actions?.height,freeHeight:free?.height,estHeight:est?.height,headerHeight:header?.height};
   });
   console.log('MINI_DENSITY_GEOMETRY',JSON.stringify(density));
-  check(density.contextHeight<=46&&density.tabsHeight<=32&&density.actionsHeight>=42,
-    'Dense header and 44px execution buttons retain usable size');
-  check(density.metricsHeight<=40,'Both margin metrics share one compact row');
+  check(density.headerHeight===36&&density.contextHeight===78
+    &&density.tabsHeight>=32&&density.tabsHeight<=34&&density.actionsHeight===52,
+    'Reference row heights: 36px brand / 78px instrument / 33px tabs / 52px trading');
+  check(density.freeHeight>=23&&density.freeHeight<=26
+    &&density.estHeight>=24&&density.estHeight<=28,
+    'Free margin and estimated margin use separate 24px reference rows');
   check(density.scroll<=density.visible+4,'Default detached trade fits without a vertical scrollbar');
   check(await popup.locator('[data-acg-mini-simple-ticket=true]').isVisible(),
     'Trade tab uses original floating quick-order logic in a simple popup');
