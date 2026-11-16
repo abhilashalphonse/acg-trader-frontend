@@ -1,0 +1,140 @@
+name: Read-only phishing suspension security audit
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/audit-phishing-suspension.yml'
+      - 'scripts/security/audit-phishing-suspension.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  source-and-cloud-evidence:
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout all Git history for integrity review
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 70
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Static review of public pages, scripts, redirects, and authentication paths
+        run: node scripts/security/audit-phishing-suspension.mjs
+
+      - name: Recent author and changed-path evidence
+        run: |
+          set -euo pipefail
+          echo 'AUDIT_GIT_HISTORY_BEGIN'
+          git log -n 55 --pretty=format:'%h|%aI|%an|%s'
+          echo
+          echo 'Top recently changed app paths'
+          git log -n 55 --name-only --pretty=format:'' -- src public index.html firebase.json .github/workflows \
+            | grep -v '^$' | sort | uniq -c | sort -rn | head -50 || true
+          echo 'AUDIT_GIT_HISTORY_END'
+
+      - name: Install dependencies and review production advisories
+        run: |
+          set -euo pipefail
+          npm ci
+          npm audit --omit=dev --json > /tmp/acg-npm-audit.json 2>/tmp/acg-npm-audit.stderr || true
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          let data={};
+          try{data=JSON.parse(fs.readFileSync('/tmp/acg-npm-audit.json','utf8'));}catch{}
+          console.log('AUDIT_NPM',JSON.stringify({
+            auditError:data.error?.code||null,
+            metadata:data.metadata?.vulnerabilities||null,
+            issues:Object.entries(data.vulnerabilities||{}).slice(0,40).map(([name,x])=>({
+              name,severity:x.severity,isDirect:x.isDirect,fixAvailable:!!x.fixAvailable,
+              via:x.via?.filter(y=>typeof y==='object').map(y=>y.name).slice(0,5)
+            }))
+          }));
+          JS
+
+      - name: List exact production dist contents
+        run: |
+          set -euo pipefail
+          npm run build
+          echo 'AUDIT_DIST_BEGIN'
+          find dist -type f -printf '%P\n' | sort
+          test -f dist/index.html
+          test -f dist/googleee018f2d5cc05ee0.html
+          grep -Fq 'B8nc-U0CFH1hL6WNjYY64nEoGAYLExP5krS4MRyzkWQ' dist/index.html
+          grep -Fxq 'google-site-verification: googleee018f2d5cc05ee0.html' dist/googleee018f2d5cc05ee0.html
+          echo 'AUDIT_DIST_PASS: verification artifacts present'
+          echo 'AUDIT_DIST_END'
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        continue-on-error: true
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ACG_TRADER }}
+
+      - name: Install gcloud CLI
+        if: steps.auth.outcome == 'success'
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Read IAM policy and recent administrative audit logs (no changes)
+        if: steps.auth.outcome == 'success'
+        run: |
+          set +e
+          echo 'AUDIT_CLOUD_BEGIN'
+          gcloud projects describe acg-trader --format=json > /tmp/acg-project.json 2>/tmp/acg-project-error.txt
+          if [ "$?" = 0 ]; then
+            jq '{projectId,lifecycleState,createTime,labels}' /tmp/acg-project.json
+          else echo 'PROJECT_DESCRIBE_UNAVAILABLE'; fi
+          gcloud projects get-iam-policy acg-trader --format=json > /tmp/acg-iam.json 2>/tmp/acg-iam-error.txt
+          if [ "$?" = 0 ]; then
+            jq '{iamRoleMembershipCounts:[.bindings[] | {role, memberCount:(.members|length)}]}' /tmp/acg-iam.json
+          else echo 'IAM_POLICY_UNAVAILABLE'; fi
+          gcloud logging read \
+            'timestamp>="2026-10-16T00:00:00Z" AND (protoPayload.serviceName="firebasehosting.googleapis.com" OR protoPayload.serviceName="cloudresourcemanager.googleapis.com" OR protoPayload.serviceName="iam.googleapis.com" OR protoPayload.serviceName="serviceusage.googleapis.com")' \
+            --project acg-trader --limit=1500 --format=json > /tmp/acg-admin-events.json 2>/tmp/acg-logging-error.txt
+          if [ "$?" = 0 ]; then
+            jq '{eventCount:length, methods:([.[] | .protoPayload.methodName // "unknown"] | group_by(.) | map({method:.[0],count:length})), newest:([.[] | {timestamp,method:(.protoPayload.methodName//"unknown"),resource:(.protoPayload.resourceName//"")} ] | sort_by(.timestamp) | reverse | .[:35])}' /tmp/acg-admin-events.json
+          else echo 'CLOUD_AUDIT_LOGS_UNAVAILABLE'; fi
+          echo 'AUDIT_CLOUD_END'
+
+      - name: Compare Firebase published release and HTTP paths
+        if: steps.auth.outcome == 'success'
+        run: |
+          set +e
+          echo 'AUDIT_HOSTING_BEGIN'
+          TOKEN="$(gcloud auth print-access-token 2>/dev/null)"
+          if [ -n "$TOKEN" ]; then
+            curl --fail --silent --show-error -H "Authorization: Bearer $TOKEN" \
+              'https://firebasehosting.googleapis.com/v1beta1/sites/acg-trader/channels/live' \
+              > /tmp/acg-live-channel.json 2>/tmp/acg-hosting-error.txt
+            if [ "$?" = 0 ]; then
+              jq '{name,url,release:{name:.release.name,type:.release.type,releaseTime:.release.releaseTime,version:{name:.release.version.name,status:.release.version.status,fileCount:.release.version.fileCount}}}' /tmp/acg-live-channel.json
+            else echo 'HOSTING_CHANNEL_GET_UNAVAILABLE'; fi
+            curl --fail --silent --show-error -H "Authorization: Bearer $TOKEN" \
+              'https://firebasehosting.googleapis.com/v1beta1/sites/acg-trader/versions/ae78dcd485573c2a/files?pageSize=1000' \
+              > /tmp/acg-hosted-files.json 2>/tmp/acg-files-error.txt
+            if [ "$?" = 0 ]; then
+              jq '{hostedFileCount:(.files|length),hostedPaths:[.files[]?.path]}' /tmp/acg-hosted-files.json
+            else echo 'HOSTING_VERSION_FILE_LIST_UNAVAILABLE'; fi
+          else echo 'HOSTING_API_AUTH_UNAVAILABLE'; fi
+          for url in \
+            'http://acg-trader.web.app/' \
+            'https://acg-trader.web.app' \
+            'https://acg-trader.web.app/' \
+            'https://acg-trader.web.app/googleee018f2d5cc05ee0.html' \
+            'https://acg-trader.firebaseapp.com/' \
+            'https://acg-trader--pr-154-lv0d7x1r.web.app/'
+          do
+            RESULT="$(curl -sS --max-time 20 --connect-timeout 8 -L -o /tmp/acg-public-response -w '%{http_code}|%{url_effective}' "$url" 2>/dev/null)"
+            echo "HOSTING_PUBLIC_STATUS|$url|$RESULT"
+            grep -Eo '<title>[^<]+</title>' /tmp/acg-public-response | head -1 || true
+          done
+          echo 'AUDIT_HOSTING_END'
