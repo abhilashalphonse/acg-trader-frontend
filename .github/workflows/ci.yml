@@ -157,6 +157,28 @@ jobs:
           node tests/ui/v4-positions-reference.mjs
           node tests/ui/v4-pending-reference.mjs
           node tests/ui/v4-workspace-corrections.mjs
+      - name: Reference mini-terminal visual geometry and trading acceptance
+        if: ${{ github.head_ref == 'ui/v4-mini-reference-layout-20261116' || github.ref == 'refs/heads/ui/v4-mini-reference-layout-20261116' }}
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          VITE_ACG_EXECUTION_V4_ENABLED=true npm run dev -- --host 127.0.0.1 >/tmp/v4-reference-mini.log 2>&1 &
+          curl --fail --retry 30 --retry-delay 1 --retry-connrefused http://127.0.0.1:5174/v4-positions-audit.html >/dev/null
+          npm run test:ui:mini
+          node tests/ui/v4-floating-v2-theme.mjs
+          node tests/ui/v4-all-empty-tabs-no-footer.mjs
+          node tests/ui/v4-dock-empty-state.mjs
+          node tests/ui/v4-dock-audit-isolation.mjs
+          node tests/ui/v4-positions-reference.mjs
+          node tests/ui/v4-pending-reference.mjs
+          node tests/ui/v4-workspace-corrections.mjs
+      - name: Capture reference mini-terminal screenshots
+        if: ${{ always() && (github.head_ref == 'ui/v4-mini-reference-layout-20261116' || github.ref == 'refs/heads/ui/v4-mini-reference-layout-20261116') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: acg-mini-reference-review
+          path: tests/ui/artifacts/mini-terminal-*.png
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Mobile audit real-Chrome responsive and interaction acceptance
         if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/feat/mobile-audit-') || startsWith(github.ref, 'refs/heads/fix/mobile-audit-') || startsWith(github.head_ref, 'fix/mobile-audit-') || startsWith(github.head_ref, 'fix/v4-signout-') }}
         run: |
