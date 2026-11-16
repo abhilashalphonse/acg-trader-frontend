@@ -1,0 +1,47 @@
+name: Verify Google ownership on live ACG Trader
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/verify-live-google-ownership.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  check-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Confirm production Firebase workflow completed for ownership-tag commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          DEPLOY_SHA: b2414017a94903c487f408336f47b85dd658491d
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 3 --max-time 20 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$REPO/actions/workflows/firebase-hosting-live.yml/runs?head_sha=$DEPLOY_SHA&per_page=10" \
+            -o /tmp/acg-production-runs.json
+          jq -r '.workflow_runs[] | "Production deployment: run=\(.id) status=\(.status) conclusion=\(.conclusion) url=\(.html_url)"' /tmp/acg-production-runs.json
+          jq -e '.workflow_runs | any(.status == "completed" and .conclusion == "success")' /tmp/acg-production-runs.json
+
+      - name: Verify live Firebase serves exact HTML meta and verification file
+        if: always()
+        run: |
+          set -euo pipefail
+          base='https://acg-trader.web.app'
+          curl --fail --silent --show-error --location --retry 3 --retry-delay 2 \
+            --connect-timeout 10 --max-time 25 \
+            "$base/" -o /tmp/acg-live-index.html
+          grep -Fq '<meta name="google-site-verification" content="B8nc-U0CFH1hL6WNjYY64nEoGAYLExP5krS4MRyzkWQ" />' /tmp/acg-live-index.html
+          echo "PASS: live Firebase homepage serves exact Search Console meta tag"
+          curl --fail --silent --show-error --location --retry 3 --retry-delay 2 \
+            --connect-timeout 10 --max-time 25 \
+            "$base/googleee018f2d5cc05ee0.html" -o /tmp/acg-google-file.html
+          grep -Fxq 'google-site-verification: googleee018f2d5cc05ee0.html' /tmp/acg-google-file.html
+          echo "PASS: live Firebase serves exact Google HTML verification file"
