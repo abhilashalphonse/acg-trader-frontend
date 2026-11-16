@@ -18,7 +18,7 @@ function fixture() {
     const payload=await responder(url,opts);
     return {ok:!payload?.error,status:payload?.error?400:200,json:async()=>payload};
   };
-  const auth = new SupabaseBrowserAuth({storage,location,history,fetchImpl,cryptoImpl:webcrypto,now:()=>1800000000000});
+  const auth = new SupabaseBrowserAuth({storage,location,history,fetchImpl,cryptoImpl:webcrypto,now:()=>1800000000000,sessionCache:{current:null}});
   return {auth, calls,location,storage,getHistory:()=>lastHistory,setResponder:next=>{responder=next;}};
 }
 test('onboarding is disabled by default and federation ticket keeps existing route',()=>{
