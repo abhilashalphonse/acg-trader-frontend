@@ -33,7 +33,8 @@ test('footer remains responsive and does not alter product sections or primary l
   assert.match(html, /\.v6-footer-nav\{display:flex/);
   assert.match(html, /@media\(max-width:500px\)\{\.v6-footer\{/);
   assert.match(html, /href="\/\?acg_connect_prop=1"/);
-  assert.match(html, /href="\/\?acg_auth=signup"/);
+  assert.match(html, /href="\/\?acg_login=1"/);
+  assert.doesNotMatch(html, /href="\/\?acg_auth=signup"/);
   assert.match(html, /id="markets"/);
   assert.match(html, /id="trading"/);
   assert.match(html, /id="experience"/);
