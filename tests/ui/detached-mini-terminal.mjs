@@ -36,6 +36,13 @@ try {
   await page.waitForFunction(() => documentPictureInPicture.window?.document.querySelector('.acg-mini-tabs'));
   const pip = expression => page.evaluate(expression);
   check(await pip(() => documentPictureInPicture.window.document.querySelector('.acg-mini-terminal')?.dataset.windowMode==='Always on top'), 'Native always-on-top window opens');
+  check(await pip(()=>{
+    const d=documentPictureInPicture.window.document;
+    const price=d.querySelector('.acg-mini-market-price strong')?.textContent;
+    const buy=d.querySelector('.acg-mini-buy strong')?.textContent;
+    const sell=d.querySelector('.acg-mini-sell strong')?.textContent;
+    return price==='1.11730'&&buy==='1.11735'&&sell==='1.11725';
+  }), 'Five-digit forex quotes must never receive a thousands separator in fractions');
   const nativeHeight=await pip(()=>documentPictureInPicture.window.innerHeight);
   check(await pip(() => documentPictureInPicture.window.getComputedStyle(documentPictureInPicture.window.document.querySelector('.acg-mini-titlebar')).display === 'flex'), 'Styles are copied into native window');
   check(await pip(()=>{
