@@ -14,7 +14,6 @@
     "test:ui:mini": "node tests/ui/detached-mini-terminal.mjs"
   },
   "dependencies": {
-    "firebase": "^12.19.0",
     "lightweight-charts": "5.2.1",
     "lucide-react": "^0.468.0",
     "react": "^19.2.8",
