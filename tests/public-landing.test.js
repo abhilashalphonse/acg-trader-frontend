@@ -19,8 +19,9 @@ test('landing V6 retains value proposition, approved three-path navigation and h
   assert.match(html, /Global markets\.<br\/><span class="soft-text">One platform\./i);
   assert.match(html, /Risk-based sizing\.<br\/><span>Chart-based trading\./i);
   assert.match(html, /Bring ACG Trader<br\/><span>to your traders\./i);
-  assert.match(html, /href="\/\?acg_connect_prop=1"[^>]*>Start Trading/);
-  assert.match(html, /href="\/\?acg_auth=signup"[^>]*>Demo \(coming soon\)/);
+  assert.match(html, /href="\/\?acg_connect_prop=1"[^>]*><span class="top-cta-full">Connect existing trading account/);
+  assert.match(html, /Personal demo registration is coming soon/);
+  assert.doesNotMatch(html, /href="\/\?acg_auth=signup"/);
   assert.match(html, /href="#markets"/);
   assert.match(html, /href="#trading"/);
   assert.match(html, /href="#experience"/);
@@ -77,7 +78,7 @@ test('public marketing keeps tenant-native and federation entry with no Supabase
   const auth = readFileSync(new URL('../src/auth/AuthProvider.jsx', import.meta.url), 'utf8');
   const signup = readFileSync(new URL('../src/components/StandaloneAuthPage.jsx', import.meta.url), 'utf8');
   assert.match(html, /href="\/\?acg_connect_prop=1"/);
-  assert.match(html, /href="\/\?acg_auth=signup"/);
+  assert.match(html, /href="\/\?acg_login=1"/);
   assert.match(router, /shouldOpenPublicHome/);
   assert.match(router, /shouldOpenStandaloneAuth/);
   assert.match(auth, /exchangeFederationTicket/);
