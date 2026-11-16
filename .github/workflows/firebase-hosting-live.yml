@@ -43,6 +43,12 @@ jobs:
       - name: Build production frontend
         run: npm run build
 
+      - name: Verify Google ownership resources in production build
+        run: |
+          set -euo pipefail
+          grep -Fq '<meta name="google-site-verification" content="B8nc-U0CFH1hL6WNjYY64nEoGAYLExP5krS4MRyzkWQ" />' dist/index.html
+          grep -Fxq 'google-site-verification: googleee018f2d5cc05ee0.html' dist/googleee018f2d5cc05ee0.html
+
       - name: Assert V4 desktop is enabled by default in production
         run: |
           set -euo pipefail
@@ -69,6 +75,18 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ACG_TRADER }}
           projectId: acg-trader
           channelId: live
+
+      - name: Require live Hosting to serve Google verification files
+        run: |
+          set -euo pipefail
+          base='https://acg-trader.web.app'
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 2 \
+            --connect-timeout 10 --max-time 25 "$base/" -o /tmp/acg-live-index.html
+          grep -Fq '<meta name="google-site-verification" content="B8nc-U0CFH1hL6WNjYY64nEoGAYLExP5krS4MRyzkWQ" />' /tmp/acg-live-index.html
+          curl --fail --silent --show-error --location --retry 2 --retry-delay 2 \
+            --connect-timeout 10 --max-time 25 "$base/googleee018f2d5cc05ee0.html" -o /tmp/acg-google-file.html
+          grep -Fxq 'google-site-verification: googleee018f2d5cc05ee0.html' /tmp/acg-google-file.html
+          echo 'Firebase LIVE serves ACG Trader and both Google Search Console verification artifacts.'
 
       - name: Install headless startup verification
         run: npm install --no-save --no-audit --no-fund playwright@1.56.1
