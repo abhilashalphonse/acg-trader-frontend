@@ -13,6 +13,10 @@ const EURO=Object.freeze({symbol:'EURUSD',displaySymbol:'EUR/USD',name:'Euro / U
 const BTC=Object.freeze({symbol:'BTCUSD',displaySymbol:'BTC/USD',name:'Bitcoin / US Dollar',assetClass:'CRYPTO',
  baseCurrency:'BTC',quoteCurrency:'USD',contractSize:1,defaultLeverage:2,tickSize:0.01,
  bid:68100,ask:68102,price:68101,sessionOpen:true,marketState:'LIVE',isStale:false,marketDataAvailable:true});
+const GOLD=Object.freeze({symbol:'XAUUSD',displaySymbol:'XAUUSD',name:'Gold / US Dollar',assetClass:'METAL',
+ baseCurrency:'XAU',quoteCurrency:'USD',contractSize:100,defaultLeverage:50,tickSize:0.01,
+ bid:3881.77,ask:3882.05,price:3881.77,changePercent:0.10,
+ sessionOpen:true,marketState:'LIVE',isStale:false,marketDataAvailable:true});
 const PENDING=Object.freeze([{
  id:'pending-eur-1',accountId:'v4-positions-fixture',symbol:'EURUSD',side:'BUY',
  orderType:'stop-limit',volume:0.03,entry:1.12,stopPrice:1.12,limitPrice:1.1198,
@@ -64,8 +68,8 @@ function PositionsQA(){
  const [commands,setCommands]=useState([]);
  const [retries,setRetries]=useState(0);
  const [protectionDraft,setProtectionDraft]=useState(null);
- const market=symbol==='BTCUSD'?BTC:EURO;
- const markets=useMemo(()=>[EURO,BTC],[]);
+ const market=symbol==='BTCUSD'?BTC:symbol==='XAUUSD'?GOLD:EURO;
+ const markets=useMemo(()=>[EURO,BTC,GOLD],[]);
  if(!publicReview)window.v4PositionsQA={
   get commands(){return commands;},
   get retries(){return retries;},
@@ -82,6 +86,7 @@ function PositionsQA(){
   olderHistory(){return HISTORY_FIXTURE[2];},
   olderJournal(){return JOURNAL_FIXTURE[1];},
   setAccount(value){setAccount(current=>({...current,...value}));},
+  setSymbol(value){setSymbol(value);},
  };
  return <>
  {publicReview&&<div role="status" style={{position:'relative',zIndex:50,display:'flex',alignItems:'center',justifyContent:'center',height:30,background:'#191B20',borderBottom:'1px solid #43464D',color:'#E5E6EA',font:'500 11px Inter,system-ui,sans-serif'}}>
