@@ -2,6 +2,9 @@
 // This deliberately keeps provider access/refresh tokens separate from the
 // existing HttpOnly ACG Trader trading-session cookie.
 const STORE_KEY = 'acg-trader-supabase-session-v1';
+// Supabase provider refresh/access tokens must never be persisted in Web Storage.
+// The Trader backend owns the durable refresh session using an HttpOnly cookie.
+const BROWSER_SESSION = { current: null };
 const PKCE_KEY = 'acg-trader-supabase-pkce-v1';
 const PKCE_MAX_AGE_MS = 10 * 60 * 1000;
 const MIN_REMAINING_MS = 60 * 1000;
@@ -46,7 +49,7 @@ function encode(bytes) {
 export class SupabaseBrowserAuth {
   constructor({ projectRef = SUPABASE_PROJECT_REF, publishableKey = SUPABASE_PUBLISHABLE_KEY,
     fetchImpl = fetch, storage = globalThis.sessionStorage, cryptoImpl = globalThis.crypto,
-    location = globalThis.location, history = globalThis.history, now = Date.now } = {}) {
+    location = globalThis.location, history = globalThis.history, now = Date.now, sessionCache = BROWSER_SESSION } = {}) {
     if (!/^[a-z0-9]{20}$/.test(projectRef) || !publishableKey.startsWith('sb_publishable_')) {
       throw new Error('ACG Trader Supabase public configuration is invalid');
     }
@@ -59,6 +62,9 @@ export class SupabaseBrowserAuth {
     this.history = history;
     this.now = now;
     this.refreshPromise = null;
+    this.sessionCache = sessionCache;
+    // Delete credentials stored by older releases, including on existing devices.
+    try { this.storage.removeItem(STORE_KEY); } catch { /* unavailable storage */ }
   }
 
   async request(path, { method = 'POST', body, token = null } = {}) {
@@ -134,11 +140,13 @@ export class SupabaseBrowserAuth {
   async consumeCallback(href = this.location.href) {
     const url = new URL(href);
     if (url.origin !== this.location.origin || url.pathname !== '/auth/callback') throw new Error('Invalid authentication callback URL');
-    const message = url.searchParams.get('error_description') || url.searchParams.get('error');
-    if (message) {
+    const providerReportedError = url.searchParams.has('error') || url.searchParams.has('error_description');
+    // Clear codes, error text and token hashes from browser history immediately,
+    // even when the exchange fails. Never render untrusted query text as an error.
+    this.clearCallbackUrl();
+    if (providerReportedError) {
       this.clearPkce();
-      this.clearCallbackUrl();
-      throw new Error(message);
+      throw new Error('Authentication could not be completed. Please start sign-in again.');
     }
     const code = url.searchParams.get('code');
     const kind = this.readPkce()?.kind || 'signin';
@@ -153,7 +161,6 @@ export class SupabaseBrowserAuth {
         const result = await this.request('/token?grant_type=pkce', {
           body: { auth_code: code, code_verifier: flow.verifier },
         });
-        this.clearCallbackUrl();
         return { kind, session: this.remember(result) };
       } finally { this.clearPkce(); }
     }
@@ -162,9 +169,16 @@ export class SupabaseBrowserAuth {
     const hash = url.searchParams.get('token_hash');
     const type = url.searchParams.get('type');
     if (hash && ['email', 'signup', 'recovery'].includes(type)) {
+      const flow = this.readPkce();
+      const expectsRecovery = type === 'recovery';
+      const expectedKind = expectsRecovery ? 'recovery' : 'signup';
+      if (!flow || flow.kind !== expectedKind || !Number.isFinite(flow.createdAt) ||
+          this.now() - flow.createdAt > PKCE_MAX_AGE_MS || this.now() < flow.createdAt - 60_000) {
+        this.clearPkce();
+        throw new Error('Verification link expired or belongs to another browser. Please restart the process.');
+      }
       try {
         const result = await this.request('/verify', { body: { token_hash: hash, type: type === 'signup' ? 'email' : type } });
-        this.clearCallbackUrl();
         return { kind: type === 'recovery' ? 'recovery' : kind, session: this.remember(result) };
       } finally { this.clearPkce(); }
     }
@@ -185,15 +199,13 @@ export class SupabaseBrowserAuth {
 
   remember(result) {
     const session = tokenRecord(result, this.now);
-    this.storage.setItem(STORE_KEY, JSON.stringify(session));
+    this.sessionCache.current = session;
     return session;
   }
 
   readSession() {
-    try {
-      const s = JSON.parse(this.storage.getItem(STORE_KEY) || 'null');
-      return s?.access_token && s?.refresh_token && Number.isFinite(s.expires_at) ? s : null;
-    } catch { return null; }
+    const s = this.sessionCache.current;
+    return s?.access_token && s?.refresh_token && Number.isFinite(s.expires_at) ? s : null;
   }
 
   async currentAccessToken() {
@@ -219,7 +231,8 @@ export class SupabaseBrowserAuth {
   }
 
   clearSession() {
-    this.storage.removeItem(STORE_KEY);
+    this.sessionCache.current = null;
+    try { this.storage.removeItem(STORE_KEY); } catch { /* unavailable storage */ }
     this.clearPkce();
   }
 
