@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, ExternalLink, X } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ClipboardList, ExternalLink, X } from 'lucide-react';
+import InstrumentAvatar from '../InstrumentAvatar.jsx';
 import { formatInstrumentPrice } from '../../../utils/instrumentFormatting.js';
-import {positionMargin,positionUnrealizedPnl,money} from '../../../utils/v4PositionsPresentation.js';
+import {positionUnrealizedPnl,money} from '../../../utils/v4PositionsPresentation.js';
 import './DetachedMiniTerminal.css';
 
 const amount = (value, currency) => value == null || !Number.isFinite(Number(value)) ? '—'
@@ -37,6 +38,23 @@ export default function DetachedMiniTerminal({
     setSelection(null);
   }
   const currency = account?.currency || 'USD';
+  const freshQuote = market?.isStale!==true && market?.sessionOpen!==false
+    && !['STALE','CLOSED','WAITING','DISCONNECTED','ERROR','DISABLED'].includes(
+      String(market?.marketState||'').toUpperCase());
+  const numericPrice = Number(market?.price ?? market?.last ?? market?.close);
+  const bid=Number(market?.bid), ask=Number(market?.ask);
+  const displayedPrice = Number.isFinite(numericPrice) && numericPrice>0 ? numericPrice
+    : Number.isFinite(bid) && Number.isFinite(ask) && bid>0 && ask>=bid
+      ? (bid+ask)/2 : null;
+  // Display a change percentage only when the provider explicitly supplies it.
+  const changeSource = [market?.changePercent,market?.change24hPercent,
+    market?.priceChangePercent,market?.percentChange24h].find(
+      value=>value!==null && value!==undefined && value!=='' && Number.isFinite(Number(value)));
+  const change = changeSource===undefined ? null : Number(changeSource);
+  const changeTone=change===null?'neutral':change>0?'positive':change<0?'negative':'neutral';
+  const marketType=String(market?.instrumentType||market?.type||'').toUpperCase();
+  const showCfd=marketType==='CFD'||['METAL','ENERGY','INDEX'].includes(
+    String(market?.assetClass||'').toUpperCase());
   const selected = selection?.kind === 'position'
     ? positions.find(item => String(item.id) === selection.id)
     : selection?.kind === 'pending' ? pendingOrders.find(item => String(item.id) === selection.id) : null;
@@ -64,8 +82,8 @@ export default function DetachedMiniTerminal({
     try {
       const pip = Boolean(window.documentPictureInPicture?.requestWindow);
       child = pip
-        ? await window.documentPictureInPicture.requestWindow({ width: 360, height: 480 })
-        : window.open('about:blank', '_blank', 'popup=yes,width=360,height=480');
+        ? await window.documentPictureInPicture.requestWindow({ width: 360, height: 450 })
+        : window.open('about:blank', '_blank', 'popup=yes,width=360,height=450');
       if (!child) throw new Error('Allow pop-ups for ACG Trader, then try again.');
       if (!mounted.current) { child.close(); return; }
       windowRef.current = child;
@@ -123,30 +141,33 @@ export default function DetachedMiniTerminal({
     const instrument=instrumentFor(item);
     const isPosition=tab==='positions';
     const pnl=isPosition?positionUnrealizedPnl(item,account):null;
-    const margin=isPosition?positionMargin(item):null;
+    const pnlText=pnl ? money(pnl.value,pnl.currency,true):'—';
     return <button type="button" className="acg-mini-row" key={item.id}
       onClick={() => setSelection({kind:isPosition?'position':'pending',id:String(item.id)})}>
       <span className="acg-mini-row-head">
         <span className="acg-mini-row-identity">
           <strong>{instrument?.displaySymbol||item.symbol||'—'}</strong>
-          <small>{String(item.side||'—').toUpperCase()} · {item.volume??item.lots??'—'} lots{!isPosition?' · '+String(item.orderType||'Pending').toUpperCase():''}</small>
+          <small className={String(item.side||'').toUpperCase()==='BUY'?'buy':'sell'}>
+            {String(item.side||'—').toUpperCase()}
+          </small>
         </span>
-        <span className="acg-mini-manage">Manage ›</span>
+        <b className={pnl?.value>0?'positive':pnl?.value<0?'negative':''}>
+          {isPosition?pnlText:String(item.status||'pending').toUpperCase()}
+        </b>
       </span>
+      <span className="acg-mini-row-volume">{item.volume??item.lots??'—'} Lots
+        {!isPosition?' · '+String(item.orderType||'Pending').toUpperCase():''}</span>
       <span className="acg-mini-facts">
         {isPosition ? <>
           <span><small>Entry</small><b>{formatPrice(item.entry,instrument)}</b></span>
           <span><small>Current</small><b>{formatPrice(item.closePrice,instrument)}</b></span>
-          <span><small>SL / TP</small><b>{formatPrice(item.sl,instrument)} / {formatPrice(item.tp,instrument)}</b></span>
-          <span><small>Margin</small><b>{money(margin,currency)}</b></span>
-          <span className="acg-mini-pnl"><small>Unrealized P&L</small>
-            <b className={pnl.value==null?'':pnl.value<0?'negative':pnl.value>0?'positive':''}>{money(pnl.value,pnl.currency,true)}</b>
-          </span>
+          <span><small>SL</small><b>{formatPrice(item.sl,instrument)}</b></span>
+          <span><small>TP</small><b>{formatPrice(item.tp,instrument)}</b></span>
         </> : <>
           <span><small>Trigger</small><b>{formatPrice(item.stopPrice??item.entry,instrument)}</b></span>
           <span><small>Limit</small><b>{formatPrice(item.limitPrice,instrument)}</b></span>
-          <span><small>SL / TP</small><b>{formatPrice(item.sl,instrument)} / {formatPrice(item.tp,instrument)}</b></span>
-          <span><small>Status</small><b>{String(item.status||'pending').toUpperCase()}</b></span>
+          <span><small>SL</small><b>{formatPrice(item.sl,instrument)}</b></span>
+          <span><small>TP</small><b>{formatPrice(item.tp,instrument)}</b></span>
         </>}
       </span>
     </button>;
@@ -162,22 +183,53 @@ export default function DetachedMiniTerminal({
     </button>}
     {createPortal(detached ? (
       <section className="acg-mini-terminal acg-desktop-v3" aria-label="ACG mini terminal">
-        <header className="acg-mini-titlebar" title="Keep the main ACG Trader tab open while using this window"><strong><span>ACG</span> TRADER</strong><small>{mode}</small>
-          <button type="button" onClick={dock} aria-label="Close mini terminal" title="Close mini terminal"><X size={16}/></button>
+        <header className="acg-mini-titlebar" title={account?.accountCode||account?.id||'ACG Trader'}>
+          <span className="acg-mini-brand">
+            <img src="/acg-logo.png" alt="" />
+            <strong>ACG Trader</strong>
+          </span>
+          <span className="acg-mini-titlebar-actions">
+            <button type="button" onClick={()=>window.focus()}
+              aria-label="Focus main trading terminal" title="Focus main trading terminal">
+              <ExternalLink size={16}/>
+            </button>
+            <button type="button" onClick={dock}
+              aria-label="Close mini terminal" title="Close mini terminal">
+              <X size={17}/>
+            </button>
+          </span>
         </header>
         {mode==='Separate window'&&<div className="acg-mini-fallback-note" role="status">
           Regular window: it will not stay on top.
         </div>}
         <div className="acg-mini-context">
-          <label className="acg-mini-instrument">
-            <span className="acg-mini-visually-hidden">Instrument</span>
-            <select aria-label="Mini terminal instrument" value={market?.symbol || ''} onChange={event => onSelectSymbol(event.target.value)}>
-              {markets.map(item => <option key={item.symbol} value={item.symbol}>{item.displaySymbol || item.symbol}</option>)}
-            </select>
-          </label>
-          <div className="acg-mini-account" title={account?.accountCode || account?.id || 'Account unavailable'}>
-            <span>{account?.accountCode || account?.id || 'Account unavailable'}</span>
-            <b>{currency}</b>
+          <span className="acg-mini-market-avatar" aria-hidden="true">
+            <InstrumentAvatar instrument={market} size={40}/>
+          </span>
+          <div className="acg-mini-market-identity">
+            <div className="acg-mini-symbol-line">
+              <label className="acg-mini-instrument">
+                <span className="acg-mini-visually-hidden">Instrument</span>
+                <select aria-label="Mini terminal instrument"
+                  value={market?.symbol || ''} onChange={event => onSelectSymbol(event.target.value)}>
+                  {markets.map(item=><option key={item.symbol} value={item.symbol}>
+                    {item.displaySymbol||item.symbol}
+                  </option>)}
+                </select>
+                <ChevronDown size={14} aria-hidden="true"/>
+              </label>
+              {showCfd&&<span className="acg-mini-cfd">CFD</span>}
+            </div>
+            <span className="acg-mini-market-name">
+              {market?.name||market?.displayName||market?.symbol||'Instrument unavailable'}
+            </span>
+          </div>
+          <div className="acg-mini-market-price" data-tone={changeTone}
+            aria-label="Market price and reported price change">
+            <strong>{displayedPrice!==null?formatInstrumentPrice(displayedPrice,market):'—'}</strong>
+            {change!==null
+              ? <small>{change>0?'+':''}{change.toFixed(2)}%</small>
+              : !freshQuote?<small>Market unavailable</small>:null}
           </div>
         </div>
         <nav className="acg-mini-tabs" aria-label="Mini terminal sections">{[
@@ -192,6 +244,7 @@ export default function DetachedMiniTerminal({
                   {selection.kind === 'position' ? renderPosition(selected, instrumentFor(selected), back) : renderPending(selected, instrumentFor(selected), back)}</>
                   : rows.length ? <div className="acg-mini-rows">{rows.map(renderRow)}</div>
                   : <div className="acg-mini-empty" role="status">
+                    <ClipboardList size={38} strokeWidth={1.6} aria-hidden="true"/>
                     <strong>{tab==='positions'?'No open positions':'No pending orders'}</strong>
                     <span>{tab==='positions'?'Your active positions will appear here.':'Orders awaiting execution will appear here.'}</span>
                   </div>}
