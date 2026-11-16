@@ -105,6 +105,40 @@ jobs:
           else echo 'CLOUD_AUDIT_LOGS_UNAVAILABLE'; fi
           echo 'AUDIT_CLOUD_END'
 
+      - name: Inspect historical Firebase Hosting releases and nonstandard paths
+        if: steps.auth.outcome == 'success'
+        run: |
+          set +e
+          TOKEN="$(gcloud auth print-access-token 2>/dev/null)"
+          echo 'AUDIT_HOSTING_HISTORY_BEGIN'
+          if [ -n "$TOKEN" ]; then
+            curl --fail --silent --show-error -H "Authorization: Bearer $TOKEN" \
+              'https://firebasehosting.googleapis.com/v1beta1/sites/acg-trader/channels/live/releases?pageSize=60' \
+              > /tmp/acg-releases-history.json 2>/tmp/acg-hist-error.txt
+            if [ "$?" = 0 ]; then
+              echo 'RELEASE_HISTORY_BEGIN'
+              jq -r '.releases[]? | "RELEASE|\(.releaseTime)|\(.type)|\(.version.name)|\((.releaseUser.email // "unknown") | if . == "firebase-adminsdk-fbsvc@acg-trader.iam.gserviceaccount.com" then "known-deploy-service-account" else "OTHER_OR_UNVERIFIED_DEPLOY_IDENTITY" end)"' /tmp/acg-releases-history.json | head -60
+              echo 'RELEASE_HISTORY_END'
+            else echo 'RELEASE_HISTORY_UNAVAILABLE'; fi
+            curl --fail --silent --show-error -H "Authorization: Bearer $TOKEN" \
+              'https://firebasehosting.googleapis.com/v1beta1/sites/acg-trader/versions?pageSize=30' \
+              > /tmp/acg-versions-history.json 2>/tmp/acg-hist-version-error.txt
+            if [ "$?" = 0 ]; then
+              echo 'VERSION_HISTORY_BEGIN'
+              jq -r '.versions[]? | "VERSION|\(.name)|\(.createTime)|\(.status)|\(.fileCount)"' /tmp/acg-versions-history.json | head -30
+              echo 'VERSION_HISTORY_END'
+              jq -r '.versions[:15][]?.name' /tmp/acg-versions-history.json | while read -r version; do
+                [ -n "$version" ] || continue
+                curl --fail --silent --show-error -H "Authorization: Bearer $TOKEN" \
+                  "https://firebasehosting.googleapis.com/v1beta1/$version/files?pageSize=1000" \
+                  > /tmp/acg-historical-version-files.json 2>/dev/null
+                [ "$?" = 0 ] || continue
+                jq -r --arg v "$version" '.files[]?.path | select((startswith("/assets/") or startswith("/__/firebase/") or . == "/index.html" or . == "/acg-landing-v6.html" or . == "/acg-logo.png" or . == "/icons.svg" or . == "/googleee018f2d5cc05ee0.html" or . == "/v4-chart-preview.html") | not) | "UNRECOGNIZED_PUBLISHED_PATH|\($v)|\(.)"' /tmp/acg-historical-version-files.json
+              done
+            else echo 'VERSION_HISTORY_UNAVAILABLE'; fi
+          else echo 'HOSTING_HISTORY_AUTH_UNAVAILABLE'; fi
+          echo 'AUDIT_HOSTING_HISTORY_END'
+
       - name: Compare Firebase published release and HTTP paths
         if: steps.auth.outcome == 'success'
         run: |
