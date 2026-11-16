@@ -594,6 +594,12 @@ export default function DesktopOrderTicket({
   // or reimplements command execution and account authorization.
   if (variant === 'mini') {
     const isPending = orderFamily === 'pending';
+    const displayQuote = value => {
+      const numeric = Number(value);
+      return Number.isFinite(numeric) && numeric>0
+        ? formatInstrumentPrice(numeric,market).replace(/\B(?=(\d{3})+(?!\d))/g,',')
+        : String(value ?? '—');
+    };
     const bid = finitePositive(market?.bid);
     const ask = finitePositive(market?.ask);
     const tickSize = finitePositive(market?.tickSize);
@@ -611,7 +617,7 @@ export default function DesktopOrderTicket({
             onClick={() => handleSide('buy')} aria-label="Buy at quoted price">
             <span>{isPending ? pendingBuyLabel : 'BUY'}</span>
             <strong>{isPending && tradePlan?.pending
-              ? formatInstrumentPrice(tradePlan.entry,market) : marketBuyPrice}</strong>
+              ? displayQuote(tradePlan.entry) : displayQuote(marketBuyPrice)}</strong>
           </button>
           <span className="acg-mini-spread" title="Quoted spread in instrument ticks" aria-label={`Spread ${spreadValue} ticks`}>
             <strong>{spreadValue}</strong><small>Spread</small>
@@ -620,7 +626,7 @@ export default function DesktopOrderTicket({
             onClick={() => handleSide('sell')} aria-label="Sell at quoted price">
             <span>{isPending ? pendingSellLabel : 'SELL'}</span>
             <strong>{isPending && tradePlan?.pending
-              ? formatInstrumentPrice(tradePlan.entry,market) : marketSellPrice}</strong>
+              ? displayQuote(tradePlan.entry) : displayQuote(marketSellPrice)}</strong>
           </button>
         </div>
 
