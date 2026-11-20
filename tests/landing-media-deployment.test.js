@@ -82,7 +82,7 @@ test('responsive ACG hero reveal assets are real, and the frozen frame is held w
   assert.match(html, /id="acg-hero-reveal"/);
   assert.match(html, /id="acg-hero-replay"/);
   assert.match(html, /Trading &amp; Beyond/);
-  assert.match(html, /0% maker fees\. Raw spreads\./);
+  assert.match(html, /Chart-first execution\. Risk-based order planning\./);
   assert.match(html, /href="\/contact\.html\?topic=enterprise"/);
   assert.match(js, /heroVideo\.addEventListener\('ended', holdHero\)/);
   assert.match(js, /startHero\(\)/);
