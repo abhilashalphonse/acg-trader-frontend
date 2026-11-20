@@ -37,7 +37,8 @@ test('V4 navbar, footer and responsive menu preserve authorized account login ro
   for (const anchor of ['platform', 'features', 'trading', 'markets', 'access']) {
     assert.ok(html.includes('id="' + anchor + '"'), anchor);
   }
-  assert.doesNotMatch(html, /<script\b/i);
+  assert.deepEqual([...html.matchAll(/<script\b[^>]*>/g)].map(match => match[0]), ['<script src="/acg-landing-motion.js" defer>']);
+  assert.doesNotMatch(html, /<script>(.|\n)*?<\/script>/i);
 });
 
 test('Contact correctly identifies ACG Funded as a separate support channel without claiming a trader corporate address', () => {

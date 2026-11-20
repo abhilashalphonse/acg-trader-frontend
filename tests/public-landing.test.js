@@ -47,7 +47,18 @@ test('public homepage uses V4 design language and current production capability 
   }
   assert.doesNotMatch(html, /coming soon|in development|roadmap|white label|free tier|futures|options/i);
   assert.doesNotMatch(html, /href="\/\?acg_auth=signup"/);
-  assert.doesNotMatch(html, /<script\b/i, 'Static landing must not add independent session or trading scripts');
+  assert.match(html, /id="product-tour"/);
+  assert.equal((html.match(/class="gallery-card gallery-card-/g) || []).length, 3);
+  assert.match(html, /prefers-reduced-motion:reduce/);
+  assert.match(html, /motion-ready \.motion-gallery\{height:220vh/);
+  assert.match(html, /<script src="\/acg-landing-motion\.js" defer><\/script>/);
+  const scripts = [...html.matchAll(/<script\b[^>]*>/g)].map(match => match[0]);
+  assert.deepEqual(scripts, ['<script src="/acg-landing-motion.js" defer>']);
+  const motion = readFileSync(new URL('../public/acg-landing-motion.js', import.meta.url), 'utf8');
+  assert.match(motion, /requestAnimationFrame/);
+  assert.match(motion, /prefers-reduced-motion: reduce/);
+  assert.match(motion, /scrollBy/);
+  assert.doesNotMatch(motion, /\bfetch\s*\(|\bXMLHttpRequest\b|localStorage|sessionStorage|document\.cookie|\.sendBeacon/);
 });
 
 test('landing uses the complete ACG Trader italic wordmark from the supplied app reference', () => {
