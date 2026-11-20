@@ -62,7 +62,22 @@ try {
         viewportWidth: window.innerWidth,
         filmHeight: document.querySelector('.market-film')?.getBoundingClientRect().height
       }));
-      assert.match(values.heading || '', /Trading & Beyond/);
+      assert.match(values.heading || '', /Advanced trading\./);
+      assert.equal(await page.locator('.acg-cinema-eyebrow').textContent(), 'Trading & Beyond');
+      assert.equal(await page.locator('.acg-cinema-subhead').textContent(), '0% maker fees. Raw spreads.');
+      assert.equal(await page.locator('a.acg-cinema-primary[href="/?acg_login=1"]').count(), 1);
+      assert.equal(await page.locator('a.acg-cinema-secondary[href="/contact.html?topic=enterprise"]').count(), 1);
+      const heroBounds = await page.evaluate(() => {
+        const hero = document.querySelector('.acg-cinema')?.getBoundingClientRect();
+        const buttons = document.querySelector('.acg-cinema-actions')?.getBoundingClientRect();
+        const disclosure = document.querySelector('.acg-cinema-disclosure')?.getBoundingClientRect();
+        return { heroBottom: hero.bottom, buttonsBottom: buttons.bottom,
+          disclosureBottom: disclosure.bottom, top: disclosure.top,
+          headerPosition: getComputedStyle(document.querySelector('.site-header')).position };
+      });
+      assert.equal(heroBounds.headerPosition, 'absolute', viewport.label+' header overlay');
+      assert.ok(heroBounds.buttonsBottom < heroBounds.disclosureBottom, viewport.label+' CTA/disclosure order');
+      assert.ok(heroBounds.disclosureBottom <= heroBounds.heroBottom + 3, viewport.label+' disclosure fits hero: '+JSON.stringify(heroBounds));
       assert.equal(values.brand, '/acg-trader-wordmark.png');
       assert.equal(values.videoCount, 2);
       assert.equal(await page.locator('video#acg-hero-reveal').count(), 1);
