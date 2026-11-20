@@ -17,7 +17,8 @@ test('approved landing preview is opt-in and never intercepts federation or term
 test('public homepage uses V4 design language and current production capability only', () => {
   const html = readFileSync(new URL('../public/acg-landing-v6.html', import.meta.url), 'utf8');
   assert.match(html, /Trading &amp; Beyond/);
-  assert.match(html, /Advanced trading\.\<\/span\> \<span\>0% maker fees\. Raw spreads\./);
+  assert.match(html, /<h1 id="acg-hero-heading">Advanced trading\.<\/h1>/);
+  assert.match(html, /<p class="acg-cinema-subhead">0% maker fees\. Raw spreads\.<\/p>/);
   assert.match(html, /Chart-first trading platform/);
   assert.match(html, /class="shell acg-cinema-content"/);
   assert.match(html, /id="acg-hero-reveal"/);
