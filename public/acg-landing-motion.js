@@ -1,80 +1,115 @@
 /**
- * First-party ACG Trader public landing interactions.
- * Motion is decorative, never account- or order-related.
- * No network calls, third-party scripts, cookies, storage or analytics.
+ * ACG Trader public landing: deliberately small, first-party motion controller.
+ * No analytics, cookies, fetches, account state or trading API usage.
+ * Videos never autoplay for reduced-motion or data-saver visitors.
  */
 (() => {
   'use strict';
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const videos = [...document.querySelectorAll('.film-video')];
-  const revealItems = [...document.querySelectorAll('[data-film-reveal], .feature, .market-item')];
-  const noAutoplay = () => reduceMotion.matches || navigator.connection?.saveData === true;
+  const saveData = () => navigator.connection?.saveData === true;
+  const supportsObserver = typeof IntersectionObserver === 'function';
+  const states = [...document.querySelectorAll('video.film-video')].map(video => ({
+    video,
+    button: document.querySelector('[data-video-control="' + video.id + '"]'),
+    visible: false,
+    userPaused: false,
+    manualPlay: false
+  }));
 
-  function setVideoState(video, visible) {
-    if (noAutoplay() || !visible) {
-      video.pause();
-      return;
-    }
-    const playback = video.play();
-    if (playback && typeof playback.catch === 'function') playback.catch(() => {});
+  function label(state) {
+    const playing = !state.video.paused;
+    const name = state.video.id.includes('shield') ? 'ACG Shield' : 'Three Markets';
+    if (!state.button) return;
+    state.button.textContent = playing ? 'Pause' : 'Play';
+    state.button.setAttribute('aria-label', (playing ? 'Pause ' : 'Play ') + name + ' animation');
   }
 
-  const intersectionSupported = typeof IntersectionObserver === 'function';
-  let videoObserver;
-  let revealObserver;
+  function pause(state) {
+    if (!state.video.paused) state.video.pause();
+    label(state);
+  }
 
-  function configureVideos() {
-    videoObserver?.disconnect();
-    videos.forEach(video => {
-      video.muted = true;
-      video.playsInline = true;
-      if (noAutoplay()) video.removeAttribute('autoplay');
-      else video.setAttribute('autoplay', '');
-      video.pause();
-      video.addEventListener('loadeddata', () => video.setAttribute('data-video-ready', 'true'), { once: true });
-    });
-    if (noAutoplay()) {
-      videos.forEach(video => {
-        video.controls = true;
-        video.setAttribute('aria-label', (video.getAttribute('aria-label') || 'Creative video') + '. Play manually if desired.');
+  function syncPlayback(state) {
+    if (document.hidden || !state.visible || state.userPaused) {
+      pause(state);
+      return;
+    }
+    if ((reduceMotion.matches || saveData()) && !state.manualPlay) {
+      pause(state);
+      return;
+    }
+    const playback = state.video.play();
+    if (playback && typeof playback.catch === 'function') {
+      playback.catch(() => { pause(state); });
+    }
+    label(state);
+  }
+
+  for (const state of states) {
+    state.video.muted = true;
+    state.video.playsInline = true;
+    state.video.removeAttribute('autoplay');
+    state.video.controls = false;
+    state.video.preload = 'metadata';
+    if (state.button) {
+      state.button.hidden = false;
+      state.button.addEventListener('click', () => {
+        if (state.video.paused) {
+          state.userPaused = false;
+          state.manualPlay = true;
+          state.visible = true;
+          syncPlayback(state);
+        } else {
+          state.userPaused = true;
+          state.manualPlay = false;
+          pause(state);
+        }
       });
-      return;
     }
-    videos.forEach(video => { video.controls = false; });
-    if (!intersectionSupported) {
-      videos.forEach(video => setVideoState(video, true));
-      return;
-    }
-    videoObserver = new IntersectionObserver(entries => {
-      entries.forEach(entry => setVideoState(entry.target, entry.isIntersecting));
-    }, { threshold: 0.15 });
-    videos.forEach(video => videoObserver.observe(video));
+    state.video.addEventListener('play', () => label(state));
+    state.video.addEventListener('pause', () => label(state));
+    label(state);
   }
 
-  function configureReveals() {
-    if (reduceMotion.matches || !intersectionSupported) {
-      revealItems.forEach(item => item.classList.add('in-view'));
-      return;
-    }
-    revealObserver?.disconnect();
-    revealObserver = new IntersectionObserver(entries => {
+  if (supportsObserver) {
+    const visibility = new IntersectionObserver(entries => {
+      for (const entry of entries) {
+        const state = states.find(item => item.video === entry.target);
+        if (!state) continue;
+        state.visible = entry.isIntersecting;
+        if (!state.visible) state.manualPlay = false;
+        syncPlayback(state);
+      }
+    }, { threshold: 0.2 });
+    states.forEach(state => visibility.observe(state.video));
+  } else {
+    // No invisible background playback in browsers without observers.
+    states.forEach(state => { state.video.controls = true; if (state.button) state.button.hidden = true; });
+  }
+
+  const revealTargets = [...document.querySelectorAll('[data-film-reveal]')];
+  if (supportsObserver && !reduceMotion.matches) {
+    const reveal = new IntersectionObserver(entries => {
       for (const entry of entries) {
         if (!entry.isIntersecting) continue;
         entry.target.classList.add('in-view');
-        revealObserver.unobserve(entry.target);
+        reveal.unobserve(entry.target);
       }
-    }, { rootMargin: '0px 0px 10px 0px', threshold: 0.1 });
-    revealItems.forEach(item => revealObserver.observe(item));
-  }
+    }, { threshold: 0.1, rootMargin: '0px 0px 16px 0px' });
+    revealTargets.forEach(item => reveal.observe(item));
+    document.documentElement.classList.add('motion-ready');
+  } else revealTargets.forEach(item => item.classList.add('in-view'));
 
-  configureVideos();
-  configureReveals();
-  reduceMotion.addEventListener?.('change', () => { configureVideos(); configureReveals(); });
+  reduceMotion.addEventListener?.('change', () => {
+    if (reduceMotion.matches) {
+      document.documentElement.classList.remove('motion-ready');
+      revealTargets.forEach(item => item.classList.add('in-view'));
+    }
+    states.forEach(state => { state.manualPlay = false; syncPlayback(state); });
+  });
+
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) videos.forEach(video => video.pause());
-    else if (!noAutoplay()) videos.forEach(video => {
-      if (video.getBoundingClientRect().bottom > 0 && video.getBoundingClientRect().top < innerHeight) setVideoState(video, true);
-    });
+    states.forEach(state => syncPlayback(state));
   });
 })();
