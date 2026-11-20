@@ -16,11 +16,18 @@ test('approved landing preview is opt-in and never intercepts federation or term
 
 test('public homepage uses V4 design language and current production capability only', () => {
   const html = readFileSync(new URL('../public/acg-landing-v6.html', import.meta.url), 'utf8');
-  assert.match(html, /Built for the chart/);
-  assert.match(html, /Ready for the trade/);
+  assert.match(html, /Trading without/);
+  assert.match(html, /the noise/);
   assert.match(html, /Chart-first trading platform/);
   assert.match(html, /class="shell hero-layout"/);
   assert.match(html, /class="hero-stage"/);
+  assert.match(html, /hero-layout\{display:flex;flex-direction:column/);
+  assert.match(html, /\.desktop-nav\{border:0;background:none/);
+  assert.match(html, /\.hero-stage\{margin-top:67px/);
+  assert.match(html, /#features\{background:#f5f5f6/);
+  assert.match(html, /\.feature\{background:#fff;border:1px solid #ececef/);
+  assert.match(html, /\.hero-actions\{display:flex;align-items:center;justify-content:center/);
+
   // Product structure, not editorial chapter badges or slash-numbered headings.
   const markup = html.slice(html.indexOf('<body>'));
   assert.doesNotMatch(markup, /WEB TRADING TERMINAL|\b0[1-4] \/ (?:THE PLATFORM|TRADING WORKFLOW|MARKETS|ACCOUNT ACCESS|CHARTING|EXECUTION|RISK|POSITIONS)/);
