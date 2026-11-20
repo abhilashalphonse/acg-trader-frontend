@@ -52,6 +52,6 @@
  .acg-cinema-actions{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){
- .acg-cinema-video{display:none!important}
+ .acg-cinema-film:not(.user-requested) .acg-cinema-video{display:none!important}
  .acg-cinema-btn{transition:none}
 }
