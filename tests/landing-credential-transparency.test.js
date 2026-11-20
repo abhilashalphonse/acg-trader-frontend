@@ -5,14 +5,14 @@ import { shouldOpenPublicHome, shouldOpenStandaloneAuth } from '../src/landing/l
 
 const source = name => readFileSync(new URL('../' + name, import.meta.url), 'utf8');
 
-test('simulated trading and account eligibility appear before the primary login CTA', () => {
+test('simulated-trading status and account eligibility remain visible beside hero actions', () => {
   const page = source('public/acg-landing-v6.html');
-  const hero = page.slice(page.indexOf('<section class="hero"'), page.indexOf('<div class="fact-strip">'));
-  const simulation = hero.indexOf('class="hero-disclosure"');
-  const actions = hero.indexOf('class="hero-actions"');
-  assert.ok(simulation > 0 && actions > simulation);
-  assert.match(hero, /currently supports simulated trading through authorized accounts/);
-  assert.match(hero, /does not offer live brokerage accounts or accept trading deposits/);
+  const hero = page.slice(page.indexOf('<section class="acg-cinema"'), page.indexOf('<div class="fact-strip">'));
+  const simulation = hero.indexOf('class="acg-cinema-disclosure"');
+  const actions = hero.indexOf('class="acg-cinema-actions"');
+  assert.ok(simulation > actions && actions > 0);
+  assert.match(hero, /Simulated trading for authorized accounts/);
+  assert.match(hero, /not a broker and does not accept trading deposits/);
   assert.doesNotMatch(hero, /href="\/\?acg_auth=signup"/);
 });
 
@@ -41,7 +41,7 @@ test('unavailable offerings are absent, not presented as roadmap or implied curr
   const page = source('public/acg-landing-v6.html');
   assert.doesNotMatch(page, /coming soon|in development|roadmap|white label|free tier|futures|options/i);
   assert.match(page, /Instrument availability is controlled by the connected account/);
-  assert.match(page, /No public personal registration is advertised/);
+  assert.match(page, /Simulated trading for authorized accounts/);
 });
 
 test('operator, privacy, terms and Contact remain accessible from V6', () => {
