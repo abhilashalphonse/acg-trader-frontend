@@ -112,4 +112,65 @@
   document.addEventListener('visibilitychange', () => {
     states.forEach(state => syncPlayback(state));
   });
+  // One-time ACG Trader prism reveal. The source files end at the user-approved
+  // 2.04 s frame; show a matching still once playback ends or fails.
+  const heroFilm = document.getElementById('acg-hero-film');
+  const heroVideo = document.getElementById('acg-hero-reveal');
+  const heroReplay = document.getElementById('acg-hero-replay');
+  if (heroFilm && heroVideo && heroReplay) {
+    let completed = false;
+    let manuallyRequested = false;
+
+    function holdHero() {
+      heroVideo.pause();
+      heroFilm.classList.remove('is-playing', 'user-requested');
+      heroReplay.hidden = false;
+      completed = true;
+    }
+
+    function startHero(manual = false) {
+      if ((reduceMotion.matches || saveData()) && !manual) {
+        holdHero();
+        return;
+      }
+      if (document.hidden) return;
+      completed = false;
+      manuallyRequested = manual;
+      heroReplay.hidden = true;
+      heroFilm.classList.toggle('user-requested', manual);
+      heroFilm.classList.add('is-playing');
+      try {
+        heroVideo.currentTime = 0;
+        const attempt = heroVideo.play();
+        if (attempt && typeof attempt.catch === 'function') attempt.catch(holdHero);
+      } catch {
+        holdHero();
+      }
+    }
+
+    heroVideo.addEventListener('ended', holdHero);
+    heroVideo.addEventListener('error', holdHero);
+    heroReplay.addEventListener('click', () => startHero(true));
+    reduceMotion.addEventListener?.('change', () => {
+      if (reduceMotion.matches) holdHero();
+    });
+    const breakpoint = window.matchMedia('(max-width: 600px)');
+    breakpoint.addEventListener?.('change', () => {
+      heroVideo.pause();
+      heroFilm.classList.remove('is-playing', 'user-requested');
+      heroVideo.load();
+      completed = true;
+      heroReplay.hidden = false;
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        heroVideo.pause();
+      } else if (!completed && !reduceMotion.matches && !saveData()) {
+        const attempt = heroVideo.play();
+        if (attempt && typeof attempt.catch === 'function') attempt.catch(holdHero);
+      }
+    });
+    startHero();
+  }
+
 })();
