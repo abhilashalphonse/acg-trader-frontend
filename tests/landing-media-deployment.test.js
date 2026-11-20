@@ -25,7 +25,7 @@ test('each film fits the story and no old video appears on the website', () => {
   const html = readFileSync(src('public/acg-landing-v6.html'), 'utf8');
   assert.match(html, /class="shield-story" id="experience"/);
   assert.match(html, /class="market-film"/);
-  assert.equal((html.match(/<video\b/g) || []).length, 2);
+  assert.equal((html.match(/<video\b/g) || []).length, 3);
   assert.match(html, /id="acg-three-markets-film"/);
   assert.match(html, /id="acg-shield-film"/);
   assert.match(html, /object-fit:contain/);
@@ -35,7 +35,7 @@ test('each film fits the story and no old video appears on the website', () => {
   assert.doesNotMatch(html, /acg-motion-panorama|acg-motion-emblem|hero-ambient-video/);
   assert.match(html, /not indicate available instruments, supported integrations, partners or endorsements/);
   assert.match(html, /not a security certification/);
-  assert.match(html, /currently supports simulated trading through authorized accounts/);
+  assert.match(html, /Simulated trading for authorized accounts/);
   assert.match(html, /href="\/\?acg_login=1"/);
   assert.match(html, /href="\/\?acg_connect_prop=1"/);
   assert.doesNotMatch(html, /coming soon|white label|roadmap|future pricing|guaranteed profit/i);
@@ -62,4 +62,30 @@ test('film playback honors reduced motion, save-data and explicit user controls'
   assert.match(js, /video\.removeAttribute\('autoplay'\)/);
   assert.match(js, /button\.addEventListener\('click'/);
   assert.doesNotMatch(js, /\bfetch\s*\(|XMLHttpRequest|localStorage|sessionStorage|document\.cookie|sendBeacon/);
+});
+
+test('responsive ACG hero reveal assets are real, and the frozen frame is held without looping', () => {
+  const html = readFileSync(src('public/acg-landing-v6.html'), 'utf8');
+  const css = readFileSync(src('public/acg-cinema-hero.css'), 'utf8');
+  const js = readFileSync(src('public/acg-landing-motion.js'), 'utf8');
+  for (const [file, magic] of [
+    ['acg-hero-desktop.mp4', 'ftyp'], ['acg-hero-mobile.mp4', 'ftyp']
+  ]) {
+    const bytes = readFileSync(src('public/media/' + file));
+    assert.equal(bytes.subarray(4, 8).toString('ascii'), magic);
+    assert.ok(bytes.length > 100000 && bytes.length < 2000000);
+  }
+  for (const file of ['acg-hero-desktop-freeze.jpg','acg-hero-mobile-freeze.jpg']) {
+    const bytes = readFileSync(src('public/media/' + file));
+    assert.equal(bytes.subarray(0, 2).toString('hex'), 'ffd8');
+  }
+  assert.match(html, /id="acg-hero-reveal"/);
+  assert.match(html, /id="acg-hero-replay"/);
+  assert.match(html, /Trading &amp; Beyond/);
+  assert.match(html, /0% maker fees\. Raw spreads\./);
+  assert.match(html, /href="\/contact\.html\?topic=enterprise"/);
+  assert.match(js, /heroVideo\.addEventListener\('ended', holdHero\)/);
+  assert.match(js, /startHero\(\)/);
+  assert.match(css, /prefers-reduced-motion:reduce/);
+  assert.doesNotMatch(html, /<script>(.|\n)*?<\/script>/);
 });
