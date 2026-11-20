@@ -16,17 +16,24 @@ test('approved landing preview is opt-in and never intercepts federation or term
 
 test('public homepage uses V4 design language and current production capability only', () => {
   const html = readFileSync(new URL('../public/acg-landing-v6.html', import.meta.url), 'utf8');
-  assert.match(html, /Trading without/);
-  assert.match(html, /the noise/);
+  assert.match(html, /Trading &amp; Beyond/);
+  assert.match(html, /Advanced trading\.\<\/span\> \<span\>0% maker fees\. Raw spreads\./);
   assert.match(html, /Chart-first trading platform/);
-  assert.match(html, /class="shell hero-layout"/);
-  assert.match(html, /class="hero-stage"/);
-  assert.match(html, /hero-layout\{display:flex;flex-direction:column/);
+  assert.match(html, /class="shell acg-cinema-content"/);
+  assert.match(html, /id="acg-hero-reveal"/);
+  assert.match(html, /href="\/acg-cinema-hero\.css"/);
   assert.match(html, /\.desktop-nav\{border:0;background:none/);
-  assert.match(html, /\.hero-stage\{margin-top:67px/);
+  assert.match(html, /acg-hero-desktop-freeze\.jpg/);
   assert.match(html, /#features\{background:#f5f5f6/);
   assert.match(html, /\.feature\{background:#fff;border:1px solid #ececef/);
-  assert.match(html, /\.hero-actions\{display:flex;align-items:center;justify-content:center/);
+  assert.match(html, /class="acg-cinema-actions"/);
+  assert.match(html, /href="\/contact\.html\?topic=enterprise"/);
+  assert.match(html, /Start Trading/);
+  assert.match(html, /For Enterprise/);
+  const heroCss = readFileSync(new URL('../public/acg-cinema-hero.css', import.meta.url), 'utf8');
+  assert.match(heroCss, /\.acg-cinema\{/);
+  assert.match(heroCss, /prefers-reduced-motion:reduce/);
+  assert.match(heroCss, /\.acg-cinema-subhead\{display:flex;flex-direction:column/);
 
   // Product structure, not editorial chapter badges or slash-numbered headings.
   const markup = html.slice(html.indexOf('<body>'));
@@ -38,7 +45,7 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /class="mobile-nav"/);
   assert.match(html, /min-height:660px/);
   assert.match(html, /color-scheme:dark/);
-  assert.match(html, /currently supports simulated trading through authorized accounts/);
+  assert.match(html, /Simulated trading for authorized accounts/);
   assert.match(html, /not a broker/);
   assert.match(html, /href="\/\?acg_login=1"/);
   assert.match(html, /href="\/\?acg_connect_prop=1"/);
@@ -50,7 +57,7 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /id="experience"/);
   assert.match(html, /class="shield-story"/);
   assert.match(html, /class="market-film"/);
-  assert.equal((html.match(/<video\b/g) || []).length, 2);
+  assert.equal((html.match(/<video\b/g) || []).length, 3);
   assert.match(html, /src="\/media\/acg-three-markets\.mp4"/);
   assert.match(html, /src="\/media\/acg-shield\.mp4"/);
   assert.match(html, /poster="\/media\/acg-three-markets-poster\.jpg"/);
@@ -80,13 +87,13 @@ test('landing uses the complete ACG Trader italic wordmark from the supplied app
   assert.equal(wordmark.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
   assert.equal(wordmark.readUInt32BE(16), 388);
   assert.equal(wordmark.readUInt32BE(20), 67);
-  assert.equal((body.match(/src="\/acg-trader-wordmark\.png"/g) || []).length, 3);
+  assert.equal((body.match(/src="\/acg-trader-wordmark\.png"/g) || []).length, 2);
   assert.equal((body.match(/class="brand-original" src="\/acg-trader-wordmark\.png"/g) || []).length, 2);
-  assert.match(body, /class="term-original" src="\/acg-trader-wordmark\.png"/);
+  assert.match(body, /id="acg-hero-reveal"/);
   assert.doesNotMatch(body, /src="\/acg-logo\.png"|class="brand-trader"|class="brand-emblem"/);
   assert.match(terminalLoader, /src="\/acg-logo\.png"/, 'The existing app loading icon remains unchanged');
   assert.match(html, /\.brand-original\{display:block;width:162px;height:auto/);
-  assert.match(html, /\.term-original\{display:block;width:128px;height:auto/);
+  assert.match(html, /class="acg-cinema-film"/);
   assert.match(body, /aria-label="ACG Trader home"/);
 });
 
