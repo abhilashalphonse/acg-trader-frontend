@@ -487,6 +487,9 @@ html{scroll-padding-top:78px}
 .hero::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:-1;background:linear-gradient(to bottom,#0707089a 0%,#0707087f 34%,#070708 91%)}
 @media(max-width:650px){.hero-ambient-video{display:none}}
 @media(prefers-reduced-motion:reduce){.hero-ambient-video{display:none}}
+
+.film-panorama-legal{position:absolute;right:clamp(20px,5vw,72px);bottom:19px;max-width:320px;margin:0;color:#bcbcc4;font-size:10px;line-height:1.5;text-align:right;text-shadow:0 2px 8px #000}
+@media(max-width:650px){.film-panorama-legal{right:16px;left:16px;bottom:13px;text-align:left;font-size:9px;max-width:none}}
 </style>
 </head>
 <body>
@@ -538,6 +541,7 @@ html{scroll-padding-top:78px}
   </video>
   <div class="film-wide-shade"></div>
   <div class="shell film-panorama-content" data-film-reveal><h3>Clarity in motion.</h3><p>Follow markets, plan risk and manage positions with the chart always at the center.</p><a class="btn btn-white" href="#features">Explore trading tools <span class="arrow" aria-hidden="true">↗</span></a></div>
+  <p class="film-panorama-legal">Creative artwork. Brand marks are not ACG Trader partnerships or integrations.</p>
  </div>
  <p class="shell film-legal">Creative motion artwork only. Third-party brands visible in the film are not ACG Trader partners, integrations, providers or endorsements.</p>
  <div class="shell film-emblem-layout" data-film-reveal>
