@@ -34,7 +34,9 @@ test('public homepage uses V4 design language and current production capability 
   const heroCss = readFileSync(new URL('../public/acg-cinema-hero.css', import.meta.url), 'utf8');
   assert.match(heroCss, /\.acg-cinema\{/);
   assert.match(heroCss, /prefers-reduced-motion:reduce/);
-  assert.match(heroCss, /\.acg-cinema-subhead\{display:flex;flex-direction:column/);
+  assert.match(heroCss, /\.acg-cinema-actions\{display:grid;grid-template-columns:1fr/);
+  assert.match(heroCss, /header\.site-header\{position:absolute/);
+  assert.match(html, /class="acg-cinema-eyebrow"/);
 
   // Product structure, not editorial chapter badges or slash-numbered headings.
   const markup = html.slice(html.indexOf('<body>'));
