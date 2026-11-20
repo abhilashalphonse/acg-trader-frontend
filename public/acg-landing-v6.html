@@ -154,20 +154,22 @@ a{color:inherit;text-decoration:none}a:focus-visible,summary:focus-visible{outli
 @media(max-width:860px){.hero-layout{min-height:0}.hero-device{height:430px}.market-item{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)}.market-item p{grid-column:auto;grid-row:auto}}
 @media(max-width:580px){.hero-device{height:293px}.market-item{grid-template-columns:1fr;gap:7px}.market-item p{grid-column:1;grid-row:auto}}
 
-/* Reuse the terminal canvas brand treatment: original PNG at natural aspect ratio.
-   No artificial crop, duplicate wordmark, colored container, or blend mode. */
+/* Complete ACG Trader wordmark, matched to the supplied mobile-app reference.
+   The image includes ACG and italic Trader as one mark; never typeset it twice. */
 .brand{display:inline-flex;align-items:center;gap:0;flex-shrink:0;min-width:0;line-height:1}
-.brand-original{display:block;width:112px;height:auto;max-width:100%;object-fit:contain;flex:none}
+.brand-original{display:block;width:162px;height:auto;max-width:100%;object-fit:contain;flex:none}
+.footer .brand-original{width:178px}
 .term-logo{display:flex;align-items:center;justify-content:flex-start;line-height:1}
-.term-original{display:block;width:64px;height:auto;max-width:none;object-fit:contain}
-@media(max-width:580px){.brand-original{width:96px}}
+.term-original{display:block;width:128px;height:auto;max-width:none;object-fit:contain}
+@media(max-width:580px){.brand-original{width:144px}.footer .brand-original{width:170px}}
+
 </style>
 </head>
 <body>
 <a href="#main" class="skip">Skip to content</a>
 <header class="site-header" id="top">
  <div class="shell header-inner">
-  <a class="brand" href="/" aria-label="ACG Trader home"><img class="brand-original" src="/acg-logo.png" alt="ACG Trader" width="707" height="353" decoding="async"/></a>
+  <a class="brand" href="/" aria-label="ACG Trader home"><img class="brand-original" src="/acg-trader-wordmark.png" alt="ACG Trader" width="388" height="67" decoding="async"/></a>
   <nav class="desktop-nav" aria-label="Main navigation">
    <a href="#platform" aria-current="page">Platform</a><a href="#features">Trading tools</a><a href="#markets">Markets</a><a href="/contact.html">Support</a>
   </nav>
@@ -188,7 +190,7 @@ a{color:inherit;text-decoration:none}a:focus-visible,summary:focus-visible{outli
    <div class="hero-stage" aria-label="Illustrative ACG Trader V4 trading terminal">
     
     <div class="hero-device"><div class="terminal" role="img" aria-label="Illustrative dark ACG Trader V4 layout with markets, a chart, positions and an order ticket. Not live market data.">
-   <div class="term-top"><div class="term-logo"><img class="term-original" src="/acg-logo.png" alt="ACG" width="707" height="353" decoding="async"/></div><div class="term-toplinks"><span class="on">Trading</span><span>Markets</span><span>Orders</span></div><div class="term-mode">Simulated · Example interface</div></div>
+   <div class="term-top"><div class="term-logo"><img class="term-original" src="/acg-trader-wordmark.png" alt="ACG" width="388" height="67" decoding="async"/></div><div class="term-toplinks"><span class="on">Trading</span><span>Markets</span><span>Orders</span></div><div class="term-mode">Simulated · Example interface</div></div>
    <div class="term-layout">
     <div class="tools" aria-hidden="true"><span>╋</span><span>╱</span><span>⌖</span><span>□</span><span>○</span><span>⊕</span></div>
     <div class="watch" aria-hidden="true"><div class="watch-title">Markets</div><div class="watch-tabs"><b>Favorites</b><span>Forex</span><span>Crypto</span></div><div class="watch-row current"><span>EURUSD<small>Euro / US Dollar</small></span><em>FX</em></div><div class="watch-row"><span>XAUUSD<small>Gold</small></span><em>METAL</em></div><div class="watch-row"><span>BTCUSD<small>Bitcoin</small></span><em>CRYPTO</em></div></div>
@@ -229,7 +231,7 @@ a{color:inherit;text-decoration:none}a:focus-visible,summary:focus-visible{outli
  <section class="final-cta"><div class="shell final-row"><div><h2>Markets. Orders.<br/>One clear interface.</h2><p>Open the terminal with an existing authorized account, or learn more about the tools before signing in.</p></div><a class="btn btn-white" href="/?acg_login=1">Open trading platform <span class="arrow" aria-hidden="true">↗</span></a></div></section>
 </main>
 <footer class="footer"><div class="shell">
- <div class="footer-grid"><div><a class="brand" href="/" aria-label="ACG Trader home"><img class="brand-original" src="/acg-logo.png" alt="ACG Trader" width="707" height="353" decoding="async"/></a><p class="footer-intro">Chart-first trading technology for market analysis, risk planning and simulated account execution.</p><p class="footer-operator">Developed by ACG-MANAGEMENT, UNIPESSOAL LDA, Portugal.</p></div>
+ <div class="footer-grid"><div><a class="brand" href="/" aria-label="ACG Trader home"><img class="brand-original" src="/acg-trader-wordmark.png" alt="ACG Trader" width="388" height="67" decoding="async"/></a><p class="footer-intro">Chart-first trading technology for market analysis, risk planning and simulated account execution.</p><p class="footer-operator">Developed by ACG-MANAGEMENT, UNIPESSOAL LDA, Portugal.</p></div>
  <nav aria-label="Platform links"><b>Platform</b><a href="#platform">Overview</a><a href="#features">Features</a><a href="#trading">Trading workflow</a><a href="#markets">Markets</a><a href="#access">Account access</a></nav>
  <nav aria-label="Support and legal links"><b>Support &amp; legal</b><a href="/account-security.html">Account security</a><a href="/contact.html">Contact</a><a href="/privacy.html">Privacy Policy</a><a href="/terms.html">Terms of Service</a></nav></div>
  <div class="footer-bottom"><p>ACG Trader provides technology for simulated trading and market analysis; it is not a broker or investment adviser. Simulated balances and performance are not real money. The platform does not hold client deposits or offer live brokerage accounts. Trading involves risk, and no tool guarantees results. Interface illustrations contain no live market or account data.</p><span>© 2026 ACG-MANAGEMENT, UNIPESSOAL LDA</span></div>
