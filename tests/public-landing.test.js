@@ -48,7 +48,7 @@ test('public homepage uses V4 design language and current production capability 
   assert.doesNotMatch(html, /coming soon|in development|roadmap|white label|free tier|futures|options/i);
   assert.doesNotMatch(html, /href="\/\?acg_auth=signup"/);
   assert.match(html, /id="experience"/);
-  assert.equal((html.match(/class="film-video /g) || []).length, 2);
+  assert.equal((html.match(/class="film-video /g) || []).length, 3);
   assert.match(html, /src="\/media\/acg-motion-panorama\.mp4"/);
   assert.match(html, /src="\/media\/acg-motion-emblem\.mp4"/);
   assert.match(html, /poster="\/media\/acg-motion-panorama-poster\.jpg"/);
