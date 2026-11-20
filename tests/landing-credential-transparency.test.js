@@ -5,23 +5,23 @@ import { shouldOpenPublicHome, shouldOpenStandaloneAuth } from '../src/landing/l
 
 const source = name => readFileSync(new URL('../' + name, import.meta.url), 'utf8');
 
-test('homepage presents simulated trading status before any sign-in action', () => {
+test('simulated trading and account eligibility appear before the primary login CTA', () => {
   const page = source('public/acg-landing-v6.html');
-  const hero = page.slice(page.indexOf('<section class="hero">'), page.indexOf('<div class="showcase-shell"'));
-  const simulation = hero.indexOf('<p class="hero-simulation-notice">');
-  const actions = hero.indexOf('<div class="hero-actions">');
+  const hero = page.slice(page.indexOf('<section class="hero"'), page.indexOf('<div class="preview-label">'));
+  const simulation = hero.indexOf('class="hero-disclosure"');
+  const actions = hero.indexOf('class="hero-actions"');
   assert.ok(simulation > 0 && actions > simulation);
-  assert.match(hero, /currently provides simulated trading workflows, not live brokerage accounts/);
-  assert.match(hero, /Personal demo registration is coming soon/);
+  assert.match(hero, /currently supports simulated trading through authorized accounts/);
+  assert.match(hero, /does not offer live brokerage accounts or accept trading deposits/);
   assert.doesNotMatch(hero, /href="\/\?acg_auth=signup"/);
 });
 
-test('homepage separates ACG Funded login and authorized Connect Prop with correct routing', () => {
+test('home clearly distinguishes ACG Funded sign-in and authorized organization account connection', () => {
   const page = source('public/acg-landing-v6.html');
   assert.match(page, /href="\/\?acg_login=1">ACG Funded sign in/);
-  assert.match(page, /href="\/\?acg_connect_prop=1">Connect provider account/);
-  assert.match(page, /Connect existing trading account/);
-  assert.match(page, /other organizations require an authorized ACG Trader integration and tenant ID/);
+  assert.match(page, /href="\/\?acg_connect_prop=1">Connect authorized account/);
+  assert.match(page, /organization explicitly integrated with ACG Trader/);
+  assert.match(page, /Never enter unrelated passwords/);
   assert.equal(shouldOpenPublicHome('/', '?acg_login=1'), false);
   assert.equal(shouldOpenPublicHome('/', '?acg_connect_prop=1'), false);
   assert.equal(shouldOpenStandaloneAuth('/', '?acg_login=1'), false);
@@ -37,21 +37,16 @@ test('account connection screen identifies its issuer and requires explicit auth
   assert.match(gate, /auth\.login\(\{ tenant, login, password: form\.password \}\)/);
 });
 
-test('Cloud, White Label and free tier are consistently described as future offerings', () => {
+test('unavailable offerings are absent, not presented as roadmap or implied current products', () => {
   const page = source('public/acg-landing-v6.html');
-  const business = page.slice(page.indexOf('id="business"'), page.indexOf('</main>'));
-  assert.match(business, /ACG Trader Cloud and White Label are in development/);
-  assert.match(business, /these services are not yet generally available/);
-  assert.match(business, /Planned self-service sandbox/);
-  assert.match(business, /Planned custom branding and domain options/);
-  assert.match(business, /Proposed monthly active trader allowance for a future free tier/);
-  assert.match(business, /This tier is not currently available/);
-  assert.doesNotMatch(business, /license a White Label edition/);
+  assert.doesNotMatch(page, /coming soon|in development|roadmap|white label|free tier|futures|options/i);
+  assert.match(page, /Instrument availability is controlled by the connected account/);
+  assert.match(page, /No public personal registration is advertised/);
 });
 
 test('operator, privacy, terms and Contact remain accessible from V6', () => {
   const page = source('public/acg-landing-v6.html');
-  const footer = page.slice(page.lastIndexOf('<footer class="v6-footer">'));
+  const footer = page.slice(page.lastIndexOf('<footer class="footer">'));
   assert.match(footer, /Developed by ACG-MANAGEMENT, UNIPESSOAL LDA, Portugal/);
   for (const page of ['account-security','privacy','terms','contact']) {
     assert.ok(footer.includes('href="/' + page + '.html"'), page);

@@ -30,6 +30,19 @@ footer .links{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px}
 footer a{font-weight:600}
 footer span{font-size:11px}
 @media(max-width:540px){main{padding-top:45px;padding-bottom:55px}h2{margin-top:30px}}
+
+/* Match the public ACG Trader V4 graphite presentation. */
+:root{color-scheme:dark}
+body{background:#08090b;color:#f0f1f2}
+header{background:#101114;border-bottom:1px solid #2b2d33}
+header a{color:#f0f1f2}
+.eyebrow{color:#a0a7b0}
+h1,h2,strong{color:#f0f1f2}
+p,li,.intro{color:#abb2bc}
+a{color:#dce4f3}
+a:focus-visible{outline:2px solid #a6c0ff}
+.note,footer{border-color:#2b2e35}
+footer,footer span{color:#8e96a2}
 </style>
 </head>
 <body>
@@ -43,7 +56,7 @@ footer span{font-size:11px}
 <h2>Why information is used</h2>
 <p>These details support authentication, authorized account access, account and session security, simulated trading workflows, service diagnostics, and prevention of unauthorized activity. ACG Trader login does not ask for banking passwords, Google account passwords, or wallet recovery phrases.</p>
 <h2>Infrastructure and sign-in providers</h2>
-<p>ACG Trader uses Firebase Hosting to publish its web application, Railway for its trading backend, and Supabase for supported personal-account authentication. Accounts issued by ACG Funded or another authorized trading organization may also involve that account issuer’s systems and terms.</p>
+<p>ACG Trader uses Railway for its web application and trading backend and Supabase for supported personal-account authentication. Accounts issued by ACG Funded or another authorized trading organization may also involve that account issuer’s systems and terms.</p>
 <h2>Storage and access</h2>
 <p>Trading-session refresh credentials are maintained through protected backend cookies. Personal-account provider tokens used for browser authentication are held in browser memory during the session. Additional account, trading and diagnostic records may be retained by the relevant systems; retention periods and applicable legal bases depend on the information and account relationship.</p>
 <h2>Privacy questions and requests</h2>

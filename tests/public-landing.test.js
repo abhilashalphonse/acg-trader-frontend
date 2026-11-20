@@ -14,19 +14,21 @@ test('approved landing preview is opt-in and never intercepts federation or term
   assert.equal(shouldOpenLandingPreview('?acg_landing_audit=1&acg_mobile_audit=1'), false);
 });
 
-test('landing V6 retains value proposition, approved three-path navigation and honest demo availability', () => {
+test('public homepage uses V4 design language and current production capability only', () => {
   const html = readFileSync(new URL('../public/acg-landing-v6.html', import.meta.url), 'utf8');
-  assert.match(html, /Global markets\.<br\/><span class="soft-text">One platform\./i);
-  assert.match(html, /Risk-based sizing\.<br\/><span>Chart-based trading\./i);
-  assert.match(html, /Bring ACG Trader<br\/><span>to your traders\./i);
-  assert.match(html, /href="\/\?acg_connect_prop=1"[^>]*><span class="top-cta-full">Connect existing trading account/);
-  assert.match(html, /Personal demo registration is coming soon/);
+  assert.match(html, /Trade with clarity/);
+  assert.match(html, /Stay in control/);
+  assert.match(html, /Chart-first trading platform/);
+  assert.match(html, /color-scheme:dark/);
+  assert.match(html, /currently supports simulated trading through authorized accounts/);
+  assert.match(html, /not a broker/);
+  assert.match(html, /href="\/\?acg_login=1"/);
+  assert.match(html, /href="\/\?acg_connect_prop=1"/);
+  for (const anchor of ['platform', 'features', 'trading', 'markets', 'access']) {
+    assert.ok(html.includes('id="' + anchor + '"'), anchor);
+  }
+  assert.doesNotMatch(html, /coming soon|in development|roadmap|white label|free tier|futures|options/i);
   assert.doesNotMatch(html, /href="\/\?acg_auth=signup"/);
-  assert.match(html, /href="#markets"/);
-  assert.match(html, /href="#trading"/);
-  assert.match(html, /href="#experience"/);
-  assert.match(html, /href="#business"/);
-  assert.match(html, /Futures, Options, Cloud and White Label are planned offerings/);
   assert.doesNotMatch(html, /<script\b/i, 'Static landing must not add independent session or trading scripts');
 });
 

@@ -4,22 +4,21 @@ import { readFileSync } from 'node:fs';
 
 const source = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 
-test('V6 footer includes exact operator identity, four trust links and the simulated-trading disclosure', () => {
+test('V4 footer identifies the operator, links trust pages and discloses simulation clearly', () => {
   const html = source('public/acg-landing-v6.html');
-  const footer = html.slice(html.lastIndexOf('<footer class="v6-footer">'));
-  assert.match(footer, /Account security and transparency/);
+  const footer = html.slice(html.lastIndexOf('<footer class="footer">'));
   assert.match(footer, /ACG-MANAGEMENT, UNIPESSOAL LDA, Portugal/);
-  assert.match(footer, /Simulated accounts do not represent live brokerage accounts/);
-  assert.match(footer, /Futures, Options, Cloud and White Label are planned offerings/);
+  assert.match(footer, /Simulated balances and performance are not real money/);
+  assert.match(footer, /it is not a broker or investment adviser/);
   assert.match(footer, /© 2026 ACG-MANAGEMENT, UNIPESSOAL LDA/);
-  assert.match(footer, /<nav class="v6-footer-nav" aria-label="Account security, legal information and contact">/);
+  assert.match(footer, /<nav aria-label="Support and legal links">/);
   for (const [url, label] of [
     ['/account-security.html', 'Account security'],
     ['/privacy.html', 'Privacy Policy'],
     ['/terms.html', 'Terms of Service'],
     ['/contact.html', 'Contact'],
   ]) {
-    assert.match(footer, new RegExp('<a href="' + url.replaceAll('.', '\\.') + '">' + label + '</a>'));
+    assert.ok(footer.includes('href="' + url + '">' + label + '</a>'), url);
     const linkedPage = source('public' + url);
     assert.match(linkedPage, /<title>.*ACG Trader<\/title>/);
     assert.match(linkedPage, /ACG-MANAGEMENT, UNIPESSOAL LDA/);
@@ -27,18 +26,17 @@ test('V6 footer includes exact operator identity, four trust links and the simul
   }
 });
 
-test('footer remains responsive and does not alter product sections or primary login routes', () => {
+test('V4 navbar, footer and responsive menu preserve authorized account login routes', () => {
   const html = source('public/acg-landing-v6.html');
-  assert.match(html, /\.v6-footer-main\{display:grid/);
-  assert.match(html, /\.v6-footer-nav\{display:flex/);
-  assert.match(html, /@media\(max-width:500px\)\{\.v6-footer\{/);
+  assert.match(html, /\.footer-grid\{display:grid/);
+  assert.match(html, /\.mobile-nav\{display:none/);
+  assert.match(html, /@media\(max-width:800px\)/);
   assert.match(html, /href="\/\?acg_connect_prop=1"/);
   assert.match(html, /href="\/\?acg_login=1"/);
   assert.doesNotMatch(html, /href="\/\?acg_auth=signup"/);
-  assert.match(html, /id="markets"/);
-  assert.match(html, /id="trading"/);
-  assert.match(html, /id="experience"/);
-  assert.match(html, /id="business"/);
+  for (const anchor of ['platform', 'features', 'trading', 'markets', 'access']) {
+    assert.ok(html.includes('id="' + anchor + '"'), anchor);
+  }
   assert.doesNotMatch(html, /<script\b/i);
 });
 

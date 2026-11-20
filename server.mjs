@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import process from 'node:process';
 import { readFile, stat } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
 
