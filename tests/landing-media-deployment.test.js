@@ -25,7 +25,7 @@ test('supplied video assets are committed, valid MP4 files and web optimized', (
 test('premium landing integrates both clips without claiming partnerships or live brokerage execution', () => {
   const html = readFileSync(src('public/acg-landing-v6.html'), 'utf8');
   assert.match(html, /id="experience"/);
-  assert.equal((html.match(/<video class="film-video /g) || []).length, 2);
+  assert.equal((html.match(/<video class="film-video /g) || []).length, 3);
   for (const file of ['acg-motion-panorama.mp4','acg-motion-emblem.mp4']) {
     assert.match(html, new RegExp('/media/' + file.replace('.', '\\.')));
   }
