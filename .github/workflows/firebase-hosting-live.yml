@@ -1,9 +1,8 @@
-name: Deploy ACG Trader to Firebase Hosting
+name: Legacy Firebase Hosting deploy (manual only; Railway is production)
 
+# Disabled automatic Firebase deployments after ACG Trader moved to Railway.
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 permissions:
   contents: read
