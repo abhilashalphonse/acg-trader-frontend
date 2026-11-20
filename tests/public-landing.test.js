@@ -47,17 +47,23 @@ test('public homepage uses V4 design language and current production capability 
   }
   assert.doesNotMatch(html, /coming soon|in development|roadmap|white label|free tier|futures|options/i);
   assert.doesNotMatch(html, /href="\/\?acg_auth=signup"/);
-  assert.match(html, /id="product-tour"/);
-  assert.equal((html.match(/class="gallery-card gallery-card-/g) || []).length, 3);
+  assert.match(html, /id="experience"/);
+  assert.equal((html.match(/class="film-video /g) || []).length, 2);
+  assert.match(html, /src="\/media\/acg-motion-panorama\.mp4"/);
+  assert.match(html, /src="\/media\/acg-motion-emblem\.mp4"/);
+  assert.match(html, /poster="\/media\/acg-motion-panorama-poster\.jpg"/);
+  assert.match(html, /poster="\/media\/acg-motion-emblem-poster\.jpg"/);
+  assert.match(html, /Third-party brands visible in the film are not ACG Trader partners/);
+  assert.match(html, /This metallic emblem is a creative study, not the ACG Trader logo/);
   assert.match(html, /prefers-reduced-motion:reduce/);
-  assert.match(html, /motion-ready \.motion-gallery\{height:220vh/);
   assert.match(html, /<script src="\/acg-landing-motion\.js" defer><\/script>/);
   const scripts = [...html.matchAll(/<script\b[^>]*>/g)].map(match => match[0]);
   assert.deepEqual(scripts, ['<script src="/acg-landing-motion.js" defer>']);
   const motion = readFileSync(new URL('../public/acg-landing-motion.js', import.meta.url), 'utf8');
-  assert.match(motion, /requestAnimationFrame/);
+  assert.match(motion, /IntersectionObserver/);
   assert.match(motion, /prefers-reduced-motion: reduce/);
-  assert.match(motion, /scrollBy/);
+  assert.match(motion, /data-film-reveal/);
+  assert.match(motion, /saveData/);
   assert.doesNotMatch(motion, /\bfetch\s*\(|\bXMLHttpRequest\b|localStorage|sessionStorage|document\.cookie|\.sendBeacon/);
 });
 
