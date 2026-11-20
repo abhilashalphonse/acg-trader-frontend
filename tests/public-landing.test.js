@@ -43,6 +43,16 @@ test('public homepage uses V4 design language and current production capability 
   assert.doesNotMatch(html, /<script\b/i, 'Static landing must not add independent session or trading scripts');
 });
 
+test('landing uses the shipped original ACG logo rather than a text approximation', () => {
+  const html = readFileSync(new URL('../public/acg-landing-v6.html', import.meta.url), 'utf8');
+  const body = html.slice(html.indexOf('<body>'));
+  assert.equal((body.match(/src="\/acg-logo\.png"/g) || []).length, 3);
+  assert.doesNotMatch(body, /<span class="brand-acg">ACG<\/span>/);
+  assert.match(body, /class="brand-emblem-image" src="\/acg-logo\.png"/);
+  assert.match(body, /class="term-logo-emblem"><img src="\/acg-logo\.png"/);
+  assert.match(body, /aria-label="ACG Trader home"/);
+});
+
 test('Connect Prop remains an opt-in tenant-native login with no changed default login', () => {
   const gate = readFileSync(new URL('../src/components/SessionGate.jsx', import.meta.url), 'utf8');
   assert.match(gate, /acg_connect_prop/);

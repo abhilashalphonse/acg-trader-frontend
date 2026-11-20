@@ -153,13 +153,30 @@ a{color:inherit;text-decoration:none}a:focus-visible,summary:focus-visible{outli
 .access-card h3{margin-top:0}
 @media(max-width:860px){.hero-layout{min-height:0}.hero-device{height:430px}.market-item{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)}.market-item p{grid-column:auto;grid-row:auto}}
 @media(max-width:580px){.hero-device{height:293px}.market-item{grid-template-columns:1fr;gap:7px}.market-item p{grid-column:1;grid-row:auto}}
+
+/* Use the existing original ACG brand asset, not a recreated typographic mark. 
+   The PNG contains broad dark margins, so the viewport crops only those margins. */
+.brand{display:inline-flex;align-items:center;gap:7px;flex-shrink:0;min-width:0}
+.brand-emblem{width:86px;height:42px;position:relative;overflow:hidden;display:block;flex:0 0 86px}
+.brand-emblem-image{display:block;position:absolute;left:-21px;top:-12px;width:125px;height:auto;max-width:none;mix-blend-mode:screen}
+.brand-trader{font-size:13px;letter-spacing:.095em;font-weight:700;color:#ededed;white-space:nowrap}
+.term-logo{display:flex;align-items:center;gap:2px;font-weight:750;white-space:nowrap}
+.term-logo-emblem{display:block;position:relative;overflow:hidden;width:37px;height:18px;flex:0 0 37px;margin:0}
+.term-logo-emblem img{display:block;position:absolute;left:-9px;top:-5px;width:53px;height:auto;max-width:none;mix-blend-mode:screen}
+.term-logo>span:last-child{margin-left:0;font-weight:620;color:#b6b6ba;font-size:10px;letter-spacing:.045em}
+@media(max-width:580px){
+ .brand{gap:5px}
+ .brand-emblem{width:78px;height:38px;flex-basis:78px}
+ .brand-emblem-image{left:-19px;top:-11px;width:114px}
+ .brand-trader{font-size:11px;letter-spacing:.085em}
+}
 </style>
 </head>
 <body>
 <a href="#main" class="skip">Skip to content</a>
 <header class="site-header" id="top">
  <div class="shell header-inner">
-  <a class="brand" href="/" aria-label="ACG Trader home"><span class="brand-acg">ACG</span><span class="brand-trader">TRADER</span></a>
+  <a class="brand" href="/" aria-label="ACG Trader home"><span class="brand-emblem"><img class="brand-emblem-image" src="/acg-logo.png" alt="" width="707" height="353" decoding="async"/></span><span class="brand-trader">TRADER</span></a>
   <nav class="desktop-nav" aria-label="Main navigation">
    <a href="#platform" aria-current="page">Platform</a><a href="#features">Trading tools</a><a href="#markets">Markets</a><a href="/contact.html">Support</a>
   </nav>
@@ -180,7 +197,7 @@ a{color:inherit;text-decoration:none}a:focus-visible,summary:focus-visible{outli
    <div class="hero-stage" aria-label="Illustrative ACG Trader V4 trading terminal">
     
     <div class="hero-device"><div class="terminal" role="img" aria-label="Illustrative dark ACG Trader V4 layout with markets, a chart, positions and an order ticket. Not live market data.">
-   <div class="term-top"><div class="term-logo">ACG<span>TRADER</span></div><div class="term-toplinks"><span class="on">Trading</span><span>Markets</span><span>Orders</span></div><div class="term-mode">Simulated · Example interface</div></div>
+   <div class="term-top"><div class="term-logo"><span class="term-logo-emblem"><img src="/acg-logo.png" alt="" width="707" height="353" decoding="async"/></span><span>TRADER</span></div><div class="term-toplinks"><span class="on">Trading</span><span>Markets</span><span>Orders</span></div><div class="term-mode">Simulated · Example interface</div></div>
    <div class="term-layout">
     <div class="tools" aria-hidden="true"><span>╋</span><span>╱</span><span>⌖</span><span>□</span><span>○</span><span>⊕</span></div>
     <div class="watch" aria-hidden="true"><div class="watch-title">Markets</div><div class="watch-tabs"><b>Favorites</b><span>Forex</span><span>Crypto</span></div><div class="watch-row current"><span>EURUSD<small>Euro / US Dollar</small></span><em>FX</em></div><div class="watch-row"><span>XAUUSD<small>Gold</small></span><em>METAL</em></div><div class="watch-row"><span>BTCUSD<small>Bitcoin</small></span><em>CRYPTO</em></div></div>
@@ -221,7 +238,7 @@ a{color:inherit;text-decoration:none}a:focus-visible,summary:focus-visible{outli
  <section class="final-cta"><div class="shell final-row"><div><h2>Markets. Orders.<br/>One clear interface.</h2><p>Open the terminal with an existing authorized account, or learn more about the tools before signing in.</p></div><a class="btn btn-white" href="/?acg_login=1">Open trading platform <span class="arrow" aria-hidden="true">↗</span></a></div></section>
 </main>
 <footer class="footer"><div class="shell">
- <div class="footer-grid"><div><a class="brand" href="/" aria-label="ACG Trader home"><span class="brand-acg">ACG</span><span class="brand-divider" aria-hidden="true"></span><span class="brand-trader">TRADER</span></a><p class="footer-intro">Chart-first trading technology for market analysis, risk planning and simulated account execution.</p><p class="footer-operator">Developed by ACG-MANAGEMENT, UNIPESSOAL LDA, Portugal.</p></div>
+ <div class="footer-grid"><div><a class="brand" href="/" aria-label="ACG Trader home"><span class="brand-emblem"><img class="brand-emblem-image" src="/acg-logo.png" alt="" width="707" height="353" decoding="async"/></span><span class="brand-trader">TRADER</span></a><p class="footer-intro">Chart-first trading technology for market analysis, risk planning and simulated account execution.</p><p class="footer-operator">Developed by ACG-MANAGEMENT, UNIPESSOAL LDA, Portugal.</p></div>
  <nav aria-label="Platform links"><b>Platform</b><a href="#platform">Overview</a><a href="#features">Features</a><a href="#trading">Trading workflow</a><a href="#markets">Markets</a><a href="#access">Account access</a></nav>
  <nav aria-label="Support and legal links"><b>Support &amp; legal</b><a href="/account-security.html">Account security</a><a href="/contact.html">Contact</a><a href="/privacy.html">Privacy Policy</a><a href="/terms.html">Terms of Service</a></nav></div>
  <div class="footer-bottom"><p>ACG Trader provides technology for simulated trading and market analysis; it is not a broker or investment adviser. Simulated balances and performance are not real money. The platform does not hold client deposits or offer live brokerage accounts. Trading involves risk, and no tool guarantees results. Interface illustrations contain no live market or account data.</p><span>© 2026 ACG-MANAGEMENT, UNIPESSOAL LDA</span></div>
