@@ -84,7 +84,7 @@ test('failed callback exchange still removes the authentication code from browse
   assert.equal(x.getScrubbed(), '/?acg_auth=signin&acg_onboarding_audit=1');
 });
 
-test('Hosting prohibits inline scripts and external JS on the static landing and login pages', () => {
+test('Hosting prohibits inline scripts and allows only the audited first-party motion file on public landing', () => {
   const config=JSON.parse(readFileSync(new URL('../firebase.json',import.meta.url),'utf8'));
   const csp=config.hosting.headers.flatMap(x=>x.headers).find(x=>x.key==='Content-Security-Policy')?.value;
   assert.match(csp, /script-src 'self';/);
@@ -94,7 +94,11 @@ test('Hosting prohibits inline scripts and external JS on the static landing and
   assert.match(csp,/frame-ancestors 'none'/);
   assert.match(csp,/form-action 'self'/);
   const html=readFileSync(new URL('../public/acg-landing-v6.html',import.meta.url),'utf8');
-  assert.doesNotMatch(html, /<script\b/i);
+  const tags = [...html.matchAll(/<script\b[^>]*>/g)].map(x => x[0]);
+  assert.deepEqual(tags, ['<script src="/acg-landing-motion.js" defer>']);
+  assert.doesNotMatch(html, /<script\b[^>]*>[\s\S]+?<\/script>/i);
+  const motion = readFileSync(new URL('../public/acg-landing-motion.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(motion, /\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage|document\.cookie|eval\s*\(|new Function\s*\(/);
 });
 
 test('disabled personal account flow scrubs any OAuth callback URL', () => {
