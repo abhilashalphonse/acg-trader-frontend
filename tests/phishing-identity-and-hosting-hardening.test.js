@@ -20,7 +20,7 @@ test('account security explanation is public and has no password collector or fo
   assert.match(page, /ACG-MANAGEMENT, UNIPESSOAL LDA/);
   assert.match(page, /ACG Funded/);
   assert.match(page, /Supabase authentication/);
-  assert.match(page, /acg-trader\.web\.app/);
+  assert.match(page, /acgtrader\.com/);
   assert.doesNotMatch(page, /<form\b|<script\b|type=["']password["']|<iframe\b/i);
 });
 
@@ -35,7 +35,7 @@ test('each sign-in mode states the correct credentials and offers a security exp
 
 test('public marketing does not imply demo registration is already enabled', () => {
   const landing = source('public/acg-landing-v6.html');
-  assert.match(landing, /Personal demo registration is coming soon/);
+  assert.match(landing, /No public personal registration is advertised/);
   assert.doesNotMatch(landing, /href="\/\?acg_auth=signup"/);
   assert.match(landing, /href="\/account-security\.html"/);
   assert.match(landing, /ACG-MANAGEMENT, UNIPESSOAL LDA/);
