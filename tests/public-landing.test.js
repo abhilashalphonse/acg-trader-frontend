@@ -21,6 +21,12 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /Chart-first trading platform/);
   assert.match(html, /class="shell hero-layout"/);
   assert.match(html, /class="hero-stage"/);
+  // Product structure, not editorial chapter badges or slash-numbered headings.
+  const markup = html.slice(html.indexOf('<body>'));
+  assert.doesNotMatch(markup, /WEB TRADING TERMINAL|\b0[1-4] \/ (?:THE PLATFORM|TRADING WORKFLOW|MARKETS|ACCOUNT ACCESS|CHARTING|EXECUTION|RISK|POSITIONS)/);
+  assert.doesNotMatch(markup, /class="(?:micro|feature-num|access-kicker|hero-stage-head|hero-stage-foot)/);
+  assert.doesNotMatch(markup, /A FOCUSED TRADING WORKSPACE|CHART-FIRST INTERFACE|DESKTOP PREVIEW/);
+
   assert.match(html, /class="desktop-nav"/);
   assert.match(html, /class="mobile-nav"/);
   assert.match(html, /min-height:660px/);
