@@ -21,7 +21,9 @@ const TYPES = {
   '.txt': 'text/plain; charset=utf-8',
   '.xml': 'application/xml; charset=utf-8',
   '.webmanifest': 'application/manifest+json',
-  '.map': 'application/json; charset=utf-8'
+  '.map': 'application/json; charset=utf-8',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm'
 };
 
 createServer(async (req, res) => {
@@ -62,12 +64,38 @@ createServer(async (req, res) => {
   }
   try {
     const data = await readFile(file);
-    const isHTML = extname(file) === '.html';
+    const extension = extname(file).toLowerCase();
+    const isHTML = extension === '.html';
+    const isMedia = extension === '.mp4' || extension === '.webm';
     const immutableAsset = pathname.startsWith('/assets/') && /-[\w]{8,}\./.test(pathname);
-    res.writeHead(200, {
-      'Content-Type': TYPES[extname(file).toLowerCase()] || 'application/octet-stream',
+    const commonHeaders = {
+      'Content-Type': TYPES[extension] || 'application/octet-stream',
       'Cache-Control': isHTML ? 'no-cache, max-age=0, must-revalidate' : immutableAsset ? 'public, max-age=31536000, immutable' : 'public, max-age=300'
-    });
+    };
+    if (isMedia) {
+      commonHeaders['Accept-Ranges'] = 'bytes';
+      if (req.headers.range) {
+        const match = /^bytes=(\d+)-(\d*)$/.exec(String(req.headers.range));
+        if (!match) {
+          res.writeHead(416, { ...commonHeaders, 'Content-Range': 'bytes */' + data.length });
+          return res.end();
+        }
+        const start = Number(match[1]);
+        const end = match[2] ? Number(match[2]) : data.length - 1;
+        if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start > end || end >= data.length) {
+          res.writeHead(416, { ...commonHeaders, 'Content-Range': 'bytes */' + data.length });
+          return res.end();
+        }
+        const part = data.subarray(start, end + 1);
+        res.writeHead(206, {
+          ...commonHeaders,
+          'Content-Range': 'bytes ' + start + '-' + end + '/' + data.length,
+          'Content-Length': part.length
+        });
+        return res.end(req.method === 'HEAD' ? undefined : part);
+      }
+    }
+    res.writeHead(200, { ...commonHeaders, 'Content-Length': data.length });
     res.end(req.method === 'HEAD' ? undefined : data);
   } catch { res.writeHead(404); res.end(); }
 }).listen(PORT, '0.0.0.0', () => {
