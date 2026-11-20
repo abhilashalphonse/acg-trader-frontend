@@ -7,7 +7,7 @@ const source = name => readFileSync(new URL('../' + name, import.meta.url), 'utf
 
 test('simulated trading and account eligibility appear before the primary login CTA', () => {
   const page = source('public/acg-landing-v6.html');
-  const hero = page.slice(page.indexOf('<section class="hero"'), page.indexOf('<div class="preview-label">'));
+  const hero = page.slice(page.indexOf('<section class="hero"'), page.indexOf('<div class="fact-strip">'));
   const simulation = hero.indexOf('class="hero-disclosure"');
   const actions = hero.indexOf('class="hero-actions"');
   assert.ok(simulation > 0 && actions > simulation);
