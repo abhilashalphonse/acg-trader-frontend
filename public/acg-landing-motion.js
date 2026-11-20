@@ -119,7 +119,6 @@
   const heroReplay = document.getElementById('acg-hero-replay');
   if (heroFilm && heroVideo && heroReplay) {
     let completed = false;
-    let manuallyRequested = false;
 
     function holdHero() {
       heroVideo.pause();
@@ -135,7 +134,6 @@
       }
       if (document.hidden) return;
       completed = false;
-      manuallyRequested = manual;
       heroReplay.hidden = true;
       heroFilm.classList.toggle('user-requested', manual);
       heroFilm.classList.add('is-playing');
