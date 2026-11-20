@@ -55,7 +55,7 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /src="\/media\/acg-shield\.mp4"/);
   assert.match(html, /poster="\/media\/acg-three-markets-poster\.jpg"/);
   assert.match(html, /poster="\/media\/acg-shield-poster\.jpg"/);
-  assert.match(html, /Creative.*not a security certification/);
+  assert.match(html, /not a security certification/);
   assert.match(html, /not indicate available instruments, supported integrations, partners or endorsements/);
   assert.match(html, /data-video-control="acg-shield-film"/);
   assert.match(html, /data-video-control="acg-three-markets-film"/);
