@@ -43,13 +43,18 @@ test('public homepage uses V4 design language and current production capability 
   assert.doesNotMatch(html, /<script\b/i, 'Static landing must not add independent session or trading scripts');
 });
 
-test('landing uses the shipped original ACG logo rather than a text approximation', () => {
+test('landing uses the same unmodified brand presentation as the terminal canvas', () => {
   const html = readFileSync(new URL('../public/acg-landing-v6.html', import.meta.url), 'utf8');
   const body = html.slice(html.indexOf('<body>'));
+  const terminalLoader = readFileSync(new URL('../src/components/ACGStartupLoader.jsx', import.meta.url), 'utf8');
   assert.equal((body.match(/src="\/acg-logo\.png"/g) || []).length, 3);
-  assert.doesNotMatch(body, /<span class="brand-acg">ACG<\/span>/);
-  assert.match(body, /class="brand-emblem-image" src="\/acg-logo\.png"/);
-  assert.match(body, /class="term-logo-emblem"><img src="\/acg-logo\.png"/);
+  assert.match(terminalLoader, /src="\/acg-logo\.png"/);
+  assert.equal((body.match(/class="brand-original" src="\/acg-logo\.png"/g) || []).length, 2);
+  assert.match(body, /class="term-original" src="\/acg-logo\.png"/);
+  assert.match(html, /\.brand-original\{display:block;width:112px;height:auto/);
+  assert.match(html, /\.term-original\{display:block;width:64px;height:auto/);
+  assert.doesNotMatch(body, /class="brand-trader"|class="brand-emblem"|class="term-logo-emblem"/);
+  assert.doesNotMatch(html, /mix-blend-mode:screen|\.brand-emblem-image\{/);
   assert.match(body, /aria-label="ACG Trader home"/);
 });
 
