@@ -479,6 +479,14 @@ html{scroll-padding-top:78px}
 @media(max-width:900px){.film-experience{padding-top:90px}.film-intro{display:block;margin-bottom:34px}.film-intro h2{font-size:clamp(53px,8vw,84px)}.film-intro p{max-width:580px;margin-top:22px;font-size:15px}.film-panorama{height:630px;min-height:0}.film-emblem-layout{gap:6%;padding-top:90px;padding-bottom:100px}}
 @media(max-width:650px){.film-experience{padding-top:75px}.film-intro h2{font-size:clamp(51px,11vw,72px)}.film-panorama{height:570px}.film-wide{object-position:58% center}.film-wide-shade{background:linear-gradient(0deg,#050507e8,#05050736 97%)}.film-panorama-content{justify-content:flex-end;padding-bottom:59px}.film-panorama-content h3{font-size:clamp(56px,12vw,76px)}.film-panorama-content p{font-size:15px;line-height:1.6;margin:20px 0}.film-legal{font-size:10px}.film-emblem-layout{display:flex;flex-direction:column;align-items:stretch;padding-top:72px;padding-bottom:86px;gap:34px}.film-emblem-content h3{font-size:clamp(48px,11vw,67px)}.film-emblem-content>p:not(.film-emblem-note){font-size:15px}.film-emblem-frame{width:min(100%,425px);align-self:center;border-radius:18px}}
 @media(prefers-reduced-motion:reduce){.film-experience [data-film-reveal]{opacity:1!important;transform:none!important;transition:none!important}}
+
+/* Motion is atmospheric in the hero: deliberately soft to avoid implying partnerships. */
+.hero{position:relative;isolation:isolate;overflow:hidden}
+.hero-layout{position:relative;z-index:1}
+.hero-ambient-video{position:absolute;inset:-5%;width:110%;height:110%;object-fit:cover;filter:blur(29px) brightness(.25) grayscale(1);opacity:.36;pointer-events:none;z-index:-2}
+.hero::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:-1;background:linear-gradient(to bottom,#0707089a 0%,#0707087f 34%,#070708 91%)}
+@media(max-width:650px){.hero-ambient-video{display:none}}
+@media(prefers-reduced-motion:reduce){.hero-ambient-video{display:none}}
 </style>
 </head>
 <body>
@@ -494,7 +502,9 @@ html{scroll-padding-top:78px}
  </div>
 </header>
 <main id="main">
- <section class="hero" id="platform"><div class="shell hero-layout">
+ <section class="hero" id="platform">
+ <video class="film-video hero-ambient-video" muted autoplay loop playsinline preload="metadata" poster="/media/acg-motion-panorama-poster.jpg" aria-hidden="true" tabindex="-1"><source src="/media/acg-motion-panorama.mp4" type="video/mp4"/></video>
+ <div class="shell hero-layout">
    <div class="hero-content">
     
     <h1>Trading without<br/><span>the noise.</span></h1>
