@@ -16,9 +16,14 @@ test('approved landing preview is opt-in and never intercepts federation or term
 
 test('public homepage uses V4 design language and current production capability only', () => {
   const html = readFileSync(new URL('../public/acg-landing-v6.html', import.meta.url), 'utf8');
-  assert.match(html, /Trade with clarity/);
-  assert.match(html, /Stay in control/);
+  assert.match(html, /Built for the chart/);
+  assert.match(html, /Ready for the trade/);
   assert.match(html, /Chart-first trading platform/);
+  assert.match(html, /class="shell hero-layout"/);
+  assert.match(html, /class="hero-stage"/);
+  assert.match(html, /class="desktop-nav"/);
+  assert.match(html, /class="mobile-nav"/);
+  assert.match(html, /min-height:660px/);
   assert.match(html, /color-scheme:dark/);
   assert.match(html, /currently supports simulated trading through authorized accounts/);
   assert.match(html, /not a broker/);
