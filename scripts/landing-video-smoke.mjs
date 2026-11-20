@@ -48,8 +48,10 @@ try {
       page.on('pageerror', err => errors.push(String(err.message)));
       const r = await page.goto(base+'/acg-landing-v6.html', { waitUntil:'domcontentloaded' });
       assert.equal(r?.status(), 200);
+      await page.screenshot({ path:'artifacts/landing-film-'+viewport.label+'-hero.png' });
       await page.locator('.film-panorama').scrollIntoViewIfNeeded();
-      await page.waitForTimeout(1300);
+      await page.waitForFunction(() => document.querySelector('.film-panorama video')?.readyState >= 2, null, { timeout: 8000 });
+      await page.waitForTimeout(350);
       const values = await page.evaluate(() => ({
         heading: document.querySelector('.hero h1')?.textContent,
         brand: document.querySelector('.site-header .brand img')?.getAttribute('src'),
@@ -62,12 +64,15 @@ try {
       }));
       assert.match(values.heading || '', /Trading without/);
       assert.equal(values.brand, '/acg-trader-wordmark.png');
-      assert.equal(values.videoCount, 2);
-      assert.deepEqual(values.videoTypes, ['video/mp4','video/mp4']);
+      assert.equal(values.videoCount, 3);
+      assert.deepEqual(values.videoTypes, ['video/mp4','video/mp4','video/mp4']);
       assert.ok(values.validSources);
       assert.ok(values.width <= values.viewportWidth + 3, viewport.label+' horizontal overflow: '+JSON.stringify(values));
       assert.ok(values.filmHeight > 400);
       assert.deepEqual(errors, [], viewport.label+' errors');
+      await page.screenshot({ path:'artifacts/landing-film-'+viewport.label+'-motion.png' });
+      await page.evaluate(() => { document.documentElement.style.scrollBehavior='auto'; window.scrollTo(0,0); });
+      await page.waitForTimeout(100);
       await page.screenshot({ path:'artifacts/landing-film-'+viewport.label+'.png', fullPage:true });
       await page.close();
     }
