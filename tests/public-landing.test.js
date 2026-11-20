@@ -19,7 +19,7 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /Built for the chart/);
   assert.match(html, /Ready for the trade/);
   assert.match(html, /Chart-first trading platform/);
-  assert.match(html, /class="hero-layout"/);
+  assert.match(html, /class="shell hero-layout"/);
   assert.match(html, /class="hero-stage"/);
   assert.match(html, /class="desktop-nav"/);
   assert.match(html, /class="mobile-nav"/);
