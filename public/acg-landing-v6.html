@@ -451,6 +451,34 @@ html{scroll-padding-top:78px}
  .gallery-track{transform:none!important;will-change:auto!important}
  .gallery-progress{display:none!important}
 }
+
+/* ACG Trader cinematic visual studies — scoped landing redesign */
+.film-experience{background:#09090a;color:#f4f4f6;padding-top:130px;overflow:hidden}
+.film-intro{display:flex;align-items:end;justify-content:space-between;gap:38px;margin-bottom:50px}
+.film-intro h2{font-size:clamp(55px,7vw,104px);line-height:1;letter-spacing:-.08em;font-weight:650;margin:0}
+.film-intro h2 span{color:#a0a0a7}
+.film-intro p{max-width:355px;margin:0 0 5px;color:#b6b6bd;font-size:16px;line-height:1.7}
+.film-panorama{height:min(780px,72vw);min-height:580px;background:#070708;position:relative;isolation:isolate;overflow:hidden}
+.film-wide{position:absolute;inset:0;z-index:-2;width:100%;height:100%;object-fit:cover;object-position:center}
+.film-wide-shade{position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(90deg,#050507e8 0%,#05050799 48%,#05050711 85%),linear-gradient(0deg,#050507a8,transparent 45%)}
+.film-panorama-content{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;height:100%}
+.film-panorama-content h3{font-size:clamp(60px,7.5vw,110px);line-height:.99;font-weight:645;letter-spacing:-.083em;max-width:870px;margin:0}
+.film-panorama-content p{max-width:490px;color:#e5e5e9;font-size:18px;line-height:1.65;margin:27px 0}
+.film-panorama-content .btn{min-height:52px;padding:15px 26px;border-radius:999px}
+.film-legal{margin-top:16px;color:#87878d;font-size:11px;line-height:1.7}
+.film-emblem-layout{display:grid;grid-template-columns:1fr .82fr;align-items:center;gap:9%;padding-top:117px;padding-bottom:135px}
+.film-emblem-content h3{font-size:clamp(52px,5.8vw,81px);line-height:1.03;letter-spacing:-.071em;font-weight:650;margin:0 0 24px}
+.film-emblem-content>p:not(.film-emblem-note){font-size:17px;line-height:1.7;max-width:490px;color:#b9b9bf;margin:0}
+.film-emblem-note{font-size:12px;line-height:1.65;color:#898990;max-width:410px;margin:23px 0 0}
+.film-emblem-frame{background:#ededed;aspect-ratio:3/4;border-radius:26px;overflow:hidden;max-width:480px;justify-self:end;box-shadow:0 35px 100px #0007}
+.film-portrait{display:block;width:100%;height:100%;object-fit:cover}
+.film-video:not([data-video-ready="true"]){background:#151518}
+.film-experience [data-film-reveal]{transition:opacity .7s ease,transform .8s cubic-bezier(.22,1,.36,1)}
+.film-experience [data-film-reveal]:not(.in-view){opacity:.87;transform:translateY(22px)}
+.film-experience [data-film-reveal].in-view{opacity:1;transform:none}
+@media(max-width:900px){.film-experience{padding-top:90px}.film-intro{display:block;margin-bottom:34px}.film-intro h2{font-size:clamp(53px,8vw,84px)}.film-intro p{max-width:580px;margin-top:22px;font-size:15px}.film-panorama{height:630px;min-height:0}.film-emblem-layout{gap:6%;padding-top:90px;padding-bottom:100px}}
+@media(max-width:650px){.film-experience{padding-top:75px}.film-intro h2{font-size:clamp(51px,11vw,72px)}.film-panorama{height:570px}.film-wide{object-position:58% center}.film-wide-shade{background:linear-gradient(0deg,#050507e8,#05050736 97%)}.film-panorama-content{justify-content:flex-end;padding-bottom:59px}.film-panorama-content h3{font-size:clamp(56px,12vw,76px)}.film-panorama-content p{font-size:15px;line-height:1.6;margin:20px 0}.film-legal{font-size:10px}.film-emblem-layout{display:flex;flex-direction:column;align-items:stretch;padding-top:72px;padding-bottom:86px;gap:34px}.film-emblem-content h3{font-size:clamp(48px,11vw,67px)}.film-emblem-content>p:not(.film-emblem-note){font-size:15px}.film-emblem-frame{width:min(100%,425px);align-self:center;border-radius:18px}}
+@media(prefers-reduced-motion:reduce){.film-experience [data-film-reveal]{opacity:1!important;transform:none!important;transition:none!important}}
 </style>
 </head>
 <body>
@@ -459,10 +487,10 @@ html{scroll-padding-top:78px}
  <div class="shell header-inner">
   <a class="brand" href="/" aria-label="ACG Trader home"><img class="brand-original" src="/acg-trader-wordmark.png" alt="ACG Trader" width="388" height="67" decoding="async"/></a>
   <nav class="desktop-nav" aria-label="Main navigation">
-   <a href="#platform">Platform</a><a href="#features">Features</a><a href="#markets">Markets</a><a href="#access">Account access</a>
+   <a href="#platform">Platform</a><a href="#experience">Experience</a><a href="#features">Features</a><a href="/contact.html">Support</a>
   </nav>
   <div class="header-actions"><a class="btn-text" href="/?acg_login=1">Log in</a><a class="btn btn-white" href="/?acg_connect_prop=1">Connect account <span class="arrow" aria-hidden="true">↗</span></a></div>
-  <details class="mobile-nav"><summary aria-label="Open navigation"><span class="menu-lines" aria-hidden="true"><i></i><i></i></span> Menu</summary><nav class="mobile-dropdown" aria-label="Mobile navigation"><a href="#platform">Platform</a><a href="#features">Features</a><a href="#trading">Trading workflow</a><a href="#markets">Markets</a><a href="#access">Account access</a><a href="/contact.html">Support</a><a class="mobile-signin" href="/?acg_login=1">Sign in</a><a href="/?acg_connect_prop=1">Connect authorized account ↗</a></nav></details>
+  <details class="mobile-nav"><summary aria-label="Open navigation"><span class="menu-lines" aria-hidden="true"><i></i><i></i></span> Menu</summary><nav class="mobile-dropdown" aria-label="Mobile navigation"><a href="#platform">Platform</a><a href="#experience">Experience</a><a href="#features">Features</a><a href="#trading">Trading workflow</a><a href="#markets">Markets</a><a href="#access">Account access</a><a href="/contact.html">Support</a><a class="mobile-signin" href="/?acg_login=1">Sign in</a><a href="/?acg_connect_prop=1">Connect authorized account ↗</a></nav></details>
  </div>
 </header>
 <main id="main">
@@ -492,66 +520,20 @@ html{scroll-padding-top:78px}
    </div>
  </div></section>
  
-<section class="motion-gallery" id="product-tour" aria-label="Explore the ACG Trader workflow">
-  <div class="motion-gallery-pin">
-    <div class="shell gallery-heading">
-      <div>
-        <h2>See the whole trade.</h2>
-        <p>Move from the chart to your plan and stay in control of your positions. All in one workspace.</p>
-      </div>
-      <div class="gallery-progress" aria-hidden="true"><span></span></div>
-    </div>
-    <div class="gallery-window" role="region" aria-label="Trading workflow previews. Swipe or scroll horizontally to explore." tabindex="0">
-      <div class="gallery-track">
-        <article class="gallery-card gallery-card-chart">
-          <div class="gallery-card-intro">
-            <h3>Read the market.</h3>
-            <p>A focused place to follow price action, switch timeframes and work with your chart.</p>
-          </div>
-          <div class="gallery-ui gallery-ui-chart" role="img" aria-label="Illustrative static candlestick chart for EURUSD. Not live market data.">
-            <div class="gallery-ui-toolbar"><strong>EURUSD</strong><span>15m</span><span>1h</span><span>4h</span><span>Chart example</span></div>
-            <svg viewBox="0 0 670 270" preserveAspectRatio="none" aria-hidden="true">
-              <path d="M0 44H670M0 99H670M0 154H670M0 209H670M75 0V270M180 0V270M285 0V270M390 0V270M495 0V270M600 0V270" stroke="#313139" stroke-width="1" fill="none"/>
-              <g stroke="#e0e0e5" fill="#e0e0e5">
-                <path d="M30 160v47M65 141v54M100 147v38M135 129v49M170 120v49M205 114v42M240 100v51M275 99v37M310 82v50M345 91v46M380 78v51M415 66v45M450 61v41M485 59v44M520 43v42M555 32v39M590 28v42M625 18v37" stroke-width="2" fill="none"/>
-                <rect x="25" y="171" width="10" height="19"/><rect x="60" y="159" width="10" height="21"/><rect x="130" y="145" width="10" height="22"/><rect x="165" y="134" width="10" height="21"/><rect x="200" y="124" width="10" height="19"/><rect x="235" y="116" width="10" height="23"/><rect x="270" y="109" width="10" height="17"/><rect x="305" y="97" width="10" height="25"/><rect x="340" y="101" width="10" height="22"/><rect x="375" y="90" width="10" height="25"/><rect x="410" y="78" width="10" height="18"/><rect x="445" y="72" width="10" height="20"/><rect x="480" y="69" width="10" height="22"/><rect x="515" y="55" width="10" height="18"/><rect x="550" y="44" width="10" height="17"/><rect x="585" y="42" width="10" height="18"/><rect x="620" y="32" width="10" height="17"/>
-              </g>
-              <g stroke="#737781" fill="#737781"><rect x="95" y="158" width="10" height="18"/><rect x="345" y="112" width="10" height="12"/></g>
-            </svg>
-            <span class="gallery-example">Illustrative chart · not live prices</span>
-          </div>
-        </article>
-        <article class="gallery-card gallery-card-risk">
-          <div class="gallery-card-intro">
-            <h3>Plan with intention.</h3>
-            <p>Choose an order type, define position size and set protective levels before execution.</p>
-          </div>
-          <div class="gallery-ui gallery-ui-plan" aria-label="Illustrative order planning interface; not interactive">
-            <div class="gallery-ui-toolbar"><strong>Order planning</strong><span>Simulated environment</span></div>
-            <div class="gallery-plan-line"><span>Order type</span><strong>Market / Pending</strong></div>
-            <div class="gallery-plan-line"><span>Position size</span><strong>Lots / Margin / Risk</strong></div>
-            <div class="gallery-plan-line"><span>Stop loss</span><strong>Price or risk amount</strong></div>
-            <div class="gallery-plan-line"><span>Take profit</span><strong>Target price</strong></div>
-            <div class="gallery-plan-actions" aria-hidden="true"><span>SELL</span><span>BUY</span></div>
-            <span class="gallery-example">Interface illustration · no orders placed</span>
-          </div>
-        </article>
-        <article class="gallery-card gallery-card-positions">
-          <div class="gallery-card-intro">
-            <h3>Stay in control.</h3>
-            <p>Review active positions, pending orders and trading history without losing sight of the market.</p>
-          </div>
-          <div class="gallery-ui gallery-ui-positions" aria-label="Illustrative positions workspace; no account data shown">
-            <div class="gallery-ui-toolbar"><strong>Trading activity</strong><span>Account workspace</span></div>
-            <div class="gallery-position-tabs"><strong>Positions</strong><span>Pending</span><span>History</span><span>Journal</span></div>
-            <div class="gallery-position-empty"><span class="gallery-position-icon" aria-hidden="true">↗</span><strong>A focused trading workspace</strong><p>Positions and account activity appear here when you sign in.</p></div>
-            <span class="gallery-example">Illustrative account view</span>
-          </div>
-        </article>
-      </div>
-    </div>
-    <div class="shell gallery-tail"><p>Illustrative interface views. No live prices, executable orders or account data are displayed.</p><p class="gallery-mobile-hint">Swipe to explore the workflow</p></div>
-  </div>
+<section class="film-experience" id="experience">
+ <div class="shell film-intro" data-film-reveal><h2>A platform with<br/><span>presence.</span></h2><p>Thoughtful tools. Clear workflows. A trading environment designed to let the decisions speak for themselves.</p></div>
+ <div class="film-panorama">
+  <video class="film-video film-wide" muted autoplay loop playsinline preload="metadata" poster="/media/acg-motion-panorama-poster.jpg" aria-label="Creative metallic motion artwork featuring third-party marks, not supported providers or partners">
+   <source src="/media/acg-motion-panorama.mp4" type="video/mp4"/>Video unavailable.
+  </video>
+  <div class="film-wide-shade"></div>
+  <div class="shell film-panorama-content" data-film-reveal><h3>Clarity in motion.</h3><p>Follow markets, plan risk and manage positions with the chart always at the center.</p><a class="btn btn-white" href="#features">Explore trading tools <span class="arrow" aria-hidden="true">↗</span></a></div>
+ </div>
+ <p class="shell film-legal">Creative motion artwork only. Third-party brands visible in the film are not ACG Trader partners, integrations, providers or endorsements.</p>
+ <div class="shell film-emblem-layout" data-film-reveal>
+  <div class="film-emblem-content"><h3>Every detail<br/>has a purpose.</h3><p>A quieter interface. Familiar trading workflows. Tools that stay within reach when you need them.</p><p class="film-emblem-note">This metallic emblem is a creative study, not the ACG Trader logo or a separate product.</p></div>
+  <div class="film-emblem-frame"><video class="film-video film-portrait" muted autoplay loop playsinline preload="metadata" poster="/media/acg-motion-emblem-poster.jpg" aria-label="Creative silver R emblem animation, separate from ACG Trader branding"><source src="/media/acg-motion-emblem.mp4" type="video/mp4"/>Video unavailable.</video></div>
+ </div>
 </section>
 <div class="fact-strip"><div class="shell fact-grid"><div class="fact"><b>Chart-first</b><small>Market analysis at the center</small></div><div class="fact"><b>Order planning</b><small>Market and pending order workflows</small></div><div class="fact"><b>Risk inputs</b><small>Lots, margin and risk-based sizing</small></div><div class="fact"><b>Position controls</b><small>Manage orders, stops and targets</small></div></div></div>
  <section class="section" id="features"><div class="shell">
