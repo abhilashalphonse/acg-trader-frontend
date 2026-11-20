@@ -53,7 +53,7 @@ try {
       await page.waitForFunction(() => document.querySelector('.market-film video')?.readyState >= 2, null, { timeout: 8000 });
       await page.waitForTimeout(350);
       const values = await page.evaluate(() => ({
-        heading: document.querySelector('.hero h1')?.textContent,
+        heading: document.querySelector('.acg-cinema h1')?.textContent,
         brand: document.querySelector('.site-header .brand img')?.getAttribute('src'),
         videoCount: document.querySelectorAll('.film-video').length,
         videoTypes: [...document.querySelectorAll('.film-video source')].map(v=>v.type),
@@ -62,9 +62,15 @@ try {
         viewportWidth: window.innerWidth,
         filmHeight: document.querySelector('.market-film')?.getBoundingClientRect().height
       }));
-      assert.match(values.heading || '', /Trading without/);
+      assert.match(values.heading || '', /Trading & Beyond/);
       assert.equal(values.brand, '/acg-trader-wordmark.png');
       assert.equal(values.videoCount, 2);
+      assert.equal(await page.locator('video#acg-hero-reveal').count(), 1);
+      assert.equal(await page.locator('a.acg-cinema-primary[href="/?acg_login=1"]').count(), 1);
+      assert.equal(await page.locator('a.acg-cinema-secondary[href="/contact.html?topic=enterprise"]').count(), 1);
+      const heroAssets = await page.evaluate(() => [...document.querySelectorAll('.acg-cinema source')].map(s => s.src || s.srcset));
+      assert.ok(heroAssets.some(src => src.includes('acg-hero-mobile.mp4')));
+      assert.ok(heroAssets.some(src => src.includes('acg-hero-desktop.mp4')));
       assert.equal(await page.locator('video#acg-three-markets-film').count(), 1);
       assert.equal(await page.locator('video#acg-shield-film').count(), 1);
       assert.deepEqual(values.videoTypes, ['video/mp4','video/mp4']);
