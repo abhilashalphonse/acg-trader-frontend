@@ -43,18 +43,21 @@ test('public homepage uses V4 design language and current production capability 
   assert.doesNotMatch(html, /<script\b/i, 'Static landing must not add independent session or trading scripts');
 });
 
-test('landing uses the same unmodified brand presentation as the terminal canvas', () => {
+test('landing uses the complete ACG Trader italic wordmark from the supplied app reference', () => {
   const html = readFileSync(new URL('../public/acg-landing-v6.html', import.meta.url), 'utf8');
   const body = html.slice(html.indexOf('<body>'));
+  const wordmark = readFileSync(new URL('../public/acg-trader-wordmark.png', import.meta.url));
   const terminalLoader = readFileSync(new URL('../src/components/ACGStartupLoader.jsx', import.meta.url), 'utf8');
-  assert.equal((body.match(/src="\/acg-logo\.png"/g) || []).length, 3);
-  assert.match(terminalLoader, /src="\/acg-logo\.png"/);
-  assert.equal((body.match(/class="brand-original" src="\/acg-logo\.png"/g) || []).length, 2);
-  assert.match(body, /class="term-original" src="\/acg-logo\.png"/);
-  assert.match(html, /\.brand-original\{display:block;width:112px;height:auto/);
-  assert.match(html, /\.term-original\{display:block;width:64px;height:auto/);
-  assert.doesNotMatch(body, /class="brand-trader"|class="brand-emblem"|class="term-logo-emblem"/);
-  assert.doesNotMatch(html, /mix-blend-mode:screen|\.brand-emblem-image\{/);
+  assert.equal(wordmark.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+  assert.equal(wordmark.readUInt32BE(16), 388);
+  assert.equal(wordmark.readUInt32BE(20), 67);
+  assert.equal((body.match(/src="\/acg-trader-wordmark\.png"/g) || []).length, 3);
+  assert.equal((body.match(/class="brand-original" src="\/acg-trader-wordmark\.png"/g) || []).length, 2);
+  assert.match(body, /class="term-original" src="\/acg-trader-wordmark\.png"/);
+  assert.doesNotMatch(body, /src="\/acg-logo\.png"|class="brand-trader"|class="brand-emblem"/);
+  assert.match(terminalLoader, /src="\/acg-logo\.png"/, 'The existing app loading icon remains unchanged');
+  assert.match(html, /\.brand-original\{display:block;width:162px;height:auto/);
+  assert.match(html, /\.term-original\{display:block;width:128px;height:auto/);
   assert.match(body, /aria-label="ACG Trader home"/);
 });
 
