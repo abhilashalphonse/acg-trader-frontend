@@ -1,5 +1,6 @@
 // Read-only first-party landing smoke; no credentials, account APIs or trading actions.
 import { spawn } from 'node:child_process';
+import process from 'node:process';
 import { mkdirSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
 import assert from 'node:assert/strict';
