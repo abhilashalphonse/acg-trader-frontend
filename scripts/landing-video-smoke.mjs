@@ -64,7 +64,7 @@ try {
       }));
       assert.match(values.heading || '', /Advanced trading\./);
       assert.equal(await page.locator('.acg-cinema-eyebrow').textContent(), 'Trading & Beyond');
-      assert.equal(await page.locator('.acg-cinema-subhead').textContent(), '0% maker fees. Raw spreads.');
+      assert.equal(await page.locator('.acg-cinema-subhead').textContent(), 'Chart-first execution. Risk-based order planning.');
       assert.equal(await page.locator('a.acg-cinema-primary[href="/?acg_login=1"]').count(), 1);
       assert.equal(await page.locator('a.acg-cinema-secondary[href="/contact.html?topic=enterprise"]').count(), 1);
       const heroBounds = await page.evaluate(() => {
