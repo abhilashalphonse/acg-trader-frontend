@@ -143,6 +143,16 @@ a{color:inherit;text-decoration:none}a:focus-visible,summary:focus-visible{outli
  .hero-actions{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){.desktop-nav a{transition:none}}
+
+/* V4 polish: remove editorial label spacing and rely on the product hierarchy. */
+.hero-layout{min-height:620px}.hero h1{margin-top:0}.hero-device{height:426px}.hero-device .terminal{top:10px}.hero-stage-caption{border-top:1px solid #242428}
+.section-head h2,.workflow h2,.final-cta h2{margin-top:0}
+.feature{min-height:270px}.feature h3{margin-top:3px}
+.step{display:block;padding:20px 0}.step strong{font-size:15px}
+.market-item{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:22px}
+.access-card h3{margin-top:0}
+@media(max-width:860px){.hero-layout{min-height:0}.hero-device{height:430px}.market-item{grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)}.market-item p{grid-column:auto;grid-row:auto}}
+@media(max-width:580px){.hero-device{height:293px}.market-item{grid-template-columns:1fr;gap:7px}.market-item p{grid-column:1;grid-row:auto}}
 </style>
 </head>
 <body>
@@ -160,7 +170,7 @@ a{color:inherit;text-decoration:none}a:focus-visible,summary:focus-visible{outli
 <main id="main">
  <section class="hero" id="platform"><div class="shell hero-layout">
    <div class="hero-content">
-    <div class="micro hero-kicker"><span class="rule-dot" aria-hidden="true"></span> ACG TRADER <span class="kicker-slash" aria-hidden="true">/</span> WEB TRADING TERMINAL</div>
+    
     <h1>Built for the chart.<br/><span>Ready for the trade.</span></h1>
     <p class="hero-lead">A chart-first trading workspace for market analysis, risk-based order planning and position management. The tools stay within reach, so the chart stays in focus.</p>
     <p class="hero-disclosure"><strong>Trading environment:</strong> ACG Trader currently supports simulated trading through authorized accounts. It is not a broker and does not offer live brokerage accounts or accept trading deposits.</p>
@@ -168,7 +178,7 @@ a{color:inherit;text-decoration:none}a:focus-visible,summary:focus-visible{outli
     <p class="hero-meta">Existing trading-account credentials required. No public personal registration is advertised.</p>
    </div>
    <div class="hero-stage" aria-label="Illustrative ACG Trader V4 trading terminal">
-    <div class="hero-stage-head"><span><i class="stage-indicator" aria-hidden="true"></i> TRADING WORKSPACE</span><span>ACG TRADER / V4</span></div>
+    
     <div class="hero-device"><div class="terminal" role="img" aria-label="Illustrative dark ACG Trader V4 layout with markets, a chart, positions and an order ticket. Not live market data.">
    <div class="term-top"><div class="term-logo">ACG<span>TRADER</span></div><div class="term-toplinks"><span class="on">Trading</span><span>Markets</span><span>Orders</span></div><div class="term-mode">Simulated · Example interface</div></div>
    <div class="term-layout">
@@ -179,36 +189,36 @@ a{color:inherit;text-decoration:none}a:focus-visible,summary:focus-visible{outli
    </div>
   </div>
   </div>
-    <div class="hero-stage-foot"><span>CHART-FIRST INTERFACE</span><span>DESKTOP PREVIEW <span aria-hidden="true">↗</span></span></div>
+    
     <p class="hero-stage-caption">Illustrative interface only. No live prices or executable orders on this page.</p>
    </div>
  </div></section>
  <div class="fact-strip"><div class="shell fact-grid"><div class="fact"><b>Chart-first</b><small>Market analysis at the center</small></div><div class="fact"><b>Order planning</b><small>Market and pending order workflows</small></div><div class="fact"><b>Risk inputs</b><small>Lots, margin and risk-based sizing</small></div><div class="fact"><b>Position controls</b><small>Manage orders, stops and targets</small></div></div></div>
  <section class="section" id="features"><div class="shell">
-  <div class="section-head"><div><div class="micro">01 / THE PLATFORM</div><h2>Everything around<br/>the trade.</h2></div><p>Market context, execution and position management belong in one workspace—not across disconnected screens.</p></div>
+  <div class="section-head"><div><h2>Everything around<br/>the trade.</h2></div><p>Market context, execution and position management belong in one workspace—not across disconnected screens.</p></div>
   <div class="feature-grid">
-   <article class="feature"><span class="feature-num">01 / CHARTING</span><h3>See the market clearly.</h3><p>Navigate instruments and timeframes from a chart-first interface, with drawing tools and market visibility in the same workspace.</p><div class="feature-visual"><span class="chip chip-active">Chart workspace</span><span class="chip">Timeframes</span><span class="chip">Drawing tools</span></div></article>
-   <article class="feature"><span class="feature-num">02 / EXECUTION</span><h3>Place the order you planned.</h3><p>Work with market and pending orders. Review sizing and protective levels before you submit a trade in your simulated account.</p><div class="feature-visual"><span class="chip chip-active">Market orders</span><span class="chip">Pending orders</span><span class="chip">Stop loss / take profit</span></div></article>
-   <article class="feature"><span class="feature-num">03 / RISK</span><h3>Define risk before entry.</h3><p>Choose between lots, margin amount, risk percentage and fixed monetary risk when preparing an order. Controls depend on the account and instrument.</p><div class="feature-visual"><span class="chip chip-active">Lots</span><span class="chip">Margin</span><span class="chip">Risk %</span><span class="chip">Risk amount</span></div></article>
-   <article class="feature"><span class="feature-num">04 / POSITIONS</span><h3>Stay with the trade.</h3><p>Review open positions, pending orders and trading history. Adjust supported levels and manage exposure from inside the terminal.</p><div class="feature-visual"><span class="chip chip-active">Positions</span><span class="chip">Pending</span><span class="chip">History</span><span class="chip">Journal</span></div></article>
+   <article class="feature"><h3>See the market clearly.</h3><p>Navigate instruments and timeframes from a chart-first interface, with drawing tools and market visibility in the same workspace.</p><div class="feature-visual"><span class="chip chip-active">Chart workspace</span><span class="chip">Timeframes</span><span class="chip">Drawing tools</span></div></article>
+   <article class="feature"><h3>Place the order you planned.</h3><p>Work with market and pending orders. Review sizing and protective levels before you submit a trade in your simulated account.</p><div class="feature-visual"><span class="chip chip-active">Market orders</span><span class="chip">Pending orders</span><span class="chip">Stop loss / take profit</span></div></article>
+   <article class="feature"><h3>Define risk before entry.</h3><p>Choose between lots, margin amount, risk percentage and fixed monetary risk when preparing an order. Controls depend on the account and instrument.</p><div class="feature-visual"><span class="chip chip-active">Lots</span><span class="chip">Margin</span><span class="chip">Risk %</span><span class="chip">Risk amount</span></div></article>
+   <article class="feature"><h3>Stay with the trade.</h3><p>Review open positions, pending orders and trading history. Adjust supported levels and manage exposure from inside the terminal.</p><div class="feature-visual"><span class="chip chip-active">Positions</span><span class="chip">Pending</span><span class="chip">History</span><span class="chip">Journal</span></div></article>
   </div>
  </div></section>
  <section class="section workflow" id="trading"><div class="shell workflow-grid">
-  <div><div class="micro">02 / TRADING WORKFLOW</div><h2>From analysis<br/>to execution.</h2><p class="workflow-lead">A coherent workflow for discretionary traders. Focus on price action, establish the plan, then manage the result without leaving the platform.</p><div class="steps"><div class="step"><span>01</span><div><strong>Analyze</strong><p>Select a market, inspect its chart and place your levels in context.</p></div></div><div class="step"><span>02</span><div><strong>Plan</strong><p>Set order type, sizing method and protective levels before submission.</p></div></div><div class="step"><span>03</span><div><strong>Manage</strong><p>Monitor positions, orders and account activity as the market moves.</p></div></div></div></div>
+  <div><h2>From analysis<br/>to execution.</h2><p class="workflow-lead">A coherent workflow for discretionary traders. Focus on price action, establish the plan, then manage the result without leaving the platform.</p><div class="steps"><div class="step"><div><strong>Analyze</strong><p>Select a market, inspect its chart and place your levels in context.</p></div></div><div class="step"><div><strong>Plan</strong><p>Set order type, sizing method and protective levels before submission.</p></div></div><div class="step"><div><strong>Manage</strong><p>Monitor positions, orders and account activity as the market moves.</p></div></div></div></div>
   <div class="workflow-preview" aria-label="Illustration of ACG Trader order-planning controls, not an interactive trading ticket"><div class="head"><strong>Order planning</strong><small>ACG Trader · illustrative</small></div><div class="preview-rows"><div><span>Order type</span><strong>Market / Pending</strong></div><div><span>Position sizing</span><strong>Lots · Margin · Risk</strong></div><div><span>Stop loss</span><strong>Set a protective price</strong></div><div><span>Take profit</span><strong>Set a target price</strong></div><div><span>Account costs</span><strong>Review estimates</strong></div></div><div class="preview-actions"><span>SELL</span><span>BUY</span></div><p class="workflow-caption">Interface illustration only. Buttons on this page do not place orders. Order acceptance and risk enforcement are determined by the trading backend.</p></div>
  </div></section>
  <section class="section markets" id="markets"><div class="shell">
-  <div class="section-head"><div><div class="micro">03 / MARKETS</div><h2>Follow the markets<br/>you trade.</h2></div><p>Access a focused instrument catalog in supported simulated trading environments. Specific instruments and permissions depend on your account.</p></div>
-  <div class="market-list"><div class="market-item"><span class="n">01</span><h3>Forex</h3><p>Currency pairs, including EUR/USD</p><span class="plus" aria-hidden="true">↗</span></div><div class="market-item"><span class="n">02</span><h3>Commodities</h3><p>Selected metals and energy instruments, including gold</p><span class="plus" aria-hidden="true">↗</span></div><div class="market-item"><span class="n">03</span><h3>Crypto</h3><p>Selected cryptocurrency markets, including Bitcoin</p><span class="plus" aria-hidden="true">↗</span></div></div>
+  <div class="section-head"><div><h2>Follow the markets<br/>you trade.</h2></div><p>Access a focused instrument catalog in supported simulated trading environments. Specific instruments and permissions depend on your account.</p></div>
+  <div class="market-list"><div class="market-item"><h3>Forex</h3><p>Currency pairs, including EUR/USD</p></div><div class="market-item"><h3>Commodities</h3><p>Selected metals and energy instruments, including gold</p></div><div class="market-item"><h3>Crypto</h3><p>Selected cryptocurrency markets, including Bitcoin</p></div></div>
   <p class="markets-note">Instrument availability is controlled by the connected account, market-data coverage and trading permissions. This page does not advertise unrestricted market access or live brokerage execution.</p>
  </div></section>
  <section class="section access" id="access"><div class="shell">
-  <div class="section-head"><div><div class="micro">04 / ACCOUNT ACCESS</div><h2>Know your account.<br/>Know your platform.</h2></div><p>ACG Trader is trading technology. Your account issuer determines your credentials and eligibility to use the platform.</p></div>
-  <div class="access-grid"><article class="access-card"><span class="access-kicker">Existing trading account</span><h3>ACG Funded users</h3><p>Sign in with the trading-account ID and password issued for your ACG Funded account. These are not your email, Google or banking credentials.</p><a class="btn btn-white" href="/?acg_login=1">ACG Funded sign in <span class="arrow" aria-hidden="true">↗</span></a></article>
-  <article class="access-card"><span class="access-kicker">Authorized organization</span><h3>Connect an issued account</h3><p>Use the provider/tenant identifier and trading-account credentials supplied by an organization explicitly integrated with ACG Trader.</p><a class="btn btn-dark" href="/?acg_connect_prop=1">Connect authorized account <span class="arrow" aria-hidden="true">↗</span></a></article></div>
+  <div class="section-head"><div><h2>Know your account.<br/>Know your platform.</h2></div><p>ACG Trader is trading technology. Your account issuer determines your credentials and eligibility to use the platform.</p></div>
+  <div class="access-grid"><article class="access-card"><h3>ACG Funded users</h3><p>Sign in with the trading-account ID and password issued for your ACG Funded account. These are not your email, Google or banking credentials.</p><a class="btn btn-white" href="/?acg_login=1">ACG Funded sign in <span class="arrow" aria-hidden="true">↗</span></a></article>
+  <article class="access-card"><h3>Connect an issued account</h3><p>Use the provider/tenant identifier and trading-account credentials supplied by an organization explicitly integrated with ACG Trader.</p><a class="btn btn-dark" href="/?acg_connect_prop=1">Connect authorized account <span class="arrow" aria-hidden="true">↗</span></a></article></div>
   <p class="access-note">Never enter unrelated passwords on a trading-account screen. If you did not receive credentials from an authorized issuer, do not attempt account connection. <a href="/account-security.html">How account access works</a>.</p>
  </div></section>
- <section class="final-cta"><div class="shell final-row"><div><div class="micro">A FOCUSED TRADING WORKSPACE</div><h2>Markets. Orders.<br/>One clear interface.</h2><p>Open the terminal with an existing authorized account, or learn more about the tools before signing in.</p></div><a class="btn btn-white" href="/?acg_login=1">Open trading platform <span class="arrow" aria-hidden="true">↗</span></a></div></section>
+ <section class="final-cta"><div class="shell final-row"><div><h2>Markets. Orders.<br/>One clear interface.</h2><p>Open the terminal with an existing authorized account, or learn more about the tools before signing in.</p></div><a class="btn btn-white" href="/?acg_login=1">Open trading platform <span class="arrow" aria-hidden="true">↗</span></a></div></section>
 </main>
 <footer class="footer"><div class="shell">
  <div class="footer-grid"><div><a class="brand" href="/" aria-label="ACG Trader home"><span class="brand-acg">ACG</span><span class="brand-divider" aria-hidden="true"></span><span class="brand-trader">TRADER</span></a><p class="footer-intro">Chart-first trading technology for market analysis, risk planning and simulated account execution.</p><p class="footer-operator">Developed by ACG-MANAGEMENT, UNIPESSOAL LDA, Portugal.</p></div>
