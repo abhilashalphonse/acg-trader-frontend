@@ -32,12 +32,12 @@ jobs:
       - name: Build
         run: npm run build
       - name: Cinematic landing video browser acceptance
-        if: ${{ github.head_ref == 'design/revolut-motion-films-20261120' || github.ref == 'refs/heads/design/revolut-motion-films-20261120' }}
+        if: ${{ github.head_ref == 'design/revolut-motion-films-20261120' || github.ref == 'refs/heads/design/revolut-motion-films-20261120' || github.head_ref == 'design/market-shield-film-ux-20261120' || github.ref == 'refs/heads/design/market-shield-film-ux-20261120' }}
         run: |
           npm install --no-save --no-audit --no-fund playwright@1.56.1
           node scripts/landing-video-smoke.mjs
       - name: Upload cinematic landing review screenshots
-        if: ${{ always() && (github.head_ref == 'design/revolut-motion-films-20261120' || github.ref == 'refs/heads/design/revolut-motion-films-20261120') }}
+        if: ${{ always() && (github.head_ref == 'design/revolut-motion-films-20261120' || github.ref == 'refs/heads/design/revolut-motion-films-20261120' || github.head_ref == 'design/market-shield-film-ux-20261120' || github.ref == 'refs/heads/design/market-shield-film-ux-20261120') }}
         uses: actions/upload-artifact@v4
         with:
           name: acg-landing-film-desktop-mobile

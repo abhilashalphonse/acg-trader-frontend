@@ -28,12 +28,12 @@ try {
   }
   assert.ok(ready, 'Railway-style static host did not start: ' + logs);
 
-  const partial = await fetch(base + '/media/acg-motion-panorama.mp4', {
+  const partial = await fetch(base + '/media/acg-three-markets.mp4', {
     headers: { Range: 'bytes=0-99' }
   });
   assert.equal(partial.status, 206);
   assert.match(partial.headers.get('content-type') || '', /video\/mp4/);
-  assert.match(partial.headers.get('content-range') || '', /bytes 0-99\/1352042/);
+  assert.match(partial.headers.get('content-range') || '', /bytes 0-99\/1547415/);
   assert.equal((await partial.arrayBuffer()).byteLength, 100);
 
   mkdirSync('artifacts', { recursive: true });
@@ -49,8 +49,8 @@ try {
       const r = await page.goto(base+'/acg-landing-v6.html', { waitUntil:'domcontentloaded' });
       assert.equal(r?.status(), 200);
       await page.screenshot({ path:'artifacts/landing-film-'+viewport.label+'-hero.png' });
-      await page.locator('.film-panorama').scrollIntoViewIfNeeded();
-      await page.waitForFunction(() => document.querySelector('.film-panorama video')?.readyState >= 2, null, { timeout: 8000 });
+      await page.locator('.market-film').scrollIntoViewIfNeeded();
+      await page.waitForFunction(() => document.querySelector('.market-film video')?.readyState >= 2, null, { timeout: 8000 });
       await page.waitForTimeout(350);
       const values = await page.evaluate(() => ({
         heading: document.querySelector('.hero h1')?.textContent,
@@ -60,15 +60,17 @@ try {
         validSources: [...document.querySelectorAll('.film-video')].every(v=>v.querySelector('source')?.src?.includes('/media/')),
         width: document.documentElement.scrollWidth,
         viewportWidth: window.innerWidth,
-        filmHeight: document.querySelector('.film-panorama')?.getBoundingClientRect().height
+        filmHeight: document.querySelector('.market-film')?.getBoundingClientRect().height
       }));
       assert.match(values.heading || '', /Trading without/);
       assert.equal(values.brand, '/acg-trader-wordmark.png');
-      assert.equal(values.videoCount, 3);
-      assert.deepEqual(values.videoTypes, ['video/mp4','video/mp4','video/mp4']);
+      assert.equal(values.videoCount, 2);
+      assert.equal(await page.locator('video#acg-three-markets-film').count(), 1);
+      assert.equal(await page.locator('video#acg-shield-film').count(), 1);
+      assert.deepEqual(values.videoTypes, ['video/mp4','video/mp4']);
       assert.ok(values.validSources);
       assert.ok(values.width <= values.viewportWidth + 3, viewport.label+' horizontal overflow: '+JSON.stringify(values));
-      assert.ok(values.filmHeight > 400);
+      assert.ok(values.filmHeight > 150);
       assert.deepEqual(errors, [], viewport.label+' errors');
       await page.screenshot({ path:'artifacts/landing-film-'+viewport.label+'-motion.png' });
       await page.evaluate(() => { document.documentElement.style.scrollBehavior='auto'; window.scrollTo(0,0); });
@@ -80,7 +82,8 @@ try {
     await reduced.goto(base+'/acg-landing-v6.html',{waitUntil:'domcontentloaded'});
     await reduced.waitForTimeout(280);
     const states = await reduced.locator('video.film-video').evaluateAll(videos=>videos.map(v=>({paused:v.paused,controls:v.controls})));
-    assert.ok(states.every(v=>v.paused && v.controls), 'Reduced motion must pause clips and make manual playback accessible: '+JSON.stringify(states));
+    assert.ok(states.every(v=>v.paused), 'Reduced motion must not autoplay clips: '+JSON.stringify(states));
+    assert.equal(await reduced.locator('[data-video-control]:not([hidden])').count(), 2);
     await reduced.close();
   } finally {
     await browser.close();

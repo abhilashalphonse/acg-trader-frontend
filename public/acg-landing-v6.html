@@ -350,146 +350,61 @@ html{scroll-padding-top:78px}
  .hero-actions .btn{width:100%}
 }
 
-/* Panoramic product storytelling: progressive enhancement, no perpetual motion. */
-.hero-stage{width:min(1480px,calc(100vw - 38px));max-width:none;margin-top:64px;transform-origin:center 30%;will-change:transform}
-.motion-gallery{position:relative;background:#080809;color:#f4f4f5;border-bottom:1px solid #29292d;isolation:isolate}
-.motion-gallery-pin{padding:91px 0 73px;min-width:0}
-.gallery-heading{display:flex;justify-content:space-between;align-items:end;gap:40px;margin-bottom:35px}
-.gallery-heading h2{font-size:clamp(42px,5.2vw,75px);font-weight:620;letter-spacing:-.071em;line-height:1.03;margin:0 0 17px}
-.gallery-heading p{color:#9fa0a8;font-size:16px;line-height:1.7;max-width:650px;margin:0}
-.gallery-progress{height:3px;width:142px;background:#34353a;border-radius:10px;overflow:hidden;flex:none;margin-bottom:8px}
-.gallery-progress span{height:100%;display:block;width:100%;background:#ececf0;transform:scaleX(0);transform-origin:left center}
-.gallery-window{width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;scroll-snap-type:x mandatory;overscroll-behavior-x:contain}
-.gallery-window::-webkit-scrollbar{display:none}
-.gallery-window:focus-visible{outline:2px solid #aaaab4;outline-offset:-2px}
-.gallery-track{display:flex;align-items:stretch;gap:20px;width:max-content;padding-left:max(22px,calc((100vw - 1280px)/2));padding-right:max(22px,calc((100vw - 1280px)/2))}
-.gallery-card{width:min(835px,78vw);height:445px;flex:0 0 auto;display:grid;grid-template-columns:.74fr 1fr;gap:20px;align-items:center;padding:40px;border:1px solid #323339;border-radius:23px;background:linear-gradient(135deg,#191a1d,#111214);scroll-snap-align:center;overflow:hidden}
-.gallery-card-intro{position:relative;z-index:1;min-width:0}
-.gallery-card h3{font-size:clamp(29px,3.1vw,43px);line-height:1.04;letter-spacing:-.055em;margin:0 0 18px;color:#f1f1f3;font-weight:650}
-.gallery-card-intro p{font-size:14px;line-height:1.7;color:#a7a8b1;max-width:295px;margin:0}
-.gallery-card-risk{background:linear-gradient(135deg,#1f2025,#101114)}
-.gallery-card-positions{background:linear-gradient(135deg,#181a1e,#0c0d10)}
-.gallery-ui{background:#0b0b0d;border:1px solid #3c3c44;box-shadow:0 16px 56px #0005;border-radius:13px;min-width:0;height:328px;position:relative;overflow:hidden}
-.gallery-ui-toolbar{height:45px;border-bottom:1px solid #31323a;display:flex;gap:15px;padding:0 17px;align-items:center;font-size:11px;color:#90919a}
-.gallery-ui-toolbar strong{font-size:12px;color:#ececf0;font-weight:700;margin-right:auto}
-.gallery-ui-chart{background:repeating-linear-gradient(0deg,transparent,transparent 43px,#27282d 44px),#0b0c0e}
-.gallery-ui-chart svg{width:100%;height:250px;display:block;padding:12px}
-.gallery-example{position:absolute;left:17px;bottom:10px;color:#777982;font-size:10px}
-.gallery-ui-plan{padding-bottom:10px}
-.gallery-plan-line{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px;border-bottom:1px solid #25262b;color:#92949d;font-size:11px}
-.gallery-plan-line strong{color:#e5e6e9;font-weight:580;font-size:11px}
-.gallery-plan-actions{display:flex;gap:8px;margin:15px 17px}
-.gallery-plan-actions span{flex:1;text-align:center;border-radius:6px;padding:10px 3px;font-size:10px;font-weight:760;background:#a63b4b;color:white}
-.gallery-plan-actions span+span{background:#195be1}
-.gallery-ui-plan .gallery-example{bottom:5px}
-.gallery-position-tabs{display:flex;gap:20px;border-bottom:1px solid #2a2b31;padding:17px;color:#878a94;font-size:11px}
-.gallery-position-tabs strong{color:#f1f1f3;border-bottom:2px solid #dddddf;padding-bottom:12px;margin-bottom:-18px}
-.gallery-position-empty{min-height:175px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;text-align:center}
-.gallery-position-icon{height:34px;width:34px;border-radius:50%;border:1px solid #41434c;display:grid;place-items:center;color:#a7a8b2;margin-bottom:11px}
-.gallery-position-empty strong{color:#e1e1e5;font-size:12px}
-.gallery-position-empty p{font-size:11px;line-height:1.6;color:#8b8d97;max-width:230px;margin:9px auto 0}
-.gallery-tail{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-top:20px}
-.gallery-tail p{color:#81828a;font-size:11px;line-height:1.6;margin:0}
-.gallery-mobile-hint{display:none}
-.motion-ready .hero-stage{animation:hero-product-arrive 950ms cubic-bezier(.2,.75,.2,1) both}
-@keyframes hero-product-arrive{from{opacity:.7;transform:translate3d(0,30px,0) scale(.97)}to{opacity:1;transform:translate3d(0,0,0) scale(1)}}
-.motion-ready .feature,.motion-ready .market-item{transition:opacity .65s ease,transform .7s cubic-bezier(.22,1,.36,1)}
-.motion-ready .feature:not(.in-view),.motion-ready .market-item:not(.in-view){opacity:.82;transform:translate3d(0,19px,0)}
-.motion-ready .feature.in-view,.motion-ready .market-item.in-view{opacity:1;transform:translate3d(0,0,0)}
-.motion-ready .feature:nth-child(2),.motion-ready .market-item:nth-child(2){transition-delay:.08s}
-.motion-ready .feature:nth-child(3),.motion-ready .market-item:nth-child(3){transition-delay:.13s}
-.motion-ready .feature:nth-child(4){transition-delay:.18s}
-@media(min-width:900px) and (min-height:660px){
- .motion-ready .motion-gallery{height:220vh}
- .motion-ready .motion-gallery-pin{height:calc(100vh - 74px);position:sticky;top:74px;padding:clamp(30px,5vh,60px) 0 10px;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
- .motion-ready .gallery-heading{margin-bottom:25px}
- .motion-ready .gallery-window{overflow:hidden;scroll-snap-type:none}
- .motion-ready .gallery-track{transform:translate3d(0,0,0);will-change:transform}
- .motion-ready .gallery-card{height:clamp(330px,49vh,445px)}
- .motion-ready .gallery-ui{height:min(328px,41vh)}
- .motion-ready .gallery-ui-chart svg{height:calc(100% - 45px)}
- .motion-ready .gallery-tail{margin-top:13px}
+
+/* Current ACG Trader films: media serves the page content rather than replacing it. */
+html{scroll-padding-top:80px}
+.hero{background:#070708;isolation:isolate}
+.hero::after{content:none}
+.hero-stage{width:min(1360px,calc(100vw - 44px));max-width:none}
+.desktop-nav{gap:32px}
+.desktop-nav a{font-weight:590}
+.film-video{display:block;width:100%;height:100%;object-fit:contain}
+.film-media-control[hidden]{display:none!important}
+.film-media-control{position:absolute;z-index:3;bottom:15px;right:15px;min-width:82px;min-height:44px;padding:9px 16px;background:rgba(245,245,247,.93);border:1px solid rgba(255,255,255,.55);border-radius:999px;color:#151518;font:600 12px Inter,system-ui,sans-serif;cursor:pointer}
+.film-media-control:hover{background:#fff}
+.film-media-control:focus-visible{outline:3px solid #8bb4ff;outline-offset:3px}
+.shield-story{background:#ececef;color:#19191c;padding:125px 0 130px;border-top:1px solid #e2e2e5;border-bottom:1px solid #dedee2}
+.shield-story-layout{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,.81fr);align-items:center;gap:8%}
+.shield-story-copy h2{font-size:clamp(52px,5.8vw,84px);letter-spacing:-.073em;line-height:1.02;font-weight:650;margin:0 0 29px;max-width:710px}
+.shield-story-copy p{font-size:17px;line-height:1.72;color:#626269;max-width:520px;margin:0}
+.shield-story-copy a{display:inline-flex;align-items:center;gap:10px;color:#19191c;font-size:13px;font-weight:700;margin-top:27px;border-bottom:1px solid #19191c;padding:0 0 5px}
+.shield-story-copy a:hover{opacity:.72}
+.shield-film-frame{margin:0;min-width:0}
+.shield-film-panel{width:min(100%,475px);aspect-ratio:3/4;position:relative;margin-left:auto;overflow:hidden;border-radius:23px;border:1px solid #dedee2;background:#fff;box-shadow:0 30px 84px #1c1c2422}
+.shield-film-panel .film-video{object-fit:contain}
+.shield-film-panel .film-media-control{background:#161619;color:white;border-color:#44444a}
+.shield-film-panel .film-media-control:hover{background:#36363d}
+.shield-film-frame figcaption{font-size:11px;color:#76767d;line-height:1.65;text-align:center;padding-top:13px;max-width:475px;margin-left:auto}
+.market-film{position:relative;width:100%;aspect-ratio:2/1;border-radius:23px;background:#000;overflow:hidden;border:1px solid #25252b;margin:0 0 15px;box-shadow:0 30px 65px #0002}
+.market-film .film-video{object-fit:contain;background:#000}
+.market-film-caption{color:#67676e;font-size:12px;line-height:1.65;margin:0 0 35px;max-width:900px}
+.film-muted-note{font-size:11px;color:#797982;line-height:1.6}
+.shield-story .film-muted-note{color:#73737a}
+.motion-ready [data-film-reveal]{transition:opacity .7s ease,transform .8s cubic-bezier(.22,1,.36,1)}
+.motion-ready [data-film-reveal]:not(.in-view){opacity:.82;transform:translateY(18px)}
+.motion-ready [data-film-reveal].in-view{opacity:1;transform:none}
+@media(max-width:930px){
+ .shield-story{padding:91px 0}
+ .shield-story-layout{gap:6%}
+ .shield-story-copy h2{font-size:clamp(43px,6vw,66px)}
+ .shield-story-copy p{font-size:15px}
+ .market-film{border-radius:19px}
 }
-@media(max-width:899px), (max-height:659px){
- .gallery-progress{display:none}
- .gallery-mobile-hint{display:block}
- .gallery-track{gap:13px;padding-left:18px;padding-right:18px}
- .gallery-card{width:min(715px,86vw);height:auto;min-height:410px;grid-template-columns:1fr;gap:16px;padding:24px}
- .gallery-card h3{font-size:31px;margin-bottom:7px}
- .gallery-card-intro p{max-width:none;font-size:13px}
- .gallery-ui{height:245px}
- .gallery-ui-chart svg{height:195px}
- .gallery-ui-plan .gallery-plan-line{padding:10px 14px}
- .gallery-ui-plan .gallery-plan-actions{margin-top:10px}
- .gallery-ui-plan .gallery-example{font-size:9px}
- .gallery-position-empty{min-height:98px}
- .motion-gallery-pin{padding:65px 0 52px}
- .gallery-heading{display:block;margin-bottom:25px}
- .gallery-heading h2{font-size:clamp(40px,7vw,58px)}
- .gallery-heading p{font-size:14px}
-}
-@media(max-width:580px){
- .hero-stage{width:calc(100vw - 20px);margin-top:41px}
- .gallery-heading{margin-bottom:21px}
- .gallery-card{width:88vw;min-height:410px;border-radius:18px;padding:20px}
- .gallery-ui{border-radius:10px}
- .gallery-ui-toolbar{padding:0 11px;gap:9px;font-size:9px}
- .gallery-ui-toolbar strong{font-size:11px}
- .gallery-plan-line{font-size:10px}
- .gallery-plan-line strong{font-size:10px}
- .gallery-position-tabs{gap:12px;font-size:10px;padding:13px}
- .gallery-tail{display:block}
- .gallery-tail p{font-size:10px}
- .gallery-mobile-hint{margin-top:7px!important;color:#b1b1b9!important}
+@media(max-width:720px){
+ .shield-story{padding:74px 0 78px}
+ .shield-story-layout{grid-template-columns:1fr;gap:34px}
+ .shield-story-copy h2{font-size:clamp(45px,10vw,66px);margin-bottom:19px}
+ .shield-story-copy p{font-size:15px}
+ .shield-film-panel{margin:auto;width:min(100%,415px);border-radius:18px}
+ .shield-film-frame figcaption{margin:auto;max-width:415px}
+ .market-film{border-radius:16px;aspect-ratio:2/1;margin-bottom:14px}
+ .market-film-caption{font-size:11px;margin-bottom:26px}
+ .film-media-control{bottom:9px;right:9px;min-width:70px;min-height:40px;padding:8px 12px}
 }
 @media(prefers-reduced-motion:reduce){
- .motion-ready .hero-stage{animation:none!important}
- .motion-ready .feature,.motion-ready .market-item{opacity:1!important;transform:none!important;transition:none!important}
- .motion-gallery{height:auto!important}
- .motion-gallery-pin{height:auto!important;position:static!important;padding:65px 0 52px!important}
- .gallery-window{overflow-x:auto!important;scroll-snap-type:x mandatory!important}
- .gallery-track{transform:none!important;will-change:auto!important}
- .gallery-progress{display:none!important}
+ .motion-ready [data-film-reveal]{opacity:1!important;transform:none!important;transition:none!important}
 }
 
-/* ACG Trader cinematic visual studies — scoped landing redesign */
-.film-experience{background:#09090a;color:#f4f4f6;padding-top:130px;overflow:hidden}
-.film-intro{display:flex;align-items:end;justify-content:space-between;gap:38px;margin-bottom:50px}
-.film-intro h2{font-size:clamp(55px,7vw,104px);line-height:1;letter-spacing:-.08em;font-weight:650;margin:0}
-.film-intro h2 span{color:#a0a0a7}
-.film-intro p{max-width:355px;margin:0 0 5px;color:#b6b6bd;font-size:16px;line-height:1.7}
-.film-panorama{height:min(780px,72vw);min-height:580px;background:#070708;position:relative;isolation:isolate;overflow:hidden}
-.film-wide{position:absolute;inset:0;z-index:-2;width:100%;height:100%;object-fit:cover;object-position:center}
-.film-wide-shade{position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(90deg,#050507e8 0%,#05050799 48%,#05050711 85%),linear-gradient(0deg,#050507a8,transparent 45%)}
-.film-panorama-content{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;height:100%}
-.film-panorama-content h3{font-size:clamp(60px,7.5vw,110px);line-height:.99;font-weight:645;letter-spacing:-.083em;max-width:870px;margin:0}
-.film-panorama-content p{max-width:490px;color:#e5e5e9;font-size:18px;line-height:1.65;margin:27px 0}
-.film-panorama-content .btn{min-height:52px;padding:15px 26px;border-radius:999px}
-.film-legal{margin-top:16px;color:#87878d;font-size:11px;line-height:1.7}
-.film-emblem-layout{display:grid;grid-template-columns:1fr .82fr;align-items:center;gap:9%;padding-top:117px;padding-bottom:135px}
-.film-emblem-content h3{font-size:clamp(52px,5.8vw,81px);line-height:1.03;letter-spacing:-.071em;font-weight:650;margin:0 0 24px}
-.film-emblem-content>p:not(.film-emblem-note){font-size:17px;line-height:1.7;max-width:490px;color:#b9b9bf;margin:0}
-.film-emblem-note{font-size:12px;line-height:1.65;color:#898990;max-width:410px;margin:23px 0 0}
-.film-emblem-frame{background:#ededed;aspect-ratio:3/4;border-radius:26px;overflow:hidden;max-width:480px;justify-self:end;box-shadow:0 35px 100px #0007}
-.film-portrait{display:block;width:100%;height:100%;object-fit:cover}
-.film-video:not([data-video-ready="true"]){background:#151518}
-.film-experience [data-film-reveal]{transition:opacity .7s ease,transform .8s cubic-bezier(.22,1,.36,1)}
-.film-experience [data-film-reveal]:not(.in-view){opacity:.87;transform:translateY(22px)}
-.film-experience [data-film-reveal].in-view{opacity:1;transform:none}
-@media(max-width:900px){.film-experience{padding-top:90px}.film-intro{display:block;margin-bottom:34px}.film-intro h2{font-size:clamp(53px,8vw,84px)}.film-intro p{max-width:580px;margin-top:22px;font-size:15px}.film-panorama{height:630px;min-height:0}.film-emblem-layout{gap:6%;padding-top:90px;padding-bottom:100px}}
-@media(max-width:650px){.film-experience{padding-top:75px}.film-intro h2{font-size:clamp(51px,11vw,72px)}.film-panorama{height:570px}.film-wide{object-position:58% center}.film-wide-shade{background:linear-gradient(0deg,#050507e8,#05050736 97%)}.film-panorama-content{justify-content:flex-end;padding-bottom:59px}.film-panorama-content h3{font-size:clamp(56px,12vw,76px)}.film-panorama-content p{font-size:15px;line-height:1.6;margin:20px 0}.film-legal{font-size:10px}.film-emblem-layout{display:flex;flex-direction:column;align-items:stretch;padding-top:72px;padding-bottom:86px;gap:34px}.film-emblem-content h3{font-size:clamp(48px,11vw,67px)}.film-emblem-content>p:not(.film-emblem-note){font-size:15px}.film-emblem-frame{width:min(100%,425px);align-self:center;border-radius:18px}}
-@media(prefers-reduced-motion:reduce){.film-experience [data-film-reveal]{opacity:1!important;transform:none!important;transition:none!important}}
-
-/* Motion is atmospheric in the hero: deliberately soft to avoid implying partnerships. */
-.hero{position:relative;isolation:isolate;overflow:hidden}
-.hero-layout{position:relative;z-index:1}
-.hero-ambient-video{position:absolute;inset:-5%;width:110%;height:110%;object-fit:cover;filter:blur(29px) brightness(.25) grayscale(1);opacity:.36;pointer-events:none;z-index:-2}
-.hero::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:-1;background:linear-gradient(to bottom,#0707089a 0%,#0707087f 34%,#070708 91%)}
-@media(max-width:650px){.hero-ambient-video{display:none}}
-@media(prefers-reduced-motion:reduce){.hero-ambient-video{display:none}}
-
-.film-panorama-legal{position:absolute;right:clamp(20px,5vw,72px);bottom:19px;max-width:320px;margin:0;color:#bcbcc4;font-size:10px;line-height:1.5;text-align:right;text-shadow:0 2px 8px #000}
-@media(max-width:650px){.film-panorama-legal{right:16px;left:16px;bottom:13px;text-align:left;font-size:9px;max-width:none}}
 </style>
 </head>
 <body>
@@ -498,15 +413,14 @@ html{scroll-padding-top:78px}
  <div class="shell header-inner">
   <a class="brand" href="/" aria-label="ACG Trader home"><img class="brand-original" src="/acg-trader-wordmark.png" alt="ACG Trader" width="388" height="67" decoding="async"/></a>
   <nav class="desktop-nav" aria-label="Main navigation">
-   <a href="#platform">Platform</a><a href="#experience">Experience</a><a href="#features">Features</a><a href="/contact.html">Support</a>
+   <a href="#platform">Platform</a><a href="#features">Features</a><a href="#markets">Markets</a><a href="/contact.html">Support</a>
   </nav>
   <div class="header-actions"><a class="btn-text" href="/?acg_login=1">Log in</a><a class="btn btn-white" href="/?acg_connect_prop=1">Connect account <span class="arrow" aria-hidden="true">↗</span></a></div>
-  <details class="mobile-nav"><summary aria-label="Open navigation"><span class="menu-lines" aria-hidden="true"><i></i><i></i></span> Menu</summary><nav class="mobile-dropdown" aria-label="Mobile navigation"><a href="#platform">Platform</a><a href="#experience">Experience</a><a href="#features">Features</a><a href="#trading">Trading workflow</a><a href="#markets">Markets</a><a href="#access">Account access</a><a href="/contact.html">Support</a><a class="mobile-signin" href="/?acg_login=1">Sign in</a><a href="/?acg_connect_prop=1">Connect authorized account ↗</a></nav></details>
+  <details class="mobile-nav"><summary aria-label="Open navigation"><span class="menu-lines" aria-hidden="true"><i></i><i></i></span> Menu</summary><nav class="mobile-dropdown" aria-label="Mobile navigation"><a href="#platform">Platform</a><a href="#features">Features</a><a href="#markets">Markets</a><a href="#experience">Experience</a><a href="/contact.html">Support</a><a class="mobile-signin" href="/?acg_login=1">Log in</a><a href="/?acg_connect_prop=1">Connect authorized account ↗</a></nav></details>
  </div>
 </header>
 <main id="main">
  <section class="hero" id="platform">
- <video class="film-video hero-ambient-video" muted autoplay loop playsinline preload="metadata" poster="/media/acg-motion-panorama-poster.jpg" aria-hidden="true" tabindex="-1"><source src="/media/acg-motion-panorama.mp4" type="video/mp4"/></video>
  <div class="shell hero-layout">
    <div class="hero-content">
     
@@ -533,22 +447,6 @@ html{scroll-padding-top:78px}
    </div>
  </div></section>
  
-<section class="film-experience" id="experience">
- <div class="shell film-intro" data-film-reveal><h2>A platform with<br/><span>presence.</span></h2><p>Thoughtful tools. Clear workflows. A trading environment designed to let the decisions speak for themselves.</p></div>
- <div class="film-panorama">
-  <video class="film-video film-wide" muted autoplay loop playsinline preload="metadata" poster="/media/acg-motion-panorama-poster.jpg" aria-label="Creative metallic motion artwork featuring third-party marks, not supported providers or partners">
-   <source src="/media/acg-motion-panorama.mp4" type="video/mp4"/>Video unavailable.
-  </video>
-  <div class="film-wide-shade"></div>
-  <div class="shell film-panorama-content" data-film-reveal><h3>Clarity in motion.</h3><p>Follow markets, plan risk and manage positions with the chart always at the center.</p><a class="btn btn-white" href="#features">Explore trading tools <span class="arrow" aria-hidden="true">↗</span></a></div>
-  <p class="film-panorama-legal">Creative artwork. Brand marks are not ACG Trader partnerships or integrations.</p>
- </div>
- <p class="shell film-legal">Creative motion artwork only. Third-party brands visible in the film are not ACG Trader partners, integrations, providers or endorsements.</p>
- <div class="shell film-emblem-layout" data-film-reveal>
-  <div class="film-emblem-content"><h3>Every detail<br/>has a purpose.</h3><p>A quieter interface. Familiar trading workflows. Tools that stay within reach when you need them.</p><p class="film-emblem-note">This metallic emblem is a creative study, not the ACG Trader logo or a separate product.</p></div>
-  <div class="film-emblem-frame"><video class="film-video film-portrait" muted autoplay loop playsinline preload="metadata" poster="/media/acg-motion-emblem-poster.jpg" aria-label="Creative silver R emblem animation, separate from ACG Trader branding"><source src="/media/acg-motion-emblem.mp4" type="video/mp4"/>Video unavailable.</video></div>
- </div>
-</section>
 <div class="fact-strip"><div class="shell fact-grid"><div class="fact"><b>Chart-first</b><small>Market analysis at the center</small></div><div class="fact"><b>Order planning</b><small>Market and pending order workflows</small></div><div class="fact"><b>Risk inputs</b><small>Lots, margin and risk-based sizing</small></div><div class="fact"><b>Position controls</b><small>Manage orders, stops and targets</small></div></div></div>
  <section class="section" id="features"><div class="shell">
   <div class="section-head"><div><h2>Everything around<br/>the trade.</h2></div><p>Market context, execution and position management belong in one workspace—not across disconnected screens.</p></div>
@@ -559,12 +457,37 @@ html{scroll-padding-top:78px}
    <article class="feature"><h3>Stay with the trade.</h3><p>Review open positions, pending orders and trading history. Adjust supported levels and manage exposure from inside the terminal.</p><div class="feature-visual"><span class="chip chip-active">Positions</span><span class="chip">Pending</span><span class="chip">History</span><span class="chip">Journal</span></div></article>
   </div>
  </div></section>
+ <section class="shield-story" id="experience" aria-labelledby="shield-heading">
+  <div class="shell shield-story-layout">
+   <div class="shield-story-copy" data-film-reveal>
+    <h2 id="shield-heading">Designed around<br/>your decisions.</h2>
+    <p>From price analysis to risk-based order planning and position management, ACG Trader brings the working parts of trading into one focused interface.</p>
+    <a href="#trading">Explore the trading workflow <span aria-hidden="true">↗</span></a>
+   </div>
+   <figure class="shield-film-frame" data-film-reveal>
+    <div class="shield-film-panel">
+     <video id="acg-shield-film" class="film-video" muted loop playsinline controls preload="metadata" poster="/media/acg-shield-poster.jpg" aria-label="ACG branded metallic shield animation">
+      <source src="/media/acg-shield.mp4" type="video/mp4"/>Your browser cannot play this video.
+     </video>
+     <button class="film-media-control" type="button" data-video-control="acg-shield-film" hidden aria-label="Play ACG Shield animation">Play</button>
+    </div>
+    <figcaption>ACG brand animation. A visual identity element, not a security certification.</figcaption>
+   </figure>
+  </div>
+ </section>
  <section class="section workflow" id="trading"><div class="shell workflow-grid">
   <div><h2>From analysis<br/>to execution.</h2><p class="workflow-lead">A coherent workflow for discretionary traders. Focus on price action, establish the plan, then manage the result without leaving the platform.</p><div class="steps"><div class="step"><div><strong>Analyze</strong><p>Select a market, inspect its chart and place your levels in context.</p></div></div><div class="step"><div><strong>Plan</strong><p>Set order type, sizing method and protective levels before submission.</p></div></div><div class="step"><div><strong>Manage</strong><p>Monitor positions, orders and account activity as the market moves.</p></div></div></div></div>
   <div class="workflow-preview" aria-label="Illustration of ACG Trader order-planning controls, not an interactive trading ticket"><div class="head"><strong>Order planning</strong><small>ACG Trader · illustrative</small></div><div class="preview-rows"><div><span>Order type</span><strong>Market / Pending</strong></div><div><span>Position sizing</span><strong>Lots · Margin · Risk</strong></div><div><span>Stop loss</span><strong>Set a protective price</strong></div><div><span>Take profit</span><strong>Set a target price</strong></div><div><span>Account costs</span><strong>Review estimates</strong></div></div><div class="preview-actions"><span>SELL</span><span>BUY</span></div><p class="workflow-caption">Interface illustration only. Buttons on this page do not place orders. Order acceptance and risk enforcement are determined by the trading backend.</p></div>
  </div></section>
  <section class="section markets" id="markets"><div class="shell">
   <div class="section-head"><div><h2>Follow the markets<br/>you trade.</h2></div><p>Access a focused instrument catalog in supported simulated trading environments. Specific instruments and permissions depend on your account.</p></div>
+  <div class="market-film" data-film-reveal>
+   <video id="acg-three-markets-film" class="film-video" muted loop playsinline controls preload="metadata" poster="/media/acg-three-markets-poster.jpg" aria-label="Conceptual rotating metallic markets artwork; not a live list of tradable assets">
+    <source src="/media/acg-three-markets.mp4" type="video/mp4"/>Your browser cannot play this video.
+   </video>
+   <button class="film-media-control" type="button" data-video-control="acg-three-markets-film" hidden aria-label="Play Three Markets animation">Play</button>
+  </div>
+  <p class="market-film-caption">Conceptual markets artwork. Logos and instrument names appearing in the animation do not indicate available instruments, supported integrations, partners or endorsements. The currently supported categories are listed below.</p>
   <div class="market-list"><div class="market-item"><h3>Forex</h3><p>Currency pairs, including EUR/USD</p></div><div class="market-item"><h3>Commodities</h3><p>Selected metals and energy instruments, including gold</p></div><div class="market-item"><h3>Crypto</h3><p>Selected cryptocurrency markets, including Bitcoin</p></div></div>
   <p class="markets-note">Instrument availability is controlled by the connected account, market-data coverage and trading permissions. This page does not advertise unrestricted market access or live brokerage execution.</p>
  </div></section>
