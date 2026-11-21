@@ -88,6 +88,7 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   const marketCss = read('public/acg-market-intro.css');
   assert.ok(marketCss.includes('width:min(1140px,100%)'));
   assert.ok(marketCss.includes('object-fit:contain'));
+  assert.ok(marketCss.includes('aspect-ratio:1254/674'));
   assert.ok(html.includes('not indicate available instruments, supported integrations, partners or endorsements'));
   assert.ok(html.includes('Illustrative mobile interface. Trading features and access depend on your account and device.'));
   assert.ok(html.includes('Simulated trading for authorized accounts'));
