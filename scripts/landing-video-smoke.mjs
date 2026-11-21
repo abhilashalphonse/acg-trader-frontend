@@ -616,6 +616,30 @@ try {
     assert.ok(states.every(v=>v.controls === false), 'No video controls');
     assert.equal(await reduced.locator('#acg-hero-replay').count(),0);
     assert.equal(await reduced.locator('#acg-hero-reveal').evaluate(v=>getComputedStyle(v).display),'none');
+    // Confirm packaged MP4s are seekable and that mobile Chrome actually
+    // advances video time, rather than merely decoding a static first frame.
+    const realMobile = await browser.newPage({
+      viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:'no-preference'
+    });
+    const mediaRange = await realMobile.request.get(base + '/media/hero.mp4',
+      { headers: { Range: 'bytes=0-15' } });
+    assert.equal(mediaRange.status(),206,'first-party video server must support byte ranges');
+    await realMobile.goto(base+'/acg-landing-v6.html',{waitUntil:'domcontentloaded'});
+    await realMobile.waitForFunction(() => {
+      const v=document.getElementById('acg-hero-reveal');
+      return v && (v.currentTime > 0.15 || v.ended);
+    },null,{timeout:12000});
+    for (const id of [
+      'acg-three-markets-film','ai-prism-film','acg-terminal-film',
+      'acg-ai-connection-film','acg-market-movers-film'
+    ]) {
+      await realMobile.locator('#'+id).scrollIntoViewIfNeeded();
+      await realMobile.waitForFunction(id => {
+        const v=document.getElementById(id);
+        return v && v.readyState >= 2 && !v.paused && v.currentTime > 0.15;
+      },id,{timeout:12000});
+    }
+    await realMobile.close();
     const normal = await browser.newPage({ viewport:{width:1440,height:900},reducedMotion:'no-preference' });
     await normal.goto(base+'/acg-landing-v6.html',{waitUntil:'domcontentloaded'});
     await normal.locator('#acg-three-markets-film').scrollIntoViewIfNeeded();
