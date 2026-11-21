@@ -66,7 +66,7 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /class="market-intro-cta" href="\/\?acg_login=1" title="Sign in to access your ACG Trader workspace">See for yourself<\/a>/);
   assert.ok(html.indexOf('class="market-intro-description"') < html.indexOf('class="market-intro-risk"')
     && html.indexOf('class="market-intro-risk"') < html.indexOf('class="market-intro-cta"'), 'risk disclosure comes before CTA');
-  assert.match(html, /href="\/acg-market-intro\.css"/);
+  assert.match(html, /href="\/acg-market-intro\.css\?v=20261121-mobile-scale2"/);
   assert.doesNotMatch(html, /class="market-intro-note"|Illustrative market artwork\. The Bitcoin motif/,
     'no artwork disclaimer below the BTC video');
   // Section 3: approved AI identity and prompt content, no fake live action.
