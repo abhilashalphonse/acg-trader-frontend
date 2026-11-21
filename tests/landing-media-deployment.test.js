@@ -1,24 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, statSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 
 const src = path => new URL('../' + path, import.meta.url);
 const read = file => readFileSync(src(file), 'utf8');
 const cleanSource = 'https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/a7112847-cd7c-4d7b-9f91-540af4da8234.mp4';
 
-test('remaining supporting videos and posters are valid local media', () => {
-  const clips = [
-    { file: 'acg-three-markets.mp4', maxBytes: 2000000 }
-  ];
-  for (const clip of clips) {
-    const data = readFileSync(src('public/media/' + clip.file));
-    assert.equal(data.subarray(4, 8).toString('ascii'), 'ftyp', clip.file);
-    assert.ok(data.length > 10000 && data.length < clip.maxBytes, clip.file);
-  }
-  for (const file of ['acg-three-markets-poster.jpg']) {
-    const data = readFileSync(src('public/media/' + file));
-    assert.equal(data.subarray(0, 2).toString('hex'), 'ffd8', file);
-    assert.ok(statSync(src('public/media/' + file)).size > 10000);
+test('unused local market-coins clips are excluded from Railway builds', () => {
+  for (const file of ['acg-three-markets.mp4','acg-three-markets-poster.jpg']) {
+    assert.equal(existsSync(src('public/media/' + file)), false, file + ' must be removed');
   }
 });
 
@@ -92,9 +82,13 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   const mobileCss = read('public/acg-mobile-section.css');
   assert.ok(mobileCss.includes('max-width:720px'));
   assert.ok(mobileCss.includes('max-height:600px'));
-  for (const media of ['acg-three-markets.mp4']) {
-    assert.ok(html.includes('/media/' + media));
-  }
+  assert.ok(html.includes('src="https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20logo%20BTC%20swirl.mp4"'));
+  assert.ok(!html.includes('/media/acg-three-markets.mp4'));
+  assert.ok(!html.includes('acg-three-markets-poster.jpg'));
+  const marketCss = read('public/acg-market-intro.css');
+  assert.ok(marketCss.includes('width:min(1140px,100%)'));
+  assert.ok(marketCss.includes('object-fit:contain'));
+  assert.ok(marketCss.includes('aspect-ratio:1254/674'));
   assert.ok(html.includes('not indicate available instruments, supported integrations, partners or endorsements'));
   assert.ok(html.includes('Illustrative mobile interface. Trading features and access depend on your account and device.'));
   assert.ok(html.includes('Simulated trading for authorized accounts'));

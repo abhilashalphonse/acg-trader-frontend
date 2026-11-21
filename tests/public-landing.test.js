@@ -95,12 +95,14 @@ test('public homepage uses V4 design language and current production capability 
   assert.ok(introStart < aiStart && aiStart < terminalStart && terminalStart < mobileStart, 'AI is third, Terminal fourth, Mobile fifth');
   assert.ok(heroEnd < introStart && introStart < featuresStart, 'second section follows hero');
   assert.equal((html.match(/id="acg-three-markets-film"/g) || []).length, 1);
+  assert.ok(!html.includes('/media/acg-three-markets.mp4'), 'Replaced market-coins clip is not used');
   const marketCss = readFileSync(new URL('../public/acg-market-intro.css', import.meta.url), 'utf8');
-  assert.match(marketCss, /width:min\(460px,100%\)/);
-  assert.match(marketCss, /width:min\(300px,100%\)/);
+  assert.ok(marketCss.includes('width:min(1140px,100%)'));
+  assert.ok(marketCss.includes('object-fit:contain'));
+  assert.ok(marketCss.includes('aspect-ratio:1254/674'));
 
   assert.equal((html.match(/<video\b/g) || []).length, 4);
-  assert.match(html, /src="\/media\/acg-three-markets\.mp4"/);
+  assert.ok(html.includes('src="https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20logo%20BTC%20swirl.mp4"'));
   // Approved centered terminal section, inserted before the existing mobile artwork.
   assert.ok(html.includes('class="terminal-story" id="terminal"'));
   assert.ok(html.includes('id="terminal-heading">Your entire trading workspace. One screen.</h2>'));
@@ -121,7 +123,7 @@ test('public homepage uses V4 design language and current production capability 
   assert.ok(html.includes('href="#terminal">Terminal</a>'));
   assert.ok(html.includes('href="#experience">Mobile</a>'));
   assert.match(html, /src="\/media\/acg-trader-mobile-artwork\.webp"/);
-  assert.match(html, /poster="\/media\/acg-three-markets-poster\.jpg"/);
+  assert.ok(!html.includes('acg-three-markets-poster.jpg'), 'No stale market-coins poster');
   assert.match(html, /href="\/acg-mobile-section\.css"/);
   assert.ok(html.includes('id="mobile-story-heading">Your trading desk.<br/>In your pocket.</h2>'));
   assert.ok(html.includes('Follow the markets, analyze charts, plan orders and manage positions from a streamlined mobile trading workspace.'));
