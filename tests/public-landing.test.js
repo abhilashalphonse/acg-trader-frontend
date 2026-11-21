@@ -57,7 +57,7 @@ test('public homepage uses V4 design language and current production capability 
   assert.doesNotMatch(html, /coming soon|in development|roadmap|white label|free tier|futures|options/i);
   assert.doesNotMatch(html, /href="\/\?acg_auth=signup"/);
   assert.match(html, /id="experience"/);
-  assert.match(html, /class="shield-story"/);
+  assert.match(html, /class="mobile-story"/);
   assert.match(html, /class="market-film"/);
   assert.match(html, /id="market-intro-title">Stocks, Forex and Crypto\.<\/h2>/);
   assert.match(html, /Access key market categories in one chart-first platform built for analysis, execution and position management\./);
@@ -90,23 +90,32 @@ test('public homepage uses V4 design language and current production capability 
   const introStart = html.indexOf('class="market-intro"');
   const featuresStart = html.indexOf('id="features"');
   const aiStart = html.indexOf('class="ai-section"');
-  const shieldStart = html.indexOf('class="shield-story"');
-  assert.ok(introStart < aiStart && aiStart < shieldStart, 'AI is the third landing section');
+  const mobileStart = html.indexOf('class="mobile-story"');
+  assert.ok(introStart < aiStart && aiStart < mobileStart, 'AI is the third landing section and mobile is fourth');
   assert.ok(heroEnd < introStart && introStart < featuresStart, 'second section follows hero');
   assert.equal((html.match(/id="acg-three-markets-film"/g) || []).length, 1);
   const marketCss = readFileSync(new URL('../public/acg-market-intro.css', import.meta.url), 'utf8');
   assert.match(marketCss, /width:min\(460px,100%\)/);
   assert.match(marketCss, /width:min\(300px,100%\)/);
 
-  assert.equal((html.match(/<video\b/g) || []).length, 4);
+  assert.equal((html.match(/<video\b/g) || []).length, 3);
   assert.match(html, /src="\/media\/acg-three-markets\.mp4"/);
-  assert.match(html, /src="\/media\/acg-shield\.mp4"/);
+  assert.match(html, /src="\/media\/acg-trader-mobile-artwork\.webp"/);
   assert.match(html, /poster="\/media\/acg-three-markets-poster\.jpg"/);
-  assert.match(html, /poster="\/media\/acg-shield-poster\.jpg"/);
-  assert.match(html, /not a security certification/);
+  assert.match(html, /href="\/acg-mobile-section\.css"/);
+  assert.ok(html.includes('id="mobile-story-heading">Your trading desk.<br/>In your pocket.</h2>'));
+  assert.ok(html.includes('Follow the markets, analyze charts, plan orders and manage positions from a streamlined mobile trading workspace.'));
+  assert.ok(html.includes('class="mobile-story-cta" href="#trading">Explore mobile trading'));
+  assert.ok(!html.includes('id="acg-shield-film"'));
+  const mobileCss = readFileSync(new URL('../public/acg-mobile-section.css', import.meta.url), 'utf8');
+  assert.ok(mobileCss.includes('grid-template-columns:minmax(0,1.04fr) minmax(0,.96fr)'));
+  assert.ok(mobileCss.includes('max-width:720px'));
+  assert.ok(mobileCss.includes('max-height:600px'));
+
+  assert.match(html, /Illustrative mobile interface\. Trading features and access depend on your account and device\./);
   assert.match(html, /not indicate available instruments, supported integrations, partners or endorsements/);
   assert.doesNotMatch(html, /data-video-control=|class="film-media-control"/);
-  for (const id of ['acg-three-markets-film','ai-prism-film','acg-shield-film']) {
+  for (const id of ['acg-three-markets-film','ai-prism-film']) {
     const match = html.match(new RegExp('<video id="' + id + '"[^>]*>'));
     assert.ok(match, id);
     assert.doesNotMatch(match[0], /\bcontrols\b/, id + ' should not show a media control');
