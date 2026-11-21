@@ -519,51 +519,34 @@ try {
 
       } finally {await page.close();}
     }
-    // Simulate Safari/iOS-style NotAllowedError for muted autoplay.
-    // A user tap should invoke play synchronously and hide the fallback control.
+    // iOS may reject autoplay. Cinematic films should fail quietly with NO
+    // overlay buttons, while the hero retains its static background artwork.
     const blocked = await browser.newPage({
       viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:'no-preference'
     });
     await blocked.addInitScript(() => {
-      HTMLMediaElement.prototype.play = function () {
-        if (!this.dataset.userActivated) {
-          return Promise.reject(new DOMException('Autoplay blocked by mobile policy', 'NotAllowedError'));
-        }
-        return Promise.resolve();
-      };
+      HTMLMediaElement.prototype.play = () =>
+        Promise.reject(new DOMException('Autoplay blocked by mobile policy','NotAllowedError'));
     });
     await blocked.goto(base+'/acg-landing-v6.html',{waitUntil:'domcontentloaded'});
-    const blockedFilm = blocked.locator('#acg-three-markets-film');
-    await blockedFilm.scrollIntoViewIfNeeded();
-    const tapButton=blocked.locator('.market-film .film-tap-to-play');
-    await tapButton.waitFor({state:'visible',timeout:8000});
-    assert.equal(await tapButton.getAttribute('aria-controls'),'acg-three-markets-film');
-    assert.equal(await tapButton.innerText(),'Play video');
-    await tapButton.click();
-    await blocked.waitForFunction(() => document.querySelector('#acg-three-markets-film')?.dataset.userActivated === 'true');
-    await blocked.waitForFunction(() => document.querySelector('.market-film .film-tap-to-play')?.hidden === true);
-    assert.equal(await blockedFilm.evaluate(v=>v.muted && v.playsInline),true,
-      'manual playback remains muted and inline');
+    await blocked.locator('#acg-three-markets-film').scrollIntoViewIfNeeded();
+    await blocked.waitForFunction(() =>
+      document.querySelector('#acg-three-markets-film')?.classList.contains('is-unavailable'),
+      null,{timeout:8000});
+    assert.equal(await blocked.locator('.film-tap-to-play,.acg-hero-tap-to-play').count(),0,
+      'blocked autoplay never introduces visible Play buttons');
+    assert.equal(await blocked.locator('#acg-three-markets-film').evaluate(v=>v.muted && v.playsInline),true);
     await blocked.close();
     const reduced = await browser.newPage({ viewport:{width:390,height:844},reducedMotion:'reduce' });
     await reduced.goto(base+'/acg-landing-v6.html',{waitUntil:'domcontentloaded'});
     await reduced.waitForTimeout(280);
     const states = await reduced.locator('video.film-video').evaluateAll(videos=>videos.map(v=>({paused:v.paused,controls:v.controls})));
     assert.ok(states.every(v=>v.paused), 'Reduced motion must not autoplay clips: '+JSON.stringify(states));
-    assert.equal(await reduced.locator('#ai-prism-film').evaluate(v=>getComputedStyle(v).display), 'none');
-    assert.equal(await reduced.locator('[data-video-control], .film-media-control').count(), 0);
-    assert.ok(states.every(v => v.controls === false), 'Both decorative videos must hide native controls');
-    assert.equal(await reduced.locator('#acg-hero-replay').count(), 0);
-    assert.equal(await reduced.locator('#acg-hero-reveal').evaluate(v => getComputedStyle(v).display), 'none');
-    // Explicit user activation is allowed even though automatic reduced-motion playback is not.
-    const reducedTerminal = reduced.locator('#acg-terminal-film');
-    await reduced.locator('.terminal-story-frame').scrollIntoViewIfNeeded();
-    const reducedPlay = reduced.locator('.terminal-story-frame .film-tap-to-play');
-    assert.equal(await reducedPlay.isVisible(),true, 'reduced-motion users see a manual opt-in');
-    await reducedPlay.click();
-    assert.equal(await reducedTerminal.getAttribute('data-user-activated'),'true');
-    assert.equal(await reducedTerminal.evaluate(v=>getComputedStyle(v).display),'block',
-      'manually enabled film is visible under reduced motion');
+    assert.equal(await reduced.locator('#ai-prism-film').evaluate(v=>getComputedStyle(v).display),'none');
+    assert.equal(await reduced.locator('[data-video-control],.film-media-control,.film-tap-to-play,.acg-hero-tap-to-play').count(),0);
+    assert.ok(states.every(v=>v.controls === false), 'No video controls');
+    assert.equal(await reduced.locator('#acg-hero-replay').count(),0);
+    assert.equal(await reduced.locator('#acg-hero-reveal').evaluate(v=>getComputedStyle(v).display),'none');
     const normal = await browser.newPage({ viewport:{width:1440,height:900},reducedMotion:'no-preference' });
     await normal.goto(base+'/acg-landing-v6.html',{waitUntil:'domcontentloaded'});
     await normal.locator('#acg-three-markets-film').scrollIntoViewIfNeeded();
