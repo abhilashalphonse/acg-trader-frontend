@@ -40,26 +40,6 @@ try {
     assert.equal(ff.status, 0, name + ' remux failed: ' + (ff.stderr || ff.error?.message));
     assert.ok(statSync(dest).size > 1000, name + ' output is empty');
     process.stdout.write(name + ' -> /media/' + name + '.mp4 (' + statSync(dest).size + ' bytes)\n');
-    // Purpose-built mobile compositions, preserving the complete originals.
-    // The Market Movers mobile crop frames its card instead of enlarging
-    // the surrounding black matte with CSS. 1920x1080 source coordinates.
-    const mobile = {
-      'market-movers': { crop: '1000:750:460:165', scale: '800:600' }
-    }[name];
-    if (mobile) {
-      const mobileDest = join(output, name + '-mobile.mp4');
-      const transcoded = spawnSync('ffmpeg', [
-        '-hide_banner', '-loglevel','error','-nostdin','-y','-i',source,
-        '-map','0:v:0','-vf','crop=' + mobile.crop + ',scale=' + mobile.scale + ':flags=lanczos',
-        '-c:v','libx264','-preset','veryfast','-crf','20','-pix_fmt','yuv420p',
-        '-profile:v','high','-level','4.0','-an','-movflags','+faststart',mobileDest
-      ], { encoding:'utf8', timeout:180000 });
-      assert.equal(transcoded.status,0,name + ' mobile composition failed: ' +
-        (transcoded.stderr || transcoded.error?.message));
-      assert.ok(statSync(mobileDest).size > 1000, name + ' mobile composition is empty');
-      process.stdout.write(name + '-mobile -> /media/' + name + '-mobile.mp4 (' +
-        statSync(mobileDest).size + ' bytes)\\n');
-    }
 
   }
 } finally {
