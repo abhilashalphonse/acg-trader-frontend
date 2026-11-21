@@ -274,9 +274,9 @@ try {
   check(await fallback.evaluate(() => window.v4PositionsQA.commands.length === 0), 'Window lifecycle and navigation never submit a trade');
   // The notice banner may overlap the right header; its background must
   // never intercept clicks on the popup button below it.
-  const noticeStyle = await fallback.locator('.acg-motion-notice').evaluate(
-    element => getComputedStyle(element).pointerEvents);
-  check(noticeStyle === 'none', 'Trade notice cannot intercept popup-header clicks');
+  const noticeStyle = await fallback.locator('.acg-motion-notice').evaluateAll(elements =>
+    elements.every(element => getComputedStyle(element).pointerEvents === 'none'));
+  check(noticeStyle, 'Any remaining trade notice cannot intercept popup-header clicks');
   const closePopupPromise = fallback.waitForEvent('popup');
   await fallback.getByRole('button', { name: 'Pop out mini terminal' }).click();
   const closePopup = await closePopupPromise;
