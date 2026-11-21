@@ -287,20 +287,32 @@ try {
           cta=box('.market-movers-cta'),page=el.getBoundingClientRect();
         const bg=(node)=>getComputedStyle(node).backgroundColor;
         const frameStyle=getComputedStyle(el.querySelector('.market-movers-frame'));
+        const filmStyle=getComputedStyle(film);
         return {copyRight:copy.right,copyBottom:copy.bottom,ctaBottom:cta.bottom,
           videoLeft:video.left,videoRight:video.right,videoTop:video.top,videoBottom:video.bottom,
-          sectionBottom:page.bottom,screenWidth:innerWidth,
+          frameWidth:video.width,frameHeight:video.height,
+          sectionHeight:page.height,sectionBottom:page.bottom,screenWidth:innerWidth,
           sectionBackground:bg(el),frameBackground:frameStyle.backgroundColor,videoBackground:bg(film),
-          frameRadius:frameStyle.borderRadius};
+          frameRadius:frameStyle.borderRadius,transform:filmStyle.transform,
+          objectFit:filmStyle.objectFit};
       });
       assert.equal(moversGeometry.sectionBackground, 'rgb(0, 0, 0)', 'section black matte');
       assert.equal(moversGeometry.frameBackground, moversGeometry.sectionBackground, 'frame and section color match');
       assert.equal(moversGeometry.videoBackground, moversGeometry.sectionBackground, 'video and section color match');
       assert.equal(moversGeometry.frameRadius, '0px', 'no mismatched rounded video panel');
+      assert.equal(moversGeometry.objectFit,'contain', 'keep film proportions');
+      assert.ok(moversGeometry.transform.startsWith('matrix(') &&
+        Number(moversGeometry.transform.match(/matrix\(([^,]+)/)?.[1]) >= 1.25,
+        viewport.label+' video content actually enlarged: '+JSON.stringify(moversGeometry));
       if(viewport.label==='desktop'){
+        assert.ok(moversGeometry.sectionHeight>=710, 'Section 7 must feel substantial: '+JSON.stringify(moversGeometry));
+        assert.ok(moversGeometry.frameWidth>=650 && moversGeometry.frameHeight>=425,
+          'Section 7 video stage too small: '+JSON.stringify(moversGeometry));
         assert.ok(moversGeometry.copyRight+20 < moversGeometry.videoLeft,
           'Market Movers must split copy left and film right: '+JSON.stringify(moversGeometry));
       }else{
+        assert.ok(moversGeometry.frameWidth>=350 && moversGeometry.frameHeight>=225,
+          'mobile film must fill available column: '+JSON.stringify(moversGeometry));
         assert.ok(moversGeometry.ctaBottom+15 <= moversGeometry.videoTop,
           'Market Movers must stack copy above film on mobile: '+JSON.stringify(moversGeometry));
       }
