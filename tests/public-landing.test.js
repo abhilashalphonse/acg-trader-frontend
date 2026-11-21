@@ -82,7 +82,8 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /not a security certification/);
   assert.match(html, /not indicate available instruments, supported integrations, partners or endorsements/);
   assert.match(html, /data-video-control="acg-shield-film"/);
-  assert.match(html, /data-video-control="acg-three-markets-film"/);
+  assert.doesNotMatch(html, /data-video-control="acg-three-markets-film"/);
+  assert.doesNotMatch(html, /<video id="acg-three-markets-film"[^>]*\\bcontrols\\b/);
   assert.doesNotMatch(html, /acg-motion-panorama|acg-motion-emblem|film-experience|hero-ambient-video/);
   assert.match(html, /prefers-reduced-motion:reduce/);
   assert.match(html, /<script src="\/acg-landing-motion\.js" defer><\/script>/);
