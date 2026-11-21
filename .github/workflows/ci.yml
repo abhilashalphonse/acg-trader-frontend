@@ -29,7 +29,7 @@ jobs:
         run: npm run lint
       - name: Test
         run: npm test
-      - name: Desktop runtime acceptance: V3 fallback and V4 default at wide widths
+      - name: Desktop runtime acceptance for V3 fallback and V4 default at wide widths
         if: ${{ github.ref == 'refs/heads/main' || github.head_ref == 'fix/railway-v4-terminal-defaults-20261121' }}
         run: |
           npm install --no-save --no-audit --no-fund playwright@1.56.1
