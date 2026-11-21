@@ -269,7 +269,7 @@ try {
       assert.equal(await movers.locator('h2').innerText(), 'See what’s moving.');
       assert.ok((await movers.locator('.market-movers-copy p').innerText()).includes('what’s gaining momentum'));
       assert.equal(await movers.locator('.market-movers-cta').getAttribute('href'), '#markets');
-      assert.ok((await movers.locator('figcaption').innerText()).includes('for demonstration only'));
+      assert.equal(await movers.locator('figcaption').count(), 0, 'Section 7 has no trailing disclaimer');
       const moversVideo = movers.locator('#acg-market-movers-film');
       assert.equal(await moversVideo.locator('source').getAttribute('src'),
         'https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20Market%20Movers%20-%20Take%20the%20Lead.mp4');
@@ -283,11 +283,20 @@ try {
       const moversGeometry=await movers.evaluate(el=>{
         const box=selector=>el.querySelector(selector).getBoundingClientRect();
         const copy=box('.market-movers-copy'),video=box('.market-movers-frame'),
-          cta=box('.market-movers-cta'),caption=box('figcaption'),page=el.getBoundingClientRect();
+          film=el.querySelector('.market-movers-video'),
+          cta=box('.market-movers-cta'),page=el.getBoundingClientRect();
+        const bg=(node)=>getComputedStyle(node).backgroundColor;
+        const frameStyle=getComputedStyle(el.querySelector('.market-movers-frame'));
         return {copyRight:copy.right,copyBottom:copy.bottom,ctaBottom:cta.bottom,
           videoLeft:video.left,videoRight:video.right,videoTop:video.top,videoBottom:video.bottom,
-          captionBottom:caption.bottom,sectionBottom:page.bottom,screenWidth:innerWidth};
+          sectionBottom:page.bottom,screenWidth:innerWidth,
+          sectionBackground:bg(el),frameBackground:frameStyle.backgroundColor,videoBackground:bg(film),
+          frameRadius:frameStyle.borderRadius};
       });
+      assert.equal(moversGeometry.sectionBackground, 'rgb(0, 0, 0)', 'section black matte');
+      assert.equal(moversGeometry.frameBackground, moversGeometry.sectionBackground, 'frame and section color match');
+      assert.equal(moversGeometry.videoBackground, moversGeometry.sectionBackground, 'video and section color match');
+      assert.equal(moversGeometry.frameRadius, '0px', 'no mismatched rounded video panel');
       if(viewport.label==='desktop'){
         assert.ok(moversGeometry.copyRight+20 < moversGeometry.videoLeft,
           'Market Movers must split copy left and film right: '+JSON.stringify(moversGeometry));
@@ -296,7 +305,7 @@ try {
           'Market Movers must stack copy above film on mobile: '+JSON.stringify(moversGeometry));
       }
       assert.ok(moversGeometry.videoLeft>=-2 && moversGeometry.videoRight<=moversGeometry.screenWidth+2
-        && moversGeometry.captionBottom<=moversGeometry.sectionBottom+2,
+        && moversGeometry.videoBottom<=moversGeometry.sectionBottom+2,
         'Market Movers film fits viewport: '+JSON.stringify(moversGeometry));
       await movers.screenshot({path:'artifacts/market-movers-'+viewport.label+'.png'});
       assert.deepEqual(errors, [], viewport.label+' errors');
