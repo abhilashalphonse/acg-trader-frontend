@@ -178,10 +178,10 @@ try {
         const m = await page.evaluate(() => {
           const rect = selector => document.querySelector(selector)?.getBoundingClientRect();
           const section=rect('#experience.mobile-story'),heading=rect('.mobile-story-copy h2');
-          const copy=rect('.mobile-story-copy'), image=rect('.mobile-story-visual img');
+          const copy=rect('.mobile-story-copy'), visual=rect('.mobile-story-visual'), image=rect('.mobile-story-visual img');
           const button=rect('.mobile-story-cta'), note=rect('.mobile-story-note');
           return {sectionBottom:section?.bottom,headingLeft:heading?.left,headingRight:heading?.right,
-            copyBottom:copy?.bottom,imageLeft:image?.left,imageRight:image?.right,
+            copyBottom:copy?.bottom,imageLeft:visual?.left,imageRight:visual?.right,
             imageBottom:image?.bottom,buttonBottom:button?.bottom,noteBottom:note?.bottom,
             viewportWidth:window.innerWidth,viewportHeight:window.innerHeight};
         });
