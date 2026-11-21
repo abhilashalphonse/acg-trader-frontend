@@ -43,7 +43,17 @@ try {
     const sell=d.querySelector('.acg-mini-sell strong')?.textContent;
     return price==='1.11730'&&buy==='1.11735'&&sell==='1.11725';
   }), 'Five-digit forex quotes must never receive a thousands separator in fractions');
-  const nativeHeight=await pip(()=>documentPictureInPicture.window.innerHeight);
+  const nativeSize=await pip(()=>({width:documentPictureInPicture.window.innerWidth,height:documentPictureInPicture.window.innerHeight}));
+  const nativeHeight=nativeSize.height;
+  // Chrome may clamp Document PiP to a platform-dependent minimum outer width.
+  // Validate the requested window size in source and the actual layout fit here.
+  console.log('MINI_NATIVE_WINDOW_DIMENSIONS', JSON.stringify(nativeSize));
+  check(nativeSize.width>=240 && nativeSize.height>=300,
+    'Native mini terminal opens a usable window (browser may enforce minimums)');
+  check(await pip(() => {
+    const d=documentPictureInPicture.window.document;
+    return d.documentElement.scrollWidth<=d.documentElement.clientWidth+1;
+  }), 'Native popup content does not overflow horizontally');
   check(await pip(() => documentPictureInPicture.window.getComputedStyle(documentPictureInPicture.window.document.querySelector('.acg-mini-titlebar')).display === 'flex'), 'Styles are copied into native window');
   check(await pip(()=>{
     const d=documentPictureInPicture.window.document;
@@ -58,11 +68,18 @@ try {
       && !d.querySelector('.acg-mini-quote-main')
       && d.querySelectorAll('.acg-mini-order-family').length===1
       && content.scrollHeight<=content.clientHeight+4;
-  }), 'Default 360px PiP fits reference trade without duplicated quotes or vertical scrolling');
+  }), 'Default 320px PiP fits compact trade without duplicate quotes or scrolling');
   await pip(() => [...documentPictureInPicture.window.document.querySelectorAll('nav button')].find(b => b.textContent.startsWith('Positions')).click());
   check(await page.evaluate(expected=>documentPictureInPicture.window.innerHeight===expected,nativeHeight),
     'Native popup height stays unchanged when switching to Positions');
   await page.waitForFunction(() => documentPictureInPicture.window.document.querySelectorAll('.acg-mini-row').length === 2);
+  check(await pip(() => {
+    const d=documentPictureInPicture.window.document;
+    const rows=[...d.querySelectorAll('.acg-mini-row')];
+    const content=d.querySelector('.acg-mini-content')?.getBoundingClientRect();
+    return rows.length===2 && content && rows[0].getBoundingClientRect().top>=content.top-1
+      && rows[1].getBoundingClientRect().bottom<=content.bottom+1;
+  }), 'Both compact position cards fit in the 480px popup without scrolling');
   check(await pip(() => !documentPictureInPicture.window.document.querySelector('.acg-mini-footer')),
     'Detached Positions has no bottom footer');
   check(await pip(() => {
@@ -83,9 +100,9 @@ try {
   check(await pip(()=>{
     const d=documentPictureInPicture.window.document;
     return d.querySelector('.acg-mini-empty strong')?.textContent==='No open positions'
-      && d.querySelector('.acg-mini-empty span')?.textContent==='Your active positions will appear here.'
+      && !d.querySelector('.acg-mini-empty span')
       && !d.querySelector('.acg-mini-footer');
-  }),'Empty detached positions show only the two-line message and no footer');
+  }),'Empty detached positions show one concise label and no footer');
   await page.evaluate(()=>window.v4PositionsQA.setPositions([
     {id:'position-eur-1',positionId:'position-eur-1',symbol:'EURUSD',side:'SELL',volume:0.01,
       entry:1.11652,closePrice:1.11735,pnl:123.45,pnlCurrency:'USD',valuationStatus:'LIVE'},
@@ -111,6 +128,11 @@ try {
   const popup = await popupPromise;
   popup.on('pageerror', error => errors.push(error.message));
   await popup.getByRole('navigation', { name: 'Mini terminal sections' }).waitFor();
+  // Chrome headless often ignores native Document PiP size requests; force a real
+  // 320x480 browser viewport for the fallback so density assertions are meaningful.
+  await popup.setViewportSize({ width: 320, height: 480 });
+  check(await popup.evaluate(() => innerWidth===320 && innerHeight===480),
+    'Regular popup uses an actual 320 by 480 mobile-density viewport');
   check(await popup.locator('[data-window-mode="Separate window"]').count()===1, 'Unsupported browser gets a regular window');
   check(await popup.getByText(/will not stay on top/).count() === 1, 'Fallback describes its actual behavior near the header');
   check(await popup.locator('.acg-mini-footer').count()===0,'Mini terminal never renders a footer');
@@ -127,6 +149,12 @@ try {
   await popup.getByRole('button', { name: 'Positions (2)', exact: true }).click();
   check(await popup.evaluate(expected=>innerHeight===expected,fallbackHeight),
     'Regular popup height stays unchanged on Positions tab');
+  check(await popup.evaluate(() => {
+    const rows=[...document.querySelectorAll('.acg-mini-row')];
+    const content=document.querySelector('.acg-mini-content')?.getBoundingClientRect();
+    return rows.length===2 && content && rows[0].getBoundingClientRect().top>=content.top-1
+      && rows[1].getBoundingClientRect().bottom<=content.bottom+1;
+  }), 'Both position cards fit fully into actual 320 by 480 window without scrolling');
   await popup.screenshot({path:'tests/ui/artifacts/mini-terminal-positions-list.png'});
   await popup.locator('.acg-mini-row').first().click();
   check(await popup.locator('.acg-mini-back').isVisible(), 'Position editor works in pop-out');
@@ -166,12 +194,12 @@ try {
       actionsHeight:actions?.height,freeHeight:free?.height,estHeight:est?.height,headerHeight:header?.height};
   });
   console.log('MINI_DENSITY_GEOMETRY',JSON.stringify(density));
-  check(density.headerHeight===36&&density.contextHeight===78
-    &&density.tabsHeight>=32&&density.tabsHeight<=34&&density.actionsHeight===52,
-    'Reference row heights: 36px brand / 78px instrument / 33px tabs / 52px trading');
-  check(density.freeHeight>=23&&density.freeHeight<=26
-    &&density.estHeight>=24&&density.estHeight<=28,
-    'Free margin and estimated margin use separate 24px reference rows');
+  check(density.headerHeight===32&&density.contextHeight===62
+    &&density.tabsHeight>=30&&density.tabsHeight<=32&&density.actionsHeight===45,
+    'Compact row heights: 32px brand / 62px market / 31px tabs / 45px quoted actions');
+  check(density.freeHeight>=20&&density.freeHeight<=23
+    &&density.estHeight>=21&&density.estHeight<=24,
+    'Margin summaries are compact without hiding financial values');
   check(density.scroll<=density.visible+4,'Default detached trade fits without a vertical scrollbar');
   check(await popup.locator('[data-acg-mini-simple-ticket=true]').isVisible(),
     'Trade tab uses original floating quick-order logic in a simple popup');
@@ -200,8 +228,8 @@ try {
   await fallback.evaluate(() => window.v4PositionsQA.setAccount({ freeMargin: 54321.12 }));
   await popup.getByText('$54,321.12', { exact: true }).waitFor();
   check(true, 'Popup receives updated authoritative free margin without footer');
-  await popup.setViewportSize({ width: 320, height: 500 });
-  check(await popup.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Narrow resized window fits');
+  await popup.setViewportSize({ width: 300, height: 480 });
+  check(await popup.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Manual 300px resize fits without horizontal overflow');
   await fallback.bringToFront();
   check(await popup.locator('[data-acg-mini-simple-ticket=true]').count() === 1,
     'Quick-order widget remains mounted while opener is active');

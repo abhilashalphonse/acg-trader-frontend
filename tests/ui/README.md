@@ -39,7 +39,9 @@ attached floating order ticket**. The launcher works even when the full Trade
 sidebar is open. Supported browsers open an always-on-top Picture-in-Picture
 window; others open a regular popup that cannot stay on top. Keep the main
 terminal tab open. Closing the popup leaves only the icon; no ticket returns
-to the chart. The 360 × 480 px initial window keeps the same height while
-switching Trade, Orders and Positions; longer forms scroll within that window.
+to the chart. The mobile-density 320 × 480 px initial popup keeps the same height while
+switching Trade, Orders and Positions. The compact default Trade ticket fits
+without vertical scrolling; longer editors scroll within the popup. The first
+two position cards fit on screen and empty tabs have no explanatory footer.
 The popup reuses the original quick-order and V4 management callbacks, session
 and account state. Outside the audit flag the customer layout is unchanged.

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, ChevronDown, ClipboardList, ExternalLink, X } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ExternalLink, X } from 'lucide-react';
 import InstrumentAvatar from '../InstrumentAvatar.jsx';
 import { formatInstrumentPrice, instrumentDigits } from '../../../utils/instrumentFormatting.js';
 import {positionUnrealizedPnl,money} from '../../../utils/v4PositionsPresentation.js';
@@ -91,8 +91,8 @@ export default function DetachedMiniTerminal({
     try {
       const pip = Boolean(window.documentPictureInPicture?.requestWindow);
       child = pip
-        ? await window.documentPictureInPicture.requestWindow({ width: 360, height: 450 })
-        : window.open('about:blank', '_blank', 'popup=yes,width=360,height=450');
+        ? await window.documentPictureInPicture.requestWindow({ width: 320, height: 480 })
+        : window.open('about:blank', '_blank', 'popup=yes,width=320,height=480');
       if (!child) throw new Error('Allow pop-ups for ACG Trader, then try again.');
       if (!mounted.current) { child.close(); return; }
       windowRef.current = child;
@@ -253,9 +253,7 @@ export default function DetachedMiniTerminal({
                   {selection.kind === 'position' ? renderPosition(selected, instrumentFor(selected), back) : renderPending(selected, instrumentFor(selected), back)}</>
                   : rows.length ? <div className="acg-mini-rows">{rows.map(renderRow)}</div>
                   : <div className="acg-mini-empty" role="status">
-                    <ClipboardList size={38} strokeWidth={1.6} aria-hidden="true"/>
                     <strong>{tab==='positions'?'No open positions':'No pending orders'}</strong>
-                    <span>{tab==='positions'?'Your active positions will appear here.':'Orders awaiting execution will appear here.'}</span>
                   </div>}
           </>}
         </main>

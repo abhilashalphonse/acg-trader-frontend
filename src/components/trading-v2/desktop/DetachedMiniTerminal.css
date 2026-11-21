@@ -1,4 +1,4 @@
-/* ACG mini terminal — 360 × 450 reference design.
+/* ACG mini terminal — 320 × 480 mobile-density design.
    Popup only: owner React context and command callbacks are preserved. */
 .acg-mini-window {
   margin:0!important;width:100%;height:100vh;min-width:0!important;
@@ -330,12 +330,91 @@
   flex:0 0 24px;min-width:24px;height:24px;
   display:grid;place-items:center;color:inherit;background:none;border:0;
 }
-@media(max-width:355px) {
-  .acg-mini-context{grid-template-columns:34px minmax(0,1fr) auto;gap:6px;padding:6px 8px}
-  .acg-mini-market-avatar{width:34px;height:34px}
-  .acg-mini-market-price strong{font-size:15px}
-  .acg-mini-quick-order{padding:9px 9px 10px}
-  .acg-mini-tabs{gap:16px;padding:0 9px}
-  .acg-mini-quick-actions{grid-template-columns:minmax(0,1fr) 46px minmax(0,1fr);gap:4px}
-  .acg-mini-quick-actions button strong{font-size:14px}
+
+/* 320px popup density. All values are scoped to the mini terminal;
+   the full execution panel, dock, and mobile terminal are unchanged. */
+.acg-mini-terminal{font-size:11px}
+.acg-mini-titlebar{flex-basis:32px;height:32px;min-height:32px;padding:0 8px}
+.acg-mini-brand{gap:5px}
+.acg-mini-brand img{width:21px;height:21px}
+.acg-mini-brand strong{font-size:12.5px;line-height:16px}
+.acg-mini-titlebar-actions button{min-width:27px;height:27px}
+.acg-mini-context{
+  flex-basis:62px;min-height:62px;
+  grid-template-columns:33px minmax(0,1fr) auto;
+  column-gap:6px;padding:5px 8px;
+}
+.acg-mini-market-avatar{width:33px;height:33px;border-radius:7px}
+.acg-mini-market-identity{gap:3px}
+.acg-mini-symbol-line{gap:3px}
+.acg-mini-instrument select{font-size:13.5px;line-height:18px}
+.acg-mini-cfd{font-size:8px;line-height:11px;padding:1px 3px}
+.acg-mini-market-name{font-size:9px;line-height:12px}
+.acg-mini-market-price{gap:2px;min-width:62px;max-width:103px}
+.acg-mini-market-price strong{font-size:15px;line-height:18px}
+.acg-mini-market-price small{font-size:10px;line-height:12px}
+.acg-mini-tabs{flex-basis:31px;min-height:31px;gap:17px;padding:0 8px}
+.acg-mini-tabs button{font-size:11px;line-height:28px}
+.acg-mini-notice,.acg-mini-error{padding:6px 8px;font-size:9px}
+.acg-mini-quick-order{gap:4px;padding:6px 8px 5px}
+.acg-mini-quick-actions{
+  grid-template-columns:minmax(0,1fr) 44px minmax(0,1fr);gap:4px;
+}
+.acg-mini-quick-actions button{height:45px;gap:2px;padding:3px;border-radius:7px}
+.acg-mini-quick-actions button span{font-size:10.5px;line-height:13px}
+.acg-mini-quick-actions button strong{font-size:13.5px;line-height:17px}
+.acg-mini-spread strong{font-size:12.5px;line-height:16px}
+.acg-mini-spread small{font-size:9px;line-height:11px}
+.acg-mini-free-margin,.acg-mini-estimate{
+  min-height:21px;gap:6px;font-size:10px;line-height:16px;
+}
+.acg-mini-free-margin strong,.acg-mini-estimate strong{font-size:11px}
+.acg-mini-order-family{
+  flex-basis:29px;height:29px;gap:2px;padding:2px;border-radius:7px;
+}
+.acg-mini-order-family button{font-size:11px}
+.acg-mini-field{gap:3px}
+.acg-mini-field label{font-size:10px;line-height:14px}
+.acg-mini-quantity-label{min-height:22px;gap:6px}
+.acg-mini-quantity-label label{font-size:10px}
+.acg-mini-sizing-switch{
+  height:23px;min-width:60px;padding:2px 6px;font-size:10px;
+}
+.acg-mini-quantity{
+  height:32px;grid-template-columns:34px minmax(0,1fr) 34px;
+}
+.acg-mini-quantity input{font-size:14px;line-height:19px}
+.acg-mini-field>input{height:32px;padding:0 8px;font-size:11px}
+.acg-mini-risk-row{gap:7px;min-height:27px;font-size:10px}
+.acg-mini-risk-row>div{gap:6px}
+.acg-mini-risk-row button{
+  height:26px;min-width:58px;padding:3px 7px;font-size:10px;border-radius:6px;
+}
+.acg-mini-estimate{flex-basis:22px;min-height:22px;padding-top:2px}
+.acg-mini-quick-warning,.acg-mini-closed,.acg-mini-policy-note{
+  padding:6px 8px;font-size:9px;line-height:1.4;
+}
+.acg-mini-rows{gap:6px;padding:8px}
+.acg-mini-row{gap:5px;padding:8px;border-radius:7px}
+.acg-mini-row-head{gap:6px}
+.acg-mini-row-identity{gap:5px}
+.acg-mini-row-identity strong{max-width:82px;font-size:12px}
+.acg-mini-row-head>b{font-size:12px}
+.acg-mini-row-volume{font-size:9px}
+.acg-mini-facts{gap:3px;padding-top:5px}
+.acg-mini-facts small{font-size:8.5px;line-height:11px}
+.acg-mini-facts b{font-size:9.5px;line-height:12px}
+.acg-mini-empty{gap:6px;padding:15px 10px}
+.acg-mini-empty strong{font-size:12px}
+.acg-mini-back{gap:5px;padding:8px 9px}
+/* Narrower manual resize is supported without overflowing controls. */
+@media(max-width:310px){
+  .acg-mini-context{grid-template-columns:30px minmax(0,1fr) auto;gap:5px;padding:5px 7px}
+  .acg-mini-market-avatar{width:30px;height:30px}
+  .acg-mini-market-price strong{font-size:13px}
+  .acg-mini-quick-order{padding:5px 7px}
+  .acg-mini-tabs{gap:12px;padding:0 7px}
+  .acg-mini-quick-actions{grid-template-columns:minmax(0,1fr) 38px minmax(0,1fr);gap:3px}
+  .acg-mini-quick-actions button strong{font-size:12px}
+  .acg-mini-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
