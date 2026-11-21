@@ -128,6 +128,11 @@ try {
   const popup = await popupPromise;
   popup.on('pageerror', error => errors.push(error.message));
   await popup.getByRole('navigation', { name: 'Mini terminal sections' }).waitFor();
+  // Chrome headless often ignores native Document PiP size requests; force a real
+  // 320x480 browser viewport for the fallback so density assertions are meaningful.
+  await popup.setViewportSize({ width: 320, height: 480 });
+  check(await popup.evaluate(() => innerWidth===320 && innerHeight===480),
+    'Regular popup uses an actual 320 by 480 mobile-density viewport');
   check(await popup.locator('[data-window-mode="Separate window"]').count()===1, 'Unsupported browser gets a regular window');
   check(await popup.getByText(/will not stay on top/).count() === 1, 'Fallback describes its actual behavior near the header');
   check(await popup.locator('.acg-mini-footer').count()===0,'Mini terminal never renders a footer');
@@ -144,6 +149,12 @@ try {
   await popup.getByRole('button', { name: 'Positions (2)', exact: true }).click();
   check(await popup.evaluate(expected=>innerHeight===expected,fallbackHeight),
     'Regular popup height stays unchanged on Positions tab');
+  check(await popup.evaluate(() => {
+    const rows=[...document.querySelectorAll('.acg-mini-row')];
+    const content=document.querySelector('.acg-mini-content')?.getBoundingClientRect();
+    return rows.length===2 && content && rows[0].getBoundingClientRect().top>=content.top-1
+      && rows[1].getBoundingClientRect().bottom<=content.bottom+1;
+  }), 'Both position cards fit fully into actual 320 by 480 window without scrolling');
   await popup.screenshot({path:'tests/ui/artifacts/mini-terminal-positions-list.png'});
   await popup.locator('.acg-mini-row').first().click();
   check(await popup.locator('.acg-mini-back').isVisible(), 'Position editor works in pop-out');
