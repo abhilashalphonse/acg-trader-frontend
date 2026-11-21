@@ -66,6 +66,13 @@ try {
   check(await page.evaluate(expected=>documentPictureInPicture.window.innerHeight===expected,nativeHeight),
     'Native popup height stays unchanged when switching to Positions');
   await page.waitForFunction(() => documentPictureInPicture.window.document.querySelectorAll('.acg-mini-row').length === 2);
+  check(await pip(() => {
+    const d=documentPictureInPicture.window.document;
+    const rows=[...d.querySelectorAll('.acg-mini-row')];
+    const content=d.querySelector('.acg-mini-content')?.getBoundingClientRect();
+    return rows.length===2 && content && rows[0].getBoundingClientRect().top>=content.top-1
+      && rows[1].getBoundingClientRect().bottom<=content.bottom+1;
+  }), 'Both compact position cards fit in the 480px popup without scrolling');
   check(await pip(() => !documentPictureInPicture.window.document.querySelector('.acg-mini-footer')),
     'Detached Positions has no bottom footer');
   check(await pip(() => {
