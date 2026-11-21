@@ -112,10 +112,26 @@ try {
         viewport.label+' new BTC swirl video decoded');
       assert.equal(filmMeta.width, 1254);
       assert.equal(filmMeta.height, 674);
-      assert.equal(await page.locator('#market-intro .market-film').evaluate(el=>{
-        const rect=el.getBoundingClientRect();
-        return Math.abs(rect.width/rect.height - 1254/674)<0.015;
-      }),true, 'Markets film respects native ratio');
+      const marketFilmGeometry = await page.locator('#market-intro .market-film').evaluate(el => {
+        const frame = el.getBoundingClientRect();
+        const movie = el.querySelector('video').getBoundingClientRect();
+        const cta = document.querySelector('#market-intro .market-intro-cta').getBoundingClientRect();
+        return {
+          frameRatio: frame.width / frame.height,
+          videoRatio: movie.width / movie.height,
+          topGap: frame.top - cta.bottom,
+          bottomAlignment: Math.abs(frame.bottom - movie.bottom),
+          matteTrimmed: movie.height - frame.height,
+        };
+      });
+      assert.ok(Math.abs(marketFilmGeometry.frameRatio - 1254/556) < 0.015,
+        viewport.label + ' film frame trims black top matte: ' + JSON.stringify(marketFilmGeometry));
+      assert.ok(Math.abs(marketFilmGeometry.videoRatio - 1254/674) < 0.015,
+        viewport.label + ' source remains undistorted: ' + JSON.stringify(marketFilmGeometry));
+      assert.ok(marketFilmGeometry.topGap >= 0 && marketFilmGeometry.topGap <= 24,
+        viewport.label + ' CTA and film are visually connected: ' + JSON.stringify(marketFilmGeometry));
+      assert.ok(marketFilmGeometry.bottomAlignment < 2 && marketFilmGeometry.matteTrimmed > 20,
+        viewport.label + ' crop from top while retaining lower artwork: ' + JSON.stringify(marketFilmGeometry));
       assert.equal(await newFilm.evaluate(el=>getComputedStyle(el).objectFit),'contain');
       await page.locator('#market-intro').screenshot({path:'artifacts/markets-btc-swirl-'+viewport.label+'.png'});
 
