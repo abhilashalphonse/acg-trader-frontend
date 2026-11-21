@@ -20,6 +20,10 @@
   font-size:11px;font-weight:400;line-height:1.6;
   letter-spacing:0;text-wrap:pretty;
 }
+/* Desktop retains the approved disclosure before CTA; mobile moves the
+   same legal wording after the video while keeping a short visible status. */
+.ai-connect-status{display:none}
+.ai-connect-inner>.ai-connect-disclosure{display:none}
 .ai-connect-cta{
   display:inline-flex;align-items:center;justify-content:center;
   min-height:48px;margin:21px auto 0;padding:11px 27px;

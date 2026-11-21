@@ -85,7 +85,8 @@ try {
       assert.equal(await page.locator('video#acg-shield-film').count(), 0);
       assert.equal(await page.locator('#experience.mobile-story').count(), 1);
       assert.equal(await page.locator('video#ai-prism-film').count(), 1);
-      assert.deepEqual(values.videoTypes, ['video/mp4','video/mp4','video/mp4','video/mp4','video/mp4']);
+      assert.deepEqual(values.videoTypes, Array(7).fill('video/mp4'));
+      // Two mobile-specific MP4 variants are supplied first, original desktop sources remain intact.
       assert.ok(values.validSources);
       assert.ok(values.width <= values.viewportWidth + 3, viewport.label+' horizontal overflow: '+JSON.stringify(values));
       assert.ok(values.filmHeight >= 145 && values.filmHeight <= 760, viewport.label+' cinematic video height: '+values.filmHeight);
@@ -238,15 +239,16 @@ try {
       await mobileSection.screenshot({path:'artifacts/mobile-story-'+viewport.label+'.png'});
       // Sixth section — concept artwork, not a live third-party AI connection or order gateway.
       const connections = page.locator('#ai-connections.ai-connect-story');
+      assert.equal(await connections.locator('.ai-connect-status').textContent(), 'Illustrative concept — not an active third-party AI integration.');
       assert.equal(await connections.count(), 1);
       assert.equal(await connections.locator('h2').textContent(), 'Trade with your AI assistant.');
       assert.equal(await connections.locator('.ai-connect-cta').getAttribute('href'), '#ai-connect-film');
-      assert.equal((await connections.locator('.ai-connect-disclosure').innerText()).trim(),
+      assert.equal((await connections.locator('.ai-connect-disclosure:visible').innerText()).trim(),
         'Acg Trader does not endorse or guarantee third-party AI Tools. AI may produce errors or inaccurate outputs. You remain responsible for reviewing and approving all orders before execution. Acg Trader is not liable for any resulting losses, missed opportunities, or erroneous trades');
       const connectionVideo = connections.locator('#acg-ai-connection-film');
       assert.equal(await connectionVideo.count(), 1);
-      assert.equal(await connectionVideo.locator('source').getAttribute('src'),
-        '/media/overnight-scan.mp4');
+      assert.equal(await connectionVideo.locator('source').first().getAttribute('src'), '/media/overnight-scan-mobile.mp4');
+      assert.equal(await connectionVideo.locator('source').last().getAttribute('src'), '/media/overnight-scan.mp4');
       assert.equal(await connectionVideo.evaluate(v => v.controls), false);
       await connections.scrollIntoViewIfNeeded();
       await page.waitForFunction(() => document.querySelector('#acg-ai-connection-film')?.readyState >= 2, null, {timeout: 15000});
@@ -259,28 +261,35 @@ try {
       console.log('ACG_AI_CONNECTION_MEDIA_'+viewport.label+' '+JSON.stringify(connVideoState));
       assert.ok(connVideoState.width > 0 && connVideoState.height > 0 && connVideoState.readyState >= 2,
         viewport.label+' AI connection film decoded');
-      assert.equal(connVideoState.style, 'contain');
+      assert.equal(connVideoState.style, viewport.label==='desktop' ? 'contain':'cover');
+      assert.equal(connVideoState.width, viewport.label==='desktop' ? 1920 : 960);
+      assert.equal(connVideoState.height, viewport.label==='desktop' ? 1080 : 720);
       const connectionBounds = await connections.evaluate(el => {
         const a = selector => el.querySelector(selector).getBoundingClientRect();
-        const heading=a('h2'),disclosure=a('.ai-connect-disclosure'),cta=a('.ai-connect-cta'),
+        const heading=a('h2'),disclosure=a(innerWidth <= 600 ? '.ai-connect-inner>.ai-connect-disclosure' : '.ai-connect-disclosure-desktop'),cta=a('.ai-connect-cta'),
               stage=a('.ai-connect-stage'),video=a('.ai-connect-video'),section=el.getBoundingClientRect();
         const titleFont=parseFloat(getComputedStyle(el.querySelector('h2')).fontSize);
-        return { titleLeft:heading.left,titleRight:heading.right,disclosureBottom:disclosure.bottom,
+        return { titleLeft:heading.left,titleRight:heading.right,disclosureTop:disclosure.top,disclosureBottom:disclosure.bottom,
           ctaTop:cta.top,ctaBottom:cta.bottom,stageTop:stage.top,stageLeft:stage.left,
           stageRight:stage.right,stageWidth:stage.width,stageHeight:stage.height,
           videoWidth:video.width,sectionBottom:section.bottom,stageBottom:stage.bottom,
           sectionHeight:section.height,titleFont,
           screenWidth:window.innerWidth };
       });
-      assert.ok(connectionBounds.disclosureBottom <= connectionBounds.ctaTop + 2 &&
-        connectionBounds.ctaBottom <= connectionBounds.stageTop + 2, viewport.label+' AI intro order: '+JSON.stringify(connectionBounds));
+      assert.ok(viewport.label==='desktop'
+        ? connectionBounds.disclosureBottom <= connectionBounds.ctaTop + 2
+          && connectionBounds.ctaBottom <= connectionBounds.stageTop + 2
+        : connectionBounds.ctaBottom <= connectionBounds.stageTop + 2
+          && connectionBounds.stageBottom < connectionBounds.disclosureTop
+          && connectionBounds.disclosureBottom <= connectionBounds.sectionBottom + 2,
+        viewport.label+' AI concept copy/video/disclosure order: '+JSON.stringify(connectionBounds));
       assert.ok(connectionBounds.stageLeft >= -2 && connectionBounds.stageRight <= connectionBounds.screenWidth + 2,
         viewport.label+' AI visual fits viewport: '+JSON.stringify(connectionBounds));
       assert.ok(connectionBounds.stageWidth <= 805 && connectionBounds.stageHeight >= 120,
         viewport.label+' compact AI visual fits and remains readable: '+JSON.stringify(connectionBounds));
       assert.ok(connectionBounds.titleFont <= (viewport.label === 'desktop' ? 65 : 44),
         viewport.label+' AI heading stays compact: '+JSON.stringify(connectionBounds));
-      assert.ok(connectionBounds.sectionHeight <= (viewport.label === 'desktop' ? 900 : 715),
+      assert.ok(connectionBounds.sectionHeight <= (viewport.label === 'desktop' ? 900 : 830),
         viewport.label+' Section 6 is not oversized: '+JSON.stringify(connectionBounds));
       assert.ok(connectionBounds.stageBottom <= connectionBounds.sectionBottom + 2,
         viewport.label+' AI film fits the section: '+JSON.stringify(connectionBounds));
@@ -293,15 +302,17 @@ try {
       assert.equal(await movers.locator('.market-movers-cta').getAttribute('href'), '#market-intro');
       assert.equal(await movers.locator('figcaption').count(), 0, 'Section 7 has no trailing disclaimer');
       const moversVideo = movers.locator('#acg-market-movers-film');
-      assert.equal(await moversVideo.locator('source').getAttribute('src'),
-        '/media/market-movers.mp4');
+      assert.equal(await moversVideo.locator('source').first().getAttribute('src'), '/media/market-movers-mobile.mp4');
+      assert.equal(await moversVideo.locator('source').last().getAttribute('src'), '/media/market-movers.mp4');
       assert.equal(await moversVideo.evaluate(v => v.controls), false);
       await movers.scrollIntoViewIfNeeded();
       await page.waitForFunction(() => document.querySelector('#acg-market-movers-film')?.readyState >= 2, null, {timeout:15000});
       const moversMeta=await moversVideo.evaluate(v=>({width:v.videoWidth,height:v.videoHeight,readyState:v.readyState,fit:getComputedStyle(v).objectFit}));
       console.log('ACG_MARKET_MOVERS_MEDIA_'+viewport.label+' '+JSON.stringify(moversMeta));
       assert.ok(moversMeta.width>0 && moversMeta.height>0 && moversMeta.readyState>=2);
-      assert.equal(moversMeta.fit, 'contain');
+      assert.equal(moversMeta.fit, viewport.label==='desktop' ? 'contain':'cover');
+      assert.equal(moversMeta.width, viewport.label==='desktop' ? 1920 : 800);
+      assert.equal(moversMeta.height, viewport.label==='desktop' ? 1080 : 600);
       const moversGeometry=await movers.evaluate(el=>{
         const box=selector=>el.querySelector(selector).getBoundingClientRect();
         const copy=box('.market-movers-copy'),video=box('.market-movers-frame'),
@@ -322,10 +333,15 @@ try {
       assert.equal(moversGeometry.frameBackground, moversGeometry.sectionBackground, 'frame and section color match');
       assert.equal(moversGeometry.videoBackground, moversGeometry.sectionBackground, 'video and section color match');
       assert.equal(moversGeometry.frameRadius, '0px', 'no mismatched rounded video panel');
-      assert.equal(moversGeometry.objectFit,'contain', 'keep film proportions');
-      assert.ok(moversGeometry.transform.startsWith('matrix(') &&
-        Number(moversGeometry.transform.match(/matrix\(([^,]+)/)?.[1]) >= 1.25,
-        viewport.label+' video content actually enlarged: '+JSON.stringify(moversGeometry));
+      if (viewport.label==='desktop') {
+        assert.equal(moversGeometry.objectFit,'contain', 'desktop keeps full cinematic source');
+        assert.ok(moversGeometry.transform.startsWith('matrix(') &&
+          Number(moversGeometry.transform.match(/matrix\(([^,]+)/)?.[1]) >= 1.25,
+          'desktop original film remains tastefully zoomed: '+JSON.stringify(moversGeometry));
+      } else {
+        assert.equal(moversGeometry.objectFit,'cover', 'mobile-specific crop fills frame');
+        assert.equal(moversGeometry.transform,'none','mobile crop must not require excessive zoom');
+      }
       if(viewport.label==='desktop'){
         assert.ok(moversGeometry.sectionHeight>=710, 'Section 7 must feel substantial: '+JSON.stringify(moversGeometry));
         assert.ok(moversGeometry.frameWidth>=650 && moversGeometry.frameHeight>=425,
@@ -335,7 +351,7 @@ try {
       }else{
         assert.ok(moversGeometry.frameWidth>=350 && moversGeometry.frameHeight>=225,
           'mobile film must fill available column: '+JSON.stringify(moversGeometry));
-        assert.ok(moversGeometry.ctaBottom+15 <= moversGeometry.videoTop,
+        assert.ok(moversGeometry.ctaBottom+5 <= moversGeometry.videoTop,
           'Market Movers must stack copy above film on mobile: '+JSON.stringify(moversGeometry));
       }
       assert.ok(moversGeometry.videoLeft>=-2 && moversGeometry.videoRight<=moversGeometry.screenWidth+2
@@ -485,7 +501,7 @@ try {
         assert.ok(a.titleLeft >= -3 && a.titleRight <= a.viewportWidth+3, width+'x'+height+' AI title overflow: '+JSON.stringify(a));
         assert.ok(a.cardLeft >= -3 && a.cardRight <= a.viewportWidth+3, width+'x'+height+' AI card overflow: '+JSON.stringify(a));
         assert.ok(a.cardWidth <= 530, width+'x'+height+' oversized AI card: '+JSON.stringify(a));
-        assert.ok(a.cardTop > a.ctaBottom + 65, width+'x'+height+' AI preview competes with prism band: '+JSON.stringify(a));
+        assert.ok(a.cardTop > a.ctaBottom + 55, width+'x'+height+' AI preview competes with prism band: '+JSON.stringify(a));
         assert.ok(a.noteBottom <= a.sectionBottom+3, width+'x'+height+' clipped AI disclaimer: '+JSON.stringify(a));
         const m = await page.evaluate(() => {
           const rect = selector => document.querySelector(selector)?.getBoundingClientRect();
@@ -622,7 +638,7 @@ try {
           assert.ok(q.movers.width>=q.viewport-55 &&
             q.movers.left>=-2 && q.movers.right<=q.viewport+2,
             'Market Movers stage should use available width: '+JSON.stringify(q.movers));
-          assert.ok(q.moversZoom!=='none','Market Movers visual needs meaningful zoom');
+          assert.equal(q.moversZoom,'none','Market Movers is now cropped in its mobile source, not scaled with CSS');
           assert.ok(q.aiHeight<=900,
             'AI narrative must not leave another oversized blank section: '+q.aiHeight);
           assert.ok(q.access.bottom<=q.faqTop+3,'account access flows directly into FAQs');
