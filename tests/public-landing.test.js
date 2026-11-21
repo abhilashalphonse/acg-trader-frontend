@@ -49,8 +49,8 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /color-scheme:dark/);
   assert.match(html, /Simulated trading for authorized accounts/);
   assert.match(html, /not a broker/);
-  assert.match(html, /href="\/\?acg_login=1"/);
-  assert.match(html, /href="\/\?acg_connect_prop=1"/);
+  assert.match(html, /href="\/terminal\?acg_login=1"/);
+  assert.match(html, /href="\/terminal\?acg_connect_prop=1"/);
   for (const anchor of ['platform', 'features', 'market-intro', 'market-movers', 'access']) {
     assert.ok(html.includes('id="' + anchor + '"'), anchor);
   }
@@ -63,7 +63,7 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /From global currencies to gold and Bitcoin, explore the markets that move the world\./);
   assert.match(html, /Analyze price action, plan trades, and manage your positions—all from one powerful trading workspace\./);
   assert.match(html, /class="market-intro-risk">Simulated trading only\. Instrument availability varies by account\. Trading involves risk\.<\/p>/);
-  assert.match(html, /class="market-intro-cta" href="\/\?acg_login=1" title="Sign in to access your ACG Trader workspace">See for yourself<\/a>/);
+  assert.match(html, /class="market-intro-cta" href="\/terminal\?acg_login=1" title="Sign in to access your ACG Trader workspace">See for yourself<\/a>/);
   assert.ok(html.indexOf('class="market-intro-description"') < html.indexOf('class="market-intro-risk"')
     && html.indexOf('class="market-intro-risk"') < html.indexOf('class="market-intro-cta"'), 'risk disclosure comes before CTA');
   assert.match(html, /href="\/acg-market-intro\.css\?v=20261121-mobile-scale2"/);
@@ -135,7 +135,7 @@ test('public homepage uses V4 design language and current production capability 
   assert.ok(html.includes('class="terminal-story" id="terminal"'));
   assert.ok(html.includes('id="terminal-heading">Your entire trading workspace. One screen.</h2>'));
   assert.ok(html.includes('Analyze markets, plan orders and manage positions directly from the chart. Everything you need for a focused trading workflow.'));
-  assert.ok(html.includes('class="terminal-story-cta" href="/?acg_login=1">Explore the terminal'));
+  assert.ok(html.includes('class="terminal-story-cta" href="/terminal?acg_login=1">Explore the terminal'));
   assert.ok(html.includes('id="acg-terminal-film"'));
   assert.ok(html.includes('terminal.mp4'));
   assert.ok(html.includes('href="/acg-terminal-section.css"'));
@@ -155,7 +155,7 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /href="\/acg-mobile-section\.css"/);
   assert.ok(html.includes('id="mobile-story-heading">Your trading desk.<br/>In your pocket.</h2>'));
   assert.ok(html.includes('Follow the markets, analyze charts, plan orders and manage positions from a streamlined mobile trading workspace.'));
-  assert.ok(html.includes('class="mobile-story-cta" href="/?acg_login=1">Explore mobile trading'));
+  assert.ok(html.includes('class="mobile-story-cta" href="/terminal?acg_login=1">Explore mobile trading'));
   assert.ok(!html.includes('id="acg-shield-film"'));
   const mobileCss = readFileSync(new URL('../public/acg-mobile-section.css', import.meta.url), 'utf8');
   assert.ok(mobileCss.includes('grid-template-columns:minmax(0,1.04fr) minmax(0,.96fr)'));
@@ -292,8 +292,8 @@ test('public marketing keeps tenant-native and federation entry with no Supabase
   const router = readFileSync(new URL('../src/main.jsx', import.meta.url), 'utf8');
   const auth = readFileSync(new URL('../src/auth/AuthProvider.jsx', import.meta.url), 'utf8');
   const signup = readFileSync(new URL('../src/components/StandaloneAuthPage.jsx', import.meta.url), 'utf8');
-  assert.match(html, /href="\/\?acg_connect_prop=1"/);
-  assert.match(html, /href="\/\?acg_login=1"/);
+  assert.match(html, /href="\/terminal\?acg_connect_prop=1"/);
+  assert.match(html, /href="\/terminal\?acg_login=1"/);
   assert.match(router, /shouldOpenPublicHome/);
   assert.match(router, /shouldOpenStandaloneAuth/);
   assert.match(auth, /exchangeFederationTicket/);
