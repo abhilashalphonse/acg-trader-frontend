@@ -224,7 +224,7 @@ try {
       const connectionVideo = connections.locator('#acg-ai-connection-film');
       assert.equal(await connectionVideo.count(), 1);
       assert.equal(await connectionVideo.locator('source').getAttribute('src'),
-        'https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20Trader%20AI%20Connection.mp4');
+        'https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20Trader%20-%20Overnight%20Scan.mp4');
       assert.equal(await connectionVideo.evaluate(v => v.controls), false);
       await connections.scrollIntoViewIfNeeded();
       await page.waitForFunction(() => document.querySelector('#acg-ai-connection-film')?.readyState >= 2, null, {timeout: 15000});
