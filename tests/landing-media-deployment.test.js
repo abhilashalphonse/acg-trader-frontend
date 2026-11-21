@@ -98,10 +98,14 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   assert.ok(html.includes('id="acg-market-movers-film"'));
   assert.ok(html.includes('src="https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20Market%20Movers%20-%20Take%20the%20Lead.mp4"'));
   assert.ok(html.includes('href="#markets">Explore markets'));
-  assert.ok(html.includes('Rankings and price moves are for demonstration only'));
+  assert.ok(!html.includes('Rankings and price moves are for demonstration only'));
   const marketMoversCss = read('public/acg-market-movers-section.css');
   assert.ok(marketMoversCss.includes('grid-template-columns:minmax(0,42fr) minmax(0,58fr)'));
   assert.ok(marketMoversCss.includes('grid-template-columns:minmax(0,1fr)'));
+  assert.ok(marketMoversCss.includes('#market-movers.market-movers-story{background:#000'));
+  assert.ok(marketMoversCss.includes('border-radius:0;box-shadow:none;background:#000'));
+  assert.ok(marketMoversCss.includes('object-position:center;background:#000'));
+  assert.ok(!marketMoversCss.includes('figcaption'));
   assert.ok(marketMoversCss.includes('max-height:600px'));
   assert.ok(marketMoversCss.includes('object-fit:contain'));
   assert.ok(marketMoversCss.includes('prefers-reduced-motion:reduce'));

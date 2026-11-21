@@ -177,10 +177,15 @@ test('public homepage uses V4 design language and current production capability 
   assert.ok(html.includes('Follow market movements and discover what’s gaining momentum across a unified trading workspace.'));
   assert.ok(html.includes('class="market-movers-cta" href="#markets">Explore markets'));
   assert.ok(html.includes('ACG%20Market%20Movers%20-%20Take%20the%20Lead.mp4'));
-  assert.ok(html.includes('Illustrative market movements. Rankings and price moves are for demonstration only'));
+  assert.ok(!html.includes('Illustrative market movements. Rankings and price moves are for demonstration only'));
   assert.ok(html.includes('href="/acg-market-movers-section.css"'));
   assert.ok(html.includes('href="#market-movers">Market movers</a>'));
   const moversCss = readFileSync(new URL('../public/acg-market-movers-section.css', import.meta.url), 'utf8');
+  assert.ok(!html.slice(html.indexOf('<section class="market-movers-story"'), html.indexOf('</section>', html.indexOf('<section class="market-movers-story"'))).includes('<figcaption>'), 'no Section 7 disclaimer under film');
+  assert.ok(moversCss.includes('#market-movers.market-movers-story{background:#000'), 'Section 7 background is exactly black');
+  assert.ok(moversCss.includes('border-radius:0;box-shadow:none;background:#000'), 'the video panel is seamless');
+  assert.ok(moversCss.includes('object-position:center;background:#000'), 'video matte matches section');
+  assert.ok(!moversCss.includes('.market-movers-media figcaption'), 'no obsolete caption styles');
   assert.ok(moversCss.includes('grid-template-columns:minmax(0,42fr) minmax(0,58fr)'));
   assert.ok(moversCss.includes('max-width:767px'));
   assert.ok(moversCss.includes('object-fit:contain'));
