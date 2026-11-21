@@ -54,8 +54,8 @@ test('supporting films retain viewport playback without unnecessary controls', (
   const html = readFileSync(src('public/acg-landing-v6.html'), 'utf8');
   const js = readFileSync(src('public/acg-landing-motion.js'), 'utf8');
   assert.doesNotMatch(html, /data-video-control=|film-media-control/);
-  assert.doesNotMatch(html, /<video[^>]*\\bcontrols\\b/);
-  assert.equal((html.match(/<video\\b/g) || []).length, 3);
+  assert.doesNotMatch(html, /<video[^>]*\bcontrols\b/);
+  assert.equal((html.match(/<video\b/g) || []).length, 3);
   assert.match(html, /id="acg-hero-replay"/);
   assert.match(js, /IntersectionObserver/);
   assert.match(js, /prefers-reduced-motion: reduce/);
@@ -63,9 +63,9 @@ test('supporting films retain viewport playback without unnecessary controls', (
   assert.match(js, /video\.muted = true/);
   assert.match(js, /video\.pause\(\)/);
   assert.match(js, /video\.removeAttribute\('autoplay'\)/);
-  assert.doesNotMatch(js, /data-video-control|manualPlay|userPaused|button\\.addEventListener/);
-  assert.match(js, /heroReplay\\.addEventListener\\('click'/);
-  assert.match(js, /video\\.removeAttribute\\('controls'\\)/);
+  assert.doesNotMatch(js, /data-video-control|manualPlay|userPaused|button\.addEventListener/);
+  assert.match(js, /heroReplay\.addEventListener\('click'/);
+  assert.match(js, /video\.removeAttribute\('controls'\)/);
   assert.doesNotMatch(js, /\bfetch\s*\(|XMLHttpRequest|localStorage|sessionStorage|document\.cookie|sendBeacon/);
 });
 
