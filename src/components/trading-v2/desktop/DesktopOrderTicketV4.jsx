@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronUp, CheckCircle2, Circle, Ellipsis, X, Minus, Plus, ArrowRight } from 'lucide-react';
+import { ChevronDown, ChevronUp, CheckCircle2, Circle, Ellipsis, ExternalLink, X, Minus, Plus, ArrowRight } from 'lucide-react';
 import InstrumentAvatar from '../InstrumentAvatar.jsx';
 import { formatInstrumentPrice, formatSpreadDisplay, instrumentPipSize } from '../../../utils/instrumentFormatting.js';
 import { normalizePriceToTick, normalizeProtectionPrice, normalizeVolumeToStep } from '../../../utils/tradingCommandNormalization.js';
@@ -154,6 +154,8 @@ export default function DesktopOrderTicketV4({
   conversionMarkets=[],
   onCloseTicket=()=>{},
   onOpenMarkets=()=>{},
+  onOpenMiniTerminal,
+  miniTerminalReady=false,
 }) {
   const [uiMode,setUiMode]=useState(sizingMode==='risk'?'riskPercent':'lots');
   const [slUnit,setSlUnit]=useState('ticks');
@@ -549,11 +551,19 @@ export default function DesktopOrderTicketV4({
           <span>{market?.name||market?.displayName||market?.description||market?.symbol||'Instrument'}</span>
         </button>
         <div className="v4-head-actions">
-          <button type="button" aria-label="Ticket information" onClick={()=>setMenuOpen(x=>!x)}><Ellipsis size={20}/></button>
+          {onOpenMiniTerminal ? (
+            <button type="button" data-acg-mini-header-launcher="true"
+              aria-label="Pop out mini terminal" title={miniTerminalReady ? 'Open or focus mini terminal' : 'Mini terminal loading'}
+              disabled={!miniTerminalReady} onClick={onOpenMiniTerminal}>
+              <ExternalLink size={18}/>
+            </button>
+          ) : (
+            <button type="button" aria-label="Ticket information" onClick={()=>setMenuOpen(x=>!x)}><Ellipsis size={20}/></button>
+          )}
           <button type="button" aria-label="Close trade ticket" onClick={()=>{if(tradePlan)onCancelPlan();else onCloseTicket();}}><X size={19}/></button>
         </div>
       </div>
-      {menuOpen&&<div className="v4-settings">
+      {!onOpenMiniTerminal && menuOpen && <div className="v4-settings">
         <strong>Execution information</strong>
         <span>Instrument leverage: {fmt(effectiveLeverage(account,market),0)}x</span>
         <span>Account policy: {capabilities.optionalStopLoss?'Optional SL':'SL required for manual orders'}</span>
