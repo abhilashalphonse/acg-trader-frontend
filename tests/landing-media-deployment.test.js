@@ -98,8 +98,8 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   assert.ok(html.includes('id="acg-market-movers-film"'));
   assert.ok(html.includes('src="/media/market-movers.mp4"'));
   assert.ok(html.includes('href="#market-intro">Explore markets'));
-  assert.ok(html.includes('class="terminal-story-cta" href="/?acg_login=1"'));
-  assert.ok(html.includes('class="mobile-story-cta" href="/?acg_login=1"'));
+  assert.ok(html.includes('class="terminal-story-cta" href="/terminal?acg_login=1"'));
+  assert.ok(html.includes('class="mobile-story-cta" href="/terminal?acg_login=1"'));
   assert.ok(!html.includes('id="trading"') && !html.includes('id="markets"'));
   assert.ok(!html.includes('href="#trading"') && !html.includes('href="#markets"'));
   assert.ok(!html.includes('From analysis<br/>to execution.') && !html.includes('Follow the markets<br/>you trade.'));
@@ -145,8 +145,8 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   assert.ok(marketCss.includes('object-fit:cover;object-position:56% 50%'), 'mobile crops the source rather than stretching it');;
   assert.ok(html.includes('Illustrative mobile interface. Trading features and access depend on your account and device.'));
   assert.ok(html.includes('Simulated trading for authorized accounts'));
-  assert.ok(html.includes('href="/?acg_login=1"'));
-  assert.ok(html.includes('href="/?acg_connect_prop=1"'));
+  assert.ok(html.includes('href="/terminal?acg_login=1"'));
+  assert.ok(html.includes('href="/terminal?acg_connect_prop=1"'));
   assert.ok(!html.includes('data-video-control='));
   assert.ok(!html.includes('film-media-control'));
   assert.ok(!html.includes(' controls preload'));
