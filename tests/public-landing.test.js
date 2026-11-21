@@ -60,8 +60,12 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /class="mobile-story"/);
   assert.match(html, /class="market-film"/);
   assert.match(html, /id="market-intro-title">Stocks, Forex and Crypto\.<\/h2>/);
-  assert.match(html, /Access key market categories in one chart-first platform built for analysis, execution and position management\./);
-  assert.match(html, /class="market-intro-cta" href="#markets">Explore markets<\/a>/);
+  assert.match(html, /From global currencies to gold and Bitcoin, explore the markets that move the world\./);
+  assert.match(html, /Analyze price action, plan trades, and manage your positions—all from one powerful trading workspace\./);
+  assert.match(html, /class="market-intro-risk">Simulated trading only\. Instrument availability varies by account\. Trading involves risk\.<\/p>/);
+  assert.match(html, /class="market-intro-cta" href="\/\?acg_login=1" title="Sign in to access your ACG Trader workspace">See for yourself<\/a>/);
+  assert.ok(html.indexOf('class="market-intro-description"') < html.indexOf('class="market-intro-risk"')
+    && html.indexOf('class="market-intro-risk"') < html.indexOf('class="market-intro-cta"'), 'risk disclosure comes before CTA');
   assert.match(html, /href="\/acg-market-intro\.css"/);
   // Section 3: approved AI identity and prompt content, no fake live action.
   assert.ok(html.includes('href="/acg-ai-section.css"'));
