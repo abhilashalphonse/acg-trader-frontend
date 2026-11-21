@@ -50,7 +50,7 @@ test('V4 navbar, footer and responsive menu preserve authorized account login ro
   for (const anchor of ['platform', 'features', 'market-intro', 'market-movers', 'access']) {
     assert.ok(html.includes('id="' + anchor + '"'), anchor);
   }
-  assert.deepEqual([...html.matchAll(/<script\b[^>]*>/g)].map(match => match[0]), ['<script src="/acg-landing-motion.js?v=20261121-mobile-no-controls" defer>']);
+  assert.deepEqual([...html.matchAll(/<script\b[^>]*>/g)].map(match => match[0]), ['<script src="/acg-landing-motion.js?v=20261121-mobile-recovery1" defer>']);
   assert.doesNotMatch(html, /<script>(.|\n)*?<\/script>/i);
 });
 
