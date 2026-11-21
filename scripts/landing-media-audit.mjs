@@ -9,7 +9,7 @@ import { Buffer } from 'node:buffer';
 import process from 'node:process';
 
 const html = readFileSync(new URL('../public/acg-landing-v6.html', import.meta.url), 'utf8');
-const urls = [...html.matchAll(/<source\\s+src="(https:\/\/[^"]+\\.mp4)"\\s+type="video\/mp4"/g)].map(m => m[1]);
+const urls = [...html.matchAll(/<source[^>]+src="(https:[^"]+\.mp4)"[^>]*>/g)].map(m => m[1]);
 assert.equal(urls.length, 6, 'Expected six public landing page films');
 const dir = mkdtempSync(join(tmpdir(), 'acg-media-audit-'));
 let failed = false;
