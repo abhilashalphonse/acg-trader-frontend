@@ -99,6 +99,7 @@ test('public homepage uses V4 design language and current production capability 
   const marketCss = readFileSync(new URL('../public/acg-market-intro.css', import.meta.url), 'utf8');
   assert.ok(marketCss.includes('width:min(1140px,100%)'));
   assert.ok(marketCss.includes('object-fit:contain'));
+  assert.ok(marketCss.includes('aspect-ratio:1254/674'));
 
   assert.equal((html.match(/<video\b/g) || []).length, 4);
   assert.ok(html.includes('src="https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20logo%20BTC%20swirl.mp4"'));
