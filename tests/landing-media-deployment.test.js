@@ -82,7 +82,8 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   assert.ok(html.includes('<section class="ai-connect-story" id="ai-connections"'));
   assert.ok(html.indexOf('id="experience"') < html.indexOf('id="ai-connections"')
     && html.indexOf('id="ai-connections"') < html.indexOf('id="trading"'), 'AI connection is Section 6');
-  assert.ok(html.includes('ACG%20Trader%20AI%20Connection.mp4'));
+  assert.ok(html.includes('ACG%20Trader%20-%20Overnight%20Scan.mp4'));
+  assert.ok(!html.includes('ACG%20Trader%20AI%20Connection.mp4'), 'previous Section 6 film must not be referenced');
   assert.ok(html.includes('id="acg-ai-connection-film"'));
   assert.ok(html.includes('href="#ai-connect-film"'));
   assert.ok(html.includes('class="ai-connect-disclosure">Acg Trader does not endorse or guarantee third-party AI Tools. AI may produce errors or inaccurate outputs. You remain responsible for reviewing and approving all orders before execution. Acg Trader is not liable for any resulting losses, missed opportunities, or erroneous trades</p>'), 'approved AI responsibility disclosure is present');
