@@ -79,7 +79,7 @@ try {
       assert.ok(heroBounds.buttonsBottom < heroBounds.disclosureBottom, viewport.label+' CTA/disclosure order');
       assert.ok(heroBounds.disclosureBottom <= heroBounds.heroBottom + 3, viewport.label+' disclosure fits hero: '+JSON.stringify(heroBounds));
       assert.equal(values.brand, '/acg-trader-wordmark.png');
-      assert.equal(values.videoCount, 3);
+      assert.equal(values.videoCount, 2);
       assert.equal(await page.locator('video#acg-hero-reveal').count(), 1);
       assert.equal(await page.locator('a.acg-cinema-primary[href="/?acg_login=1"]').count(), 1);
       assert.equal(await page.locator('a.acg-cinema-secondary[href="/contact.html?topic=enterprise"]').count(), 1);
@@ -89,9 +89,10 @@ try {
       assert.equal(await page.locator('#acg-hero-replay').count(), 0);
       assert.equal(await page.locator('video#acg-hero-reveal').evaluate(v => getComputedStyle(v).objectFit), 'cover');
       assert.equal(await page.locator('video#acg-three-markets-film').count(), 1);
-      assert.equal(await page.locator('video#acg-shield-film').count(), 1);
+      assert.equal(await page.locator('video#acg-shield-film').count(), 0);
+      assert.equal(await page.locator('#experience.mobile-story').count(), 1);
       assert.equal(await page.locator('video#ai-prism-film').count(), 1);
-      assert.deepEqual(values.videoTypes, ['video/mp4','video/mp4','video/mp4']);
+      assert.deepEqual(values.videoTypes, ['video/mp4','video/mp4']);
       assert.ok(values.validSources);
       assert.ok(values.width <= values.viewportWidth + 3, viewport.label+' horizontal overflow: '+JSON.stringify(values));
       assert.ok(values.filmHeight >= 125 && values.filmHeight <= 260, viewport.label+' compact video height: '+values.filmHeight);
@@ -118,6 +119,17 @@ try {
       await ai.scrollIntoViewIfNeeded();
       await page.waitForTimeout(350);
       await ai.screenshot({ path:'artifacts/ai-section-'+viewport.label+'.png' });
+      // Section 4 — authentic phone illustration with an honest internal destination.
+      const mobileSection=page.locator('#experience.mobile-story');
+      assert.equal(await mobileSection.locator('h2').innerText(), 'Your trading desk.\nIn your pocket.');
+      assert.equal(await mobileSection.locator('.mobile-story-cta').getAttribute('href'), '#trading');
+      assert.ok((await mobileSection.locator('.mobile-story-cta').innerText()).includes('Explore mobile trading'));
+      const artwork=mobileSection.locator('img[src="/media/acg-trader-mobile-artwork.webp"]');
+      assert.equal(await artwork.count(), 1);
+      await mobileSection.scrollIntoViewIfNeeded();
+      await artwork.evaluate(img => img.decode());
+      assert.equal(await artwork.evaluate(img => img.naturalWidth), 800);
+      await page.screenshot({path:'artifacts/mobile-story-'+viewport.label+'.png'});
       assert.deepEqual(errors, [], viewport.label+' errors');
       await page.screenshot({ path:'artifacts/landing-film-'+viewport.label+'-motion.png' });
       await page.evaluate(() => { document.documentElement.style.scrollBehavior='auto'; window.scrollTo(0,0); });
@@ -163,6 +175,20 @@ try {
         assert.ok(a.cardWidth <= 530, width+'x'+height+' oversized AI card: '+JSON.stringify(a));
         assert.ok(a.cardTop > a.ctaBottom + 65, width+'x'+height+' AI preview competes with prism band: '+JSON.stringify(a));
         assert.ok(a.noteBottom <= a.sectionBottom+3, width+'x'+height+' clipped AI disclaimer: '+JSON.stringify(a));
+        const m = await page.evaluate(() => {
+          const rect = selector => document.querySelector(selector)?.getBoundingClientRect();
+          const section=rect('#experience.mobile-story'),heading=rect('.mobile-story-copy h2');
+          const copy=rect('.mobile-story-copy'), image=rect('.mobile-story-visual img');
+          const button=rect('.mobile-story-cta'), note=rect('.mobile-story-note');
+          return {sectionBottom:section?.bottom,headingLeft:heading?.left,headingRight:heading?.right,
+            copyBottom:copy?.bottom,imageLeft:image?.left,imageRight:image?.right,
+            imageBottom:image?.bottom,buttonBottom:button?.bottom,noteBottom:note?.bottom,
+            viewportWidth:window.innerWidth,viewportHeight:window.innerHeight};
+        });
+        assert.ok(m.headingLeft>=-3 && m.headingRight<=m.viewportWidth+3, width+'x'+height+' mobile heading overflow: '+JSON.stringify(m));
+        assert.ok(m.imageLeft>=-3 && m.imageRight<=m.viewportWidth+3, width+'x'+height+' phone artwork horizontal overflow: '+JSON.stringify(m));
+        assert.ok(m.imageBottom<=m.sectionBottom+3, width+'x'+height+' phone artwork clipped: '+JSON.stringify(m));
+        assert.ok(m.noteBottom<=m.sectionBottom+3, width+'x'+height+' disclaimer clipped: '+JSON.stringify(m));
 
       } finally {await page.close();}
     }
