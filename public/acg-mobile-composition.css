@@ -61,6 +61,7 @@
     width:calc(100% + 22px);
     max-width:calc(100% + 22px);
     margin:29px auto 0;
+    transform:translateX(-11px);
   }
   #terminal .terminal-story-frame{
     aspect-ratio:1200/1428;
@@ -150,7 +151,7 @@
 }
 @media(max-width:360px){
   #terminal .terminal-story-figure{
-    width:calc(100% + 12px);max-width:calc(100% + 12px);
+    width:calc(100% + 12px);max-width:calc(100% + 12px);transform:translateX(-6px);
   }
   #terminal .terminal-story-copy h2{font-size:36px}
   #ai-connections .ai-connect-stage{width:calc(100% + 12px);margin-left:-6px;margin-right:-6px}
