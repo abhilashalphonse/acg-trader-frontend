@@ -147,6 +147,15 @@ try {
       assert.ok(marketFilmGeometry.bottomAlignment < 2 && marketFilmGeometry.matteTrimmed > 20,
         viewport.label + ' crop from top while retaining lower artwork: ' + JSON.stringify(marketFilmGeometry));
       assert.equal(await newFilm.evaluate(el=>getComputedStyle(el).objectFit),'contain');
+      assert.equal(await marketIntro.locator('.market-intro-note').count(), 0,
+        viewport.label + ' Section 2 should not render a trailing artwork note');
+      const sectionBottomGap = await marketIntro.evaluate(el => {
+        const section = el.getBoundingClientRect();
+        const film = el.querySelector('.market-film').getBoundingClientRect();
+        return Math.abs(section.bottom - film.bottom);
+      });
+      assert.ok(sectionBottomGap <= 2,
+        viewport.label + ' Section 2 must end at BTC video edge: ' + sectionBottomGap);
       await page.locator('#market-intro').screenshot({path:'artifacts/markets-btc-swirl-'+viewport.label+'.png'});
 
       assert.equal(await page.locator('.fact-strip').count(), 0);
