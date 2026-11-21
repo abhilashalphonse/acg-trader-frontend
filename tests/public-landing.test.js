@@ -109,6 +109,10 @@ test('public homepage uses V4 design language and current production capability 
   assert.ok(!html.includes('href="#trading"') && !html.includes('href="#markets"'), 'navigation has no broken section anchors');
   assert.ok(html.includes('href="#market-intro">Markets</a>'), 'markets navigation reaches existing Section 2');
   assert.ok(!html.includes('Trading workflow</a>'), 'obsolete footer navigation link removed');
+  assert.ok(html.indexOf('id="access"') < html.indexOf('id="acg-faq"') && html.indexOf('id="acg-faq"') < html.indexOf('<footer class="footer">'), 'FAQ follows account access, before the footer');
+  assert.ok(html.includes('href="#acg-faq">FAQs</a>'));
+  assert.ok(!html.includes('<section class="final-cta">'));
+  assert.ok(html.includes('href="/acg-faq-section.css"'));
   assert.ok(heroEnd < introStart && introStart < featuresStart, 'second section follows hero');
   assert.equal((html.match(/id="acg-three-markets-film"/g) || []).length, 1);
   assert.ok(!html.includes('/media/acg-three-markets.mp4'), 'Replaced market-coins clip is not used');

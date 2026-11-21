@@ -12,6 +12,7 @@ test('V4 footer identifies the operator, links trust pages and discloses simulat
   assert.match(footer, /it is not a broker or investment adviser/);
   assert.match(footer, /© 2026 ACG-MANAGEMENT, UNIPESSOAL LDA/);
   assert.match(footer, /<nav aria-label="Support and legal links">/);
+  assert.ok(footer.includes('href="#acg-faq">FAQs</a>'), 'FAQ footer link reaches the new section');
   for (const [url, label] of [
     ['/account-security.html', 'Account security'],
     ['/privacy.html', 'Privacy Policy'],
