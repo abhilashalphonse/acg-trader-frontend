@@ -112,7 +112,8 @@ test('public homepage uses V4 design language and current production capability 
   const terminalDisclaimer = 'Past performance is not an indicator of future performance. Data displayed above is indicative only. The return may increase or decrease as a result of currency fluctuations. Actual execution price may vary. Pricing data is provided by Acg Trader.';
   assert.ok(html.includes(terminalDisclaimer), 'Terminal disclaimer must match the approved text');
   const terminalCss = readFileSync(new URL('../public/acg-terminal-section.css', import.meta.url), 'utf8');
-  assert.ok(terminalCss.includes('width:min(940px,100%)'));
+  assert.ok(terminalCss.includes('width:min(600px,100%)'));
+  assert.ok(terminalCss.includes('aspect-ratio:1200/1428'));
   assert.ok(terminalCss.includes('object-fit:contain'));
   assert.ok(terminalCss.includes('max-width:600px'));
   assert.ok(terminalCss.includes('max-height:600px'));
