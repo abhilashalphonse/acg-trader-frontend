@@ -129,7 +129,7 @@ try {
       await mobileSection.scrollIntoViewIfNeeded();
       await artwork.evaluate(img => img.decode());
       assert.equal(await artwork.evaluate(img => img.naturalWidth), 800);
-      await page.screenshot({path:'artifacts/mobile-story-'+viewport.label+'.png'});
+      await mobileSection.screenshot({path:'artifacts/mobile-story-'+viewport.label+'.png'});
       assert.deepEqual(errors, [], viewport.label+' errors');
       await page.screenshot({ path:'artifacts/landing-film-'+viewport.label+'-motion.png' });
       await page.evaluate(() => { document.documentElement.style.scrollBehavior='auto'; window.scrollTo(0,0); });
