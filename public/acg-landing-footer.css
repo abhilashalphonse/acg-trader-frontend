@@ -1,0 +1,72 @@
+/* ACG Trader landing: restrained editorial footer aligned with FAQ above.
+   This intentionally overrides the earlier inline V4 footer defaults. */
+.footer{
+  background:#000;color:#f5f5f6;
+  border-top:1px solid #292b2f;
+  padding:88px 0 32px;
+}
+.footer .footer-shell{width:min(1080px,calc(100% - 80px));margin:0 auto}
+.footer .footer-grid{
+  display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,.65fr) minmax(0,.8fr);
+  align-items:start;column-gap:clamp(42px,5.1vw,84px);row-gap:48px;
+}
+.footer .footer-brand-block{min-width:0}
+.footer .footer-brand{display:inline-flex;align-items:center;margin:0 0 26px}
+.footer .brand-original{display:block;width:198px;max-width:100%;height:auto}
+.footer .footer-intro{
+  max-width:365px;margin:0;color:#b6bac2;
+  font-size:15px;line-height:1.7;letter-spacing:-.01em;
+}
+.footer .footer-operator{
+  max-width:390px;margin:25px 0 0;color:#858a94;
+  font-size:12px;line-height:1.75;letter-spacing:0;
+}
+.footer .footer-operator strong{font-weight:590;color:#c9cdd3}
+.footer .footer-nav{display:flex;flex-direction:column;align-items:flex-start;gap:16px;min-width:0}
+.footer .footer-nav b{
+  margin:1px 0 10px;color:#f4f5f6;
+  font-size:12px;font-weight:650;line-height:1.4;
+  text-transform:none;letter-spacing:0;
+}
+.footer .footer-nav a{
+  color:#a4a9b1;font-size:14px;font-weight:450;
+  line-height:1.45;letter-spacing:-.012em;
+  text-decoration:none;transition:color .16s ease;
+}
+.footer .footer-nav a:hover{color:#fff}
+.footer a:focus-visible{outline:2px solid #c7d6ff;outline-offset:5px;border-radius:2px}
+.footer .footer-bottom{
+  margin-top:83px;padding-top:24px;border-top:1px solid #292b2f;
+  display:flex;align-items:flex-start;justify-content:space-between;gap:22px 46px;
+}
+.footer .footer-bottom p{
+  margin:0;max-width:none;color:#838994;
+  font-size:11px;line-height:1.65;font-weight:400;letter-spacing:0;
+}
+.footer .footer-bottom p:last-child{text-align:right}
+@media(max-width:900px){
+  .footer{padding-top:70px}
+  .footer .footer-shell{width:calc(100% - 48px)}
+  .footer .footer-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:43px 34px}
+  .footer .footer-grid>.footer-brand-block{grid-column:1/-1}
+  .footer .footer-bottom{margin-top:60px}
+}
+@media(max-width:600px){
+  .footer{padding:62px 0 28px}
+  .footer .footer-shell{width:calc(100% - 32px)}
+  .footer .footer-brand{margin-bottom:22px}
+  .footer .brand-original{width:186px}
+  .footer .footer-intro{font-size:14px;max-width:350px}
+  .footer .footer-operator{margin-top:20px;font-size:12px}
+  .footer .footer-grid{gap:38px 20px}
+  .footer .footer-nav{gap:15px}
+  .footer .footer-nav b{font-size:12px;margin-bottom:6px}
+  .footer .footer-nav a{font-size:13px;line-height:1.5}
+  .footer .footer-bottom{margin-top:53px;padding-top:21px;flex-direction:column;gap:8px}
+  .footer .footer-bottom p:last-child{text-align:left}
+}
+@media(max-width:360px){
+  .footer .footer-grid{grid-template-columns:minmax(0,1fr);row-gap:34px}
+  .footer .footer-grid>.footer-brand-block{grid-column:1}
+}
+@media(prefers-reduced-motion:reduce){.footer .footer-nav a{transition:none}}

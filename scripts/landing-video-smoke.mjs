@@ -376,6 +376,53 @@ try {
       assert.ok(noteBounds.fontSize>=12 && noteBounds.fontSize<=13 && noteBounds.lineHeight>=19,
         viewport.label+' risk notice is compact but readable: '+JSON.stringify(noteBounds));
       await faq.screenshot({path:'artifacts/acg-faq-'+viewport.label+'.png'});
+      // The footer now continues the FAQ's black editorial style without
+      // repeating its full terms-and-risk paragraph.
+      const footer = page.locator('footer.footer');
+      assert.equal(await footer.count(), 1, 'single site footer');
+      assert.equal(await footer.locator('.footer-brand-block').count(), 1);
+      assert.equal(await footer.locator('.footer-nav').count(), 2);
+      assert.ok((await footer.locator('.footer-operator').innerText()).includes('ACG-MANAGEMENT, UNIPESSOAL LDA'));
+      assert.ok((await footer.locator('.footer-bottom').innerText()).includes('Not a broker or investment adviser.'));
+      assert.ok(!(await footer.innerText()).includes('Simulated balances and performance are not real money'),
+        'avoid repeating FAQ disclaimer in footer');
+      const footerLinks = await footer.locator('nav a').evaluateAll(links =>
+        links.map(a => ({href:a.getAttribute('href'),text:a.textContent.trim()})));
+      assert.ok(footerLinks.length >= 9 && footerLinks.every(l => Boolean(l.href) && Boolean(l.text)));
+      const deadLinks = await footer.evaluate(el => [...el.querySelectorAll('nav a[href^="#"]')]
+        .filter(link => !document.getElementById(link.getAttribute('href').slice(1)))
+        .map(link => link.getAttribute('href')));
+      assert.deepEqual(deadLinks,[], 'footer internal links resolve to visible sections');
+      const footerGeometry = await footer.evaluate(el=>{
+        const rect = selector => el.querySelector(selector).getBoundingClientRect();
+        const outer=el.getBoundingClientRect();
+        const brand=rect('.footer-brand-block'),product=rect('.footer-platform'),
+          support=rect('.footer-resources'),legal=rect('.footer-bottom');
+        const faq=document.getElementById('acg-faq').getBoundingClientRect();
+        return {background:getComputedStyle(el).backgroundColor,
+          left:outer.left,right:outer.right,top:outer.top,
+          brandTop:brand.top,brandRight:brand.right,
+          productLeft:product.left,productTop:product.top,productRight:product.right,
+          supportLeft:support.left,supportTop:support.top,supportRight:support.right,
+          bottomRowTop:legal.top,faqBottom:faq.bottom,width:innerWidth};
+      });
+      assert.equal(footerGeometry.background,'rgb(0, 0, 0)', 'footer matches the FAQ black');
+      assert.ok(footerGeometry.top>=footerGeometry.faqBottom-2, 'FAQ flows into footer');
+      assert.ok(footerGeometry.productRight<=footerGeometry.width+2 &&
+        footerGeometry.supportRight<=footerGeometry.width+2 &&
+        footerGeometry.left>=-2 && footerGeometry.right<=footerGeometry.width+2,
+        viewport.label+' footer fits the viewport: '+JSON.stringify(footerGeometry));
+      if(viewport.label==='desktop'){
+        assert.ok(footerGeometry.brandRight+25<footerGeometry.productLeft &&
+          footerGeometry.productRight+25<footerGeometry.supportLeft,
+          'desktop footer columns do not crowd or overlap: '+JSON.stringify(footerGeometry));
+      }else{
+        assert.ok(footerGeometry.brandTop+25<footerGeometry.productTop &&
+          Math.abs(footerGeometry.productTop-footerGeometry.supportTop)<8,
+          'mobile footer puts branding above two link columns: '+JSON.stringify(footerGeometry));
+      }
+      await footer.scrollIntoViewIfNeeded();
+      await footer.screenshot({path:'artifacts/acg-footer-'+viewport.label+'.png'});
       assert.deepEqual(errors, [], viewport.label+' errors');
       await page.screenshot({ path:'artifacts/landing-film-'+viewport.label+'-motion.png' });
       await page.evaluate(() => { document.documentElement.style.scrollBehavior='auto'; window.scrollTo(0,0); });
