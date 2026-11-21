@@ -115,7 +115,9 @@ try {
     await reduced.waitForTimeout(280);
     const states = await reduced.locator('video.film-video').evaluateAll(videos=>videos.map(v=>({paused:v.paused,controls:v.controls})));
     assert.ok(states.every(v=>v.paused), 'Reduced motion must not autoplay clips: '+JSON.stringify(states));
-    assert.equal(await reduced.locator('[data-video-control]:not([hidden])').count(), 2);
+    assert.equal(await reduced.locator('[data-video-control]:not([hidden])').count(), 1);
+    assert.equal(await reduced.locator('#market-intro [data-video-control]').count(), 0);
+    assert.equal(await reduced.locator('#acg-three-markets-film').evaluate(v=>v.controls), false);
     await reduced.close();
   } finally {
     await browser.close();
