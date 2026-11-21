@@ -431,7 +431,7 @@ try {
       await page.close();
     }
     // Visual bounds across phone, landscape, tablet, laptop, desktop and ultrawide.
-    const screens = [[320,568],[390,844],[430,932],[844,390],[768,1024],
+    const screens = [[320,568],[360,780],[390,844],[430,932],[844,390],[768,1024],
       [1024,768],[1366,768],[1440,900],[1920,1080],[2560,1080]];
     for (const [width,height] of screens) {
       const page = await browser.newPage({ viewport:{width,height}, reducedMotion:'reduce' });
@@ -514,6 +514,66 @@ try {
         assert.ok(con.stageWidth<=805,width+'x'+height+' AI connection artwork exceeds compact width: '+JSON.stringify(con));
         assert.ok(con.noteBottom<=con.ctaTop+2 && con.ctaBottom<=con.stageTop+2,width+'x'+height+' AI connections copy spacing: '+JSON.stringify(con));
         assert.ok(con.stageBottom<=con.sectionBottom+3,width+'x'+height+' AI connection art cropped: '+JSON.stringify(con));
+        // Full mobile design QA: access continuity and actual dimensions of
+        // AI preview, terminal, AI assistant, mobile illustration and Movers.
+        if(width<=600 && height>600 || width===320) {
+          const q=await page.evaluate(()=>{
+            const selector=s=>document.querySelector(s);
+            const box=s=>selector(s).getBoundingClientRect();
+            const bg=s=>getComputedStyle(selector(s)).backgroundColor;
+            const style=s=>getComputedStyle(selector(s));
+            const sections=['#features','#terminal','#experience','#ai-connections','#market-movers','#access','#acg-faq'];
+            return {
+              viewport:innerWidth,scrollWidth:document.documentElement.scrollWidth,
+              colors:sections.map(s=>({id:s,bg:bg(s)})),
+              aiHeight:box('#features').height,aiCardWidth:box('#features .ai-preview').width,
+              mobileHeight:box('#experience').height,
+              terminalFrame:box('#terminal .terminal-story-frame').toJSON(),
+              terminalVideoFit:style('#terminal .terminal-story-video').objectFit,
+              aiConnection:box('#ai-connections .ai-connect-stage').toJSON(),
+              movers:box('#market-movers .market-movers-frame').toJSON(),
+              moversZoom:style('#market-movers .market-movers-video').transform,
+              access:box('#access').toJSON(),
+              accessCards:[...document.querySelectorAll('#access .access-card')].map(el=>({
+                left:el.getBoundingClientRect().left,right:el.getBoundingClientRect().right,
+                color:getComputedStyle(el).backgroundColor,
+                buttonHeight:el.querySelector('.btn').getBoundingClientRect().height
+              })),
+              faqTop:box('#acg-faq').top
+            };
+          });
+          assert.ok(q.scrollWidth<=q.viewport+2,width+'x'+height+' mobile horizontal overflow: '+JSON.stringify(q));
+          assert.ok(q.colors.filter(c=>['#market-movers','#access','#acg-faq'].includes(c.id))
+            .every(c=>c.bg==='rgb(0, 0, 0)'), 'market to account to FAQ must all be pure black: '+JSON.stringify(q.colors));
+          assert.ok(q.accessCards.length===2 && q.accessCards.every(v=>
+            v.color==='rgb(14, 15, 18)' && v.buttonHeight>=44 &&
+            v.left>=-2 && v.right<=q.viewport+2),
+            'dark access cards and full-size touch targets: '+JSON.stringify(q.accessCards));
+          assert.ok(q.terminalFrame.width>=q.viewport-53 &&
+            q.terminalFrame.left>=-2 && q.terminalFrame.right<=q.viewport+2 &&
+            q.terminalVideoFit==='contain',
+            'portrait terminal should fill phone safely: '+JSON.stringify(q.terminalFrame));
+          assert.ok(q.aiConnection.width>=q.viewport-56 &&
+            q.aiConnection.left>=-2 && q.aiConnection.right<=q.viewport+2,
+            'AI assistant film should use available width: '+JSON.stringify(q.aiConnection));
+          assert.ok(q.movers.width>=q.viewport-55 &&
+            q.movers.left>=-2 && q.movers.right<=q.viewport+2,
+            'Market Movers stage should use available width: '+JSON.stringify(q.movers));
+          assert.ok(q.moversZoom!=='none','Market Movers visual needs meaningful zoom');
+          assert.ok(q.aiHeight<=900,
+            'AI narrative must not leave another oversized blank section: '+q.aiHeight);
+          assert.ok(q.access.bottom<=q.faqTop+3,'account access flows directly into FAQs');
+          if(width===390) {
+            await page.locator('#access').scrollIntoViewIfNeeded();
+            await page.locator('#access').screenshot({path:'artifacts/account-access-mobile-audited.png'});
+            await page.locator('#market-movers').scrollIntoViewIfNeeded();
+            await page.locator('#market-movers').screenshot({path:'artifacts/movers-mobile-audited.png'});
+            await page.locator('#terminal').scrollIntoViewIfNeeded();
+            await page.locator('#terminal').screenshot({path:'artifacts/terminal-mobile-audited.png'});
+            await page.locator('#ai-connections').scrollIntoViewIfNeeded();
+            await page.locator('#ai-connections').screenshot({path:'artifacts/ai-assistant-mobile-audited.png'});
+          }
+        }
 
 
 
