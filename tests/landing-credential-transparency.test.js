@@ -18,8 +18,8 @@ test('simulated-trading status and account eligibility remain visible beside her
 
 test('home clearly distinguishes ACG Funded sign-in and authorized organization account connection', () => {
   const page = source('public/acg-landing-v6.html');
-  assert.match(page, /href="\/\?acg_login=1">ACG Funded sign in/);
-  assert.match(page, /href="\/\?acg_connect_prop=1">Connect authorized account/);
+  assert.match(page, /href="\/terminal\?acg_login=1">ACG Funded sign in/);
+  assert.match(page, /href="\/terminal\?acg_connect_prop=1">Connect authorized account/);
   assert.match(page, /organization explicitly integrated with ACG Trader/);
   assert.match(page, /Never enter unrelated passwords/);
   assert.equal(shouldOpenPublicHome('/', '?acg_login=1'), false);
@@ -31,7 +31,7 @@ test('account connection screen identifies its issuer and requires explicit auth
   const gate = source('src/components/SessionGate.jsx');
   assert.match(gate, /Only connect an account issued by an organization explicitly integrated with ACG Trader/);
   assert.match(gate, /Have an ACG Funded trading account/);
-  assert.match(gate, /href="\/\?acg_login=1"/);
+  assert.match(gate, /href="\/terminal\?acg_login=1"/);
   assert.match(gate, /Platform developed by ACG-MANAGEMENT, UNIPESSOAL LDA, Portugal/);
   assert.match(gate, /Never enter a Google, email or banking password here/);
   assert.match(gate, /auth\.login\(\{ tenant, login, password: form\.password \}\)/);

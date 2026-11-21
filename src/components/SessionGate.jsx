@@ -168,7 +168,7 @@ export default function SessionGate({ children }) {
           {connectProp && (
             <p className="mt-4 text-center text-[12px] leading-5 text-[#8c8f96]">
               Have an ACG Funded trading account?{' '}
-              <a href="/?acg_login=1" className="font-semibold text-[#e4e5e8] underline underline-offset-2 hover:text-white">
+              <a href="/terminal?acg_login=1" className="font-semibold text-[#e4e5e8] underline underline-offset-2 hover:text-white">
                 Use ACG Funded sign in
               </a>
             </p>

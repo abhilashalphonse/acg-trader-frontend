@@ -143,7 +143,7 @@ export default function StandaloneAuthPage() {
       <a href="/" className="text-xl font-black tracking-[-.065em] text-[#111312] no-underline">
         ACG <span className="font-semibold tracking-[-.04em]">TRADER</span>
       </a>
-      <a href="/?acg_connect_prop=1" className="text-xs font-semibold text-[#5b605d] hover:text-black">Connect Prop <ArrowRight size={13} className="inline" /></a>
+      <a href="/terminal?acg_connect_prop=1" className="text-xs font-semibold text-[#5b605d] hover:text-black">Connect Prop <ArrowRight size={13} className="inline" /></a>
     </header>
     <div className="mx-auto grid min-h-[calc(100dvh-150px)] max-w-[1160px] items-center gap-10 px-5 pb-16 pt-8 sm:px-9 lg:grid-cols-[1fr_440px] lg:gap-24">
       <div className="max-w-[520px]">
@@ -169,7 +169,7 @@ export default function StandaloneAuthPage() {
           <p className="mt-4 text-sm leading-6 text-[#656b64]">
             Try Demo is being prepared for live signup. Email and Google registration remain disabled in this audit build; no personal account can be created until registration is enabled.
           </p>
-          <div className="mt-7"><a href="/?acg_login=1" className="block rounded-xl bg-[#141516] px-5 py-4 text-center text-sm font-bold text-white">Open existing login</a></div>
+          <div className="mt-7"><a href="/terminal?acg_login=1" className="block rounded-xl bg-[#141516] px-5 py-4 text-center text-sm font-bold text-white">Open existing login</a></div>
         </> : <>
           {['signin','signup','recover','reset'].includes(mode) && <form onSubmit={handleSubmit} className="space-y-5">
             <div>
