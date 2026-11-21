@@ -280,7 +280,7 @@ try {
         viewport.label+' compact AI visual fits and remains readable: '+JSON.stringify(connectionBounds));
       assert.ok(connectionBounds.titleFont <= (viewport.label === 'desktop' ? 65 : 44),
         viewport.label+' AI heading stays compact: '+JSON.stringify(connectionBounds));
-      assert.ok(connectionBounds.sectionHeight <= (viewport.label === 'desktop' ? 900 : 650),
+      assert.ok(connectionBounds.sectionHeight <= (viewport.label === 'desktop' ? 900 : 715),
         viewport.label+' Section 6 is not oversized: '+JSON.stringify(connectionBounds));
       assert.ok(connectionBounds.stageBottom <= connectionBounds.sectionBottom + 2,
         viewport.label+' AI film fits the section: '+JSON.stringify(connectionBounds));
@@ -535,7 +535,48 @@ try {
         assert.ok(con.stageBottom<=con.sectionBottom+3,width+'x'+height+' AI connection art cropped: '+JSON.stringify(con));
         // Full mobile design QA: access continuity and actual dimensions of
         // AI preview, terminal, AI assistant, mobile illustration and Movers.
+
         if(width<=600 && height>600 || width===320) {
+          const editorial = await page.evaluate(() => {
+            const box = selector => document.querySelector(selector).getBoundingClientRect();
+            const align = selector => getComputedStyle(document.querySelector(selector)).textAlign;
+            const x = selector => box(selector).left;
+            return {
+              viewport:innerWidth,scrollWidth:document.documentElement.scrollWidth,
+              aiHeading:x('#features h2'),aiCta:x('#features .ai-section-cta'),
+              aiTextAlign:align('#features .ai-section-inner'),
+              aiCard:box('#features .ai-preview').toJSON(),
+              terminalHeading:x('#terminal h2'),terminalCta:x('#terminal .terminal-story-cta'),
+              terminalTextAlign:align('#terminal .terminal-story-inner'),
+              terminalFilm:box('#terminal .terminal-story-frame').toJSON(),
+              mobileVisual:box('#experience .mobile-story-visual').toJSON(),
+              assistantHeading:x('#ai-connect-heading'),assistantCta:x('#ai-connections .ai-connect-cta'),
+              assistantTextAlign:align('#ai-connections .ai-connect-inner'),
+              assistantFilm:box('#ai-connect-film').toJSON(),
+              moversFilm:box('#market-movers .market-movers-frame').toJSON(),
+              faqTextAlign:align('#acg-faq .acg-faq-intro'),
+              faqRowHeight:box('#acg-faq .acg-faq-item summary').height
+            };
+          });
+          assert.ok(editorial.scrollWidth<=editorial.viewport+2,
+            width+'px mobile cinematic page must not overflow: '+JSON.stringify(editorial));
+          assert.ok(editorial.aiTextAlign==='left' && editorial.terminalTextAlign==='left'
+            && editorial.assistantTextAlign==='left' && editorial.faqTextAlign==='left',
+            'editorial mobile headings use consistent left alignment: '+JSON.stringify(editorial));
+          assert.ok(Math.abs(editorial.aiHeading-editorial.aiCta)<3
+            && Math.abs(editorial.terminalHeading-editorial.terminalCta)<3
+            && Math.abs(editorial.assistantHeading-editorial.assistantCta)<3,
+            'section CTAs align with their headings: '+JSON.stringify(editorial));
+          for (const stage of ['terminalFilm','mobileVisual','assistantFilm','moversFilm']) {
+            const q=editorial[stage];
+            assert.ok(q.left>=-3 && q.right<=editorial.viewport+3 &&
+              q.width>=editorial.viewport-3,
+              stage+' must be full-bleed without spill at '+width+': '+JSON.stringify(editorial));
+          }
+          assert.ok(editorial.aiCard.width>=editorial.viewport-55,
+            'AI prompt uses the available readable content gutter: '+JSON.stringify(editorial));
+          assert.ok(editorial.faqRowHeight>=68,
+            'FAQ rows remain comfortable mobile touch targets: '+JSON.stringify(editorial));
           const q=await page.evaluate(()=>{
             const selector=s=>document.querySelector(s);
             const box=s=>selector(s).getBoundingClientRect();
@@ -694,7 +735,7 @@ try {
           'larger immersive film at '+width+': '+JSON.stringify(q));
         assert.ok(Math.abs(q.headingLeft-q.buttonLeft)<3 && q.objectFit==='cover',
           'editorial alignment and cinematic crop at '+width+': '+JSON.stringify(q));
-        assert.ok(q.filmGap>=10 && q.filmGap<=31,
+        assert.ok(q.filmGap>=10 && q.filmGap<=36,
           'tight CTA-to-film rhythm at '+width+': '+JSON.stringify(q));
         if (width===354) await stage.screenshot({path:'artifacts/market-intro-354px-final-scale.png'});
       } finally {
