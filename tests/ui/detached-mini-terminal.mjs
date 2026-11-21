@@ -252,28 +252,14 @@ try {
   await fallback.locator('[data-acg-mini-window-state="closed"]').waitFor({ state: 'attached' });
   await fallback.getByRole('button', { name: 'Pop out mini terminal' }).waitFor();
   check(await fallback.evaluate(() => window.v4PositionsQA.commands.length === 0), 'Window lifecycle and navigation never submit a trade');
-  await fallback.evaluate(() => {
-    const originalOpen = window.open;
-    window.__miniWindowOpenDiagnostic = { called: 0, success: null };
-    window.open = (...args) => {
-      window.__miniWindowOpenDiagnostic.called++;
-      const result = originalOpen.apply(window, args);
-      window.__miniWindowOpenDiagnostic.success = Boolean(result);
-      return result;
-    };
-  });
-  const closePopupPromise = fallback.waitForEvent('popup', { timeout: 10000 }).catch(error => error);
+  // The notice banner may overlap the right header; its background must
+  // never intercept clicks on the popup button below it.
+  const noticeStyle = await fallback.locator('.acg-motion-notice').evaluate(
+    element => getComputedStyle(element).pointerEvents);
+  check(noticeStyle === 'none', 'Trade notice cannot intercept popup-header clicks');
+  const closePopupPromise = fallback.waitForEvent('popup');
   await fallback.getByRole('button', { name: 'Pop out mini terminal' }).click();
   const closePopup = await closePopupPromise;
-  if (closePopup instanceof Error) {
-    console.log('MINI_REOPEN_DIAGNOSTIC', JSON.stringify(await fallback.evaluate(() => ({
-      attempt: window.__miniWindowOpenDiagnostic,
-      state: document.querySelector('.acg-mini-portal-host')?.dataset.acgMiniWindowState,
-      enabled: !document.querySelector('[data-acg-mini-header-launcher]')?.disabled,
-      alert: document.querySelector('[role="alert"]')?.textContent?.slice(0, 180) || null,
-    }))));
-    throw closePopup;
-  }
   await closePopup.getByRole('button', { name: 'Positions (2)', exact: true }).click();
   await closePopup.locator('.acg-mini-row').first().click();
   await closePopup.getByRole('button', { name: 'Close Position', exact: true }).click();
