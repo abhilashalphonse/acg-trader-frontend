@@ -10,6 +10,11 @@ export default defineConfig({
   },
   plugins: [react(), tailwindcss()],
   build: {
+    // The desktop terminal is lazy-loaded. Its split CSS preload can fail on
+    // production deployment transitions, preventing React from ever mounting.
+    // Ship one versioned CSS asset with the entry HTML, not a second stylesheet
+    // loaded during the authenticated terminal's dynamic import.
+    cssCodeSplit: false,
     rollupOptions: {
       input: {
         main: 'index.html',

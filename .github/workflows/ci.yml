@@ -39,6 +39,8 @@ jobs:
           # Match Railway Docker's approved production desktop presentation.
           VITE_ACG_EXECUTION_V4_ENABLED: 'true'
         run: npm run build
+      - name: Verify no lazy terminal CSS preload is needed
+        run: node scripts/assert-production-terminal-css.mjs
       - name: Install FFmpeg probe for media release checks
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - name: Build first-party silent fast-start cinematic media
