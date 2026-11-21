@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 
-test('all six cinematic MP4s support muted inline autoplay on Safari where permitted', () => {
+test('six landing films use silent inline autoplay without playback controls', () => {
   const html = read('public/acg-landing-v6.html');
   const videos = [...html.matchAll(/<video\b[^>]*>/g)].map(v => v[0]);
   assert.equal(videos.length, 6);
@@ -14,12 +14,11 @@ test('all six cinematic MP4s support muted inline autoplay on Safari where permi
     assert.match(tag, /\bplaysinline\b/);
     assert.doesNotMatch(tag, /\bcontrols\b/);
   }
-  assert.ok(html.includes('href="/acg-mobile-video-playback.css"'));
-  assert.ok(html.includes('<script src="/acg-landing-motion.js?v=20261121-mobile-playback" defer>'),
-    'mobile browsers should fetch a fresh playback controller');
+  assert.ok(!html.includes('href="/acg-mobile-video-playback.css"'));
+  assert.ok(html.includes('<script src="/acg-landing-motion.js?v=20261121-mobile-no-controls" defer>'));
 });
 
-test('autoplay policy fallback is opt-in, fully client-side, and never bypasses OS preferences', () => {
+test('autoplay can gracefully fall back to still imagery without adding a Play button', () => {
   const js = read('public/acg-landing-motion.js');
   assert.ok(js.includes("navigator.connection?.saveData === true"));
   assert.ok(js.includes("window.matchMedia('(prefers-reduced-motion: reduce)')"));
@@ -28,22 +27,10 @@ test('autoplay policy fallback is opt-in, fully client-side, and never bypasses 
   assert.ok(js.includes("video.setAttribute('webkit-playsinline', '')"));
   assert.ok(js.includes('video.muted = true'));
   assert.ok(js.includes('video.playsInline = true'));
-  assert.ok(js.includes("button.addEventListener('click', () => {"));
-  assert.ok(js.includes("video.dataset.userActivated = 'true'"));
-  assert.ok(js.includes("attemptPlayback(state, true)"));
-  assert.ok(js.includes("error?.name === 'NotSupportedError'"));
-  assert.ok(js.includes('heroVideo.dataset.userActivated'));
   assert.ok(js.includes("state.visible = entry.isIntersecting"));
+  assert.ok(js.includes("video.classList.add('is-unavailable')"));
+  assert.ok(js.includes("heroVideo.classList.add('is-unavailable')"));
   assert.ok(js.includes("document.addEventListener('visibilitychange'"));
+  assert.doesNotMatch(js, /createElement\(['"]button|film-tap-to-play|hero-tap-to-play|Play video|Play intro animation/);
   assert.doesNotMatch(js, /\bfetch\s*\(|XMLHttpRequest|localStorage|sessionStorage|document\.cookie/);
-});
-
-test('manual controls are invisible during normal autoplay, keyboard-operable and respect motion settings', () => {
-  const css = read('public/acg-mobile-video-playback.css');
-  assert.ok(css.includes('.film-tap-to-play[hidden],.acg-hero-tap-to-play[hidden]{display:none!important}'));
-  assert.ok(css.includes(':focus-visible'));
-  assert.ok(css.includes('min-height:44px'));
-  assert.ok(css.includes('prefers-reduced-motion:reduce'));
-  assert.ok(css.includes('.terminal-story-video[data-user-activated="true"]'));
-  assert.ok(css.includes('.acg-cinema-video[data-user-activated="true"]'));
 });
