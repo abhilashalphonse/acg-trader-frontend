@@ -145,14 +145,14 @@ try {
         };
       });
       if (viewport.label === 'mobile') {
-        assert.ok(marketFilmGeometry.frameHeight >= 400 && marketFilmGeometry.frameHeight <= 480,
+        assert.ok(marketFilmGeometry.frameHeight >= 465 && marketFilmGeometry.frameHeight <= 505,
           'mobile bitcoin visual must occupy a cinematic vertical stage: '+JSON.stringify(marketFilmGeometry));
         assert.ok(marketFilmGeometry.frameRatio >= 0.75 && marketFilmGeometry.frameRatio <= 1.1,
           'mobile portrait crop must replace the tiny landscape matte: '+JSON.stringify(marketFilmGeometry));
         assert.equal(marketFilmGeometry.textAlign, 'left', 'mobile section copy must be left aligned');
         assert.ok(Math.abs(marketFilmGeometry.headingLeft-marketFilmGeometry.ctaLeft) < 3,
           'headline and CTA share an editorial left edge: '+JSON.stringify(marketFilmGeometry));
-        assert.ok(marketFilmGeometry.topGap >= 27 && marketFilmGeometry.topGap <= 43,
+        assert.ok(marketFilmGeometry.topGap >= 13 && marketFilmGeometry.topGap <= 27,
           'mobile CTA must breathe before the cinematic art: '+JSON.stringify(marketFilmGeometry));
         assert.equal(await newFilm.evaluate(el=>getComputedStyle(el).objectFit),'cover',
           'mobile art must crop to fill the stage without stretching');
