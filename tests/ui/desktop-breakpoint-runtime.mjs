@@ -29,14 +29,15 @@ async function run(flag,port){
       await page.waitForTimeout(2000);
       const state=await page.evaluate(()=>({
         uiErrors:window.__acgDesktopFixtureErrors||[],
-        header:document.querySelector('[data-v4-header]')?.getAttribute('data-v4-header')??null,
+        header:document.querySelector('.acg-desktop-market-strip')?.getAttribute('data-v4-header')??null,
+        headerMounted:!!document.querySelector('.acg-desktop-market-strip'),
         chart:!!document.querySelector('.acg-desktop-chart'),
         panels:document.querySelectorAll('[aria-label="Desktop panel dock"]').length,
         body:document.body.innerText.slice(0,350)
       }));
       outcomes.push({flag,width,state,errors:errors.slice(0,5)});
       assert.equal(state.uiErrors.length,0,'Desktop React tree must not throw: '+JSON.stringify(outcomes.at(-1)));
-      assert.ok(state.header!==null,'Desktop header must mount: '+JSON.stringify(outcomes.at(-1)));
+      assert.ok(state.headerMounted,'Desktop header must mount: '+JSON.stringify(outcomes.at(-1)));
       assert.equal(state.header,flag==='true'?'true':null,'V4 flag must select expected desktop variant');
       await page.close();
     }
