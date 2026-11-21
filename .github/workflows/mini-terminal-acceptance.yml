@@ -1,0 +1,53 @@
+name: Mini-terminal compact popup browser acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'src/components/trading-v2/desktop/DetachedMiniTerminal.jsx'
+      - 'src/components/trading-v2/desktop/DetachedMiniTerminal.css'
+      - 'src/components/trading-v2/desktop/DesktopOrderTicket.jsx'
+      - 'tests/ui/detached-mini-terminal.mjs'
+      - '.github/workflows/mini-terminal-acceptance.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/components/trading-v2/desktop/DetachedMiniTerminal.jsx'
+      - 'src/components/trading-v2/desktop/DetachedMiniTerminal.css'
+      - 'src/components/trading-v2/desktop/DesktopOrderTicket.jsx'
+      - 'tests/ui/detached-mini-terminal.mjs'
+      - '.github/workflows/mini-terminal-acceptance.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  chrome-mini:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install exact production and test dependencies
+        run: npm ci
+      - name: Install isolated Playwright browser test dependency
+        run: npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - name: Launch authenticated-mock fixture (no trading backend)
+        env:
+          VITE_ACG_EXECUTION_V4_ENABLED: 'true'
+        run: |
+          set -euo pipefail
+          npm run dev -- --host 127.0.0.1 > /tmp/acg-mini-vite.log 2>&1 &
+          echo $! > /tmp/acg-mini-vite.pid
+          curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-connrefused             'http://127.0.0.1:5174/v4-positions-audit.html?acg_dock_audit=1' > /dev/null
+      - name: Test native PiP and regular popup at mobile density
+        run: npm run test:ui:mini
+      - name: Clean up fixture
+        if: always()
+        run: |
+          if [ -f /tmp/acg-mini-vite.pid ]; then kill "$(cat /tmp/acg-mini-vite.pid)" 2>/dev/null || true; fi
