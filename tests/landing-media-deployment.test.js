@@ -81,7 +81,7 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   assert.ok(html.includes('Explore mobile trading'));
   assert.ok(html.includes('<section class="ai-connect-story" id="ai-connections"'));
   assert.ok(html.indexOf('id="experience"') < html.indexOf('id="ai-connections"')
-    && html.indexOf('id="ai-connections"') < html.indexOf('id="trading"'), 'AI connection is Section 6');
+    && html.indexOf('id="ai-connections"') < html.indexOf('id="market-movers"'), 'AI connection is Section 6');
   assert.ok(html.includes('ACG%20Trader%20-%20Overnight%20Scan.mp4'));
   assert.ok(!html.includes('ACG%20Trader%20AI%20Connection.mp4'), 'previous Section 6 film must not be referenced');
   assert.ok(html.includes('id="acg-ai-connection-film"'));
@@ -94,10 +94,15 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   assert.ok(html.includes('href="/acg-ai-connection-section.css"'));
   assert.equal((html.match(/id="acg-ai-connection-film"/g)||[]).length,1);
   assert.ok(html.indexOf('id="ai-connections"') < html.indexOf('id="market-movers"') &&
-    html.indexOf('id="market-movers"') < html.indexOf('id="trading"'), 'Market Movers is Section 7');
+    html.indexOf('id="market-movers"') < html.indexOf('id="access"'), 'Market Movers is Section 7, immediately before account access');
   assert.ok(html.includes('id="acg-market-movers-film"'));
   assert.ok(html.includes('src="https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20Market%20Movers%20-%20Take%20the%20Lead.mp4"'));
-  assert.ok(html.includes('href="#markets">Explore markets'));
+  assert.ok(html.includes('href="#market-intro">Explore markets'));
+  assert.ok(html.includes('class="terminal-story-cta" href="/?acg_login=1"'));
+  assert.ok(html.includes('class="mobile-story-cta" href="/?acg_login=1"'));
+  assert.ok(!html.includes('id="trading"') && !html.includes('id="markets"'));
+  assert.ok(!html.includes('href="#trading"') && !html.includes('href="#markets"'));
+  assert.ok(!html.includes('From analysis<br/>to execution.') && !html.includes('Follow the markets<br/>you trade.'));
   assert.ok(!html.includes('Rankings and price moves are for demonstration only'));
   const marketMoversCss = read('public/acg-market-movers-section.css');
   assert.ok(marketMoversCss.includes('grid-template-columns:minmax(0,40fr) minmax(0,60fr)'));
