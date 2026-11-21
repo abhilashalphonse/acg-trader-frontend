@@ -1467,6 +1467,7 @@ export default function ChartArea({
   onCancelTradePlan = () => {},
   desktopEnhanced = false,
   chartOrderV4 = false,
+  directPendingCancel = false,
   compactContext = false,
   chartSettings = null,
   onToggleIndicator = () => {},
@@ -1863,6 +1864,7 @@ export default function ChartArea({
         )}
 
         {v4AuditLayer && <V4FullTerminalOrders
+          directPendingCancel={directPendingCancel && !auditMobile}
           onCheckStatus={onCheckStatus} onBreakEven={onBreakEven} onSetTrailing={onSetTrailing}
           mobile={auditMobilePalette} mobileTradeSelection={mobileTradeSelection} onMobileManagementChange={onMobileManagementChange} managementDisabled={managementDisabled}
           hoveredPositionId={hoveredPositionId}
