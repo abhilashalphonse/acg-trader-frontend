@@ -7,7 +7,7 @@ const read = file => readFileSync(new URL('../' + file, import.meta.url), 'utf8'
 test('Access transition uses pure-black background and keeps actual account routes and disclosures', () => {
   const html = read('public/acg-landing-v6.html');
   const css = read('public/acg-mobile-composition.css');
-  assert.ok(html.includes('<link rel="stylesheet" href="/acg-mobile-composition.css?v=20261121-finalmedia1"/>'));
+  assert.ok(html.includes('<link rel="stylesheet" href="/acg-mobile-composition.css?v=20261121-aifit1"/>'));
   assert.ok(html.indexOf('href="/acg-mobile-composition.css') > html.indexOf('href="/acg-landing-footer.css'),
     'mobile overrides load after original styles');
   assert.match(css, /#access\.section\.access\{[\s\S]*?background:#000/);
@@ -56,7 +56,7 @@ test('mobile editorial sections are left aligned with full-width cinematic artwo
   ]) assert.ok(css.includes(rule), rule);
   assert.ok(css.includes('width:100vw;max-width:none'));
   assert.ok(css.includes('object-fit:contain;transform:none'), 'terminal recording is never cropped');
-  assert.ok(css.includes('#ai-connections .ai-connect-disclosure{'), 'assistant concept warning remains visible');
+  assert.ok(css.includes('#ai-connections .ai-connect-inner>.ai-connect-disclosure{'), 'assistant concept warning remains visible');
   assert.ok(css.includes('#acg-faq .acg-faq-disclaimer'), 'legal notice remains readable');
   const html = read('public/acg-landing-v6.html');
   assert.ok(html.includes('id="acg-terminal-film"'));
@@ -68,9 +68,9 @@ test('mobile editorial sections are left aligned with full-width cinematic artwo
 test('mobile-only video compositions replace empty margins without altering originals', () => {
   const html = read('public/acg-landing-v6.html');
   const css = read('public/acg-mobile-composition.css');
-  const aiMobile = 'src="/media/overnight-scan-mobile.mp4"';
   const moversMobile = 'src="/media/market-movers-mobile.mp4"';
-  assert.ok(html.includes(aiMobile) && html.includes(moversMobile));
+  assert.ok(!html.includes('src="/media/overnight-scan-mobile.mp4"'));
+  assert.ok(html.includes(moversMobile));
   assert.ok(html.includes('src="/media/overnight-scan.mp4"'));
   assert.ok(html.includes('src="/media/market-movers.mp4"'));
   assert.ok(css.includes('.market-movers-frame .market-movers-video{'));
@@ -85,4 +85,18 @@ test('the footer keeps two-column navigation even on 320px phones', () => {
   assert.ok(css.includes('grid-template-columns:minmax(0,1fr) minmax(0,1fr)'));
   assert.ok(css.includes('.footer .footer-grid>.footer-brand-block{grid-column:1/-1}'));
   assert.ok(css.includes('.footer .footer-nav a{font-size:12.5px'));
+});
+
+test('AI Assistant mobile video and disclosure fit the readable phone gutter', () => {
+  const css = read('public/acg-mobile-composition.css');
+  const html = read('public/acg-landing-v6.html');
+  assert.ok(css.includes('#ai-connections .ai-connect-stage{'));
+  assert.ok(css.includes('width:100%;max-width:100%;align-self:stretch'));
+  assert.ok(css.includes('margin:16px 0 0;aspect-ratio:16/9'));
+  assert.ok(css.includes('object-fit:contain;object-position:center'));
+  assert.ok(css.includes('max-width:100%;margin:10px 0 13px'));
+  assert.ok(css.includes('font-size:10.5px;line-height:1.48'));
+  assert.ok(html.includes('src="/media/overnight-scan.mp4"'));
+  assert.ok(!html.includes('src="/media/overnight-scan-mobile.mp4"'));
+  assert.ok(html.includes('Illustrative concept — not an active third-party AI integration.'));
 });

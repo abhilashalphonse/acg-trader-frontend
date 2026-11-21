@@ -112,16 +112,19 @@
   #ai-connections .ai-connect-copy .ai-connect-disclosure-desktop{display:none}
   #ai-connections .ai-connect-inner>.ai-connect-disclosure{display:block}
   #ai-connections .ai-connect-status{display:block;max-width:345px;margin:13px 0 0;color:#b7bdc6;font-size:11px;line-height:1.55}
-  #ai-connections .ai-connect-disclosure{max-width:355px;margin:14px 0 21px;color:#aeb4be;font-size:12px;line-height:1.65}
+  #ai-connections .ai-connect-inner>.ai-connect-disclosure{max-width:100%;margin:10px 0 13px;color:#a7adb7;font-size:10.5px;line-height:1.48;letter-spacing:-.005em}
   #ai-connections .ai-connect-cta{margin:20px 0 0}
+  /* Fit the entire native video inside the phone's safe content gutter.
+     No full-bleed stage, zoom, clipping or stretched chart labels. */
   #ai-connections .ai-connect-stage{
-    width:100vw;max-width:none;align-self:center;
-    margin:21px 0 0;aspect-ratio:1.35;
+    width:100%;max-width:100%;align-self:stretch;
+    margin:16px 0 0;aspect-ratio:16/9;
     overflow:hidden;background:#000;
   }
   #ai-connections .ai-connect-stage .ai-connect-video{
-    width:100%;height:100%;object-fit:cover;
-    transform:none;transform-origin:center;
+    display:block;width:100%;height:100%;
+    object-fit:contain;object-position:center;
+    transform:none;
   }
 
   /* Market Movers: presentation area is taller and closer to device edges.
@@ -188,7 +191,7 @@
 @media(max-width:360px){
   #terminal .terminal-story-figure{width:100vw;max-width:none;transform:none}
   #terminal .terminal-story-copy h2{font-size:36px}
-  #ai-connections .ai-connect-stage{width:100vw;max-width:none;margin-left:0;margin-right:0}
+  #ai-connections .ai-connect-stage{width:100%;max-width:100%;margin-left:0;margin-right:0}
   #market-movers .market-movers-frame{width:100vw;margin-left:0}
   #market-movers .market-movers-frame .market-movers-video{transform:none}
   .footer .footer-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}

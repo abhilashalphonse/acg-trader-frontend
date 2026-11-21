@@ -41,10 +41,9 @@ try {
     assert.ok(statSync(dest).size > 1000, name + ' output is empty');
     process.stdout.write(name + ' -> /media/' + name + '.mp4 (' + statSync(dest).size + ' bytes)\n');
     // Purpose-built mobile compositions, preserving the complete originals.
-    // These crops frame the chart and Market Movers card instead of enlarging
+    // The Market Movers mobile crop frames its card instead of enlarging
     // the surrounding black matte with CSS. 1920x1080 source coordinates.
     const mobile = {
-      'overnight-scan': { crop: '1440:1080:200:0', scale: '960:720' },
       'market-movers': { crop: '1000:750:460:165', scale: '800:600' }
     }[name];
     if (mobile) {

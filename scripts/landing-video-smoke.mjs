@@ -85,7 +85,7 @@ try {
       assert.equal(await page.locator('video#acg-shield-film').count(), 0);
       assert.equal(await page.locator('#experience.mobile-story').count(), 1);
       assert.equal(await page.locator('video#ai-prism-film').count(), 1);
-      assert.deepEqual(values.videoTypes, Array(7).fill('video/mp4'));
+      assert.deepEqual(values.videoTypes, Array(6).fill('video/mp4'));
       // Two mobile-specific MP4 variants are supplied first, original desktop sources remain intact.
       assert.ok(values.validSources);
       assert.ok(values.width <= values.viewportWidth + 3, viewport.label+' horizontal overflow: '+JSON.stringify(values));
@@ -247,8 +247,8 @@ try {
         'Acg Trader does not endorse or guarantee third-party AI Tools. AI may produce errors or inaccurate outputs. You remain responsible for reviewing and approving all orders before execution. Acg Trader is not liable for any resulting losses, missed opportunities, or erroneous trades');
       const connectionVideo = connections.locator('#acg-ai-connection-film');
       assert.equal(await connectionVideo.count(), 1);
-      assert.equal(await connectionVideo.locator('source').first().getAttribute('src'), '/media/overnight-scan-mobile.mp4');
-      assert.equal(await connectionVideo.locator('source').last().getAttribute('src'), '/media/overnight-scan.mp4');
+      assert.equal(await connectionVideo.locator('source').count(), 1, 'AI film uses the uncropped full-width master');
+      assert.equal(await connectionVideo.locator('source').getAttribute('src'), '/media/overnight-scan.mp4');
       assert.equal(await connectionVideo.evaluate(v => v.controls), false);
       await connections.scrollIntoViewIfNeeded();
       await page.waitForFunction(() => document.querySelector('#acg-ai-connection-film')?.readyState >= 2, null, {timeout: 15000});
@@ -261,9 +261,9 @@ try {
       console.log('ACG_AI_CONNECTION_MEDIA_'+viewport.label+' '+JSON.stringify(connVideoState));
       assert.ok(connVideoState.width > 0 && connVideoState.height > 0 && connVideoState.readyState >= 2,
         viewport.label+' AI connection film decoded');
-      assert.equal(connVideoState.style, viewport.label==='desktop' ? 'contain':'cover');
-      assert.equal(connVideoState.width, viewport.label==='desktop' ? 1920 : 960);
-      assert.equal(connVideoState.height, viewport.label==='desktop' ? 1080 : 720);
+      assert.equal(connVideoState.style, 'contain', 'show the entire AI trading chart without cropping');
+      assert.equal(connVideoState.width, 1920);
+      assert.equal(connVideoState.height, 1080);
       const connectionBounds = await connections.evaluate(el => {
         const a = selector => el.querySelector(selector).getBoundingClientRect();
         const heading=a('h2'),disclosure=a(innerWidth <= 600 ? '.ai-connect-inner>.ai-connect-disclosure' : '.ai-connect-disclosure-desktop'),cta=a('.ai-connect-cta'),
@@ -283,8 +283,10 @@ try {
           && connectionBounds.stageBottom < connectionBounds.disclosureTop
           && connectionBounds.disclosureBottom <= connectionBounds.sectionBottom + 2,
         viewport.label+' AI concept copy/video/disclosure order: '+JSON.stringify(connectionBounds));
-      assert.ok(connectionBounds.stageLeft >= -2 && connectionBounds.stageRight <= connectionBounds.screenWidth + 2,
-        viewport.label+' AI visual fits viewport: '+JSON.stringify(connectionBounds));
+      assert.ok(viewport.label==='mobile'
+        ? connectionBounds.stageLeft >= 14 && connectionBounds.stageRight <= connectionBounds.screenWidth - 14
+        : connectionBounds.stageLeft >= -2 && connectionBounds.stageRight <= connectionBounds.screenWidth + 2,
+        viewport.label+' AI chart fits inside content gutter: '+JSON.stringify(connectionBounds));
       assert.ok(connectionBounds.stageWidth <= 805 && connectionBounds.stageHeight >= 120,
         viewport.label+' compact AI visual fits and remains readable: '+JSON.stringify(connectionBounds));
       assert.ok(connectionBounds.titleFont <= (viewport.label === 'desktop' ? 65 : 44),
@@ -583,12 +585,16 @@ try {
             && Math.abs(editorial.terminalHeading-editorial.terminalCta)<3
             && Math.abs(editorial.assistantHeading-editorial.assistantCta)<3,
             'section CTAs align with their headings: '+JSON.stringify(editorial));
-          for (const stage of ['terminalFilm','mobileVisual','assistantFilm','moversFilm']) {
+          for (const stage of ['terminalFilm','mobileVisual','moversFilm']) {
             const q=editorial[stage];
             assert.ok(q.left>=-3 && q.right<=editorial.viewport+3 &&
               q.width>=editorial.viewport-3,
               stage+' must be full-bleed without spill at '+width+': '+JSON.stringify(editorial));
           }
+          assert.ok(editorial.assistantFilm.left>=14 &&
+            editorial.assistantFilm.right<=editorial.viewport-14 &&
+            editorial.assistantFilm.width<=editorial.viewport-28,
+            'AI assistant chart is inset and fully visible: '+JSON.stringify(editorial));
           assert.ok(editorial.aiCard.width>=editorial.viewport-55,
             'AI prompt uses the available readable content gutter: '+JSON.stringify(editorial));
           assert.ok(editorial.faqRowHeight>=68,
