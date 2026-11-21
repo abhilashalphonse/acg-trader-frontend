@@ -78,63 +78,49 @@
   document.addEventListener('visibilitychange', () => {
     states.forEach(syncPlayback);
   });
-  // One-time ACG Trader prism reveal. The source files end at the user-approved
-  // 2.04 s frame; show a matching still once playback ends or fails.
-  const heroFilm = document.getElementById('acg-hero-film');
+  // Logo-free prism: one silent playback, hold on the last decoded frame.
+  // No replay UI, source swapping, resize resets or extra manual controls.
   const heroVideo = document.getElementById('acg-hero-reveal');
-  const heroReplay = document.getElementById('acg-hero-replay');
-  if (heroFilm && heroVideo && heroReplay) {
+  if (heroVideo) {
     let completed = false;
+    const animationAllowed = () => !reduceMotion.matches && !saveData();
 
-    function holdHero() {
-      heroVideo.pause();
-      heroFilm.classList.remove('is-playing', 'user-requested');
-      heroReplay.hidden = false;
-      completed = true;
+    function pauseHero() {
+      if (!heroVideo.paused) heroVideo.pause();
     }
 
-    function startHero(manual = false) {
-      if ((reduceMotion.matches || saveData()) && !manual) {
-        holdHero();
+    function playHero() {
+      if (document.hidden || !animationAllowed() || completed) {
+        pauseHero();
         return;
       }
-      if (document.hidden) return;
-      completed = false;
-      heroReplay.hidden = true;
-      heroFilm.classList.toggle('user-requested', manual);
-      heroFilm.classList.add('is-playing');
-      try {
-        heroVideo.currentTime = 0;
-        const attempt = heroVideo.play();
-        if (attempt && typeof attempt.catch === 'function') attempt.catch(holdHero);
-      } catch {
-        holdHero();
+      const attempt = heroVideo.play();
+      if (attempt && typeof attempt.catch === 'function') {
+        attempt.catch(() => {
+          pauseHero();
+          heroVideo.classList.add('is-unavailable');
+        });
       }
     }
 
-    heroVideo.addEventListener('ended', holdHero);
-    heroVideo.addEventListener('error', holdHero);
-    heroReplay.addEventListener('click', () => startHero(true));
-    reduceMotion.addEventListener?.('change', () => {
-      if (reduceMotion.matches) holdHero();
-    });
-    const breakpoint = window.matchMedia('(max-width: 600px)');
-    breakpoint.addEventListener?.('change', () => {
-      heroVideo.pause();
-      heroFilm.classList.remove('is-playing', 'user-requested');
-      heroVideo.load();
+    heroVideo.muted = true;
+    heroVideo.playsInline = true;
+    heroVideo.controls = false;
+    heroVideo.removeAttribute('autoplay');
+    heroVideo.addEventListener('ended', () => {
       completed = true;
-      heroReplay.hidden = false;
+      pauseHero();
     });
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        heroVideo.pause();
-      } else if (!completed && !reduceMotion.matches && !saveData()) {
-        const attempt = heroVideo.play();
-        if (attempt && typeof attempt.catch === 'function') attempt.catch(holdHero);
-      }
+    heroVideo.addEventListener('error', () => {
+      heroVideo.classList.add('is-unavailable');
+      pauseHero();
     });
-    startHero();
+    document.addEventListener('visibilitychange', playHero);
+    reduceMotion.addEventListener?.('change', () => {
+      if (reduceMotion.matches) pauseHero();
+      else playHero();
+    });
+    playHero();
   }
 
 })();

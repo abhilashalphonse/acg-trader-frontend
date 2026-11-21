@@ -7,7 +7,7 @@ const source = name => readFileSync(new URL('../' + name, import.meta.url), 'utf
 
 test('simulated-trading status and account eligibility remain visible beside hero actions', () => {
   const page = source('public/acg-landing-v6.html');
-  const hero = page.slice(page.indexOf('<section class="acg-cinema"'), page.indexOf('<div class="fact-strip">'));
+  const hero = page.slice(page.indexOf('<section class="acg-cinema"'), page.indexOf('</section>', page.indexOf('<section class="acg-cinema"')) + 10);
   const simulation = hero.indexOf('class="acg-cinema-disclosure"');
   const actions = hero.indexOf('class="acg-cinema-actions"');
   assert.ok(simulation > actions && actions > 0);

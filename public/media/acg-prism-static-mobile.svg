@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="430" height="932" viewBox="0 0 430 932">
+<defs>
+ <linearGradient id="ray" x1="0" x2="1" y1="0" y2="0">
+  <stop offset="0" stop-color="#e1bc67"/><stop offset=".16" stop-color="#8be5f4"/><stop offset=".3" stop-color="#2e83ca"/><stop offset=".55" stop-color="#161630"/><stop offset=".75" stop-color="#db9f67"/><stop offset="1" stop-color="#050608"/>
+ </linearGradient>
+</defs>
+<rect width="430" height="932" fill="#000"/>
+<g opacity=".62">
+ <path d="M0 270 0 428 165 500 208 520Z" fill="url(#ray)"/>
+ <path d="M430 270 430 428 265 500 222 520Z" fill="url(#ray)"/>
+ <path d="M0 440 0 470 197 518 208 522Z" fill="#f0c96d" opacity=".56"/>
+ <path d="M430 440 430 470 233 518 222 522Z" fill="#f0c96d" opacity=".56"/>
+ <path d="M0 620 0 780 171 535 208 525Z" fill="url(#ray)"/>
+ <path d="M430 620 430 780 259 535 222 525Z" fill="url(#ray)"/>
+ <path d="M0 825 189 538" stroke="#c0d9f8" stroke-width="2" opacity=".5"/>
+ <path d="M430 825 241 538" stroke="#c0d9f8" stroke-width="2" opacity=".5"/>
+ <path d="M0 272 189 507" stroke="#b5dbff" stroke-width="2" opacity=".45"/>
+ <path d="M430 272 241 507" stroke="#b5dbff" stroke-width="2" opacity=".45"/>
+</g>
+<ellipse cx="215" cy="510" rx="180" ry="185" fill="#000" opacity=".2"/>
+</svg>

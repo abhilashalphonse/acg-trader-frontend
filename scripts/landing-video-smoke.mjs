@@ -84,8 +84,10 @@ try {
       assert.equal(await page.locator('a.acg-cinema-primary[href="/?acg_login=1"]').count(), 1);
       assert.equal(await page.locator('a.acg-cinema-secondary[href="/contact.html?topic=enterprise"]').count(), 1);
       const heroAssets = await page.evaluate(() => [...document.querySelectorAll('.acg-cinema source')].map(s => s.src || s.srcset));
-      assert.ok(heroAssets.some(src => src.includes('acg-hero-mobile.mp4')));
-      assert.ok(heroAssets.some(src => src.includes('acg-hero-desktop.mp4')));
+      assert.equal(heroAssets.length, 1);
+      assert.ok(heroAssets[0].includes('mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/a7112847-cd7c-4d7b-9f91-540af4da8234.mp4'));
+      assert.equal(await page.locator('#acg-hero-replay').count(), 0);
+      assert.equal(await page.locator('video#acg-hero-reveal').evaluate(v => getComputedStyle(v).objectFit), 'cover');
       assert.equal(await page.locator('video#acg-three-markets-film').count(), 1);
       assert.equal(await page.locator('video#acg-shield-film').count(), 1);
       assert.deepEqual(values.videoTypes, ['video/mp4','video/mp4']);
@@ -110,6 +112,30 @@ try {
       await page.screenshot({ path:'artifacts/landing-film-'+viewport.label+'.png', fullPage:true });
       await page.close();
     }
+    // Visual bounds across phone, landscape, tablet, laptop, desktop and ultrawide.
+    const screens = [[320,568],[390,844],[430,932],[844,390],[768,1024],
+      [1024,768],[1366,768],[1440,900],[1920,1080],[2560,1080]];
+    for (const [width,height] of screens) {
+      const page = await browser.newPage({ viewport:{width,height}, reducedMotion:'reduce' });
+      try {
+        await page.goto(base+'/acg-landing-v6.html', {waitUntil:'domcontentloaded'});
+        const b = await page.evaluate(() => {
+          const rect = selector => document.querySelector(selector)?.getBoundingClientRect();
+          const hero=rect('.acg-cinema'),copy=rect('.acg-cinema-copy');
+          const actions=rect('.acg-cinema-actions'),disclosure=rect('.acg-cinema-disclosure');
+          const header=rect('header.site-header'), title=rect('.acg-cinema h1');
+          return {heroBottom:hero?.bottom,copyTop:copy?.top,copyBottom:copy?.bottom,
+            actionsBottom:actions?.bottom,disclosureBottom:disclosure?.bottom,
+            headerBottom:header?.bottom,titleLeft:title?.left,titleRight:title?.right,
+            heroWidth:hero?.width,innerWidth:window.innerWidth};
+        });
+        assert.ok(b.copyTop >= b.headerBottom-5, width+'x'+height+' text/header overlap: '+JSON.stringify(b));
+        assert.ok(b.copyBottom <= b.heroBottom+3, width+'x'+height+' clipped text: '+JSON.stringify(b));
+        assert.ok(b.actionsBottom <= b.disclosureBottom, width+'x'+height+' reversed disclosure: '+JSON.stringify(b));
+        assert.ok(b.titleLeft >= -3 && b.titleRight <= b.innerWidth+3, width+'x'+height+' heading overflow: '+JSON.stringify(b));
+        assert.ok(b.heroWidth <= b.innerWidth+3, width+'x'+height+' hero overflow: '+JSON.stringify(b));
+      } finally {await page.close();}
+    }
     const reduced = await browser.newPage({ viewport:{width:390,height:844},reducedMotion:'reduce' });
     await reduced.goto(base+'/acg-landing-v6.html',{waitUntil:'domcontentloaded'});
     await reduced.waitForTimeout(280);
@@ -117,7 +143,8 @@ try {
     assert.ok(states.every(v=>v.paused), 'Reduced motion must not autoplay clips: '+JSON.stringify(states));
     assert.equal(await reduced.locator('[data-video-control], .film-media-control').count(), 0);
     assert.ok(states.every(v => v.controls === false), 'Both decorative videos must hide native controls');
-    assert.equal(await reduced.locator('#acg-hero-replay').count(), 1);
+    assert.equal(await reduced.locator('#acg-hero-replay').count(), 0);
+    assert.equal(await reduced.locator('#acg-hero-reveal').evaluate(v => getComputedStyle(v).display), 'none');
     const normal = await browser.newPage({ viewport:{width:1440,height:900},reducedMotion:'no-preference' });
     await normal.goto(base+'/acg-landing-v6.html',{waitUntil:'domcontentloaded'});
     await normal.locator('#acg-three-markets-film').scrollIntoViewIfNeeded();

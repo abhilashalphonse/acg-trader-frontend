@@ -417,13 +417,8 @@ html{scroll-padding-top:80px}
 <main id="main">
  <section class="acg-cinema" id="platform" aria-labelledby="acg-hero-heading">
  <div class="acg-cinema-film" id="acg-hero-film" aria-hidden="true">
-  <picture>
-   <source media="(max-width: 600px)" srcset="/media/acg-hero-mobile-freeze.jpg"/>
-   <img src="/media/acg-hero-desktop-freeze.jpg" width="1920" height="1080" alt="" fetchpriority="high"/>
-  </picture>
   <video id="acg-hero-reveal" class="acg-cinema-video" muted playsinline preload="metadata" aria-hidden="true" tabindex="-1">
-   <source media="(max-width: 600px)" src="/media/acg-hero-mobile.mp4" type="video/mp4"/>
-   <source src="/media/acg-hero-desktop.mp4" type="video/mp4"/>
+   <source src="https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/a7112847-cd7c-4d7b-9f91-540af4da8234.mp4" type="video/mp4"/>
   </video>
  </div>
  <div class="acg-cinema-shade" aria-hidden="true"></div>
@@ -439,7 +434,6 @@ html{scroll-padding-top:80px}
    <p class="acg-cinema-disclosure">Simulated trading for authorized accounts. ACG Trader is not a broker and does not accept trading deposits. Costs depend on account terms.</p>
   </div>
  </div>
- <button type="button" id="acg-hero-replay" class="acg-cinema-replay" hidden aria-label="Replay ACG Trader logo animation">↻ Replay</button>
 </section>
 
 <section class="market-intro" id="market-intro" aria-labelledby="market-intro-title">

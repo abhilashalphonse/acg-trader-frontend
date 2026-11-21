@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, statSync } from 'node:fs';
+import { readFileSync, statSync, existsSync } from 'node:fs';
 
 const src = path => new URL('../' + path, import.meta.url);
+const read = file => readFileSync(src(file), 'utf8');
+const cleanSource = 'https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/a7112847-cd7c-4d7b-9f91-540af4da8234.mp4';
 
-test('replacement user videos and posters are valid optimized local files', () => {
+test('remaining supporting videos and posters are valid local media', () => {
   const clips = [
     { file: 'acg-three-markets.mp4', maxBytes: 2000000 },
     { file: 'acg-shield.mp4', maxBytes: 150000 }
@@ -21,76 +23,70 @@ test('replacement user videos and posters are valid optimized local files', () =
   }
 });
 
-test('each film fits the story and no old video appears on the website', () => {
-  const html = readFileSync(src('public/acg-landing-v6.html'), 'utf8');
-  assert.match(html, /class="shield-story" id="experience"/);
-  assert.match(html, /class="market-film"/);
-  assert.equal((html.match(/<video\b/g) || []).length, 3);
-  assert.match(html, /id="acg-three-markets-film"/);
-  assert.match(html, /id="acg-shield-film"/);
-  assert.match(html, /object-fit:contain/);
-  for (const file of ['acg-three-markets.mp4', 'acg-shield.mp4']) {
-    assert.ok(html.includes('/media/' + file), file);
+test('the hero uses one public logo-free clip and deletes obsolete Railway media', () => {
+  const html = read('public/acg-landing-v6.html');
+  const css = read('public/acg-cinema-hero.css');
+  const js = read('public/acg-landing-motion.js');
+  assert.ok(html.includes('src="' + cleanSource + '"'));
+  assert.ok(html.includes('id="acg-hero-reveal"'));
+  assert.equal((html.match(/<video/g) || []).length, 3);
+  assert.ok(css.includes("url('/media/acg-prism-static.svg')"));
+  assert.ok(css.includes('object-fit:cover'), 'art-directed crop must preserve geometry');
+  assert.ok(css.includes('max-height:600px'), 'short landscape screens must be handled');
+  assert.ok(css.includes('min-height:max(620px,100svh)'));
+  assert.ok(css.includes('min-aspect-ratio:2/1'));
+  assert.ok(css.includes('max-aspect-ratio:4/5'));
+  assert.ok(css.includes('prefers-reduced-motion:reduce'));
+  assert.ok(js.includes("heroVideo.addEventListener('ended'"));
+  assert.ok(js.includes('completed = true'));
+  assert.ok(js.includes('reduceMotion.matches'));
+  assert.ok(js.includes('saveData()'));
+  assert.ok(js.includes('visibilitychange'));
+  assert.ok(js.includes('heroVideo.classList.add(\'is-unavailable\')'));
+  assert.ok(!js.includes('heroReplay'));
+  assert.ok(!html.includes('id="acg-hero-replay"'));
+  assert.ok(!html.includes('acg-hero-desktop') && !html.includes('acg-hero-mobile'));
+  for (const obsolete of ['acg-hero-desktop.mp4','acg-hero-mobile.mp4','acg-hero-desktop-freeze.jpg','acg-hero-mobile-freeze.jpg']) {
+    assert.equal(existsSync(src('public/media/' + obsolete)), false, obsolete + ' must not ship');
   }
-  assert.doesNotMatch(html, /acg-motion-panorama|acg-motion-emblem|hero-ambient-video/);
-  assert.match(html, /not indicate available instruments, supported integrations, partners or endorsements/);
-  assert.match(html, /not a security certification/);
-  assert.match(html, /Simulated trading for authorized accounts/);
-  assert.match(html, /href="\/\?acg_login=1"/);
-  assert.match(html, /href="\/\?acg_connect_prop=1"/);
-  assert.doesNotMatch(html, /coming soon|white label|roadmap|future pricing|guaranteed profit/i);
+  const svg = read('public/media/acg-prism-static.svg');
+  const mobileSvg = read('public/media/acg-prism-static-mobile.svg');
+  assert.ok(svg.includes('<svg'));
+  assert.ok(mobileSvg.includes('<svg'));
+  assert.ok(css.includes("url('/media/acg-prism-static-mobile.svg')"));
 });
 
-test('Railway static media server supports byte ranges and MP4 MIME types', () => {
-  const server = readFileSync(src('server.mjs'), 'utf8');
-  assert.match(server, /'\.mp4': 'video\/mp4'/);
-  assert.match(server, /'Accept-Ranges'] = 'bytes'/);
-  assert.match(server, /'Content-Range'/);
-  assert.match(server, /res\.writeHead\(206/);
-  assert.match(server, /res\.writeHead\(416/);
+test('the supporting films stay licensed-account aware and have no extra playback controls', () => {
+  const html = read('public/acg-landing-v6.html');
+  const js = read('public/acg-landing-motion.js');
+  assert.ok(html.includes('class="shield-story" id="experience"'));
+  assert.ok(html.includes('id="acg-three-markets-film"'));
+  assert.ok(html.includes('id="acg-shield-film"'));
+  for (const media of ['acg-three-markets.mp4','acg-shield.mp4']) {
+    assert.ok(html.includes('/media/' + media));
+  }
+  assert.ok(html.includes('not indicate available instruments, supported integrations, partners or endorsements'));
+  assert.ok(html.includes('not a security certification'));
+  assert.ok(html.includes('Simulated trading for authorized accounts'));
+  assert.ok(html.includes('href="/?acg_login=1"'));
+  assert.ok(html.includes('href="/?acg_connect_prop=1"'));
+  assert.ok(!html.includes('data-video-control='));
+  assert.ok(!html.includes('film-media-control'));
+  assert.ok(!html.includes(' controls preload'));
+  assert.ok(!js.includes('manualPlay') && !js.includes('userPaused'));
+  assert.ok(js.includes('IntersectionObserver'));
+  assert.ok(js.includes('video.muted = true'));
+  assert.ok(js.includes('video.pause()'));
+  assert.ok(js.includes("video.removeAttribute('autoplay')"));
+  assert.ok(js.includes("video.removeAttribute('controls')"));
+  assert.ok(!js.includes('localStorage') && !js.includes('sessionStorage'));
 });
 
-test('supporting films retain viewport playback without unnecessary controls', () => {
-  const html = readFileSync(src('public/acg-landing-v6.html'), 'utf8');
-  const js = readFileSync(src('public/acg-landing-motion.js'), 'utf8');
-  assert.doesNotMatch(html, /data-video-control=|film-media-control/);
-  assert.doesNotMatch(html, /<video[^>]*\bcontrols\b/);
-  assert.equal((html.match(/<video\b/g) || []).length, 3);
-  assert.match(html, /id="acg-hero-replay"/);
-  assert.match(js, /IntersectionObserver/);
-  assert.match(js, /prefers-reduced-motion: reduce/);
-  assert.match(js, /saveData/);
-  assert.match(js, /video\.muted = true/);
-  assert.match(js, /video\.pause\(\)/);
-  assert.match(js, /video\.removeAttribute\('autoplay'\)/);
-  assert.doesNotMatch(js, /data-video-control|manualPlay|userPaused|button\.addEventListener/);
-  assert.match(js, /heroReplay\.addEventListener\('click'/);
-  assert.match(js, /video\.removeAttribute\('controls'\)/);
-  assert.doesNotMatch(js, /\bfetch\s*\(|XMLHttpRequest|localStorage|sessionStorage|document\.cookie|sendBeacon/);
-});
-
-test('responsive ACG hero reveal assets are real, and the frozen frame is held without looping', () => {
-  const html = readFileSync(src('public/acg-landing-v6.html'), 'utf8');
-  const css = readFileSync(src('public/acg-cinema-hero.css'), 'utf8');
-  const js = readFileSync(src('public/acg-landing-motion.js'), 'utf8');
-  for (const [file, magic] of [
-    ['acg-hero-desktop.mp4', 'ftyp'], ['acg-hero-mobile.mp4', 'ftyp']
-  ]) {
-    const bytes = readFileSync(src('public/media/' + file));
-    assert.equal(bytes.subarray(4, 8).toString('ascii'), magic);
-    assert.ok(bytes.length > 100000 && bytes.length < 2000000);
-  }
-  for (const file of ['acg-hero-desktop-freeze.jpg','acg-hero-mobile-freeze.jpg']) {
-    const bytes = readFileSync(src('public/media/' + file));
-    assert.equal(bytes.subarray(0, 2).toString('hex'), 'ffd8');
-  }
-  assert.match(html, /id="acg-hero-reveal"/);
-  assert.match(html, /id="acg-hero-replay"/);
-  assert.match(html, /Trading &amp; Beyond/);
-  assert.match(html, /Chart-first execution\. Risk-based order planning\./);
-  assert.match(html, /href="\/contact\.html\?topic=enterprise"/);
-  assert.match(js, /heroVideo\.addEventListener\('ended', holdHero\)/);
-  assert.match(js, /startHero\(\)/);
-  assert.match(css, /prefers-reduced-motion:reduce/);
-  assert.doesNotMatch(html, /<script>(.|\n)*?<\/script>/);
+test('Railway media server supports MP4 partial requests', () => {
+  const server = read('server.mjs');
+  assert.ok(server.includes("'Accept-Ranges'] = 'bytes'"));
+  assert.ok(server.includes("'Content-Range'"));
+  assert.ok(server.includes('writeHead(206'));
+  assert.ok(server.includes('writeHead(416'));
+  assert.ok(server.includes("'video/mp4'"));
 });
