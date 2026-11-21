@@ -1,0 +1,167 @@
+/* Mobile composition audit — preserves desktop narratives and original media.
+   Scoped last-in-cascade adjustments. This stylesheet is intentionally focused
+   on visual hierarchy, safe text visibility and no-horizontal-scroll layouts. */
+
+/* Account access must continue the pure-black Market Movers -> FAQ rhythm. */
+#access.section.access{
+  background:#000;color:#f8f8f9;
+  border-top:0;border-bottom:0;
+  padding:92px 0 92px;
+}
+#access .section-head h2{color:#fff}
+#access .section-head p{color:#b6bac2}
+#access .access-grid{gap:16px}
+#access .access-card{
+  background:#0e0f12;
+  border:1px solid #282a30;
+  border-radius:15px;
+  padding:32px;
+  min-height:270px;
+  box-shadow:none;
+}
+#access .access-card h3{color:#f5f5f7}
+#access .access-card p{color:#b7bbc3;font-size:14px}
+#access .access-card a.btn{border-radius:999px;min-height:48px}
+#access .access-card .btn-dark{background:transparent;border-color:#747985;color:#f0f1f3}
+#access .access-card .btn-dark:hover{background:#17191e}
+#access .access-note{color:#9da2ab;max-width:880px}
+#access .access-note a{color:#f0f0f2}
+
+/* Tablet: retain clear vertical hierarchy when cards stack. */
+@media(max-width:900px){
+  #access.section.access{padding:75px 0 80px}
+  #access .section-head{align-items:start}
+  #access .access-grid{gap:14px}
+}
+@media(max-width:600px){
+  /* AI section: previously 810px minimum and 112–150px unused separation.
+     Keep the prism/preview storytelling while reducing empty height. */
+  #features.ai-section{
+    min-height:0;
+    padding:64px 0 54px;
+  }
+  #features .ai-section-copy h2{font-size:clamp(37px,9.4vw,49px)}
+  #features .ai-section-copy>p{margin-top:19px}
+  #features .ai-section-cta{margin-top:23px}
+  #features .ai-preview{
+    width:min(400px,100%);
+    margin-top:clamp(82px,10svh,98px);
+    padding:17px 15px 15px;
+  }
+  #features .ai-preview-prompt{font-size:13px;line-height:1.55}
+  #features .ai-section-note{margin-top:15px;font-size:10px}
+
+  /* Terminal: enlarge authentic portrait film into almost full device width,
+     not by stretching, zoom-cropping or changing source aspect ratio. */
+  #terminal.terminal-story{padding:63px 0 51px}
+  #terminal .terminal-story-copy h2{font-size:clamp(37px,9vw,49px)}
+  #terminal .terminal-story-copy>p{margin-top:19px}
+  #terminal .terminal-story-cta{margin-top:23px}
+  #terminal .terminal-story-figure{
+    width:calc(100% + 22px);
+    max-width:calc(100% + 22px);
+    margin:29px auto 0;
+    transform:translateX(-11px);
+  }
+  #terminal .terminal-story-frame{
+    aspect-ratio:1200/1428;
+    border-radius:12px;
+    background:#08080b url('/acg-trader-wordmark.png') center/26% auto no-repeat;
+  }
+  #terminal .terminal-story-frame .terminal-story-video{
+    width:100%;height:100%;object-fit:contain;transform:none;
+  }
+  #terminal .terminal-story-figure figcaption{
+    max-width:380px;margin:14px auto 0;
+    font-size:10px;line-height:1.55;
+  }
+
+  /* Mobile device illustration: keep it prominent without consuming
+     nearly a full additional screen of whitespace. */
+  #experience.mobile-story .mobile-story-layout{
+    min-height:0;gap:23px;padding-top:59px;padding-bottom:35px;
+  }
+  #experience .mobile-story-copy h2{font-size:clamp(40px,9.2vw,52px)}
+  #experience .mobile-story-cta{margin-top:21px}
+  #experience .mobile-story-visual{
+    max-height:535px;max-width:500px;
+  }
+  #experience .mobile-story-visual img{
+    width:134%;height:auto;max-height:535px;
+    max-width:none;object-fit:contain;object-position:center;
+  }
+
+  /* AI connection: use more of the available width and gently zoom away
+     empty film margins; preserve the illustrative disclosure above it. */
+  #ai-connections.ai-connect-story{padding-top:55px}
+  #ai-connections .ai-connect-lead{margin-top:16px;font-size:15px}
+  #ai-connections .ai-connect-disclosure{margin-top:13px;line-height:1.6}
+  #ai-connections .ai-connect-cta{margin-top:17px}
+  #ai-connections .ai-connect-stage{
+    width:calc(100% + 20px);
+    max-width:none;margin:15px -10px 0;
+    aspect-ratio:16/9;
+    overflow:hidden;background:#000;
+  }
+  #ai-connections .ai-connect-stage .ai-connect-video{
+    width:100%;height:100%;object-fit:contain;
+    transform:scale(1.13);transform-origin:center;
+  }
+
+  /* Market Movers: presentation area is taller and closer to device edges.
+     Enlarge the existing film, never create controls or overlays. */
+  #market-movers.market-movers-story{min-height:0;padding:61px 0 66px}
+  #market-movers .market-movers-inner{gap:19px}
+  #market-movers .market-movers-copy h2{
+    font-size:clamp(39px,9.4vw,49px);line-height:1.08;
+  }
+  #market-movers .market-movers-copy p{margin-top:17px}
+  #market-movers .market-movers-cta{margin-top:21px}
+  #market-movers .market-movers-frame{
+    width:calc(100% + 20px);
+    margin-left:-10px;
+    aspect-ratio:1.32;
+    background:#000;
+  }
+  #market-movers .market-movers-frame .market-movers-video{
+    transform:scale(1.55);transform-origin:right center;
+    object-fit:contain;background:#000;
+  }
+
+  /* Account access: clear, efficient, black-on-black hierarchy. */
+  #access.section.access{padding:62px 0 69px}
+  #access .section-head{margin-bottom:27px}
+  #access .section-head h2{
+    font-size:clamp(36px,9.1vw,44px);
+    margin:0;line-height:1.09;
+  }
+  #access .section-head p{font-size:14px;line-height:1.58;margin-top:18px}
+  #access .access-grid{grid-template-columns:minmax(0,1fr);gap:12px}
+  #access .access-card{
+    min-height:0;padding:25px 23px 23px;border-radius:13px;
+  }
+  #access .access-card h3{font-size:23px;margin:0 0 11px}
+  #access .access-card p{font-size:13px;line-height:1.65}
+  #access .access-card a.btn{
+    align-self:flex-start;
+    margin-top:23px;min-height:46px;
+    max-width:100%;padding:11px 21px;white-space:normal;text-align:center;
+  }
+  #access .access-note{margin-top:22px;font-size:11.5px;line-height:1.65}
+}
+@media(max-width:360px){
+  #terminal .terminal-story-figure{
+    width:calc(100% + 12px);max-width:calc(100% + 12px);transform:translateX(-6px);
+  }
+  #terminal .terminal-story-copy h2{font-size:36px}
+  #ai-connections .ai-connect-stage{width:calc(100% + 12px);margin-left:-6px;margin-right:-6px}
+  #market-movers .market-movers-frame{width:calc(100% + 12px);margin-left:-6px}
+  #market-movers .market-movers-frame .market-movers-video{transform:scale(1.43)}
+}
+@media(prefers-reduced-motion:reduce){
+  /* This is art direction only; no automatic motion is introduced. */
+  #market-movers .market-movers-frame .market-movers-video,
+  #ai-connections .ai-connect-stage .ai-connect-video{
+    animation:none;transition:none;
+  }
+}
