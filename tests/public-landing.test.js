@@ -60,6 +60,20 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /id="experience"/);
   assert.match(html, /class="shield-story"/);
   assert.match(html, /class="market-film"/);
+  assert.match(html, /id="market-intro-title">Stocks, Forex and Crypto\.<\/h2>/);
+  assert.match(html, /Access key market categories in one chart-first platform built for analysis, execution and position management\./);
+  assert.match(html, /class="market-intro-cta" href="#markets">Explore markets<\/a>/);
+  assert.match(html, /href="\/acg-market-intro\.css"/);
+  assert.doesNotMatch(html, /class="fact-strip"/);
+  const heroEnd = html.indexOf('</section>', html.indexOf('class="acg-cinema"'));
+  const introStart = html.indexOf('class="market-intro"');
+  const featuresStart = html.indexOf('id="features"');
+  assert.ok(heroEnd < introStart && introStart < featuresStart, 'second section follows hero');
+  assert.equal((html.match(/id="acg-three-markets-film"/g) || []).length, 1);
+  const marketCss = readFileSync(new URL('../public/acg-market-intro.css', import.meta.url), 'utf8');
+  assert.match(marketCss, /width:min\(460px,100%\)/);
+  assert.match(marketCss, /width:min\(300px,100%\)/);
+
   assert.equal((html.match(/<video\b/g) || []).length, 3);
   assert.match(html, /src="\/media\/acg-three-markets\.mp4"/);
   assert.match(html, /src="\/media\/acg-shield\.mp4"/);
