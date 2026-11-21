@@ -57,7 +57,7 @@ try {
         brand: document.querySelector('.site-header .brand img')?.getAttribute('src'),
         videoCount: document.querySelectorAll('.film-video').length,
         videoTypes: [...document.querySelectorAll('.film-video source')].map(v=>v.type),
-        validSources: [...document.querySelectorAll('.film-video')].every(v => v.querySelector('source')?.src?.includes('/media/') || (v.id === 'ai-prism-film' && v.querySelector('source')?.src?.includes('mwkwvchaqjqtyfgmialk.supabase.co'))),
+        validSources: [...document.querySelectorAll('.film-video')].every(v => v.querySelector('source')?.src?.includes('/media/') || (['ai-prism-film','acg-terminal-film'].includes(v.id) && v.querySelector('source')?.src?.includes('mwkwvchaqjqtyfgmialk.supabase.co'))),
         width: document.documentElement.scrollWidth,
         viewportWidth: window.innerWidth,
         filmHeight: document.querySelector('.market-film')?.getBoundingClientRect().height
@@ -79,7 +79,7 @@ try {
       assert.ok(heroBounds.buttonsBottom < heroBounds.disclosureBottom, viewport.label+' CTA/disclosure order');
       assert.ok(heroBounds.disclosureBottom <= heroBounds.heroBottom + 3, viewport.label+' disclosure fits hero: '+JSON.stringify(heroBounds));
       assert.equal(values.brand, '/acg-trader-wordmark.png');
-      assert.equal(values.videoCount, 2);
+      assert.equal(values.videoCount, 3);
       assert.equal(await page.locator('video#acg-hero-reveal').count(), 1);
       assert.equal(await page.locator('a.acg-cinema-primary[href="/?acg_login=1"]').count(), 1);
       assert.equal(await page.locator('a.acg-cinema-secondary[href="/contact.html?topic=enterprise"]').count(), 1);
@@ -92,7 +92,7 @@ try {
       assert.equal(await page.locator('video#acg-shield-film').count(), 0);
       assert.equal(await page.locator('#experience.mobile-story').count(), 1);
       assert.equal(await page.locator('video#ai-prism-film').count(), 1);
-      assert.deepEqual(values.videoTypes, ['video/mp4','video/mp4']);
+      assert.deepEqual(values.videoTypes, ['video/mp4','video/mp4','video/mp4']);
       assert.ok(values.validSources);
       assert.ok(values.width <= values.viewportWidth + 3, viewport.label+' horizontal overflow: '+JSON.stringify(values));
       assert.ok(values.filmHeight >= 125 && values.filmHeight <= 260, viewport.label+' compact video height: '+values.filmHeight);
@@ -120,6 +120,35 @@ try {
       await page.waitForTimeout(350);
       await ai.screenshot({ path:'artifacts/ai-section-'+viewport.label+'.png' });
       // Section 4 — authentic phone illustration with an honest internal destination.
+      // Terminal is the fourth section; small screen media stays contained and the fifth section is unchanged.
+      const terminal=page.locator('#terminal.terminal-story');
+      assert.equal(await terminal.count(), 1);
+      assert.equal(await terminal.locator('h2').innerText(), 'Your entire trading workspace. One screen.');
+      assert.ok((await terminal.locator('.terminal-story-copy > p').innerText()).includes('Analyze markets, plan orders'));
+      assert.equal(await terminal.locator('.terminal-story-cta').getAttribute('href'), '#trading');
+      assert.equal(await terminal.locator('#acg-terminal-film source').count(), 1);
+      assert.ok((await terminal.locator('#acg-terminal-film source').getAttribute('src')).includes('ACG%20Trader%20Terminal.mp4'));
+      assert.equal(await terminal.locator('figcaption').innerText(),
+        'Past performance is not an indicator of future performance. Data displayed above is indicative only. The return may increase or decrease as a result of currency fluctuations. Actual execution price may vary. Pricing data is provided by Acg Trader.');
+      assert.equal(await terminal.locator('video').evaluate(v=>v.controls),false);
+      const sectionOrder = await page.evaluate(() => {
+        const ids=['platform','market-intro','features','terminal','experience'];
+        return ids.map(id => document.getElementById(id)?.getBoundingClientRect().top + window.scrollY);
+      });
+      assert.ok(sectionOrder.every((val,i)=>i===0||val>sectionOrder[i-1]), 'homepage order');
+      await terminal.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(1650);
+      const terminalVideoMeta = await terminal.locator('video').evaluate(v=>({
+        width:v.videoWidth,height:v.videoHeight,seconds:v.duration,readyState:v.readyState,
+        currentTime:v.currentTime,paused:v.paused
+      }));
+      console.log('ACG_TERMINAL_MEDIA_META_'+viewport.label+' '+JSON.stringify(terminalVideoMeta));
+      assert.equal(terminalVideoMeta.width, 1200, 'Approved source is portrait 1200x1428');
+      assert.equal(terminalVideoMeta.height, 1428, 'Approved source aspect ratio retained');
+      assert.equal(await terminal.locator('.terminal-story-frame').evaluate(el => {
+        const r=el.getBoundingClientRect();return Math.abs(r.width/r.height - 1200/1428)<0.012;
+      }), true, 'Video frame uses native terminal aspect ratio');
+      await terminal.screenshot({path:'artifacts/terminal-story-'+viewport.label+'.png'});
       const mobileSection=page.locator('#experience.mobile-story');
       assert.equal(await mobileSection.locator('h2').innerText(), 'Your trading desk.\nIn your pocket.');
       assert.equal(await mobileSection.locator('.mobile-story-cta').getAttribute('href'), '#trading');
@@ -189,6 +218,23 @@ try {
         assert.ok(m.imageLeft>=-3 && m.imageRight<=m.viewportWidth+3, width+'x'+height+' phone artwork horizontal overflow: '+JSON.stringify(m));
         assert.ok(m.imageBottom<=m.sectionBottom+3, width+'x'+height+' phone artwork clipped: '+JSON.stringify(m));
         assert.ok(m.noteBottom<=m.sectionBottom+3, width+'x'+height+' disclaimer clipped: '+JSON.stringify(m));
+        const t = await page.evaluate(() => {
+          const box = (selector) => document.querySelector(selector)?.getBoundingClientRect();
+          const section=box('#terminal'),head=box('.terminal-story h2'),
+            frame=box('.terminal-story-frame'),video=box('#acg-terminal-film'),
+            disclosure=box('.terminal-story-figure figcaption');
+          return {
+            sectionBottom:section?.bottom,headLeft:head?.left,headRight:head?.right,
+            frameLeft:frame?.left,frameRight:frame?.right,frameWidth:frame?.width,
+            videoWidth:video?.width,disclosureBottom:disclosure?.bottom,
+            viewportWidth:window.innerWidth
+          };
+        });
+        assert.ok(t.headLeft>=-3 && t.headRight<=t.viewportWidth+3,width+'x'+height+' terminal heading overflow: '+JSON.stringify(t));
+        assert.ok(t.frameLeft>=-3 && t.frameRight<=t.viewportWidth+3,width+'x'+height+' terminal screen overflow: '+JSON.stringify(t));
+        assert.ok(t.frameWidth<=670,width+'x'+height+' terminal screen too wide: '+JSON.stringify(t));
+        assert.ok(t.disclosureBottom<=t.sectionBottom+3,width+'x'+height+' terminal disclaimer clipped: '+JSON.stringify(t));
+
 
       } finally {await page.close();}
     }
