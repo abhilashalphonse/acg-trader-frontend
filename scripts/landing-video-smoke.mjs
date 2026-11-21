@@ -29,6 +29,23 @@ try {
   assert.ok(ready, 'Railway-style static host did not start: ' + logs);
 
 
+  // The same Railway service must serve the React terminal as an SPA at its
+  // canonical address. This is a public routing check only: no credentials,
+  // orders or authenticated endpoints are exercised.
+  for (const path of [
+    '/terminal',
+    '/terminal?acg_login=1',
+    '/terminal?acg_connect_prop=1',
+    '/terminal?ticket=example-routing-only'
+  ]) {
+    const response = await fetch(base + path);
+    assert.equal(response.status, 200, path + ' must resolve to the terminal SPA');
+    assert.match(response.headers.get('content-type') || '', /text\/html/i);
+    const document = await response.text();
+    assert.match(document, /id="root"/, path + ' must contain the terminal mount');
+    assert.ok(!document.includes('id="market-intro"'), path + ' must not serve landing HTML');
+  }
+
   mkdirSync('artifacts', { recursive: true });
   const browser = await chromium.launch({ channel:'chrome', headless:true, args:['--no-sandbox','--disable-dev-shm-usage'] });
   try {
