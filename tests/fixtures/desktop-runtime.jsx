@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import DesktopTerminal from '../../src/components/trading-v2/DesktopTerminal.jsx';
+import AppErrorBoundary from '../../src/components/AppErrorBoundary.jsx';
 import { AuthContext } from '../../src/auth/AuthProvider.jsx';
 import { TradingContext } from '../../src/store/TradingProvider.jsx';
 import '../../src/index.css';
@@ -33,6 +34,10 @@ const props = {
   onExecutePlan:()=>{throw new Error('Test fixture must never place trades');},
   onClosePosition:()=>{throw new Error('Test fixture must never close trades');}
 };
+function IntentionallyBrokenDesktop() {
+  throw new TypeError("Cannot read properties of undefined (reading 'map')");
+}
+const diagnosticFixture = new URLSearchParams(window.location.search).get('simulateCrash') === '1';
 window.__acgDesktopFixtureErrors=[];
 createRoot(document.getElementById('root'),{
   onUncaughtError:(error,info)=>{
@@ -41,8 +46,9 @@ createRoot(document.getElementById('root'),{
       componentStack:info?.componentStack||''
     });
   }
-}).render(
-  <AuthContext.Provider value={{authenticated:true,accessToken:null,principal:null,logout:noop}}>
+}).render(diagnosticFixture
+  ? <AppErrorBoundary><IntentionallyBrokenDesktop/></AppErrorBoundary>
+  : <AuthContext.Provider value={{authenticated:true,accessToken:null,principal:null,logout:noop}}>
     <TradingContext.Provider value={{market:{candlesByKey:{}},connection:{status:'ready'},subscribeMarket:()=>noop}}>
       <DesktopTerminal {...props}/>
     </TradingContext.Provider>

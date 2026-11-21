@@ -41,6 +41,26 @@ async function run(flag,port){
       assert.equal(state.header,flag==='true'?'true':null,'V4 flag must select expected desktop variant');
       await page.close();
     }
+    if (flag === 'true') {
+      // Assert the recovery UI surfaces the sanitized React exception itself.
+      // This browser has no account/session credentials or live API access.
+      const page=await browser.newPage({viewport:{width:1440,height:900}});
+      await page.goto(base+'/tests/fixtures/desktop-runtime.html?simulateCrash=1&acg_diag=1',
+        {waitUntil:'domcontentloaded'});
+      await page.getByText('Trading terminal needs to recover').waitFor();
+      const details=page.locator('details pre');
+      await details.waitFor();
+      await page.waitForTimeout(250);
+      const diagnostic=await details.innerText();
+      assert.match(diagnostic,/TypeError: Cannot read properties of undefined/);
+      assert.match(diagnostic,/IntentionallyBrokenDesktop/);
+      assert.match(diagnostic,/Viewport: 1440px/);
+      assert.ok(!diagnostic.includes('token') && !diagnostic.includes('https://'));
+      assert.equal(await page.locator('details').getAttribute('open'), '',
+        'explicit acg_diag=1 reveals the sanitized details automatically');
+      outcomes.push({flag,width:1440,diagnostic});
+      await page.close();
+    }
   }finally{child.kill('SIGTERM');}
 }
 try {
