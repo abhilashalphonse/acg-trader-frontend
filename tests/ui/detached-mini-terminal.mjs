@@ -43,7 +43,10 @@ try {
     const sell=d.querySelector('.acg-mini-sell strong')?.textContent;
     return price==='1.11730'&&buy==='1.11735'&&sell==='1.11725';
   }), 'Five-digit forex quotes must never receive a thousands separator in fractions');
-  const nativeHeight=await pip(()=>documentPictureInPicture.window.innerHeight);
+  const nativeSize=await pip(()=>({width:documentPictureInPicture.window.innerWidth,height:documentPictureInPicture.window.innerHeight}));
+  const nativeHeight=nativeSize.height;
+  check(nativeSize.width>=300 && nativeSize.width<=340,
+    'Native mini terminal uses compact mobile-like width (requested 320px)');
   check(await pip(() => documentPictureInPicture.window.getComputedStyle(documentPictureInPicture.window.document.querySelector('.acg-mini-titlebar')).display === 'flex'), 'Styles are copied into native window');
   check(await pip(()=>{
     const d=documentPictureInPicture.window.document;
@@ -58,7 +61,7 @@ try {
       && !d.querySelector('.acg-mini-quote-main')
       && d.querySelectorAll('.acg-mini-order-family').length===1
       && content.scrollHeight<=content.clientHeight+4;
-  }), 'Default 360px PiP fits reference trade without duplicated quotes or vertical scrolling');
+  }), 'Default 320px PiP fits compact trade without duplicate quotes or scrolling');
   await pip(() => [...documentPictureInPicture.window.document.querySelectorAll('nav button')].find(b => b.textContent.startsWith('Positions')).click());
   check(await page.evaluate(expected=>documentPictureInPicture.window.innerHeight===expected,nativeHeight),
     'Native popup height stays unchanged when switching to Positions');
@@ -83,9 +86,9 @@ try {
   check(await pip(()=>{
     const d=documentPictureInPicture.window.document;
     return d.querySelector('.acg-mini-empty strong')?.textContent==='No open positions'
-      && d.querySelector('.acg-mini-empty span')?.textContent==='Your active positions will appear here.'
+      && !d.querySelector('.acg-mini-empty span')
       && !d.querySelector('.acg-mini-footer');
-  }),'Empty detached positions show only the two-line message and no footer');
+  }),'Empty detached positions show one concise label and no footer');
   await page.evaluate(()=>window.v4PositionsQA.setPositions([
     {id:'position-eur-1',positionId:'position-eur-1',symbol:'EURUSD',side:'SELL',volume:0.01,
       entry:1.11652,closePrice:1.11735,pnl:123.45,pnlCurrency:'USD',valuationStatus:'LIVE'},
@@ -166,12 +169,12 @@ try {
       actionsHeight:actions?.height,freeHeight:free?.height,estHeight:est?.height,headerHeight:header?.height};
   });
   console.log('MINI_DENSITY_GEOMETRY',JSON.stringify(density));
-  check(density.headerHeight===36&&density.contextHeight===78
-    &&density.tabsHeight>=32&&density.tabsHeight<=34&&density.actionsHeight===52,
-    'Reference row heights: 36px brand / 78px instrument / 33px tabs / 52px trading');
-  check(density.freeHeight>=23&&density.freeHeight<=26
-    &&density.estHeight>=24&&density.estHeight<=28,
-    'Free margin and estimated margin use separate 24px reference rows');
+  check(density.headerHeight===32&&density.contextHeight===62
+    &&density.tabsHeight>=30&&density.tabsHeight<=32&&density.actionsHeight===45,
+    'Compact row heights: 32px brand / 62px market / 31px tabs / 45px quoted actions');
+  check(density.freeHeight>=20&&density.freeHeight<=23
+    &&density.estHeight>=21&&density.estHeight<=24,
+    'Margin summaries are compact without hiding financial values');
   check(density.scroll<=density.visible+4,'Default detached trade fits without a vertical scrollbar');
   check(await popup.locator('[data-acg-mini-simple-ticket=true]').isVisible(),
     'Trade tab uses original floating quick-order logic in a simple popup');
@@ -200,8 +203,8 @@ try {
   await fallback.evaluate(() => window.v4PositionsQA.setAccount({ freeMargin: 54321.12 }));
   await popup.getByText('$54,321.12', { exact: true }).waitFor();
   check(true, 'Popup receives updated authoritative free margin without footer');
-  await popup.setViewportSize({ width: 320, height: 500 });
-  check(await popup.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Narrow resized window fits');
+  await popup.setViewportSize({ width: 300, height: 480 });
+  check(await popup.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Manual 300px resize fits without horizontal overflow');
   await fallback.bringToFront();
   check(await popup.locator('[data-acg-mini-simple-ticket=true]').count() === 1,
     'Quick-order widget remains mounted while opener is active');
