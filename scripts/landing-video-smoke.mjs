@@ -110,6 +110,13 @@ try {
       console.log('ACG_MARKETS_BTC_SWIRL_'+viewport.label+' '+JSON.stringify(filmMeta));
       assert.ok(filmMeta.width>0 && filmMeta.height>0 && filmMeta.readyState >= 2,
         viewport.label+' new BTC swirl video decoded');
+      assert.equal(filmMeta.width, 1254);
+      assert.equal(filmMeta.height, 674);
+      assert.equal(await page.locator('#market-intro .market-film').evaluate(el=>{
+        const rect=el.getBoundingClientRect();
+        return Math.abs(rect.width/rect.height - 1254/674)<0.015;
+      }),true, 'Markets film respects native ratio');
+      assert.equal(await newFilm.evaluate(el=>getComputedStyle(el).objectFit),'contain');
       await page.locator('#market-intro').screenshot({path:'artifacts/markets-btc-swirl-'+viewport.label+'.png'});
 
       assert.equal(await page.locator('.fact-strip').count(), 0);
