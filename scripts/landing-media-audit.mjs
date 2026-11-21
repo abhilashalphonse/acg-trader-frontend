@@ -5,6 +5,8 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
+import { Buffer } from 'node:buffer';
+import process from 'node:process';
 
 const html = readFileSync(new URL('../public/acg-landing-v6.html', import.meta.url), 'utf8');
 const urls = [...html.matchAll(/<source\\s+src="(https:\/\/[^"]+\\.mp4)"\\s+type="video\/mp4"/g)].map(m => m[1]);
