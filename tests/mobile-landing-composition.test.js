@@ -7,7 +7,7 @@ const read = file => readFileSync(new URL('../' + file, import.meta.url), 'utf8'
 test('Access transition uses pure-black background and keeps actual account routes and disclosures', () => {
   const html = read('public/acg-landing-v6.html');
   const css = read('public/acg-mobile-composition.css');
-  assert.ok(html.includes('<link rel="stylesheet" href="/acg-mobile-composition.css?v=20261121-aifit1"/>'));
+  assert.ok(html.includes('<link rel="stylesheet" href="/acg-mobile-composition.css?v=20261121-moversviewport1"/>'));
   assert.ok(html.indexOf('href="/acg-mobile-composition.css') > html.indexOf('href="/acg-landing-footer.css'),
     'mobile overrides load after original styles');
   assert.match(css, /#access\.section\.access\{[\s\S]*?background:#000/);
@@ -33,7 +33,7 @@ test('all mobile cinematic stages use compact purposeful layouts without modifyi
   assert.ok(css.includes('#ai-connections .ai-connect-stage{'));
   assert.ok(css.includes('object-fit:cover'));
   assert.ok(css.includes('#market-movers .market-movers-frame{'));
-  assert.ok(css.includes('aspect-ratio:4/3'));
+  assert.ok(css.includes('aspect-ratio:16/9'));
   assert.ok(css.includes('#experience .mobile-story-visual img{'));
   assert.ok(css.includes('max-height:550px'));
   assert.doesNotMatch(css, /\.film-tap-to-play|\.acg-hero-tap-to-play|\.play-button/);
@@ -51,7 +51,7 @@ test('mobile editorial sections are left aligned with full-width cinematic artwo
     '#ai-connections .ai-connect-inner{align-items:stretch;text-align:left}',
     '#terminal .terminal-story-figure{',
     '#experience .mobile-story-visual{',
-    '#market-movers .market-movers-media{width:100vw',
+    '#market-movers .market-movers-media{',
     '#acg-faq .acg-faq-intro{text-align:left}'
   ]) assert.ok(css.includes(rule), rule);
   assert.ok(css.includes('width:100vw;max-width:none'));
@@ -65,16 +65,15 @@ test('mobile editorial sections are left aligned with full-width cinematic artwo
   assert.ok(html.includes('aria-label="Terms and trading risk notice"'));
 });
 
-test('mobile-only video compositions replace empty margins without altering originals', () => {
+test('mobile films preserve original framing and legal disclosures', () => {
   const html = read('public/acg-landing-v6.html');
   const css = read('public/acg-mobile-composition.css');
-  const moversMobile = 'src="/media/market-movers-mobile.mp4"';
   assert.ok(!html.includes('src="/media/overnight-scan-mobile.mp4"'));
-  assert.ok(html.includes(moversMobile));
+  assert.ok(!html.includes('src="/media/market-movers-mobile.mp4"'));
   assert.ok(html.includes('src="/media/overnight-scan.mp4"'));
   assert.ok(html.includes('src="/media/market-movers.mp4"'));
   assert.ok(css.includes('.market-movers-frame .market-movers-video{'));
-  assert.ok(css.includes('object-fit:cover;object-position:center'));
+  assert.ok(css.includes('object-fit:contain;object-position:center'));
   assert.ok(css.includes('#ai-connections .ai-connect-inner>.ai-connect-disclosure{display:block}'));
   assert.ok(css.includes('.ai-connect-disclosure-desktop{display:none}'));
   assert.ok(html.includes('Illustrative concept — not an active third-party AI integration.'));
@@ -99,4 +98,17 @@ test('AI Assistant mobile video and disclosure fit the readable phone gutter', (
   assert.ok(html.includes('src="/media/overnight-scan.mp4"'));
   assert.ok(!html.includes('src="/media/overnight-scan-mobile.mp4"'));
   assert.ok(html.includes('Illustrative concept — not an active third-party AI integration.'));
+});
+
+test('Market Movers gets a complete viewport and keeps the whole source centered', () => {
+  const css = read('public/acg-mobile-composition.css');
+  const html = read('public/acg-landing-v6.html');
+  assert.ok(css.includes('min-height:100vh;min-height:100svh'));
+  assert.ok(css.includes('min-height:calc(100svh - 106px)'));
+  assert.ok(css.includes('display:flex;align-items:center;justify-content:center'));
+  assert.ok(css.includes('width:100vw;max-width:100vw;height:auto'));
+  assert.ok(css.includes('margin:0;aspect-ratio:16/9'));
+  assert.ok(css.includes('object-fit:contain;object-position:center;background:#000'));
+  assert.ok(!html.includes('/media/market-movers-mobile.mp4'), 'cropped mobile film must not ship');
+  assert.ok(html.includes('/media/market-movers.mp4'), 'use complete original footage');
 });
