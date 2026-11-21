@@ -143,6 +143,11 @@ try {
         currentTime:v.currentTime,paused:v.paused
       }));
       console.log('ACG_TERMINAL_MEDIA_META_'+viewport.label+' '+JSON.stringify(terminalVideoMeta));
+      assert.equal(terminalVideoMeta.width, 1200, 'Approved source is portrait 1200x1428');
+      assert.equal(terminalVideoMeta.height, 1428, 'Approved source aspect ratio retained');
+      assert.equal(await terminal.locator('.terminal-story-frame').evaluate(el => {
+        const r=el.getBoundingClientRect();return Math.abs(r.width/r.height - 1200/1428)<0.012;
+      }), true, 'Video frame uses native terminal aspect ratio');
       await terminal.screenshot({path:'artifacts/terminal-story-'+viewport.label+'.png'});
       const mobileSection=page.locator('#experience.mobile-story');
       assert.equal(await mobileSection.locator('h2').innerText(), 'Your trading desk.\nIn your pocket.');
@@ -227,7 +232,7 @@ try {
         });
         assert.ok(t.headLeft>=-3 && t.headRight<=t.viewportWidth+3,width+'x'+height+' terminal heading overflow: '+JSON.stringify(t));
         assert.ok(t.frameLeft>=-3 && t.frameRight<=t.viewportWidth+3,width+'x'+height+' terminal screen overflow: '+JSON.stringify(t));
-        assert.ok(t.frameWidth<=995,width+'x'+height+' terminal screen too wide: '+JSON.stringify(t));
+        assert.ok(t.frameWidth<=670,width+'x'+height+' terminal screen too wide: '+JSON.stringify(t));
         assert.ok(t.disclosureBottom<=t.sectionBottom+3,width+'x'+height+' terminal disclaimer clipped: '+JSON.stringify(t));
 
 
