@@ -138,11 +138,11 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   assert.ok(!html.includes('class="market-intro-note"'));
   assert.ok(html.includes('Simulated trading only. Instrument availability varies by account. Trading involves risk.'));
   assert.ok(marketCss.includes('padding:100px 0 0'));
-  assert.ok(marketCss.includes('padding:52px 0 0'), 'mobile headline starts closer to top');
+  assert.ok(marketCss.includes('padding:40px 0 0'), 'mobile headline starts closer to top');
   assert.ok(marketCss.includes('.market-intro-inner{align-items:stretch;text-align:left}'), 'mobile uses left-aligned editorial text');
   assert.ok(marketCss.includes('width:100vw;max-width:none'), 'mobile film is edge-to-edge');
-  assert.ok(marketCss.includes('height:clamp(360px,113vw,470px)'), 'mobile film has a cinematic vertical stage');
-  assert.ok(marketCss.includes('object-fit:cover;object-position:52% 50%'), 'mobile crops the source rather than stretching it');;
+  assert.ok(marketCss.includes('height:clamp(390px,124vw,500px)'), 'mobile film has a cinematic vertical stage');
+  assert.ok(marketCss.includes('object-fit:cover;object-position:56% 50%'), 'mobile crops the source rather than stretching it');;
   assert.ok(html.includes('Illustrative mobile interface. Trading features and access depend on your account and device.'));
   assert.ok(html.includes('Simulated trading for authorized accounts'));
   assert.ok(html.includes('href="/?acg_login=1"'));
