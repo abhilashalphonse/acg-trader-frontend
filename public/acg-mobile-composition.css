@@ -1,4 +1,4 @@
-/* Mobile composition audit — preserves desktop narratives and original media.
+/* Mobile composition system v2 — preserves desktop narratives and original media.
    Scoped last-in-cascade adjustments. This stylesheet is intentionally focused
    on visual hierarchy, safe text visibility and no-horizontal-scroll layouts. */
 
@@ -38,99 +38,107 @@
      Keep the prism/preview storytelling while reducing empty height. */
   #features.ai-section{
     min-height:0;
-    padding:64px 0 54px;
+    padding:56px 0 44px;
   }
-  #features .ai-section-copy h2{font-size:clamp(37px,9.4vw,49px)}
-  #features .ai-section-copy>p{margin-top:19px}
-  #features .ai-section-cta{margin-top:23px}
+  #features .ai-section-inner{align-items:stretch;text-align:left}
+  #features .ai-section-copy{max-width:380px;margin:0}
+  #features .ai-section-copy h2{font-size:clamp(37px,9.5vw,49px);max-width:355px}
+  #features .ai-section-copy>p{max-width:345px;margin:18px 0 0}
+  #features .ai-section-cta{margin:22px 0 0}
   #features .ai-preview{
-    width:min(400px,100%);
-    margin-top:clamp(82px,10svh,98px);
-    padding:17px 15px 15px;
+    width:100%;max-width:405px;
+    margin:clamp(70px,9svh,86px) 0 0;
+    padding:18px 16px 16px;
   }
   #features .ai-preview-prompt{font-size:13px;line-height:1.55}
-  #features .ai-section-note{margin-top:15px;font-size:10px}
+  #features .ai-section-note{max-width:355px;margin:14px 0 0;font-size:10px;text-align:left}
 
   /* Terminal: enlarge authentic portrait film into almost full device width,
      not by stretching, zoom-cropping or changing source aspect ratio. */
-  #terminal.terminal-story{padding:63px 0 51px}
-  #terminal .terminal-story-copy h2{font-size:clamp(37px,9vw,49px)}
-  #terminal .terminal-story-copy>p{margin-top:19px}
-  #terminal .terminal-story-cta{margin-top:23px}
+  #terminal.terminal-story{padding:55px 0 41px;border:0}
+  #terminal .terminal-story-inner{align-items:stretch;text-align:left}
+  #terminal .terminal-story-copy h2{max-width:360px;font-size:clamp(37px,9.5vw,49px)}
+  #terminal .terminal-story-copy>p{max-width:345px;margin:18px 0 0}
+  #terminal .terminal-story-cta{margin:22px 0 0}
   #terminal .terminal-story-figure{
-    width:calc(100% + 22px);
-    max-width:calc(100% + 22px);
-    margin:29px auto 0;
-    transform:translateX(-11px);
+    width:100vw;max-width:none;
+    align-self:center;margin:26px 0 0;
+    transform:none;
   }
   #terminal .terminal-story-frame{
     aspect-ratio:1200/1428;
-    border-radius:12px;
+    border:0;border-radius:0;
     background:#08080b url('/acg-trader-wordmark.png') center/26% auto no-repeat;
   }
   #terminal .terminal-story-frame .terminal-story-video{
     width:100%;height:100%;object-fit:contain;transform:none;
   }
   #terminal .terminal-story-figure figcaption{
-    max-width:380px;margin:14px auto 0;
-    font-size:10px;line-height:1.55;
+    max-width:none;margin:14px 0 0;padding:0 16px;
+    text-align:left;font-size:10.5px;line-height:1.55;
   }
 
   /* Mobile device illustration: keep it prominent without consuming
      nearly a full additional screen of whitespace. */
+  #experience.mobile-story{border:0}
   #experience.mobile-story .mobile-story-layout{
-    min-height:0;gap:23px;padding-top:59px;padding-bottom:35px;
+    min-height:0;gap:16px;padding-top:52px;padding-bottom:25px;
   }
   #experience .mobile-story-copy h2{font-size:clamp(40px,9.2vw,52px)}
   #experience .mobile-story-cta{margin-top:21px}
+  #experience .mobile-story-note{max-width:340px;margin-top:16px}
   #experience .mobile-story-visual{
-    max-height:535px;max-width:500px;
+    width:100vw;max-width:none;max-height:550px;
+    margin-left:calc(50% - 50vw);overflow:hidden;
   }
   #experience .mobile-story-visual img{
-    width:134%;height:auto;max-height:535px;
+    width:138%;height:auto;max-height:550px;
     max-width:none;object-fit:contain;object-position:center;
+    transform:translateX(3%);
   }
 
   /* AI connection: use more of the available width and gently zoom away
      empty film margins; preserve the illustrative disclosure above it. */
-  #ai-connections.ai-connect-story{padding-top:55px}
-  #ai-connections .ai-connect-lead{margin-top:16px;font-size:15px}
-  #ai-connections .ai-connect-disclosure{margin-top:13px;line-height:1.6}
-  #ai-connections .ai-connect-cta{margin-top:17px}
+  #ai-connections.ai-connect-story{padding-top:52px}
+  #ai-connections .ai-connect-inner{align-items:stretch;text-align:left}
+  #ai-connections .ai-connect-copy{max-width:none;margin:0}
+  #ai-connections .ai-connect-copy h2{max-width:355px;font-size:clamp(37px,9.4vw,47px)}
+  #ai-connections .ai-connect-lead{max-width:350px;margin:17px 0 0;font-size:15px}
+  #ai-connections .ai-connect-disclosure{max-width:350px;margin:12px 0 0;font-size:10.5px;line-height:1.65}
+  #ai-connections .ai-connect-cta{margin:19px 0 0}
   #ai-connections .ai-connect-stage{
-    width:calc(100% + 20px);
-    max-width:none;margin:15px -10px 0;
-    aspect-ratio:16/9;
+    width:100vw;max-width:none;align-self:center;
+    margin:22px 0 0;aspect-ratio:1.38;
     overflow:hidden;background:#000;
   }
   #ai-connections .ai-connect-stage .ai-connect-video{
     width:100%;height:100%;object-fit:contain;
-    transform:scale(1.13);transform-origin:center;
+    transform:scale(1.22);transform-origin:center;
   }
 
   /* Market Movers: presentation area is taller and closer to device edges.
      Enlarge the existing film, never create controls or overlays. */
-  #market-movers.market-movers-story{min-height:0;padding:61px 0 66px}
-  #market-movers .market-movers-inner{gap:19px}
+  #market-movers.market-movers-story{min-height:0;padding:55px 0 36px}
+  #market-movers .market-movers-inner{width:calc(100% - 32px);gap:17px}
   #market-movers .market-movers-copy h2{
-    font-size:clamp(39px,9.4vw,49px);line-height:1.08;
+    font-size:clamp(38px,9.7vw,49px);line-height:1.08;
   }
   #market-movers .market-movers-copy p{margin-top:17px}
   #market-movers .market-movers-cta{margin-top:21px}
+  #market-movers .market-movers-media{width:100vw;max-width:none;margin-left:-16px}
   #market-movers .market-movers-frame{
-    width:calc(100% + 20px);
-    margin-left:-10px;
-    aspect-ratio:1.32;
+    width:100vw;max-width:none;
+    margin-left:0;aspect-ratio:1.09;
     background:#000;
   }
   #market-movers .market-movers-frame .market-movers-video{
-    transform:scale(1.55);transform-origin:right center;
+    transform:scale(1.6);transform-origin:right center;
     object-fit:contain;background:#000;
   }
 
   /* Account access: clear, efficient, black-on-black hierarchy. */
-  #access.section.access{padding:62px 0 69px}
-  #access .section-head{margin-bottom:27px}
+  #access.section.access{padding:52px 0 55px}
+  #access .section-head{margin-bottom:25px;align-items:flex-start;text-align:left}
   #access .section-head h2{
     font-size:clamp(36px,9.1vw,44px);
     margin:0;line-height:1.09;
@@ -147,16 +155,27 @@
     margin-top:23px;min-height:46px;
     max-width:100%;padding:11px 21px;white-space:normal;text-align:center;
   }
-  #access .access-note{margin-top:22px;font-size:11.5px;line-height:1.65}
+  #access .access-note{margin-top:20px;font-size:11.5px;line-height:1.65}
+
+  /* A lighter editorial handoff from account access to FAQs and the footer. */
+  #acg-faq.acg-faq{padding:64px 0 67px}
+  #acg-faq .acg-faq-intro{text-align:left}
+  #acg-faq .acg-faq-items{margin-top:34px}
+  #acg-faq .acg-faq-item summary{min-height:72px;padding:18px 1px;gap:14px;font-size:17.5px}
+  #acg-faq .acg-faq-answer{padding:0 24px 25px 1px}
+  #acg-faq .acg-faq-answer p{font-size:14.5px;line-height:1.65}
+  #acg-faq .acg-faq-disclaimer{margin-top:40px}
+  #acg-faq .acg-faq-disclaimer p{font-size:11.5px;line-height:1.72}
+  .footer{padding-top:57px}
+  .footer .footer-grid{gap:31px 18px}
+  .footer .footer-bottom{margin-top:43px}
 }
 @media(max-width:360px){
-  #terminal .terminal-story-figure{
-    width:calc(100% + 12px);max-width:calc(100% + 12px);transform:translateX(-6px);
-  }
+  #terminal .terminal-story-figure{width:100vw;max-width:none;transform:none}
   #terminal .terminal-story-copy h2{font-size:36px}
-  #ai-connections .ai-connect-stage{width:calc(100% + 12px);margin-left:-6px;margin-right:-6px}
-  #market-movers .market-movers-frame{width:calc(100% + 12px);margin-left:-6px}
-  #market-movers .market-movers-frame .market-movers-video{transform:scale(1.43)}
+  #ai-connections .ai-connect-stage{width:100vw;max-width:none;margin-left:0;margin-right:0}
+  #market-movers .market-movers-frame{width:100vw;margin-left:0}
+  #market-movers .market-movers-frame .market-movers-video{transform:scale(1.56)}
 }
 @media(prefers-reduced-motion:reduce){
   /* This is art direction only; no automatic motion is introduced. */
