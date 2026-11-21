@@ -537,7 +537,8 @@ try {
               accessCards:[...document.querySelectorAll('#access .access-card')].map(el=>({
                 left:el.getBoundingClientRect().left,right:el.getBoundingClientRect().right,
                 color:getComputedStyle(el).backgroundColor,
-                buttonHeight:el.querySelector('.btn').getBoundingClientRect().height
+                buttonHeight:el.querySelector('.btn').getBoundingClientRect().height,
+                buttonTextColor:getComputedStyle(el.querySelector('.btn')).color
               })),
               faqTop:box('#acg-faq').top
             };
@@ -549,6 +550,8 @@ try {
             v.color==='rgb(14, 15, 18)' && v.buttonHeight>=44 &&
             v.left>=-2 && v.right<=q.viewport+2),
             'dark access cards and full-size touch targets: '+JSON.stringify(q.accessCards));
+          assert.equal(q.accessCards[1].buttonTextColor,'rgb(240, 241, 243)',
+            'authorized-account outline button must have light readable text');
           assert.ok(q.terminalFrame.width>=q.viewport-53 &&
             q.terminalFrame.left>=-2 && q.terminalFrame.right<=q.viewport+2 &&
             q.terminalVideoFit==='contain',
@@ -564,6 +567,12 @@ try {
             'AI narrative must not leave another oversized blank section: '+q.aiHeight);
           assert.ok(q.access.bottom<=q.faqTop+3,'account access flows directly into FAQs');
           if(width===390) {
+            // Use normal-motion film frames for design screenshots; reduced-motion
+            // static placeholders are separately checked earlier in the suite.
+            await page.emulateMedia({reducedMotion:'no-preference'});
+            await page.locator('#acg-terminal-film').scrollIntoViewIfNeeded();
+            await page.waitForFunction(() => document.querySelector('#acg-terminal-film')?.readyState>=2,
+              null,{timeout:12000});
             await page.locator('#access').scrollIntoViewIfNeeded();
             await page.locator('#access').screenshot({path:'artifacts/account-access-mobile-audited.png'});
             await page.locator('#market-movers').scrollIntoViewIfNeeded();
