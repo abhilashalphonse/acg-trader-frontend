@@ -114,6 +114,14 @@ function PositionsQA(){
    setPositions(v=>v.filter(p=>p.id!==id));
    return true;
   }}
+  onCancelPending={async id=>{
+    if(publicReview)return false;
+    const exists=pending.some(order=>String(order.id)===String(id));
+    if(!exists)return false;
+    setCommands(previous=>[...previous,{kind:'cancel-pending',id:String(id)}]);
+    setPending(previous=>previous.filter(order=>String(order.id)!==String(id)));
+    return true;
+  }}
   onManualOrder={()=>{if(publicReview)return false;throw Error('Fixture must never place an order');}}
  />
  </>;
