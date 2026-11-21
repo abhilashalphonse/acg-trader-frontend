@@ -125,8 +125,8 @@ test('public homepage uses V4 design language and current production capability 
   assert.ok(marketCss.includes('border-top:0;border-bottom:0'), 'hero to markets transition must have no divider');
   assert.ok(!marketCss.includes('border-top:1px solid #17171b'), 'no visible market-intro separator');
   assert.ok(marketCss.includes('padding:100px 0 0'), 'no bottom padding under the BTC video');
-  assert.ok(marketCss.includes('padding:88px 0 0') && marketCss.includes('padding:73px 0 0'),
-    'tablet and mobile also have no bottom padding');
+  assert.ok(marketCss.includes('padding:88px 0 0') && marketCss.includes('padding:52px 0 0'),
+    'tablet and mobile remain flush to artwork with updated mobile top spacing');
   assert.ok(!marketCss.includes('.market-intro-note'), 'removed obsolete artwork-note styles');
 
   assert.equal((html.match(/<video\b/g) || []).length, 6);
