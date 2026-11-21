@@ -78,7 +78,7 @@ try {
       assert.equal(await page.locator('a.acg-cinema-secondary[href="/contact.html?topic=enterprise"]').count(), 1);
       const heroAssets = await page.evaluate(() => [...document.querySelectorAll('.acg-cinema source')].map(s => s.src || s.srcset));
       assert.equal(heroAssets.length, 1);
-      assert.ok(heroAssets[0].includes('mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/a7112847-cd7c-4d7b-9f91-540af4da8234.mp4'));
+      assert.ok(heroAssets[0].includes('/media/hero.mp4'));
       assert.equal(await page.locator('#acg-hero-replay').count(), 0);
       assert.equal(await page.locator('video#acg-hero-reveal').evaluate(v => getComputedStyle(v).objectFit), 'cover');
       assert.equal(await page.locator('video#acg-three-markets-film').count(), 1);
@@ -117,7 +117,7 @@ try {
       const newFilm = page.locator('#acg-three-markets-film');
       const newSource = await newFilm.locator('source').getAttribute('src');
       assert.equal(newSource,
-        'https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20logo%20BTC%20swirl.mp4');
+        '/media/btc-swirl.mp4');
       await page.waitForTimeout(1100);
       const filmMeta=await newFilm.evaluate(v=>({width:v.videoWidth,height:v.videoHeight,
         duration:v.duration,time:v.currentTime,readyState:v.readyState,paused:v.paused}));
@@ -182,7 +182,7 @@ try {
       assert.ok((await terminal.locator('.terminal-story-copy > p').innerText()).includes('Analyze markets, plan orders'));
       assert.equal(await terminal.locator('.terminal-story-cta').getAttribute('href'), '/?acg_login=1');
       assert.equal(await terminal.locator('#acg-terminal-film source').count(), 1);
-      assert.ok((await terminal.locator('#acg-terminal-film source').getAttribute('src')).includes('ACG%20Trader%20Terminal.mp4'));
+      assert.ok((await terminal.locator('#acg-terminal-film source').getAttribute('src')).includes('terminal.mp4'));
       assert.equal(await terminal.locator('figcaption').innerText(),
         'Past performance is not an indicator of future performance. Data displayed above is indicative only. The return may increase or decrease as a result of currency fluctuations. Actual execution price may vary. Pricing data is provided by Acg Trader.');
       assert.equal(await terminal.locator('video').evaluate(v=>v.controls),false);
@@ -227,7 +227,7 @@ try {
       const connectionVideo = connections.locator('#acg-ai-connection-film');
       assert.equal(await connectionVideo.count(), 1);
       assert.equal(await connectionVideo.locator('source').getAttribute('src'),
-        'https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20Trader%20-%20Overnight%20Scan.mp4');
+        '/media/overnight-scan.mp4');
       assert.equal(await connectionVideo.evaluate(v => v.controls), false);
       await connections.scrollIntoViewIfNeeded();
       await page.waitForFunction(() => document.querySelector('#acg-ai-connection-film')?.readyState >= 2, null, {timeout: 15000});
@@ -275,7 +275,7 @@ try {
       assert.equal(await movers.locator('figcaption').count(), 0, 'Section 7 has no trailing disclaimer');
       const moversVideo = movers.locator('#acg-market-movers-film');
       assert.equal(await moversVideo.locator('source').getAttribute('src'),
-        'https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20Market%20Movers%20-%20Take%20the%20Lead.mp4');
+        '/media/market-movers.mp4');
       assert.equal(await moversVideo.evaluate(v => v.controls), false);
       await movers.scrollIntoViewIfNeeded();
       await page.waitForFunction(() => document.querySelector('#acg-market-movers-film')?.readyState >= 2, null, {timeout:15000});
@@ -616,6 +616,30 @@ try {
     assert.ok(states.every(v=>v.controls === false), 'No video controls');
     assert.equal(await reduced.locator('#acg-hero-replay').count(),0);
     assert.equal(await reduced.locator('#acg-hero-reveal').evaluate(v=>getComputedStyle(v).display),'none');
+    // Confirm packaged MP4s are seekable and that mobile Chrome actually
+    // advances video time, rather than merely decoding a static first frame.
+    const realMobile = await browser.newPage({
+      viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:'no-preference'
+    });
+    const mediaRange = await realMobile.request.get(base + '/media/hero.mp4',
+      { headers: { Range: 'bytes=0-15' } });
+    assert.equal(mediaRange.status(),206,'first-party video server must support byte ranges');
+    await realMobile.goto(base+'/acg-landing-v6.html',{waitUntil:'domcontentloaded'});
+    await realMobile.waitForFunction(() => {
+      const v=document.getElementById('acg-hero-reveal');
+      return v && (v.currentTime > 0.15 || v.ended);
+    },null,{timeout:12000});
+    for (const id of [
+      'acg-three-markets-film','ai-prism-film','acg-terminal-film',
+      'acg-ai-connection-film','acg-market-movers-film'
+    ]) {
+      await realMobile.locator('#'+id).scrollIntoViewIfNeeded();
+      await realMobile.waitForFunction(id => {
+        const v=document.getElementById(id);
+        return v && v.readyState >= 2 && !v.paused && v.currentTime > 0.15;
+      },id,{timeout:12000});
+    }
+    await realMobile.close();
     const normal = await browser.newPage({ viewport:{width:1440,height:900},reducedMotion:'no-preference' });
     await normal.goto(base+'/acg-landing-v6.html',{waitUntil:'domcontentloaded'});
     await normal.locator('#acg-three-markets-film').scrollIntoViewIfNeeded();

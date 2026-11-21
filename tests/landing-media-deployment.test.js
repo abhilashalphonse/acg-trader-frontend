@@ -4,7 +4,7 @@ import { readFileSync, existsSync } from 'node:fs';
 
 const src = path => new URL('../' + path, import.meta.url);
 const read = file => readFileSync(src(file), 'utf8');
-const cleanSource = 'https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/a7112847-cd7c-4d7b-9f91-540af4da8234.mp4';
+const cleanSource = '/media/hero.mp4';
 
 test('unused local market-coins clips are excluded from Railway builds', () => {
   for (const file of ['acg-three-markets.mp4','acg-three-markets-poster.jpg']) {
@@ -51,7 +51,7 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   assert.ok(html.includes('class="terminal-story" id="terminal"'));
   assert.ok(html.indexOf('id="terminal"') < html.indexOf('id="experience"'));
   assert.ok(html.includes('id="acg-terminal-film"'));
-  assert.ok(html.includes('src="https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20Trader%20Terminal.mp4"'));
+  assert.ok(html.includes('src="/media/terminal.mp4"'));
   assert.ok(html.includes('href="/acg-terminal-section.css"'));
   const terminalCss = read('public/acg-terminal-section.css');
   assert.ok(terminalCss.includes('object-fit:contain'));
@@ -61,7 +61,7 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   assert.ok(html.includes('id="acg-three-markets-film"'));
   assert.ok(!html.includes('id="acg-shield-film"'));
   assert.ok(html.includes('id="ai-prism-film"'));
-  assert.ok(html.includes('src="https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20Prism%20Background.mp4"'));
+  assert.ok(html.includes('src="/media/ai-prism.mp4"'));
   assert.ok(html.includes('href="/acg-ai-section.css"'));
   const aiCss = read('public/acg-ai-section.css');
   assert.ok(aiCss.includes('prefers-reduced-motion:reduce'));
@@ -82,7 +82,7 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   assert.ok(html.includes('<section class="ai-connect-story" id="ai-connections"'));
   assert.ok(html.indexOf('id="experience"') < html.indexOf('id="ai-connections"')
     && html.indexOf('id="ai-connections"') < html.indexOf('id="market-movers"'), 'AI connection is Section 6');
-  assert.ok(html.includes('ACG%20Trader%20-%20Overnight%20Scan.mp4'));
+  assert.ok(html.includes('overnight-scan.mp4'));
   assert.ok(!html.includes('ACG%20Trader%20AI%20Connection.mp4'), 'previous Section 6 film must not be referenced');
   assert.ok(html.includes('id="acg-ai-connection-film"'));
   assert.ok(html.includes('href="#ai-connect-film"'));
@@ -96,7 +96,7 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   assert.ok(html.indexOf('id="ai-connections"') < html.indexOf('id="market-movers"') &&
     html.indexOf('id="market-movers"') < html.indexOf('id="access"'), 'Market Movers is Section 7, immediately before account access');
   assert.ok(html.includes('id="acg-market-movers-film"'));
-  assert.ok(html.includes('src="https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20Market%20Movers%20-%20Take%20the%20Lead.mp4"'));
+  assert.ok(html.includes('src="/media/market-movers.mp4"'));
   assert.ok(html.includes('href="#market-intro">Explore markets'));
   assert.ok(html.includes('class="terminal-story-cta" href="/?acg_login=1"'));
   assert.ok(html.includes('class="mobile-story-cta" href="/?acg_login=1"'));
@@ -122,7 +122,7 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   const mobileCss = read('public/acg-mobile-section.css');
   assert.ok(mobileCss.includes('max-width:720px'));
   assert.ok(mobileCss.includes('max-height:600px'));
-  assert.ok(html.includes('src="https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20logo%20BTC%20swirl.mp4"'));
+  assert.ok(html.includes('src="/media/btc-swirl.mp4"'));
   assert.ok(!html.includes('/media/acg-three-markets.mp4'));
   assert.ok(!html.includes('acg-three-markets-poster.jpg'));
   const marketCss = read('public/acg-market-intro.css');
