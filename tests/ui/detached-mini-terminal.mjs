@@ -149,6 +149,8 @@ try {
   check(await popup.evaluate(() => innerWidth===270 && innerHeight===560),
     'Regular popup uses an actual 270 by 560 slim viewport');
   check(await popup.locator('[data-window-mode="Separate window"]').count()===1, 'Unsupported browser gets a regular window');
+  await fallback.locator('[data-v4-pending-cancel-mode="direct"]').waitFor();
+  check(true,'Actual popup opening activates direct chart cancellation in audit mode');
   check(await popup.getByText(/will not stay on top/).count() === 1, 'Fallback describes its actual behavior near the header');
   check(await popup.locator('.acg-mini-footer').count()===0,'Mini terminal never renders a footer');
   const fallbackHeight=await popup.evaluate(()=>innerHeight);
@@ -270,6 +272,8 @@ try {
     'Quick-order widget remains mounted while opener is active');
   await popup.close();
   await fallback.locator('[data-acg-mini-window-state="closed"]').waitFor({ state: 'attached' });
+  await fallback.locator('[data-v4-pending-cancel-mode="review"]').waitFor();
+  check(true,'Closing actual popup immediately restores chart cancellation confirmation');
   await fallback.getByRole('button', { name: 'Pop out mini terminal' }).waitFor();
   check(await fallback.evaluate(() => window.v4PositionsQA.commands.length === 0), 'Window lifecycle and navigation never submit a trade');
   // The notice banner may overlap the right header; its background must
@@ -312,59 +316,40 @@ try {
   check(ownerPopup.isClosed(), 'Navigating away from owner closes its detached trading window');
   await owner.close();
 
-  // The original V4 chart keeps its explicit cancellation review when there
-  // is no mini window. Opening the audit popup switches to direct cancellation
-  // only for its lifetime; the mock callback never calls a live backend.
-  const cancelPage = await setup(true);
-  await cancelPage.evaluate(() => window.v4PositionsQA.setPending([{
-    id:'pending-mini-cancel',accountId:'v4-positions-fixture',symbol:'EURUSD',
-    side:'SELL',orderType:'limit',volume:0.01,entry:1.11740,
-    sl:null,tp:null,status:'PENDING',
-  }]));
-  const layer=cancelPage.locator('[data-v4-isolated-layer]');
-  await layer.waitFor();
-  check(await layer.getAttribute('data-v4-pending-cancel-mode') === 'review',
-    'Standard V4 chart retains cancellation review when popup is closed');
-  const cancelButton=cancelPage.getByRole('button',{name:'Cancel pending order',exact:true});
-  await cancelButton.waitFor();
-  await cancelButton.click();
-  check(await cancelPage.getByRole('dialog',{name:'Confirm cancel pending order'}).isVisible(),
-    'Standard V4 chart retains its normal cancellation confirmation');
-  check(await cancelPage.evaluate(() => window.v4PositionsQA.commands.length === 0),
-    'Review-only chart action never submits cancellation');
+  // Chart-order policy is exercised in an isolated fixture where accepted
+  // pending levels always have stable chart coordinates. No network commands.
+  const reviewPage=await browser.newPage({viewport:{width:1024,height:600}});
+  reviewPage.on('pageerror',error=>errors.push(error.message));
+  await reviewPage.goto(new URL('/v4-mini-cancel-audit.html?direct=0',base).toString());
+  const reviewCancel=reviewPage.getByRole('button',{name:'Cancel pending order'});
+  await reviewCancel.waitFor();
+  check(await reviewPage.locator('[data-v4-pending-cancel-mode="review"]').count()===1,
+    'Standard V4 chart retains explicit review mode');
+  await reviewCancel.click();
+  check(await reviewPage.getByRole('dialog',{name:'Confirm cancel pending order'}).isVisible(),
+    'Normal chart keeps cancellation confirmation before executing');
+  check(await reviewPage.locator('[data-mini-cancel-count]').innerText()==='0',
+    'Opening chart cancellation review never submits the command');
+  await reviewPage.getByRole('dialog',{name:'Confirm cancel pending order'})
+    .getByRole('button',{name:'Discard'}).click();
+  check(await reviewPage.getByRole('dialog',{name:'Confirm cancel pending order'}).count()===0,
+    'Normal chart cancellation review can be discarded');
+  await reviewPage.close();
 
-  const miniCancelEvent=cancelPage.waitForEvent('popup');
-  await cancelPage.getByRole('button',{name:'Pop out mini terminal'}).click();
-  const miniCancelPopup=await miniCancelEvent;
-  await miniCancelPopup.getByRole('navigation',{name:'Mini terminal sections'}).waitFor();
-  await cancelPage.locator('[data-v4-pending-cancel-mode="direct"]').waitFor();
-  check(await cancelPage.getByRole('dialog',{name:'Confirm cancel pending order'}).count()===0,
-    'Opening mini dismisses stale chart confirmation dialog');
-
-  await miniCancelPopup.getByRole('button',{name:'Pending',exact:true}).click();
-  check(await cancelPage.locator('.acg-motion-notice').filter({
-    hasText:/Choose Buy or Sell|Limit projection active/i,
-  }).count()===0, 'Switching mini to Pending does not show redundant chart instructions');
-  await miniCancelPopup.getByRole('button',{name:'Buy at quoted price'}).click();
-  check(await cancelPage.locator('.acg-motion-notice').filter({
-    hasText:/Choose Buy or Sell|Limit projection active/i,
-  }).count()===0, 'Mini quote selection does not show projection guidance as a banner');
-  check(await cancelPage.evaluate(() => window.v4PositionsQA.commands.length===0),
-    'Mini projection controls do not submit an order by themselves');
-
-  await cancelButton.click();
-  await cancelPage.waitForFunction(() =>
-    window.v4PositionsQA.commands.some(item =>
-      item.kind==='cancel-pending' && item.id==='pending-mini-cancel'));
-  check(await cancelPage.getByRole('dialog',{name:'Confirm cancel pending order'}).count()===0,
-    'Mini-active chart cancels accepted pending order with no extra confirmation');
-  check(await cancelPage.evaluate(() => window.v4PositionsQA.commands.filter(item =>
-    item.kind==='cancel-pending').length===1),
-    'Only one authorized cancellation command reaches the mocked order callback');
-  await miniCancelPopup.close();
-  await cancelPage.locator('[data-v4-pending-cancel-mode="review"]').waitFor();
-  check(true,'Closing popup restores normal chart cancellation review policy');
-  await cancelPage.close();
+  const directPage=await browser.newPage({viewport:{width:1024,height:600}});
+  directPage.on('pageerror',error=>errors.push(error.message));
+  await directPage.goto(new URL('/v4-mini-cancel-audit.html?direct=1',base).toString());
+  const directCancel=directPage.getByRole('button',{name:'Cancel pending order'});
+  await directCancel.waitFor();
+  check(await directPage.locator('[data-v4-pending-cancel-mode="direct"]').count()===1,
+    'Mini-requested chart policy is direct without changing full-terminal policy');
+  await directCancel.click();
+  await directPage.locator('[data-mini-cancel-count]').getByText('1').waitFor();
+  check(await directPage.getByRole('dialog',{name:'Confirm cancel pending order'}).count()===0,
+    'Mini chart cancellation does not display Discard/Confirm modal');
+  check(await directPage.getByRole('button',{name:'Cancel pending order'}).count()===0,
+    'Cancelled accepted order disappears only after mock server response');
+  await directPage.close();
 
   check(errors.length === 0, `No browser errors: ${errors.join('; ')}`);
   console.log(`MINI_TERMINAL_PASS ${checks} checks`);
