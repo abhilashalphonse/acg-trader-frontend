@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+<defs>
+  <linearGradient id="prism" x1="0" x2="1" y1="0" y2="0">
+   <stop offset="0" stop-color="#e3a44a"/><stop offset=".15" stop-color="#c6e3fc"/><stop offset=".35" stop-color="#2465b6"/><stop offset=".57" stop-color="#17132c"/><stop offset=".8" stop-color="#ecb569"/><stop offset="1" stop-color="#07080c"/>
+  </linearGradient>
+  <linearGradient id="fade" x1="0" x2=".5" y1="0" y2="1">
+   <stop offset="0" stop-color="#f0f3ff" stop-opacity=".8"/><stop offset=".65" stop-color="#08101d" stop-opacity=".28"/><stop offset="1" stop-color="#000" stop-opacity="0"/>
+  </linearGradient>
+</defs>
+<rect width="1920" height="1080" fill="#000"/>
+<g opacity=".58">
+ <path d="M0 0 0 185 796 509 899 535Z" fill="url(#prism)"/>
+ <path d="M0 16 0 48 825 522 882 533Z" fill="#a3dbf6" opacity=".65"/>
+ <path d="M0 188 0 218 860 531 900 539Z" fill="#eabf65" opacity=".56"/>
+ <path d="M1920 0 1920 185 1124 509 1021 535Z" fill="url(#prism)"/>
+ <path d="M1920 16 1920 48 1095 522 1038 533Z" fill="#a3dbf6" opacity=".65"/>
+ <path d="M1920 188 1920 218 1060 531 1020 539Z" fill="#eabf65" opacity=".56"/>
+ <path d="M0 1080 0 880 796 570 900 545Z" fill="url(#prism)" opacity=".72"/>
+ <path d="M1920 1080 1920 880 1124 570 1020 545Z" fill="url(#prism)" opacity=".72"/>
+ <path d="M0 1030 860 550" stroke="#cfdbff" stroke-opacity=".56" stroke-width="3"/>
+ <path d="M1920 1030 1060 550" stroke="#cfdbff" stroke-opacity=".56" stroke-width="3"/>
+</g>
+<ellipse cx="960" cy="540" rx="630" ry="340" fill="#000" opacity=".24"/>
+</svg>
