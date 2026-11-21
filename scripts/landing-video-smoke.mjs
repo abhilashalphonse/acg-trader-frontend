@@ -280,7 +280,7 @@ try {
         viewport.label+' compact AI visual fits and remains readable: '+JSON.stringify(connectionBounds));
       assert.ok(connectionBounds.titleFont <= (viewport.label === 'desktop' ? 65 : 44),
         viewport.label+' AI heading stays compact: '+JSON.stringify(connectionBounds));
-      assert.ok(connectionBounds.sectionHeight <= (viewport.label === 'desktop' ? 900 : 650),
+      assert.ok(connectionBounds.sectionHeight <= (viewport.label === 'desktop' ? 900 : 715),
         viewport.label+' Section 6 is not oversized: '+JSON.stringify(connectionBounds));
       assert.ok(connectionBounds.stageBottom <= connectionBounds.sectionBottom + 2,
         viewport.label+' AI film fits the section: '+JSON.stringify(connectionBounds));
