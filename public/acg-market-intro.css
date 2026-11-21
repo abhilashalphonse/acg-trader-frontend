@@ -1,6 +1,6 @@
 /* Section 2 — ACG BTC prism swirl as the visual centerpiece.
    Cinematic art direction, centered type, actual source ratio preserved. */
-.market-intro{background:#000;color:#f7f7f8;border-top:1px solid #17171b;border-bottom:1px solid #17171b;padding:100px 0 74px;overflow:hidden}
+.market-intro{background:#000;color:#f7f7f8;border-top:1px solid #17171b;border-bottom:1px solid #17171b;padding:100px 0 0;overflow:hidden}
 .market-intro-inner{display:flex;flex-direction:column;align-items:center;text-align:center}
 .market-intro h2{margin:0;color:#fafafa;font-size:clamp(51px,5.15vw,82px);font-weight:630;letter-spacing:-.071em;line-height:1.06;max-width:1200px}
 .market-intro-description{margin:43px auto 0;max-width:870px;color:#d6d6da;font-size:clamp(17px,1.42vw,22px);font-weight:500;letter-spacing:-.024em;line-height:1.65}
@@ -12,9 +12,8 @@
 .market-intro-media{margin:18px auto 0;width:100%;display:flex;justify-content:center;align-items:center}
 .market-intro .market-film{width:min(1140px,100%);max-width:1140px;aspect-ratio:1254/556;min-height:0;position:relative;margin:0;overflow:hidden;background:#000;border:0;border-radius:0;box-shadow:none}
 .market-intro .market-film .film-video{position:absolute;left:0;bottom:0;width:100%;height:auto;aspect-ratio:1254/674;object-fit:contain;object-position:center;background:#000}
-.market-intro-note{max-width:760px;margin:19px auto 0;color:#878790;font-size:10.5px;line-height:1.65;letter-spacing:-.005em}
 @media(max-width:900px){
- .market-intro{padding:88px 0 65px}
+ .market-intro{padding:88px 0 0}
  .market-intro h2{font-size:clamp(47px,6.4vw,66px)}
  .market-intro-description{max-width:700px;font-size:17px;margin-top:35px}
  .market-intro-risk{max-width:650px;margin-top:13px;font-size:11.5px}
@@ -22,14 +21,13 @@
  .market-intro-media{margin-top:18px}
 }
 @media(max-width:600px){
- .market-intro{padding:73px 0 54px}
+ .market-intro{padding:73px 0 0}
  .market-intro h2{max-width:380px;font-size:clamp(43px,10.3vw,58px);line-height:1.09;letter-spacing:-.063em}
  .market-intro-description{max-width:360px;margin-top:27px;font-size:15px;line-height:1.65}
  .market-intro-risk{max-width:335px;margin-top:13px;font-size:10.5px;line-height:1.55}
  .market-intro-cta{margin-top:21px;min-height:49px;font-size:13px;padding:12px 27px}
  .market-intro-media{margin-top:16px}
  .market-intro .market-film{width:100%;max-width:100%;aspect-ratio:1254/556}
- .market-intro-note{max-width:330px;margin-top:20px;font-size:10px;line-height:1.55}
 }
 @media(max-width:360px){
  .market-intro h2{font-size:39px}
