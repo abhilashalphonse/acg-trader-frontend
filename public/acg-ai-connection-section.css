@@ -37,7 +37,7 @@
 }
 .ai-connect-stage:focus-visible{outline:3px solid #a4beff;outline-offset:-3px}
 .ai-connect-stage .ai-connect-video{
-  display:block;width:100%;height:auto;aspect-ratio:16/9;
+  display:block;width:100%;height:auto;aspect-ratio:auto 16/9;
   object-fit:contain;object-position:center;background:#000;
   border:0;pointer-events:none;
 }
