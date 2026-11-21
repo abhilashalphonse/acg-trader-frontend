@@ -1,0 +1,39 @@
+/* Progressive mobile media playback: only visible when autoplay is unavailable.
+   Provide an explicit in-page user gesture for iOS Low Power Mode, Data Saver,
+   reduced-motion users who opt in, and browsers that reject muted autoplay. */
+.film-playback-host{position:relative}
+.film-tap-to-play,.acg-hero-tap-to-play{
+  -webkit-appearance:none;appearance:none;
+  border:1px solid rgba(225,229,236,.65);border-radius:999px;
+  background:rgba(17,19,23,.9);color:#fff;
+  font-family:inherit;font-size:13px;font-weight:620;line-height:1.3;
+  min-height:44px;padding:11px 20px;
+  box-shadow:0 5px 24px rgba(0,0,0,.3);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  cursor:pointer;touch-action:manipulation;
+}
+.film-tap-to-play{
+  position:absolute;z-index:12;bottom:18px;left:50%;transform:translateX(-50%);
+  max-width:calc(100% - 24px);white-space:nowrap;
+}
+.film-tap-to-play[hidden],.acg-hero-tap-to-play[hidden]{display:none!important}
+.film-tap-to-play:hover,.acg-hero-tap-to-play:hover{background:rgba(38,42,49,.95);border-color:#fff}
+.film-tap-to-play:focus-visible,.acg-hero-tap-to-play:focus-visible{
+  outline:3px solid #a8c2ff;outline-offset:4px
+}
+.film-tap-to-play:disabled{cursor:default;opacity:.8}
+.acg-hero-tap-to-play{
+  display:inline-flex;align-items:center;justify-content:center;
+  margin:22px auto 0;position:relative;z-index:3;pointer-events:auto
+}
+@media(max-width:600px){
+  .film-tap-to-play{bottom:12px;font-size:12px;padding:10px 17px}
+  .acg-hero-tap-to-play{margin-top:18px;font-size:12px}
+}
+/* The user may intentionally opt in even when OS-level Reduced Motion is set.
+   Never animate automatically under that preference. */
+@media(prefers-reduced-motion:reduce){
+  .acg-cinema-video[data-user-activated="true"]{display:block!important}
+  .terminal-story-frame .terminal-story-video[data-user-activated="true"]{display:block!important}
+  .ai-section .ai-section-video[data-user-activated="true"]{display:block!important}
+}
