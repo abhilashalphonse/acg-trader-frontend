@@ -43,6 +43,11 @@ try {
     'Three-dot Ticket information button is replaced in audit mode');
   await page.getByRole('button', { name: 'Pop out mini terminal' }).click();
   await page.waitForFunction(() => documentPictureInPicture.window?.document.querySelector('.acg-mini-tabs'));
+  // Clicking the header again must focus the SAME native window.
+  await page.evaluate(() => { window.__miniFirstPiP = documentPictureInPicture.window; });
+  await page.getByRole('button', { name: 'Pop out mini terminal' }).click();
+  check(await page.evaluate(() => documentPictureInPicture.window === window.__miniFirstPiP),
+    'Repeated header click focuses the existing native mini terminal');
   const pip = expression => page.evaluate(expression);
   check(await pip(() => documentPictureInPicture.window.document.querySelector('.acg-mini-terminal')?.dataset.windowMode==='Always on top'), 'Native always-on-top window opens');
   check(await pip(()=>{
@@ -137,6 +142,10 @@ try {
   const popup = await popupPromise;
   popup.on('pageerror', error => errors.push(error.message));
   await popup.getByRole('navigation', { name: 'Mini terminal sections' }).waitFor();
+  const beforeFocus = fallback.context().pages().length;
+  await fallback.getByRole('button', { name: 'Pop out mini terminal' }).click();
+  check(fallback.context().pages().length === beforeFocus,
+    'Repeated header click focuses the same regular popup, not a duplicate');
   // Chrome headless often ignores native Document PiP size requests; force a real
   // 270x560 fallback viewport makes slim density assertions meaningful.
   await popup.setViewportSize({ width: 270, height: 560 });
