@@ -8,17 +8,17 @@
 .market-intro-cta{display:inline-flex;justify-content:center;align-items:center;margin-top:24px;min-height:54px;padding:14px 30px;background:#f8f8fa;color:#111114;border-radius:999px;border:1px solid #f8f8fa;text-decoration:none;font-size:15px;font-weight:690;line-height:1.4;letter-spacing:-.015em;transition:background-color .16s,color .16s}
 .market-intro-cta:hover{background:#e6e6ea;color:#08080a}
 .market-intro-cta:focus-visible{outline:3px solid #a1bbff;outline-offset:4px}
-/* The source film includes a black introductory matte. Reduce the external gap and hide only the unused top matte, preserving native video scale and the bottom of the artwork. */
-.market-intro-media{margin:18px auto 0;width:100%;display:flex;justify-content:center;align-items:center}
-.market-intro .market-film{width:min(1140px,100%);max-width:1140px;aspect-ratio:1254/556;min-height:0;position:relative;margin:0;overflow:hidden;background:#000;border:0;border-radius:0;box-shadow:none}
-.market-intro .market-film .film-video{position:absolute;left:0;bottom:0;width:100%;height:auto;aspect-ratio:1254/674;object-fit:contain;object-position:center;background:#000}
+/* Display the complete source frame: no clipped matte or artwork at any viewport. */
+.market-intro-media{margin:8px auto 0;width:100%;display:flex;justify-content:center;align-items:center}
+.market-intro .market-film{width:min(1140px,100%);max-width:1140px;aspect-ratio:1254/674;min-height:0;position:relative;margin:0;overflow:hidden;background:#000;border:0;border-radius:0;box-shadow:none}
+.market-intro .market-film .film-video{display:block;position:static;width:100%;height:100%;aspect-ratio:1254/674;object-fit:contain;object-position:center;background:#000}
 @media(max-width:900px){
  .market-intro{padding:88px 0 0}
  .market-intro h2{font-size:clamp(47px,6.4vw,66px)}
  .market-intro-description{max-width:700px;font-size:17px;margin-top:35px}
  .market-intro-risk{max-width:650px;margin-top:13px;font-size:11.5px}
  .market-intro-cta{margin-top:22px}
- .market-intro-media{margin-top:18px}
+ .market-intro-media{margin-top:8px}
 }
 @media(max-width:600px){
  .market-intro{padding:73px 0 0}
@@ -26,8 +26,8 @@
  .market-intro-description{max-width:360px;margin-top:27px;font-size:15px;line-height:1.65}
  .market-intro-risk{max-width:335px;margin-top:13px;font-size:10.5px;line-height:1.55}
  .market-intro-cta{margin-top:21px;min-height:49px;font-size:13px;padding:12px 27px}
- .market-intro-media{margin-top:16px}
- .market-intro .market-film{width:100%;max-width:100%;aspect-ratio:1254/556}
+ .market-intro-media{margin-top:8px}
+ .market-intro .market-film{width:100%;max-width:100%;aspect-ratio:1254/674}
 }
 @media(max-width:360px){
  .market-intro h2{font-size:39px}
