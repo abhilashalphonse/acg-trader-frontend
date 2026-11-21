@@ -638,7 +638,7 @@ try {
           assert.ok(q.movers.width>=q.viewport-55 &&
             q.movers.left>=-2 && q.movers.right<=q.viewport+2,
             'Market Movers stage should use available width: '+JSON.stringify(q.movers));
-          assert.ok(q.moversZoom!=='none','Market Movers visual needs meaningful zoom');
+          assert.equal(q.moversZoom,'none','Market Movers is now cropped in its mobile source, not scaled with CSS');
           assert.ok(q.aiHeight<=900,
             'AI narrative must not leave another oversized blank section: '+q.aiHeight);
           assert.ok(q.access.bottom<=q.faqTop+3,'account access flows directly into FAQs');
