@@ -419,6 +419,9 @@ export default function DesktopTerminal({
   const shellRef = useRef(null);
   const chartWorkspaceRef = useRef(null);
   const floatingOrderRef = useRef(null);
+  const miniTerminalRef = useRef(null);
+  const [miniTerminalReady, setMiniTerminalReady] = useState(false);
+  const openMiniTerminal = useCallback(() => miniTerminalRef.current?.open(), []);
   const searchRef = useRef(null);
   const [activeNav, setActiveNav] = useState('trade');
   const [notice, setNotice] = useState('');
@@ -1533,6 +1536,8 @@ export default function DesktopTerminal({
                           onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} onNotice={setNotice}
                           executionCommandPending={executionCommandPending}
                           onOpenMarkets={() => openMarketPanel('markets', true)}
+                          onOpenMiniTerminal={DOCK_AUDIT_ENABLED ? openMiniTerminal : undefined}
+                          miniTerminalReady={miniTerminalReady}
                           onCloseTicket={() => setDesktopLayout(current => ({ ...current, sidebarCollapsed: true }))}
                         />
                       )) : (
@@ -1583,9 +1588,10 @@ export default function DesktopTerminal({
               <ChartNoAxesCombined size={17}/>
             </button>
             {DOCK_AUDIT_ENABLED && (
-              <React.Suspense fallback={<span className="mb-1 block size-9" aria-hidden="true" />}>
+              <React.Suspense fallback={null}>
                   <DetachedMiniTerminal
-                    visible={true}
+                    ref={miniTerminalRef}
+                    onReadyChange={setMiniTerminalReady}
                     account={account} market={market} markets={markets}
                     positions={positions} pendingOrders={pendingOrders}
                     positionsLoading={positionsLoading} positionsError={positionsError} onRetryPositions={onRetryPositions}
