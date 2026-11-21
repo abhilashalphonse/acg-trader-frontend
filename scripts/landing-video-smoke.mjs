@@ -665,6 +665,42 @@ try {
     await normal.waitForFunction(() => document.querySelector('#acg-three-markets-film')?.readyState >= 2);
     assert.equal(await normal.locator('[data-video-control], .film-media-control').count(), 0);
     await normal.close();
+
+    // ACG's comparison screenshot was captured on a ~354px phone. Guard that
+    // narrow viewport (plus its neighbors), not just the standard 390px view.
+    for (const width of [320, 354, 430]) {
+      const narrow = await browser.newPage({
+        viewport:{width,height:780},reducedMotion:'no-preference'
+      });
+      try {
+        await narrow.goto(base+'/acg-landing-v6.html',{waitUntil:'domcontentloaded'});
+        const stage = narrow.locator('#market-intro');
+        await stage.scrollIntoViewIfNeeded();
+        const q = await stage.evaluate(el => {
+          const frame = el.querySelector('.market-film').getBoundingClientRect();
+          const heading = el.querySelector('h2').getBoundingClientRect();
+          const button = el.querySelector('.market-intro-cta').getBoundingClientRect();
+          return {
+            viewport: innerWidth, overflow:document.documentElement.scrollWidth > innerWidth+2,
+            frameWidth:frame.width,frameHeight:frame.height,
+            headingLeft:heading.left,buttonLeft:button.left,
+            objectFit:getComputedStyle(el.querySelector('video')).objectFit,
+            filmGap:frame.top-button.bottom
+          };
+        });
+        assert.ok(!q.overflow && Math.abs(q.frameWidth-width)<2,
+          'no horizontal overflow and full-bleed film at '+width+': '+JSON.stringify(q));
+        assert.ok(q.frameHeight >= width*1.12,
+          'larger immersive film at '+width+': '+JSON.stringify(q));
+        assert.ok(Math.abs(q.headingLeft-q.buttonLeft)<3 && q.objectFit==='cover',
+          'editorial alignment and cinematic crop at '+width+': '+JSON.stringify(q));
+        assert.ok(q.filmGap>=13 && q.filmGap<=27,
+          'tight CTA-to-film rhythm at '+width+': '+JSON.stringify(q));
+        if (width===354) await stage.screenshot({path:'artifacts/market-intro-354px-final-scale.png'});
+      } finally {
+        await narrow.close();
+      }
+    }
     await reduced.close();
   } finally {
     await browser.close();
