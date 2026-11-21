@@ -10,7 +10,7 @@ import { normalizeProtectionPrice } from '../../../utils/tradingCommandNormaliza
 // Runs behind desktop V4 or the separately opted-in mobile audit gate. Financial state is provided by
 // the existing store; drafts exist locally and never optimistically mutate it.
 export default function V4FullTerminalOrders({
-  account, symbol, instrument, positions = [], pendingOrders = [],
+  account, symbol, instrument, positions = [], pendingOrders = [], directPendingCancel = false,
   mobile = false, onCheckStatus, onBreakEven, onSetTrailing, mobileTradeSelection, onMobileManagementChange, managementDisabled = false,
   coordinateApi, height, positionProtectionDraft, pendingOrderDraft = null,
   onPendingOrderDraftChange, onCancelPendingOrderDraft, isNewOrderPlanning = false,
@@ -494,7 +494,8 @@ export default function V4FullTerminalOrders({
 
   return <>
     {!mobile && renderPositionEntries?.(chartEditActions, beginProtection)}
-    <V4ChartOrderLayer mobile={mobile} selectedOwner={mobileOwner} accountId={accountId} symbol={symbol}
+    <V4ChartOrderLayer mobile={mobile} directPendingCancel={!mobile && directPendingCancel}
+      selectedOwner={mobileOwner} accountId={accountId} symbol={symbol}
       positions={positions} pendingOrders={pendingOrders}
       coordinateApi={coordinateApi} height={height}
       formatPrice={value => formatInstrumentPrice(value, instrument)}
