@@ -9,67 +9,34 @@
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const saveData = () => navigator.connection?.saveData === true;
   const supportsObserver = typeof IntersectionObserver === 'function';
+  // Non-interactive supporting films share one established playback policy:
+  // muted loop when visible, pause offscreen, and no motion when reduced/data-saving.
+  // The one-time hero reveal has its own explicitly approved Replay control below.
   const states = [...document.querySelectorAll('video.film-video')].map(video => ({
     video,
-    button: document.querySelector('[data-video-control="' + video.id + '"]'),
-    visible: false,
-    userPaused: false,
-    manualPlay: false
+    visible: false
   }));
 
-  function label(state) {
-    const playing = !state.video.paused;
-    const name = state.video.id.includes('shield') ? 'ACG Shield' : 'Three Markets';
-    if (!state.button) return;
-    state.button.textContent = playing ? 'Pause' : 'Play';
-    state.button.setAttribute('aria-label', (playing ? 'Pause ' : 'Play ') + name + ' animation');
-  }
-
-  function pause(state) {
-    if (!state.video.paused) state.video.pause();
-    label(state);
-  }
-
   function syncPlayback(state) {
-    if (document.hidden || !state.visible || state.userPaused) {
-      pause(state);
+    const { video } = state;
+    if (document.hidden || !state.visible || reduceMotion.matches || saveData()) {
+      video.pause();
       return;
     }
-    if ((reduceMotion.matches || saveData()) && !state.manualPlay) {
-      pause(state);
-      return;
-    }
-    const playback = state.video.play();
+    const playback = video.play();
     if (playback && typeof playback.catch === 'function') {
-      playback.catch(() => { pause(state); });
+      playback.catch(() => video.pause());
     }
-    label(state);
   }
 
   for (const state of states) {
-    state.video.muted = true;
-    state.video.playsInline = true;
-    state.video.removeAttribute('autoplay');
-    state.video.controls = false;
-    state.video.preload = 'metadata';
-    if (state.button) {
-      state.button.hidden = false;
-      state.button.addEventListener('click', () => {
-        if (state.video.paused) {
-          state.userPaused = false;
-          state.manualPlay = true;
-          state.visible = true;
-          syncPlayback(state);
-        } else {
-          state.userPaused = true;
-          state.manualPlay = false;
-          pause(state);
-        }
-      });
-    }
-    state.video.addEventListener('play', () => label(state));
-    state.video.addEventListener('pause', () => label(state));
-    label(state);
+    const { video } = state;
+    video.muted = true;
+    video.playsInline = true;
+    video.removeAttribute('controls');
+    video.removeAttribute('autoplay');
+    video.controls = false;
+    video.preload = 'metadata';
   }
 
   if (supportsObserver) {
@@ -78,14 +45,13 @@
         const state = states.find(item => item.video === entry.target);
         if (!state) continue;
         state.visible = entry.isIntersecting;
-        if (!state.visible) state.manualPlay = false;
         syncPlayback(state);
       }
     }, { threshold: 0.2 });
     states.forEach(state => visibility.observe(state.video));
   } else {
-    // No invisible background playback in browsers without observers.
-    states.forEach(state => { state.video.controls = state.video.id !== 'acg-three-markets-film'; if (state.button) state.button.hidden = true; });
+    // Without IntersectionObserver, posters remain visible and clips stay paused.
+    states.forEach(state => state.video.pause());
   }
 
   const revealTargets = [...document.querySelectorAll('[data-film-reveal]')];
@@ -106,11 +72,11 @@
       document.documentElement.classList.remove('motion-ready');
       revealTargets.forEach(item => item.classList.add('in-view'));
     }
-    states.forEach(state => { state.manualPlay = false; syncPlayback(state); });
+    states.forEach(syncPlayback);
   });
 
   document.addEventListener('visibilitychange', () => {
-    states.forEach(state => syncPlayback(state));
+    states.forEach(syncPlayback);
   });
   // One-time ACG Trader prism reveal. The source files end at the user-approved
   // 2.04 s frame; show a matching still once playback ends or fails.
