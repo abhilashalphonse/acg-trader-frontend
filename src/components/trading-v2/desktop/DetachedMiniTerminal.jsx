@@ -254,7 +254,7 @@ export default function DetachedMiniTerminal({
                   : rows.length ? <div className="acg-mini-rows">{rows.map(renderRow)}</div>
                   : <div className="acg-mini-empty" role="status">
                     <strong>{tab==='positions'?'No open positions':'No pending orders'}</strong>
-                  </div>
+                  </div>}
           </>}
         </main>
 
