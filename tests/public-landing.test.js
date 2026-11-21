@@ -85,7 +85,7 @@ test('public homepage uses V4 design language and current production capability 
   for (const id of ['acg-three-markets-film','acg-shield-film']) {
     const match = html.match(new RegExp('<video id="' + id + '"[^>]*>'));
     assert.ok(match, id);
-    assert.doesNotMatch(match[0], /\\bcontrols\\b/, id + ' should not show a media control');
+    assert.doesNotMatch(match[0], /\bcontrols\b/, id + ' should not show a media control');
   }
   assert.match(html, /id="acg-hero-replay"/, 'Keep the explicitly approved hero Replay control');
   assert.doesNotMatch(html, /acg-motion-panorama|acg-motion-emblem|film-experience|hero-ambient-video/);
