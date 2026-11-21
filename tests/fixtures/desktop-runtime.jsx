@@ -28,7 +28,7 @@ const props = {
   timeframe:'15m',chartMode:'candles',selectedTool:'cursor',
   lots:0.01,sizingMode:'lots',riskPercent:0.5,orderType:'market',
   exposureAllowed:false,exposureBlockReason:'Fixture: commands always disabled',
-  executionCommandPending:false,readOnly:true,
+  executionCommandPending:false,readOnly:false,
   onManualOrder:()=>{throw new Error('Test fixture must never place trades');},
   onExecutePlan:()=>{throw new Error('Test fixture must never place trades');},
   onClosePosition:()=>{throw new Error('Test fixture must never close trades');}
