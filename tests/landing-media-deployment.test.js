@@ -8,15 +8,14 @@ const cleanSource = 'https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/
 
 test('remaining supporting videos and posters are valid local media', () => {
   const clips = [
-    { file: 'acg-three-markets.mp4', maxBytes: 2000000 },
-    { file: 'acg-shield.mp4', maxBytes: 150000 }
+    { file: 'acg-three-markets.mp4', maxBytes: 2000000 }
   ];
   for (const clip of clips) {
     const data = readFileSync(src('public/media/' + clip.file));
     assert.equal(data.subarray(4, 8).toString('ascii'), 'ftyp', clip.file);
     assert.ok(data.length > 10000 && data.length < clip.maxBytes, clip.file);
   }
-  for (const file of ['acg-three-markets-poster.jpg', 'acg-shield-poster.jpg']) {
+  for (const file of ['acg-three-markets-poster.jpg']) {
     const data = readFileSync(src('public/media/' + file));
     assert.equal(data.subarray(0, 2).toString('hex'), 'ffd8', file);
     assert.ok(statSync(src('public/media/' + file)).size > 10000);
@@ -29,7 +28,7 @@ test('the hero uses one public logo-free clip and deletes obsolete Railway media
   const js = read('public/acg-landing-motion.js');
   assert.ok(html.includes('src="' + cleanSource + '"'));
   assert.ok(html.includes('id="acg-hero-reveal"'));
-  assert.equal((html.match(/<video/g) || []).length, 4);
+  assert.equal((html.match(/<video/g) || []).length, 3);
   assert.ok(css.includes("url('/media/acg-prism-static.svg')"));
   assert.ok(css.includes('object-fit:cover'), 'art-directed crop must preserve geometry');
   assert.ok(css.includes('max-height:600px'), 'short landscape screens must be handled');
@@ -59,9 +58,9 @@ test('the hero uses one public logo-free clip and deletes obsolete Railway media
 test('the supporting films stay licensed-account aware and have no extra playback controls', () => {
   const html = read('public/acg-landing-v6.html');
   const js = read('public/acg-landing-motion.js');
-  assert.ok(html.includes('class="shield-story" id="experience"'));
+  assert.ok(html.includes('class="mobile-story" id="experience"'));
   assert.ok(html.includes('id="acg-three-markets-film"'));
-  assert.ok(html.includes('id="acg-shield-film"'));
+  assert.ok(!html.includes('id="acg-shield-film"'));
   assert.ok(html.includes('id="ai-prism-film"'));
   assert.ok(html.includes('src="https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20Prism%20Background.mp4"'));
   assert.ok(html.includes('href="/acg-ai-section.css"'));
@@ -69,11 +68,26 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   assert.ok(aiCss.includes('prefers-reduced-motion:reduce'));
   assert.ok(aiCss.includes('width:min(520px,100%)'));
   assert.ok(!html.includes('Concept preview') && !html.includes('ACG AI'));
-  for (const media of ['acg-three-markets.mp4','acg-shield.mp4']) {
+  const phone = readFileSync(src('public/media/acg-trader-mobile-artwork.webp'));
+  assert.equal(phone.subarray(0,4).toString('ascii'), 'RIFF');
+  assert.equal(phone.subarray(8,12).toString('ascii'), 'WEBP');
+  assert.ok(phone.length > 10000 && phone.length < 120000);
+  for (const obsolete of ['acg-shield.mp4','acg-shield-poster.jpg']) {
+    assert.equal(existsSync(src('public/media/' + obsolete)), false, obsolete + ' should not ship');
+  }
+  assert.ok(html.includes('src="/media/acg-trader-mobile-artwork.webp"'));
+  assert.ok(html.includes('href="/acg-mobile-section.css"'));
+  assert.ok(html.includes('Your trading desk.<br/>In your pocket.'));
+  assert.ok(html.includes('Explore mobile trading'));
+  assert.ok(!html.includes('acg-shield.mp4'));
+  const mobileCss = read('public/acg-mobile-section.css');
+  assert.ok(mobileCss.includes('max-width:720px'));
+  assert.ok(mobileCss.includes('max-height:600px'));
+  for (const media of ['acg-three-markets.mp4']) {
     assert.ok(html.includes('/media/' + media));
   }
   assert.ok(html.includes('not indicate available instruments, supported integrations, partners or endorsements'));
-  assert.ok(html.includes('not a security certification'));
+  assert.ok(html.includes('Illustrative mobile interface. Trading features and access depend on your account and device.'));
   assert.ok(html.includes('Simulated trading for authorized accounts'));
   assert.ok(html.includes('href="/?acg_login=1"'));
   assert.ok(html.includes('href="/?acg_connect_prop=1"'));
