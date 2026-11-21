@@ -47,10 +47,18 @@
 .acg-faq-answer a{color:#fff;text-decoration:underline;text-underline-offset:3px}
 .acg-faq-answer a:hover{color:#cbd7ff}
 .acg-faq-answer a:focus-visible{outline:2px solid #c7d6ff;outline-offset:4px}
+/* Small-print terms and risk notice — secondary to the FAQ, accessible on mobile. */
+.acg-faq-disclaimer{margin:72px 0 0;max-width:1000px}
+.acg-faq-disclaimer p{margin:0;color:#a3a8b0;font-size:12px;line-height:1.75;font-weight:400;letter-spacing:0}
+.acg-faq-disclaimer strong{color:#d0d3d8;font-weight:620}
+.acg-faq-disclaimer a{color:#e0e3e9;text-decoration:underline;text-underline-offset:3px}
+.acg-faq-disclaimer a:hover{color:#fff}
+.acg-faq-disclaimer a:focus-visible{outline:2px solid #c7d6ff;outline-offset:4px}
 @media(max-width:800px){
   #acg-faq.acg-faq{padding:88px 0 100px}
   .acg-faq-inner{width:calc(100% - 48px)}
   .acg-faq-items{margin-top:51px}
+  .acg-faq-disclaimer{margin-top:58px}
   .acg-faq-item summary{min-height:92px;padding:22px 2px;gap:18px;font-size:20px}
 }
 @media(max-width:480px){
@@ -59,6 +67,8 @@
   .acg-faq-eyebrow{font-size:15px}
   .acg-faq h2{font-size:clamp(36px,9vw,44px);margin-top:13px}
   .acg-faq-items{margin-top:40px}
+  .acg-faq-disclaimer{margin-top:48px}
+  .acg-faq-disclaimer p{font-size:12px;line-height:1.75}
   .acg-faq-item summary{min-height:80px;padding:20px 1px;gap:14px;font-size:18px}
   .acg-faq-toggle{width:25px;height:25px}
   .acg-faq-answer{padding:0 26px 27px 1px}
