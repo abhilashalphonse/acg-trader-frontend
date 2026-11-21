@@ -419,6 +419,9 @@ export default function DesktopTerminal({
   const shellRef = useRef(null);
   const chartWorkspaceRef = useRef(null);
   const floatingOrderRef = useRef(null);
+  const miniTerminalRef = useRef(null);
+  const [miniTerminalReady, setMiniTerminalReady] = useState(false);
+  const openMiniTerminal = useCallback(() => miniTerminalRef.current?.open(), []);
   const searchRef = useRef(null);
   const [activeNav, setActiveNav] = useState('trade');
   const [notice, setNotice] = useState('');
@@ -1127,7 +1130,7 @@ export default function DesktopTerminal({
 
   return (
     <div ref={shellRef} className="acg-terminal acg-desktop-v3 relative flex h-dvh min-h-0 flex-col gap-1 overflow-hidden bg-black p-1 text-[#E6EDF3]">
-      {notice && <div className="acg-motion-notice absolute right-3 top-[66px] z-[120] flex max-w-[390px] items-center gap-3 rounded-md border border-white/[0.06] bg-[#101010]/95 px-3 py-2.5 text-[10px] font-semibold text-[#E6EDF3] shadow-[0_16px_48px_rgba(0,0,0,.45)]"><span>{notice}</span><button type="button" onClick={() => setNotice('')} className="grid size-6 place-items-center rounded-md text-[#8094a7]"><X size={13}/></button></div>}
+      {notice && <div className="acg-motion-notice pointer-events-none absolute right-3 top-[66px] z-[120] flex max-w-[390px] items-center gap-3 rounded-md border border-white/[0.06] bg-[#101010]/95 px-3 py-2.5 text-[10px] font-semibold text-[#E6EDF3] shadow-[0_16px_48px_rgba(0,0,0,.45)]"><span>{notice}</span><button type="button" onClick={() => setNotice('')} className="pointer-events-auto grid size-6 place-items-center rounded-md text-[#8094a7]"><X size={13}/></button></div>}
 
 
       <header data-v4-header={V4_DESKTOP_EXECUTION_ENABLED ? 'true' : undefined}
@@ -1533,6 +1536,8 @@ export default function DesktopTerminal({
                           onManualOrder={submitOneClick} onTradePlanChange={onTradePlanChange} onNotice={setNotice}
                           executionCommandPending={executionCommandPending}
                           onOpenMarkets={() => openMarketPanel('markets', true)}
+                          onOpenMiniTerminal={DOCK_AUDIT_ENABLED ? openMiniTerminal : undefined}
+                          miniTerminalReady={miniTerminalReady}
                           onCloseTicket={() => setDesktopLayout(current => ({ ...current, sidebarCollapsed: true }))}
                         />
                       )) : (
@@ -1583,9 +1588,10 @@ export default function DesktopTerminal({
               <ChartNoAxesCombined size={17}/>
             </button>
             {DOCK_AUDIT_ENABLED && (
-              <React.Suspense fallback={<span className="mb-1 block size-9" aria-hidden="true" />}>
+              <React.Suspense fallback={null}>
                   <DetachedMiniTerminal
-                    visible={true}
+                    ref={miniTerminalRef}
+                    onReadyChange={setMiniTerminalReady}
                     account={account} market={market} markets={markets}
                     positions={positions} pendingOrders={pendingOrders}
                     positionsLoading={positionsLoading} positionsError={positionsError} onRetryPositions={onRetryPositions}

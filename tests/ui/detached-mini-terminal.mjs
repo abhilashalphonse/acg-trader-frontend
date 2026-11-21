@@ -16,6 +16,9 @@ async function setup(fallback = false) {
     if (fallback) Object.defineProperty(window, 'documentPictureInPicture', { value: undefined });
   }, { fallback });
   await page.goto(base);
+  // The right-side Trade button opens the execution panel containing the
+  // only mini-terminal launcher. The rail no longer has a pop-out button.
+  await page.getByRole('button', { name: 'Trade', exact: true }).click();
   await page.getByRole('button', { name: 'Pop out mini terminal' }).waitFor();
   return page;
 }
@@ -30,10 +33,21 @@ try {
   check(await page.evaluate(() => Boolean(window.documentPictureInPicture)), 'Chrome supports native document PiP');
   check(await page.locator('.acg-floating-order').count()===0,'Audit never renders in-chart floating trade widget');
   check(await page.locator('.acg-mini-attached').count()===0,'Audit does not mount an attached mini ticket');
-  check(await page.locator('[data-acg-mini-launcher=true]').count()===1,'One icon-only launcher in desktop rail');
-  check((await page.locator('[data-acg-mini-launcher=true]').innerText()).trim()==='','Launcher has no text label');
+  check(await page.locator('[data-acg-mini-header-launcher=true]').count()===1,
+    'Exactly one popup launcher is embedded in the trade execution header');
+  check(await page.locator('[data-acg-mini-rail-launcher],[data-acg-mini-launcher=true],.acg-mini-rail-launcher').count()===0,
+    'Right-hand toolbar has no separate popup button');
+  check(await page.locator('.v4-head-actions button').count()===2,
+    'Popup button is immediately next to Close trade ticket');
+  check(await page.getByRole('button',{name:'Ticket information'}).count()===0,
+    'Three-dot Ticket information button is replaced in audit mode');
   await page.getByRole('button', { name: 'Pop out mini terminal' }).click();
   await page.waitForFunction(() => documentPictureInPicture.window?.document.querySelector('.acg-mini-tabs'));
+  // Clicking the header again must focus the SAME native window.
+  await page.evaluate(() => { window.__miniFirstPiP = documentPictureInPicture.window; });
+  await page.getByRole('button', { name: 'Pop out mini terminal' }).click();
+  check(await page.evaluate(() => documentPictureInPicture.window === window.__miniFirstPiP),
+    'Repeated header click focuses the existing native mini terminal');
   const pip = expression => page.evaluate(expression);
   check(await pip(() => documentPictureInPicture.window.document.querySelector('.acg-mini-terminal')?.dataset.windowMode==='Always on top'), 'Native always-on-top window opens');
   check(await pip(()=>{
@@ -111,10 +125,11 @@ try {
   ]));
   await page.waitForFunction(()=>documentPictureInPicture.window?.document.querySelectorAll('.acg-mini-row').length===2);
   await pip(() => documentPictureInPicture.window.document.querySelector('[aria-label="Close mini terminal"]').click());
+  await page.locator('[data-acg-mini-window-state="closed"]').waitFor({ state: 'attached' });
   await page.getByRole('button', { name: 'Pop out mini terminal' }).waitFor();
   check(await page.locator('.acg-floating-order').count() === 0,
     'Closing popup never recreates the old floating widget');
-  check(await page.locator('[data-acg-mini-launcher=true]').count()===1,'Rail launcher remains available');
+  check(await page.locator('[data-acg-mini-header-launcher=true]').count()===1,'Header launcher remains available');
   await page.getByRole('button', { name: 'Pop out mini terminal' }).click();
   await page.waitForFunction(() => documentPictureInPicture.window?.document.querySelector('.acg-mini-tabs'));
   await pip(() => documentPictureInPicture.window.close());
@@ -234,8 +249,14 @@ try {
   check(await popup.locator('[data-acg-mini-simple-ticket=true]').count() === 1,
     'Quick-order widget remains mounted while opener is active');
   await popup.close();
+  await fallback.locator('[data-acg-mini-window-state="closed"]').waitFor({ state: 'attached' });
   await fallback.getByRole('button', { name: 'Pop out mini terminal' }).waitFor();
   check(await fallback.evaluate(() => window.v4PositionsQA.commands.length === 0), 'Window lifecycle and navigation never submit a trade');
+  // The notice banner may overlap the right header; its background must
+  // never intercept clicks on the popup button below it.
+  const noticeStyle = await fallback.locator('.acg-motion-notice').evaluate(
+    element => getComputedStyle(element).pointerEvents);
+  check(noticeStyle === 'none', 'Trade notice cannot intercept popup-header clicks');
   const closePopupPromise = fallback.waitForEvent('popup');
   await fallback.getByRole('button', { name: 'Pop out mini terminal' }).click();
   const closePopup = await closePopupPromise;
@@ -249,6 +270,7 @@ try {
   await closePopup.getByRole('button', { name: 'Positions (1)', exact: true }).waitFor();
   check(await fallback.evaluate(() => window.v4PositionsQA.positions.length === 1), 'Confirmed position change is reflected in both windows');
   await closePopup.close();
+  await fallback.locator('[data-acg-mini-window-state="closed"]').waitFor({ state: 'attached' });
   await fallback.getByRole('button', { name: 'Pop out mini terminal' }).waitFor();
   // Simulate popup blocking without opening an external site.
   await fallback.evaluate(() => { window.open = () => null; });
@@ -256,8 +278,8 @@ try {
   await fallback.getByRole('alert').filter({ hasText: 'Allow pop-ups' }).waitFor();
   check(await fallback.locator('.acg-floating-order').count()===0,
     'Blocked popup must not recreate the in-chart widget');
-  check(await fallback.locator('[data-acg-mini-launcher=true]').isVisible(),
-    'Blocked popup leaves rail launcher available to retry');
+  check(await fallback.locator('[data-acg-mini-header-launcher=true]').isVisible(),
+    'Blocked popup leaves header launcher available to retry');
   await fallback.close();
   const owner = await setup(true);
   const ownerPopupPromise = owner.waitForEvent('popup');
