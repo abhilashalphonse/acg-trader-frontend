@@ -24,8 +24,8 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /id="acg-hero-reveal"/);
   assert.match(html, /href="\/acg-cinema-hero\.css"/);
   assert.match(html, /\.desktop-nav\{border:0;background:none/);
-  assert.match(html, /a7112847-cd7c-4d7b-9f91-540af4da8234\\.mp4/);
-  assert.doesNotMatch(html, /acg-hero-(desktop|mobile)(-freeze)?\\.(mp4|jpg)/);
+  assert.ok(html.includes('a7112847-cd7c-4d7b-9f91-540af4da8234.mp4'));
+  assert.doesNotMatch(html, /acg-hero-(desktop|mobile)/);
   assert.match(html, /#features\{background:#f5f5f6/);
   assert.match(html, /\.feature\{background:#fff;border:1px solid #ececef/);
   assert.match(html, /class="acg-cinema-actions"/);
@@ -91,8 +91,8 @@ test('public homepage uses V4 design language and current production capability 
   assert.doesNotMatch(html, /id="acg-hero-replay"/, 'No manual replay controls in the clean prism hero');
   assert.match(heroCss, /object-fit:cover/);
   assert.match(heroCss, /max-height:600px/);
-  assert.match(heroCss, /min-aspect-ratio:2\\/1/);
-  assert.match(heroCss, /min-height:max\\(620px,100svh\\)/);
+  assert.ok(heroCss.includes('min-aspect-ratio:2/1'));
+  assert.ok(heroCss.includes('min-height:max(620px,100svh)'));
   assert.doesNotMatch(html, /acg-motion-panorama|acg-motion-emblem|film-experience|hero-ambient-video/);
   assert.match(html, /prefers-reduced-motion:reduce/);
   assert.match(html, /<script src="\/acg-landing-motion\.js" defer><\/script>/);
