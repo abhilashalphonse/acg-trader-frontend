@@ -24,7 +24,7 @@
    occupies the safe content gutter; the video becomes a cinematic full-bleed
    stage. Cropping is deliberate (object-fit:cover), never stretching. */
 @media(max-width:600px){
- .market-intro{padding:52px 0 0}
+ .market-intro{padding:40px 0 0}
  .market-intro-inner{align-items:stretch;text-align:left}
  .market-intro h2{
    width:min(350px,100%);max-width:none;
@@ -32,41 +32,41 @@
    letter-spacing:-.061em;text-wrap:balance;
  }
  .market-intro-description{
-   max-width:345px;margin:24px 0 0;
+   max-width:345px;margin:21px 0 0;
    font-size:15.5px;line-height:1.53;
    font-weight:480;letter-spacing:-.018em;
  }
  .market-intro-risk{
-   max-width:335px;margin:12px 0 0;
+   max-width:335px;margin:9px 0 0;
    font-size:11px;line-height:1.5;
  }
  .market-intro-cta{
-   align-self:flex-start;margin:23px 0 0;
+   align-self:flex-start;margin:20px 0 0;
    min-height:47px;padding:11px 24px;
    font-size:13px;
  }
  .market-intro-media{
    align-self:center;width:100vw;max-width:none;
-   margin:clamp(28px,8vw,40px) 0 0;
+   margin:clamp(14px,4.6vw,25px) 0 0;
    overflow:hidden;
  }
  .market-intro .market-film{
    width:100%;max-width:none;
-   height:clamp(360px,113vw,470px);
+   height:clamp(390px,124vw,500px);
    min-height:0;aspect-ratio:auto;
    overflow:hidden;
  }
  .market-intro .market-film .film-video{
    display:block;position:static;
    width:100%;height:100%;aspect-ratio:auto;
-   object-fit:cover;object-position:52% 50%;
+   object-fit:cover;object-position:56% 50%;
    background:#000;
  }
 }
 @media(max-width:360px){
  .market-intro h2{font-size:clamp(35px,10.4vw,38px)}
  .market-intro-description{font-size:15px}
- .market-intro .market-film{height:clamp(350px,116vw,418px)}
+ .market-intro .market-film{height:clamp(385px,127vw,465px)}
 }
 @media(prefers-reduced-motion:reduce){
  .market-intro-cta{transition:none}
