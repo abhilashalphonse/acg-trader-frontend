@@ -91,7 +91,18 @@ try {
       assert.deepEqual(values.videoTypes, ['video/mp4','video/mp4']);
       assert.ok(values.validSources);
       assert.ok(values.width <= values.viewportWidth + 3, viewport.label+' horizontal overflow: '+JSON.stringify(values));
-      assert.ok(values.filmHeight > 150);
+      assert.ok(values.filmHeight >= 125 && values.filmHeight <= 260, viewport.label+' compact video height: '+values.filmHeight);
+      const section = await page.evaluate(() => {
+        const intro = document.querySelector('#market-intro')?.getBoundingClientRect();
+        const film = document.querySelector('#market-intro .market-film')?.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        return { width: film?.width, intro: intro?.top, videoCenter: film ? film.left + film.width/2 : 0, viewportWidth };
+      });
+      assert.ok(section.width <= (viewport.label === 'desktop' ? 470 : 305), viewport.label+' small film width: '+JSON.stringify(section));
+      assert.ok(Math.abs(section.videoCenter - section.viewportWidth / 2) < 8, viewport.label+' video centered');
+      assert.equal(await page.locator('#market-intro .market-intro-cta[href="#markets"]').textContent(), 'Explore markets');
+      assert.equal(await page.locator('#market-intro #acg-three-markets-film').count(), 1);
+      assert.equal(await page.locator('.fact-strip').count(), 0);
       assert.deepEqual(errors, [], viewport.label+' errors');
       await page.screenshot({ path:'artifacts/landing-film-'+viewport.label+'-motion.png' });
       await page.evaluate(() => { document.documentElement.style.scrollBehavior='auto'; window.scrollTo(0,0); });
