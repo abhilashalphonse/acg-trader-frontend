@@ -30,11 +30,30 @@ createServer(async (req, res) => {
   const headers = {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
+    // HSTS is honored only over valid HTTPS. Do not include subdomains until
+    // every ACG hostname is independently confirmed TLS-ready.
+    'Strict-Transport-Security': 'max-age=31536000',
     'Referrer-Policy': 'no-referrer',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
     'Content-Security-Policy': "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; script-src-attr 'none'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; upgrade-insecure-requests"
   };
   for (const [key, value] of Object.entries(headers)) res.setHeader(key, value);
+  // Railway's public edge normally redirects HTTP to HTTPS. This is a second
+  // safeguard in case a request reaches Node with its original protocol.
+  // Only redirect the verified custom hostname; never trust an arbitrary
+  // Host header to construct a Location (open-redirect risk).
+  const hostname = String(req.headers.host || '').toLowerCase();
+  const forwardedProto = String(req.headers['x-forwarded-proto'] || '')
+    .split(',')[0].trim().toLowerCase();
+  if (hostname === 'acgtrader.com' && forwardedProto === 'http') {
+    const pathAndQuery = String(req.url || '/');
+    const safePath = pathAndQuery.startsWith('/') ? pathAndQuery : '/';
+    res.writeHead(308, {
+      Location: 'https://acgtrader.com' + safePath,
+      'Cache-Control': 'no-store'
+    });
+    return res.end();
+  }
   if (req.url === '/health' || req.url === '/health/live') {
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
     return res.end('ok');
