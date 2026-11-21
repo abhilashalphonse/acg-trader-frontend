@@ -31,7 +31,7 @@ test('all mobile cinematic stages use compact purposeful layouts without modifyi
   assert.ok(css.includes('aspect-ratio:1200/1428'));
   assert.ok(css.includes('object-fit:contain;transform:none'));
   assert.ok(css.includes('#ai-connections .ai-connect-stage{'));
-  assert.ok(css.includes('object-fit:cover'));
+  assert.ok(css.includes('object-fit:contain;object-position:center'));
   assert.ok(css.includes('#market-movers .market-movers-frame{'));
   assert.ok(css.includes('aspect-ratio:16/9'));
   assert.ok(css.includes('#experience .mobile-story-visual img{'));
