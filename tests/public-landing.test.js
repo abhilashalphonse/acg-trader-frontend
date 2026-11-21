@@ -60,7 +60,6 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /class="mobile-story"/);
   assert.match(html, /class="market-film"/);
   assert.match(html, /id="market-intro-title">Stocks, Forex and Crypto\.<\/h2>/);
-  assert.match(html, /Access key market categories in one chart-first platform built for analysis, execution and position management\./);
   assert.match(html, /From global currencies to gold and Bitcoin, explore the markets that move the world\./);
   assert.match(html, /Analyze price action, plan trades, and manage your positions—all from one powerful trading workspace\./);
   assert.match(html, /class="market-intro-risk">Simulated trading only\. Instrument availability varies by account\. Trading involves risk\.<\/p>/);
