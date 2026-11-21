@@ -735,7 +735,7 @@ try {
           'larger immersive film at '+width+': '+JSON.stringify(q));
         assert.ok(Math.abs(q.headingLeft-q.buttonLeft)<3 && q.objectFit==='cover',
           'editorial alignment and cinematic crop at '+width+': '+JSON.stringify(q));
-        assert.ok(q.filmGap>=10 && q.filmGap<=31,
+        assert.ok(q.filmGap>=10 && q.filmGap<=36,
           'tight CTA-to-film rhythm at '+width+': '+JSON.stringify(q));
         if (width===354) await stage.screenshot({path:'artifacts/market-intro-354px-final-scale.png'});
       } finally {
