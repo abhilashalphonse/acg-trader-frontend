@@ -378,7 +378,7 @@ try {
       await faq.screenshot({path:'artifacts/acg-faq-'+viewport.label+'.png'});
       // The footer now continues the FAQ's black editorial style without
       // repeating its full terms-and-risk paragraph.
-      const footer = page.locator('footer.footer#site-footer');
+      const footer = page.locator('footer.footer');
       assert.equal(await footer.count(), 1, 'single site footer');
       assert.equal(await footer.locator('.footer-brand-block').count(), 1);
       assert.equal(await footer.locator('.footer-nav').count(), 2);
