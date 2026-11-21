@@ -54,7 +54,7 @@ try {
     const d=documentPictureInPicture.window.document;
     return d.documentElement.scrollWidth<=d.documentElement.clientWidth+1;
   }), 'Native popup content does not overflow horizontally');
-  check(await pip(() => documentPictureInPicture.window.getComputedStyle(documentPictureInPicture.window.document.querySelector('.acg-mini-titlebar')).display === 'flex'), 'Styles are copied into native window');
+  check(await pip(() => documentPictureInPicture.window.getComputedStyle(documentPictureInPicture.window.document.querySelector('.acg-mini-titlebar')).display === 'none'), 'Native browser chrome replaces the duplicate inner titlebar');
   check(await pip(()=>{
     const d=documentPictureInPicture.window.document;
     const mini=d.querySelector('.acg-mini-quick-order');
