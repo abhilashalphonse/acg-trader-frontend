@@ -88,7 +88,7 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   assert.ok(html.includes('Concept preview only. Third-party AI connections'));
   assert.ok(html.includes('AI outputs can be inaccurate. Provider logos shown do not imply partnership or endorsement.'));
   const aiConnectCss = read('public/acg-ai-connection-section.css');
-  assert.ok(aiConnectCss.includes('aspect-ratio:16/9'));
+  assert.ok(aiConnectCss.includes('aspect-ratio:auto 16/9'));
   assert.ok(aiConnectCss.includes('object-fit:contain'));
   assert.ok(aiConnectCss.includes('prefers-reduced-motion:reduce'));
   assert.ok(html.includes('href="/acg-ai-connection-section.css"'));
