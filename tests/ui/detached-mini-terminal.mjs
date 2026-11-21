@@ -125,7 +125,7 @@ try {
   ]));
   await page.waitForFunction(()=>documentPictureInPicture.window?.document.querySelectorAll('.acg-mini-row').length===2);
   await pip(() => documentPictureInPicture.window.document.querySelector('[aria-label="Close mini terminal"]').click());
-  await page.locator('[data-acg-mini-window-state="closed"]').waitFor();
+  await page.locator('[data-acg-mini-window-state="closed"]').waitFor({ state: 'attached' });
   await page.getByRole('button', { name: 'Pop out mini terminal' }).waitFor();
   check(await page.locator('.acg-floating-order').count() === 0,
     'Closing popup never recreates the old floating widget');
@@ -253,7 +253,7 @@ try {
   check(await popup.locator('[data-acg-mini-simple-ticket=true]').count() === 1,
     'Quick-order widget remains mounted while opener is active');
   await popup.close();
-  await fallback.locator('[data-acg-mini-window-state="closed"]').waitFor();
+  await fallback.locator('[data-acg-mini-window-state="closed"]').waitFor({ state: 'attached' });
   await fallback.getByRole('button', { name: 'Pop out mini terminal' }).waitFor();
   check(await fallback.evaluate(() => window.v4PositionsQA.commands.length === 0), 'Window lifecycle and navigation never submit a trade');
   const closePopupPromise = fallback.waitForEvent('popup');
@@ -269,7 +269,7 @@ try {
   await closePopup.getByRole('button', { name: 'Positions (1)', exact: true }).waitFor();
   check(await fallback.evaluate(() => window.v4PositionsQA.positions.length === 1), 'Confirmed position change is reflected in both windows');
   await closePopup.close();
-  await fallback.locator('[data-acg-mini-window-state="closed"]').waitFor();
+  await fallback.locator('[data-acg-mini-window-state="closed"]').waitFor({ state: 'attached' });
   await fallback.getByRole('button', { name: 'Pop out mini terminal' }).waitFor();
   // Simulate popup blocking without opening an external site.
   await fallback.evaluate(() => { window.open = () => null; });
