@@ -359,10 +359,6 @@ html{scroll-padding-top:80px}
 .desktop-nav{gap:32px}
 .desktop-nav a{font-weight:590}
 .film-video{display:block;width:100%;height:100%;object-fit:contain}
-.film-media-control[hidden]{display:none!important}
-.film-media-control{position:absolute;z-index:3;bottom:15px;right:15px;min-width:82px;min-height:44px;padding:9px 16px;background:rgba(245,245,247,.93);border:1px solid rgba(255,255,255,.55);border-radius:999px;color:#151518;font:600 12px Inter,system-ui,sans-serif;cursor:pointer}
-.film-media-control:hover{background:#fff}
-.film-media-control:focus-visible{outline:3px solid #8bb4ff;outline-offset:3px}
 .shield-story{background:#ececef;color:#19191c;padding:125px 0 130px;border-top:1px solid #e2e2e5;border-bottom:1px solid #dedee2}
 .shield-story-layout{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,.81fr);align-items:center;gap:8%}
 .shield-story-copy h2{font-size:clamp(52px,5.8vw,84px);letter-spacing:-.073em;line-height:1.02;font-weight:650;margin:0 0 29px;max-width:710px}
@@ -372,8 +368,6 @@ html{scroll-padding-top:80px}
 .shield-film-frame{margin:0;min-width:0}
 .shield-film-panel{width:min(100%,475px);aspect-ratio:3/4;position:relative;margin-left:auto;overflow:hidden;border-radius:23px;border:1px solid #dedee2;background:#fff;box-shadow:0 30px 84px #1c1c2422}
 .shield-film-panel .film-video{object-fit:contain}
-.shield-film-panel .film-media-control{background:#161619;color:white;border-color:#44444a}
-.shield-film-panel .film-media-control:hover{background:#36363d}
 .shield-film-frame figcaption{font-size:11px;color:#76767d;line-height:1.65;text-align:center;padding-top:13px;max-width:475px;margin-left:auto}
 .market-film{position:relative;width:100%;aspect-ratio:2/1;border-radius:23px;background:#000;overflow:hidden;border:1px solid #25252b;margin:0 0 15px;box-shadow:0 30px 65px #0002}
 .market-film .film-video{object-fit:contain;background:#000}
@@ -399,7 +393,6 @@ html{scroll-padding-top:80px}
  .shield-film-frame figcaption{margin:auto;max-width:415px}
  .market-film{border-radius:16px;aspect-ratio:2/1;margin-bottom:14px}
  .market-film-caption{font-size:11px;margin-bottom:26px}
- .film-media-control{bottom:9px;right:9px;min-width:70px;min-height:40px;padding:8px 12px}
 }
 @media(prefers-reduced-motion:reduce){
  .motion-ready [data-film-reveal]{opacity:1!important;transform:none!important;transition:none!important}
@@ -483,10 +476,9 @@ html{scroll-padding-top:80px}
    </div>
    <figure class="shield-film-frame" data-film-reveal>
     <div class="shield-film-panel">
-     <video id="acg-shield-film" class="film-video" muted loop playsinline controls preload="metadata" poster="/media/acg-shield-poster.jpg" aria-label="ACG branded metallic shield animation">
+     <video id="acg-shield-film" class="film-video" muted loop playsinline preload="metadata" poster="/media/acg-shield-poster.jpg" aria-label="ACG branded metallic shield animation">
       <source src="/media/acg-shield.mp4" type="video/mp4"/>Your browser cannot play this video.
      </video>
-     <button class="film-media-control" type="button" data-video-control="acg-shield-film" hidden aria-label="Play ACG Shield animation">Play</button>
     </div>
     <figcaption>ACG brand animation. A visual identity element, not a security certification.</figcaption>
    </figure>

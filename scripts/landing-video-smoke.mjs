@@ -115,9 +115,15 @@ try {
     await reduced.waitForTimeout(280);
     const states = await reduced.locator('video.film-video').evaluateAll(videos=>videos.map(v=>({paused:v.paused,controls:v.controls})));
     assert.ok(states.every(v=>v.paused), 'Reduced motion must not autoplay clips: '+JSON.stringify(states));
-    assert.equal(await reduced.locator('[data-video-control]:not([hidden])').count(), 1);
-    assert.equal(await reduced.locator('#market-intro [data-video-control]').count(), 0);
-    assert.equal(await reduced.locator('#acg-three-markets-film').evaluate(v=>v.controls), false);
+    assert.equal(await reduced.locator('[data-video-control], .film-media-control').count(), 0);
+    assert.ok(states.every(v => v.controls === false), 'Both decorative videos must hide native controls');
+    assert.equal(await reduced.locator('#acg-hero-replay').count(), 1);
+    const normal = await browser.newPage({ viewport:{width:1440,height:900},reducedMotion:'no-preference' });
+    await normal.goto(base+'/acg-landing-v6.html',{waitUntil:'domcontentloaded'});
+    await normal.locator('#acg-three-markets-film').scrollIntoViewIfNeeded();
+    await normal.waitForFunction(() => document.querySelector('#acg-three-markets-film')?.readyState >= 2);
+    assert.equal(await normal.locator('[data-video-control], .film-media-control').count(), 0);
+    await normal.close();
     await reduced.close();
   } finally {
     await browser.close();
