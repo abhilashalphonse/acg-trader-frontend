@@ -18,7 +18,7 @@ test('the hero uses one public logo-free clip and deletes obsolete Railway media
   const js = read('public/acg-landing-motion.js');
   assert.ok(html.includes('src="' + cleanSource + '"'));
   assert.ok(html.includes('id="acg-hero-reveal"'));
-  assert.equal((html.match(/<video/g) || []).length, 4);
+  assert.equal((html.match(/<video/g) || []).length, 5);
   assert.ok(css.includes("url('/media/acg-prism-static.svg')"));
   assert.ok(css.includes('object-fit:cover'), 'art-directed crop must preserve geometry');
   assert.ok(css.includes('max-height:600px'), 'short landscape screens must be handled');
@@ -66,7 +66,8 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   const aiCss = read('public/acg-ai-section.css');
   assert.ok(aiCss.includes('prefers-reduced-motion:reduce'));
   assert.ok(aiCss.includes('width:min(520px,100%)'));
-  assert.ok(!html.includes('Concept preview') && !html.includes('ACG AI'));
+  const section3 = html.slice(html.indexOf('<section class="ai-section"'), html.indexOf('</section>', html.indexOf('<section class="ai-section"')));
+  assert.ok(!section3.includes('Concept preview') && !section3.includes('ACG AI'), 'Section 3 wording unchanged');
   const phone = readFileSync(src('public/media/acg-trader-mobile-artwork.webp'));
   assert.equal(phone.subarray(0,4).toString('ascii'), 'RIFF');
   assert.equal(phone.subarray(8,12).toString('ascii'), 'WEBP');
@@ -78,6 +79,20 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   assert.ok(html.includes('href="/acg-mobile-section.css"'));
   assert.ok(html.includes('Your trading desk.<br/>In your pocket.'));
   assert.ok(html.includes('Explore mobile trading'));
+  assert.ok(html.includes('<section class="ai-connect-story" id="ai-connections"'));
+  assert.ok(html.indexOf('id="experience"') < html.indexOf('id="ai-connections"')
+    && html.indexOf('id="ai-connections"') < html.indexOf('id="trading"'), 'AI connection is Section 6');
+  assert.ok(html.includes('ACG%20Trader%20AI%20Connection.mp4'));
+  assert.ok(html.includes('id="acg-ai-connection-film"'));
+  assert.ok(html.includes('href="#ai-connect-film"'));
+  assert.ok(html.includes('Concept preview only. Third-party AI connections'));
+  assert.ok(html.includes('AI outputs can be inaccurate. Provider logos shown do not imply partnership or endorsement.'));
+  const aiConnectCss = read('public/acg-ai-connection-section.css');
+  assert.ok(aiConnectCss.includes('aspect-ratio:16/9'));
+  assert.ok(aiConnectCss.includes('object-fit:contain'));
+  assert.ok(aiConnectCss.includes('prefers-reduced-motion:reduce'));
+  assert.ok(html.includes('href="/acg-ai-connection-section.css"'));
+  assert.equal((html.match(/id="acg-ai-connection-film"/g)||[]).length,1);
   assert.ok(!html.includes('acg-shield.mp4'));
   const mobileCss = read('public/acg-mobile-section.css');
   assert.ok(mobileCss.includes('max-width:720px'));
