@@ -13,6 +13,7 @@ test('Access transition uses pure-black background and keeps actual account rout
   assert.match(css, /#access\.section\.access\{[\s\S]*?background:#000/);
   assert.ok(css.includes('#access .access-card{'));
   assert.ok(css.includes('background:#0e0f12'));
+  assert.ok(css.includes('border-color:#747985;color:#f0f1f3'), 'dark CTA must have high-contrast label');
   const access=html.slice(html.indexOf('<section class="section access"'),html.indexOf('</section>',html.indexOf('<section class="section access"')));
   assert.ok(access.includes('href="/?acg_login=1"'));
   assert.ok(access.includes('href="/?acg_connect_prop=1"'));
