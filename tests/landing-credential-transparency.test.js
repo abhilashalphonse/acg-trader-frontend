@@ -47,7 +47,7 @@ test('unavailable offerings are absent, not presented as roadmap or implied curr
 test('operator, privacy, terms and Contact remain accessible from V6', () => {
   const page = source('public/acg-landing-v6.html');
   const footer = page.slice(page.lastIndexOf('<footer class="footer">'));
-  assert.match(footer, /Developed by ACG-MANAGEMENT, UNIPESSOAL LDA, Portugal/);
+  assert.match(footer, /Developed by<br\/><strong>ACG-MANAGEMENT, UNIPESSOAL LDA<\/strong><br\/>Portugal/);
   for (const page of ['account-security','privacy','terms','contact']) {
     assert.ok(footer.includes('href="/' + page + '.html"'), page);
     assert.match(source('public/' + page + '.html'), /ACG-MANAGEMENT, UNIPESSOAL LDA/);
