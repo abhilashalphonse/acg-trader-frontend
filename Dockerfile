@@ -1,4 +1,5 @@
 FROM node:24-alpine AS build
+RUN apk add --no-cache ffmpeg
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --include=dev
@@ -9,7 +10,7 @@ ARG VITE_ACG_TRADER_HTTP_TIMEOUT_MS
 ARG VITE_ACG_TRADER_TENANT
 ARG VITE_ACG_FUNDED_URL
 ARG VITE_ACG_SUPABASE_AUTH_ENABLED
-RUN npm run build
+RUN npm run build && node scripts/prepare-landing-films.mjs
 
 FROM node:24-alpine
 WORKDIR /app
