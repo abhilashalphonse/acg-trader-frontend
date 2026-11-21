@@ -1,0 +1,67 @@
+/* ACG Trader landing FAQ — full-width black editorial accordion.
+   Native details/summary provides keyboard and assistive-technology interaction
+   without script, account state, analytics, or external dependencies. */
+#acg-faq.acg-faq{
+  background:#000;color:#fff;
+  padding:clamp(94px,8.5vw,124px) 0 clamp(106px,9vw,136px);
+  border:0;
+}
+.acg-faq-inner{width:min(1080px,calc(100% - 80px));margin:0 auto}
+.acg-faq-intro{text-align:center}
+.acg-faq-eyebrow{margin:0;color:#858991;font-size:clamp(16px,1.6vw,19px);font-weight:500;letter-spacing:-.025em;line-height:1.45}
+.acg-faq h2{
+  margin:18px 0 0;color:#fff;
+  font-size:clamp(42px,4.3vw,58px);font-weight:640;
+  line-height:1.1;letter-spacing:-.068em;text-wrap:balance;
+}
+.acg-faq-items{margin:clamp(54px,6.2vw,78px) 0 0}
+.acg-faq-item{border-bottom:1px solid #44464a}
+.acg-faq-item:first-child{border-top:0}
+.acg-faq-item summary{
+  display:flex;align-items:center;justify-content:space-between;gap:28px;
+  min-height:104px;padding:27px 3px;
+  cursor:pointer;list-style:none;color:#f7f7f8;
+  font-size:clamp(18px,1.9vw,23px);font-weight:600;
+  line-height:1.36;letter-spacing:-.035em;
+}
+.acg-faq-item summary::-webkit-details-marker{display:none}
+.acg-faq-item summary::marker{content:""}
+.acg-faq-item summary:focus-visible{outline:2px solid #c7d6ff;outline-offset:-3px;border-radius:4px}
+.acg-faq-question{flex:1;min-width:0}
+.acg-faq-toggle{
+  position:relative;width:27px;height:27px;flex:none;
+  border-radius:50%;background:#fff;
+}
+.acg-faq-toggle::before,.acg-faq-toggle::after{
+  content:"";position:absolute;left:50%;top:50%;background:#090a0c;
+  transform:translate(-50%,-50%);border-radius:1px;
+}
+.acg-faq-toggle::before{width:12px;height:2.5px}
+.acg-faq-toggle::after{width:2.5px;height:12px}
+.acg-faq-item[open] .acg-faq-toggle::after{display:none}
+.acg-faq-answer{max-width:850px;padding:0 48px 34px 3px}
+.acg-faq-answer p{
+  margin:0;color:#b5b9c1;font-size:clamp(15px,1.28vw,17px);
+  line-height:1.7;letter-spacing:-.012em;
+}
+.acg-faq-answer a{color:#fff;text-decoration:underline;text-underline-offset:3px}
+.acg-faq-answer a:hover{color:#cbd7ff}
+.acg-faq-answer a:focus-visible{outline:2px solid #c7d6ff;outline-offset:4px}
+@media(max-width:800px){
+  #acg-faq.acg-faq{padding:88px 0 100px}
+  .acg-faq-inner{width:calc(100% - 48px)}
+  .acg-faq-items{margin-top:51px}
+  .acg-faq-item summary{min-height:92px;padding:22px 2px;gap:18px;font-size:20px}
+}
+@media(max-width:480px){
+  #acg-faq.acg-faq{padding:75px 0 87px}
+  .acg-faq-inner{width:calc(100% - 32px)}
+  .acg-faq-eyebrow{font-size:15px}
+  .acg-faq h2{font-size:clamp(36px,9vw,44px);margin-top:13px}
+  .acg-faq-items{margin-top:40px}
+  .acg-faq-item summary{min-height:80px;padding:20px 1px;gap:14px;font-size:18px}
+  .acg-faq-toggle{width:25px;height:25px}
+  .acg-faq-answer{padding:0 26px 27px 1px}
+  .acg-faq-answer p{font-size:15px}
+}
+@media(prefers-reduced-motion:reduce){.acg-faq-item *{scroll-behavior:auto}}
