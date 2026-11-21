@@ -67,6 +67,8 @@ test('public homepage uses V4 design language and current production capability 
   assert.ok(html.indexOf('class="market-intro-description"') < html.indexOf('class="market-intro-risk"')
     && html.indexOf('class="market-intro-risk"') < html.indexOf('class="market-intro-cta"'), 'risk disclosure comes before CTA');
   assert.match(html, /href="\/acg-market-intro\.css"/);
+  assert.doesNotMatch(html, /class="market-intro-note"|Illustrative market artwork\. The Bitcoin motif/,
+    'no artwork disclaimer below the BTC video');
   // Section 3: approved AI identity and prompt content, no fake live action.
   assert.ok(html.includes('href="/acg-ai-section.css"'));
   assert.ok(html.includes('id="ai-section-heading">Think it. Ask it. Trade smarter.</h2>'));
@@ -104,6 +106,10 @@ test('public homepage uses V4 design language and current production capability 
   assert.ok(marketCss.includes('width:min(1140px,100%)'));
   assert.ok(marketCss.includes('object-fit:contain'));
   assert.ok(marketCss.includes('aspect-ratio:1254/674'));
+  assert.ok(marketCss.includes('padding:100px 0 0'), 'no bottom padding under the BTC video');
+  assert.ok(marketCss.includes('padding:88px 0 0') && marketCss.includes('padding:73px 0 0'),
+    'tablet and mobile also have no bottom padding');
+  assert.ok(!marketCss.includes('.market-intro-note'), 'removed obsolete artwork-note styles');
 
   assert.equal((html.match(/<video\b/g) || []).length, 4);
   assert.ok(html.includes('src="https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20logo%20BTC%20swirl.mp4"'));
@@ -139,7 +145,6 @@ test('public homepage uses V4 design language and current production capability 
   assert.ok(mobileCss.includes('max-height:600px'));
 
   assert.match(html, /Illustrative mobile interface\. Trading features and access depend on your account and device\./);
-  assert.match(html, /not indicate available instruments, supported integrations, partners or endorsements/);
   assert.doesNotMatch(html, /data-video-control=|class="film-media-control"/);
   for (const id of ['acg-three-markets-film','ai-prism-film','acg-terminal-film']) {
     const match = html.match(new RegExp('<video id="' + id + '"[^>]*>'));

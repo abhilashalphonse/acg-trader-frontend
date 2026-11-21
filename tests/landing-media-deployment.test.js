@@ -93,7 +93,11 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   assert.ok(marketCss.includes('.market-intro-media{margin:18px auto 0'), 'tight desktop media spacing');
   assert.ok(marketCss.includes('.market-intro-media{margin-top:16px}'), 'tight phone media spacing');
   assert.ok(marketCss.includes('position:absolute;left:0;bottom:0'), 'crop only from the video top while keeping lower artwork visible');
-  assert.ok(html.includes('not indicate available instruments, supported integrations, partners or endorsements'));
+  assert.ok(!html.includes('not indicate available instruments, supported integrations, partners or endorsements'));
+  assert.ok(!html.includes('class="market-intro-note"'));
+  assert.ok(html.includes('Simulated trading only. Instrument availability varies by account. Trading involves risk.'));
+  assert.ok(marketCss.includes('padding:100px 0 0'));
+  assert.ok(marketCss.includes('padding:73px 0 0'));
   assert.ok(html.includes('Illustrative mobile interface. Trading features and access depend on your account and device.'));
   assert.ok(html.includes('Simulated trading for authorized accounts'));
   assert.ok(html.includes('href="/?acg_login=1"'));
