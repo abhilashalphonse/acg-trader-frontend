@@ -357,6 +357,24 @@ try {
         viewport.label+' FAQ title fits the screen: '+JSON.stringify(faqBounds));
       assert.ok(faqBounds.rowLeft>=-2 && faqBounds.rowRight<=faqBounds.viewportWidth+2,
         viewport.label+' FAQ questions fit the screen: '+JSON.stringify(faqBounds));
+      // Terms/risk fine print must sit beneath the final FAQ divider, remain readable,
+      // and point to the real Terms page rather than inventing user acceptance.
+      const disclaimer=faq.locator('.acg-faq-disclaimer[role="note"]');
+      assert.equal(await disclaimer.count(), 1);
+      assert.ok((await disclaimer.innerText()).includes('Terms & risk notice.'));
+      assert.ok((await disclaimer.innerText()).includes('substantial financial losses'));
+      assert.equal(await disclaimer.locator('a').getAttribute('href'), '/terms.html');
+      const noteBounds=await disclaimer.evaluate(el=>{
+        const section=el.closest('#acg-faq'),lastRow=section.querySelector('.acg-faq-item:last-child');
+        const note=el.getBoundingClientRect(),last=lastRow.getBoundingClientRect(),css=getComputedStyle(el.querySelector('p'));
+        return {left:note.left,right:note.right,top:note.top,lastRowBottom:last.bottom,
+          fontSize:parseFloat(css.fontSize),lineHeight:parseFloat(css.lineHeight),viewport:innerWidth};
+      });
+      assert.ok(noteBounds.top>noteBounds.lastRowBottom+20,'risk notice follows FAQ rows with whitespace');
+      assert.ok(noteBounds.left>=-2 && noteBounds.right<=noteBounds.viewport+2,
+        viewport.label+' FAQ risk notice fits screen: '+JSON.stringify(noteBounds));
+      assert.ok(noteBounds.fontSize>=12 && noteBounds.fontSize<=13 && noteBounds.lineHeight>=19,
+        viewport.label+' risk notice is compact but readable: '+JSON.stringify(noteBounds));
       await faq.screenshot({path:'artifacts/acg-faq-'+viewport.label+'.png'});
       assert.deepEqual(errors, [], viewport.label+' errors');
       await page.screenshot({ path:'artifacts/landing-film-'+viewport.label+'-motion.png' });
