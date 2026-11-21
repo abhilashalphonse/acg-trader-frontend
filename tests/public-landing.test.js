@@ -301,3 +301,22 @@ test('public marketing keeps tenant-native and federation entry with no Supabase
   assert.match(signup, /window\.location\.assign\('\/terminal'\)/);
   assert.doesNotMatch(signup, /selectOrganization|orgs\.map|tenantId/);
 });
+
+test('new domain uses canonical terminal deep links without breaking legacy funded federation', () => {
+  const html = readFileSync(new URL('../public/acg-landing-v6.html', import.meta.url), 'utf8');
+  const authPage = readFileSync(new URL('../src/components/StandaloneAuthPage.jsx', import.meta.url), 'utf8');
+  const nativeGate = readFileSync(new URL('../src/components/SessionGate.jsx', import.meta.url), 'utf8');
+  assert.ok(html.includes('href="/terminal?acg_login=1"'));
+  assert.ok(html.includes('href="/terminal?acg_connect_prop=1"'));
+  assert.ok(!html.includes('href="/?acg_login=1"'));
+  assert.ok(!html.includes('href="/?acg_connect_prop=1"'));
+  assert.ok(authPage.includes('href="/terminal?acg_login=1"'));
+  assert.ok(nativeGate.includes('href="/terminal?acg_login=1"'));
+  assert.equal(shouldOpenPublicHome('/', ''), true, 'bare home remains the public landing');
+  for (const query of ['', '?acg_login=1', '?acg_connect_prop=1', '?ticket=legacy-launch', '?acg_ticket=legacy-launch']) {
+    assert.equal(shouldOpenPublicHome('/terminal', query), false, 'terminal path never redirects to landing');
+  }
+  for (const query of ['?acg_login=1', '?acg_connect_prop=1', '?ticket=legacy-launch', '?acg_ticket=legacy-launch']) {
+    assert.equal(shouldOpenPublicHome('/', query), false, 'old root launch links remain backward compatible');
+  }
+});
