@@ -216,8 +216,8 @@ try {
       assert.equal(await connections.count(), 1);
       assert.equal(await connections.locator('h2').textContent(), 'Trade with your AI assistant.');
       assert.equal(await connections.locator('.ai-connect-cta').getAttribute('href'), '#ai-connect-film');
-      assert.ok((await connections.locator('.ai-connect-disclosure').innerText()).includes('not currently live'));
-      assert.ok((await connections.locator('.ai-connect-disclosure').innerText()).includes('do not imply partnership or endorsement'));
+      assert.equal((await connections.locator('.ai-connect-disclosure').innerText()).trim(),
+        'Acg Trader does not endorse or guarantee third-party AI Tools. AI may produce errors or inaccurate outputs. You remain responsible for reviewing and approving all orders before execution. Acg Trader is not liable for any resulting losses, missed opportunities, or erroneous trades');
       const connectionVideo = connections.locator('#acg-ai-connection-film');
       assert.equal(await connectionVideo.count(), 1);
       assert.equal(await connectionVideo.locator('source').getAttribute('src'),
