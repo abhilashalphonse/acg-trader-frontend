@@ -106,6 +106,8 @@ test('public homepage uses V4 design language and current production capability 
   assert.ok(marketCss.includes('width:min(1140px,100%)'));
   assert.ok(marketCss.includes('object-fit:contain'));
   assert.ok(marketCss.includes('aspect-ratio:1254/674'));
+  assert.ok(marketCss.includes('border-top:0;border-bottom:0'), 'hero to markets transition must have no divider');
+  assert.ok(!marketCss.includes('border-top:1px solid #17171b'), 'no visible market-intro separator');
   assert.ok(marketCss.includes('padding:100px 0 0'), 'no bottom padding under the BTC video');
   assert.ok(marketCss.includes('padding:88px 0 0') && marketCss.includes('padding:73px 0 0'),
     'tablet and mobile also have no bottom padding');
