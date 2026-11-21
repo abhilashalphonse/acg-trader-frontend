@@ -50,7 +50,10 @@ test('the hero uses one public logo-free clip and deletes obsolete Railway media
     assert.equal(existsSync(src('public/media/' + obsolete)), false, obsolete + ' must not ship');
   }
   const svg = read('public/media/acg-prism-static.svg');
+  const mobileSvg = read('public/media/acg-prism-static-mobile.svg');
   assert.ok(svg.includes('<svg'));
+  assert.ok(mobileSvg.includes('<svg'));
+  assert.ok(css.includes("url('/media/acg-prism-static-mobile.svg')"));
 });
 
 test('the supporting films stay licensed-account aware and have no extra playback controls', () => {
