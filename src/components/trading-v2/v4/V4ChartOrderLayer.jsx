@@ -211,6 +211,7 @@ export default function V4ChartOrderLayer({
   }
 
   return <div className="pointer-events-none absolute inset-0 z-[36] overflow-hidden" data-v4-isolated-layer
+    data-v4-pending-cancel-mode={directPendingCancel ? "direct" : "review"}
     style={{ height }}>
     {displayedLevels.map(level=>{
       const color=colorFor(level);
