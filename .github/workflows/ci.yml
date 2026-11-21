@@ -29,6 +29,11 @@ jobs:
         run: npm run lint
       - name: Test
         run: npm test
+      - name: Audit desktop runtime in Chrome with V3 and V4 (no live credentials)
+        if: ${{ github.head_ref == 'test/desktop-breakpoint-runtime-20261121' || github.ref == 'refs/heads/test/desktop-breakpoint-runtime-20261121' }}
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          node tests/ui/desktop-breakpoint-runtime.mjs
       - name: Build
         run: npm run build
       - name: Install FFmpeg probe for media release checks
