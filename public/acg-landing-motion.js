@@ -85,7 +85,7 @@
     states.forEach(state => visibility.observe(state.video));
   } else {
     // No invisible background playback in browsers without observers.
-    states.forEach(state => { state.video.controls = true; if (state.button) state.button.hidden = true; });
+    states.forEach(state => { state.video.controls = state.video.id !== 'acg-three-markets-film'; if (state.button) state.button.hidden = true; });
   }
 
   const revealTargets = [...document.querySelectorAll('[data-film-reveal]')];

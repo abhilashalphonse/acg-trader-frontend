@@ -53,7 +53,9 @@ test('Railway static media server supports byte ranges and MP4 MIME types', () =
 test('film playback honors reduced motion, save-data and explicit user controls', () => {
   const html = readFileSync(src('public/acg-landing-v6.html'), 'utf8');
   const js = readFileSync(src('public/acg-landing-motion.js'), 'utf8');
-  assert.equal((html.match(/data-video-control=/g) || []).length, 2);
+  assert.equal((html.match(/data-video-control=/g) || []).length, 1);
+  assert.doesNotMatch(html, /data-video-control="acg-three-markets-film"/);
+  assert.doesNotMatch(html, /<video id="acg-three-markets-film"[^>]*\\bcontrols\\b/);
   assert.match(js, /IntersectionObserver/);
   assert.match(js, /prefers-reduced-motion: reduce/);
   assert.match(js, /saveData/);
