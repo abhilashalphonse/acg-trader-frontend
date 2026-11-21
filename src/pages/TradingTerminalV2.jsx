@@ -50,12 +50,23 @@ function useDesktopLayout() {
 }
 
 function loadIndicators() {
-  if (typeof window === 'undefined') return [createIndicator('volume')].filter(Boolean);
+  // New domains have new localStorage. Do not re-add Volume for a first visit;
+  // existing users' intentionally saved indicators remain untouched.
+  if (typeof window === 'undefined') return [];
   try {
     const stored = JSON.parse(window.localStorage.getItem(INDICATOR_STORAGE_KEY) || 'null');
-    if (Array.isArray(stored)) return stored;
+    if (Array.isArray(stored)) {
+      // Earlier builds automatically saved [Volume] for every fresh account.
+      // Correct that legacy-only default once, without altering custom sets.
+      const migrationKey = 'acg-trader-default-volume-v2';
+      if (window.localStorage.getItem(migrationKey) !== '1') {
+        window.localStorage.setItem(migrationKey, '1');
+        if (stored.length === 1 && stored[0]?.id === 'volume') return [];
+      }
+      return stored;
+    }
   } catch { /* defaults below */ }
-  return [createIndicator('volume')].filter(Boolean);
+  return [];
 }
 
 function loadIndicatorFavorites() {
@@ -74,7 +85,7 @@ function normalizeTimeframePreference(value) {
   const raw = String(value || '');
   const aliases = { '1h': '1H', '4h': '4H', '1d': '1D', D: '1D', '1w': '1W' };
   const normalized = aliases[raw] || raw;
-  return ALLOWED_TIMEFRAMES.has(normalized) ? normalized : '1m';
+  return ALLOWED_TIMEFRAMES.has(normalized) ? normalized : '30m';
 }
 
 function loadTerminalPrefs() {
@@ -82,6 +93,19 @@ function loadTerminalPrefs() {
   try {
     const stored = JSON.parse(window.localStorage.getItem(TERMINAL_PREFS_KEY) || '{}');
     if (!stored || typeof stored !== 'object') return {};
+    // A new hostname first persisted 1m with otherwise untouched defaults.
+    // Repair only that legacy profile once; preserve custom timeframes.
+    const migrationKey = 'acg-trader-default-timeframe-v2';
+    if (window.localStorage.getItem(migrationKey) !== '1') {
+      window.localStorage.setItem(migrationKey, '1');
+      const legacyDefault = stored.timeframe === '1m'
+        && (stored.chartMode == null || stored.chartMode === 'candles')
+        && (stored.sizingMode == null || stored.sizingMode === 'lots')
+        && (stored.orderType == null || stored.orderType === 'market')
+        && (stored.lots == null || Number(stored.lots) === 0.1)
+        && (stored.riskPercent == null || Number(stored.riskPercent) === 0.5);
+      if (legacyDefault) return { ...stored, timeframe: '30m' };
+    }
     return { ...stored, timeframe: normalizeTimeframePreference(stored.timeframe) };
   } catch {
     return {};
@@ -152,7 +176,7 @@ export default function TradingTerminalV2({
     accountSwitchError: trading.accountSwitchError,
   };
 
-  const [timeframe, setTimeframe] = useState(prefsRef.current.timeframe || '1m');
+  const [timeframe, setTimeframe] = useState(prefsRef.current.timeframe || '30m');
   const [chartMode, setChartMode] = useState(prefsRef.current.chartMode || 'candles');
   const [selectedTool, setSelectedTool] = useState('cursor');
   const [activeNav, setActiveNav] = useState('trade');

@@ -29,7 +29,15 @@ jobs:
         run: npm run lint
       - name: Test
         run: npm test
+      - name: Desktop runtime acceptance for V3 fallback and V4 default at wide widths
+        if: ${{ github.ref == 'refs/heads/main' || github.head_ref == 'fix/railway-v4-terminal-defaults-20261121' }}
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          node tests/ui/desktop-breakpoint-runtime.mjs
       - name: Build
+        env:
+          # Match Railway Docker's approved production desktop presentation.
+          VITE_ACG_EXECUTION_V4_ENABLED: 'true'
         run: npm run build
       - name: Install FFmpeg probe for media release checks
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg

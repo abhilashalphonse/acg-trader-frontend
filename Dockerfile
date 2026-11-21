@@ -10,6 +10,10 @@ ARG VITE_ACG_TRADER_HTTP_TIMEOUT_MS
 ARG VITE_ACG_TRADER_TENANT
 ARG VITE_ACG_FUNDED_URL
 ARG VITE_ACG_SUPABASE_AUTH_ENABLED
+# The approved V4 desktop workspace was compiled into Firebase preview builds.
+# Railway must explicitly compile the same V4 presentation instead of silently
+# falling back to the legacy desktop. A build-time override remains possible.
+ARG VITE_ACG_EXECUTION_V4_ENABLED=true
 RUN npm run build && node scripts/prepare-landing-films.mjs
 
 FROM node:24-alpine
