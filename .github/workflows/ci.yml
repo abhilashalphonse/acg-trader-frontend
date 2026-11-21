@@ -32,18 +32,19 @@ jobs:
       - name: Build
         run: npm run build
       - name: Cinematic landing video browser acceptance
-        if: ${{ github.ref == 'refs/heads/main' || github.head_ref == 'design/ai-prism-section-three-20261121' || github.ref == 'refs/heads/design/ai-prism-section-three-20261121' || github.head_ref == 'feat/responsive-logo-free-prism-hero-20261121' || github.ref == 'refs/heads/feat/responsive-logo-free-prism-hero-20261121' || github.head_ref == 'design/revolut-motion-films-20261120' || github.ref == 'refs/heads/design/revolut-motion-films-20261120' || github.head_ref == 'design/market-shield-film-ux-20261120' || github.ref == 'refs/heads/design/market-shield-film-ux-20261120' }}
+        if: ${{ github.ref == 'refs/heads/main' || github.head_ref == 'feat/mobile-trading-section-four-20261121' || github.ref == 'refs/heads/feat/mobile-trading-section-four-20261121' || github.head_ref == 'design/ai-prism-section-three-20261121' || github.ref == 'refs/heads/design/ai-prism-section-three-20261121' || github.head_ref == 'feat/responsive-logo-free-prism-hero-20261121' || github.ref == 'refs/heads/feat/responsive-logo-free-prism-hero-20261121' || github.head_ref == 'design/revolut-motion-films-20261120' || github.ref == 'refs/heads/design/revolut-motion-films-20261120' || github.head_ref == 'design/market-shield-film-ux-20261120' || github.ref == 'refs/heads/design/market-shield-film-ux-20261120' }}
         run: |
           npm install --no-save --no-audit --no-fund playwright@1.56.1
           node scripts/landing-video-smoke.mjs
       - name: Upload cinematic landing review screenshots
-        if: ${{ always() && (github.ref == 'refs/heads/main' || github.head_ref == 'design/ai-prism-section-three-20261121' || github.ref == 'refs/heads/design/ai-prism-section-three-20261121' || github.head_ref == 'feat/responsive-logo-free-prism-hero-20261121' || github.ref == 'refs/heads/feat/responsive-logo-free-prism-hero-20261121' || github.head_ref == 'design/revolut-motion-films-20261120' || github.ref == 'refs/heads/design/revolut-motion-films-20261120' || github.head_ref == 'design/market-shield-film-ux-20261120' || github.ref == 'refs/heads/design/market-shield-film-ux-20261120') }}
+        if: ${{ always() && (github.ref == 'refs/heads/main' || github.head_ref == 'feat/mobile-trading-section-four-20261121' || github.ref == 'refs/heads/feat/mobile-trading-section-four-20261121' || github.head_ref == 'design/ai-prism-section-three-20261121' || github.ref == 'refs/heads/design/ai-prism-section-three-20261121' || github.head_ref == 'feat/responsive-logo-free-prism-hero-20261121' || github.ref == 'refs/heads/feat/responsive-logo-free-prism-hero-20261121' || github.head_ref == 'design/revolut-motion-films-20261120' || github.ref == 'refs/heads/design/revolut-motion-films-20261120' || github.head_ref == 'design/market-shield-film-ux-20261120' || github.ref == 'refs/heads/design/market-shield-film-ux-20261120') }}
         uses: actions/upload-artifact@v4
         with:
           name: acg-landing-film-desktop-mobile
           path: |
             artifacts/landing-film-*.png
             artifacts/ai-section-*.png
+            artifacts/mobile-story-*.png
           if-no-files-found: ignore
           retention-days: 7
       - name: Assert production bundle contains no public dock mock pages
