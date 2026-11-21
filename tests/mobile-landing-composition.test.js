@@ -15,8 +15,8 @@ test('Access transition uses pure-black background and keeps actual account rout
   assert.ok(css.includes('background:#0e0f12'));
   assert.ok(css.includes('border-color:#747985;color:#f0f1f3'), 'dark CTA must have high-contrast label');
   const access=html.slice(html.indexOf('<section class="section access"'),html.indexOf('</section>',html.indexOf('<section class="section access"')));
-  assert.ok(access.includes('href="/?acg_login=1"'));
-  assert.ok(access.includes('href="/?acg_connect_prop=1"'));
+  assert.ok(access.includes('href="/terminal?acg_login=1"'));
+  assert.ok(access.includes('href="/terminal?acg_connect_prop=1"'));
   assert.ok(access.includes('href="/account-security.html"'));
   assert.ok(access.includes('Never enter unrelated passwords'));
 });
