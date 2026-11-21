@@ -229,6 +229,26 @@ try {
   await popup.getByRole('textbox',{name:'Pending entry price'}).waitFor();
   check(await popup.getByRole('textbox',{name:'Pending entry price'}).isDisabled(),
     'Pending entry waits for original chart planning instead of inventing an order');
+  check((await popup.getByRole('textbox',{name:'Pending entry price'}).getAttribute('placeholder')) === '',
+    'Unplanned pending entry stays visually blank without a choose-side notification');
+  check(await popup.getByText('Choose Buy or Sell to plan').count() === 0,
+    'Pending tab does not show the old choose-side instruction');
+  const palette = await popup.evaluate(() => {
+    const color = selector => getComputedStyle(document.querySelector(selector)).backgroundColor;
+    return {
+      shell: color('.acg-mini-terminal'),
+      buy: color('.acg-mini-buy'),
+      sell: color('.acg-mini-sell'),
+      family: color('.acg-mini-order-family'),
+      pending: color('.acg-mini-pending-field input'),
+    };
+  });
+  check(palette.shell === 'rgb(13, 15, 19)'
+    && palette.buy === 'rgb(29, 97, 222)'
+    && palette.sell === 'rgb(203, 48, 80)'
+    && palette.family === 'rgb(23, 26, 32)'
+    && palette.pending === 'rgb(18, 21, 26)',
+    'Mini popup uses the unified graphite palette with restrained buy/sell accents');
   await popup.getByRole('button',{name:'Market',exact:true}).click();
   const riskSwitch=popup.getByRole('button',{name:'Toggle mini risk sizing'});
   if(await riskSwitch.isEnabled()){

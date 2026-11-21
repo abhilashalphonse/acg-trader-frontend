@@ -647,7 +647,7 @@ export default function DesktopOrderTicket({
         {isPending && <div className="acg-mini-field acg-mini-pending-field">
           <label htmlFor="acg-mini-trigger-price">Trigger / entry price</label>
           <input id="acg-mini-trigger-price" aria-label="Pending entry price" inputMode="decimal"
-            placeholder={tradePlan?.pending ? 'Enter price' : 'Choose Buy or Sell to plan'}
+            placeholder={tradePlan?.pending ? 'Enter price' : ''}
             disabled={!tradePlan?.pending || editing}
             value={tradePlan?.pending ? entryInput : ''}
             onFocus={event=>{setEntryFocused(true);selectInputNextFrame(event);}}
@@ -733,7 +733,7 @@ export default function DesktopOrderTicket({
           <p className="acg-mini-policy-note">This account requires a stop loss for manual-lot exposure.</p>}
         <p className="acg-mini-visually-hidden">
           {isPending
-            ? 'Choose Buy or Sell to plan a pending order; review before placing.'
+            ? 'A pending entry requires a prepared price and explicit confirmation before placement.'
             : 'Buy or Sell may execute immediately, subject to account restrictions.'}
         </p>
       </section>

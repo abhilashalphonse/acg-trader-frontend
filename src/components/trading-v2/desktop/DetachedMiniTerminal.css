@@ -419,6 +419,139 @@
 .acg-mini-empty strong{font-size:11px}
 .acg-mini-back{gap:5px;padding:7px 8px;font-size:10px}
 .acg-mini-back svg{width:12px;height:12px}
+
+/* Graphite refinement: consistent surfaces, calmer borders, compact type.
+   Scoped to the popup; the V4 execution panel and live order engine are unchanged. */
+.acg-mini-window{background:#0B0D10!important;color:#F2F3F6}
+.acg-mini-terminal{
+  --mini-bg:#0D0F13;
+  --mini-raised:#181B20;
+  --mini-field:#15181E;
+  --mini-border:#292E37;
+  --mini-text:#F2F4F7;
+  --mini-muted:#959FAB;
+  background:var(--mini-bg);color:var(--mini-text);
+  font-variant-numeric:tabular-nums;
+  -webkit-font-smoothing:antialiased;
+}
+.acg-mini-titlebar{background:#13161B;border-bottom:1px solid #262A33}
+.acg-mini-titlebar-actions button{color:#AEB6C2}
+.acg-mini-titlebar-actions button:hover{background:#252930;color:#F3F5F8}
+.acg-mini-context{padding:5px 9px;background:var(--mini-bg)}
+.acg-mini-market-avatar{
+  background:#1C2027;border-radius:7px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.045);
+}
+.acg-mini-instrument select{letter-spacing:-.025em;font-weight:730}
+.acg-mini-market-name{color:#929BA7}
+.acg-mini-market-price strong{font-weight:720;letter-spacing:-.02em}
+.acg-mini-tabs{
+  padding:0 9px;gap:17px;
+  border-bottom:1px solid #262A32;background:var(--mini-bg);
+}
+.acg-mini-tabs button{
+  color:#8E99A6;font-weight:550;
+  letter-spacing:-.015em;transition:color .14s ease;
+}
+.acg-mini-tabs button:hover{color:#D7DDE5}
+.acg-mini-tabs button[aria-pressed="true"]{
+  color:#F5F6F8;border-bottom-color:#C3CDD9;font-weight:700;
+}
+.acg-mini-content{background:var(--mini-bg);scrollbar-color:#343A45 transparent}
+.acg-mini-quick-order{
+  gap:5px;padding:7px 9px 6px;
+  background:transparent;color:var(--mini-text);
+}
+.acg-mini-quick-actions{
+  grid-template-columns:minmax(0,1fr) 33px minmax(0,1fr);
+  gap:4px;
+}
+.acg-mini-quick-actions button{
+  height:36px;border:0;border-radius:7px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.09);
+  transition:background .14s ease,filter .14s ease;
+}
+.acg-mini-quick-actions .acg-mini-buy{background:#1D61DE;border-color:transparent}
+.acg-mini-quick-actions .acg-mini-sell{background:#CB3050;border-color:transparent}
+.acg-mini-quick-actions button span{font-weight:700;letter-spacing:-.01em}
+.acg-mini-quick-actions button strong{font-weight:700;letter-spacing:-.025em}
+.acg-mini-spread{color:#DCE1E8;gap:1px}
+.acg-mini-spread strong{font-weight:720}
+.acg-mini-spread small{color:#8995A4}
+.acg-mini-free-margin,.acg-mini-estimate{
+  color:var(--mini-muted);font-size:9px;
+}
+.acg-mini-free-margin strong,.acg-mini-estimate strong{
+  color:#E9ECF1;font-weight:670;
+}
+.acg-mini-order-family{
+  background:#171A20;border:1px solid #242832;
+  border-radius:7px;padding:2px;gap:2px;
+  box-shadow:none;
+}
+.acg-mini-order-family button{
+  border-radius:5px;color:#98A2AF;font-weight:550;
+}
+.acg-mini-order-family button[aria-pressed="true"]{
+  color:#F5F6F8;background:#30343D;font-weight:670;
+  box-shadow:none;
+}
+.acg-mini-field label,.acg-mini-quantity-label label{
+  color:#AEB8C5;font-size:9px;font-weight:570;
+}
+.acg-mini-pending-field input{
+  background:var(--mini-field);color:#F2F4F7;
+  border:1px solid #343B46;border-radius:6px;
+  font-size:10.5px;box-shadow:none;
+}
+.acg-mini-pending-field input:disabled{
+  background:#12151A;border-color:#252A32;
+  color:#8C97A5;opacity:1;
+}
+.acg-mini-pending-field input:focus-visible{
+  border-color:#7B8DA5;outline:0;
+  box-shadow:0 0 0 1px rgba(145,162,187,.24);
+}
+.acg-mini-sizing-switch{
+  background:#1B1E25;border:1px solid #333945;
+  color:#DCE1E9;border-radius:6px;font-weight:620;
+}
+.acg-mini-sizing-switch:hover:not(:disabled){background:#252A33}
+.acg-mini-quantity{
+  background:#171A20;border:1px solid #303641;
+  border-radius:7px;overflow:hidden;
+}
+.acg-mini-quantity input{font-weight:720;color:#F1F4F8}
+.acg-mini-quantity button{
+  color:#C8D0DC;transition:background .12s ease,color .12s ease;
+}
+.acg-mini-quantity button:hover:not(:disabled){
+  background:#242831;color:#FFF;
+}
+.acg-mini-quantity button:first-child{border-right:1px solid #282D36}
+.acg-mini-quantity button:last-child{border-left:1px solid #282D36}
+.acg-mini-risk-row{color:#AEB7C4}
+.acg-mini-risk-row button{
+  background:#1A1E25;border:1px solid #333A45;
+  border-radius:6px;color:#DFE4EB;font-weight:620;
+}
+.acg-mini-risk-row button:hover{background:#262B34;border-color:#485261}
+.acg-mini-risk-row button[aria-pressed="true"]{
+  background:#293442;border-color:#6C809A;color:#F6F8FA;
+}
+.acg-mini-estimate{
+  border-top:1px solid #252A33;
+  padding-top:3px;
+}
+.acg-mini-rows{background:var(--mini-bg)}
+.acg-mini-row{
+  background:#171B21;border:1px solid #2B323C;
+  border-radius:7px;
+}
+.acg-mini-row:hover{background:#1D222A;border-color:#516071}
+.acg-mini-facts{border-top-color:#2C3440}
+.acg-mini-facts small{color:#8F9AA8}
+
 /* Native Document PiP already has its own domain, focus and close chrome.
    Avoid a duplicate ACG titlebar; regular popups keep our close/back controls. */
 .acg-mini-terminal[data-window-mode="Always on top"] .acg-mini-titlebar{display:none}
