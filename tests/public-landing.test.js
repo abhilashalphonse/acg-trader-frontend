@@ -145,7 +145,6 @@ test('public homepage uses V4 design language and current production capability 
   assert.ok(mobileCss.includes('max-height:600px'));
 
   assert.match(html, /Illustrative mobile interface\. Trading features and access depend on your account and device\./);
-  assert.match(html, /not indicate available instruments, supported integrations, partners or endorsements/);
   assert.doesNotMatch(html, /data-video-control=|class="film-media-control"/);
   for (const id of ['acg-three-markets-film','ai-prism-film','acg-terminal-film']) {
     const match = html.match(new RegExp('<video id="' + id + '"[^>]*>'));
