@@ -28,13 +28,6 @@ try {
   }
   assert.ok(ready, 'Railway-style static host did not start: ' + logs);
 
-  const partial = await fetch(base + '/media/acg-three-markets.mp4', {
-    headers: { Range: 'bytes=0-99' }
-  });
-  assert.equal(partial.status, 206);
-  assert.match(partial.headers.get('content-type') || '', /video\/mp4/);
-  assert.match(partial.headers.get('content-range') || '', /bytes 0-99\/1547415/);
-  assert.equal((await partial.arrayBuffer()).byteLength, 100);
 
   mkdirSync('artifacts', { recursive: true });
   const browser = await chromium.launch({ channel:'chrome', headless:true, args:['--no-sandbox','--disable-dev-shm-usage'] });
@@ -57,7 +50,7 @@ try {
         brand: document.querySelector('.site-header .brand img')?.getAttribute('src'),
         videoCount: document.querySelectorAll('.film-video').length,
         videoTypes: [...document.querySelectorAll('.film-video source')].map(v=>v.type),
-        validSources: [...document.querySelectorAll('.film-video')].every(v => v.querySelector('source')?.src?.includes('/media/') || (['ai-prism-film','acg-terminal-film'].includes(v.id) && v.querySelector('source')?.src?.includes('mwkwvchaqjqtyfgmialk.supabase.co'))),
+        validSources: [...document.querySelectorAll('.film-video')].every(v => v.querySelector('source')?.src?.includes('/media/') || (['acg-three-markets-film','ai-prism-film','acg-terminal-film'].includes(v.id) && v.querySelector('source')?.src?.includes('mwkwvchaqjqtyfgmialk.supabase.co'))),
         width: document.documentElement.scrollWidth,
         viewportWidth: window.innerWidth,
         filmHeight: document.querySelector('.market-film')?.getBoundingClientRect().height
@@ -95,17 +88,30 @@ try {
       assert.deepEqual(values.videoTypes, ['video/mp4','video/mp4','video/mp4']);
       assert.ok(values.validSources);
       assert.ok(values.width <= values.viewportWidth + 3, viewport.label+' horizontal overflow: '+JSON.stringify(values));
-      assert.ok(values.filmHeight >= 125 && values.filmHeight <= 260, viewport.label+' compact video height: '+values.filmHeight);
+      assert.ok(values.filmHeight >= 145 && values.filmHeight <= 760, viewport.label+' cinematic video height: '+values.filmHeight);
       const section = await page.evaluate(() => {
         const intro = document.querySelector('#market-intro')?.getBoundingClientRect();
         const film = document.querySelector('#market-intro .market-film')?.getBoundingClientRect();
         const viewportWidth = window.innerWidth;
         return { width: film?.width, intro: intro?.top, videoCenter: film ? film.left + film.width/2 : 0, viewportWidth };
       });
-      assert.ok(section.width <= (viewport.label === 'desktop' ? 470 : 305), viewport.label+' small film width: '+JSON.stringify(section));
+      assert.ok(section.width <= (viewport.label === 'desktop' ? 1160 : section.viewportWidth+2), viewport.label+' cinematic film fits: '+JSON.stringify(section));
+      assert.ok(section.width >= (viewport.label === 'desktop' ? 850 : 300), viewport.label+' video fills the stage: '+JSON.stringify(section));
       assert.ok(Math.abs(section.videoCenter - section.viewportWidth / 2) < 8, viewport.label+' video centered');
       assert.equal(await page.locator('#market-intro .market-intro-cta[href="#markets"]').textContent(), 'Explore markets');
       assert.equal(await page.locator('#market-intro #acg-three-markets-film').count(), 1);
+      const newFilm = page.locator('#acg-three-markets-film');
+      const newSource = await newFilm.locator('source').getAttribute('src');
+      assert.equal(newSource,
+        'https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20logo%20BTC%20swirl.mp4');
+      await page.waitForTimeout(1100);
+      const filmMeta=await newFilm.evaluate(v=>({width:v.videoWidth,height:v.videoHeight,
+        duration:v.duration,time:v.currentTime,readyState:v.readyState,paused:v.paused}));
+      console.log('ACG_MARKETS_BTC_SWIRL_'+viewport.label+' '+JSON.stringify(filmMeta));
+      assert.ok(filmMeta.width>0 && filmMeta.height>0 && filmMeta.readyState >= 2,
+        viewport.label+' new BTC swirl video decoded');
+      await page.locator('#market-intro').screenshot({path:'artifacts/markets-btc-swirl-'+viewport.label+'.png'});
+
       assert.equal(await page.locator('.fact-strip').count(), 0);
       // Third section is an illustrative AI preview, NOT a fake working tool.
       const ai = page.locator('#features.ai-section');
