@@ -47,7 +47,7 @@
  }
  .market-intro-media{
    align-self:center;width:100vw;max-width:none;
-   margin:clamp(14px,4.6vw,25px) 0 0;
+   margin:clamp(10px,3.2vw,18px) 0 0;
    overflow:hidden;
  }
  .market-intro .market-film{
