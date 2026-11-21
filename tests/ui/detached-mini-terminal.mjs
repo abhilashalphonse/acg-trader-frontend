@@ -262,18 +262,17 @@ try {
       return result;
     };
   });
-  const closePopupPromise = fallback.waitForEvent('popup', { timeout: 8000 });
+  const closePopupPromise = fallback.waitForEvent('popup', { timeout: 10000 }).catch(error => error);
   await fallback.getByRole('button', { name: 'Pop out mini terminal' }).click();
-  let closePopup;
-  try { closePopup = await closePopupPromise; }
-  catch (failure) {
+  const closePopup = await closePopupPromise;
+  if (closePopup instanceof Error) {
     console.log('MINI_REOPEN_DIAGNOSTIC', JSON.stringify(await fallback.evaluate(() => ({
       attempt: window.__miniWindowOpenDiagnostic,
       state: document.querySelector('.acg-mini-portal-host')?.dataset.acgMiniWindowState,
       enabled: !document.querySelector('[data-acg-mini-header-launcher]')?.disabled,
       alert: document.querySelector('[role="alert"]')?.textContent?.slice(0, 180) || null,
     }))));
-    throw failure;
+    throw closePopup;
   }
   await closePopup.getByRole('button', { name: 'Positions (2)', exact: true }).click();
   await closePopup.locator('.acg-mini-row').first().click();
