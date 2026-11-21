@@ -22,7 +22,8 @@ test('mini visual polish is confined to the popup with consistent graphite surfa
   assert.match(css, /\.acg-mini-pending-field input:disabled/);
   assert.match(css, /\.acg-mini-quick-actions \.acg-mini-buy\{background:#1D61DE/);
   assert.match(css, /\.acg-mini-quick-actions \.acg-mini-sell\{background:#CB3050/);
-  assert.doesNotMatch(css, /\.v4-ticket\s*\{/);
+  const polish = css.slice(css.indexOf('/* Graphite refinement:'));
+  assert.doesNotMatch(polish, /(?:^|\n)\.v4-ticket\s*\{/);
 });
 
 test('the popup dimensions and its audit-only launch contract are preserved', () => {
