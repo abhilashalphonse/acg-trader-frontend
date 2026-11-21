@@ -50,19 +50,22 @@ test('Railway static media server supports byte ranges and MP4 MIME types', () =
   assert.match(server, /res\.writeHead\(416/);
 });
 
-test('film playback honors reduced motion, save-data and explicit user controls', () => {
+test('supporting films retain viewport playback without unnecessary controls', () => {
   const html = readFileSync(src('public/acg-landing-v6.html'), 'utf8');
   const js = readFileSync(src('public/acg-landing-motion.js'), 'utf8');
-  assert.equal((html.match(/data-video-control=/g) || []).length, 1);
-  assert.doesNotMatch(html, /data-video-control="acg-three-markets-film"/);
-  assert.doesNotMatch(html, /<video id="acg-three-markets-film"[^>]*\\bcontrols\\b/);
+  assert.doesNotMatch(html, /data-video-control=|film-media-control/);
+  assert.doesNotMatch(html, /<video[^>]*\\bcontrols\\b/);
+  assert.equal((html.match(/<video\\b/g) || []).length, 3);
+  assert.match(html, /id="acg-hero-replay"/);
   assert.match(js, /IntersectionObserver/);
   assert.match(js, /prefers-reduced-motion: reduce/);
   assert.match(js, /saveData/);
   assert.match(js, /video\.muted = true/);
   assert.match(js, /video\.pause\(\)/);
   assert.match(js, /video\.removeAttribute\('autoplay'\)/);
-  assert.match(js, /button\.addEventListener\('click'/);
+  assert.doesNotMatch(js, /data-video-control|manualPlay|userPaused|button\\.addEventListener/);
+  assert.match(js, /heroReplay\\.addEventListener\\('click'/);
+  assert.match(js, /video\\.removeAttribute\\('controls'\\)/);
   assert.doesNotMatch(js, /\bfetch\s*\(|XMLHttpRequest|localStorage|sessionStorage|document\.cookie|sendBeacon/);
 });
 
