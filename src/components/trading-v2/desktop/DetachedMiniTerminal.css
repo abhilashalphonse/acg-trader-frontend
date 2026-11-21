@@ -430,6 +430,9 @@
 .acg-mini-empty strong{font-size:11px}
 .acg-mini-back{gap:5px;padding:7px 8px;font-size:10px}
 .acg-mini-back svg{width:12px;height:12px}
+/* Native Document PiP already has its own domain, focus and close chrome.
+   Avoid a duplicate ACG titlebar; regular popups keep our close/back controls. */
+.acg-mini-terminal[data-window-mode="Always on top"] .acg-mini-titlebar{display:none}
 /* Browser resize safety: do not hide prices or critical risk controls. */
 @media(max-width:255px){
   .acg-mini-context{grid-template-columns:24px minmax(0,1fr) auto;gap:4px;padding:3px 6px}
