@@ -102,11 +102,12 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   const marketCss = read('public/acg-market-intro.css');
   assert.ok(marketCss.includes('width:min(1140px,100%)'));
   assert.ok(marketCss.includes('object-fit:contain'));
-  assert.ok(marketCss.includes('aspect-ratio:1254/556'), 'clip the empty top matte in the video frame');
-  assert.ok(marketCss.includes('aspect-ratio:1254/674'), 'preserve the native source video proportions');
-  assert.ok(marketCss.includes('.market-intro-media{margin:18px auto 0'), 'tight desktop media spacing');
-  assert.ok(marketCss.includes('.market-intro-media{margin-top:16px}'), 'tight phone media spacing');
-  assert.ok(marketCss.includes('position:absolute;left:0;bottom:0'), 'crop only from the video top while keeping lower artwork visible');
+  assert.ok(marketCss.includes('aspect-ratio:1254/674'), 'both frame and source use the full native ratio');
+  assert.ok(!marketCss.includes('1254/556'), 'old cropped video frame is not allowed');
+  assert.ok(marketCss.includes('.market-intro-media{margin:8px auto 0'), 'tight desktop media spacing without clipping video');
+  assert.ok(marketCss.includes('.market-intro-media{margin-top:8px}'), 'tight phone media spacing without clipping video');
+  assert.ok(marketCss.includes('display:block;position:static;width:100%;height:100%'), 'video stays in the full-size frame');
+  assert.ok(!marketCss.includes('position:absolute;left:0;bottom:0'), 'no bottom-aligned video cropping');
   assert.ok(!html.includes('not indicate available instruments, supported integrations, partners or endorsements'));
   assert.ok(!html.includes('class="market-intro-note"'));
   assert.ok(html.includes('Simulated trading only. Instrument availability varies by account. Trading involves risk.'));
