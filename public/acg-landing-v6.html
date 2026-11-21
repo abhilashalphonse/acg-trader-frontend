@@ -401,6 +401,7 @@ html{scroll-padding-top:80px}
 </style>
 <link rel="stylesheet" href="/acg-cinema-hero.css"/>
 <link rel="stylesheet" href="/acg-market-intro.css"/>
+<link rel="stylesheet" href="/acg-ai-section.css"/>
 </head>
 <body>
 <a href="#main" class="skip">Skip to content</a>
@@ -452,15 +453,37 @@ html{scroll-padding-top:80px}
   <p class="market-intro-note">Conceptual market artwork. Logos do not indicate available instruments, supported integrations, partners or endorsements. Stock availability depends on licensed data and the permissions of your authorized account.</p>
  </div>
 </section>
- <section class="section" id="features"><div class="shell">
-  <div class="section-head"><div><h2>Everything around<br/>the trade.</h2></div><p>Market context, execution and position management belong in one workspace—not across disconnected screens.</p></div>
-  <div class="feature-grid">
-   <article class="feature"><h3>See the market clearly.</h3><p>Navigate instruments and timeframes from a chart-first interface, with drawing tools and market visibility in the same workspace.</p><div class="feature-visual"><span class="chip chip-active">Chart workspace</span><span class="chip">Timeframes</span><span class="chip">Drawing tools</span></div></article>
-   <article class="feature"><h3>Place the order you planned.</h3><p>Work with market and pending orders. Review sizing and protective levels before you submit a trade in your simulated account.</p><div class="feature-visual"><span class="chip chip-active">Market orders</span><span class="chip">Pending orders</span><span class="chip">Stop loss / take profit</span></div></article>
-   <article class="feature"><h3>Define risk before entry.</h3><p>Choose between lots, margin amount, risk percentage and fixed monetary risk when preparing an order. Controls depend on the account and instrument.</p><div class="feature-visual"><span class="chip chip-active">Lots</span><span class="chip">Margin</span><span class="chip">Risk %</span><span class="chip">Risk amount</span></div></article>
-   <article class="feature"><h3>Stay with the trade.</h3><p>Review open positions, pending orders and trading history. Adjust supported levels and manage exposure from inside the terminal.</p><div class="feature-visual"><span class="chip chip-active">Positions</span><span class="chip">Pending</span><span class="chip">History</span><span class="chip">Journal</span></div></article>
+ <section class="ai-section" id="features" aria-labelledby="ai-section-heading">
+  <div class="ai-section-backdrop" aria-hidden="true">
+    <video class="film-video ai-section-video" id="ai-prism-film" muted loop playsinline preload="metadata" aria-hidden="true" tabindex="-1">
+      <source src="https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20Prism%20Background.mp4" type="video/mp4"/>
+    </video>
   </div>
- </div></section>
+  <div class="ai-section-shade" aria-hidden="true"></div>
+  <div class="shell ai-section-inner">
+    <div class="ai-section-copy">
+      <h2 id="ai-section-heading">Think it. Ask it. Trade smarter.</h2>
+      <p>From market questions to structured trade plans. An AI-powered trading experience built around your decisions.</p>
+      <a class="ai-section-cta" href="#ai-preview">Learn more <span aria-hidden="true">↗</span></a>
+    </div>
+    <div class="ai-preview" id="ai-preview" tabindex="-1" aria-label="Illustrative AI trading prompt">
+      <div class="ai-preview-header">
+        <span class="ai-preview-spark" aria-hidden="true">✧</span>
+        <strong>AI</strong>
+      </div>
+      <div class="ai-preview-prompt">Analyze XAU/USD. What is the market structure and where is the invalidation?</div>
+      <div class="ai-preview-footer">
+        <div class="ai-preview-tags" aria-label="Example analysis areas">
+          <span>Market context</span>
+          <span>Setup evaluation</span>
+          <span>Risk planning</span>
+        </div>
+        <span class="ai-preview-action" aria-hidden="true">Analyze <span>↗</span></span>
+      </div>
+    </div>
+    <p class="ai-section-note">Illustrative AI workflow, not live market analysis or an executable trading tool.</p>
+  </div>
+</section>
  <section class="shield-story" id="experience" aria-labelledby="shield-heading">
   <div class="shell shield-story-layout">
    <div class="shield-story-copy" data-film-reveal>
