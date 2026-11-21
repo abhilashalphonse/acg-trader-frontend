@@ -91,15 +91,34 @@ test('public homepage uses V4 design language and current production capability 
   const featuresStart = html.indexOf('id="features"');
   const aiStart = html.indexOf('class="ai-section"');
   const mobileStart = html.indexOf('class="mobile-story"');
-  assert.ok(introStart < aiStart && aiStart < mobileStart, 'AI is the third landing section and mobile is fourth');
+  const terminalStart = html.indexOf('class="terminal-story"');
+  assert.ok(introStart < aiStart && aiStart < terminalStart && terminalStart < mobileStart, 'AI is third, Terminal fourth, Mobile fifth');
   assert.ok(heroEnd < introStart && introStart < featuresStart, 'second section follows hero');
   assert.equal((html.match(/id="acg-three-markets-film"/g) || []).length, 1);
   const marketCss = readFileSync(new URL('../public/acg-market-intro.css', import.meta.url), 'utf8');
   assert.match(marketCss, /width:min\(460px,100%\)/);
   assert.match(marketCss, /width:min\(300px,100%\)/);
 
-  assert.equal((html.match(/<video\b/g) || []).length, 3);
+  assert.equal((html.match(/<video\b/g) || []).length, 4);
   assert.match(html, /src="\/media\/acg-three-markets\.mp4"/);
+  // Approved centered terminal section, inserted before the existing mobile artwork.
+  assert.ok(html.includes('class="terminal-story" id="terminal"'));
+  assert.ok(html.includes('id="terminal-heading">Your entire trading workspace. One screen.</h2>'));
+  assert.ok(html.includes('Analyze markets, plan orders and manage positions directly from the chart. Everything you need for a focused trading workflow.'));
+  assert.ok(html.includes('class="terminal-story-cta" href="#trading">Explore the terminal'));
+  assert.ok(html.includes('id="acg-terminal-film"'));
+  assert.ok(html.includes('ACG%20Trader%20Terminal.mp4'));
+  assert.ok(html.includes('href="/acg-terminal-section.css"'));
+  const terminalDisclaimer = 'Past performance is not an indicator of future performance. Data displayed above is indicative only. The return may increase or decrease as a result of currency fluctuations. Actual execution price may vary. Pricing data is provided by Acg Trader.';
+  assert.ok(html.includes(terminalDisclaimer), 'Terminal disclaimer must match the approved text');
+  const terminalCss = readFileSync(new URL('../public/acg-terminal-section.css', import.meta.url), 'utf8');
+  assert.ok(terminalCss.includes('width:min(940px,100%)'));
+  assert.ok(terminalCss.includes('object-fit:contain'));
+  assert.ok(terminalCss.includes('max-width:600px'));
+  assert.ok(terminalCss.includes('max-height:600px'));
+  assert.ok(terminalCss.includes('prefers-reduced-motion:reduce'));
+  assert.ok(html.includes('href="#terminal">Terminal</a>'));
+  assert.ok(html.includes('href="#experience">Mobile</a>'));
   assert.match(html, /src="\/media\/acg-trader-mobile-artwork\.webp"/);
   assert.match(html, /poster="\/media\/acg-three-markets-poster\.jpg"/);
   assert.match(html, /href="\/acg-mobile-section\.css"/);
@@ -115,7 +134,7 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /Illustrative mobile interface\. Trading features and access depend on your account and device\./);
   assert.match(html, /not indicate available instruments, supported integrations, partners or endorsements/);
   assert.doesNotMatch(html, /data-video-control=|class="film-media-control"/);
-  for (const id of ['acg-three-markets-film','ai-prism-film']) {
+  for (const id of ['acg-three-markets-film','ai-prism-film','acg-terminal-film']) {
     const match = html.match(new RegExp('<video id="' + id + '"[^>]*>'));
     assert.ok(match, id);
     assert.doesNotMatch(match[0], /\bcontrols\b/, id + ' should not show a media control');
