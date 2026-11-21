@@ -407,6 +407,7 @@ html{scroll-padding-top:80px}
 
 </style>
 <link rel="stylesheet" href="/acg-cinema-hero.css"/>
+<link rel="stylesheet" href="/acg-market-intro.css"/>
 </head>
 <body>
 <a href="#main" class="skip">Skip to content</a>
@@ -447,7 +448,24 @@ html{scroll-padding-top:80px}
  </div>
  <button type="button" id="acg-hero-replay" class="acg-cinema-replay" hidden aria-label="Replay ACG Trader logo animation">↻ Replay</button>
 </section>
-<div class="fact-strip"><div class="shell fact-grid"><div class="fact"><b>Chart-first</b><small>Market analysis at the center</small></div><div class="fact"><b>Order planning</b><small>Market and pending order workflows</small></div><div class="fact"><b>Risk inputs</b><small>Lots, margin and risk-based sizing</small></div><div class="fact"><b>Position controls</b><small>Manage orders, stops and targets</small></div></div></div>
+
+<section class="market-intro" id="market-intro" aria-labelledby="market-intro-title">
+ <div class="shell market-intro-inner">
+  <h2 id="market-intro-title">Stocks, Forex and Crypto.</h2>
+  <p class="market-intro-description">Access key market categories in one chart-first platform built for analysis, execution and position management.</p>
+  <a class="market-intro-cta" href="#markets">Explore markets</a>
+  <div class="market-intro-media">
+  <div class="market-film" data-film-reveal>
+   <video id="acg-three-markets-film" class="film-video" muted loop playsinline controls preload="metadata" poster="/media/acg-three-markets-poster.jpg" aria-label="Conceptual rotating metallic markets artwork; not a live list of tradable assets">
+    <source src="/media/acg-three-markets.mp4" type="video/mp4"/>Your browser cannot play this video.
+   </video>
+   <button class="film-media-control" type="button" data-video-control="acg-three-markets-film" hidden aria-label="Play Three Markets animation">Play</button>
+  </div>
+
+  </div>
+  <p class="market-intro-note">Conceptual market artwork, not an instrument list. Stock availability and trading permissions depend on your authorized account and licensed data coverage; some categories may not be enabled. Featured logos are not partnerships or endorsements.</p>
+ </div>
+</section>
  <section class="section" id="features"><div class="shell">
   <div class="section-head"><div><h2>Everything around<br/>the trade.</h2></div><p>Market context, execution and position management belong in one workspace—not across disconnected screens.</p></div>
   <div class="feature-grid">
@@ -481,13 +499,6 @@ html{scroll-padding-top:80px}
  </div></section>
  <section class="section markets" id="markets"><div class="shell">
   <div class="section-head"><div><h2>Follow the markets<br/>you trade.</h2></div><p>Access a focused instrument catalog in supported simulated trading environments. Specific instruments and permissions depend on your account.</p></div>
-  <div class="market-film" data-film-reveal>
-   <video id="acg-three-markets-film" class="film-video" muted loop playsinline controls preload="metadata" poster="/media/acg-three-markets-poster.jpg" aria-label="Conceptual rotating metallic markets artwork; not a live list of tradable assets">
-    <source src="/media/acg-three-markets.mp4" type="video/mp4"/>Your browser cannot play this video.
-   </video>
-   <button class="film-media-control" type="button" data-video-control="acg-three-markets-film" hidden aria-label="Play Three Markets animation">Play</button>
-  </div>
-  <p class="market-film-caption">Conceptual markets artwork. Logos and instrument names appearing in the animation do not indicate available instruments, supported integrations, partners or endorsements. The currently supported categories are listed below.</p>
   <div class="market-list"><div class="market-item"><h3>Forex</h3><p>Currency pairs, including EUR/USD</p></div><div class="market-item"><h3>Commodities</h3><p>Selected metals and energy instruments, including gold</p></div><div class="market-item"><h3>Crypto</h3><p>Selected cryptocurrency markets, including Bitcoin</p></div></div>
   <p class="markets-note">Instrument availability is controlled by the connected account, market-data coverage and trading permissions. This page does not advertise unrestricted market access or live brokerage execution.</p>
  </div></section>
