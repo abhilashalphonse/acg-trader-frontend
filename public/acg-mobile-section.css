@@ -14,7 +14,7 @@
 .mobile-story-copy{position:relative;z-index:2;min-width:0;max-width:600px}
 .mobile-story-copy h2{
   margin:0;color:#fdfdfe;
-  font-size:clamp(45px,5.05vw,77px);
+  font-size:clamp(44px,4.35vw,70px);
   font-weight:630;line-height:1.075;letter-spacing:-.07em;
   text-wrap:balance;
 }
@@ -54,7 +54,7 @@
 }
 @media(min-width:1900px){
   .mobile-story-layout{min-height:880px}
-  .mobile-story-copy h2{font-size:82px}
+  .mobile-story-copy h2{font-size:72px}
 }
 @media(max-width:1000px){
   .mobile-story-layout{gap:24px;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-height:650px}
@@ -71,8 +71,8 @@
   .mobile-story-copy>p:not(.mobile-story-note){font-size:15.5px;margin-top:22px}
   .mobile-story-cta{margin-top:27px;min-height:49px;font-size:13px;padding:12px 22px}
   .mobile-story-note{font-size:10px;margin-top:19px}
-  .mobile-story-visual{margin:0 auto;max-width:540px}
-  .mobile-story-visual img{width:100%;max-width:540px}
+  .mobile-story-visual{margin:0 auto;max-width:540px;overflow:hidden}
+  .mobile-story-visual img{width:140%;max-width:none;flex-shrink:0}
 }
 @media(max-width:420px){
   .mobile-story-layout{padding-top:65px;padding-bottom:42px;gap:30px}
