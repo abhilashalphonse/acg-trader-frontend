@@ -100,9 +100,10 @@ test('public homepage uses V4 design language and current production capability 
   const mobileStart = html.indexOf('class="mobile-story"');
   const terminalStart = html.indexOf('class="terminal-story"');
   const aiConnectionsStart = html.indexOf('class="ai-connect-story"');
+  const moversStart = html.indexOf('class="market-movers-story"');
   const workflowStart = html.indexOf('class="section workflow"');
-  assert.ok(introStart < aiStart && aiStart < terminalStart && terminalStart < mobileStart && mobileStart < aiConnectionsStart && aiConnectionsStart < workflowStart,
-    'AI is third, Terminal fourth, Mobile fifth, AI connections sixth before trading workflow');
+  assert.ok(introStart < aiStart && aiStart < terminalStart && terminalStart < mobileStart && mobileStart < aiConnectionsStart && aiConnectionsStart < moversStart && moversStart < workflowStart,
+    'Section 7 Market Movers follows AI connections and precedes trading workflow');
   assert.ok(heroEnd < introStart && introStart < featuresStart, 'second section follows hero');
   assert.equal((html.match(/id="acg-three-markets-film"/g) || []).length, 1);
   assert.ok(!html.includes('/media/acg-three-markets.mp4'), 'Replaced market-coins clip is not used');
@@ -119,7 +120,7 @@ test('public homepage uses V4 design language and current production capability 
     'tablet and mobile also have no bottom padding');
   assert.ok(!marketCss.includes('.market-intro-note'), 'removed obsolete artwork-note styles');
 
-  assert.equal((html.match(/<video\b/g) || []).length, 5);
+  assert.equal((html.match(/<video\b/g) || []).length, 6);
   assert.ok(html.includes('src="https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20logo%20BTC%20swirl.mp4"'));
   // Approved centered terminal section, inserted before the existing mobile artwork.
   assert.ok(html.includes('class="terminal-story" id="terminal"'));
@@ -171,8 +172,21 @@ test('public homepage uses V4 design language and current production capability 
   assert.ok(aiConnectionCss.includes('prefers-reduced-motion:reduce'));
   assert.ok(aiConnectionCss.includes('margin:18px auto 0'), 'video sits closer to the CTA');
   assert.match(html, /Illustrative mobile interface\. Trading features and access depend on your account and device\./);
+  assert.ok(html.includes('class="market-movers-story" id="market-movers"'));
+  assert.ok(html.includes('id="market-movers-heading">See what’s moving.</h2>'));
+  assert.ok(html.includes('Follow market movements and discover what’s gaining momentum across a unified trading workspace.'));
+  assert.ok(html.includes('class="market-movers-cta" href="#markets">Explore markets'));
+  assert.ok(html.includes('ACG%20Market%20Movers%20-%20Take%20the%20Lead.mp4'));
+  assert.ok(html.includes('Illustrative market movements. Rankings and price moves are for demonstration only'));
+  assert.ok(html.includes('href="/acg-market-movers-section.css"'));
+  assert.ok(html.includes('href="#market-movers">Market movers</a>'));
+  const moversCss = readFileSync(new URL('../public/acg-market-movers-section.css', import.meta.url), 'utf8');
+  assert.ok(moversCss.includes('grid-template-columns:minmax(0,42fr) minmax(0,58fr)'));
+  assert.ok(moversCss.includes('max-width:767px'));
+  assert.ok(moversCss.includes('object-fit:contain'));
+  assert.ok(moversCss.includes('prefers-reduced-motion:reduce'));
   assert.doesNotMatch(html, /data-video-control=|class="film-media-control"/);
-  for (const id of ['acg-three-markets-film','ai-prism-film','acg-terminal-film','acg-ai-connection-film']) {
+  for (const id of ['acg-three-markets-film','ai-prism-film','acg-terminal-film','acg-ai-connection-film','acg-market-movers-film']) {
     const match = html.match(new RegExp('<video id="' + id + '"[^>]*>'));
     assert.ok(match, id);
     assert.doesNotMatch(match[0], /\bcontrols\b/, id + ' should not show a media control');
