@@ -158,7 +158,8 @@ test('public homepage uses V4 design language and current production capability 
   assert.ok(html.includes('class="ai-connect-disclosure">Acg Trader does not endorse or guarantee third-party AI Tools. AI may produce errors or inaccurate outputs. You remain responsible for reviewing and approving all orders before execution. Acg Trader is not liable for any resulting losses, missed opportunities, or erroneous trades</p>'), 'Section 6 uses the approved third-party AI disclaimer');
   assert.ok(html.includes('class="ai-connect-cta" href="#ai-connect-film">Explore the concept</a>'));
   assert.ok(html.includes('id="acg-ai-connection-film"'));
-  assert.ok(html.includes('ACG%20Trader%20AI%20Connection.mp4'));
+  assert.ok(html.includes('ACG%20Trader%20-%20Overnight%20Scan.mp4'));
+  assert.ok(!html.includes('ACG%20Trader%20AI%20Connection.mp4'), 'old Section 6 film is no longer used');
   assert.ok(html.includes('href="/acg-ai-connection-section.css"'));
   assert.ok(html.includes('href="#ai-connections">AI connections</a>'));
   const aiConnectionCss = readFileSync(new URL('../public/acg-ai-connection-section.css', import.meta.url), 'utf8');
