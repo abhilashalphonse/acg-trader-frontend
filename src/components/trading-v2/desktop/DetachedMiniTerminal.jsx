@@ -191,7 +191,7 @@ const DetachedMiniTerminal = React.forwardRef(function DetachedMiniTerminal({
   };
   const rows = tab === 'positions' ? positions : pendingOrders;
   return <>
-    <div ref={host} className="acg-mini-portal-host" aria-hidden={detached || !error} />
+    <div ref={host} className="acg-mini-portal-host" data-acg-mini-window-state={detached ? "open" : "closed"} aria-hidden={detached || !error} />
     {createPortal(detached ? (
       <section className="acg-mini-terminal acg-desktop-v3" aria-label="ACG mini terminal" data-window-mode={mode}>
         <header className="acg-mini-titlebar" title={account?.accountCode||account?.id||'ACG Trader'}>
