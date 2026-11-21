@@ -577,7 +577,6 @@ try {
             'AI prompt uses the available readable content gutter: '+JSON.stringify(editorial));
           assert.ok(editorial.faqRowHeight>=68,
             'FAQ rows remain comfortable mobile touch targets: '+JSON.stringify(editorial));
-        }
           const q=await page.evaluate(()=>{
             const selector=s=>document.querySelector(s);
             const box=s=>selector(s).getBoundingClientRect();
