@@ -44,8 +44,8 @@ test('V4 navbar, footer and responsive menu preserve authorized account login ro
   assert.ok(!html.includes('href="#markets"') && !html.includes('href="#trading"'), 'removed anchors stay absent');
   assert.match(html, /\.mobile-nav\{display:none/);
   assert.match(html, /@media\(max-width:800px\)/);
-  assert.match(html, /href="\/\?acg_connect_prop=1"/);
-  assert.match(html, /href="\/\?acg_login=1"/);
+  assert.match(html, /href="\/terminal\?acg_connect_prop=1"/);
+  assert.match(html, /href="\/terminal\?acg_login=1"/);
   assert.doesNotMatch(html, /href="\/\?acg_auth=signup"/);
   for (const anchor of ['platform', 'features', 'market-intro', 'market-movers', 'access']) {
     assert.ok(html.includes('id="' + anchor + '"'), anchor);
