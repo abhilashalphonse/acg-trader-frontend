@@ -322,7 +322,7 @@ export default function DesktopOrderTicket({
       onSizingModeChange('lots');
       setLotInput(Number(defaultLots).toFixed(lotDecimals));
       onOrderTypeChange('limit');
-      onNotice('Choose Buy or Sell to project a pending order on the chart.');
+      if (variant !== 'mini') onNotice('Choose Buy or Sell to project a pending order on the chart.');
       return;
     }
 
@@ -473,7 +473,7 @@ export default function DesktopOrderTicket({
         protection: 'none',
         desktopPendingDraft: true,
       });
-      onNotice(`${side === 'buy' ? 'Buy' : 'Sell'} Limit projection active — drag entry, adjust lots, then press ${side === 'buy' ? 'Buy' : 'Sell'} again to place.`);
+      if (variant !== 'mini') onNotice(`${side === 'buy' ? 'Buy' : 'Sell'} Limit projection active — drag entry, adjust lots, then press ${side === 'buy' ? 'Buy' : 'Sell'} again to place.`);
       return;
     }
 
@@ -485,7 +485,7 @@ export default function DesktopOrderTicket({
         protection: 'none',
         desktopPendingDraft: true,
       });
-      onNotice(`${side === 'buy' ? 'Buy' : 'Sell'} Limit projection active — drag entry or adjust lots.`);
+      if (variant !== 'mini') onNotice(`${side === 'buy' ? 'Buy' : 'Sell'} Limit projection active — drag entry or adjust lots.`);
       return;
     }
 
