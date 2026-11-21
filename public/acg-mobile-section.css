@@ -1,0 +1,100 @@
+/* ACG Trader — Section 4: responsive mobile experience.
+   Approved split-screen layout using the authentic supplied phone artwork. */
+#experience.mobile-story{
+  position:relative;isolation:isolate;overflow:hidden;
+  background:#000;color:#f8f8fa;
+  border-top:1px solid #0c0c0e;border-bottom:1px solid #141417;
+}
+.mobile-story-layout{
+  display:grid;grid-template-columns:minmax(0,1.04fr) minmax(0,.96fr);
+  align-items:center;gap:clamp(18px,4vw,76px);
+  min-height:clamp(650px,72vw,840px);
+  padding-top:clamp(68px,6vw,96px);padding-bottom:clamp(68px,6vw,96px);
+}
+.mobile-story-copy{position:relative;z-index:2;min-width:0;max-width:600px}
+.mobile-story-copy h2{
+  margin:0;color:#fdfdfe;
+  font-size:clamp(44px,4.35vw,70px);
+  font-weight:630;line-height:1.075;letter-spacing:-.07em;
+  text-wrap:balance;
+}
+.mobile-story-copy>p:not(.mobile-story-note){
+  margin:29px 0 0;max-width:520px;
+  color:#d9d9df;font-size:clamp(16px,1.45vw,19px);
+  font-weight:530;letter-spacing:-.016em;line-height:1.62;
+}
+.mobile-story-cta{
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  margin-top:38px;min-height:52px;
+  padding:13px 26px;border-radius:999px;
+  background:#f8f8f9;border:1px solid #f8f8f9;
+  color:#101014;text-decoration:none;
+  font-size:14px;font-weight:700;letter-spacing:-.012em;
+  transition:background-color .16s ease,color .16s ease;
+}
+.mobile-story-cta:hover{background:#e5e5e9;color:#060608}
+.mobile-story-cta:focus-visible{outline:3px solid #9dbaff;outline-offset:4px}
+.mobile-story-note{
+  margin:22px 0 0;max-width:510px;
+  color:#a1a1ab;font-size:10.5px;line-height:1.65;
+}
+.mobile-story-visual{
+  position:relative;margin:0;min-width:0;overflow:visible;
+  display:flex;align-items:center;justify-content:center;
+  width:100%;height:auto;
+}
+.mobile-story-visual img{
+  display:block;width:100%;height:auto;max-width:650px;
+  object-fit:contain;object-position:center;
+  filter:none;transform:none;user-select:none;
+}
+@media(min-width:1500px){
+  .mobile-story-layout{grid-template-columns:minmax(0,1fr) minmax(0,1.06fr);gap:65px}
+  .mobile-story-visual img{max-width:660px}
+}
+@media(min-width:1900px){
+  .mobile-story-layout{min-height:880px}
+  .mobile-story-copy h2{font-size:72px}
+}
+@media(max-width:1000px){
+  .mobile-story-layout{gap:24px;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-height:650px}
+  .mobile-story-copy h2{font-size:clamp(42px,5.5vw,57px)}
+  .mobile-story-copy>p:not(.mobile-story-note){font-size:16px}
+}
+@media(max-width:720px){
+  .mobile-story-layout{
+    min-height:0;grid-template-columns:minmax(0,1fr);
+    gap:34px;padding-top:76px;padding-bottom:55px;
+  }
+  .mobile-story-copy{width:100%;max-width:560px;margin:0 auto;text-align:left}
+  .mobile-story-copy h2{font-size:clamp(43px,9vw,66px);line-height:1.08}
+  .mobile-story-copy>p:not(.mobile-story-note){font-size:15.5px;margin-top:22px}
+  .mobile-story-cta{margin-top:27px;min-height:49px;font-size:13px;padding:12px 22px}
+  .mobile-story-note{font-size:10px;margin-top:19px}
+  .mobile-story-visual{margin:0 auto;max-width:540px;overflow:hidden}
+  .mobile-story-visual img{width:140%;max-width:none;flex-shrink:0}
+}
+@media(max-width:420px){
+  .mobile-story-layout{padding-top:65px;padding-bottom:42px;gap:30px}
+  .mobile-story-copy h2{font-size:clamp(39px,10.2vw,46px);letter-spacing:-.065em}
+  .mobile-story-copy>p:not(.mobile-story-note){font-size:15px;line-height:1.59}
+  .mobile-story-visual{max-width:410px}
+}
+@media(max-width:360px){
+  .mobile-story-copy h2{font-size:38px}
+  .mobile-story-cta{font-size:12px}
+}
+@media(max-height:600px) and (orientation:landscape){
+  .mobile-story-layout{
+    grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);
+    min-height:430px;padding-top:48px;padding-bottom:40px;gap:20px;
+  }
+  .mobile-story-copy h2{font-size:clamp(36px,5vw,55px)}
+  .mobile-story-copy>p:not(.mobile-story-note){font-size:13px;margin-top:15px;line-height:1.45}
+  .mobile-story-cta{margin-top:19px;min-height:40px;padding:9px 19px;font-size:12px}
+  .mobile-story-note{margin-top:14px;font-size:9px}
+  .mobile-story-visual img{max-height:520px;width:auto;max-width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+  .mobile-story-cta{transition:none}
+}
