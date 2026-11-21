@@ -127,24 +127,37 @@
     transform:none;
   }
 
-  /* Market Movers: presentation area is taller and closer to device edges.
-     Enlarge the existing film, never create controls or overlays. */
-  #market-movers.market-movers-story{min-height:0;padding:56px 0 27px}
-  #market-movers .market-movers-inner{width:calc(100% - 32px);gap:0}
+  /* Market Movers: one purposeful mobile viewport, with copy at the top
+     and the entire native film centered in the remaining vertical stage.
+     The original 16:9 source is never cropped, stretched or CSS-zoomed. */
+  #market-movers.market-movers-story{
+    display:flex;align-items:stretch;
+    min-height:100vh;min-height:100svh;
+    padding:52px 0 54px;
+  }
+  #market-movers .market-movers-inner{
+    width:calc(100% - 32px);
+    min-height:calc(100svh - 106px);
+    display:flex;flex-direction:column;align-items:stretch;gap:0;
+  }
   #market-movers .market-movers-copy h2{
     font-size:clamp(38px,9.7vw,49px);line-height:1.08;
   }
   #market-movers .market-movers-copy p{margin-top:17px}
   #market-movers .market-movers-cta{margin-top:21px}
-  #market-movers .market-movers-media{width:100vw;max-width:none;margin:8px 0 0 -16px}
+  #market-movers .market-movers-media{
+    flex:1;min-height:clamp(340px,52svh,620px);
+    width:100vw;max-width:none;margin:0 0 0 -16px;
+    display:flex;align-items:center;justify-content:center;
+  }
   #market-movers .market-movers-frame{
-    width:100vw;max-width:none;
-    margin-left:0;aspect-ratio:4/3;
-    background:#000;
+    width:100vw;max-width:100vw;height:auto;
+    margin:0;aspect-ratio:16/9;background:#000;
   }
   #market-movers .market-movers-frame .market-movers-video{
+    width:100%;height:100%;display:block;
     transform:none;transform-origin:center;
-    object-fit:cover;object-position:center;background:#000;
+    object-fit:contain;object-position:center;background:#000;
   }
 
   /* Account access: clear, efficient, black-on-black hierarchy. */

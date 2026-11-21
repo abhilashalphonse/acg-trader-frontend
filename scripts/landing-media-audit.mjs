@@ -8,7 +8,7 @@ import { Buffer } from 'node:buffer';
 const html = readFileSync(new URL('../public/acg-landing-v6.html', import.meta.url), 'utf8');
 const desktopPaths = [...html.matchAll(/<source\s+src="(\/media\/[^"]+\.mp4)"\s+type="video\/mp4"/g)].map(m => m[1]);
 assert.equal(desktopPaths.length, 6, 'Expected six first-party desktop films');
-const mobilePaths = ['/media/market-movers-mobile.mp4'];
+const mobilePaths = [];
 for (const path of mobilePaths) {
   assert.ok(html.includes('src="' + path + '"'), 'Mobile video source missing: ' + path);
 }
