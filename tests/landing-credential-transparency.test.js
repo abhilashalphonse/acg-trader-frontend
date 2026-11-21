@@ -40,7 +40,7 @@ test('account connection screen identifies its issuer and requires explicit auth
 test('unavailable offerings are absent, not presented as roadmap or implied current products', () => {
   const page = source('public/acg-landing-v6.html');
   assert.doesNotMatch(page, /coming soon|in development|roadmap|white label|free tier|futures|options/i);
-  assert.match(page, /Instrument availability is controlled by the connected account/);
+  assert.match(page, /Simulated trading only\. Instrument availability varies by account\. Trading involves risk\./);
   assert.match(page, /Simulated trading for authorized accounts/);
 });
 
