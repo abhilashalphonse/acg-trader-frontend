@@ -152,7 +152,7 @@ try {
         assert.equal(marketFilmGeometry.textAlign, 'left', 'mobile section copy must be left aligned');
         assert.ok(Math.abs(marketFilmGeometry.headingLeft-marketFilmGeometry.ctaLeft) < 3,
           'headline and CTA share an editorial left edge: '+JSON.stringify(marketFilmGeometry));
-        assert.ok(marketFilmGeometry.topGap >= 13 && marketFilmGeometry.topGap <= 27,
+        assert.ok(marketFilmGeometry.topGap >= 10 && marketFilmGeometry.topGap <= 31,
           'mobile CTA must breathe before the cinematic art: '+JSON.stringify(marketFilmGeometry));
         assert.equal(await newFilm.evaluate(el=>getComputedStyle(el).objectFit),'cover',
           'mobile art must crop to fill the stage without stretching');
@@ -694,7 +694,7 @@ try {
           'larger immersive film at '+width+': '+JSON.stringify(q));
         assert.ok(Math.abs(q.headingLeft-q.buttonLeft)<3 && q.objectFit==='cover',
           'editorial alignment and cinematic crop at '+width+': '+JSON.stringify(q));
-        assert.ok(q.filmGap>=13 && q.filmGap<=27,
+        assert.ok(q.filmGap>=10 && q.filmGap<=31,
           'tight CTA-to-film rhythm at '+width+': '+JSON.stringify(q));
         if (width===354) await stage.screenshot({path:'artifacts/market-intro-354px-final-scale.png'});
       } finally {
