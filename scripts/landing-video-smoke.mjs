@@ -138,18 +138,37 @@ try {
           bottomAlignment: Math.abs(frame.bottom - movie.bottom),
           leftAlignment: Math.abs(frame.left - movie.left),
           rightAlignment: Math.abs(frame.right - movie.right),
+          frameHeight: frame.height,
+          headingLeft: document.querySelector('#market-intro h2').getBoundingClientRect().left,
+          ctaLeft: cta.left,
+          textAlign: getComputedStyle(document.querySelector('#market-intro .market-intro-inner')).textAlign,
         };
       });
-      assert.ok(Math.abs(marketFilmGeometry.frameRatio - 1254/674) < 0.015,
-        viewport.label + ' film frame shows the full native source, without cropping: ' + JSON.stringify(marketFilmGeometry));
-      assert.ok(Math.abs(marketFilmGeometry.videoRatio - 1254/674) < 0.015,
-        viewport.label + ' source remains undistorted: ' + JSON.stringify(marketFilmGeometry));
-      assert.ok(marketFilmGeometry.topGap >= 0 && marketFilmGeometry.topGap <= 12,
-        viewport.label + ' CTA and full film remain visually connected: ' + JSON.stringify(marketFilmGeometry));
+      if (viewport.label === 'mobile') {
+        assert.ok(marketFilmGeometry.frameHeight >= 400 && marketFilmGeometry.frameHeight <= 480,
+          'mobile bitcoin visual must occupy a cinematic vertical stage: '+JSON.stringify(marketFilmGeometry));
+        assert.ok(marketFilmGeometry.frameRatio >= 0.75 && marketFilmGeometry.frameRatio <= 1.1,
+          'mobile portrait crop must replace the tiny landscape matte: '+JSON.stringify(marketFilmGeometry));
+        assert.equal(marketFilmGeometry.textAlign, 'left', 'mobile section copy must be left aligned');
+        assert.ok(Math.abs(marketFilmGeometry.headingLeft-marketFilmGeometry.ctaLeft) < 3,
+          'headline and CTA share an editorial left edge: '+JSON.stringify(marketFilmGeometry));
+        assert.ok(marketFilmGeometry.topGap >= 27 && marketFilmGeometry.topGap <= 43,
+          'mobile CTA must breathe before the cinematic art: '+JSON.stringify(marketFilmGeometry));
+        assert.equal(await newFilm.evaluate(el=>getComputedStyle(el).objectFit),'cover',
+          'mobile art must crop to fill the stage without stretching');
+      } else {
+        assert.ok(Math.abs(marketFilmGeometry.frameRatio - 1254/674) < 0.015,
+          'desktop film preserves full native landscape framing: '+JSON.stringify(marketFilmGeometry));
+        assert.ok(Math.abs(marketFilmGeometry.videoRatio - 1254/674) < 0.015,
+          'desktop source remains undistorted: '+JSON.stringify(marketFilmGeometry));
+        assert.ok(marketFilmGeometry.topGap >= 0 && marketFilmGeometry.topGap <= 12,
+          'desktop CTA and video remain connected: '+JSON.stringify(marketFilmGeometry));
+        assert.equal(await newFilm.evaluate(el=>getComputedStyle(el).objectFit),'contain',
+          'desktop shows full uncropped film');
+      }
       assert.ok(marketFilmGeometry.topAlignment < 2 && marketFilmGeometry.bottomAlignment < 2
         && marketFilmGeometry.leftAlignment < 2 && marketFilmGeometry.rightAlignment < 2,
-        viewport.label + ' full video must align to all four edges of the frame: ' + JSON.stringify(marketFilmGeometry));
-      assert.equal(await newFilm.evaluate(el=>getComputedStyle(el).objectFit),'contain');
+        'video element must align to full film stage: '+JSON.stringify(marketFilmGeometry));
       assert.equal(await marketIntro.locator('.market-intro-note').count(), 0,
         viewport.label + ' Section 2 should not render a trailing artwork note');
       const sectionBottomGap = await marketIntro.evaluate(el => {
