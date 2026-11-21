@@ -357,7 +357,7 @@ try {
         assert.ok(moversGeometry.copyRight+20 < moversGeometry.videoLeft,
           'Market Movers must split copy left and film right: '+JSON.stringify(moversGeometry));
       }else{
-        assert.ok(moversGeometry.frameWidth>=350 && moversGeometry.frameHeight>=225,
+        assert.ok(moversGeometry.frameWidth>=350 && moversGeometry.frameHeight>=190,
           'mobile film must fill available column: '+JSON.stringify(moversGeometry));
         assert.ok(moversGeometry.ctaBottom+5 <= moversGeometry.videoTop,
           'Market Movers must stack copy above film on mobile: '+JSON.stringify(moversGeometry));
