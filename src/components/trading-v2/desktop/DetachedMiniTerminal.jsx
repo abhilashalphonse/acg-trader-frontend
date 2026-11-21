@@ -15,11 +15,11 @@ function MiniTrade({ render, onDock }) {
 
 // A portal keeps the terminal's React context and callbacks in the opener.
 // No credentials, commands or account snapshots are copied into another app.
-export default function DetachedMiniTerminal({
-  visible, account, market, markets, positions, pendingOrders, notice,
+const DetachedMiniTerminal = React.forwardRef(function DetachedMiniTerminal({
+  account, market, markets, positions, pendingOrders, notice,
   positionsLoading, positionsError, onRetryPositions, readOnly,
-  onSelectSymbol, renderTrade, renderPosition, renderPending,
-}) {
+  onSelectSymbol, renderTrade, renderPosition, renderPending, onReadyChange,
+}, ref) {
   const host = useRef(null);
   const [container] = useState(() => document.createElement('div'));
   const windowRef = useRef(null);
@@ -142,6 +142,14 @@ export default function DetachedMiniTerminal({
     } finally { opening.current = false; }
   };
 
+  // The header invokes this imperatively during the user's click, preserving
+  // the browser's popup activation permission. Never open from an effect.
+  React.useImperativeHandle(ref, () => ({ open: openWindow }));
+  useEffect(() => {
+    onReadyChange?.(true);
+    return () => onReadyChange?.(false);
+  }, [onReadyChange]);
+
   const dock = () => { const child = windowRef.current; restoreRef.current?.(); child?.close(); };
   const back = () => setSelection(null);
   const instrumentFor = item => markets.find(instrument => instrument.symbol === item.symbol) || null;
@@ -184,12 +192,6 @@ export default function DetachedMiniTerminal({
   const rows = tab === 'positions' ? positions : pendingOrders;
   return <>
     <div ref={host} className="acg-mini-portal-host" aria-hidden={detached || !error} />
-    {visible && <button type="button" className="acg-mini-rail-launcher mb-1 grid size-9 place-items-center rounded-md"
-      data-acg-mini-launcher="true" aria-label="Pop out mini terminal"
-      title={detached?'Focus mini terminal':'Open mini terminal'}
-      aria-pressed={detached} onClick={openWindow}>
-      <ExternalLink size={17} strokeWidth={1.8}/>
-    </button>}
     {createPortal(detached ? (
       <section className="acg-mini-terminal acg-desktop-v3" aria-label="ACG mini terminal" data-window-mode={mode}>
         <header className="acg-mini-titlebar" title={account?.accountCode||account?.id||'ACG Trader'}>
@@ -264,4 +266,6 @@ export default function DetachedMiniTerminal({
       <button type="button" aria-label="Dismiss pop-out error" onClick={() => setError('')}><X size={12}/></button>
     </div> : null), container)}
   </>;
-}
+});
+
+export default DetachedMiniTerminal;
