@@ -1,0 +1,118 @@
+/* Section 3 — cinematic AI narrative, grounded in the supplied prism-line film.
+   The prompt card is an illustration, not a live trading input. No playback controls. */
+#features.ai-section{
+  position:relative;isolation:isolate;overflow:hidden;
+  min-height:clamp(760px,96svh,950px);
+  padding:clamp(96px,10vw,138px) 0 82px;
+  background:#000;color:#f7f7f8;border:0;
+}
+.ai-section-backdrop{position:absolute;inset:0;z-index:0;background:#000;overflow:hidden;pointer-events:none}
+.ai-section-backdrop::before{
+  content:"";position:absolute;left:-10%;top:49%;width:120%;height:8px;
+  transform:rotate(-3.3deg);transform-origin:center;
+  background:linear-gradient(180deg,#eb3e2b 0 24%,#f0d443 24% 46%,#6bd6ff 46% 66%,#4364e3 66% 83%,#080a28 83% 100%);
+  filter:drop-shadow(0 1px 7px #2554b177);
+  opacity:.68;
+}
+.ai-section .ai-section-video{
+  position:absolute;inset:0;display:block;
+  width:100%;height:100%;object-fit:cover;object-position:center center;
+  opacity:1;filter:none;transform:none;border:0;pointer-events:none;
+}
+.ai-section-shade{
+  position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(180deg,#0008 0%,#0002 29%,transparent 46%,#0000 62%,#0007 100%),
+             radial-gradient(ellipse 51% 32% at 50% 33%,#0008,transparent 100%);
+}
+.ai-section-inner{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;text-align:center}
+.ai-section-copy{width:100%;max-width:1160px;margin:0 auto}
+.ai-section-copy h2{
+  margin:0;color:#fff;font-size:clamp(46px,5.6vw,84px);font-weight:620;
+  line-height:1.075;letter-spacing:-.073em;text-wrap:balance;
+}
+.ai-section-copy>p{
+  max-width:750px;margin:24px auto 0;color:#e5e5e9;
+  font-size:clamp(16px,1.45vw,20px);font-weight:500;line-height:1.58;
+  letter-spacing:-.021em;text-wrap:pretty;
+}
+.ai-section-cta{
+  display:inline-flex;align-items:center;justify-content:center;gap:12px;
+  min-height:54px;min-width:154px;margin:34px auto 0;padding:13px 27px;
+  border-radius:999px;border:1px solid #f7f7fa;background:#f7f7fa;color:#111115;
+  font-size:14px;line-height:1.4;font-weight:690;text-decoration:none;
+  transition:background-color .15s ease;
+}
+.ai-section-cta:hover{background:#e7e7ec;color:#09090b}
+.ai-section-cta:focus-visible{outline:3px solid #9bb8ff;outline-offset:4px}
+/* Center card below the prism line, without consuming the background's stage. */
+.ai-preview{
+  width:min(520px,100%);margin:clamp(150px,17svh,220px) auto 0;
+  padding:18px 18px 13px;border:1px solid #35353d;border-radius:17px;
+  background:rgba(17,17,21,.91);color:#f4f4f7;text-align:left;
+  box-shadow:0 18px 65px #0009;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  scroll-margin-top:120px;
+}
+.ai-preview:focus-visible{outline:3px solid #9bb8ff;outline-offset:5px}
+.ai-preview:target{border-color:#5d5d67}
+.ai-preview-header{display:flex;align-items:center;gap:8px;min-height:24px;font-size:15px}
+.ai-preview-header strong{font-size:15px;font-weight:670;letter-spacing:-.025em}
+.ai-preview-spark{display:inline-grid;place-items:center;color:#d5d5e0;font-size:25px;line-height:1}
+.ai-preview-prompt{
+  padding:13px 14px;margin-top:12px;border-radius:12px;
+  background:#242429;color:#f0f0f3;font-size:13px;line-height:1.55;
+}
+.ai-preview-footer{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;justify-content:space-between;margin-top:13px}
+.ai-preview-tags{display:flex;flex-wrap:wrap;gap:7px;flex:1 1 280px}
+.ai-preview-tags span{
+  display:inline-block;padding:7px 10px;border:1px solid #373740;
+  border-radius:999px;background:#1c1c21;color:#d9d9e1;font-size:10px;line-height:1.3;
+}
+.ai-preview-action{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  min-height:34px;padding:8px 16px;border-radius:999px;
+  background:#f7f7fa;color:#101014;white-space:nowrap;
+  font-size:11px;font-weight:670;letter-spacing:-.012em;
+}
+.ai-section-note{max-width:560px;margin:18px auto 0;color:#a2a2ac;font-size:10px;line-height:1.55;text-shadow:0 1px 8px #000}
+@media(max-width:900px){
+  #features.ai-section{padding:100px 0 72px;min-height:780px}
+  .ai-section-copy h2{font-size:clamp(48px,6.8vw,70px)}
+  .ai-section-copy>p{max-width:700px}
+  .ai-preview{margin-top:clamp(140px,15svh,190px)}
+}
+@media(max-width:600px){
+  #features.ai-section{padding:83px 0 63px;min-height:810px}
+  .ai-section-copy{max-width:440px}
+  .ai-section-copy h2{font-size:clamp(38px,10vw,52px);letter-spacing:-.065em;line-height:1.11}
+  .ai-section-copy>p{max-width:340px;font-size:15px;margin-top:21px;line-height:1.55}
+  .ai-section-cta{min-height:49px;margin-top:28px;font-size:13px;padding:12px 24px}
+  .ai-preview{width:min(360px,100%);padding:14px 13px 12px;margin-top:clamp(112px,13svh,150px);border-radius:16px}
+  .ai-preview-prompt{font-size:12px}
+  .ai-preview-tags{flex-basis:220px;gap:6px}
+  .ai-preview-tags span{font-size:9px;padding:6px 9px}
+  .ai-preview-action{font-size:10px}
+  .ai-section-note{max-width:330px;font-size:9.5px}
+  .ai-section-shade{background:linear-gradient(180deg,#000a 0%,#0004 32%,transparent 52%,#0009 100%)}
+}
+@media(max-width:380px){
+  .ai-section-copy h2{font-size:clamp(35px,10.2vw,39px)}
+  .ai-preview{max-width:330px}
+  .ai-preview-footer{gap:12px}
+}
+@media(max-height:600px) and (orientation:landscape){
+  #features.ai-section{min-height:645px;padding:66px 0 43px}
+  .ai-section-copy h2{font-size:clamp(34px,5.6vw,52px)}
+  .ai-section-copy>p{margin-top:12px;font-size:13px;max-width:690px}
+  .ai-section-cta{margin-top:15px;min-height:39px;padding:8px 20px;font-size:12px}
+  .ai-preview{margin-top:96px;max-width:480px}
+}
+@media(min-width:1900px){
+  #features.ai-section{min-height:950px}
+  .ai-section-copy h2{font-size:90px}
+  .ai-preview{margin-top:200px}
+}
+@media(prefers-reduced-motion:reduce){
+  .ai-section .ai-section-video{display:none!important}
+  .ai-section-cta{transition:none}
+}
