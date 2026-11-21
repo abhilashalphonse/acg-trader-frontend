@@ -323,6 +323,41 @@ try {
         && moversGeometry.videoBottom<=moversGeometry.sectionBottom+2,
         'Market Movers film fits viewport: '+JSON.stringify(moversGeometry));
       await movers.screenshot({path:'artifacts/market-movers-'+viewport.label+'.png'});
+      // Final section — editorial FAQ accordion replaces the old Markets/Orders CTA.
+      const faq = page.locator('#acg-faq.acg-faq');
+      assert.equal(await faq.count(), 1);
+      assert.equal(await faq.locator('h2').innerText(), 'ACG Trader FAQs');
+      assert.equal(await faq.locator('details.acg-faq-item').count(), 7);
+      assert.equal(await page.locator('.final-cta').count(), 0, 'old closing CTA is removed');
+      assert.equal(await page.locator('.footer a[href="#acg-faq"]').count(), 1);
+      assert.equal(await faq.locator('details[open]').count(), 0, 'FAQs start collapsed');
+      await faq.scrollIntoViewIfNeeded();
+      const rows = faq.locator('details.acg-faq-item');
+      await rows.nth(0).locator('summary').click();
+      assert.equal(await rows.nth(0).getAttribute('open'), '', 'first FAQ expands');
+      assert.ok((await rows.nth(0).locator('.acg-faq-answer').innerText()).includes('chart-first trading technology'));
+      await rows.nth(1).locator('summary').click();
+      assert.equal(await rows.nth(1).getAttribute('open'), '', 'second FAQ expands');
+      assert.equal(await faq.locator('details[open]').count(), 1, 'opening another FAQ closes the prior');
+      await rows.nth(2).locator('summary').focus();
+      await page.keyboard.press('Enter');
+      assert.equal(await rows.nth(2).getAttribute('open'), '', 'keyboard can expand an FAQ');
+      assert.equal(await faq.locator('details[open]').count(), 1);
+      const faqBounds=await faq.evaluate(el=>{
+        const header=el.querySelector('h2').getBoundingClientRect();
+        const first=el.querySelector('details summary').getBoundingClientRect();
+        const section=el.getBoundingClientRect();
+        const css=getComputedStyle(el);
+        return {titleLeft:header.left,titleRight:header.right,
+          rowLeft:first.left,rowRight:first.right,sectionBottom:section.bottom,
+          viewportWidth:innerWidth,background:css.backgroundColor};
+      });
+      assert.equal(faqBounds.background,'rgb(0, 0, 0)', 'FAQ black background');
+      assert.ok(faqBounds.titleLeft>=-2 && faqBounds.titleRight<=faqBounds.viewportWidth+2,
+        viewport.label+' FAQ title fits the screen: '+JSON.stringify(faqBounds));
+      assert.ok(faqBounds.rowLeft>=-2 && faqBounds.rowRight<=faqBounds.viewportWidth+2,
+        viewport.label+' FAQ questions fit the screen: '+JSON.stringify(faqBounds));
+      await faq.screenshot({path:'artifacts/acg-faq-'+viewport.label+'.png'});
       assert.deepEqual(errors, [], viewport.label+' errors');
       await page.screenshot({ path:'artifacts/landing-film-'+viewport.label+'-motion.png' });
       await page.evaluate(() => { document.documentElement.style.scrollBehavior='auto'; window.scrollTo(0,0); });
