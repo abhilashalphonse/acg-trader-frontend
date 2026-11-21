@@ -31,6 +31,8 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+      - name: Install FFmpeg probe for media release checks
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - name: Audit live cinematic MP4 files for mobile compatibility
         run: node scripts/landing-media-audit.mjs
       - name: Cinematic landing video browser acceptance
