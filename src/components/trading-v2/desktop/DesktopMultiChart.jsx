@@ -18,6 +18,7 @@ function cellGrid(layout) {
 export default function DesktopMultiChart({
   compactContext = false,
   chartOrderV4 = false,
+  directPendingCancel = false,
   chartSettings = null,
   config,
   onChange = () => {},
@@ -141,6 +142,7 @@ export default function DesktopMultiChart({
                 <ChartArea
                   desktopEnhanced
                   chartOrderV4={chartOrderV4}
+                  directPendingCancel={isActive && directPendingCancel}
                   compactContext={compactContext}
                   chartSettings={chartSettings}
                   symbol={symbol}

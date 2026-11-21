@@ -421,6 +421,7 @@ export default function DesktopTerminal({
   const floatingOrderRef = useRef(null);
   const miniTerminalRef = useRef(null);
   const [miniTerminalReady, setMiniTerminalReady] = useState(false);
+  const [miniTerminalDetached, setMiniTerminalDetached] = useState(false);
   const openMiniTerminal = useCallback(() => miniTerminalRef.current?.open(), []);
   const searchRef = useRef(null);
   const [activeNav, setActiveNav] = useState('trade');
@@ -1391,6 +1392,7 @@ export default function DesktopTerminal({
               <DesktopMultiChart
                 compactContext={positionsExpanded}
                 chartOrderV4={V4_DESKTOP_EXECUTION_ENABLED}
+                directPendingCancel={DOCK_AUDIT_ENABLED && miniTerminalDetached}
                 chartSettings={chartSettings}
                 config={multiChart}
                 onChange={setMultiChart}
@@ -1592,6 +1594,7 @@ export default function DesktopTerminal({
                   <DetachedMiniTerminal
                     ref={miniTerminalRef}
                     onReadyChange={setMiniTerminalReady}
+                     onDetachedChange={setMiniTerminalDetached}
                     account={account} market={market} markets={markets}
                     positions={positions} pendingOrders={pendingOrders}
                     positionsLoading={positionsLoading} positionsError={positionsError} onRetryPositions={onRetryPositions}

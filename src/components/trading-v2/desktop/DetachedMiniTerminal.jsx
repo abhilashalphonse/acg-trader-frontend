@@ -18,7 +18,7 @@ function MiniTrade({ render, onDock }) {
 const DetachedMiniTerminal = React.forwardRef(function DetachedMiniTerminal({
   account, market, markets, positions, pendingOrders, notice,
   positionsLoading, positionsError, onRetryPositions, readOnly,
-  onSelectSymbol, renderTrade, renderPosition, renderPending, onReadyChange,
+  onSelectSymbol, renderTrade, renderPosition, renderPending, onReadyChange, onDetachedChange,
 }, ref) {
   const host = useRef(null);
   const [container] = useState(() => document.createElement('div'));
@@ -145,6 +145,11 @@ const DetachedMiniTerminal = React.forwardRef(function DetachedMiniTerminal({
   // The header invokes this imperatively during the user's click, preserving
   // the browser's popup activation permission. Never open from an effect.
   React.useImperativeHandle(ref, () => ({ open: openWindow }));
+  // Only the actual detached window, never the hidden portal host, changes
+  // the chart's compact-flow cancellation presentation.
+  useEffect(() => {
+    onDetachedChange?.(detached);
+  }, [detached, onDetachedChange]);
   useEffect(() => {
     onReadyChange?.(true);
     return () => onReadyChange?.(false);
