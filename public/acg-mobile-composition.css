@@ -99,16 +99,16 @@
 
   /* AI connection: use more of the available width and gently zoom away
      empty film margins; preserve the illustrative disclosure above it. */
-  #ai-connections.ai-connect-story{padding-top:52px}
+  #ai-connections.ai-connect-story{padding-top:46px}
   #ai-connections .ai-connect-inner{align-items:stretch;text-align:left}
   #ai-connections .ai-connect-copy{max-width:none;margin:0}
   #ai-connections .ai-connect-copy h2{max-width:355px;font-size:clamp(37px,9.4vw,47px)}
-  #ai-connections .ai-connect-lead{max-width:350px;margin:17px 0 0;font-size:15px}
-  #ai-connections .ai-connect-disclosure{max-width:350px;margin:12px 0 0;font-size:10.5px;line-height:1.65}
-  #ai-connections .ai-connect-cta{margin:19px 0 0}
+  #ai-connections .ai-connect-lead{max-width:350px;margin:15px 0 0;font-size:15px}
+  #ai-connections .ai-connect-disclosure{max-width:350px;margin:10px 0 0;font-size:10.5px;line-height:1.65}
+  #ai-connections .ai-connect-cta{margin:16px 0 0}
   #ai-connections .ai-connect-stage{
     width:100vw;max-width:none;align-self:center;
-    margin:22px 0 0;aspect-ratio:1.38;
+    margin:16px 0 0;aspect-ratio:1.48;
     overflow:hidden;background:#000;
   }
   #ai-connections .ai-connect-stage .ai-connect-video{
