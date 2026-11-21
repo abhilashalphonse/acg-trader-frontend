@@ -92,7 +92,7 @@ export default function DesktopMultiChart({
           const requestedSymbol = cell.symbol || (index === 0 ? activeSymbol : markets[index]?.symbol) || activeSymbol;
           const instrument = marketFor(markets, requestedSymbol) || marketFor(markets, activeSymbol) || markets[0] || null;
           const symbol = instrument?.symbol || activeSymbol || '';
-          const timeframe = TIMEFRAMES.includes(cell.timeframe) ? cell.timeframe : '1m';
+          const timeframe = TIMEFRAMES.includes(cell.timeframe) ? cell.timeframe : '30m';
           const isActive = index === activeCell;
           const cellIndicators = Array.isArray(cell.indicators) ? cell.indicators : indicators;
           const cellPositions = positions.filter(position => position.symbol === symbol);
