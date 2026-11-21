@@ -55,7 +55,16 @@ function loadIndicators() {
   if (typeof window === 'undefined') return [];
   try {
     const stored = JSON.parse(window.localStorage.getItem(INDICATOR_STORAGE_KEY) || 'null');
-    if (Array.isArray(stored)) return stored;
+    if (Array.isArray(stored)) {
+      // Earlier builds automatically saved [Volume] for every fresh account.
+      // Correct that legacy-only default once, without altering custom sets.
+      const migrationKey = 'acg-trader-default-volume-v2';
+      if (window.localStorage.getItem(migrationKey) !== '1') {
+        window.localStorage.setItem(migrationKey, '1');
+        if (stored.length === 1 && stored[0]?.id === 'volume') return [];
+      }
+      return stored;
+    }
   } catch { /* defaults below */ }
   return [];
 }
@@ -84,6 +93,19 @@ function loadTerminalPrefs() {
   try {
     const stored = JSON.parse(window.localStorage.getItem(TERMINAL_PREFS_KEY) || '{}');
     if (!stored || typeof stored !== 'object') return {};
+    // A new hostname first persisted 1m with otherwise untouched defaults.
+    // Repair only that legacy profile once; preserve custom timeframes.
+    const migrationKey = 'acg-trader-default-timeframe-v2';
+    if (window.localStorage.getItem(migrationKey) !== '1') {
+      window.localStorage.setItem(migrationKey, '1');
+      const legacyDefault = stored.timeframe === '1m'
+        && (stored.chartMode == null || stored.chartMode === 'candles')
+        && (stored.sizingMode == null || stored.sizingMode === 'lots')
+        && (stored.orderType == null || stored.orderType === 'market')
+        && (stored.lots == null || Number(stored.lots) === 0.1)
+        && (stored.riskPercent == null || Number(stored.riskPercent) === 0.5);
+      if (legacyDefault) return { ...stored, timeframe: '30m' };
+    }
     return { ...stored, timeframe: normalizeTimeframePreference(stored.timeframe) };
   } catch {
     return {};
