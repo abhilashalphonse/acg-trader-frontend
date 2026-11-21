@@ -58,7 +58,7 @@ try {
       assert.match(values.heading || '', /Advanced trading\./);
       assert.equal(await page.locator('.acg-cinema-eyebrow').textContent(), 'Trading & Beyond');
       assert.equal(await page.locator('.acg-cinema-subhead').textContent(), 'Chart-first execution. Risk-based order planning.');
-      assert.equal(await page.locator('a.acg-cinema-primary[href="/?acg_login=1"]').count(), 1);
+      assert.equal(await page.locator('a.acg-cinema-primary[href="/terminal?acg_login=1"]').count(), 1);
       assert.equal(await page.locator('a.acg-cinema-secondary[href="/contact.html?topic=enterprise"]').count(), 1);
       const heroBounds = await page.evaluate(() => {
         const hero = document.querySelector('.acg-cinema')?.getBoundingClientRect();
@@ -74,7 +74,7 @@ try {
       assert.equal(values.brand, '/acg-trader-wordmark.png');
       assert.equal(values.videoCount, 5);
       assert.equal(await page.locator('video#acg-hero-reveal').count(), 1);
-      assert.equal(await page.locator('a.acg-cinema-primary[href="/?acg_login=1"]').count(), 1);
+      assert.equal(await page.locator('a.acg-cinema-primary[href="/terminal?acg_login=1"]').count(), 1);
       assert.equal(await page.locator('a.acg-cinema-secondary[href="/contact.html?topic=enterprise"]').count(), 1);
       const heroAssets = await page.evaluate(() => [...document.querySelectorAll('.acg-cinema source')].map(s => s.src || s.srcset));
       assert.equal(heroAssets.length, 1);
@@ -100,7 +100,7 @@ try {
       assert.ok(section.width >= (viewport.label === 'desktop' ? 850 : 300), viewport.label+' video fills the stage: '+JSON.stringify(section));
       assert.ok(Math.abs(section.videoCenter - section.viewportWidth / 2) < 8, viewport.label+' video centered');
       const marketIntro = page.locator('#market-intro');
-      assert.equal(await marketIntro.locator('.market-intro-cta[href="/?acg_login=1"]').textContent(), 'See for yourself');
+      assert.equal(await marketIntro.locator('.market-intro-cta[href="/terminal?acg_login=1"]').textContent(), 'See for yourself');
       assert.equal(await marketIntro.locator('.market-intro-cta').getAttribute('title'), 'Sign in to access your ACG Trader workspace');
       assert.equal(await marketIntro.locator('.market-intro-risk').textContent(),
         'Simulated trading only. Instrument availability varies by account. Trading involves risk.');
@@ -200,7 +200,7 @@ try {
       assert.equal(await terminal.count(), 1);
       assert.equal(await terminal.locator('h2').innerText(), 'Your entire trading workspace. One screen.');
       assert.ok((await terminal.locator('.terminal-story-copy > p').innerText()).includes('Analyze markets, plan orders'));
-      assert.equal(await terminal.locator('.terminal-story-cta').getAttribute('href'), '/?acg_login=1');
+      assert.equal(await terminal.locator('.terminal-story-cta').getAttribute('href'), '/terminal?acg_login=1');
       assert.equal(await terminal.locator('#acg-terminal-film source').count(), 1);
       assert.ok((await terminal.locator('#acg-terminal-film source').getAttribute('src')).includes('terminal.mp4'));
       assert.equal(await terminal.locator('figcaption').innerText(),
@@ -229,7 +229,7 @@ try {
       await terminal.screenshot({path:'artifacts/terminal-story-'+viewport.label+'.png'});
       const mobileSection=page.locator('#experience.mobile-story');
       assert.equal(await mobileSection.locator('h2').innerText(), 'Your trading desk.\nIn your pocket.');
-      assert.equal(await mobileSection.locator('.mobile-story-cta').getAttribute('href'), '/?acg_login=1');
+      assert.equal(await mobileSection.locator('.mobile-story-cta').getAttribute('href'), '/terminal?acg_login=1');
       assert.ok((await mobileSection.locator('.mobile-story-cta').innerText()).includes('Explore mobile trading'));
       const artwork=mobileSection.locator('img[src="/media/acg-trader-mobile-artwork.webp"]');
       assert.equal(await artwork.count(), 1);
