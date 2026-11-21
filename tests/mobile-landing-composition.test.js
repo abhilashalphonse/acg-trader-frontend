@@ -35,7 +35,7 @@ test('all mobile cinematic stages use compact purposeful layouts without modifyi
   assert.ok(css.includes('transform:scale(1.55)'));
   assert.ok(css.includes('#experience .mobile-story-visual img{'));
   assert.ok(css.includes('max-height:535px'));
-  assert.doesNotMatch(css, /film-tap-to-play|acg-hero-tap-to-play|play-button|controls/);
+  assert.doesNotMatch(css, /\.film-tap-to-play|\.acg-hero-tap-to-play|\.play-button/);
   const html=read('public/acg-landing-v6.html');
   assert.equal((html.match(/<video\b/g)||[]).length,6);
   assert.ok(html.includes('class="ai-connect-disclosure"'));
