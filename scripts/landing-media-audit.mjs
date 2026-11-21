@@ -6,8 +6,13 @@ import { spawnSync } from 'node:child_process';
 import { Buffer } from 'node:buffer';
 
 const html = readFileSync(new URL('../public/acg-landing-v6.html', import.meta.url), 'utf8');
-const paths = [...html.matchAll(/<source\s+src="(\/media\/[^"]+\.mp4)"\s+type="video\/mp4"/g)].map(m => m[1]);
-assert.equal(paths.length, 6, 'Expected six first-party films');
+const desktopPaths = [...html.matchAll(/<source\\s+src="(\\/media\\/[^"]+\\.mp4)"\\s+type="video\\/mp4"/g)].map(m => m[1]);
+assert.equal(desktopPaths.length, 6, 'Expected six first-party desktop films');
+const mobilePaths = ['/media/overnight-scan-mobile.mp4', '/media/market-movers-mobile.mp4'];
+for (const path of mobilePaths) {
+  assert.ok(html.includes('src="' + path + '"'), 'Mobile video source missing: ' + path);
+}
+const paths = [...desktopPaths, ...mobilePaths];
 let failures = 0;
 for (const path of paths) {
   try {
@@ -31,6 +36,8 @@ for (const path of paths) {
       pixFmt: video.pix_fmt, dimensions: video.width + 'x' + video.height,
       duration: result.format?.duration, faststart, streams: result.streams.map(s => s.codec_name)
     }));
+    if (path.includes('overnight-scan-mobile')) assert.equal(video.width + 'x' + video.height, '960x720');
+    if (path.includes('market-movers-mobile')) assert.equal(video.width + 'x' + video.height, '800x600');
     assert.equal(video.codec_name, 'h264', 'Safari-compatible video must use H.264');
     assert.equal(video.pix_fmt, 'yuv420p', 'Safari-compatible video should use 8-bit yuv420p');
     assert.equal(result.streams.length, 1, 'Autoplay films must have no audio track');
