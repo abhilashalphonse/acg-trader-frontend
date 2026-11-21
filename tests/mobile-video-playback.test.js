@@ -15,7 +15,7 @@ test('six landing films use silent inline autoplay without playback controls', (
     assert.doesNotMatch(tag, /\bcontrols\b/);
   }
   assert.ok(!html.includes('href="/acg-mobile-video-playback.css"'));
-  assert.ok(html.includes('<script src="/acg-landing-motion.js?v=20261121-mobile-no-controls" defer>'));
+  assert.ok(html.includes('<script src="/acg-landing-motion.js?v=20261121-mobile-recovery1" defer>'));
 });
 
 test('autoplay can gracefully fall back to still imagery without adding a Play button', () => {
@@ -33,4 +33,17 @@ test('autoplay can gracefully fall back to still imagery without adding a Play b
   assert.ok(js.includes("document.addEventListener('visibilitychange'"));
   assert.doesNotMatch(js, /createElement\(['"]button|film-tap-to-play|hero-tap-to-play|Play video|Play intro animation/);
   assert.doesNotMatch(js, /\bfetch\s*\(|XMLHttpRequest|localStorage|sessionStorage|document\.cookie/);
+});
+
+
+test('recover mobile playback after load, visibility, resume or a user gesture without controls', () => {
+  const js = read('public/acg-landing-motion.js');
+  assert.match(js, /video\.addEventListener\(event/);
+  assert.match(js, /'loadeddata', 'canplay'/);
+  assert.match(js, /state\.visible && !wasVisible/);
+  assert.match(js, /addEventListener\('pageshow', retryVisibleFilms\)/);
+  assert.match(js, /addEventListener\('touchstart', retryVisibleFilms/);
+  assert.match(js, /addEventListener\('pointerdown', retryVisibleFilms/);
+  assert.match(js, /Date\.now\(\) - state\.lastAttempt < 1500/);
+  assert.doesNotMatch(js, /createElement\(['"]button|film-tap-to-play/);
 });
