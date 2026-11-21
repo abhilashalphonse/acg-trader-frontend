@@ -95,7 +95,7 @@ test('Hosting prohibits inline scripts and allows only the audited first-party m
   assert.match(csp,/form-action 'self'/);
   const html=readFileSync(new URL('../public/acg-landing-v6.html',import.meta.url),'utf8');
   const tags = [...html.matchAll(/<script\b[^>]*>/g)].map(x => x[0]);
-  assert.deepEqual(tags, ['<script src="/acg-landing-motion.js?v=20261121-mobile-playback" defer>']);
+  assert.deepEqual(tags, ['<script src="/acg-landing-motion.js?v=20261121-mobile-no-controls" defer>']);
   assert.doesNotMatch(html, /<script\b[^>]*>[\s\S]+?<\/script>/i);
   const motion = readFileSync(new URL('../public/acg-landing-motion.js', import.meta.url), 'utf8');
   assert.doesNotMatch(motion, /\bfetch\s*\(|XMLHttpRequest|sendBeacon|localStorage|sessionStorage|document\.cookie|eval\s*\(|new Function\s*\(/);
