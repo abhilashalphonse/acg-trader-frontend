@@ -383,6 +383,7 @@ html{scroll-padding-top:80px}
 <link rel="stylesheet" href="/acg-ai-section.css"/>
 <link rel="stylesheet" href="/acg-terminal-section.css"/>
 <link rel="stylesheet" href="/acg-mobile-section.css"/>
+<link rel="stylesheet" href="/acg-ai-connection-section.css"/>
 </head>
 <body>
 <a href="#main" class="skip">Skip to content</a>
@@ -495,6 +496,21 @@ html{scroll-padding-top:80px}
   </figure>
  </div>
 </section>
+ <section class="ai-connect-story" id="ai-connections" aria-labelledby="ai-connect-heading">
+  <div class="shell ai-connect-inner">
+   <div class="ai-connect-copy">
+    <h2 id="ai-connect-heading">Trade with your AI assistant.</h2>
+    <p class="ai-connect-lead">Imagine asking the AI assistant you choose to review markets, shape a trading strategy and prepare an order for you to approve—connected to your ACG Trader workspace.</p>
+    <p class="ai-connect-disclosure">Concept preview only. Third-party AI connections, prompt-based order placement and automated execution are not currently live. AI outputs can be inaccurate. Provider logos shown do not imply partnership or endorsement.</p>
+    <a class="ai-connect-cta" href="#ai-connect-film">Explore the concept</a>
+   </div>
+   <div class="ai-connect-stage" id="ai-connect-film" data-film-reveal tabindex="-1">
+    <video id="acg-ai-connection-film" class="film-video ai-connect-video" muted loop playsinline preload="metadata" aria-label="Concept animation showing ACG Trader trading charts and several AI assistant icons; not an operational integration">
+     <source src="https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20Trader%20AI%20Connection.mp4" type="video/mp4"/>Your browser cannot play this video.
+    </video>
+   </div>
+  </div>
+ </section>
  <section class="section workflow" id="trading"><div class="shell workflow-grid">
   <div><h2>From analysis<br/>to execution.</h2><p class="workflow-lead">A coherent workflow for discretionary traders. Focus on price action, establish the plan, then manage the result without leaving the platform.</p><div class="steps"><div class="step"><div><strong>Analyze</strong><p>Select a market, inspect its chart and place your levels in context.</p></div></div><div class="step"><div><strong>Plan</strong><p>Set order type, sizing method and protective levels before submission.</p></div></div><div class="step"><div><strong>Manage</strong><p>Monitor positions, orders and account activity as the market moves.</p></div></div></div></div>
   <div class="workflow-preview" aria-label="Illustration of ACG Trader order-planning controls, not an interactive trading ticket"><div class="head"><strong>Order planning</strong><small>ACG Trader · illustrative</small></div><div class="preview-rows"><div><span>Order type</span><strong>Market / Pending</strong></div><div><span>Position sizing</span><strong>Lots · Margin · Risk</strong></div><div><span>Stop loss</span><strong>Set a protective price</strong></div><div><span>Take profit</span><strong>Set a target price</strong></div><div><span>Account costs</span><strong>Review estimates</strong></div></div><div class="preview-actions"><span>SELL</span><span>BUY</span></div><p class="workflow-caption">Interface illustration only. Buttons on this page do not place orders. Order acceptance and risk enforcement are determined by the trading backend.</p></div>
@@ -514,7 +530,7 @@ html{scroll-padding-top:80px}
 </main>
 <footer class="footer"><div class="shell">
  <div class="footer-grid"><div><a class="brand" href="/" aria-label="ACG Trader home"><img class="brand-original" src="/acg-trader-wordmark.png" alt="ACG Trader" width="388" height="67" decoding="async"/></a><p class="footer-intro">Chart-first trading technology for market analysis, risk planning and simulated account execution.</p><p class="footer-operator">Developed by ACG-MANAGEMENT, UNIPESSOAL LDA, Portugal.</p></div>
- <nav aria-label="Platform links"><b>Platform</b><a href="#platform">Overview</a><a href="#features">AI</a><a href="#terminal">Terminal</a><a href="#experience">Mobile</a><a href="#trading">Trading workflow</a><a href="#markets">Markets</a><a href="#access">Account access</a></nav>
+ <nav aria-label="Platform links"><b>Platform</b><a href="#platform">Overview</a><a href="#features">AI</a><a href="#terminal">Terminal</a><a href="#experience">Mobile</a><a href="#ai-connections">AI connections</a><a href="#trading">Trading workflow</a><a href="#markets">Markets</a><a href="#access">Account access</a></nav>
  <nav aria-label="Support and legal links"><b>Support &amp; legal</b><a href="/account-security.html">Account security</a><a href="/contact.html">Contact</a><a href="/privacy.html">Privacy Policy</a><a href="/terms.html">Terms of Service</a></nav></div>
  <div class="footer-bottom"><p>ACG Trader provides technology for simulated trading and market analysis; it is not a broker or investment adviser. Simulated balances and performance are not real money. The platform does not hold client deposits or offer live brokerage accounts. Trading involves risk, and no tool guarantees results. Interface illustrations contain no live market or account data.</p><span>© 2026 ACG-MANAGEMENT, UNIPESSOAL LDA</span></div>
  </div></footer>
