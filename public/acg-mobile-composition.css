@@ -137,7 +137,7 @@
   }
   #market-movers .market-movers-inner{
     width:calc(100% - 32px);
-    flex:1;min-height:calc(100svh - 106px);
+    min-height:calc(100svh - 106px);
     display:flex;flex-direction:column;align-items:stretch;gap:0;
   }
   #market-movers .market-movers-copy h2{
