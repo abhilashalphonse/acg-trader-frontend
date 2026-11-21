@@ -216,9 +216,9 @@ test('public homepage uses V4 design language and current production capability 
   assert.ok(heroCss.includes('min-height:max(620px,100svh)'));
   assert.doesNotMatch(html, /acg-motion-panorama|acg-motion-emblem|film-experience|hero-ambient-video/);
   assert.match(html, /prefers-reduced-motion:reduce/);
-  assert.match(html, /<script src="\/acg-landing-motion\.js\?v=20261121-mobile-playback" defer><\/script>/);
+  assert.match(html, /<script src="\/acg-landing-motion\.js\?v=20261121-mobile-no-controls" defer><\/script>/);
   const scripts = [...html.matchAll(/<script\b[^>]*>/g)].map(match => match[0]);
-  assert.deepEqual(scripts, ['<script src="/acg-landing-motion.js?v=20261121-mobile-playback" defer>']);
+  assert.deepEqual(scripts, ['<script src="/acg-landing-motion.js?v=20261121-mobile-no-controls" defer>']);
   const motion = readFileSync(new URL('../public/acg-landing-motion.js', import.meta.url), 'utf8');
   assert.match(motion, /IntersectionObserver/);
   assert.match(motion, /prefers-reduced-motion: reduce/);
