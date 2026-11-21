@@ -2,37 +2,37 @@
 #ai-connections.ai-connect-story{
   position:relative;isolation:isolate;overflow:hidden;
   background:#000;color:#f7f7fa;border:0;
-  padding:clamp(76px,8.1vw,114px) 0 0;
+  padding:clamp(56px,5.2vw,76px) 0 0;
 }
 .ai-connect-inner{display:flex;flex-direction:column;align-items:center;text-align:center}
-.ai-connect-copy{width:100%;max-width:1120px;margin:0 auto}
+.ai-connect-copy{width:100%;max-width:920px;margin:0 auto}
 .ai-connect-copy h2{
-  margin:0;color:#fff;font-size:clamp(46px,5.45vw,82px);
+  margin:0;color:#fff;font-size:clamp(40px,4.25vw,64px);
   font-weight:630;line-height:1.075;letter-spacing:-.073em;text-wrap:balance;
 }
 .ai-connect-lead{
-  max-width:805px;margin:27px auto 0;color:#e3e3e8;
-  font-size:clamp(16px,1.45vw,20px);font-weight:520;
+  max-width:705px;margin:20px auto 0;color:#e3e3e8;
+  font-size:clamp(15px,1.22vw,18px);font-weight:520;
   line-height:1.55;letter-spacing:-.018em;text-wrap:pretty;
 }
 .ai-connect-disclosure{
-  max-width:750px;margin:24px auto 0;color:#a3a3ad;
-  font-size:11.5px;font-weight:400;line-height:1.65;
+  max-width:690px;margin:17px auto 0;color:#a3a3ad;
+  font-size:11px;font-weight:400;line-height:1.6;
   letter-spacing:0;text-wrap:pretty;
 }
 .ai-connect-cta{
   display:inline-flex;align-items:center;justify-content:center;
-  min-height:54px;margin:29px auto 0;padding:13px 30px;
+  min-height:48px;margin:21px auto 0;padding:11px 27px;
   color:#111114;background:#f8f8fa;border:1px solid #f8f8fa;
   border-radius:999px;text-decoration:none;
-  font-size:14px;font-weight:700;line-height:1.4;
+  font-size:13px;font-weight:700;line-height:1.4;
   transition:background-color .16s ease,color .16s ease;
 }
 .ai-connect-cta:hover{background:#e5e5ea;color:#08080b}
 .ai-connect-cta:focus-visible{outline:3px solid #9dbaff;outline-offset:4px}
 .ai-connect-stage{
-  position:relative;display:block;width:min(1110px,100%);
-  margin:27px auto 0;scroll-margin-top:86px;
+  position:relative;display:block;width:min(790px,100%);
+  margin:18px auto 0;scroll-margin-top:86px;
   overflow:hidden;background:#000;border:0;box-shadow:none;border-radius:0;
 }
 .ai-connect-stage:focus-visible{outline:3px solid #a4beff;outline-offset:-3px}
@@ -42,29 +42,29 @@
   border:0;pointer-events:none;
 }
 @media(max-width:900px){
-  #ai-connections.ai-connect-story{padding-top:81px}
-  .ai-connect-copy h2{font-size:clamp(44px,6.4vw,68px)}
-  .ai-connect-lead{max-width:660px;margin-top:23px;font-size:17px}
-  .ai-connect-disclosure{max-width:600px;font-size:11px;margin-top:21px}
-  .ai-connect-cta{margin-top:25px}
-  .ai-connect-stage{margin-top:23px}
+  #ai-connections.ai-connect-story{padding-top:61px}
+  .ai-connect-copy h2{font-size:clamp(39px,5.2vw,54px)}
+  .ai-connect-lead{max-width:630px;margin-top:19px;font-size:16px}
+  .ai-connect-disclosure{max-width:590px;font-size:10.5px;margin-top:16px}
+  .ai-connect-cta{margin-top:20px}
+  .ai-connect-stage{width:min(730px,100%);margin-top:18px}
 }
 @media(max-width:600px){
-  #ai-connections.ai-connect-story{padding-top:69px}
-  .ai-connect-copy h2{font-size:clamp(40px,9.6vw,55px);line-height:1.095;letter-spacing:-.065em}
-  .ai-connect-lead{max-width:370px;margin-top:22px;font-size:15px;line-height:1.6}
-  .ai-connect-disclosure{max-width:355px;margin-top:18px;font-size:10.5px;line-height:1.55}
-  .ai-connect-cta{margin-top:23px;min-height:49px;padding:12px 25px;font-size:13px}
-  .ai-connect-stage{width:100%;margin-top:20px}
+  #ai-connections.ai-connect-story{padding-top:48px}
+  .ai-connect-copy h2{font-size:clamp(35px,8.7vw,43px);line-height:1.1;letter-spacing:-.065em}
+  .ai-connect-lead{max-width:370px;margin-top:17px;font-size:14px;line-height:1.55}
+  .ai-connect-disclosure{max-width:355px;margin-top:15px;font-size:10px;line-height:1.55}
+  .ai-connect-cta{margin-top:18px;min-height:46px;padding:10px 23px;font-size:12.5px}
+  .ai-connect-stage{width:100%;margin-top:15px}
 }
-@media(max-width:370px){.ai-connect-copy h2{font-size:38px}}
+@media(max-width:370px){.ai-connect-copy h2{font-size:34px}}
 @media(max-height:600px) and (orientation:landscape){
-  #ai-connections.ai-connect-story{padding-top:52px}
-  .ai-connect-copy h2{font-size:clamp(38px,5vw,58px)}
+  #ai-connections.ai-connect-story{padding-top:42px}
+  .ai-connect-copy h2{font-size:clamp(36px,4.5vw,50px)}
   .ai-connect-lead{margin-top:16px;font-size:14px}
   .ai-connect-disclosure{margin-top:13px;font-size:10px}
   .ai-connect-cta{min-height:41px;margin-top:18px}
-  .ai-connect-stage{margin-top:15px}
+  .ai-connect-stage{margin-top:12px}
 }
 @media(prefers-reduced-motion:reduce){
   .ai-connect-cta{transition:none}

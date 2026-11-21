@@ -239,18 +239,24 @@ try {
         const a = selector => el.querySelector(selector).getBoundingClientRect();
         const heading=a('h2'),disclosure=a('.ai-connect-disclosure'),cta=a('.ai-connect-cta'),
               stage=a('.ai-connect-stage'),video=a('.ai-connect-video'),section=el.getBoundingClientRect();
+        const titleFont=parseFloat(getComputedStyle(el.querySelector('h2')).fontSize);
         return { titleLeft:heading.left,titleRight:heading.right,disclosureBottom:disclosure.bottom,
           ctaTop:cta.top,ctaBottom:cta.bottom,stageTop:stage.top,stageLeft:stage.left,
           stageRight:stage.right,stageWidth:stage.width,stageHeight:stage.height,
           videoWidth:video.width,sectionBottom:section.bottom,stageBottom:stage.bottom,
+          sectionHeight:section.height,titleFont,
           screenWidth:window.innerWidth };
       });
       assert.ok(connectionBounds.disclosureBottom <= connectionBounds.ctaTop + 2 &&
         connectionBounds.ctaBottom <= connectionBounds.stageTop + 2, viewport.label+' AI intro order: '+JSON.stringify(connectionBounds));
       assert.ok(connectionBounds.stageLeft >= -2 && connectionBounds.stageRight <= connectionBounds.screenWidth + 2,
         viewport.label+' AI visual fits viewport: '+JSON.stringify(connectionBounds));
-      assert.ok(connectionBounds.stageWidth <= 1125 && connectionBounds.stageHeight >= 120,
-        viewport.label+' AI visual remains substantial and unclipped: '+JSON.stringify(connectionBounds));
+      assert.ok(connectionBounds.stageWidth <= 805 && connectionBounds.stageHeight >= 120,
+        viewport.label+' compact AI visual fits and remains readable: '+JSON.stringify(connectionBounds));
+      assert.ok(connectionBounds.titleFont <= (viewport.label === 'desktop' ? 65 : 44),
+        viewport.label+' AI heading stays compact: '+JSON.stringify(connectionBounds));
+      assert.ok(connectionBounds.sectionHeight <= (viewport.label === 'desktop' ? 900 : 650),
+        viewport.label+' Section 6 is not oversized: '+JSON.stringify(connectionBounds));
       assert.ok(connectionBounds.stageBottom <= connectionBounds.sectionBottom + 2,
         viewport.label+' AI film fits the section: '+JSON.stringify(connectionBounds));
       await connections.screenshot({path:'artifacts/ai-connection-section-'+viewport.label+'.png'});
@@ -342,6 +348,7 @@ try {
         });
         assert.ok(con.headingLeft>=-3 && con.headingRight<=con.viewportWidth+3,width+'x'+height+' AI connection heading overflow: '+JSON.stringify(con));
         assert.ok(con.stageLeft>=-3 && con.stageRight<=con.viewportWidth+3,width+'x'+height+' AI connection art overflow: '+JSON.stringify(con));
+        assert.ok(con.stageWidth<=805,width+'x'+height+' AI connection artwork exceeds compact width: '+JSON.stringify(con));
         assert.ok(con.noteBottom<=con.ctaTop+2 && con.ctaBottom<=con.stageTop+2,width+'x'+height+' AI connections copy spacing: '+JSON.stringify(con));
         assert.ok(con.stageBottom<=con.sectionBottom+3,width+'x'+height+' AI connection art cropped: '+JSON.stringify(con));
 

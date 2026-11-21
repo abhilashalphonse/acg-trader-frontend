@@ -162,8 +162,12 @@ test('public homepage uses V4 design language and current production capability 
   assert.ok(html.includes('href="#ai-connections">AI connections</a>'));
   const aiConnectionCss = readFileSync(new URL('../public/acg-ai-connection-section.css', import.meta.url), 'utf8');
   assert.ok(aiConnectionCss.includes('object-fit:contain'));
+  assert.ok(aiConnectionCss.includes('width:min(790px,100%)'), 'desktop Section 6 media must stay compact');
+  assert.ok(aiConnectionCss.includes('font-size:clamp(40px,4.25vw,64px)'), 'Section 6 heading reduced');
+  assert.ok(aiConnectionCss.includes('padding:clamp(56px,5.2vw,76px) 0 0'), 'Section 6 vertical whitespace reduced');
+  assert.ok(aiConnectionCss.includes('padding-top:48px'), 'mobile Section 6 also reduced');
   assert.ok(aiConnectionCss.includes('prefers-reduced-motion:reduce'));
-  assert.ok(aiConnectionCss.includes('margin:27px auto 0'));
+  assert.ok(aiConnectionCss.includes('margin:18px auto 0'), 'video sits closer to the CTA');
   assert.match(html, /Illustrative mobile interface\. Trading features and access depend on your account and device\./);
   assert.doesNotMatch(html, /data-video-control=|class="film-media-control"/);
   for (const id of ['acg-three-markets-film','ai-prism-film','acg-terminal-film','acg-ai-connection-film']) {
