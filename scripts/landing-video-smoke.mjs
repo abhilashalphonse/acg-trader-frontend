@@ -134,18 +134,21 @@ try {
           frameRatio: frame.width / frame.height,
           videoRatio: movie.width / movie.height,
           topGap: frame.top - cta.bottom,
+          topAlignment: Math.abs(frame.top - movie.top),
           bottomAlignment: Math.abs(frame.bottom - movie.bottom),
-          matteTrimmed: movie.height - frame.height,
+          leftAlignment: Math.abs(frame.left - movie.left),
+          rightAlignment: Math.abs(frame.right - movie.right),
         };
       });
-      assert.ok(Math.abs(marketFilmGeometry.frameRatio - 1254/556) < 0.015,
-        viewport.label + ' film frame trims black top matte: ' + JSON.stringify(marketFilmGeometry));
+      assert.ok(Math.abs(marketFilmGeometry.frameRatio - 1254/674) < 0.015,
+        viewport.label + ' film frame shows the full native source, without cropping: ' + JSON.stringify(marketFilmGeometry));
       assert.ok(Math.abs(marketFilmGeometry.videoRatio - 1254/674) < 0.015,
         viewport.label + ' source remains undistorted: ' + JSON.stringify(marketFilmGeometry));
-      assert.ok(marketFilmGeometry.topGap >= 0 && marketFilmGeometry.topGap <= 24,
-        viewport.label + ' CTA and film are visually connected: ' + JSON.stringify(marketFilmGeometry));
-      assert.ok(marketFilmGeometry.bottomAlignment < 2 && marketFilmGeometry.matteTrimmed > 20,
-        viewport.label + ' crop from top while retaining lower artwork: ' + JSON.stringify(marketFilmGeometry));
+      assert.ok(marketFilmGeometry.topGap >= 0 && marketFilmGeometry.topGap <= 12,
+        viewport.label + ' CTA and full film remain visually connected: ' + JSON.stringify(marketFilmGeometry));
+      assert.ok(marketFilmGeometry.topAlignment < 2 && marketFilmGeometry.bottomAlignment < 2
+        && marketFilmGeometry.leftAlignment < 2 && marketFilmGeometry.rightAlignment < 2,
+        viewport.label + ' full video must align to all four edges of the frame: ' + JSON.stringify(marketFilmGeometry));
       assert.equal(await newFilm.evaluate(el=>getComputedStyle(el).objectFit),'contain');
       assert.equal(await marketIntro.locator('.market-intro-note').count(), 0,
         viewport.label + ' Section 2 should not render a trailing artwork note');
