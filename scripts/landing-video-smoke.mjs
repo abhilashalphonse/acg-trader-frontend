@@ -557,7 +557,7 @@ try {
     assert.equal(await reduced.locator('#acg-hero-reveal').evaluate(v => getComputedStyle(v).display), 'none');
     // Explicit user activation is allowed even though automatic reduced-motion playback is not.
     const reducedTerminal = reduced.locator('#acg-terminal-film');
-    await reducedTerminal.scrollIntoViewIfNeeded();
+    await reduced.locator('.terminal-story-frame').scrollIntoViewIfNeeded();
     const reducedPlay = reduced.locator('.terminal-story-frame .film-tap-to-play');
     assert.equal(await reducedPlay.isVisible(),true, 'reduced-motion users see a manual opt-in');
     await reducedPlay.click();
