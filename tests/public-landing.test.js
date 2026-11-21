@@ -110,6 +110,8 @@ test('public homepage uses V4 design language and current production capability 
   assert.ok(marketCss.includes('width:min(1140px,100%)'));
   assert.ok(marketCss.includes('object-fit:contain'));
   assert.ok(marketCss.includes('aspect-ratio:1254/674'));
+  assert.ok(!marketCss.includes('1254/556'), 'do not crop the top of the BTC video');
+  assert.ok(marketCss.includes('position:static;width:100%;height:100%'), 'video renders completely within its native-aspect frame');
   assert.ok(marketCss.includes('border-top:0;border-bottom:0'), 'hero to markets transition must have no divider');
   assert.ok(!marketCss.includes('border-top:1px solid #17171b'), 'no visible market-intro separator');
   assert.ok(marketCss.includes('padding:100px 0 0'), 'no bottom padding under the BTC video');
