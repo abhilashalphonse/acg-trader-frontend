@@ -20,10 +20,14 @@ test('new domain starts on 30m and does not preinstall Volume', () => {
   const source=read('src/pages/TradingTerminalV2.jsx');
   const loader=source.match(/function loadIndicators\(\)\s*\{([\s\S]*?)\n\}/)?.[1];
   assert.ok(loader,'indicator loader must exist');
-  assert.match(loader,/if \(Array\.isArray\(stored\)\) return stored;/,
+  assert.match(loader,/if \(Array\.isArray\(stored\)\) \{/,
     'keep the users explicitly stored indicators');
   assert.match(loader,/if \(typeof window === 'undefined'\) return \[\];/);
   assert.match(loader,/return \[\];\s*$/);
+  assert.match(loader,/stored.length === 1 && stored\[0\]\?\.id === 'volume'/);
+  assert.match(loader,/return stored;/,'custom indicator sets must be preserved');
+  assert.match(source,/const legacyDefault = stored.timeframe === '1m'/,
+    'only old automatically saved default timeframes are migrated');
   assert.match(source,/return ALLOWED_TIMEFRAMES\.has\(normalized\) \? normalized : '30m';/);
   assert.match(source,/useState\(prefsRef\.current\.timeframe \|\| '30m'\)/);
   assert.match(source,/const ALLOWED_TIMEFRAMES = new Set\(\['1m'.*'30m'/);
