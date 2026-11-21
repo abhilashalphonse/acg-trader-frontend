@@ -85,8 +85,7 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   assert.ok(html.includes('ACG%20Trader%20AI%20Connection.mp4'));
   assert.ok(html.includes('id="acg-ai-connection-film"'));
   assert.ok(html.includes('href="#ai-connect-film"'));
-  assert.ok(html.includes('Concept preview only. Third-party AI connections'));
-  assert.ok(html.includes('AI outputs can be inaccurate. Provider logos shown do not imply partnership or endorsement.'));
+  assert.ok(html.includes('class="ai-connect-disclosure">Acg Trader does not endorse or guarantee third-party AI Tools. AI may produce errors or inaccurate outputs. You remain responsible for reviewing and approving all orders before execution. Acg Trader is not liable for any resulting losses, missed opportunities, or erroneous trades</p>'), 'approved AI responsibility disclosure is present');
   const aiConnectCss = read('public/acg-ai-connection-section.css');
   assert.ok(aiConnectCss.includes('aspect-ratio:auto 16/9'));
   assert.ok(aiConnectCss.includes('object-fit:contain'));
