@@ -109,6 +109,8 @@
   #ai-connections .ai-connect-copy{max-width:none;margin:0}
   #ai-connections .ai-connect-copy h2{max-width:355px;font-size:clamp(37px,9.4vw,47px)}
   #ai-connections .ai-connect-lead{max-width:350px;margin:15px 0 0;font-size:15px}
+  #ai-connections .ai-connect-copy .ai-connect-disclosure-desktop{display:none}
+  #ai-connections .ai-connect-inner>.ai-connect-disclosure{display:block}
   #ai-connections .ai-connect-status{display:block;max-width:345px;margin:13px 0 0;color:#b7bdc6;font-size:11px;line-height:1.55}
   #ai-connections .ai-connect-disclosure{max-width:355px;margin:14px 0 21px;color:#aeb4be;font-size:12px;line-height:1.65}
   #ai-connections .ai-connect-cta{margin:20px 0 0}
