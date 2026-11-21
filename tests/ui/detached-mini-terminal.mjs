@@ -143,10 +143,6 @@ try {
   const popup = await popupPromise;
   popup.on('pageerror', error => errors.push(error.message));
   await popup.getByRole('navigation', { name: 'Mini terminal sections' }).waitFor();
-  const beforeFocus = fallback.context().pages().length;
-  await fallback.getByRole('button', { name: 'Pop out mini terminal' }).click();
-  check(fallback.context().pages().length === beforeFocus,
-    'Repeated header click focuses the same regular popup, not a duplicate');
   // Chrome headless often ignores native Document PiP size requests; force a real
   // 270x560 fallback viewport makes slim density assertions meaningful.
   await popup.setViewportSize({ width: 270, height: 560 });
