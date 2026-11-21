@@ -85,7 +85,7 @@ try {
       assert.equal(await page.locator('video#acg-shield-film').count(), 0);
       assert.equal(await page.locator('#experience.mobile-story').count(), 1);
       assert.equal(await page.locator('video#ai-prism-film').count(), 1);
-      assert.deepEqual(values.videoTypes, Array(6).fill('video/mp4'));
+      assert.deepEqual(values.videoTypes, Array(5).fill('video/mp4'));
       // Two mobile-specific MP4 variants are supplied first, original desktop sources remain intact.
       assert.ok(values.validSources);
       assert.ok(values.width <= values.viewportWidth + 3, viewport.label+' horizontal overflow: '+JSON.stringify(values));
@@ -304,17 +304,17 @@ try {
       assert.equal(await movers.locator('.market-movers-cta').getAttribute('href'), '#market-intro');
       assert.equal(await movers.locator('figcaption').count(), 0, 'Section 7 has no trailing disclaimer');
       const moversVideo = movers.locator('#acg-market-movers-film');
-      assert.equal(await moversVideo.locator('source').first().getAttribute('src'), '/media/market-movers-mobile.mp4');
-      assert.equal(await moversVideo.locator('source').last().getAttribute('src'), '/media/market-movers.mp4');
+      assert.equal(await moversVideo.locator('source').count(), 1, 'one complete Market Movers source');
+      assert.equal(await moversVideo.locator('source').getAttribute('src'), '/media/market-movers.mp4');
       assert.equal(await moversVideo.evaluate(v => v.controls), false);
       await movers.scrollIntoViewIfNeeded();
       await page.waitForFunction(() => document.querySelector('#acg-market-movers-film')?.readyState >= 2, null, {timeout:15000});
       const moversMeta=await moversVideo.evaluate(v=>({width:v.videoWidth,height:v.videoHeight,readyState:v.readyState,fit:getComputedStyle(v).objectFit}));
       console.log('ACG_MARKET_MOVERS_MEDIA_'+viewport.label+' '+JSON.stringify(moversMeta));
       assert.ok(moversMeta.width>0 && moversMeta.height>0 && moversMeta.readyState>=2);
-      assert.equal(moversMeta.fit, viewport.label==='desktop' ? 'contain':'cover');
-      assert.equal(moversMeta.width, viewport.label==='desktop' ? 1920 : 800);
-      assert.equal(moversMeta.height, viewport.label==='desktop' ? 1080 : 600);
+      assert.equal(moversMeta.fit, 'contain', 'never crop the Market Movers artwork');
+      assert.equal(moversMeta.width, 1920);
+      assert.equal(moversMeta.height, 1080);
       const moversGeometry=await movers.evaluate(el=>{
         const box=selector=>el.querySelector(selector).getBoundingClientRect();
         const copy=box('.market-movers-copy'),video=box('.market-movers-frame'),
@@ -326,7 +326,7 @@ try {
         return {copyRight:copy.right,copyBottom:copy.bottom,ctaBottom:cta.bottom,
           videoLeft:video.left,videoRight:video.right,videoTop:video.top,videoBottom:video.bottom,
           frameWidth:video.width,frameHeight:video.height,
-          sectionHeight:page.height,sectionBottom:page.bottom,screenWidth:innerWidth,
+          sectionHeight:page.height,sectionBottom:page.bottom,screenWidth:innerWidth,screenHeight:innerHeight,
           sectionBackground:bg(el),frameBackground:frameStyle.backgroundColor,videoBackground:bg(film),
           frameRadius:frameStyle.borderRadius,transform:filmStyle.transform,
           objectFit:filmStyle.objectFit};
@@ -341,8 +341,14 @@ try {
           Number(moversGeometry.transform.match(/matrix\(([^,]+)/)?.[1]) >= 1.25,
           'desktop original film remains tastefully zoomed: '+JSON.stringify(moversGeometry));
       } else {
-        assert.equal(moversGeometry.objectFit,'cover', 'mobile-specific crop fills frame');
-        assert.equal(moversGeometry.transform,'none','mobile crop must not require excessive zoom');
+        assert.equal(moversGeometry.objectFit,'contain', 'mobile keeps the full original frame');
+        assert.equal(moversGeometry.transform,'none','mobile film must not be CSS-zoomed');
+        assert.ok(moversGeometry.sectionHeight >= moversGeometry.screenHeight - 2,
+          'mobile Market Movers occupies at least one viewport height: '+JSON.stringify(moversGeometry));
+        assert.ok(Math.abs(moversGeometry.frameWidth / moversGeometry.frameHeight - 16 / 9) < 0.025,
+          'full 16:9 film is preserved without stretching: '+JSON.stringify(moversGeometry));
+        assert.ok(Math.abs((moversGeometry.videoLeft + moversGeometry.videoRight)/2 - moversGeometry.screenWidth/2) < 2,
+          'full Market Movers film is horizontally centered: '+JSON.stringify(moversGeometry));
       }
       if(viewport.label==='desktop'){
         assert.ok(moversGeometry.sectionHeight>=710, 'Section 7 must feel substantial: '+JSON.stringify(moversGeometry));
@@ -614,7 +620,10 @@ try {
               terminalVideoFit:style('#terminal .terminal-story-video').objectFit,
               aiConnection:box('#ai-connections .ai-connect-stage').toJSON(),
               movers:box('#market-movers .market-movers-frame').toJSON(),
+              moversSection:box('#market-movers').toJSON(),
+              moversMedia:box('#market-movers .market-movers-media').toJSON(),
               moversZoom:style('#market-movers .market-movers-video').transform,
+              moversFit:style('#market-movers .market-movers-video').objectFit,
               access:box('#access').toJSON(),
               accessCards:[...document.querySelectorAll('#access .access-card')].map(el=>({
                 left:el.getBoundingClientRect().left,right:el.getBoundingClientRect().right,
@@ -644,7 +653,15 @@ try {
           assert.ok(q.movers.width>=q.viewport-55 &&
             q.movers.left>=-2 && q.movers.right<=q.viewport+2,
             'Market Movers stage should use available width: '+JSON.stringify(q.movers));
-          assert.equal(q.moversZoom,'none','Market Movers is now cropped in its mobile source, not scaled with CSS');
+          assert.equal(q.moversZoom,'none','Market Movers original source is not CSS zoomed');
+          assert.equal(q.moversFit,'contain','full artwork fits without clipping');
+          assert.ok(q.moversSection.height>=height-2,
+            width+'x'+height+' Market Movers needs a full viewport: '+JSON.stringify(q.moversSection));
+          assert.ok(Math.abs((q.movers.left+q.movers.right)/2-width/2)<2,
+            'Market Movers film must be centered within the phone: '+JSON.stringify(q.movers));
+          assert.ok(Math.abs((q.movers.top+q.movers.bottom)/2 -
+            (q.moversMedia.top+q.moversMedia.bottom)/2)<2,
+            'Market Movers film must sit centrally in the vertical media space: '+JSON.stringify(q.moversMedia));
           assert.ok(q.aiHeight<=900,
             'AI narrative must not leave another oversized blank section: '+q.aiHeight);
           assert.ok(q.access.bottom<=q.faqTop+3,'account access flows directly into FAQs');
