@@ -76,6 +76,8 @@ header.site-header .header-actions .btn-white:hover{background:#fff}
 /* True source aspect ratio is portrait. Cover crops rather than distorting its rays. */
 @media(min-aspect-ratio:2/1){.acg-cinema-video{object-position:center 50%}}
 @media(max-aspect-ratio:4/5){.acg-cinema-video{object-position:center 50%}}
+/* Portrait art direction for reduced-motion / loading poster too. */
+@media(max-aspect-ratio:1/1){.acg-cinema-film{background-image:url('/media/acg-prism-static-mobile.svg')}}
 @media(prefers-reduced-motion:reduce){
  .acg-cinema-video{display:none!important}
  .acg-cinema-btn{transition:none}
