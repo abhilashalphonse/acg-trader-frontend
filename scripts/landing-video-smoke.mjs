@@ -78,7 +78,7 @@ try {
       assert.equal(await page.locator('a.acg-cinema-secondary[href="/contact.html?topic=enterprise"]').count(), 1);
       const heroAssets = await page.evaluate(() => [...document.querySelectorAll('.acg-cinema source')].map(s => s.src || s.srcset));
       assert.equal(heroAssets.length, 1);
-      assert.ok(heroAssets[0].includes('mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/hero.mp4'));
+      assert.ok(heroAssets[0].includes('/media/hero.mp4'));
       assert.equal(await page.locator('#acg-hero-replay').count(), 0);
       assert.equal(await page.locator('video#acg-hero-reveal').evaluate(v => getComputedStyle(v).objectFit), 'cover');
       assert.equal(await page.locator('video#acg-three-markets-film').count(), 1);
