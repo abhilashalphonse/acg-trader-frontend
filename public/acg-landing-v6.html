@@ -359,38 +359,17 @@ html{scroll-padding-top:80px}
 .desktop-nav{gap:32px}
 .desktop-nav a{font-weight:590}
 .film-video{display:block;width:100%;height:100%;object-fit:contain}
-.shield-story{background:#ececef;color:#19191c;padding:125px 0 130px;border-top:1px solid #e2e2e5;border-bottom:1px solid #dedee2}
-.shield-story-layout{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,.81fr);align-items:center;gap:8%}
-.shield-story-copy h2{font-size:clamp(52px,5.8vw,84px);letter-spacing:-.073em;line-height:1.02;font-weight:650;margin:0 0 29px;max-width:710px}
-.shield-story-copy p{font-size:17px;line-height:1.72;color:#626269;max-width:520px;margin:0}
-.shield-story-copy a{display:inline-flex;align-items:center;gap:10px;color:#19191c;font-size:13px;font-weight:700;margin-top:27px;border-bottom:1px solid #19191c;padding:0 0 5px}
-.shield-story-copy a:hover{opacity:.72}
-.shield-film-frame{margin:0;min-width:0}
-.shield-film-panel{width:min(100%,475px);aspect-ratio:3/4;position:relative;margin-left:auto;overflow:hidden;border-radius:23px;border:1px solid #dedee2;background:#fff;box-shadow:0 30px 84px #1c1c2422}
-.shield-film-panel .film-video{object-fit:contain}
-.shield-film-frame figcaption{font-size:11px;color:#76767d;line-height:1.65;text-align:center;padding-top:13px;max-width:475px;margin-left:auto}
 .market-film{position:relative;width:100%;aspect-ratio:2/1;border-radius:23px;background:#000;overflow:hidden;border:1px solid #25252b;margin:0 0 15px;box-shadow:0 30px 65px #0002}
 .market-film .film-video{object-fit:contain;background:#000}
 .market-film-caption{color:#67676e;font-size:12px;line-height:1.65;margin:0 0 35px;max-width:900px}
 .film-muted-note{font-size:11px;color:#797982;line-height:1.6}
-.shield-story .film-muted-note{color:#73737a}
 .motion-ready [data-film-reveal]{transition:opacity .7s ease,transform .8s cubic-bezier(.22,1,.36,1)}
 .motion-ready [data-film-reveal]:not(.in-view){opacity:.82;transform:translateY(18px)}
 .motion-ready [data-film-reveal].in-view{opacity:1;transform:none}
 @media(max-width:930px){
- .shield-story{padding:91px 0}
- .shield-story-layout{gap:6%}
- .shield-story-copy h2{font-size:clamp(43px,6vw,66px)}
- .shield-story-copy p{font-size:15px}
  .market-film{border-radius:19px}
 }
 @media(max-width:720px){
- .shield-story{padding:74px 0 78px}
- .shield-story-layout{grid-template-columns:1fr;gap:34px}
- .shield-story-copy h2{font-size:clamp(45px,10vw,66px);margin-bottom:19px}
- .shield-story-copy p{font-size:15px}
- .shield-film-panel{margin:auto;width:min(100%,415px);border-radius:18px}
- .shield-film-frame figcaption{margin:auto;max-width:415px}
  .market-film{border-radius:16px;aspect-ratio:2/1;margin-bottom:14px}
  .market-film-caption{font-size:11px;margin-bottom:26px}
 }
