@@ -24,7 +24,7 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /id="acg-hero-reveal"/);
   assert.match(html, /href="\/acg-cinema-hero\.css"/);
   assert.match(html, /\.desktop-nav\{border:0;background:none/);
-  assert.ok(html.includes('a7112847-cd7c-4d7b-9f91-540af4da8234.mp4'));
+  assert.ok(html.includes('hero.mp4'));
   assert.doesNotMatch(html, /acg-hero-(desktop|mobile)/);
   assert.match(html, /class="acg-cinema-actions"/);
   assert.match(html, /href="\/contact\.html\?topic=enterprise"/);
@@ -82,7 +82,7 @@ test('public homepage uses V4 design language and current production capability 
   }
   assert.ok(html.includes('class="ai-preview-action"'), 'Analyze is a visual example, not a dead button');
   assert.ok(html.includes('Illustrative AI workflow, not live market analysis'));
-  assert.ok(html.includes('ACG%20Prism%20Background.mp4'));
+  assert.ok(html.includes('ai-prism.mp4'));
   assert.ok(!html.includes('INTRODUCING ACG AI'));
   const aiSectionMarkup = html.slice(html.indexOf('<section class="ai-section"'), html.indexOf('</section>', html.indexOf('<section class="ai-section"')));
   assert.ok(!aiSectionMarkup.includes('Concept preview'), 'Section 3 retains its approved AI preview copy');
@@ -130,14 +130,14 @@ test('public homepage uses V4 design language and current production capability 
   assert.ok(!marketCss.includes('.market-intro-note'), 'removed obsolete artwork-note styles');
 
   assert.equal((html.match(/<video\b/g) || []).length, 6);
-  assert.ok(html.includes('src="https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20logo%20BTC%20swirl.mp4"'));
+  assert.ok(html.includes('src="/media/btc-swirl.mp4"'));
   // Approved centered terminal section, inserted before the existing mobile artwork.
   assert.ok(html.includes('class="terminal-story" id="terminal"'));
   assert.ok(html.includes('id="terminal-heading">Your entire trading workspace. One screen.</h2>'));
   assert.ok(html.includes('Analyze markets, plan orders and manage positions directly from the chart. Everything you need for a focused trading workflow.'));
   assert.ok(html.includes('class="terminal-story-cta" href="/?acg_login=1">Explore the terminal'));
   assert.ok(html.includes('id="acg-terminal-film"'));
-  assert.ok(html.includes('ACG%20Trader%20Terminal.mp4'));
+  assert.ok(html.includes('terminal.mp4'));
   assert.ok(html.includes('href="/acg-terminal-section.css"'));
   const terminalDisclaimer = 'Past performance is not an indicator of future performance. Data displayed above is indicative only. The return may increase or decrease as a result of currency fluctuations. Actual execution price may vary. Pricing data is provided by Acg Trader.';
   assert.ok(html.includes(terminalDisclaimer), 'Terminal disclaimer must match the approved text');
@@ -168,7 +168,7 @@ test('public homepage uses V4 design language and current production capability 
   assert.ok(html.includes('class="ai-connect-disclosure">Acg Trader does not endorse or guarantee third-party AI Tools. AI may produce errors or inaccurate outputs. You remain responsible for reviewing and approving all orders before execution. Acg Trader is not liable for any resulting losses, missed opportunities, or erroneous trades</p>'), 'Section 6 uses the approved third-party AI disclaimer');
   assert.ok(html.includes('class="ai-connect-cta" href="#ai-connect-film">Explore the concept</a>'));
   assert.ok(html.includes('id="acg-ai-connection-film"'));
-  assert.ok(html.includes('ACG%20Trader%20-%20Overnight%20Scan.mp4'));
+  assert.ok(html.includes('overnight-scan.mp4'));
   assert.ok(!html.includes('ACG%20Trader%20AI%20Connection.mp4'), 'old Section 6 film is no longer used');
   assert.ok(html.includes('href="/acg-ai-connection-section.css"'));
   assert.ok(html.includes('href="#ai-connections">AI connections</a>'));
@@ -185,7 +185,7 @@ test('public homepage uses V4 design language and current production capability 
   assert.ok(html.includes('id="market-movers-heading">See what’s moving.</h2>'));
   assert.ok(html.includes('Follow market movements and discover what’s gaining momentum across a unified trading workspace.'));
   assert.ok(html.includes('class="market-movers-cta" href="#market-intro">Explore markets'));
-  assert.ok(html.includes('ACG%20Market%20Movers%20-%20Take%20the%20Lead.mp4'));
+  assert.ok(html.includes('market-movers.mp4'));
   assert.ok(!html.includes('Illustrative market movements. Rankings and price moves are for demonstration only'));
   assert.ok(html.includes('href="/acg-market-movers-section.css?v=20261121-cinematic"'), 'new CSS URL busts cached color mismatch');
   assert.ok(html.includes('href="#market-movers">Market movers</a>'));
