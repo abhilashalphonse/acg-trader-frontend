@@ -57,7 +57,7 @@ try {
         brand: document.querySelector('.site-header .brand img')?.getAttribute('src'),
         videoCount: document.querySelectorAll('.film-video').length,
         videoTypes: [...document.querySelectorAll('.film-video source')].map(v=>v.type),
-        validSources: [...document.querySelectorAll('.film-video')].every(v=>v.querySelector('source')?.src?.includes('/media/')),
+        validSources: [...document.querySelectorAll('.film-video')].every(v => v.querySelector('source')?.src?.includes('/media/') || (v.id === 'ai-prism-film' && v.querySelector('source')?.src?.includes('mwkwvchaqjqtyfgmialk.supabase.co'))),
         width: document.documentElement.scrollWidth,
         viewportWidth: window.innerWidth,
         filmHeight: document.querySelector('.market-film')?.getBoundingClientRect().height
@@ -79,7 +79,7 @@ try {
       assert.ok(heroBounds.buttonsBottom < heroBounds.disclosureBottom, viewport.label+' CTA/disclosure order');
       assert.ok(heroBounds.disclosureBottom <= heroBounds.heroBottom + 3, viewport.label+' disclosure fits hero: '+JSON.stringify(heroBounds));
       assert.equal(values.brand, '/acg-trader-wordmark.png');
-      assert.equal(values.videoCount, 2);
+      assert.equal(values.videoCount, 3);
       assert.equal(await page.locator('video#acg-hero-reveal').count(), 1);
       assert.equal(await page.locator('a.acg-cinema-primary[href="/?acg_login=1"]').count(), 1);
       assert.equal(await page.locator('a.acg-cinema-secondary[href="/contact.html?topic=enterprise"]').count(), 1);
@@ -90,7 +90,8 @@ try {
       assert.equal(await page.locator('video#acg-hero-reveal').evaluate(v => getComputedStyle(v).objectFit), 'cover');
       assert.equal(await page.locator('video#acg-three-markets-film').count(), 1);
       assert.equal(await page.locator('video#acg-shield-film').count(), 1);
-      assert.deepEqual(values.videoTypes, ['video/mp4','video/mp4']);
+      assert.equal(await page.locator('video#ai-prism-film').count(), 1);
+      assert.deepEqual(values.videoTypes, ['video/mp4','video/mp4','video/mp4']);
       assert.ok(values.validSources);
       assert.ok(values.width <= values.viewportWidth + 3, viewport.label+' horizontal overflow: '+JSON.stringify(values));
       assert.ok(values.filmHeight >= 125 && values.filmHeight <= 260, viewport.label+' compact video height: '+values.filmHeight);
@@ -105,6 +106,18 @@ try {
       assert.equal(await page.locator('#market-intro .market-intro-cta[href="#markets"]').textContent(), 'Explore markets');
       assert.equal(await page.locator('#market-intro #acg-three-markets-film').count(), 1);
       assert.equal(await page.locator('.fact-strip').count(), 0);
+      // Third section is an illustrative AI preview, NOT a fake working tool.
+      const ai = page.locator('#features.ai-section');
+      assert.equal(await ai.count(), 1);
+      assert.equal(await ai.locator('h2').textContent(), 'Think it. Ask it. Trade smarter.');
+      assert.equal(await ai.locator('a.ai-section-cta').textContent(), 'Learn more ↗');
+      assert.equal(await ai.locator('.ai-preview-header strong').textContent(), 'AI');
+      assert.equal(await ai.locator('.ai-preview-action').evaluate(el => el.tagName), 'SPAN');
+      assert.equal(await ai.locator('a.ai-section-cta').getAttribute('href'), '#ai-preview');
+      assert.equal(await ai.locator('.ai-preview').count(), 1);
+      await ai.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(350);
+      await ai.screenshot({ path:'artifacts/ai-section-'+viewport.label+'.png' });
       assert.deepEqual(errors, [], viewport.label+' errors');
       await page.screenshot({ path:'artifacts/landing-film-'+viewport.label+'-motion.png' });
       await page.evaluate(() => { document.documentElement.style.scrollBehavior='auto'; window.scrollTo(0,0); });
@@ -134,6 +147,23 @@ try {
         assert.ok(b.actionsBottom <= b.disclosureBottom, width+'x'+height+' reversed disclosure: '+JSON.stringify(b));
         assert.ok(b.titleLeft >= -3 && b.titleRight <= b.innerWidth+3, width+'x'+height+' heading overflow: '+JSON.stringify(b));
         assert.ok(b.heroWidth <= b.innerWidth+3, width+'x'+height+' hero overflow: '+JSON.stringify(b));
+        const a = await page.evaluate(() => {
+          const rect = sel => document.querySelector(sel)?.getBoundingClientRect();
+          const section=rect('#features.ai-section'),title=rect('.ai-section h2'),
+            cta=rect('.ai-section-cta'),card=rect('.ai-preview'),note=rect('.ai-section-note');
+          return {
+            sectionBottom:section?.bottom,titleLeft:title?.left,titleRight:title?.right,
+            ctaBottom:cta?.bottom,cardTop:card?.top,cardBottom:card?.bottom,
+            cardLeft:card?.left,cardRight:card?.right,cardWidth:card?.width,
+            noteBottom:note?.bottom,viewportWidth:window.innerWidth
+          };
+        });
+        assert.ok(a.titleLeft >= -3 && a.titleRight <= a.viewportWidth+3, width+'x'+height+' AI title overflow: '+JSON.stringify(a));
+        assert.ok(a.cardLeft >= -3 && a.cardRight <= a.viewportWidth+3, width+'x'+height+' AI card overflow: '+JSON.stringify(a));
+        assert.ok(a.cardWidth <= 530, width+'x'+height+' oversized AI card: '+JSON.stringify(a));
+        assert.ok(a.cardTop > a.ctaBottom + 65, width+'x'+height+' AI preview competes with prism band: '+JSON.stringify(a));
+        assert.ok(a.noteBottom <= a.sectionBottom+3, width+'x'+height+' clipped AI disclaimer: '+JSON.stringify(a));
+
       } finally {await page.close();}
     }
     const reduced = await browser.newPage({ viewport:{width:390,height:844},reducedMotion:'reduce' });
@@ -141,6 +171,7 @@ try {
     await reduced.waitForTimeout(280);
     const states = await reduced.locator('video.film-video').evaluateAll(videos=>videos.map(v=>({paused:v.paused,controls:v.controls})));
     assert.ok(states.every(v=>v.paused), 'Reduced motion must not autoplay clips: '+JSON.stringify(states));
+    assert.equal(await reduced.locator('#ai-prism-film').evaluate(v=>getComputedStyle(v).display), 'none');
     assert.equal(await reduced.locator('[data-video-control], .film-media-control').count(), 0);
     assert.ok(states.every(v => v.controls === false), 'Both decorative videos must hide native controls');
     assert.equal(await reduced.locator('#acg-hero-replay').count(), 0);

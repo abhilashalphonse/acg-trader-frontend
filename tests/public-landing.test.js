@@ -26,8 +26,6 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /\.desktop-nav\{border:0;background:none/);
   assert.ok(html.includes('a7112847-cd7c-4d7b-9f91-540af4da8234.mp4'));
   assert.doesNotMatch(html, /acg-hero-(desktop|mobile)/);
-  assert.match(html, /#features\{background:#f5f5f6/);
-  assert.match(html, /\.feature\{background:#fff;border:1px solid #ececef/);
   assert.match(html, /class="acg-cinema-actions"/);
   assert.match(html, /href="\/contact\.html\?topic=enterprise"/);
   assert.match(html, /Start Trading/);
@@ -65,17 +63,42 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /Access key market categories in one chart-first platform built for analysis, execution and position management\./);
   assert.match(html, /class="market-intro-cta" href="#markets">Explore markets<\/a>/);
   assert.match(html, /href="\/acg-market-intro\.css"/);
+  // Section 3: approved AI identity and prompt content, no fake live action.
+  assert.ok(html.includes('href="/acg-ai-section.css"'));
+  assert.ok(html.includes('id="ai-section-heading">Think it. Ask it. Trade smarter.</h2>'));
+  assert.ok(html.includes('From market questions to structured trade plans. An AI-powered trading experience built around your decisions.'));
+  assert.ok(html.includes('class="ai-section-cta" href="#ai-preview">Learn more'));
+  assert.ok(html.includes('id="ai-preview"'));
+  assert.ok(html.includes('<strong>AI</strong>'));
+  assert.ok(html.includes('Analyze XAU/USD. What is the market structure and where is the invalidation?'));
+  for (const area of ['Market context','Setup evaluation','Risk planning']) {
+    assert.ok(html.includes(area), area);
+  }
+  assert.ok(html.includes('class="ai-preview-action"'), 'Analyze is a visual example, not a dead button');
+  assert.ok(html.includes('Illustrative AI workflow, not live market analysis'));
+  assert.ok(html.includes('ACG%20Prism%20Background.mp4'));
+  assert.ok(!html.includes('INTRODUCING ACG AI'));
+  assert.ok(!html.includes('Concept preview'));
+  assert.ok(!html.includes('Everything around<br/>the trade.'));
+  const aiCss = readFileSync(new URL('../public/acg-ai-section.css', import.meta.url), 'utf8');
+  assert.ok(aiCss.includes('width:min(520px,100%)'));
+  assert.ok(aiCss.includes('max-width:600px'));
+  assert.ok(aiCss.includes('max-height:600px'));
+  assert.ok(aiCss.includes('prefers-reduced-motion:reduce'));
   assert.doesNotMatch(html, /class="fact-strip"/);
   const heroEnd = html.indexOf('</section>', html.indexOf('class="acg-cinema"'));
   const introStart = html.indexOf('class="market-intro"');
   const featuresStart = html.indexOf('id="features"');
+  const aiStart = html.indexOf('class="ai-section"');
+  const shieldStart = html.indexOf('class="shield-story"');
+  assert.ok(introStart < aiStart && aiStart < shieldStart, 'AI is the third landing section');
   assert.ok(heroEnd < introStart && introStart < featuresStart, 'second section follows hero');
   assert.equal((html.match(/id="acg-three-markets-film"/g) || []).length, 1);
   const marketCss = readFileSync(new URL('../public/acg-market-intro.css', import.meta.url), 'utf8');
   assert.match(marketCss, /width:min\(460px,100%\)/);
   assert.match(marketCss, /width:min\(300px,100%\)/);
 
-  assert.equal((html.match(/<video\b/g) || []).length, 3);
+  assert.equal((html.match(/<video\b/g) || []).length, 4);
   assert.match(html, /src="\/media\/acg-three-markets\.mp4"/);
   assert.match(html, /src="\/media\/acg-shield\.mp4"/);
   assert.match(html, /poster="\/media\/acg-three-markets-poster\.jpg"/);
@@ -83,7 +106,7 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /not a security certification/);
   assert.match(html, /not indicate available instruments, supported integrations, partners or endorsements/);
   assert.doesNotMatch(html, /data-video-control=|class="film-media-control"/);
-  for (const id of ['acg-three-markets-film','acg-shield-film']) {
+  for (const id of ['acg-three-markets-film','ai-prism-film','acg-shield-film']) {
     const match = html.match(new RegExp('<video id="' + id + '"[^>]*>'));
     assert.ok(match, id);
     assert.doesNotMatch(match[0], /\bcontrols\b/, id + ' should not show a media control');

@@ -29,7 +29,7 @@ test('the hero uses one public logo-free clip and deletes obsolete Railway media
   const js = read('public/acg-landing-motion.js');
   assert.ok(html.includes('src="' + cleanSource + '"'));
   assert.ok(html.includes('id="acg-hero-reveal"'));
-  assert.equal((html.match(/<video/g) || []).length, 3);
+  assert.equal((html.match(/<video/g) || []).length, 4);
   assert.ok(css.includes("url('/media/acg-prism-static.svg')"));
   assert.ok(css.includes('object-fit:cover'), 'art-directed crop must preserve geometry');
   assert.ok(css.includes('max-height:600px'), 'short landscape screens must be handled');
@@ -62,6 +62,13 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   assert.ok(html.includes('class="shield-story" id="experience"'));
   assert.ok(html.includes('id="acg-three-markets-film"'));
   assert.ok(html.includes('id="acg-shield-film"'));
+  assert.ok(html.includes('id="ai-prism-film"'));
+  assert.ok(html.includes('src="https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20Prism%20Background.mp4"'));
+  assert.ok(html.includes('href="/acg-ai-section.css"'));
+  const aiCss = read('public/acg-ai-section.css');
+  assert.ok(aiCss.includes('prefers-reduced-motion:reduce'));
+  assert.ok(aiCss.includes('width:min(520px,100%)'));
+  assert.ok(!html.includes('Concept preview') && !html.includes('ACG AI'));
   for (const media of ['acg-three-markets.mp4','acg-shield.mp4']) {
     assert.ok(html.includes('/media/' + media));
   }
