@@ -81,9 +81,13 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /poster="\/media\/acg-shield-poster\.jpg"/);
   assert.match(html, /not a security certification/);
   assert.match(html, /not indicate available instruments, supported integrations, partners or endorsements/);
-  assert.match(html, /data-video-control="acg-shield-film"/);
-  assert.doesNotMatch(html, /data-video-control="acg-three-markets-film"/);
-  assert.doesNotMatch(html, /<video id="acg-three-markets-film"[^>]*\\bcontrols\\b/);
+  assert.doesNotMatch(html, /data-video-control=|class="film-media-control"/);
+  for (const id of ['acg-three-markets-film','acg-shield-film']) {
+    const match = html.match(new RegExp('<video id="' + id + '"[^>]*>'));
+    assert.ok(match, id);
+    assert.doesNotMatch(match[0], /\\bcontrols\\b/, id + ' should not show a media control');
+  }
+  assert.match(html, /id="acg-hero-replay"/, 'Keep the explicitly approved hero Replay control');
   assert.doesNotMatch(html, /acg-motion-panorama|acg-motion-emblem|film-experience|hero-ambient-video/);
   assert.match(html, /prefers-reduced-motion:reduce/);
   assert.match(html, /<script src="\/acg-landing-motion\.js" defer><\/script>/);
