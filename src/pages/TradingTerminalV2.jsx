@@ -50,12 +50,14 @@ function useDesktopLayout() {
 }
 
 function loadIndicators() {
-  if (typeof window === 'undefined') return [createIndicator('volume')].filter(Boolean);
+  // New domains have new localStorage. Do not re-add Volume for a first visit;
+  // existing users' intentionally saved indicators remain untouched.
+  if (typeof window === 'undefined') return [];
   try {
     const stored = JSON.parse(window.localStorage.getItem(INDICATOR_STORAGE_KEY) || 'null');
     if (Array.isArray(stored)) return stored;
   } catch { /* defaults below */ }
-  return [createIndicator('volume')].filter(Boolean);
+  return [];
 }
 
 function loadIndicatorFavorites() {
@@ -74,7 +76,7 @@ function normalizeTimeframePreference(value) {
   const raw = String(value || '');
   const aliases = { '1h': '1H', '4h': '4H', '1d': '1D', D: '1D', '1w': '1W' };
   const normalized = aliases[raw] || raw;
-  return ALLOWED_TIMEFRAMES.has(normalized) ? normalized : '1m';
+  return ALLOWED_TIMEFRAMES.has(normalized) ? normalized : '30m';
 }
 
 function loadTerminalPrefs() {
@@ -152,7 +154,7 @@ export default function TradingTerminalV2({
     accountSwitchError: trading.accountSwitchError,
   };
 
-  const [timeframe, setTimeframe] = useState(prefsRef.current.timeframe || '1m');
+  const [timeframe, setTimeframe] = useState(prefsRef.current.timeframe || '30m');
   const [chartMode, setChartMode] = useState(prefsRef.current.chartMode || 'candles');
   const [selectedTool, setSelectedTool] = useState('cursor');
   const [activeNav, setActiveNav] = useState('trade');
