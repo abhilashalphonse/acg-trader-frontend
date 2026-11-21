@@ -137,7 +137,12 @@ try {
       });
       assert.ok(sectionOrder.every((val,i)=>i===0||val>sectionOrder[i-1]), 'homepage order');
       await terminal.scrollIntoViewIfNeeded();
-      await page.waitForTimeout(320);
+      await page.waitForTimeout(1650);
+      const terminalVideoMeta = await terminal.locator('video').evaluate(v=>({
+        width:v.videoWidth,height:v.videoHeight,seconds:v.duration,readyState:v.readyState,
+        currentTime:v.currentTime,paused:v.paused
+      }));
+      console.log('ACG_TERMINAL_MEDIA_META_'+viewport.label+' '+JSON.stringify(terminalVideoMeta));
       await terminal.screenshot({path:'artifacts/terminal-story-'+viewport.label+'.png'});
       const mobileSection=page.locator('#experience.mobile-story');
       assert.equal(await mobileSection.locator('h2').innerText(), 'Your trading desk.\nIn your pocket.');
