@@ -252,9 +252,29 @@ try {
   await fallback.locator('[data-acg-mini-window-state="closed"]').waitFor({ state: 'attached' });
   await fallback.getByRole('button', { name: 'Pop out mini terminal' }).waitFor();
   check(await fallback.evaluate(() => window.v4PositionsQA.commands.length === 0), 'Window lifecycle and navigation never submit a trade');
-  const closePopupPromise = fallback.waitForEvent('popup');
+  await fallback.evaluate(() => {
+    const originalOpen = window.open;
+    window.__miniWindowOpenDiagnostic = { called: 0, success: null };
+    window.open = (...args) => {
+      window.__miniWindowOpenDiagnostic.called++;
+      const result = originalOpen.apply(window, args);
+      window.__miniWindowOpenDiagnostic.success = Boolean(result);
+      return result;
+    };
+  });
+  const closePopupPromise = fallback.waitForEvent('popup', { timeout: 8000 });
   await fallback.getByRole('button', { name: 'Pop out mini terminal' }).click();
-  const closePopup = await closePopupPromise;
+  let closePopup;
+  try { closePopup = await closePopupPromise; }
+  catch (failure) {
+    console.log('MINI_REOPEN_DIAGNOSTIC', JSON.stringify(await fallback.evaluate(() => ({
+      attempt: window.__miniWindowOpenDiagnostic,
+      state: document.querySelector('.acg-mini-portal-host')?.dataset.acgMiniWindowState,
+      enabled: !document.querySelector('[data-acg-mini-header-launcher]')?.disabled,
+      alert: document.querySelector('[role="alert"]')?.textContent?.slice(0, 180) || null,
+    }))));
+    throw failure;
+  }
   await closePopup.getByRole('button', { name: 'Positions (2)', exact: true }).click();
   await closePopup.locator('.acg-mini-row').first().click();
   await closePopup.getByRole('button', { name: 'Close Position', exact: true }).click();
