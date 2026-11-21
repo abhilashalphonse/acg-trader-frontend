@@ -18,7 +18,7 @@ test('the hero uses one public logo-free clip and deletes obsolete Railway media
   const js = read('public/acg-landing-motion.js');
   assert.ok(html.includes('src="' + cleanSource + '"'));
   assert.ok(html.includes('id="acg-hero-reveal"'));
-  assert.equal((html.match(/<video/g) || []).length, 5);
+  assert.equal((html.match(/<video/g) || []).length, 6);
   assert.ok(css.includes("url('/media/acg-prism-static.svg')"));
   assert.ok(css.includes('object-fit:cover'), 'art-directed crop must preserve geometry');
   assert.ok(css.includes('max-height:600px'), 'short landscape screens must be handled');
@@ -93,6 +93,19 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   assert.ok(aiConnectCss.includes('prefers-reduced-motion:reduce'));
   assert.ok(html.includes('href="/acg-ai-connection-section.css"'));
   assert.equal((html.match(/id="acg-ai-connection-film"/g)||[]).length,1);
+  assert.ok(html.indexOf('id="ai-connections"') < html.indexOf('id="market-movers"') &&
+    html.indexOf('id="market-movers"') < html.indexOf('id="trading"'), 'Market Movers is Section 7');
+  assert.ok(html.includes('id="acg-market-movers-film"'));
+  assert.ok(html.includes('src="https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20Market%20Movers%20-%20Take%20the%20Lead.mp4"'));
+  assert.ok(html.includes('href="#markets">Explore markets'));
+  assert.ok(html.includes('Rankings and price moves are for demonstration only'));
+  const marketMoversCss = read('public/acg-market-movers-section.css');
+  assert.ok(marketMoversCss.includes('grid-template-columns:minmax(0,42fr) minmax(0,58fr)'));
+  assert.ok(marketMoversCss.includes('grid-template-columns:minmax(0,1fr)'));
+  assert.ok(marketMoversCss.includes('max-height:600px'));
+  assert.ok(marketMoversCss.includes('object-fit:contain'));
+  assert.ok(marketMoversCss.includes('prefers-reduced-motion:reduce'));
+  assert.ok(!html.includes('class="market-movers-video" controls'));
   assert.ok(!html.includes('acg-shield.mp4'));
   const mobileCss = read('public/acg-mobile-section.css');
   assert.ok(mobileCss.includes('max-width:720px'));

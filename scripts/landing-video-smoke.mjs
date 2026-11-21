@@ -50,7 +50,7 @@ try {
         brand: document.querySelector('.site-header .brand img')?.getAttribute('src'),
         videoCount: document.querySelectorAll('.film-video').length,
         videoTypes: [...document.querySelectorAll('.film-video source')].map(v=>v.type),
-        validSources: [...document.querySelectorAll('.film-video')].every(v => v.querySelector('source')?.src?.includes('/media/') || (['acg-three-markets-film','ai-prism-film','acg-terminal-film','acg-ai-connection-film'].includes(v.id) && v.querySelector('source')?.src?.includes('mwkwvchaqjqtyfgmialk.supabase.co'))),
+        validSources: [...document.querySelectorAll('.film-video')].every(v => v.querySelector('source')?.src?.includes('/media/') || (['acg-three-markets-film','ai-prism-film','acg-terminal-film','acg-ai-connection-film','acg-market-movers-film'].includes(v.id) && v.querySelector('source')?.src?.includes('mwkwvchaqjqtyfgmialk.supabase.co'))),
         width: document.documentElement.scrollWidth,
         viewportWidth: window.innerWidth,
         filmHeight: document.querySelector('.market-film')?.getBoundingClientRect().height
@@ -72,7 +72,7 @@ try {
       assert.ok(heroBounds.buttonsBottom < heroBounds.disclosureBottom, viewport.label+' CTA/disclosure order');
       assert.ok(heroBounds.disclosureBottom <= heroBounds.heroBottom + 3, viewport.label+' disclosure fits hero: '+JSON.stringify(heroBounds));
       assert.equal(values.brand, '/acg-trader-wordmark.png');
-      assert.equal(values.videoCount, 4);
+      assert.equal(values.videoCount, 5);
       assert.equal(await page.locator('video#acg-hero-reveal').count(), 1);
       assert.equal(await page.locator('a.acg-cinema-primary[href="/?acg_login=1"]').count(), 1);
       assert.equal(await page.locator('a.acg-cinema-secondary[href="/contact.html?topic=enterprise"]').count(), 1);
@@ -85,7 +85,7 @@ try {
       assert.equal(await page.locator('video#acg-shield-film').count(), 0);
       assert.equal(await page.locator('#experience.mobile-story').count(), 1);
       assert.equal(await page.locator('video#ai-prism-film').count(), 1);
-      assert.deepEqual(values.videoTypes, ['video/mp4','video/mp4','video/mp4','video/mp4']);
+      assert.deepEqual(values.videoTypes, ['video/mp4','video/mp4','video/mp4','video/mp4','video/mp4']);
       assert.ok(values.validSources);
       assert.ok(values.width <= values.viewportWidth + 3, viewport.label+' horizontal overflow: '+JSON.stringify(values));
       assert.ok(values.filmHeight >= 145 && values.filmHeight <= 760, viewport.label+' cinematic video height: '+values.filmHeight);
@@ -187,7 +187,7 @@ try {
         'Past performance is not an indicator of future performance. Data displayed above is indicative only. The return may increase or decrease as a result of currency fluctuations. Actual execution price may vary. Pricing data is provided by Acg Trader.');
       assert.equal(await terminal.locator('video').evaluate(v=>v.controls),false);
       const sectionOrder = await page.evaluate(() => {
-        const ids=['platform','market-intro','features','terminal','experience','ai-connections'];
+        const ids=['platform','market-intro','features','terminal','experience','ai-connections','market-movers','trading','markets'];
         return ids.map(id => document.getElementById(id)?.getBoundingClientRect().top + window.scrollY);
       });
       assert.ok(sectionOrder.every((val,i)=>i===0||val>sectionOrder[i-1]), 'homepage order');
@@ -263,6 +263,42 @@ try {
       assert.ok(connectionBounds.stageBottom <= connectionBounds.sectionBottom + 2,
         viewport.label+' AI film fits the section: '+JSON.stringify(connectionBounds));
       await connections.screenshot({path:'artifacts/ai-connection-section-'+viewport.label+'.png'});
+      // Section 7 — approved left-text / right-video product showcase.
+      const movers = page.locator('#market-movers.market-movers-story');
+      assert.equal(await movers.count(), 1);
+      assert.equal(await movers.locator('h2').innerText(), 'See what’s moving.');
+      assert.ok((await movers.locator('.market-movers-copy p').innerText()).includes('what’s gaining momentum'));
+      assert.equal(await movers.locator('.market-movers-cta').getAttribute('href'), '#markets');
+      assert.ok((await movers.locator('figcaption').innerText()).includes('for demonstration only'));
+      const moversVideo = movers.locator('#acg-market-movers-film');
+      assert.equal(await moversVideo.locator('source').getAttribute('src'),
+        'https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20Market%20Movers%20-%20Take%20the%20Lead.mp4');
+      assert.equal(await moversVideo.evaluate(v => v.controls), false);
+      await movers.scrollIntoViewIfNeeded();
+      await page.waitForFunction(() => document.querySelector('#acg-market-movers-film')?.readyState >= 2, null, {timeout:15000});
+      const moversMeta=await moversVideo.evaluate(v=>({width:v.videoWidth,height:v.videoHeight,readyState:v.readyState,fit:getComputedStyle(v).objectFit}));
+      console.log('ACG_MARKET_MOVERS_MEDIA_'+viewport.label+' '+JSON.stringify(moversMeta));
+      assert.ok(moversMeta.width>0 && moversMeta.height>0 && moversMeta.readyState>=2);
+      assert.equal(moversMeta.fit, 'contain');
+      const moversGeometry=await movers.evaluate(el=>{
+        const box=selector=>el.querySelector(selector).getBoundingClientRect();
+        const copy=box('.market-movers-copy'),video=box('.market-movers-frame'),
+          cta=box('.market-movers-cta'),caption=box('figcaption'),page=el.getBoundingClientRect();
+        return {copyRight:copy.right,copyBottom:copy.bottom,ctaBottom:cta.bottom,
+          videoLeft:video.left,videoRight:video.right,videoTop:video.top,videoBottom:video.bottom,
+          captionBottom:caption.bottom,sectionBottom:page.bottom,screenWidth:innerWidth};
+      });
+      if(viewport.label==='desktop'){
+        assert.ok(moversGeometry.copyRight+20 < moversGeometry.videoLeft,
+          'Market Movers must split copy left and film right: '+JSON.stringify(moversGeometry));
+      }else{
+        assert.ok(moversGeometry.ctaBottom+15 <= moversGeometry.videoTop,
+          'Market Movers must stack copy above film on mobile: '+JSON.stringify(moversGeometry));
+      }
+      assert.ok(moversGeometry.videoLeft>=-2 && moversGeometry.videoRight<=moversGeometry.screenWidth+2
+        && moversGeometry.captionBottom<=moversGeometry.sectionBottom+2,
+        'Market Movers film fits viewport: '+JSON.stringify(moversGeometry));
+      await movers.screenshot({path:'artifacts/market-movers-'+viewport.label+'.png'});
       assert.deepEqual(errors, [], viewport.label+' errors');
       await page.screenshot({ path:'artifacts/landing-film-'+viewport.label+'-motion.png' });
       await page.evaluate(() => { document.documentElement.style.scrollBehavior='auto'; window.scrollTo(0,0); });

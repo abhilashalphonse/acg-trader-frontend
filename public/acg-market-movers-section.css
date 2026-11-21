@@ -1,0 +1,33 @@
+/* Section 7 — Market Movers: balanced product showcase with copy left and film right. */
+#market-movers.market-movers-story{background:#090a0c;color:#f8f8fa;padding:100px 0;overflow:hidden}
+.market-movers-inner{width:min(1280px,calc(100% - 76px));display:grid;grid-template-columns:minmax(0,42fr) minmax(0,58fr);gap:clamp(48px,4.5vw,64px);align-items:center}
+.market-movers-copy{min-width:0}
+.market-movers-copy h2{max-width:480px;margin:0;color:#fff;font-size:clamp(48px,5vw,68px);font-weight:630;letter-spacing:-.07em;line-height:1.06;text-wrap:balance}
+.market-movers-copy p{max-width:410px;margin:24px 0 0;color:#adb1b9;font-size:17px;line-height:1.68;letter-spacing:-.012em;text-wrap:pretty}
+.market-movers-cta{display:inline-flex;gap:12px;align-items:center;justify-content:center;margin-top:30px;min-height:48px;padding:12px 23px;border:1px solid #5b6068;border-radius:999px;background:transparent;color:#f6f6f7;font-size:14px;font-weight:620;line-height:1.35;white-space:nowrap;transition:border-color .18s,background-color .18s}
+.market-movers-cta:hover{border-color:#afb4bd;background:#1b1d22}
+.market-movers-cta:focus-visible{outline:3px solid #9dbaff;outline-offset:4px}
+.market-movers-media{width:100%;min-width:0;margin:0}
+.market-movers-frame{width:100%;min-width:0;overflow:hidden;border-radius:16px;background:#111215}
+.market-movers-frame .market-movers-video{display:block;width:100%;height:auto;max-height:600px;aspect-ratio:auto 16/9;object-fit:contain;object-position:center;background:#111215;pointer-events:none}
+.market-movers-media figcaption{margin:14px 2px 0;color:#888e99;font-size:11px;line-height:1.55;text-align:right}
+@media(max-width:1024px){
+ .market-movers-copy h2{font-size:clamp(44px,5.3vw,60px)}
+ .market-movers-copy p{font-size:15px}
+ .market-movers-inner{gap:40px}
+}
+@media(max-width:767px){
+ #market-movers.market-movers-story{padding:76px 0}
+ .market-movers-inner{width:calc(100% - 32px);grid-template-columns:minmax(0,1fr);gap:28px}
+ .market-movers-copy h2{max-width:490px;font-size:clamp(39px,9.3vw,52px)}
+ .market-movers-copy p{margin-top:19px;font-size:15px;max-width:490px}
+ .market-movers-cta{margin-top:23px;font-size:13px;min-height:46px;padding:11px 20px}
+ .market-movers-frame{border-radius:12px}
+ .market-movers-frame .market-movers-video{max-height:500px}
+ .market-movers-media figcaption{margin-top:12px;text-align:left}
+}
+@media(max-width:360px){.market-movers-copy h2{font-size:37px}}
+@media(prefers-reduced-motion:reduce){
+ .market-movers-cta{transition:none}
+ #market-movers [data-film-reveal]{opacity:1!important;transform:none!important}
+}
