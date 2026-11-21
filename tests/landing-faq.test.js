@@ -57,3 +57,28 @@ test('FAQ typography, dividers, focus indication and responsive layout follow ed
   assert.ok(css.includes('@media(max-width:800px)'));
   assert.ok(css.includes('@media(max-width:480px)'));
 });
+
+test('compact terms and risk notice appears below all FAQ rows and links to applicable terms', () => {
+  const html = read('public/acg-landing-v6.html');
+  const start = html.indexOf('<section class="acg-faq"');
+  const end = html.indexOf('</section>', start);
+  const section = html.slice(start, end);
+  const lastQuestion = section.lastIndexOf('<details class="acg-faq-item"');
+  const lastAnswerEnd = section.lastIndexOf('</details>');
+  const noticeStart = section.indexOf('<div class="acg-faq-disclaimer" role="note"');
+  assert.ok(lastQuestion >= 0 && lastAnswerEnd > lastQuestion && noticeStart > lastAnswerEnd);
+  const notice = section.slice(noticeStart);
+  assert.ok(notice.includes('Terms &amp; risk notice.'));
+  assert.ok(notice.includes('simulated trading'));
+  assert.ok(notice.includes('not brokerage services or investment advice'));
+  assert.ok(notice.includes('not real funds or guaranteed outcomes'));
+  assert.ok(notice.includes('may be delayed, inaccurate or illustrative'));
+  assert.ok(notice.includes('substantial financial losses'));
+  assert.ok(notice.includes('href="/terms.html">Terms of Service</a>'));
+  assert.ok(notice.includes("account issuer's applicable terms"));
+  const css = read('public/acg-faq-section.css');
+  assert.ok(css.includes('.acg-faq-disclaimer{margin:72px 0 0'));
+  assert.ok(css.includes('.acg-faq-disclaimer p{margin:0;color:#a3a8b0;font-size:12px'));
+  assert.ok(css.includes('.acg-faq-disclaimer a:focus-visible'));
+  assert.ok(css.includes('.acg-faq-disclaimer{margin-top:48px}'));
+});
