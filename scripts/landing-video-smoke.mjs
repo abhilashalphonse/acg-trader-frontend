@@ -50,7 +50,7 @@ try {
         brand: document.querySelector('.site-header .brand img')?.getAttribute('src'),
         videoCount: document.querySelectorAll('.film-video').length,
         videoTypes: [...document.querySelectorAll('.film-video source')].map(v=>v.type),
-        validSources: [...document.querySelectorAll('.film-video')].every(v => v.querySelector('source')?.src?.includes('/media/') || (['acg-three-markets-film','ai-prism-film','acg-terminal-film'].includes(v.id) && v.querySelector('source')?.src?.includes('mwkwvchaqjqtyfgmialk.supabase.co'))),
+        validSources: [...document.querySelectorAll('.film-video')].every(v => v.querySelector('source')?.src?.includes('/media/') || (['acg-three-markets-film','ai-prism-film','acg-terminal-film','acg-ai-connection-film'].includes(v.id) && v.querySelector('source')?.src?.includes('mwkwvchaqjqtyfgmialk.supabase.co'))),
         width: document.documentElement.scrollWidth,
         viewportWidth: window.innerWidth,
         filmHeight: document.querySelector('.market-film')?.getBoundingClientRect().height
@@ -72,7 +72,7 @@ try {
       assert.ok(heroBounds.buttonsBottom < heroBounds.disclosureBottom, viewport.label+' CTA/disclosure order');
       assert.ok(heroBounds.disclosureBottom <= heroBounds.heroBottom + 3, viewport.label+' disclosure fits hero: '+JSON.stringify(heroBounds));
       assert.equal(values.brand, '/acg-trader-wordmark.png');
-      assert.equal(values.videoCount, 3);
+      assert.equal(values.videoCount, 4);
       assert.equal(await page.locator('video#acg-hero-reveal').count(), 1);
       assert.equal(await page.locator('a.acg-cinema-primary[href="/?acg_login=1"]').count(), 1);
       assert.equal(await page.locator('a.acg-cinema-secondary[href="/contact.html?topic=enterprise"]').count(), 1);
@@ -85,7 +85,7 @@ try {
       assert.equal(await page.locator('video#acg-shield-film').count(), 0);
       assert.equal(await page.locator('#experience.mobile-story').count(), 1);
       assert.equal(await page.locator('video#ai-prism-film').count(), 1);
-      assert.deepEqual(values.videoTypes, ['video/mp4','video/mp4','video/mp4']);
+      assert.deepEqual(values.videoTypes, ['video/mp4','video/mp4','video/mp4','video/mp4']);
       assert.ok(values.validSources);
       assert.ok(values.width <= values.viewportWidth + 3, viewport.label+' horizontal overflow: '+JSON.stringify(values));
       assert.ok(values.filmHeight >= 145 && values.filmHeight <= 760, viewport.label+' cinematic video height: '+values.filmHeight);
@@ -184,7 +184,7 @@ try {
         'Past performance is not an indicator of future performance. Data displayed above is indicative only. The return may increase or decrease as a result of currency fluctuations. Actual execution price may vary. Pricing data is provided by Acg Trader.');
       assert.equal(await terminal.locator('video').evaluate(v=>v.controls),false);
       const sectionOrder = await page.evaluate(() => {
-        const ids=['platform','market-intro','features','terminal','experience'];
+        const ids=['platform','market-intro','features','terminal','experience','ai-connections'];
         return ids.map(id => document.getElementById(id)?.getBoundingClientRect().top + window.scrollY);
       });
       assert.ok(sectionOrder.every((val,i)=>i===0||val>sectionOrder[i-1]), 'homepage order');
@@ -211,6 +211,49 @@ try {
       await artwork.evaluate(img => img.decode());
       assert.equal(await artwork.evaluate(img => img.naturalWidth), 800);
       await mobileSection.screenshot({path:'artifacts/mobile-story-'+viewport.label+'.png'});
+      // Sixth section — concept artwork, not a live third-party AI connection or order gateway.
+      const connections = page.locator('#ai-connections.ai-connect-story');
+      assert.equal(await connections.count(), 1);
+      assert.equal(await connections.locator('h2').textContent(), 'Trade with your AI assistant.');
+      assert.equal(await connections.locator('.ai-connect-cta').getAttribute('href'), '#ai-connect-film');
+      assert.ok((await connections.locator('.ai-connect-disclosure').innerText()).includes('not currently live'));
+      assert.ok((await connections.locator('.ai-connect-disclosure').innerText()).includes('do not imply partnership or endorsement'));
+      const connectionVideo = connections.locator('#acg-ai-connection-film');
+      assert.equal(await connectionVideo.count(), 1);
+      assert.equal(await connectionVideo.locator('source').getAttribute('src'),
+        'https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20Trader%20AI%20Connection.mp4');
+      assert.equal(await connectionVideo.evaluate(v => v.controls), false);
+      await connections.scrollIntoViewIfNeeded();
+      await page.waitForFunction(() => document.querySelector('#acg-ai-connection-film')?.readyState >= 2, null, {timeout: 15000});
+      await page.waitForTimeout(950);
+      const connVideoState = await connectionVideo.evaluate(v => ({
+        width:v.videoWidth, height:v.videoHeight, duration:v.duration, readyState:v.readyState,
+        paused:v.paused, currentTime:v.currentTime,
+        style:getComputedStyle(v).objectFit
+      }));
+      console.log('ACG_AI_CONNECTION_MEDIA_'+viewport.label+' '+JSON.stringify(connVideoState));
+      assert.ok(connVideoState.width > 0 && connVideoState.height > 0 && connVideoState.readyState >= 2,
+        viewport.label+' AI connection film decoded');
+      assert.equal(connVideoState.style, 'contain');
+      const connectionBounds = await connections.evaluate(el => {
+        const a = selector => el.querySelector(selector).getBoundingClientRect();
+        const heading=a('h2'),disclosure=a('.ai-connect-disclosure'),cta=a('.ai-connect-cta'),
+              stage=a('.ai-connect-stage'),video=a('.ai-connect-video'),section=el.getBoundingClientRect();
+        return { titleLeft:heading.left,titleRight:heading.right,disclosureBottom:disclosure.bottom,
+          ctaTop:cta.top,ctaBottom:cta.bottom,stageTop:stage.top,stageLeft:stage.left,
+          stageRight:stage.right,stageWidth:stage.width,stageHeight:stage.height,
+          videoWidth:video.width,sectionBottom:section.bottom,stageBottom:stage.bottom,
+          screenWidth:window.innerWidth };
+      });
+      assert.ok(connectionBounds.disclosureBottom <= connectionBounds.ctaTop + 2 &&
+        connectionBounds.ctaBottom <= connectionBounds.stageTop + 2, viewport.label+' AI intro order: '+JSON.stringify(connectionBounds));
+      assert.ok(connectionBounds.stageLeft >= -2 && connectionBounds.stageRight <= connectionBounds.screenWidth + 2,
+        viewport.label+' AI visual fits viewport: '+JSON.stringify(connectionBounds));
+      assert.ok(connectionBounds.stageWidth <= 1125 && connectionBounds.stageHeight >= 120,
+        viewport.label+' AI visual remains substantial and unclipped: '+JSON.stringify(connectionBounds));
+      assert.ok(connectionBounds.stageBottom <= connectionBounds.sectionBottom + 2,
+        viewport.label+' AI film fits the section: '+JSON.stringify(connectionBounds));
+      await connections.screenshot({path:'artifacts/ai-connection-section-'+viewport.label+'.png'});
       assert.deepEqual(errors, [], viewport.label+' errors');
       await page.screenshot({ path:'artifacts/landing-film-'+viewport.label+'-motion.png' });
       await page.evaluate(() => { document.documentElement.style.scrollBehavior='auto'; window.scrollTo(0,0); });
@@ -286,6 +329,22 @@ try {
         assert.ok(t.frameLeft>=-3 && t.frameRight<=t.viewportWidth+3,width+'x'+height+' terminal screen overflow: '+JSON.stringify(t));
         assert.ok(t.frameWidth<=670,width+'x'+height+' terminal screen too wide: '+JSON.stringify(t));
         assert.ok(t.disclosureBottom<=t.sectionBottom+3,width+'x'+height+' terminal disclaimer clipped: '+JSON.stringify(t));
+        const con = await page.evaluate(() => {
+          const b = selector => document.querySelector(selector)?.getBoundingClientRect();
+          const section=b('#ai-connections'),heading=b('#ai-connect-heading'),
+                note=b('.ai-connect-disclosure'),cta=b('.ai-connect-cta'),
+                stage=b('#ai-connect-film'),video=b('#acg-ai-connection-film');
+          return {sectionBottom:section?.bottom,headingLeft:heading?.left,
+            headingRight:heading?.right,noteBottom:note?.bottom,ctaTop:cta?.top,
+            ctaBottom:cta?.bottom,stageTop:stage?.top,stageBottom:stage?.bottom,
+            stageLeft:stage?.left,stageRight:stage?.right,stageWidth:stage?.width,
+            videoWidth:video?.width,viewportWidth:window.innerWidth};
+        });
+        assert.ok(con.headingLeft>=-3 && con.headingRight<=con.viewportWidth+3,width+'x'+height+' AI connection heading overflow: '+JSON.stringify(con));
+        assert.ok(con.stageLeft>=-3 && con.stageRight<=con.viewportWidth+3,width+'x'+height+' AI connection art overflow: '+JSON.stringify(con));
+        assert.ok(con.noteBottom<=con.ctaTop+2 && con.ctaBottom<=con.stageTop+2,width+'x'+height+' AI connections copy spacing: '+JSON.stringify(con));
+        assert.ok(con.stageBottom<=con.sectionBottom+3,width+'x'+height+' AI connection art cropped: '+JSON.stringify(con));
+
 
 
       } finally {await page.close();}
