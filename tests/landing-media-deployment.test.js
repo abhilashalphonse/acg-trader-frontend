@@ -28,7 +28,7 @@ test('the hero uses one public logo-free clip and deletes obsolete Railway media
   const js = read('public/acg-landing-motion.js');
   assert.ok(html.includes('src="' + cleanSource + '"'));
   assert.ok(html.includes('id="acg-hero-reveal"'));
-  assert.equal((html.match(/<video/g) || []).length, 3);
+  assert.equal((html.match(/<video/g) || []).length, 4);
   assert.ok(css.includes("url('/media/acg-prism-static.svg')"));
   assert.ok(css.includes('object-fit:cover'), 'art-directed crop must preserve geometry');
   assert.ok(css.includes('max-height:600px'), 'short landscape screens must be handled');
@@ -58,6 +58,15 @@ test('the hero uses one public logo-free clip and deletes obsolete Railway media
 test('the supporting films stay licensed-account aware and have no extra playback controls', () => {
   const html = read('public/acg-landing-v6.html');
   const js = read('public/acg-landing-motion.js');
+  assert.ok(html.includes('class="terminal-story" id="terminal"'));
+  assert.ok(html.indexOf('id="terminal"') < html.indexOf('id="experience"'));
+  assert.ok(html.includes('id="acg-terminal-film"'));
+  assert.ok(html.includes('src="https://mwkwvchaqjqtyfgmialk.supabase.co/storage/v1/object/public/acg-trader/ACG%20Trader%20Terminal.mp4"'));
+  assert.ok(html.includes('href="/acg-terminal-section.css"'));
+  const terminalCss = read('public/acg-terminal-section.css');
+  assert.ok(terminalCss.includes('object-fit:contain'));
+  assert.ok(terminalCss.includes('prefers-reduced-motion:reduce'));
+  assert.ok(html.includes('Pricing data is provided by Acg Trader.'));
   assert.ok(html.includes('class="mobile-story" id="experience"'));
   assert.ok(html.includes('id="acg-three-markets-film"'));
   assert.ok(!html.includes('id="acg-shield-film"'));
