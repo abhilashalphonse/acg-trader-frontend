@@ -7,7 +7,7 @@ const read = file => readFileSync(new URL('../' + file, import.meta.url), 'utf8'
 test('Access transition uses pure-black background and keeps actual account routes and disclosures', () => {
   const html = read('public/acg-landing-v6.html');
   const css = read('public/acg-mobile-composition.css');
-  assert.ok(html.includes('<link rel="stylesheet" href="/acg-mobile-composition.css?v=20261121-audit1"/>'));
+  assert.ok(html.includes('<link rel="stylesheet" href="/acg-mobile-composition.css?v=20261121-sections2"/>'));
   assert.ok(html.indexOf('href="/acg-mobile-composition.css') > html.indexOf('href="/acg-landing-footer.css'),
     'mobile overrides load after original styles');
   assert.match(css, /#access\.section\.access\{[\s\S]*?background:#000/);
