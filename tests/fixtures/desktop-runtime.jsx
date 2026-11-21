@@ -1,6 +1,8 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import DesktopTerminal from '../../src/components/trading-v2/DesktopTerminal.jsx';
+import { AuthContext } from '../../src/auth/AuthProvider.jsx';
+import { TradingContext } from '../../src/store/TradingProvider.jsx';
 import '../../src/index.css';
 
 // Completely local, read-only fixture; no auth tokens, order creation, or
@@ -39,4 +41,10 @@ createRoot(document.getElementById('root'),{
       componentStack:info?.componentStack||''
     });
   }
-}).render(<DesktopTerminal {...props}/>);
+}).render(
+  <AuthContext.Provider value={{authenticated:true,accessToken:null,principal:null,logout:noop}}>
+    <TradingContext.Provider value={{market:{candlesByKey:{}},connection:{status:'ready'},subscribeMarket:()=>noop}}>
+      <DesktopTerminal {...props}/>
+    </TradingContext.Provider>
+  </AuthContext.Provider>
+);
