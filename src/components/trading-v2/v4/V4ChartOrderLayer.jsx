@@ -23,7 +23,7 @@ const protectionPriceLabel = (value, formatPrice) => {
 
 export default function V4ChartOrderLayer({
   accountId, symbol, positions = [], pendingOrders = [], coordinateApi,
-  mobile = false, selectedOwner = null,
+  mobile = false, selectedOwner = null, directPendingCancel = false,
   height = 480, formatPrice, formatVolume, formatPnl, instrument = null, accountCurrency = 'USD',
   hidePositionEntries = false, readOnly = false, hoveredPositionId = null,
   edit = null, saving = false, removingLevelId = null, onBeginEdit, onChangeEdit, onSaveEdit, onCancelEdit,
@@ -114,6 +114,27 @@ export default function V4ChartOrderLayer({
   };
   const canRemove = Boolean(onRemoveProtection);
   const [cancelPendingId, setCancelPendingId] = useState(null);
+  const pendingCancelsInFlight = useRef(new Set());
+  // The regular terminal retains its explicit cancellation review. Only an
+  // actively open audit mini popup requests a single-click cancellation.
+  useEffect(() => {
+    if (directPendingCancel) setCancelPendingId(null);
+  }, [directPendingCancel]);
+  const requestPendingCancellation = async level => {
+    if (!level || readOnly || saving || !onCancelPending) return;
+    if (!directPendingCancel) {
+      setCancelPendingId(level.id);
+      return;
+    }
+    const orderId = String(level.objectId);
+    if (pendingCancelsInFlight.current.has(orderId)) return;
+    pendingCancelsInFlight.current.add(orderId);
+    try {
+      await onCancelPending(orderId);
+    } finally {
+      pendingCancelsInFlight.current.delete(orderId);
+    }
+  };
   const protectionTheme = kind => kind === 'tp'
     ? {background:'#09090b', positive:'rgba(22,197,144,0.17)'}
     : {background:'#09090b', positive:'rgba(238,84,101,0.17)'};
@@ -257,7 +278,7 @@ export default function V4ChartOrderLayer({
           {level.kind==='entry' && level.objectType==='position' && formatPnl && <span className="truncate" style={{color}}>{formatPnl(level.pnl)}</span>}
           {level.kind==='entry' && level.objectType==='position' && onSelectPosition && <button type="button" aria-label="Select position" onClick={()=>onSelectPosition(level.objectId)} className="shrink-0 px-1 text-gray-300">Select</button>}
           {level.kind==='entry' && level.objectType==='position' && onClosePosition && <button type="button" aria-label="Close position" onClick={()=>onClosePosition(level.objectId, 100)} className="shrink-0 px-1 text-gray-300">×</button>}
-          {level.kind==='entry' && level.objectType==='pending' && onCancelPending && <button type="button" aria-label="Cancel pending order" onClick={()=>setCancelPendingId(level.id)} className="shrink-0 px-1 text-gray-300">×</button>}
+          {level.kind==='entry' && level.objectType==='pending' && onCancelPending && <button type="button" aria-label="Cancel pending order" onClick={()=>{void requestPendingCancellation(level);}} className="shrink-0 px-1 text-gray-300">×</button>}
           {level.objectType==='position' && missing.map(kind=><button key={kind} type="button" onClick={()=>onAddProtection?.(level.objectId,kind,'position')}
             className="shrink-0 rounded-[3px] border border-gray-600 px-1" aria-label={`Add ${kind.toUpperCase()}`}>+{kind.toUpperCase()}</button>)}
           {(['sl','tp'].includes(level.kind) || (level.objectType==='pending' && level.kind==='entry'))&&onBeginEdit&&!marketProtection&&!pendingEntry&&<button type="button" className="shrink-0 px-1"
@@ -376,7 +397,7 @@ export default function V4ChartOrderLayer({
     </div>}
     {overflow.length>0&&<span className="pointer-events-auto absolute bottom-2 right-[148px] rounded bg-[#202329] px-2 py-1 text-[10px] text-gray-300"
       data-v4-overflow-count={overflow.length}>{overflow.length} more levels outside badge area</span>}
-    {!readOnly && cancelPendingId && <div role="dialog" aria-modal="true" aria-label="Confirm cancel pending order"
+    {!readOnly && !directPendingCancel && cancelPendingId && <div role="dialog" aria-modal="true" aria-label="Confirm cancel pending order"
       className="pointer-events-auto absolute bottom-3 right-[148px] z-[60] flex max-w-[300px] flex-col gap-2 rounded-md border border-gray-600 bg-[#111419] p-3 text-[11px] text-white">
       <span>Cancel this pending order?</span>
       <div className="flex gap-2">
