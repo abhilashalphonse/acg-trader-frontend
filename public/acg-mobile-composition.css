@@ -47,11 +47,16 @@
   #features .ai-section-cta{margin:22px 0 0}
   #features .ai-preview{
     width:100%;max-width:405px;
-    margin:clamp(70px,9svh,86px) 0 0;
+    margin:clamp(62px,8svh,74px) 0 0;
     padding:18px 16px 16px;
   }
   #features .ai-preview-prompt{font-size:13px;line-height:1.55}
   #features .ai-section-note{max-width:355px;margin:14px 0 0;font-size:10px;text-align:left}
+  /* Reveal more of the original moving prism and its light spill, without
+     inventing extra UI or hiding the illustrative workflow disclaimer. */
+  #features .ai-section-video{transform:scale(1.15);transform-origin:center 50%;object-position:50% 55%}
+  #features .ai-section-backdrop::before{height:12px;top:51%;opacity:.82;filter:drop-shadow(0 2px 15px #3965d6aa)}
+  #features .ai-section-shade{background:linear-gradient(180deg,#000a 0%,#0003 30%,transparent 48%,#0007 100%),radial-gradient(ellipse 70% 16% at 50% 57%,#3659ac28,transparent 100%)}
 
   /* Terminal: enlarge authentic portrait film into almost full device width,
      not by stretching, zoom-cropping or changing source aspect ratio. */
@@ -104,36 +109,37 @@
   #ai-connections .ai-connect-copy{max-width:none;margin:0}
   #ai-connections .ai-connect-copy h2{max-width:355px;font-size:clamp(37px,9.4vw,47px)}
   #ai-connections .ai-connect-lead{max-width:350px;margin:15px 0 0;font-size:15px}
-  #ai-connections .ai-connect-disclosure{max-width:350px;margin:10px 0 0;font-size:10.5px;line-height:1.65}
-  #ai-connections .ai-connect-cta{margin:16px 0 0}
+  #ai-connections .ai-connect-status{display:block;max-width:345px;margin:13px 0 0;color:#b7bdc6;font-size:11px;line-height:1.55}
+  #ai-connections .ai-connect-disclosure{max-width:355px;margin:14px 0 21px;color:#aeb4be;font-size:12px;line-height:1.65}
+  #ai-connections .ai-connect-cta{margin:20px 0 0}
   #ai-connections .ai-connect-stage{
     width:100vw;max-width:none;align-self:center;
-    margin:16px 0 0;aspect-ratio:1.48;
+    margin:21px 0 0;aspect-ratio:1.35;
     overflow:hidden;background:#000;
   }
   #ai-connections .ai-connect-stage .ai-connect-video{
-    width:100%;height:100%;object-fit:contain;
-    transform:scale(1.22);transform-origin:center;
+    width:100%;height:100%;object-fit:cover;
+    transform:none;transform-origin:center;
   }
 
   /* Market Movers: presentation area is taller and closer to device edges.
      Enlarge the existing film, never create controls or overlays. */
-  #market-movers.market-movers-story{min-height:0;padding:55px 0 36px}
-  #market-movers .market-movers-inner{width:calc(100% - 32px);gap:17px}
+  #market-movers.market-movers-story{min-height:0;padding:56px 0 27px}
+  #market-movers .market-movers-inner{width:calc(100% - 32px);gap:0}
   #market-movers .market-movers-copy h2{
     font-size:clamp(38px,9.7vw,49px);line-height:1.08;
   }
   #market-movers .market-movers-copy p{margin-top:17px}
   #market-movers .market-movers-cta{margin-top:21px}
-  #market-movers .market-movers-media{width:100vw;max-width:none;margin-left:-16px}
+  #market-movers .market-movers-media{width:100vw;max-width:none;margin:8px 0 0 -16px}
   #market-movers .market-movers-frame{
     width:100vw;max-width:none;
-    margin-left:0;aspect-ratio:1.09;
+    margin-left:0;aspect-ratio:4/3;
     background:#000;
   }
   #market-movers .market-movers-frame .market-movers-video{
-    transform:scale(1.6);transform-origin:right center;
-    object-fit:contain;background:#000;
+    transform:none;transform-origin:center;
+    object-fit:cover;object-position:center;background:#000;
   }
 
   /* Account access: clear, efficient, black-on-black hierarchy. */
@@ -168,14 +174,23 @@
   #acg-faq .acg-faq-disclaimer p{font-size:12px;line-height:1.72}
   .footer{padding-top:57px}
   .footer .footer-grid{gap:31px 18px}
-  .footer .footer-bottom{margin-top:43px}
+  .footer .footer-bottom{margin-top:35px}
+  /* Two mobile navigation columns at every phone width; prevent the previous
+     <=360px breakpoint from turning the footer into a long vertical list. */
+  .footer .footer-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:14px;row-gap:28px}
+  .footer .footer-grid>.footer-brand-block{grid-column:1/-1}
+  .footer .footer-nav{gap:12px;min-width:0}
+  .footer .footer-nav b{font-size:12px;margin-bottom:4px}
+  .footer .footer-nav a{font-size:12.5px;line-height:1.5;overflow-wrap:anywhere}
 }
 @media(max-width:360px){
   #terminal .terminal-story-figure{width:100vw;max-width:none;transform:none}
   #terminal .terminal-story-copy h2{font-size:36px}
   #ai-connections .ai-connect-stage{width:100vw;max-width:none;margin-left:0;margin-right:0}
   #market-movers .market-movers-frame{width:100vw;margin-left:0}
-  #market-movers .market-movers-frame .market-movers-video{transform:scale(1.56)}
+  #market-movers .market-movers-frame .market-movers-video{transform:none}
+  .footer .footer-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .footer .footer-grid>.footer-brand-block{grid-column:1/-1}
 }
 @media(prefers-reduced-motion:reduce){
   /* This is art direction only; no automatic motion is introduced. */
