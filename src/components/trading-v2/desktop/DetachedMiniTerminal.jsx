@@ -91,8 +91,8 @@ export default function DetachedMiniTerminal({
     try {
       const pip = Boolean(window.documentPictureInPicture?.requestWindow);
       child = pip
-        ? await window.documentPictureInPicture.requestWindow({ width: 320, height: 480 })
-        : window.open('about:blank', '_blank', 'popup=yes,width=320,height=480');
+        ? await window.documentPictureInPicture.requestWindow({ width: 270, height: 560 })
+        : window.open('about:blank', '_blank', 'popup=yes,width=270,height=560');
       if (!child) throw new Error('Allow pop-ups for ACG Trader, then try again.');
       if (!mounted.current) { child.close(); return; }
       windowRef.current = child;
@@ -213,7 +213,7 @@ export default function DetachedMiniTerminal({
         </span>}
         <div className="acg-mini-context">
           <span className="acg-mini-market-avatar" aria-hidden="true">
-            <InstrumentAvatar instrument={market} size={40}/>
+            <InstrumentAvatar instrument={market} size={27}/>
           </span>
           <div className="acg-mini-market-identity">
             <div className="acg-mini-symbol-line">
