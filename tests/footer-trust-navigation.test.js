@@ -34,7 +34,7 @@ test('V4 navbar, footer and responsive menu preserve authorized account login ro
   assert.match(html, /href="\/\?acg_connect_prop=1"/);
   assert.match(html, /href="\/\?acg_login=1"/);
   assert.doesNotMatch(html, /href="\/\?acg_auth=signup"/);
-  for (const anchor of ['platform', 'features', 'trading', 'markets', 'access']) {
+  for (const anchor of ['platform', 'features', 'market-intro', 'market-movers', 'access']) {
     assert.ok(html.includes('id="' + anchor + '"'), anchor);
   }
   assert.deepEqual([...html.matchAll(/<script\b[^>]*>/g)].map(match => match[0]), ['<script src="/acg-landing-motion.js" defer>']);

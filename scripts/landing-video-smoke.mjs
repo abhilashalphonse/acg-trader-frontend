@@ -180,17 +180,20 @@ try {
       assert.equal(await terminal.count(), 1);
       assert.equal(await terminal.locator('h2').innerText(), 'Your entire trading workspace. One screen.');
       assert.ok((await terminal.locator('.terminal-story-copy > p').innerText()).includes('Analyze markets, plan orders'));
-      assert.equal(await terminal.locator('.terminal-story-cta').getAttribute('href'), '#trading');
+      assert.equal(await terminal.locator('.terminal-story-cta').getAttribute('href'), '/?acg_login=1');
       assert.equal(await terminal.locator('#acg-terminal-film source').count(), 1);
       assert.ok((await terminal.locator('#acg-terminal-film source').getAttribute('src')).includes('ACG%20Trader%20Terminal.mp4'));
       assert.equal(await terminal.locator('figcaption').innerText(),
         'Past performance is not an indicator of future performance. Data displayed above is indicative only. The return may increase or decrease as a result of currency fluctuations. Actual execution price may vary. Pricing data is provided by Acg Trader.');
       assert.equal(await terminal.locator('video').evaluate(v=>v.controls),false);
       const sectionOrder = await page.evaluate(() => {
-        const ids=['platform','market-intro','features','terminal','experience','ai-connections','market-movers','trading','markets'];
+        const ids=['platform','market-intro','features','terminal','experience','ai-connections','market-movers','access'];
         return ids.map(id => document.getElementById(id)?.getBoundingClientRect().top + window.scrollY);
       });
       assert.ok(sectionOrder.every((val,i)=>i===0||val>sectionOrder[i-1]), 'homepage order');
+      assert.equal(await page.locator('#trading, #markets, .workflow-preview, .market-list').count(), 0, 'removed workflow and catalog are absent');
+      assert.equal(await page.locator('a[href="#trading"], a[href="#markets"]').count(), 0, 'no orphaned anchors');
+      assert.ok(await page.locator('a[href="#market-intro"]').count() >= 3, 'market links point to existing intro');
       await terminal.scrollIntoViewIfNeeded();
       await page.waitForTimeout(1650);
       const terminalVideoMeta = await terminal.locator('video').evaluate(v=>({
@@ -206,7 +209,7 @@ try {
       await terminal.screenshot({path:'artifacts/terminal-story-'+viewport.label+'.png'});
       const mobileSection=page.locator('#experience.mobile-story');
       assert.equal(await mobileSection.locator('h2').innerText(), 'Your trading desk.\nIn your pocket.');
-      assert.equal(await mobileSection.locator('.mobile-story-cta').getAttribute('href'), '#trading');
+      assert.equal(await mobileSection.locator('.mobile-story-cta').getAttribute('href'), '/?acg_login=1');
       assert.ok((await mobileSection.locator('.mobile-story-cta').innerText()).includes('Explore mobile trading'));
       const artwork=mobileSection.locator('img[src="/media/acg-trader-mobile-artwork.webp"]');
       assert.equal(await artwork.count(), 1);
@@ -268,7 +271,7 @@ try {
       assert.equal(await movers.count(), 1);
       assert.equal(await movers.locator('h2').innerText(), 'See what’s moving.');
       assert.ok((await movers.locator('.market-movers-copy p').innerText()).includes('what’s gaining momentum'));
-      assert.equal(await movers.locator('.market-movers-cta').getAttribute('href'), '#markets');
+      assert.equal(await movers.locator('.market-movers-cta').getAttribute('href'), '#market-intro');
       assert.equal(await movers.locator('figcaption').count(), 0, 'Section 7 has no trailing disclaimer');
       const moversVideo = movers.locator('#acg-market-movers-film');
       assert.equal(await moversVideo.locator('source').getAttribute('src'),
