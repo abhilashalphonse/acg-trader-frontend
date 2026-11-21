@@ -98,7 +98,21 @@ try {
       assert.ok(section.width <= (viewport.label === 'desktop' ? 1160 : section.viewportWidth+2), viewport.label+' cinematic film fits: '+JSON.stringify(section));
       assert.ok(section.width >= (viewport.label === 'desktop' ? 850 : 300), viewport.label+' video fills the stage: '+JSON.stringify(section));
       assert.ok(Math.abs(section.videoCenter - section.viewportWidth / 2) < 8, viewport.label+' video centered');
-      assert.equal(await page.locator('#market-intro .market-intro-cta[href="#markets"]').textContent(), 'Explore markets');
+      const marketIntro = page.locator('#market-intro');
+      assert.equal(await marketIntro.locator('.market-intro-cta[href="/?acg_login=1"]').textContent(), 'See for yourself');
+      assert.equal(await marketIntro.locator('.market-intro-cta').getAttribute('title'), 'Sign in to access your ACG Trader workspace');
+      assert.equal(await marketIntro.locator('.market-intro-risk').textContent(),
+        'Simulated trading only. Instrument availability varies by account. Trading involves risk.');
+      const introLayout = await marketIntro.evaluate(el => {
+        const description = el.querySelector('.market-intro-description').getBoundingClientRect();
+        const risk = el.querySelector('.market-intro-risk').getBoundingClientRect();
+        const cta = el.querySelector('.market-intro-cta').getBoundingClientRect();
+        return { properOrder: description.bottom <= risk.top && risk.bottom <= cta.top,
+          riskToCta: cta.top - risk.bottom, riskFont: getComputedStyle(el.querySelector('.market-intro-risk')).fontSize,
+          overflow: el.scrollWidth > el.clientWidth + 3 };
+      });
+      assert.ok(introLayout.properOrder && introLayout.riskToCta <= 26 && !introLayout.overflow,
+        viewport.label + ' Section 2 risk note and CTA layout: ' + JSON.stringify(introLayout));
       assert.equal(await page.locator('#market-intro #acg-three-markets-film').count(), 1);
       const newFilm = page.locator('#acg-three-markets-film');
       const newSource = await newFilm.locator('source').getAttribute('src');
