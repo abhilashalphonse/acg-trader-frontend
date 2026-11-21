@@ -51,7 +51,7 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /not a broker/);
   assert.match(html, /href="\/\?acg_login=1"/);
   assert.match(html, /href="\/\?acg_connect_prop=1"/);
-  for (const anchor of ['platform', 'features', 'trading', 'markets', 'access']) {
+  for (const anchor of ['platform', 'features', 'market-intro', 'market-movers', 'access']) {
     assert.ok(html.includes('id="' + anchor + '"'), anchor);
   }
   assert.doesNotMatch(html, /coming soon|in development|roadmap|white label|free tier|futures|options/i);
@@ -101,9 +101,14 @@ test('public homepage uses V4 design language and current production capability 
   const terminalStart = html.indexOf('class="terminal-story"');
   const aiConnectionsStart = html.indexOf('class="ai-connect-story"');
   const moversStart = html.indexOf('class="market-movers-story"');
-  const workflowStart = html.indexOf('class="section workflow"');
-  assert.ok(introStart < aiStart && aiStart < terminalStart && terminalStart < mobileStart && mobileStart < aiConnectionsStart && aiConnectionsStart < moversStart && moversStart < workflowStart,
-    'Section 7 Market Movers follows AI connections and precedes trading workflow');
+  const accessStart = html.indexOf('class="section access"');
+  assert.ok(introStart < aiStart && aiStart < terminalStart && terminalStart < mobileStart && mobileStart < aiConnectionsStart && aiConnectionsStart < moversStart && moversStart < accessStart,
+    'Section 7 Market Movers leads directly into account access after removing workflow and catalog');
+  assert.ok(!html.includes('class="section workflow"') && !html.includes('class="section markets"'), 'obsolete workflow and markets catalog are removed');
+  assert.ok(!html.includes('id="trading"') && !html.includes('id="markets"'), 'removed sections no longer expose dead anchors');
+  assert.ok(!html.includes('href="#trading"') && !html.includes('href="#markets"'), 'navigation has no broken section anchors');
+  assert.ok(html.includes('href="#market-intro">Markets</a>'), 'markets navigation reaches existing Section 2');
+  assert.ok(!html.includes('Trading workflow</a>'), 'obsolete footer navigation link removed');
   assert.ok(heroEnd < introStart && introStart < featuresStart, 'second section follows hero');
   assert.equal((html.match(/id="acg-three-markets-film"/g) || []).length, 1);
   assert.ok(!html.includes('/media/acg-three-markets.mp4'), 'Replaced market-coins clip is not used');
@@ -126,7 +131,7 @@ test('public homepage uses V4 design language and current production capability 
   assert.ok(html.includes('class="terminal-story" id="terminal"'));
   assert.ok(html.includes('id="terminal-heading">Your entire trading workspace. One screen.</h2>'));
   assert.ok(html.includes('Analyze markets, plan orders and manage positions directly from the chart. Everything you need for a focused trading workflow.'));
-  assert.ok(html.includes('class="terminal-story-cta" href="#trading">Explore the terminal'));
+  assert.ok(html.includes('class="terminal-story-cta" href="/?acg_login=1">Explore the terminal'));
   assert.ok(html.includes('id="acg-terminal-film"'));
   assert.ok(html.includes('ACG%20Trader%20Terminal.mp4'));
   assert.ok(html.includes('href="/acg-terminal-section.css"'));
@@ -146,7 +151,7 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /href="\/acg-mobile-section\.css"/);
   assert.ok(html.includes('id="mobile-story-heading">Your trading desk.<br/>In your pocket.</h2>'));
   assert.ok(html.includes('Follow the markets, analyze charts, plan orders and manage positions from a streamlined mobile trading workspace.'));
-  assert.ok(html.includes('class="mobile-story-cta" href="#trading">Explore mobile trading'));
+  assert.ok(html.includes('class="mobile-story-cta" href="/?acg_login=1">Explore mobile trading'));
   assert.ok(!html.includes('id="acg-shield-film"'));
   const mobileCss = readFileSync(new URL('../public/acg-mobile-section.css', import.meta.url), 'utf8');
   assert.ok(mobileCss.includes('grid-template-columns:minmax(0,1.04fr) minmax(0,.96fr)'));
@@ -175,7 +180,7 @@ test('public homepage uses V4 design language and current production capability 
   assert.ok(html.includes('class="market-movers-story" id="market-movers"'));
   assert.ok(html.includes('id="market-movers-heading">See what’s moving.</h2>'));
   assert.ok(html.includes('Follow market movements and discover what’s gaining momentum across a unified trading workspace.'));
-  assert.ok(html.includes('class="market-movers-cta" href="#markets">Explore markets'));
+  assert.ok(html.includes('class="market-movers-cta" href="#market-intro">Explore markets'));
   assert.ok(html.includes('ACG%20Market%20Movers%20-%20Take%20the%20Lead.mp4'));
   assert.ok(!html.includes('Illustrative market movements. Rankings and price moves are for demonstration only'));
   assert.ok(html.includes('href="/acg-market-movers-section.css?v=20261121-cinematic"'), 'new CSS URL busts cached color mismatch');
