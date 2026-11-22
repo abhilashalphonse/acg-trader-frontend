@@ -418,7 +418,6 @@ export default function DrawingLayer({
   instrument = null,
   account = null,
   riskPercent = 0.5,
-  accountCurrency = 'USD',
   onCreateRiskOrder = () => {},
   chartInstanceId = 'chart',
   interactionEnabled = true,
