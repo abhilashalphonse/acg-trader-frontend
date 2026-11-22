@@ -1,0 +1,52 @@
+name: Desktop chart light and dark browser acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'src/utils/desktopChartSettings.js'
+      - 'src/components/trading-v2/desktop/DesktopChartSettingsPopover.jsx'
+      - 'src/components/trading-v2/ChartArea.jsx'
+      - 'src/components/TradingChart.jsx'
+      - 'tests/desktopChartSettings.test.js'
+      - 'tests/ui/desktop-chart-theme.mjs'
+      - '.github/workflows/chart-theme-acceptance.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/utils/desktopChartSettings.js'
+      - 'src/components/trading-v2/desktop/DesktopChartSettingsPopover.jsx'
+      - 'src/components/trading-v2/ChartArea.jsx'
+      - 'src/components/TradingChart.jsx'
+      - 'tests/desktopChartSettings.test.js'
+      - 'tests/ui/desktop-chart-theme.mjs'
+      - '.github/workflows/chart-theme-acceptance.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  chart-theme-chrome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - name: Start mock terminal (no execution backend)
+        run: |
+          set -euo pipefail
+          VITE_ACG_EXECUTION_V4_ENABLED=true npm run dev -- --host 127.0.0.1 >/tmp/chart-theme-vite.log 2>&1 &
+          echo $! >/tmp/chart-theme-vite.pid
+          curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-connrefused 'http://127.0.0.1:5174/v4-positions-audit.html?acg_v4_audit=1' >/dev/null
+      - name: Verify premium light chart and dark restore in Chrome
+        run: node tests/ui/desktop-chart-theme.mjs
+      - name: Stop mock terminal
+        if: always()
+        run: |
+          if [ -f /tmp/chart-theme-vite.pid ]; then kill "$(cat /tmp/chart-theme-vite.pid)" 2>/dev/null || true; fi

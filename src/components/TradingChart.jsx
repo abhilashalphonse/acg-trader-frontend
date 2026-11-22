@@ -31,7 +31,7 @@ import { drawingBarsBetween, drawingTimeToLogical, logicalToDrawingTime } from '
 import { ArrowRight, Eye, EyeOff, Settings2, X } from 'lucide-react';
 import ACGStartupLoader from './ACGStartupLoader.jsx';
 import { indicatorValueAt } from '../utils/chartToolSettings.js';
-import { formatChartCrosshairTime, formatChartTick } from '../utils/desktopChartSettings.js';
+import { desktopChartPalette, formatChartCrosshairTime, formatChartTick } from '../utils/desktopChartSettings.js';
 
 const chartTokens = {
   background: '#09090b',
@@ -113,6 +113,7 @@ export default function TradingChart({
   desktopEnhanced = false,
   compactContext = false,
   candleAppearance = null,
+  chartTheme = 'dark',
   viewportSettings = null,
   chartTimezone = null,
   layoutRevision = '',
@@ -150,6 +151,8 @@ export default function TradingChart({
   const previousHistoryRecoveryRevisionRef = useRef(historyRecoveryRevision);
   const [error, setError] = useState('');
   const chartRequestKey = `${String(symbol || '').toUpperCase()}:${timeframe}:${chartMode}`;
+  const canvasPalette = desktopChartPalette(chartTheme);
+  const lightCanvas = chartTheme === 'light';
   const [readyKey, setReadyKey] = useState(null);
   const [displayBar, setDisplayBar] = useState(null);
   const [inspectingCandle, setInspectingCandle] = useState(false);
@@ -384,14 +387,14 @@ export default function TradingChart({
           timeFormatter: time => formatChartCrosshairTime(time, chartTimezone, instrument),
         },
       } : {}),
-      layout: { background: { type: ColorType.Solid, color: chartTokens.background }, textColor: chartTokens.text, attributionLogo: showAttributionLogo, fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif', fontSize: mobileReference ? 10 : 11, panes: { separatorColor: '#1b1b1b', separatorHoverColor: 'rgba(83,199,255,0.18)', enableResize: true } },
-      grid: { vertLines: { visible: !compactContext, color: chartTokens.gridline, style: LineStyle.Dotted }, horzLines: { visible: !compactContext, color: chartTokens.gridline, style: LineStyle.Dotted } },
-      crosshair: { mode: CrosshairMode.Normal, vertLine: { visible: !compactContext, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: !compactContext, labelBackgroundColor: chartTokens.crosshairLabel }, horzLine: { visible: !compactContext, color: chartTokens.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: !compactContext, labelBackgroundColor: chartTokens.crosshairLabel } },
-      rightPriceScale: { visible: true, borderVisible: true, borderColor: '#242424', ticksVisible: true, scaleMargins: desktopEnhanced && !mobileReference ? { top: viewportRef.current.top, bottom: viewportRef.current.bottom } : { top: 0.045, bottom: 0.07 } },
+      layout: { background: { type: ColorType.Solid, color: canvasPalette.background }, textColor: canvasPalette.text, attributionLogo: showAttributionLogo, fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif', fontSize: mobileReference ? 10 : 11, panes: { separatorColor: canvasPalette.paneSeparator, separatorHoverColor: 'rgba(83,199,255,0.18)', enableResize: true } },
+      grid: { vertLines: { visible: !compactContext, color: canvasPalette.gridline, style: LineStyle.Dotted }, horzLines: { visible: !compactContext, color: canvasPalette.gridline, style: LineStyle.Dotted } },
+      crosshair: { mode: CrosshairMode.Normal, vertLine: { visible: !compactContext, color: canvasPalette.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: !compactContext, labelBackgroundColor: canvasPalette.crosshairLabel }, horzLine: { visible: !compactContext, color: canvasPalette.crosshair, width: 1, style: LineStyle.Dashed, labelVisible: !compactContext, labelBackgroundColor: canvasPalette.crosshairLabel } },
+      rightPriceScale: { visible: true, borderVisible: true, borderColor: canvasPalette.border, ticksVisible: true, scaleMargins: desktopEnhanced && !mobileReference ? { top: viewportRef.current.top, bottom: viewportRef.current.bottom } : { top: 0.045, bottom: 0.07 } },
       timeScale: {
         visible: true,
         borderVisible: true,
-        borderColor: '#242424',
+        borderColor: canvasPalette.border,
         ticksVisible: true,
         timeVisible: true,
         secondsVisible: ['S1', 'S5', 'S15', 'S30'].includes(timeframe),
@@ -828,6 +831,30 @@ export default function TradingChart({
     };
   }, [symbol, timeframe, chartMode, chartRequestKey, refreshDisplayBar, renderIndicators, decimals, minMove, historyLimit, historyProfile.max, historyProfile.page, setRealtimeTracking, chartRightBars, mobileReference, desktopEnhanced, visibleBars, showAttributionLogo, compactContext]);
 
+  // Repaint in place: do not recreate the chart, reset zoom, or reload candles.
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    const palette = desktopChartPalette(chartTheme);
+    chart.applyOptions({
+      layout: {
+        background: { type: ColorType.Solid, color: palette.background },
+        textColor: palette.text,
+        panes: { separatorColor: palette.paneSeparator },
+      },
+      grid: {
+        vertLines: { color: palette.gridline },
+        horzLines: { color: palette.gridline },
+      },
+      crosshair: {
+        vertLine: { color: palette.crosshair, labelBackgroundColor: palette.crosshairLabel },
+        horzLine: { color: palette.crosshair, labelBackgroundColor: palette.crosshairLabel },
+      },
+      rightPriceScale: { borderColor: palette.border },
+      timeScale: { borderColor: palette.border },
+    });
+  }, [chartTheme]);
+
   useEffect(() => {
     const series = seriesRef.current;
     if (!series || chartMode !== 'candles') return;
@@ -1022,8 +1049,8 @@ export default function TradingChart({
     const labelledQuotes = showBidAskLines || mobileQuotes;
 
     if (Number.isFinite(liveBid)) {
-      const bidColor = mobileQuotes ? '#19c9ad' : showBidAskLines ? '#B0B7BF' : chartTokens.livePriceLine;
-      const bidLabelColor = mobileQuotes ? '#0fa68f' : showBidAskLines ? '#3B4148' : chartTokens.livePriceLabel;
+      const bidColor = mobileQuotes ? '#19c9ad' : showBidAskLines ? canvasPalette.liveBidLine : chartTokens.livePriceLine;
+      const bidLabelColor = mobileQuotes ? '#0fa68f' : showBidAskLines ? canvasPalette.liveBidLabel : chartTokens.livePriceLabel;
       const bidLabelText = labelledQuotes ? '#ffffff' : chartTokens.livePriceLabelText;
       if (!marketLineRef.current) {
         marketLineRef.current = series.createPriceLine({
@@ -1049,7 +1076,7 @@ export default function TradingChart({
     }
 
     if (labelledQuotes && Number.isFinite(liveAsk)) {
-      const askColor = mobileQuotes ? '#ff5d70' : '#939BA4';
+      const askColor = mobileQuotes ? '#ff5d70' : canvasPalette.liveAskLine;
       if (!askLineRef.current) {
         askLineRef.current = series.createPriceLine({
           price: liveAsk,
@@ -1057,14 +1084,14 @@ export default function TradingChart({
           lineWidth: 1,
           lineStyle: LineStyle.Dashed,
           axisLabelVisible: true,
-          ...(mobileQuotes ? { axisLabelColor: '#d93d52', axisLabelTextColor: '#ffffff' } : { axisLabelColor: '#4A5058', axisLabelTextColor: '#F3F4F6' }),
+          ...(mobileQuotes ? { axisLabelColor: '#d93d52', axisLabelTextColor: '#ffffff' } : { axisLabelColor: canvasPalette.liveAskLabel, axisLabelTextColor: '#F3F4F6' }),
           title: 'ASK',
         });
       } else {
         askLineRef.current.applyOptions({
           price: liveAsk,
           color: askColor,
-          ...(mobileQuotes ? { axisLabelColor: '#d93d52', axisLabelTextColor: '#ffffff' } : { axisLabelColor: '#4A5058', axisLabelTextColor: '#F3F4F6' }),
+          ...(mobileQuotes ? { axisLabelColor: '#d93d52', axisLabelTextColor: '#ffffff' } : { axisLabelColor: canvasPalette.liveAskLabel, axisLabelTextColor: '#F3F4F6' }),
           title: 'ASK',
         });
       }
@@ -1095,7 +1122,7 @@ export default function TradingChart({
       try { series.removePriceLine(midLineRef.current); } catch { /* disposed */ }
       midLineRef.current = null;
     }
-  }, [askPrice, bidPrice, chartMode, compactContext, showBidAskLines, showMobileQuoteMarkers, symbol, tick?.ask, tick?.bid, tick?.price, timeframe]);
+  }, [askPrice, bidPrice, chartMode, compactContext, showBidAskLines, showMobileQuoteMarkers, symbol, tick?.ask, tick?.bid, tick?.price, timeframe, chartTheme, canvasPalette]);
 
   useEffect(() => {
     const series = seriesRef.current;
@@ -1294,7 +1321,8 @@ export default function TradingChart({
     </span>
   );
 
-  return <div className="relative size-full min-h-0 min-w-0 overflow-hidden bg-black">
+  return <div data-acg-chart-theme={lightCanvas ? "light" : "dark"}
+    className={`relative size-full min-h-0 min-w-0 overflow-hidden ${lightCanvas ? "bg-[#FAFBFC]" : "bg-black"}`}>
     <div ref={hostRef} className="absolute inset-0" />
     {mobileReference && (
       <div className="pointer-events-none absolute bottom-8 left-2 z-20 select-none" aria-hidden="true">
@@ -1311,7 +1339,7 @@ export default function TradingChart({
       ? 'pointer-events-none absolute left-[64px] right-[56px] top-2 z-20 text-[11px] text-[#a1a1aa]'
       : mobileReference
       ? "acg-mobile-chart-info pointer-events-none absolute left-3 top-3 z-20 max-w-[78%] text-[#9ba8b6] [text-shadow:0_1px_2px_#000,0_0_8px_#000]"
-      : "pointer-events-none absolute left-2.5 top-2.5 z-[70] max-w-[72%] px-1 text-[11px] leading-[1.45] text-[#8E99A5] [text-shadow:0_1px_2px_#000,0_0_6px_#000]"
+       : `pointer-events-none absolute left-2.5 top-2.5 z-[70] max-w-[72%] px-1 text-[11px] leading-[1.45] ${lightCanvas ? "text-[#667789]" : "text-[#8E99A5] [text-shadow:0_1px_2px_#000,0_0_6px_#000]"}`
     }>
       {!auditMobile && (mobileReference ? (
         <>
@@ -1338,15 +1366,16 @@ export default function TradingChart({
         </>
       ) : (
         <>
-          <div className="flex items-center gap-1.5 text-[12px] font-semibold tracking-[-0.01em] text-[#F0F3F6]">
+          <div className="flex items-center gap-1.5 text-[12px] font-semibold tracking-[-0.01em] text-[#F0F3F6]"
+            style={lightCanvas ? {color:canvasPalette.instrumentTitle} : undefined}>
             <span>{symbol}</span>
-            <span className="text-[#7F8A95]">·</span>
-            <span className="text-[#7F8A95]">{timeframe}</span>
-            <span className="text-[#7F8A95]">·</span>
-            <span className="text-[#AAB5BF]">ACG</span>
+            <span className="text-[#7F8A95]" style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>·</span>
+            <span className="text-[#7F8A95]" style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>{timeframe}</span>
+            <span className="text-[#7F8A95]" style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>·</span>
+            <span className="text-[#AAB5BF]" style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>ACG</span>
             <span className={`ml-0.5 size-1.5 rounded-full ${mobileQuoteLive ? 'bg-[#24d7b7]' : 'bg-[#697785]'}`} aria-label={mobileQuoteLive ? 'Live quotes' : 'Quotes unavailable'} />
           </div>
-          {!compactContext && <div data-testid="chart-ohlc" className="mt-1 flex flex-wrap gap-x-2 whitespace-nowrap font-medium"><span>O <b className="text-[#aab9c8]">{format(ohlc?.open)}</b></span><span>H <b className="text-[#aab9c8]">{format(ohlc?.high)}</b></span><span>L <b className="text-[#aab9c8]">{format(ohlc?.low)}</b></span><span>C <b className="text-[#aab9c8]">{format(ohlc?.close)}</b></span>{candleChange != null && <span className={`font-semibold ${candleChangeTone}`}>{signed(candleChange, value => value.toFixed(decimals))}{candleChangePercent != null ? ` (${signed(candleChangePercent, value => value.toFixed(2))}%)` : ''}</span>}</div>}
+          {!compactContext && <div data-testid="chart-ohlc" className="mt-1 flex flex-wrap gap-x-2 whitespace-nowrap font-medium"><span>O <b className="text-[#aab9c8]" style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{format(ohlc?.open)}</b></span><span>H <b className="text-[#aab9c8]" style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{format(ohlc?.high)}</b></span><span>L <b className="text-[#aab9c8]" style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{format(ohlc?.low)}</b></span><span>C <b className="text-[#aab9c8]" style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{format(ohlc?.close)}</b></span>{candleChange != null && <span className={`font-semibold ${candleChangeTone}`}>{signed(candleChange, value => value.toFixed(decimals))}{candleChangePercent != null ? ` (${signed(candleChangePercent, value => value.toFixed(2))}%)` : ''}</span>}</div>}
         </>
       ))}
       {auditMobile && inspectingCandle && ohlc && <div data-mobile-candle-inspection className="rounded-[4px] border border-white/[0.08] bg-[#09090b]/95 p-1.5 tabular-nums">

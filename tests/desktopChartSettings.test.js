@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   DEFAULT_DESKTOP_CHART_SETTINGS,
+  desktopChartPalette,
   chartTimezoneLabel,
   formatChartClock,
   formatChartCrosshairTime,
@@ -12,6 +13,7 @@ import {
 test('desktop chart settings default to TradingView-style candle colors and UTC', () => {
   const settings = normalizeDesktopChartSettings(null);
   assert.deepEqual(settings, {
+    theme: 'dark',
     candle: {
       upBody: '#089981',
       downBody: '#F23645',
@@ -53,4 +55,22 @@ test('exchange timezone resolves per instrument and formats chart ticks', () => 
   assert.equal(chartTimezoneLabel('exchange', instrument), 'Asia/Kolkata');
   assert.equal(formatChartTick(1790856000, 3, 'exchange', instrument), '17:30');
   assert.match(formatChartCrosshairTime(1790856000, 'exchange', instrument), /01\/10\/2026, 17:30:00/);
+});
+
+test('light and dark chart themes normalize without losing saved candles and viewport', () => {
+  const light = normalizeDesktopChartSettings({
+    theme: 'light',
+    candle: { upBody: '#123456' },
+    timezone: 'UTC+1',
+    viewport: { top: 0.15, bottom: 0.13, bars: 48 },
+  });
+  assert.equal(light.theme, 'light');
+  assert.equal(light.candle.upBody, '#123456');
+  assert.equal(light.timezone, 'UTC+1');
+  assert.equal(light.viewport.bars, 48);
+  assert.equal(normalizeDesktopChartSettings({ theme: 'rainbow' }).theme, 'dark');
+  assert.equal(desktopChartPalette('dark').background, '#09090B');
+  assert.equal(desktopChartPalette('light').background, '#FAFBFC');
+  assert.equal(desktopChartPalette('light').gridline, '#E8EDF3');
+  assert.notEqual(desktopChartPalette('light').text, desktopChartPalette('light').background);
 });

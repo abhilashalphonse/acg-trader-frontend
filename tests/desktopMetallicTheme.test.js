@@ -33,9 +33,10 @@ test('desktop drawing tool accents are isolated without changing shared mobile d
 
 test('desktop quote labels are neutral but mobile bid/ask markers remain in their existing colors', () => {
   const chart = source('src/components/TradingChart.jsx');
-  assert.match(chart, /mobileQuotes \? '#19c9ad' : showBidAskLines \? '#B0B7BF'/);
-  assert.match(chart, /mobileQuotes \? '#ff5d70' : '#939BA4'/);
+  assert.match(chart, /mobileQuotes \? '#19c9ad' : showBidAskLines \? canvasPalette\.liveBidLine/);
+  assert.match(chart, /mobileQuotes \? '#ff5d70' : canvasPalette\.liveAskLine/);
   assert.match(chart, /mobileQuotes \? \{ axisLabelColor: '#d93d52'/);
+  assert.match(chart, /desktopChartPalette\(chartTheme\)/);
 });
 
 test('desktop settings and help surfaces opt in without affecting mobile sheets', () => {
