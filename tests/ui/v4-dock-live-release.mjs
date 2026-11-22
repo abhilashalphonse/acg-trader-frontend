@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import process from 'node:process';
 import {chromium} from 'playwright';
 
 // Isolated synthetic account fixture. No API credentials, real orders or backend.
