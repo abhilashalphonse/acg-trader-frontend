@@ -41,7 +41,7 @@ const V4DrawingEditor = React.forwardRef(function V4DrawingEditor({
           {drawing.type !== 'text' && (
             <>
               <button type="button" className="acg-v4-editor-width" onClick={onWidth} title="Cycle line width"
-                aria-label="Cycle line width">{width.toFixed(width % 1 ? 1 : 0)}</button>
+                aria-label="Cycle line width">{width.toFixed(width % 1 ? 1 : 0)}px</button>
               <Action label={'Line style: ' + (drawing.style?.dash || 'solid')} onClick={onDash}><MoreHorizontal size={17}/></Action>
             </>
           )}
