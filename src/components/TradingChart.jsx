@@ -1339,7 +1339,7 @@ export default function TradingChart({
       ? 'pointer-events-none absolute left-[64px] right-[56px] top-2 z-20 text-[11px] text-[#a1a1aa]'
       : mobileReference
       ? "acg-mobile-chart-info pointer-events-none absolute left-3 top-3 z-20 max-w-[78%] text-[#9ba8b6] [text-shadow:0_1px_2px_#000,0_0_8px_#000]"
-       : `pointer-events-none absolute left-2.5 top-2.5 z-[70] max-w-[72%] px-1 text-[11px] leading-[1.45] ${lightCanvas ? "text-black" : "text-[#8E99A5] [text-shadow:0_1px_2px_#000,0_0_6px_#000]"}`
+       : `pointer-events-none absolute left-2.5 top-2.5 z-[70] ${lightCanvas ? "max-w-[calc(100%-70px)]" : "max-w-[72%]"} px-1 text-[11px] leading-[1.45] ${lightCanvas ? "text-black" : "text-[#8E99A5] [text-shadow:0_1px_2px_#000,0_0_6px_#000]"}`
     }>
       {!auditMobile && (mobileReference ? (
         <>
@@ -1363,6 +1363,42 @@ export default function TradingChart({
               {candleChangePercent != null ? ` (${signed(candleChangePercent, value => value.toFixed(2))}%)` : ''}
             </div>
           )}
+        </>
+      ) : lightCanvas ? (
+        <>
+          <div data-testid="chart-symbol-row" className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] leading-[16px] tabular-nums">
+            <span data-testid="chart-symbol" className="font-semibold tracking-[-0.015em]"
+              style={{ color: canvasPalette.instrumentTitle }}>{symbol}</span>
+            <span aria-hidden="true" className="h-2.5 w-px" style={{ backgroundColor: '#D7DEE6' }} />
+            <span data-testid="chart-timeframe" className="text-[10px] font-medium"
+              style={{ color: canvasPalette.instrumentMeta }}>{timeframe}</span>
+            <span className="text-[10px] font-medium tracking-[0.01em]"
+              style={{ color: canvasPalette.instrumentSource }}>ACG</span>
+            <span className={`size-1.5 shrink-0 rounded-full ${mobileQuoteLive ? 'bg-[#24d7b7]' : 'bg-[#697785]'}`}
+              aria-label={mobileQuoteLive ? 'Live quotes' : 'Quotes unavailable'} />
+          </div>
+          {!compactContext && <div data-testid="chart-ohlc"
+            className="mt-[5px] flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] leading-[15px] tabular-nums">
+            {[
+              ['O', ohlc?.open], ['H', ohlc?.high],
+              ['L', ohlc?.low], ['C', ohlc?.close],
+            ].map(([label,value])=>(
+              <span key={label} className="inline-flex items-baseline gap-1 whitespace-nowrap">
+                <span data-testid={`chart-ohlc-label-${label}`} className="text-[9px] font-medium"
+                  style={{ color: canvasPalette.ohlcLabel }}>{label}</span>
+                <b data-testid={`chart-ohlc-value-${label}`} className="font-semibold"
+                  style={{ color: canvasPalette.instrumentValue }}>{format(value)}</b>
+              </span>
+            ))}
+            {candleChange != null && (
+              <span data-testid="chart-ohlc-change" className="whitespace-nowrap font-medium"
+                style={{ color: candleChange > 0 ? canvasPalette.candleChangeUp
+                  : candleChange < 0 ? canvasPalette.candleChangeDown : canvasPalette.candleChangeFlat }}>
+                {signed(candleChange, value => value.toFixed(decimals))}
+                {candleChangePercent != null ? ` (${signed(candleChangePercent, value => value.toFixed(2))}%)` : ''}
+              </span>
+            )}
+          </div>}
         </>
       ) : (
         <>
