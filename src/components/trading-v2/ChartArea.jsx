@@ -1492,6 +1492,8 @@ export default function ChartArea({
   const [clockNow, setClockNow] = useState(() => new Date());
   const [coordinateApi, setCoordinateApi] = useState(null);
   const v4AuditLayer = (desktopEnhanced && chartOrderV4 && !mobileOverlayStyle) || auditMobile;
+  const chartCanvasTheme = desktopEnhanced && !mobileReference && !auditMobile && chartSettings?.theme === 'light'
+    ? 'light' : 'dark';
   const v4ChartContainerRef = useRef(null);
   const [v4ChartHeight, setV4ChartHeight] = useState(480);
   useEffect(() => {
@@ -1718,8 +1720,12 @@ export default function ChartArea({
         </aside>
       )}
 
-      <div className={`relative h-full min-h-0 min-w-0 overflow-hidden ${desktopEnhanced ? 'rounded-[10px] border border-white/[0.06] bg-[#080A0C] shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]' : 'bg-[#09090b]'}`}>
-        <div ref={v4ChartContainerRef} className={`relative h-full min-h-0 min-w-0 overflow-hidden ${desktopEnhanced ? 'rounded-[9px] bg-[#07090B]' : 'bg-[#09090b]'} ${drawingToolbarOverlay && !auditMobilePalette ? (toolbarVisible ? '' : 'pl-3') : ''} ${mobileReference && !auditMobilePalette ? 'pr-1' : ''}`}>
+      <div className={`relative h-full min-h-0 min-w-0 overflow-hidden ${chartCanvasTheme==='light'
+        ? 'rounded-[10px] border border-[#DBE3EB] bg-[#FAFBFC]'
+        : desktopEnhanced ? 'rounded-[10px] border border-white/[0.06] bg-[#080A0C] shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]' : 'bg-[#09090b]'}`}>
+        <div ref={v4ChartContainerRef} className={`relative h-full min-h-0 min-w-0 overflow-hidden ${chartCanvasTheme==='light'
+          ? 'rounded-[9px] bg-[#FAFBFC]'
+          : desktopEnhanced ? 'rounded-[9px] bg-[#07090B]' : 'bg-[#09090b]'} ${drawingToolbarOverlay && !auditMobilePalette ? (toolbarVisible ? '' : 'pl-3') : ''} ${mobileReference && !auditMobilePalette ? 'pr-1' : ''}`}>
         <TradingChart
           symbol={symbol}
           instrument={instrument}
@@ -1743,6 +1749,7 @@ export default function ChartArea({
           desktopEnhanced={desktopEnhanced}
           compactContext={compactContext}
           candleAppearance={desktopEnhanced ? chartSettings?.candle : null}
+          chartTheme={chartCanvasTheme}
           viewportSettings={desktopEnhanced ? chartSettings?.viewport : null}
           chartTimezone={desktopEnhanced ? (chartSettings?.timezone || 'UTC') : null}
           layoutRevision={`${toolbarVisible ? 'rail-open' : 'rail-closed'}:${focusMode ? 'focus' : 'normal'}`}
