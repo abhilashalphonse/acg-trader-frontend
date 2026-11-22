@@ -1492,8 +1492,6 @@ export default function ChartArea({
   const [clockNow, setClockNow] = useState(() => new Date());
   const [coordinateApi, setCoordinateApi] = useState(null);
   const v4AuditLayer = (desktopEnhanced && chartOrderV4 && !mobileOverlayStyle) || auditMobile;
-  const chartCanvasTheme = desktopEnhanced && !mobileReference && !auditMobile && chartSettings?.theme === 'light'
-    ? 'light' : 'dark';
   const v4ChartContainerRef = useRef(null);
   const [v4ChartHeight, setV4ChartHeight] = useState(480);
   useEffect(() => {
@@ -1530,6 +1528,8 @@ export default function ChartArea({
 
   const mobileReference = drawingToolbarOverlay && narrowMobile;
   const auditMobilePalette = auditMobile && drawingToolbarOverlay;
+  const chartCanvasTheme = desktopEnhanced && !mobileReference && !auditMobile && chartSettings?.theme === 'light'
+    ? 'light' : 'dark';
   const visibleToolGroups = useMemo(
     () => (mobileReference && !auditMobilePalette
       ? toolGroups
