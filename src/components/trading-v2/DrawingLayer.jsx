@@ -13,6 +13,8 @@ import {
 import { evaluateRiskToolSetup } from '../../utils/tradingRisk.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 import DrawingProperties from './DrawingProperties.jsx';
+import DrawingColorPicker from './DrawingColorPicker.jsx';
+import { DEFAULT_DRAWING_STYLE, DRAWING_TOOL_DEFAULTS, drawingStrokeWidth, drawingOpacity } from '../../utils/drawingAppearance.js';
 import V4DrawingEditor from './v4/V4DrawingEditor.jsx';
 import { clampDrawingEditorPosition, drawingEditorStartPosition, riskTargetProjectionCandidates } from '../../utils/v4DrawingEditor.js';
 import { constrainDrawingPoint, drawingMagnetMode } from '../../utils/chartToolSettings.js';
@@ -38,26 +40,8 @@ import {
   visibleDrawingOnTimeframe,
 } from '../../utils/drawingStore.js';
 
-const DEFAULT_STYLE = {
-  color: '#195be1',
-  width: 1.5,
-  dash: 'solid',
-  fillOpacity: 0.07,
-};
-
-const TOOL_DEFAULTS = {
-  trendline: { color: '#195be1', width: 1.5 },
-  ray: { color: '#195be1', width: 1.5 },
-  'extended-line': { color: '#195be1', width: 1.5 },
-  hline: { color: '#f0c35c' },
-  'horizontal-ray': { color: '#f0c35c' },
-  vline: { color: '#f0c35c' },
-  ruler: { color: '#195be1', width: 1.5, dash: 'dashed' },
-  fibonacci: { color: '#b78cff' },
-  text: { color: '#d8e4ee', width: 1, fontSize: 12 },
-  'long-position': { color: '#35d79d' },
-  'short-position': { color: '#ff6673' },
-};
+const DEFAULT_STYLE = DEFAULT_DRAWING_STYLE;
+const TOOL_DEFAULTS = DRAWING_TOOL_DEFAULTS;
 
 function drawingLabel(drawing) {
   if (!drawing) return 'Drawing';
@@ -71,11 +55,12 @@ function dashArray(style) {
   return undefined;
 }
 
-function lineStyle(drawing, selected) {
+function lineStyle(drawing) {
   const style = drawing.style || DEFAULT_STYLE;
   return {
     stroke: style.color,
-    strokeWidth: selected ? Math.max(2, (Number(style.width) || 1.5) + 0.35) : Number(style.width) || 1.5,
+    strokeWidth: drawingStrokeWidth(style),
+    strokeOpacity: drawingOpacity(style),
     strokeDasharray: dashArray(style),
     vectorEffect: 'non-scaling-stroke',
   };
@@ -261,14 +246,14 @@ function DrawingShape({
       <g>
         <rect x={left} y={rewardTop} width={width} height={Math.max(1, rewardHeight)} fill="rgba(53,215,157,0.13)" stroke="rgba(53,215,157,0.55)" strokeWidth="1" {...common}/>
         <rect x={left} y={riskTop} width={width} height={Math.max(1, riskHeight)} fill="rgba(255,102,115,0.13)" stroke="rgba(255,102,115,0.55)" strokeWidth="1" {...common}/>
-        <line x1={left} y1={entryY} x2={boxRight} y2={entryY} stroke="#195be1" strokeWidth={selected ? 2 : 1.2} vectorEffect="non-scaling-stroke" {...common}/>
-        <line x1={left} y1={stopY} x2={boxRight} y2={stopY} stroke="#ff6673" strokeWidth="1.2" vectorEffect="non-scaling-stroke" {...common}/>
-        <line x1={left} y1={targetY} x2={boxRight} y2={targetY} stroke="#35d79d" strokeWidth="1.2" vectorEffect="non-scaling-stroke" {...common}/>
+        <line x1={left} y1={entryY} x2={boxRight} y2={entryY} stroke={drawing.style?.color || DEFAULT_STYLE.color} strokeOpacity={drawingOpacity(drawing.style)} strokeWidth={drawingStrokeWidth(drawing.style)} vectorEffect="non-scaling-stroke" {...common}/>
+        <line x1={left} y1={stopY} x2={boxRight} y2={stopY} stroke="#ff6673" strokeWidth="1" vectorEffect="non-scaling-stroke" {...common}/>
+        <line x1={left} y1={targetY} x2={boxRight} y2={targetY} stroke="#35d79d" strokeWidth="1" vectorEffect="non-scaling-stroke" {...common}/>
         <rect x={infoX} y={infoY} rx="4" width={infoWidth} height="58" fill="rgba(6,9,11,0.94)" stroke={ready ? 'rgba(53,215,157,0.28)' : 'rgba(255,102,115,0.32)'} strokeWidth="1" className="pointer-events-none"/>
         <text x={infoX + 6} y={infoY + 13} fill="#dce7ef" fontSize="8" fontWeight="700" className="pointer-events-none">{isLong ? 'LONG' : 'SHORT'} · {Number.isFinite(rr) ? `R:R ${rr.toFixed(2)}` : 'R:R —'}</text>
         <text x={infoX + 6} y={infoY + 27} fill="#8296a7" fontSize="7" className="pointer-events-none">Risk {Number.isFinite(riskPct) ? `${riskPct.toFixed(2)}%` : '—'} · {money(riskMoney)} · {Number.isFinite(lots) ? `${lots.toFixed(2)} lot` : '— lot'}</text>
         <text x={infoX + 6} y={infoY + 42} fill={ready ? '#35d79d' : '#ff7b86'} fontSize="7" fontWeight="700" className="pointer-events-none">{statusText.length > 40 ? `${statusText.slice(0, 39)}…` : statusText}</text>
-        <text x={boxRight - 4} y={entryY - 4} textAnchor="end" fill="#195be1" fontSize="7" fontWeight="700" className="pointer-events-none">ENTRY {formatInstrumentPrice(drawing.a?.price, instrument)}</text>
+        <text x={boxRight - 4} y={entryY - 4} textAnchor="end" fill={drawing.style?.color || DEFAULT_STYLE.color} fillOpacity={drawingOpacity(drawing.style)} fontSize="7" fontWeight="700" className="pointer-events-none">ENTRY {formatInstrumentPrice(drawing.a?.price, instrument)}</text>
         <text x={boxRight - 4} y={stopY - 4} textAnchor="end" fill="#ff6673" fontSize="7" fontWeight="700" className="pointer-events-none">SL {formatInstrumentPrice(drawing.b?.price, instrument)}</text>
         <text x={boxRight - 4} y={targetY - 4} textAnchor="end" fill="#35d79d" fontSize="7" fontWeight="700" className="pointer-events-none">TP {formatInstrumentPrice(drawing.riskTarget?.price, instrument)}</text>
         {interactive && selected && !effectiveLocked && (
@@ -286,7 +271,7 @@ function DrawingShape({
     return (
       <g>
         <line x1="0" y1={a.y} x2={size.width} y2={a.y} stroke="transparent" strokeWidth="16" {...common} />
-        <line x1="0" y1={a.y} x2={size.width} y2={a.y} {...lineStyle(drawing, selected)} className="pointer-events-none" />
+        <line x1="0" y1={a.y} x2={size.width} y2={a.y} {...lineStyle(drawing)} className="pointer-events-none" />
         {interactive && selected && !effectiveLocked && <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />}
       </g>
     );
@@ -295,7 +280,7 @@ function DrawingShape({
     return (
       <g>
         <line x1={a.x} y1="0" x2={a.x} y2={size.height} stroke="transparent" strokeWidth="16" {...common} />
-        <line x1={a.x} y1="0" x2={a.x} y2={size.height} {...lineStyle(drawing, selected)} className="pointer-events-none" />
+        <line x1={a.x} y1="0" x2={a.x} y2={size.height} {...lineStyle(drawing)} className="pointer-events-none" />
         {interactive && selected && !effectiveLocked && <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />}
       </g>
     );
@@ -305,7 +290,7 @@ function DrawingShape({
     return (
       <g>
         <line x1={a.x} y1={a.y} x2={size.width} y2={a.y} stroke="transparent" strokeWidth="16" {...common} />
-        <line x1={a.x} y1={a.y} x2={size.width} y2={a.y} {...lineStyle(drawing, selected)} className="pointer-events-none" />
+        <line x1={a.x} y1={a.y} x2={size.width} y2={a.y} {...lineStyle(drawing)} className="pointer-events-none" />
         {interactive && selected && !effectiveLocked && <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />}
       </g>
     );
@@ -316,7 +301,7 @@ function DrawingShape({
     return (
       <g>
         <line x1={segment.start.x} y1={segment.start.y} x2={segment.end.x} y2={segment.end.y} stroke="transparent" strokeWidth="16" {...common} />
-        <line x1={segment.start.x} y1={segment.start.y} x2={segment.end.x} y2={segment.end.y} {...lineStyle(drawing, selected)} className="pointer-events-none" />
+        <line x1={segment.start.x} y1={segment.start.y} x2={segment.end.x} y2={segment.end.y} {...lineStyle(drawing)} className="pointer-events-none" />
         {interactive && selected && !effectiveLocked && (
           <>
             <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />
@@ -335,9 +320,9 @@ function DrawingShape({
     return (
       <g>
         <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent" strokeWidth="18" {...common} />
-        <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} {...lineStyle(drawing, selected)} className="pointer-events-none" />
-        <line x1={a.x} y1={a.y - 6} x2={a.x} y2={a.y + 6} {...lineStyle(drawing, selected)} className="pointer-events-none" />
-        <line x1={b.x} y1={b.y - 6} x2={b.x} y2={b.y + 6} {...lineStyle(drawing, selected)} className="pointer-events-none" />
+        <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} {...lineStyle(drawing)} className="pointer-events-none" />
+        <line x1={a.x} y1={a.y - 6} x2={a.x} y2={a.y + 6} {...lineStyle(drawing)} className="pointer-events-none" />
+        <line x1={b.x} y1={b.y - 6} x2={b.x} y2={b.y + 6} {...lineStyle(drawing)} className="pointer-events-none" />
         <g className="pointer-events-none">
           <rect x={midX - labelWidth / 2} y={midY - 11} width={labelWidth} height="22" rx="5" fill="rgba(5,8,12,0.94)" stroke="rgba(25,91,225,0.55)" />
           <text x={midX} y={midY + 3} textAnchor="middle" fill="#e8eef7" fontSize="9" fontWeight="700">{label}</text>
@@ -366,7 +351,7 @@ function DrawingShape({
           width={width}
           height={height}
           fill={`${style.color}${Math.round(Math.min(0.35, Math.max(0, style.fillOpacity ?? 0.07)) * 255).toString(16).padStart(2, '0')}`}
-          {...lineStyle(drawing, selected)}
+          {...lineStyle(drawing)}
           {...common}
         />
         {interactive && selected && !effectiveLocked && (
@@ -396,7 +381,8 @@ function DrawingShape({
                 x2={right}
                 y2={y}
                 stroke={style.color}
-                strokeWidth={selected ? Math.max(1.8, (Number(style.width) || 1) + 0.35) : (level === 0.5 ? Math.max(1.5, Number(style.width) || 1) : Number(style.width) || 1)}
+                strokeWidth={drawingStrokeWidth(style)}
+                strokeOpacity={drawingOpacity(style)}
                 strokeDasharray={level === 0.5 ? undefined : dashArray(style) || '3 3'}
                 vectorEffect="non-scaling-stroke"
                 {...common}
@@ -424,7 +410,8 @@ function DrawingShape({
         <text
           x={a.x}
           y={a.y}
-          fill={selected ? '#ffffff' : style.color}
+          fill={style.color}
+          fillOpacity={drawingOpacity(style)}
           fontSize={Number(style.fontSize) || 10}
           fontWeight="600"
           style={{ paintOrder: 'stroke', stroke: '#000000', strokeWidth: 3 }}
@@ -439,7 +426,7 @@ function DrawingShape({
   return (
     <g>
       <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent" strokeWidth="16" {...common} />
-      <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} {...lineStyle(drawing, selected)} className="pointer-events-none" />
+      <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} {...lineStyle(drawing)} className="pointer-events-none" />
       {interactive && selected && !effectiveLocked && (
         <>
           <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />
@@ -1075,8 +1062,8 @@ export default function DrawingLayer({
 
   const cycleSelectedWidth = () => {
     if (!selected) return;
-    const widths = [1, 1.4, 2, 3];
-    const current = Number(selected.style?.width) || 1.4;
+    const widths = [1, 2, 3, 4];
+    const current = drawingStrokeWidth(selected.style);
     const index = Math.max(0, widths.findIndex(value => Math.abs(value - current) < 0.01));
     patchSelected({ style: { width: widths[(index + 1) % widths.length] } });
   };
@@ -1166,7 +1153,7 @@ export default function DrawingLayer({
       {selected && !disabled && !settingsOpen && (v4DesktopEditor ? (
         <V4DrawingEditor ref={toolbarRef} drawing={selected} label={selected.type === 'long-position' ? 'Long position' : selected.type === 'short-position' ? 'Short position' : drawingLabel(selected)}
           metrics={riskMetricsFor(selected)} lockAll={lockAll} style={selectedToolbarStyle}
-          onColor={color => patchSelected({style:{color}})}
+          onAppearance={appearance => patchSelected({ style: appearance })}
           onWidth={cycleSelectedWidth} onDash={cycleSelectedDash}
           onCreateOrder={createOrderFromSelectedRisk}
           onHide={() => patchSelected({hidden:true})}
@@ -1181,15 +1168,12 @@ export default function DrawingLayer({
           style={selectedToolbarStyle}
         >
           <span className="hidden max-w-[96px] truncate border-r border-white/[0.07] px-2 text-[8px] font-bold uppercase tracking-[0.08em] text-[#7e91a3] sm:block">{drawingLabel(selected)}</span>
-          {!isRiskDrawingTool(selected.type) && (
-            <label className="relative grid size-7 shrink-0 cursor-pointer place-items-center rounded-md hover:bg-white/[0.05]" title="Drawing color">
-              <span className="size-3.5 rounded-full border border-white/20" style={{ backgroundColor: selected.style?.color || DEFAULT_STYLE.color }} />
-              <input type="color" value={selected.style?.color || DEFAULT_STYLE.color} onChange={event => patchSelected({ style: { color: event.target.value } })} className="absolute inset-0 cursor-pointer opacity-0" aria-label="Drawing color" />
-            </label>
-          )}
+          <DrawingColorPicker color={selected.style?.color || DEFAULT_STYLE.color}
+            opacity={selected.style?.opacity ?? 1}
+            onChange={appearance => patchSelected({style:appearance})} />
           {selected.type !== 'text' && !isRiskDrawingTool(selected.type) && (
             <>
-              <button type="button" onClick={cycleSelectedWidth} className="h-7 min-w-7 rounded-md px-1.5 font-mono text-[8px] font-bold text-[#8fa0ae] hover:bg-white/[0.05] hover:text-white" title="Cycle line width">{Number(selected.style?.width || 1.4).toFixed(Number(selected.style?.width || 1.4) % 1 ? 1 : 0)}</button>
+              <button type="button" onClick={cycleSelectedWidth} className="h-7 min-w-7 rounded-md px-1.5 font-mono text-[8px] font-bold text-[#8fa0ae] hover:bg-white/[0.05] hover:text-white" title="Cycle line width">{drawingStrokeWidth(selected.style).toFixed(drawingStrokeWidth(selected.style) % 1 ? 1 : 0)}</button>
               <button type="button" onClick={cycleSelectedDash} className="grid size-7 place-items-center rounded-md text-[#8194a7] hover:bg-white/[0.05] hover:text-white" title={`Line style: ${selected.style?.dash || 'solid'}`}><MoreHorizontal size={14}/></button>
             </>
           )}

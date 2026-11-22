@@ -1,0 +1,71 @@
+name: Drawing palette and 1px Chrome acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'src/utils/drawingAppearance.js'
+      - 'src/utils/drawingStore.js'
+      - 'src/components/trading-v2/DrawingLayer.jsx'
+      - 'src/components/trading-v2/DrawingColorPicker.jsx'
+      - 'src/components/trading-v2/DrawingColorPicker.css'
+      - 'src/components/trading-v2/DrawingProperties.jsx'
+      - 'src/components/trading-v2/ChartToolControls.jsx'
+      - 'src/components/trading-v2/v4/V4DrawingEditor.jsx'
+      - 'src/v4DrawingPaletteMain.jsx'
+      - 'tests/drawingPaletteDefaults.test.js'
+      - 'tests/ui/drawing-palette-v4.mjs'
+      - 'tests/ui/chart-tools.mjs'
+      - 'tests/fixtures/v4-drawing-palette.html'
+      - '.github/workflows/drawing-palette-acceptance.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/utils/drawingAppearance.js'
+      - 'src/utils/drawingStore.js'
+      - 'src/components/trading-v2/DrawingLayer.jsx'
+      - 'src/components/trading-v2/DrawingColorPicker.jsx'
+      - 'src/components/trading-v2/DrawingColorPicker.css'
+      - 'src/components/trading-v2/DrawingProperties.jsx'
+      - 'src/components/trading-v2/ChartToolControls.jsx'
+      - 'src/components/trading-v2/v4/V4DrawingEditor.jsx'
+      - 'src/v4DrawingPaletteMain.jsx'
+      - 'tests/drawingPaletteDefaults.test.js'
+      - 'tests/ui/drawing-palette-v4.mjs'
+      - 'tests/ui/chart-tools.mjs'
+      - 'tests/fixtures/v4-drawing-palette.html'
+      - '.github/workflows/drawing-palette-acceptance.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  browser-drawing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install exact locked deps and Chromium controller
+        run: |
+          npm ci
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - name: Start isolated browser fixtures (no account, no order backend)
+        run: |
+          set -euo pipefail
+          VITE_ACG_EXECUTION_V4_ENABLED=true npm run dev -- --host 127.0.0.1 >/tmp/drawing-palette-vite.log 2>&1 &
+          echo $! >/tmp/drawing-palette-vite.pid
+          curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-connrefused 'http://127.0.0.1:5174/tests/fixtures/v4-drawing-palette.html' >/dev/null
+      - name: Verify V4 color palette, opacity and risk/text tools
+        run: node tests/ui/drawing-palette-v4.mjs
+      - name: Verify real 1px SVG stroke, legacy palette and drawing gestures
+        env:
+          CHART_QA_URL: http://127.0.0.1:5174/tests/fixtures/chart-tools.html
+          PLAYWRIGHT_CHANNEL: chrome
+        run: node tests/ui/chart-tools.mjs
+      - name: Stop fixture
+        if: always()
+        run: |
+          if [ -f /tmp/drawing-palette-vite.pid ]; then kill "$(cat /tmp/drawing-palette-vite.pid)" 2>/dev/null || true; fi

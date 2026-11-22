@@ -1,6 +1,7 @@
 import React, { useId } from 'react';
 import { Check } from 'lucide-react';
 import { CHART_TIMEFRAMES } from '../../utils/chartToolSettings.js';
+import DrawingColorPicker from './DrawingColorPicker.jsx';
 import { canonicalTimeframeVisibility } from '../../utils/drawingTools.js';
 import '../../styles/chart-tools.css';
 
@@ -19,8 +20,12 @@ export function LineStyleEditor({ label = 'Line', value = {}, onChange, drawing 
   const palette = ['#54c8ff', '#f0c35c', '#b38cff', '#35d79d', '#ff6673', '#d8e4ee'];
   const styleKey = drawing ? 'dash' : 'lineStyle';
   return <fieldset className="acg-tool-style"><legend>{label}</legend>
-    <div className="acg-tool-colors">{palette.map(color => <button type="button" key={color} style={{ '--swatch': color }} aria-label={`${label} color ${color}`} aria-pressed={value.color === color} onClick={() => onChange({ ...value, color })}>{value.color === color && <Check size={14} />}</button>)}<input type="color" aria-label={`Custom ${label.toLowerCase()} color`} value={value.color || palette[0]} onChange={event => onChange({ ...value, color: event.target.value })} /></div>
-    <div className="acg-tool-grid"><ToolField label="Thickness" value={value.width || 2} options={(drawing ? [1, 1.4, 1.5, 2, 3, 4] : [1, 2, 3, 4]).map(n => [n, `${n} px`])} onChange={width => onChange({ ...value, width: Number(width) })} /><ToolField label="Line style" value={value[styleKey] || 'solid'} options={['solid', 'dashed', 'dotted'].map(s => [s, s[0].toUpperCase() + s.slice(1)])} onChange={style => onChange({ ...value, [styleKey]: style })} /></div>
+    {drawing ? <div className="acg-tool-colors">
+      <DrawingColorPicker color={value.color} opacity={value.opacity ?? 1}
+        onChange={appearance => onChange({ ...value, ...appearance })} />
+      <span className="text-[10px] text-[#A2A9B1]">Color and opacity</span>
+    </div> : <div className="acg-tool-colors">{palette.map(color => <button type="button" key={color} style={{ '--swatch': color }} aria-label={`${label} color ${color}`} aria-pressed={value.color === color} onClick={() => onChange({ ...value, color })}>{value.color === color && <Check size={14} />}</button>)}<input type="color" aria-label={`Custom ${label.toLowerCase()} color`} value={value.color || palette[0]} onChange={event => onChange({ ...value, color: event.target.value })} /></div>}
+    <div className="acg-tool-grid"><ToolField label="Thickness" value={value.width ?? (drawing ? 1 : 2)} options={(drawing ? [1, 1.4, 1.5, 2, 3, 4] : [1, 2, 3, 4]).map(n => [n, `${n} px`])} onChange={width => onChange({ ...value, width: Number(width) })} /><ToolField label="Line style" value={value[styleKey] || 'solid'} options={['solid', 'dashed', 'dotted'].map(s => [s, s[0].toUpperCase() + s.slice(1)])} onChange={style => onChange({ ...value, [styleKey]: style })} /></div>
   </fieldset>;
 }
 
