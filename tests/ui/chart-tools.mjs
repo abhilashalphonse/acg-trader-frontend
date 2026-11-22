@@ -50,7 +50,7 @@ let browser;
   assert.equal(before[0].style.width,1, 'New drawing starts at genuine 1px');
   assert.equal(before[0].style.color,'#AEB6C2', 'New drawing starts neutral light grey');
   await page.getByTitle('Drawing properties', { exact: true }).click();
-  await page.getByRole('button', { name: 'Drawing color', exact: true }).click();
+  await page.locator('form[aria-label="Drawing properties"]').getByRole('button', { name: 'Drawing color', exact: true }).click();
   const palette=page.getByRole('dialog', { name: 'Drawing color palette' });
   await palette.getByRole('button', { name: 'Select #ECEEEF' }).click();
   const opacity=palette.getByRole('slider', { name: 'Drawing opacity' });
