@@ -159,6 +159,24 @@ test('the supporting films stay licensed-account aware and have no extra playbac
   assert.ok(!js.includes('localStorage') && !js.includes('sessionStorage'));
 });
 
+test('six cinematic MP4s are versioned locally; builds never fetch Supabase storage', () => {
+  const names = ['hero', 'btc-swirl', 'ai-prism', 'terminal', 'overnight-scan', 'market-movers'];
+  for (const name of names) {
+    const file = 'public/media/' + name + '.mp4';
+    assert.ok(existsSync(src(file)), file + ' must be versioned with the frontend');
+    const bytes = readFileSync(src(file));
+    assert.ok(bytes.length > 1000 && bytes.length < 25000000, name + ' expected MP4 file size');
+    assert.equal(bytes.toString('ascii', 4, 8), 'ftyp', name + ' must be an MP4');
+  }
+  const prepare = read('scripts/prepare-landing-films.mjs');
+  assert.ok(prepare.includes("resolve('public/media', name)"));
+  assert.ok(prepare.includes("resolve('dist/media', name)"));
+  assert.doesNotMatch(prepare, /\bfetch\s*\(|https?:\/\/|supabase\.co/, 'media preparation must work offline');
+  const dockerfile = read('Dockerfile');
+  assert.ok(dockerfile.includes('node scripts/prepare-landing-films.mjs'));
+  assert.ok(!dockerfile.includes('apk add --no-cache ffmpeg'), 'build does not re-encode videos');
+});
+
 test('Railway media server supports MP4 partial requests', () => {
   const server = read('server.mjs');
   assert.ok(server.includes("'Accept-Ranges'] = 'bytes'"));
