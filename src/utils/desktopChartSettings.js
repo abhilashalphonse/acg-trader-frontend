@@ -3,6 +3,7 @@ import { DEFAULT_CHART_VIEWPORT, normalizeChartViewport } from './chartViewport.
 export const DESKTOP_CHART_SETTINGS_KEY = 'acg-trader-desktop-chart-settings-v1';
 
 export const DEFAULT_DESKTOP_CHART_SETTINGS = Object.freeze({
+  theme: 'dark',
   candle: Object.freeze({
     upBody: '#089981',
     downBody: '#F23645',
@@ -14,6 +15,52 @@ export const DEFAULT_DESKTOP_CHART_SETTINGS = Object.freeze({
   timezone: 'UTC',
   viewport: DEFAULT_CHART_VIEWPORT,
 });
+
+
+// Theme controls chart pixels and chart-local labels, not the surrounding
+// terminal UI or financial state. Keep dark defaults backward compatible.
+export const DESKTOP_CHART_PALETTES = Object.freeze({
+  dark: Object.freeze({
+    background: '#09090B',
+    text: '#8B8B8F',
+    gridline: '#1A1A1D',
+    crosshair: '#6F7075',
+    crosshairLabel: '#1B1B1D',
+    border: '#242424',
+    paneSeparator: '#1B1B1B',
+    instrumentTitle: '#F0F3F6',
+    instrumentMuted: '#7F8A95',
+    instrumentValue: '#AAB9C8',
+    readout: '#8E99A5',
+    readoutShadow: '0 1px 2px #000, 0 0 6px #000',
+    liveBidLine: '#B0B7BF',
+    liveBidLabel: '#3B4148',
+    liveAskLine: '#939BA4',
+    liveAskLabel: '#4A5058',
+  }),
+  light: Object.freeze({
+    background: '#FAFBFC',
+    text: '#566474',
+    gridline: '#E8EDF3',
+    crosshair: '#A5B2C0',
+    crosshairLabel: '#334155',
+    border: '#DAE2EA',
+    paneSeparator: '#DCE4EC',
+    instrumentTitle: '#162332',
+    instrumentMuted: '#738195',
+    instrumentValue: '#395469',
+    readout: '#667789',
+    readoutShadow: 'none',
+    liveBidLine: '#6C7A88',
+    liveBidLabel: '#334155',
+    liveAskLine: '#8B97A4',
+    liveAskLabel: '#475569',
+  }),
+});
+
+export function desktopChartPalette(theme) {
+  return DESKTOP_CHART_PALETTES[theme === 'light' ? 'light' : 'dark'];
+}
 
 export const CHART_TIMEZONE_OPTIONS = Object.freeze([
   { value: 'UTC', label: 'UTC' },
@@ -41,6 +88,7 @@ export function normalizeDesktopChartSettings(value) {
     : DEFAULT_DESKTOP_CHART_SETTINGS.timezone;
 
   return {
+    theme: value?.theme === 'light' ? 'light' : 'dark',
     candle: {
       upBody: color(candle.upBody, defaults.upBody),
       downBody: color(candle.downBody, defaults.downBody),
