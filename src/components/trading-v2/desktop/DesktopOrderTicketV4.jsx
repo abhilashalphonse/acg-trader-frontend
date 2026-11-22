@@ -629,16 +629,16 @@ export default function DesktopOrderTicketV4({
           EXITS / PROTECTION {exitsOpen?<ChevronUp size={15}/>:<ChevronDown size={15}/>}
         </button>
         {exitsOpen&&<>
-        <ProtectionCard field="sl" active={hasSl} onToggle={()=>toggleProtection('sl')} unit={slUnit}
-          onUnit={u=>changeExitUnit('sl',u)} plan={effective} market={market} account={account}
-          lots={volume} sizingMode={uiMode} onPrice={price=>onTradePlanChange({sl:price,activeField:'sl',stage:'ready'})} onNotice={notice}/>
-        <ProtectionCard field="tp" active={hasTp} onToggle={()=>toggleProtection('tp')} unit={tpUnit}
-          onUnit={u=>changeExitUnit('tp',u)} plan={effective} market={market} account={account}
-          lots={volume} sizingMode={uiMode} onPrice={price=>onTradePlanChange({tp:price,activeField:'tp',stage:'ready'})} onNotice={notice}/>
-        <div className="v4-ratio-slab">
-          <div><span>Risk / Reward</span><strong>{Number.isFinite(rr)?'1:'+fmt(rr):'—'}</strong></div>
-          <div><span>Position volume</span><strong>{volume?volumeLabel:'—'}</strong></div>
-        </div>
+          <ProtectionCard field="sl" active={hasSl} onToggle={()=>toggleProtection('sl')} unit={slUnit}
+            onUnit={u=>changeExitUnit('sl',u)} plan={effective} market={market} account={account}
+            lots={volume} sizingMode={uiMode} onPrice={price=>onTradePlanChange({sl:price,activeField:'sl',stage:'ready'})} onNotice={notice}/>
+          <ProtectionCard field="tp" active={hasTp} onToggle={()=>toggleProtection('tp')} unit={tpUnit}
+            onUnit={u=>changeExitUnit('tp',u)} plan={effective} market={market} account={account}
+            lots={volume} sizingMode={uiMode} onPrice={price=>onTradePlanChange({tp:price,activeField:'tp',stage:'ready'})} onNotice={notice}/>
+          <div className="v4-ratio-slab">
+            <div><span>Risk / Reward</span><strong>{Number.isFinite(rr)?'1:'+fmt(rr):'—'}</strong></div>
+            <div><span>Position volume</span><strong>{volume?volumeLabel:'—'}</strong></div>
+          </div>
         </>}
       </div>
       <div className="v4-block">
