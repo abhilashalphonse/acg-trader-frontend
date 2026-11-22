@@ -14,6 +14,7 @@ import { evaluateRiskToolSetup } from '../../utils/tradingRisk.js';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 import DrawingProperties from './DrawingProperties.jsx';
 import DrawingColorPicker from './DrawingColorPicker.jsx';
+import RiskPositionDrawing from './RiskPositionDrawing.jsx';
 import { DEFAULT_DRAWING_STYLE, DRAWING_TOOL_DEFAULTS, drawingStrokeWidth, drawingOpacity } from '../../utils/drawingAppearance.js';
 import V4DrawingEditor from './v4/V4DrawingEditor.jsx';
 import { clampDrawingEditorPosition, drawingEditorStartPosition, riskTargetProjectionCandidates } from '../../utils/v4DrawingEditor.js';
@@ -195,8 +196,8 @@ function DrawingShape({
   onDoubleClick,
   riskMetrics = null,
   instrument = null,
-  accountCurrency = 'USD',
   timeframe = 'M1',
+  chartTheme = 'dark',
   barsBetween = null,
   interactive = true,
   globallyLocked = false,
@@ -219,52 +220,13 @@ function DrawingShape({
     const target = resolvePoint(drawing.riskTarget)
       || riskTargetProjectionCandidates(drawing).map(resolvePoint).find(Boolean);
     if (!target) return null;
-    const isLong = drawing.type === 'long-position';
-    const left = Math.min(a.x, b.x);
-    const right = Math.max(a.x, b.x);
-    const width = Math.max(70, right - left);
-    const boxRight = left + width;
-    const entryY = a.y;
-    const stopY = b.y;
-    const targetY = target.y;
-    const rewardTop = Math.min(entryY, targetY);
-    const rewardHeight = Math.abs(entryY - targetY);
-    const riskTop = Math.min(entryY, stopY);
-    const riskHeight = Math.abs(entryY - stopY);
-    const lots = Number(riskMetrics?.sizing?.requestedLots);
-    const riskMoney = Number(riskMetrics?.sizing?.actualRisk);
-    const riskPct = Number(riskMetrics?.sizing?.actualRiskPercent);
-    const rr = Number(riskMetrics?.riskReward);
-    const ready = riskMetrics?.canCreateOrder === true;
-    const statusText = riskMetrics?.message || 'Risk sizing unavailable';
-    const currency = accountCurrency || 'USD';
-    const money = value => Number.isFinite(value) ? new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 2 }).format(value) : '—';
-    const infoWidth = Math.min(206, Math.max(120, size.width - 8));
-    const infoX = Math.max(4, Math.min(Math.max(4, size.width - infoWidth - 4), left + 4));
-    const infoY = Math.max(4, Math.min(Math.max(4, size.height - 62), entryY + 5));
-    return (
-      <g>
-        <rect x={left} y={rewardTop} width={width} height={Math.max(1, rewardHeight)} fill="rgba(53,215,157,0.13)" stroke="rgba(53,215,157,0.55)" strokeWidth="1" {...common}/>
-        <rect x={left} y={riskTop} width={width} height={Math.max(1, riskHeight)} fill="rgba(255,102,115,0.13)" stroke="rgba(255,102,115,0.55)" strokeWidth="1" {...common}/>
-        <line x1={left} y1={entryY} x2={boxRight} y2={entryY} stroke={drawing.style?.color || DEFAULT_STYLE.color} strokeOpacity={drawingOpacity(drawing.style)} strokeWidth={drawingStrokeWidth(drawing.style)} vectorEffect="non-scaling-stroke" {...common}/>
-        <line x1={left} y1={stopY} x2={boxRight} y2={stopY} stroke="#ff6673" strokeWidth="1" vectorEffect="non-scaling-stroke" {...common}/>
-        <line x1={left} y1={targetY} x2={boxRight} y2={targetY} stroke="#35d79d" strokeWidth="1" vectorEffect="non-scaling-stroke" {...common}/>
-        <rect x={infoX} y={infoY} rx="4" width={infoWidth} height="58" fill="rgba(6,9,11,0.94)" stroke={ready ? 'rgba(53,215,157,0.28)' : 'rgba(255,102,115,0.32)'} strokeWidth="1" className="pointer-events-none"/>
-        <text x={infoX + 6} y={infoY + 13} fill="#dce7ef" fontSize="8" fontWeight="700" className="pointer-events-none">{isLong ? 'LONG' : 'SHORT'} · {Number.isFinite(rr) ? `R:R ${rr.toFixed(2)}` : 'R:R —'}</text>
-        <text x={infoX + 6} y={infoY + 27} fill="#8296a7" fontSize="7" className="pointer-events-none">Risk {Number.isFinite(riskPct) ? `${riskPct.toFixed(2)}%` : '—'} · {money(riskMoney)} · {Number.isFinite(lots) ? `${lots.toFixed(2)} lot` : '— lot'}</text>
-        <text x={infoX + 6} y={infoY + 42} fill={ready ? '#35d79d' : '#ff7b86'} fontSize="7" fontWeight="700" className="pointer-events-none">{statusText.length > 40 ? `${statusText.slice(0, 39)}…` : statusText}</text>
-        <text x={boxRight - 4} y={entryY - 4} textAnchor="end" fill={drawing.style?.color || DEFAULT_STYLE.color} fillOpacity={drawingOpacity(drawing.style)} fontSize="7" fontWeight="700" className="pointer-events-none">ENTRY {formatInstrumentPrice(drawing.a?.price, instrument)}</text>
-        <text x={boxRight - 4} y={stopY - 4} textAnchor="end" fill="#ff6673" fontSize="7" fontWeight="700" className="pointer-events-none">SL {formatInstrumentPrice(drawing.b?.price, instrument)}</text>
-        <text x={boxRight - 4} y={targetY - 4} textAnchor="end" fill="#35d79d" fontSize="7" fontWeight="700" className="pointer-events-none">TP {formatInstrumentPrice(drawing.riskTarget?.price, instrument)}</text>
-        {interactive && selected && !effectiveLocked && (
-          <>
-            <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />
-            <Handle point={b} onPointerDown={event => onStartHandle(event, drawing.id, 'b')} />
-            <Handle point={target} onPointerDown={event => onStartHandle(event, drawing.id, 'riskTarget')} />
-          </>
-        )}
-      </g>
-    );
+    return <RiskPositionDrawing
+      drawing={drawing} a={a} b={b} target={target}
+      selected={selected} effectiveLocked={effectiveLocked}
+      common={common} interactive={interactive} onStartHandle={onStartHandle}
+      size={size} riskMetrics={riskMetrics} instrument={instrument}
+      chartTheme={chartTheme}
+    />;
   }
 
   if (drawing.type === 'hline') {
@@ -462,6 +424,7 @@ export default function DrawingLayer({
   interactionEnabled = true,
   preserveChartCrosshair = false,
   v4DesktopEditor = false,
+  chartTheme = 'dark',
   onHiddenDrawingCountChange = () => {},
 }) {
   const svgRef = useRef(null);
@@ -1120,8 +1083,8 @@ export default function DrawingLayer({
             onDoubleClick={openSettings}
             riskMetrics={riskMetricsFor(drawing)}
             instrument={instrument}
-            accountCurrency={accountCurrency}
             timeframe={timeframe}
+            chartTheme={chartTheme}
             barsBetween={coordinateApi?.barsBetween}
             globallyLocked={lockAll}
           />
@@ -1139,8 +1102,8 @@ export default function DrawingLayer({
               onDoubleClick={() => {}}
               riskMetrics={riskMetricsFor(draft)}
               instrument={instrument}
-              accountCurrency={accountCurrency}
               timeframe={timeframe}
+              chartTheme={chartTheme}
               barsBetween={coordinateApi?.barsBetween}
               interactive={false}
             />
