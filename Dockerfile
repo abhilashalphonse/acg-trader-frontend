@@ -1,5 +1,4 @@
 FROM node:24-alpine AS build
-RUN apk add --no-cache ffmpeg
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --include=dev
