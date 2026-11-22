@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { RotateCcw, X } from 'lucide-react';
+import { Moon, RotateCcw, Sun, X } from 'lucide-react';
 import {
   CHART_TIMEZONE_OPTIONS,
   DEFAULT_DESKTOP_CHART_SETTINGS,
@@ -53,6 +53,7 @@ export default function DesktopChartSettingsPopover({
 
   if (!open) return null;
 
+  const theme = settings?.theme === 'light' ? 'light' : 'dark';
   const candle = settings?.candle || DEFAULT_DESKTOP_CHART_SETTINGS.candle;
   const viewport = settings?.viewport || DEFAULT_DESKTOP_CHART_SETTINGS.viewport;
   const patchCandle = patch => onChange({
@@ -83,7 +84,26 @@ export default function DesktopChartSettingsPopover({
         </button>
       </div>
 
-      <div className="p-3">
+      <div className="max-h-[min(70vh,560px)] overflow-y-auto p-3">
+        <div className="mb-4">
+          <div className="mb-2 text-[8px] font-bold uppercase tracking-[0.08em] text-[#687784]">Chart canvas</div>
+          <div role="group" aria-label="Chart canvas theme"
+            className="grid grid-cols-2 gap-1 rounded-[8px] border border-white/[0.08] bg-[#111316] p-1">
+            {[
+              ['dark', 'Dark', Moon],
+              ['light', 'Light', Sun],
+            ].map(([value,label,Icon]) => (
+              <button key={value} type="button" aria-pressed={theme===value}
+                onClick={()=>onChange({ ...settings, theme:value })}
+                className={`flex h-9 items-center justify-center gap-1.5 rounded-[6px] text-[10px] font-semibold transition-colors ${theme===value ? 'bg-[#343A41] text-white shadow-[0_1px_5px_rgba(0,0,0,.35)]' : 'text-[#8B98A6] hover:bg-white/[0.06] hover:text-white'}`}>
+                <Icon size={13}/>{label}
+              </button>
+            ))}
+          </div>
+          <div className="mt-1.5 text-[8px] leading-4 text-[#687784]">
+            Changes the chart canvas, grid and labels. Terminal controls stay dark.
+          </div>
+        </div>
         <div className="mb-2 flex items-end justify-between">
           <div>
             <div className="text-[8px] font-bold uppercase tracking-[0.08em] text-[#687784]">Candles</div>
@@ -159,6 +179,7 @@ export default function DesktopChartSettingsPopover({
         <button
           type="button"
           onClick={() => onChange({
+            theme: DEFAULT_DESKTOP_CHART_SETTINGS.theme,
             candle: { ...DEFAULT_DESKTOP_CHART_SETTINGS.candle },
             timezone: DEFAULT_DESKTOP_CHART_SETTINGS.timezone,
             viewport: { ...DEFAULT_DESKTOP_CHART_SETTINGS.viewport },
