@@ -22,7 +22,7 @@ export function drawingStrokeWidth(style) {
 }
 
 export function drawingOpacity(style) {
-  const value = Number(style?.opacity);
+  const value = style?.opacity == null ? 1 : Number(style.opacity);
   return Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 1;
 }
 
