@@ -162,6 +162,7 @@ export default function DesktopOrderTicketV4({
   const [tpUnit,setTpUnit]=useState('ticks');
   const [wantSl,setWantSl]=useState(false);
   const [wantTp,setWantTp]=useState(false);
+  const [exitsOpen,setExitsOpen]=useState(false);
   const [advanced,setAdvanced]=useState(false);
   const [menuOpen,setMenuOpen]=useState(false);
   const submittingRef=useRef(false);
@@ -624,17 +625,21 @@ export default function DesktopOrderTicketV4({
         <div className="v4-translation">{translation()}</div>
       </div>
       <div className="v4-exits v4-block">
-        <div className="v4-section-heading"><span>EXITS / PROTECTION</span><ChevronUp size={15}/></div>
-        <ProtectionCard field="sl" active={hasSl} onToggle={()=>toggleProtection('sl')} unit={slUnit}
-          onUnit={u=>changeExitUnit('sl',u)} plan={effective} market={market} account={account}
-          lots={volume} sizingMode={uiMode} onPrice={price=>onTradePlanChange({sl:price,activeField:'sl',stage:'ready'})} onNotice={notice}/>
-        <ProtectionCard field="tp" active={hasTp} onToggle={()=>toggleProtection('tp')} unit={tpUnit}
-          onUnit={u=>changeExitUnit('tp',u)} plan={effective} market={market} account={account}
-          lots={volume} sizingMode={uiMode} onPrice={price=>onTradePlanChange({tp:price,activeField:'tp',stage:'ready'})} onNotice={notice}/>
-        <div className="v4-ratio-slab">
-          <div><span>Risk / Reward</span><strong>{Number.isFinite(rr)?'1:'+fmt(rr):'—'}</strong></div>
-          <div><span>Position volume</span><strong>{volume?volumeLabel:'—'}</strong></div>
-        </div>
+        <button type="button" className="v4-disclosure" aria-expanded={exitsOpen} onClick={()=>setExitsOpen(x=>!x)}>
+          EXITS / PROTECTION {exitsOpen?<ChevronUp size={15}/>:<ChevronDown size={15}/>}
+        </button>
+        {exitsOpen&&<>
+          <ProtectionCard field="sl" active={hasSl} onToggle={()=>toggleProtection('sl')} unit={slUnit}
+            onUnit={u=>changeExitUnit('sl',u)} plan={effective} market={market} account={account}
+            lots={volume} sizingMode={uiMode} onPrice={price=>onTradePlanChange({sl:price,activeField:'sl',stage:'ready'})} onNotice={notice}/>
+          <ProtectionCard field="tp" active={hasTp} onToggle={()=>toggleProtection('tp')} unit={tpUnit}
+            onUnit={u=>changeExitUnit('tp',u)} plan={effective} market={market} account={account}
+            lots={volume} sizingMode={uiMode} onPrice={price=>onTradePlanChange({tp:price,activeField:'tp',stage:'ready'})} onNotice={notice}/>
+          <div className="v4-ratio-slab">
+            <div><span>Risk / Reward</span><strong>{Number.isFinite(rr)?'1:'+fmt(rr):'—'}</strong></div>
+            <div><span>Position volume</span><strong>{volume?volumeLabel:'—'}</strong></div>
+          </div>
+        </>}
       </div>
       <div className="v4-block">
         <button type="button" className="v4-disclosure" aria-expanded={advanced} onClick={()=>setAdvanced(x=>!x)}>
