@@ -1051,7 +1051,7 @@ export default function TradingChart({
     if (Number.isFinite(liveBid)) {
       const bidColor = mobileQuotes ? '#19c9ad' : showBidAskLines ? canvasPalette.liveBidLine : chartTokens.livePriceLine;
       const bidLabelColor = mobileQuotes ? '#0fa68f' : showBidAskLines ? canvasPalette.liveBidLabel : chartTokens.livePriceLabel;
-      const bidLabelText = labelledQuotes ? '#ffffff' : chartTokens.livePriceLabelText;
+      const bidLabelText = labelledQuotes ? canvasPalette.quoteLabelText : chartTokens.livePriceLabelText;
       if (!marketLineRef.current) {
         marketLineRef.current = series.createPriceLine({
           price: liveBid,
@@ -1084,14 +1084,14 @@ export default function TradingChart({
           lineWidth: 1,
           lineStyle: LineStyle.Dashed,
           axisLabelVisible: true,
-          ...(mobileQuotes ? { axisLabelColor: '#d93d52', axisLabelTextColor: '#ffffff' } : { axisLabelColor: canvasPalette.liveAskLabel, axisLabelTextColor: '#F3F4F6' }),
+          ...(mobileQuotes ? { axisLabelColor: '#d93d52', axisLabelTextColor: '#ffffff' } : { axisLabelColor: canvasPalette.liveAskLabel, axisLabelTextColor: chartTheme === 'light' ? canvasPalette.quoteLabelText : '#F3F4F6' }),
           title: 'ASK',
         });
       } else {
         askLineRef.current.applyOptions({
           price: liveAsk,
           color: askColor,
-          ...(mobileQuotes ? { axisLabelColor: '#d93d52', axisLabelTextColor: '#ffffff' } : { axisLabelColor: canvasPalette.liveAskLabel, axisLabelTextColor: '#F3F4F6' }),
+          ...(mobileQuotes ? { axisLabelColor: '#d93d52', axisLabelTextColor: '#ffffff' } : { axisLabelColor: canvasPalette.liveAskLabel, axisLabelTextColor: chartTheme === 'light' ? canvasPalette.quoteLabelText : '#F3F4F6' }),
           title: 'ASK',
         });
       }
@@ -1375,7 +1375,8 @@ export default function TradingChart({
             <span className="text-[#AAB5BF]" style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>ACG</span>
             <span className={`ml-0.5 size-1.5 rounded-full ${mobileQuoteLive ? 'bg-[#24d7b7]' : 'bg-[#697785]'}`} aria-label={mobileQuoteLive ? 'Live quotes' : 'Quotes unavailable'} />
           </div>
-          {!compactContext && <div data-testid="chart-ohlc" className="mt-1 flex flex-wrap gap-x-2 whitespace-nowrap font-medium"><span>O <b className="text-[#aab9c8]" style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{format(ohlc?.open)}</b></span><span>H <b className="text-[#aab9c8]" style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{format(ohlc?.high)}</b></span><span>L <b className="text-[#aab9c8]" style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{format(ohlc?.low)}</b></span><span>C <b className="text-[#aab9c8]" style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{format(ohlc?.close)}</b></span>{candleChange != null && <span className={`font-semibold ${candleChangeTone}`}>{signed(candleChange, value => value.toFixed(decimals))}{candleChangePercent != null ? ` (${signed(candleChangePercent, value => value.toFixed(2))}%)` : ''}</span>}</div>}
+          {!compactContext && <div data-testid="chart-ohlc" className="mt-1 flex flex-wrap gap-x-2 whitespace-nowrap font-medium"
+            style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}><span>O <b className="text-[#aab9c8]" style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{format(ohlc?.open)}</b></span><span>H <b className="text-[#aab9c8]" style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{format(ohlc?.high)}</b></span><span>L <b className="text-[#aab9c8]" style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{format(ohlc?.low)}</b></span><span>C <b className="text-[#aab9c8]" style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{format(ohlc?.close)}</b></span>{candleChange != null && <span className={`font-semibold ${candleChangeTone}`} style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{signed(candleChange, value => value.toFixed(decimals))}{candleChangePercent != null ? ` (${signed(candleChangePercent, value => value.toFixed(2))}%)` : ''}</span>}</div>}
         </>
       ))}
       {auditMobile && inspectingCandle && ohlc && <div data-mobile-candle-inspection className="rounded-[4px] border border-white/[0.08] bg-[#09090b]/95 p-1.5 tabular-nums">
