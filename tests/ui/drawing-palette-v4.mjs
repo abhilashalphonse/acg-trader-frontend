@@ -23,8 +23,8 @@ try {
   const panelBox=await dialog.boundingBox();
   assert.ok(panelBox.y>=toolbarBox.y && panelBox.x>=0,'Palette must render above chart, outside clipped toolbar');
 
-  await dialog.getByRole('button',{name:'Select #E1E4E7'}).click();
-  assert.equal((await style()).color,'#E1E4E7');
+  await dialog.getByRole('button',{name:'Select #ECEEEF'}).click();
+  assert.equal((await style()).color,'#ECEEEF');
   assert.equal((await style()).width,1,'Changing color must never change line width');
   const slider=dialog.getByRole('slider',{name:'Drawing opacity'});
   await slider.focus();
@@ -36,9 +36,9 @@ try {
   await dialog.waitFor({state:'hidden'});
   await page.getByRole('button',{name:'Use risk drawing'}).click();
   await toolbar.getByRole('button',{name:'Drawing color'}).click();
-  await dialog.getByRole('button',{name:'Select #ECEEEF'}).click();
+  await dialog.getByRole('button',{name:'Select #D8DBDF'}).click();
   assert.equal((await style()).type,'long-position');
-  assert.equal((await style()).color,'#ECEEEF','Risk entry uses shared palette');
+  assert.equal((await style()).color,'#D8DBDF','Risk entry uses shared palette');
   await page.keyboard.press('Escape');
 
   await page.getByRole('button',{name:'Use text drawing'}).click();
