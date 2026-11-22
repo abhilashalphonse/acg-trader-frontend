@@ -1339,7 +1339,7 @@ export default function TradingChart({
       ? 'pointer-events-none absolute left-[64px] right-[56px] top-2 z-20 text-[11px] text-[#a1a1aa]'
       : mobileReference
       ? "acg-mobile-chart-info pointer-events-none absolute left-3 top-3 z-20 max-w-[78%] text-[#9ba8b6] [text-shadow:0_1px_2px_#000,0_0_8px_#000]"
-       : `pointer-events-none absolute left-2.5 top-2.5 z-[70] max-w-[72%] px-1 text-[11px] leading-[1.45] ${lightCanvas ? "text-[#667789]" : "text-[#8E99A5] [text-shadow:0_1px_2px_#000,0_0_6px_#000]"}`
+       : `pointer-events-none absolute left-2.5 top-2.5 z-[70] max-w-[72%] px-1 text-[11px] leading-[1.45] ${lightCanvas ? "text-black" : "text-[#8E99A5] [text-shadow:0_1px_2px_#000,0_0_6px_#000]"}`
     }>
       {!auditMobile && (mobileReference ? (
         <>
@@ -1366,17 +1366,17 @@ export default function TradingChart({
         </>
       ) : (
         <>
-          <div className="flex items-center gap-1.5 text-[12px] font-semibold tracking-[-0.01em] text-[#F0F3F6]"
+          <div className={`flex items-center gap-1.5 text-[12px] font-semibold tracking-[-0.01em] ${lightCanvas ? "" : "text-[#F0F3F6]"}`}
             style={lightCanvas ? {color:canvasPalette.instrumentTitle} : undefined}>
             <span>{symbol}</span>
-            <span className="text-[#7F8A95]" style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>·</span>
-            <span className="text-[#7F8A95]" style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>{timeframe}</span>
-            <span className="text-[#7F8A95]" style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>·</span>
-            <span className="text-[#AAB5BF]" style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>ACG</span>
+            <span className={lightCanvas ? undefined : "text-[#7F8A95]"} style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>·</span>
+            <span className={lightCanvas ? undefined : "text-[#7F8A95]"} style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>{timeframe}</span>
+            <span className={lightCanvas ? undefined : "text-[#7F8A95]"} style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>·</span>
+            <span className={lightCanvas ? undefined : "text-[#AAB5BF]"} style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>ACG</span>
             <span className={`ml-0.5 size-1.5 rounded-full ${mobileQuoteLive ? 'bg-[#24d7b7]' : 'bg-[#697785]'}`} aria-label={mobileQuoteLive ? 'Live quotes' : 'Quotes unavailable'} />
           </div>
           {!compactContext && <div data-testid="chart-ohlc" className="mt-1 flex flex-wrap gap-x-2 whitespace-nowrap font-medium"
-            style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}><span>O <b className="text-[#aab9c8]" style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{format(ohlc?.open)}</b></span><span>H <b className="text-[#aab9c8]" style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{format(ohlc?.high)}</b></span><span>L <b className="text-[#aab9c8]" style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{format(ohlc?.low)}</b></span><span>C <b className="text-[#aab9c8]" style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{format(ohlc?.close)}</b></span>{candleChange != null && <span className={`font-semibold ${candleChangeTone}`} style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{signed(candleChange, value => value.toFixed(decimals))}{candleChangePercent != null ? ` (${signed(candleChangePercent, value => value.toFixed(2))}%)` : ''}</span>}</div>}
+            style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}><span>O <b className={lightCanvas ? undefined : "text-[#aab9c8]"} style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{format(ohlc?.open)}</b></span><span>H <b className={lightCanvas ? undefined : "text-[#aab9c8]"} style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{format(ohlc?.high)}</b></span><span>L <b className={lightCanvas ? undefined : "text-[#aab9c8]"} style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{format(ohlc?.low)}</b></span><span>C <b className={lightCanvas ? undefined : "text-[#aab9c8]"} style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{format(ohlc?.close)}</b></span>{candleChange != null && <span className={`font-semibold ${lightCanvas ? "" : candleChangeTone}`} style={lightCanvas ? {color:canvasPalette.instrumentValue} : undefined}>{signed(candleChange, value => value.toFixed(decimals))}{candleChangePercent != null ? ` (${signed(candleChangePercent, value => value.toFixed(2))}%)` : ''}</span>}</div>}
         </>
       ))}
       {auditMobile && inspectingCandle && ohlc && <div data-mobile-candle-inspection className="rounded-[4px] border border-white/[0.08] bg-[#09090b]/95 p-1.5 tabular-nums">
