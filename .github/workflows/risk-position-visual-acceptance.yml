@@ -1,0 +1,56 @@
+name: Long/Short position drawing visual acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'src/components/trading-v2/RiskPositionDrawing.jsx'
+      - 'src/utils/riskPositionReadout.js'
+      - 'src/components/trading-v2/DrawingLayer.jsx'
+      - 'src/components/trading-v2/ChartArea.jsx'
+      - 'src/riskPositionDrawingFixture.jsx'
+      - 'tests/riskPositionPresentation.test.js'
+      - 'tests/ui/risk-position-drawing.mjs'
+      - 'tests/fixtures/risk-position-drawing.html'
+      - '.github/workflows/risk-position-visual-acceptance.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/components/trading-v2/RiskPositionDrawing.jsx'
+      - 'src/utils/riskPositionReadout.js'
+      - 'src/components/trading-v2/DrawingLayer.jsx'
+      - 'src/components/trading-v2/ChartArea.jsx'
+      - 'src/riskPositionDrawingFixture.jsx'
+      - 'tests/riskPositionPresentation.test.js'
+      - 'tests/ui/risk-position-drawing.mjs'
+      - 'tests/fixtures/risk-position-drawing.html'
+      - '.github/workflows/risk-position-visual-acceptance.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  browser-risk-position:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - name: Run browser fixture without account or order backend
+        run: |
+          set -euo pipefail
+          VITE_ACG_EXECUTION_V4_ENABLED=true npm run dev -- --host 127.0.0.1 >/tmp/risk-position-vite.log 2>&1 &
+          echo $! >/tmp/risk-position-vite.pid
+          curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-connrefused 'http://127.0.0.1:5174/tests/fixtures/risk-position-drawing.html' >/dev/null
+      - name: Test live long/short SVG appearance and handles in Chrome
+        run: node tests/ui/risk-position-drawing.mjs
+      - name: Stop fixture
+        if: always()
+        run: |
+          if [ -f /tmp/risk-position-vite.pid ]; then kill "$(cat /tmp/risk-position-vite.pid)" 2>/dev/null || true; fi
