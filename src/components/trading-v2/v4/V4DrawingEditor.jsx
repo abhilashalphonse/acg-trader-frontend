@@ -1,6 +1,8 @@
 import React from 'react';
 import { Copy, EyeOff, Grip, Lock, LockOpen, MoreHorizontal, Settings2, Trash2, X } from 'lucide-react';
 import './V4DrawingEditor.css';
+import DrawingColorPicker from '../DrawingColorPicker.jsx';
+import { DEFAULT_DRAWING_COLOR, drawingStrokeWidth } from '../../../utils/drawingAppearance.js';
 
 const Action = ({ label, children, onClick, disabled = false, danger = false, pressed = false }) => (
   <button type="button" className={'acg-v4-editor-action' + (danger ? ' acg-v4-editor-danger' : '')}
@@ -10,12 +12,12 @@ const Action = ({ label, children, onClick, disabled = false, danger = false, pr
 );
 
 const V4DrawingEditor = React.forwardRef(function V4DrawingEditor({
-  drawing, label, metrics, lockAll, onColor, onWidth, onDash, onCreateOrder,
+  drawing, label, metrics, lockAll, onAppearance, onWidth, onDash, onCreateOrder,
   onHide, onLock, onDuplicate, onSettings, onDelete, onClose,
   onDragStart, onDragMove, onDragEnd, onDragCancel, style,
 }, ref) {
   const isRisk = drawing.type === 'long-position' || drawing.type === 'short-position';
-  const width = Number(drawing.style?.width || 1.4);
+  const width = drawingStrokeWidth(drawing.style);
   const rr = Number(metrics?.riskReward);
   return (
     <div ref={ref} data-v4-floating-drawing-editor className="acg-v4-floating-drawing-editor pointer-events-auto absolute z-30" style={style}>
@@ -25,6 +27,8 @@ const V4DrawingEditor = React.forwardRef(function V4DrawingEditor({
         <Grip size={18} strokeWidth={1.8} />
       </button>
       <span className="acg-v4-editor-name" title={label}>{label}</span>
+      <DrawingColorPicker title="Drawing color" color={drawing.style?.color || DEFAULT_DRAWING_COLOR}
+        opacity={drawing.style?.opacity ?? 1} onChange={onAppearance}/>
       {isRisk ? (
         <>
           <span className="acg-v4-editor-rr">RR {Number.isFinite(rr) ? rr.toFixed(2) : '—'}</span>
@@ -34,11 +38,6 @@ const V4DrawingEditor = React.forwardRef(function V4DrawingEditor({
         </>
       ) : (
         <>
-          <label className="acg-v4-editor-color" title="Drawing color">
-            <span style={{ backgroundColor: drawing.style?.color || '#195be1' }} />
-            <input type="color" value={drawing.style?.color || '#195be1'} aria-label="Drawing color"
-              onChange={event => onColor(event.target.value)}/>
-          </label>
           {drawing.type !== 'text' && (
             <>
               <button type="button" className="acg-v4-editor-width" onClick={onWidth} title="Cycle line width"
