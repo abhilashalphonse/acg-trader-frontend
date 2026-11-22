@@ -74,3 +74,23 @@ test('light and dark chart themes normalize without losing saved candles and vie
   assert.equal(desktopChartPalette('light').gridline, '#E8EDF3');
   assert.notEqual(desktopChartPalette('light').text, desktopChartPalette('light').background);
 });
+
+test('premium light chart has black price/time ticks, OHLC and price guides but charcoal BID/ASK', () => {
+  const light = desktopChartPalette('light');
+  const dark = desktopChartPalette('dark');
+  assert.equal(light.text, '#000000');
+  assert.equal(light.instrumentTitle, '#000000');
+  assert.equal(light.instrumentMuted, '#000000');
+  assert.equal(light.instrumentValue, '#000000');
+  assert.equal(light.readout, '#000000');
+  assert.equal(light.liveBidLine, '#000000');
+  assert.equal(light.liveAskLine, '#000000');
+  assert.equal(light.quoteLabelText, '#3B424B');
+  assert.notEqual(light.quoteLabelText, light.text);
+  assert.equal(light.liveBidLabel, '#E6E9ED');
+  assert.equal(light.liveAskLabel, '#E6E9ED');
+  assert.equal(dark.text, '#8B8B8F');
+  assert.equal(dark.liveBidLine, '#B0B7BF');
+  assert.equal(dark.liveAskLine, '#939BA4');
+  assert.equal(dark.quoteLabelText, '#FFFFFF');
+});
