@@ -1797,6 +1797,7 @@ export default function ChartArea({
           onDrawingCountChange={setDrawingCount}
           onHiddenDrawingCountChange={setHiddenDrawingCount}
           v4DesktopEditor={v4AuditLayer && !compactContext && !mobileReference}
+          chartTheme={chartCanvasTheme}
           instrument={instrument}
           account={account}
           riskPercent={riskPercent}
