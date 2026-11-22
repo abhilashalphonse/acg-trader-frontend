@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { drawingToolLabel, isRiskDrawingTool } from '../../utils/drawingTools.js';
 import { LineStyleEditor, TimeframeEditor, ToolField, ToolTabs } from './ChartToolControls.jsx';
+import DrawingColorPicker from './DrawingColorPicker.jsx';
 
 export default function DrawingProperties({ drawing, onApply, onClose, riskPercent = 0.5, lockAll = false }) {
   const [draft, setDraft] = useState(() => structuredClone(drawing));
@@ -23,7 +24,15 @@ export default function DrawingProperties({ drawing, onApply, onClose, riskPerce
     <ToolTabs label="Drawing settings section" options={['Style', 'Visibility']} value={tab} onChange={setTab} />
     <div className="acg-tool-editor-body">
       {tab === 'Style' && <>
-        {risk ? <><ToolField type="number" label="Planned risk (%)" min="0.1" max="5" step="0.1" value={draft.riskPercent ?? riskPercent} onChange={riskPercent => patch({ riskPercent })} /><p className="acg-tool-help">Sizing updates after Apply. Review the order ticket before placing a trade.</p></> : <LineStyleEditor label="Appearance" drawing value={draft.style} onChange={style => patch({ style })} />}
+        {risk ? <>
+          <div className="acg-tool-colors">
+            <DrawingColorPicker color={draft.style?.color} opacity={draft.style?.opacity ?? 1}
+              onChange={appearance => patch({ style: { ...draft.style, ...appearance } })}/>
+            <span className="text-[10px] text-[#A2A9B1]">Entry color and opacity</span>
+          </div>
+          <ToolField type="number" label="Planned risk (%)" min="0.1" max="5" step="0.1" value={draft.riskPercent ?? riskPercent} onChange={riskPercent => patch({ riskPercent })} />
+          <p className="acg-tool-help">Entry color is customizable; stop and target stay red/green for safety. Review the order ticket before trading.</p>
+        </> : <LineStyleEditor label="Appearance" drawing value={draft.style} onChange={style => patch({ style })} />}
         {drawing.type === 'text' && <div className="acg-tool-grid"><ToolField label="Annotation" value={draft.text} onChange={text => patch({ text })} maxLength={240} /><ToolField label="Text size" value={draft.style.fontSize || 12} options={[9,10,12,14,16,20,24].map(n => [n, `${n} px`])} onChange={fontSize => patch({ style: { ...draft.style, fontSize: Number(fontSize) } })} /></div>}
         {drawing.type === 'rectangle' && <ToolField label={`Fill opacity · ${Math.round((draft.style.fillOpacity ?? 0.07) * 100)}%`} type="range" min="0" max="0.35" step="0.01" value={draft.style.fillOpacity ?? 0.07} onChange={fillOpacity => patch({ style: { ...draft.style, fillOpacity: Number(fillOpacity) } })} />}
         <label className="acg-tool-check"><input type="checkbox" disabled={lockAll} checked={lockAll || draft.locked} onChange={event => patch({ locked: event.target.checked })} />{lockAll ? 'All drawings are locked' : 'Lock position on chart'}</label>
