@@ -1,0 +1,57 @@
+name: Approved compact dock live browser acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'Dockerfile'
+      - 'src/utils/dockAuditMode.js'
+      - 'src/components/trading-v2/DesktopTerminal.jsx'
+      - 'src/components/trading-v2/desktop/DesktopOrderTicketV4.jsx'
+      - 'src/components/trading-v2/desktop/DetachedMiniTerminal.jsx'
+      - 'tests/dockLivePromotion.test.js'
+      - 'tests/ui/v4-dock-live-release.mjs'
+      - '.github/workflows/approved-dock-live-acceptance.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'Dockerfile'
+      - 'src/utils/dockAuditMode.js'
+      - 'src/components/trading-v2/DesktopTerminal.jsx'
+      - 'src/components/trading-v2/desktop/DesktopOrderTicketV4.jsx'
+      - 'src/components/trading-v2/desktop/DetachedMiniTerminal.jsx'
+      - 'tests/dockLivePromotion.test.js'
+      - 'tests/ui/v4-dock-live-release.mjs'
+      - '.github/workflows/approved-dock-live-acceptance.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  browser-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout approved frontend
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install production and browser acceptance dependencies
+        run: |
+          npm ci
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - name: Launch approved live-mode fixture without a trading backend
+        run: |
+          set -euo pipefail
+          VITE_ACG_EXECUTION_V4_ENABLED=true VITE_ACG_DOCK_LIVE_ENABLED=true npm run dev -- --host 127.0.0.1 >/tmp/acg-dock-live-release.log 2>&1 &
+          echo $! >/tmp/acg-dock-live-release.pid
+          curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-connrefused 'http://127.0.0.1:5174/v4-positions-audit.html?acg_v4_audit=1' >/dev/null
+      - name: Verify default live and legacy rollback in Chrome
+        run: node tests/ui/v4-dock-live-release.mjs
+      - name: Clean up isolated test server
+        if: always()
+        run: |
+          if [ -f /tmp/acg-dock-live-release.pid ]; then kill "$(cat /tmp/acg-dock-live-release.pid)" 2>/dev/null || true; fi
