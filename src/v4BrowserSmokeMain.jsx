@@ -169,6 +169,18 @@ async function run(){
  const ticket=root.querySelector('[aria-label="ACG Trader V4 live execution ticket"]');
  const chart=document.getElementById('chart-fixture');
  if(!ticket){status.textContent='FAIL: V4 ticket missing';return;}
+ // Exits / Protection starts collapsed just like Advanced. Open it deliberately
+ // for the existing detailed chart-sync and density acceptance checks.
+ const exitsDisclosure=Array.from(ticket.querySelectorAll('button.v4-disclosure'))
+   .find(button=>button.textContent.includes('EXITS / PROTECTION'));
+ if(!exitsDisclosure || exitsDisclosure.getAttribute('aria-expanded')!=='false' ||
+   ticket.querySelector('.v4-exit-card'))
+   failed.push('Exits / Protection did not start collapsed');
+ exitsDisclosure?.click();
+ await sleep(100);
+ if(exitsDisclosure?.getAttribute('aria-expanded')!=='true' ||
+   ticket.querySelectorAll('.v4-exit-card').length!==2)
+   failed.push('Exits / Protection failed to reveal SL and TP');
  // Accepted stop-limit must draw two independent SOLID price levels,
  // and show a temporary DOTTED ghost while its LIMIT leg is dragged.
  const pendingChart=document.getElementById('pending-chart-fixture');
