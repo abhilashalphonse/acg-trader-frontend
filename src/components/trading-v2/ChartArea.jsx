@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Eye, EyeOff, RotateCcw, ScanLine, Magnet, Lock, Unlock, Pin } from 'lucide-react';
+import { Eye, EyeOff, Magnet, Lock, Unlock, Pin } from 'lucide-react';
 import TradingChart from '../TradingChart.jsx';
 import DrawingLayer from './DrawingLayer.jsx';
 import { commitDrawings } from '../../utils/drawingStore.js';
 import V4FullTerminalOrders from './v4/V4FullTerminalOrders.jsx';
-import { formatInstrumentPrice, formatSpreadDisplay, instrumentPipSize } from '../../utils/instrumentFormatting.js';
+import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
 import { positionCloseAvailability } from '../../utils/marketExecutionAvailability.js';
 import { estimateLossAtStopWithCosts, estimatePositionPnlAtPrice, estimateStopRisk, positionDistancePips } from '../../utils/tradingRisk.js';
 import { resolveExecutionPreview } from '../../utils/executionPricing.js';
@@ -1804,7 +1804,6 @@ export default function ChartArea({
           onCreateRiskOrder={onCreateRiskOrder}
           chartInstanceId={chartInstanceId}
           interactionEnabled={drawingInteractionEnabled}
-          showHistoryControls={!mobileReference && (!drawingToolbarOverlay || toolbarVisible)}
           preserveChartCrosshair={desktopEnhanced && !compactContext}
         />}
         <TradePlanOverlay
@@ -1900,17 +1899,6 @@ export default function ChartArea({
           onSelectPosition={onSelectPosition} onSelectPending={onSelectPending} onClosePosition={onClosePosition}
           onCancelPending={onCancelPending}
         />}
-
-        {desktopEnhanced && !compactContext && (
-          <div className="absolute right-[74px] top-2 z-30 flex items-center gap-1">
-            <div className="pointer-events-none mr-1 flex h-7 items-center rounded-md border border-white/[0.06] bg-black/86 px-2.5 text-[9px] font-medium tabular-nums text-[#7E8994] backdrop-blur-sm">
-              <span>Spread&nbsp;<b className="font-mono font-semibold text-[#B9C2CA]">{formatSpreadDisplay(price, ask, instrument)}</b></span>
-            </div>
-            <button type="button" onClick={() => coordinateApi?.resetView?.()} className="grid size-7 place-items-center rounded border border-white/[0.06] bg-[#07090B]/92 text-[#6F8191] hover:text-[#E6EDF3]" title="Reset chart view"><RotateCcw size={11}/></button>
-            <button type="button" onClick={() => coordinateApi?.fitContent?.()} className="grid size-7 place-items-center rounded border border-white/[0.06] bg-[#07090B]/92 text-[#6F8191] hover:text-[#E6EDF3]" title="Fit chart"><ScanLine size={11}/></button>
-            <button type="button" onClick={() => setShowDrawings(value => !value)} className={`grid size-7 place-items-center rounded border bg-[#07090B]/92 ${showDrawings ? 'border-white/[0.06] text-[#6F8191] hover:text-[#E6EDF3]' : 'border-[#195be1] text-[#195be1]'}`} title={showDrawings ? 'Hide drawings' : 'Show drawings'}>{showDrawings ? <Eye size={11}/> : <EyeOff size={11}/>}</button>
-          </div>
-        )}
 
         {!compactContext && !drawingToolbarOverlay && !tradePlan && (!embedded || desktopEnhanced) && (
           <div className="pointer-events-auto absolute bottom-2 right-[64px] z-30 flex items-center gap-2 font-mono text-[8px] font-medium tabular-nums text-[#737D87]">
