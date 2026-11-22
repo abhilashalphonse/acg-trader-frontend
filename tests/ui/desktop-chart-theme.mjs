@@ -36,6 +36,21 @@ try{
   assert.equal(await chart.locator('[data-chart-instrument-info] > div').first()
     .evaluate(el=>getComputedStyle(el).color),'rgb(0, 0, 0)',
     'Light-mode instrument heading uses true black');
+  const symbolRow=chart.locator('[data-testid="chart-symbol-row"]');
+  await symbolRow.waitFor({state:'visible'});
+  assert.equal(await symbolRow.locator('[data-testid="chart-symbol"]').evaluate(el=>getComputedStyle(el).color),
+    'rgb(0, 0, 0)', 'Symbol remains bold and black');
+  assert.equal(await symbolRow.locator('[data-testid="chart-timeframe"]').evaluate(el=>getComputedStyle(el).color),
+    'rgb(107, 114, 128)', 'Timeframe metadata should recede behind the symbol');
+  assert.equal(await ohlc.locator('[data-testid="chart-ohlc-label-O"]').evaluate(el=>getComputedStyle(el).color),
+    'rgb(138, 146, 156)', 'OHLC labels should be muted rather than black');
+  assert.equal(await ohlc.locator('[data-testid="chart-ohlc-value-O"]').evaluate(el=>getComputedStyle(el).color),
+    'rgb(0, 0, 0)', 'OHLC values should retain high contrast');
+  const change=ohlc.locator('[data-testid="chart-ohlc-change"]');
+  await change.waitFor({state:'visible'});
+  assert.ok(['rgb(21, 122, 90)', 'rgb(191, 62, 75)', 'rgb(107, 114, 128)'].includes(
+    await change.evaluate(el=>getComputedStyle(el).color)
+  ), 'Candle move should use an understated semantic color');
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('acg-trader-desktop-chart-settings-v1')||'{}').theme==='light');
   assert.equal(await theme.getByRole('button',{name:'Light'}).getAttribute('aria-pressed'),'true');
   assert.equal(await page.locator('.v4-execution-footer').count()>0,true,
@@ -45,6 +60,8 @@ try{
   await page.getByRole('button',{name:'Chart appearance settings'}).click();
   await page.getByRole('group',{name:'Chart canvas theme'}).getByRole('button',{name:'Dark'}).click();
   await page.locator('[data-acg-chart-theme="dark"]').first().waitFor({state:'visible'});
+  assert.equal(await page.locator('[data-testid="chart-symbol-row"]').count(),0,
+    'Dark theme retains its existing readout layout');
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('acg-trader-desktop-chart-settings-v1')||'{}').theme==='dark');
   assert.deepEqual(errors,[],'Theme switching does not cause a runtime crash');
   console.log('DESKTOP_CHART_THEME_PASS');
