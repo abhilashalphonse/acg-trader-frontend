@@ -11,6 +11,12 @@ try{
   await page.goto(base,{waitUntil:'domcontentloaded'});
   const chart=page.locator('[data-acg-chart-theme]').first();
   await chart.waitFor({state:'visible',timeout:20000});
+  assert.equal(await page.locator('.acg-mobile-history-controls').count(),0,
+    'Floating Undo/Redo widget must not appear on the desktop chart');
+  assert.equal(await page.locator('[title="Reset chart view"]').count(),0,
+    'Floating reset icon must not appear over the chart');
+  assert.equal(await page.locator('[title="Fit chart"]').count(),0,
+    'Floating fit icon must not appear over the chart');
   assert.equal(await chart.getAttribute('data-acg-chart-theme'),'dark',
     'Existing users default to the approved dark chart');
   await page.getByRole('button',{name:'Trade',exact:true}).click();
