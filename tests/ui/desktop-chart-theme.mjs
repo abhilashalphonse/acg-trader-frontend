@@ -21,6 +21,15 @@ try{
   await page.waitForFunction(()=>document.querySelector('[data-acg-chart-theme]')?.getAttribute('data-acg-chart-theme')==='light');
   assert.equal(await chart.evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(250, 251, 252)',
     'Light canvas uses soft premium white instead of stark browser white');
+  const ohlc=chart.locator('[data-testid="chart-ohlc"]');
+  await ohlc.waitFor({state:'visible'});
+  assert.equal(await ohlc.evaluate(el=>getComputedStyle(el).color),'rgb(0, 0, 0)',
+    'Light-mode OHLC labels use true black');
+  assert.equal(await ohlc.locator('b').first().evaluate(el=>getComputedStyle(el).color),'rgb(0, 0, 0)',
+    'Light-mode OHLC values use true black');
+  assert.equal(await chart.locator('[data-chart-instrument-info] > div').first()
+    .evaluate(el=>getComputedStyle(el).color),'rgb(0, 0, 0)',
+    'Light-mode instrument heading uses true black');
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('acg-trader-desktop-chart-settings-v1')||'{}').theme==='light');
   assert.equal(await theme.getByRole('button',{name:'Light'}).getAttribute('aria-pressed'),'true');
   assert.equal(await page.locator('.v4-execution-footer').count()>0,true,
