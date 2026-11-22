@@ -13,6 +13,7 @@ try{
   await chart.waitFor({state:'visible',timeout:20000});
   assert.equal(await chart.getAttribute('data-acg-chart-theme'),'dark',
     'Existing users default to the approved dark chart');
+  await page.getByRole('button',{name:'Trade',exact:true}).click();
   const settingsButton=page.getByRole('button',{name:'Chart appearance settings'});
   await settingsButton.click();
   const theme=page.getByRole('group',{name:'Chart canvas theme'});
