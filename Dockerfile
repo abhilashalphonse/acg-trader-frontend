@@ -14,6 +14,9 @@ ARG VITE_ACG_SUPABASE_AUTH_ENABLED
 # Railway must explicitly compile the same V4 presentation instead of silently
 # falling back to the legacy desktop. A build-time override remains possible.
 ARG VITE_ACG_EXECUTION_V4_ENABLED=true
+# Release-approved compact positions dock + detachable mini popup are live by
+# default. Railway can set this build arg to false for rapid rollback.
+ARG VITE_ACG_DOCK_LIVE_ENABLED=true
 RUN npm run build && node scripts/prepare-landing-films.mjs
 
 FROM node:24-alpine

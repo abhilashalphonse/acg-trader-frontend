@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import DesktopOrderTicket from './desktop/DesktopOrderTicket.jsx';
 import DesktopOrderTicketV4 from './desktop/DesktopOrderTicketV4.jsx';
-// Audit-only; ordinary customer sessions do not download detachable-window code.
+// Compact mini terminal is available to approved production sessions; lazy-load it on demand.
 const DetachedMiniTerminal = React.lazy(() => import('./desktop/DetachedMiniTerminal.jsx'));
 import DesktopManagePositionV4 from './desktop/DesktopManagePositionV4.jsx';
 import DesktopManagePendingV4 from './desktop/DesktopManagePendingV4.jsx';
@@ -53,7 +53,7 @@ import { resolveExecutionPreview } from '../../utils/executionPricing.js';
 import { validateOpenPositionProtection } from '../../utils/openPositionPresentation.js';
 import { loadDesktopChartSettings, normalizeDesktopChartSettings, saveDesktopChartSettings } from '../../utils/desktopChartSettings.js';
 import { isV4DefaultEnabled } from '../../utils/chartOrderPresentation.js';
-import { isDockAuditEnabled } from '../../utils/dockAuditMode.js';
+import { isDockLiveEnabled } from '../../utils/dockAuditMode.js';
 import { v4HeaderMarketStatus, v4HeaderAccountLabel, v4HeaderAccountType } from '../../utils/v4HeaderPresentation.js';
 import { effectiveLeverage } from '../../utils/tradingRisk.js';
 import { positionCloseAvailability } from '../../utils/marketExecutionAvailability.js';
@@ -66,8 +66,11 @@ const V4_DESKTOP_EXECUTION_ENABLED = isV4DefaultEnabled(
   typeof window !== 'undefined' ? window.location.search : '',
 );
 
-const DOCK_AUDIT_ENABLED = V4_DESKTOP_EXECUTION_ENABLED && isDockAuditEnabled(
+// Approved compact dock and popup are live in Railway builds. An explicit
+// ?acg_dock_audit=0 restores legacy V4 presentation for support sessions.
+const DOCK_AUDIT_ENABLED = V4_DESKTOP_EXECUTION_ENABLED && isDockLiveEnabled(
   typeof window !== 'undefined' ? window.location.search : '',
+  import.meta.env.VITE_ACG_DOCK_LIVE_ENABLED === 'true',
 );
 
 const timeframes = [['1m', '1m'], ['5m', '5m'], ['15m', '15m'], ['30m', '30m'], ['1H', '1H'], ['4H', '4H'], ['1D', '1D'], ['1W', '1W']];
