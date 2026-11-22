@@ -60,6 +60,6 @@ test('risk drawings replace the old black information panel but preserve drag tr
   assert.match(overlay,/data-testid="risk-reward-zone"/);
   assert.match(overlay,/data-testid="risk-stop-zone"/);
   assert.match(overlay,/onStartHandle\(event, drawing\.id, 'riskTarget'\)/);
-  assert.match(overlay,/data-testid="position-risk-summary"/);
+  assert.match(overlay,/testId="position-risk-summary"/);
   assert.match(overlay,/showDetails \? \(/);
 });
