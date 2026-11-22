@@ -51,12 +51,19 @@ export const DESKTOP_CHART_PALETTES = Object.freeze({
     instrumentTitle: '#000000',
     instrumentMuted: '#000000',
     instrumentValue: '#000000',
+    instrumentMeta: '#6B7280',
+    instrumentSource: '#929BA7',
+    ohlcLabel: '#8A929C',
+    candleChangeUp: '#157A5A',
+    candleChangeDown: '#BF3E4B',
+    candleChangeFlat: '#6B7280',
     readout: '#000000',
     readoutShadow: 'none',
-    // Price guides stay black; BID/ASK labels are charcoal on pale grey.
-    liveBidLine: '#000000',
+    // Low-contrast 1px price guides recede behind candles and OHLC data.
+    // The BID/ASK axis labels remain strong and readable independently.
+    liveBidLine: 'rgba(0,0,0,0.18)',
     liveBidLabel: '#E6E9ED',
-    liveAskLine: '#000000',
+    liveAskLine: 'rgba(0,0,0,0.18)',
     liveAskLabel: '#E6E9ED',
     quoteLabelText: '#3B424B',
   }),
