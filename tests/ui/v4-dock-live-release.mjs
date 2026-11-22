@@ -9,6 +9,14 @@ const browser=await chromium.launch({headless:true,channel:'chrome',args:['--no-
 const page=await browser.newPage({viewport:{width:1440,height:900}});
 const failures=[];
 page.on('pageerror',error=>failures.push(error.message));
+// Preserve an expanded legacy workspace in the test so its original toolbar
+// is visible even though legacy V4 can otherwise start in a 52px compact bar.
+await page.addInitScript(()=>{
+  localStorage.setItem('acg-trader-desktop-layout-v2',JSON.stringify({
+    dockHeight:286,sidebarCollapsed:true,dockCollapsed:false,sidebarWidth:360,
+  }));
+  localStorage.setItem('acg-v4-positions-dock-density-v3','true');
+});
 try{
   await page.goto(origin+path,{waitUntil:'domcontentloaded'});
   await page.locator('[data-acg-dock-audit="true"]').waitFor({timeout:18000});
@@ -37,9 +45,8 @@ try{
   await page.locator('[data-v4-positions="true"]').waitFor({state:'visible'});
   assert.equal(await page.locator('[data-acg-dock-audit="true"]').count(),0,
     'Explicit rollback URL restores original V4 dock');
-  assert.equal(await page.locator('[data-v4-positions="true"]')
-    .getByRole('searchbox',{name:'Find position'}).count(),1,
-    'Legacy dock controls are restored by explicit rollback');
+  await page.locator('[data-v4-positions="true"]')
+    .getByRole('searchbox',{name:'Find position'}).waitFor({state:'visible',timeout:12000});
   await page.getByRole('button',{name:'Trade',exact:true}).click();
   assert.equal(await page.getByRole('button',{name:'Pop out mini terminal'}).count(),0,
     'Rollback hides production mini popup launcher');
