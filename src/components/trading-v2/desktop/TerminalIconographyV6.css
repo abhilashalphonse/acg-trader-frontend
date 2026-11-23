@@ -1,0 +1,138 @@
+/*
+ * ACG Trader | V6 Outline Icon System
+ *
+ * This is a desktop-only chrome pass, isolated to PR #236. Preserve chart
+ * drawing semantics, icons inside chart canvas, buy/sell states, and the
+ * accepted V6 font family/rendering. Replace dated selected-button embossing
+ * with a restrained flat active state. All controls keep accessible labels.
+ */
+@media (min-width: 1024px) {
+  .acg-desktop-v3.acg-unified-shell {
+    --acg-icon-color: #a9b2bd;
+    --acg-icon-hover: #eef1f4;
+    --acg-icon-active: #f0f2f5;
+    --acg-icon-active-bg: #202329;
+    --acg-icon-border: rgba(235,240,245,.13);
+  }
+  /* Left drawing rail: custom 24-viewBox drawings stay recognizable, with
+     the same visual weight as the right rail and header Lucide controls. */
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Drawing tools"] button {
+    position: relative;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 3px !important;
+    border: 1px solid transparent !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--acg-icon-color) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Drawing tools"] button svg {
+    width: 17px !important;
+    height: 17px !important;
+    stroke-width: 1.65 !important;
+    shape-rendering: geometricPrecision;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Drawing tools"] button:hover:not(:disabled) {
+    background: #1c1f23 !important;
+    color: var(--acg-icon-hover) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Drawing tools"] button.acg-mobile-drawing-tool-selected {
+    color: var(--acg-icon-active) !important;
+    background: var(--acg-icon-active-bg) !important;
+    border-color: var(--acg-icon-border) !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Drawing tools"] button.acg-mobile-drawing-tool-selected::before {
+    content: "";
+    position: absolute;
+    left: -5px;
+    top: 7px;
+    width: 2px;
+    height: 16px;
+    border-radius: 1px;
+    background: #dfe4e9;
+    pointer-events: none;
+  }
+  /* Right application rail: compact, consistent Lucide icons and one active
+     treatment for Trade / Markets / Positions / Alerts / Settings. */
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Desktop panel dock"] > button {
+    position: relative;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 3px !important;
+    border: 1px solid transparent !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--acg-icon-color) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Desktop panel dock"] > button > svg {
+    width: 17px !important;
+    height: 17px !important;
+    stroke-width: 1.65 !important;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Desktop panel dock"] > button:hover {
+    color: var(--acg-icon-hover) !important;
+    background: #1c1f23 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Desktop panel dock"] > button[data-acg-rail-active="true"] {
+    color: var(--acg-icon-active) !important;
+    background: var(--acg-icon-active-bg) !important;
+    border-color: var(--acg-icon-border) !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Desktop panel dock"] > button[data-acg-rail-active="true"]::before {
+    content: "";
+    position: absolute;
+    left: -5px;
+    top: 7px;
+    width: 2px;
+    height: 16px;
+    border-radius: 1px;
+    background: #dfe4e9;
+    pointer-events: none;
+  }
+  /* Header icons share visual mass with the side rails, without adding cards
+     or additional borders around every individual action. */
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-tool] > svg,
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-indicator-icon {
+    width: 17px !important;
+    height: 17px !important;
+    stroke-width: 1.65 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-tool] {
+    border-radius: 3px !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-tool][aria-expanded="true"] {
+    color: #f1f4f7 !important;
+    background: #202329 !important;
+    box-shadow: none !important;
+  }
+  /* Ticket actions and popup tools: matching icon stroke width, not
+     artificially enlarged glyphs that overpower prices and controls. */
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-head-actions button > svg,
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-amount button > svg {
+    width: 16px !important;
+    height: 16px !important;
+    stroke-width: 1.65 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-disclosure > svg,
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] > header button > svg {
+    stroke-width: 1.65 !important;
+  }
+  /* Modern focus indication is essential: active marker is not a substitute. */
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Desktop panel dock"] > button:focus-visible,
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Drawing tools"] button:focus-visible {
+    outline: 2px solid #d7dde4 !important;
+    outline-offset: 1px;
+  }
+}
+/* Popup is a separate DOM document. Only optical treatment, never dimensions,
+   font settings or navigation logic. */
+body.acg-mini-window .acg-mini-terminal .acg-mini-titlebar-actions button svg,
+body.acg-mini-window .acg-mini-terminal .acg-mini-back svg,
+body.acg-mini-window .acg-mini-terminal .acg-mini-instrument svg {
+  stroke-width: 1.65;
+}
