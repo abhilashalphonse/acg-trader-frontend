@@ -6,6 +6,7 @@ on:
       - 'src/components/trading-v2/desktop/UnifiedTerminalWorkspace.css'
       - 'src/components/trading-v2/desktop/TerminalIconographyV6.css'
       - 'src/components/trading-v2/desktop/TerminalNavbarCompactV6.css'
+      - 'src/components/trading-v2/desktop/TerminalIndicatorsCompactV6.css'
       - 'src/components/trading-v2/desktop/TerminalAccountButtonV6.css'
       - 'src/utils/v4HeaderPresentation.js'
       - 'src/components/trading-v2/desktop/DesktopTerminalDensityV6.css'

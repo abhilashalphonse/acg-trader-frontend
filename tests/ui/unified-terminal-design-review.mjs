@@ -64,9 +64,9 @@ try {
       assert.ok(brandMarkState.url.endsWith('.svg') &&
         brandMarkState.naturalWidth > 0 && brandMarkState.naturalHeight > 0,
         'Navbar A must load as a crisp vector asset: ' + JSON.stringify(brandMarkState));
-      assert.ok(brandMarkState.width >= 21 && brandMarkState.width <= 23 &&
-        brandMarkState.height >= 21 && brandMarkState.height <= 23,
-        'Candidate mark must fit the cleaner 22px navbar icon slot: ' + JSON.stringify(brandMarkState));
+      assert.ok(brandMarkState.width >= 29 && brandMarkState.width <= 31 &&
+        brandMarkState.height >= 29 && brandMarkState.height <= 31,
+        'Candidate mark should match compact control height at 30px: ' + JSON.stringify(brandMarkState));
 
       // The A brand mark sits outside the capsule; the actual instrument
       // artwork appears inside it. No favorite star or visual session dot.
@@ -87,7 +87,7 @@ try {
         radius: parseFloat(getComputedStyle(el).borderTopLeftRadius),
         containerRadius: parseFloat(getComputedStyle(el.parentElement).borderTopLeftRadius),
       }));
-      assert.ok(logoGeometry.radius >= 6.5 && logoGeometry.containerRadius >= 6.5,
+      assert.ok(logoGeometry.radius >= 7.5 && logoGeometry.containerRadius >= 7.5,
         'Brand logo corners should be slightly more rounded: ' + JSON.stringify(logoGeometry));
       const logoToSelectorGap = compactIdentity.selector.x -
         (compactIdentity.brand.x + compactIdentity.brand.width);
@@ -104,7 +104,7 @@ try {
         'No green market status dot remains in the desktop navbar');
       assert.equal(await header.locator('[role="status"][data-market-status]').count(), 1,
         'Keep market session status accessible without a visual dot');
-      assert.ok(compactIdentity.selector.height <= 28 && compactIdentity.brand.width <= 23,
+      assert.ok(compactIdentity.selector.height <= 28 && compactIdentity.brand.width >= 29 && compactIdentity.brand.width <= 31,
         'Instrument selector and brand must be compact');
       assert.notEqual(compactIdentity.background,'rgb(242, 242, 244)',
         'Instrument selector should be a subdued dark capsule, not a bright block');
@@ -177,6 +177,42 @@ try {
         'Navbar must fit viewport: ' + JSON.stringify({ width, headerOverflow }));
 
       await page.screenshot({ path: 'artifacts/unified-terminal-' + width + '-trade.png' });
+
+      // Match the screenshot dimensions: crisp 30px A against 27px symbol pill,
+      // plus a compact, fully functional indicator-library popover.
+      const indicatorButton = header.locator('[data-v4-header-tool="indicators"]');
+      await indicatorButton.click();
+      const indicatorsPanel = header.locator('[data-v4-header-menu="indicators"]');
+      await indicatorsPanel.waitFor({ state: 'visible' });
+      const menuBox = await indicatorsPanel.boundingBox();
+      assert.ok(menuBox.width >= 345 && menuBox.width <= 360 &&
+        menuBox.height <= Math.min(554, 900 - 90),
+        'Indicators should use a compact 354px popup: ' + JSON.stringify(menuBox));
+      assert.ok(num(await px(indicatorsPanel, 'border-top-left-radius')) <= 5.5,
+        'Indicators panel must use the flat 5px chrome');
+      const searchField = indicatorsPanel.getByRole('textbox', { name: 'Search indicators' });
+      assert.ok(await searchField.isVisible(), 'Indicators search remains available');
+      const searchBox = await searchField.boundingBox();
+      assert.ok(searchBox.height <= 34, 'Indicator search row must be compact: ' + searchBox.height);
+      const categoryButtons = indicatorsPanel.getByRole('group', { name: 'Indicator category' });
+      assert.equal(await categoryButtons.getByRole('button').count(), 6,
+        'Keep all six indicator category filters');
+      const row = indicatorsPanel.locator('.acg-indicator-row').first();
+      await row.waitFor({ state: 'visible' });
+      const rowBox = await row.boundingBox();
+      assert.ok(rowBox.height <= 91, 'Indicator library rows must be compact: ' + rowBox.height);
+      assert.ok(await indicatorsPanel.getByRole('button', { name: 'Add Exponential Moving Average' }).isVisible(),
+        'Keep library Add actions available');
+      await page.screenshot({ path: 'artifacts/unified-terminal-' + width + '-indicators.png' });
+      await searchField.fill('relative strength');
+      assert.ok(await indicatorsPanel.getByRole('button', { name: 'Add Relative Strength Index' }).isVisible(),
+        'Indicator search must still find matching entries');
+      await searchField.fill('');
+      await categoryButtons.getByRole('button', { name: 'Momentum' }).click();
+      assert.equal(await categoryButtons.getByRole('button', { name: 'Momentum' }).getAttribute('aria-pressed'),'true',
+        'Indicator category filters must remain interactive');
+      await indicatorButton.click();
+      await indicatorsPanel.waitFor({ state: 'hidden' });
 
       const account = header.locator('[data-v4-header-account]');
       const accountName = account.locator('[data-v4-header-account-name]');

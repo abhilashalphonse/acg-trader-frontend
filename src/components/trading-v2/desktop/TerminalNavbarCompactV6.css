@@ -31,22 +31,22 @@
     align-items: center;
   }
   .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-instrument-image] {
-    flex: 0 0 22px !important;
-    width: 22px !important;
-    min-width: 22px !important;
-    height: 22px !important;
+    flex: 0 0 30px !important;
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 30px !important;
     border: 0 !important;
     background: transparent !important;
     padding: 0 !important;
-    border-radius: 7px !important;
+    border-radius: 8px !important;
     overflow: hidden;
   }
   .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-instrument-image] [data-acg-nav-brand-mark] {
-    width: 22px !important;
-    height: 22px !important;
-    max-width: 22px !important;
-    max-height: 22px !important;
-    border-radius: 7px !important;
+    width: 30px !important;
+    height: 30px !important;
+    max-width: 30px !important;
+    max-height: 30px !important;
+    border-radius: 8px !important;
   }
   .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-identity {
     flex-direction: row !important;
