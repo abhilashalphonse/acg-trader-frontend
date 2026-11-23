@@ -1,0 +1,44 @@
+name: Alerts terminal integration
+on:
+  pull_request:
+    paths:
+      - 'src/components/alerts/**'
+      - 'src/components/trading-v2/DesktopTerminal.jsx'
+      - 'src/components/trading-v2/desktop/DesktopWatchlist.jsx'
+      - 'src/components/trading-v2/MobileInstrumentSheet.jsx'
+      - 'tests/fixtures/alerts.*'
+      - 'tests/ui/alerts.mjs'
+      - '.github/workflows/alerts-ui.yml'
+      - 'package*.json'
+  push:
+    branches: [main]
+    paths:
+      - 'src/components/alerts/**'
+      - 'src/components/trading-v2/**'
+      - 'tests/fixtures/alerts.*'
+      - 'tests/ui/alerts.mjs'
+      - '.github/workflows/alerts-ui.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  alerts-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/ui/alerts.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: alerts-terminal-desktop-mobile
+          path: artifacts/alerts-*.png
+          if-no-files-found: ignore
+          retention-days: 7
