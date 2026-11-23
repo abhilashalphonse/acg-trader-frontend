@@ -4,6 +4,7 @@ import {Bell,Plus,X,Pause,Play,Pencil,Trash2,Check,ExternalLink,Volume2,VolumeX}
 import {useTraderAuth} from '../../hooks/useTraderAuth.js';
 import {apiRequest} from '../../api/client.js';
 import {createAlertSound} from './alertSound.js';
+import {alertDefinition} from './chartAlertPresentation.js';
 import './alerts.css';
 
 const AlertsContext=createContext(null);
@@ -90,8 +91,8 @@ export function AlertsProvider({children,markets=[],symbol,onSelectSymbol}){
   useEffect(()=>{const key=e=>{if(e.altKey&&e.key.toLowerCase()==='a'&&config){e.preventDefault();create();}};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[create,config]);
   const action=async(fn)=>{
     const revision=scopeRevision.current;setBusy(true);setError('');
-    try{await fn();if(revision===scopeRevision.current)await refresh();}
-    catch(e){if(revision===scopeRevision.current)setError(e.message);}
+    try{const result=await fn();if(revision!==scopeRevision.current)return false;await refresh();return result??true;}
+    catch(e){if(revision===scopeRevision.current)setError(e.message);return false;}
     finally{if(revision===scopeRevision.current)setBusy(false);}
   };
   const save=async body=>action(async()=>{
@@ -128,6 +129,7 @@ export function AlertsProvider({children,markets=[],symbol,onSelectSymbol}){
   const value={enabled:!!config,rules,events,gaps,config,tab,setTab,error,setError,busy,symbol,markets,filterSymbol,setFilterSymbol,
     create,open:openManager,close,edit,registerHost,isOpen:open,hosted,soundEnabled,toggleSound,testSound,push,disablePush,deviceSubscribed,loadMore,nextBefore,openChart,
     inspect:rule=>onSelectSymbol(rule.symbol),
+    move:(rule,condition)=>action(()=>request('/'+rule.id,{method:'PUT',body:{...alertDefinition(rule,condition),version:rule.version}})),
     status:rule=>action(()=>request('/'+rule.id+'/status',{method:'PATCH',body:{version:rule.version,status:['STARTING','MONITORING'].includes(rule.status)?'PAUSED':'STARTING'}})),
     remove:rule=>action(()=>request('/'+rule.id,{method:'DELETE',body:{version:rule.version}})),
     unread:events.filter(e=>!e.readAt).length};
