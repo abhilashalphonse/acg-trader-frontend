@@ -88,6 +88,36 @@ try {
         await page.locator('[data-acg-chart-theme="dark"]').first()
           .waitFor({ state: 'visible', timeout: 20000 });
       }
+      // The overview portal is not inside the terminal shell. Verify it is
+      // anchored to the actual dock Overview control and stays fully onscreen.
+      const overviewTrigger = page.getByRole('button', { name: 'Account overview and margin details' });
+      await overviewTrigger.waitFor({ state: 'visible' });
+      await overviewTrigger.click();
+      const overview = page.locator('[data-acg-unified-overview="true"]');
+      await overview.waitFor({ state: 'visible' });
+      assert.ok(num(await px(overview, 'border-top-left-radius')) <= 5,
+        'Account overview must use 5px corners');
+      const overviewBounds = await overview.boundingBox();
+      assert.ok(overviewBounds.x >= 0 && overviewBounds.x + overviewBounds.width <= width + 1,
+        'Overview portal must remain inside the viewport');
+      await page.screenshot({ path: 'artifacts/unified-terminal-' + width + '-overview.png' });
+      await page.keyboard.press('Escape');
+      await overview.waitFor({ state: 'hidden' });
+
+      // The public mock fixture must expose exactly the desktop Help Center
+      // used by the live terminal, without connecting to support endpoints.
+      await shell.getByRole('button', { name: 'Help Center' }).click();
+      const help = page.locator('[data-acg-unified-help="true"]');
+      await help.waitFor({ state: 'visible' });
+      assert.ok(num(await px(help, 'border-top-left-radius')) <= 5,
+        'Help Center must have the same menu geometry');
+      const categoryTile = help.locator('[data-help-category-tile]').first();
+      assert.ok(num(await px(categoryTile, 'min-height')) <= 90,
+        'Help category tiles must be compact');
+      await page.screenshot({ path: 'artifacts/unified-terminal-' + width + '-help.png' });
+      await help.getByRole('button', { name: 'Close Help Center' }).click();
+      await help.waitFor({ state: 'hidden' });
+
       assert.deepEqual(pageErrors, [], 'Terminal must not throw React errors at ' + width);
       results.push({ width, headerHeight, headerOverflow, trade: true, markets: true, settings: true });
     } finally {
