@@ -243,7 +243,19 @@ try {
       await account.click();
       const accountMenu = header.locator('[data-v4-header-menu="account"]');
       await accountMenu.waitFor({ state: 'visible' });
-      assert.ok(num(await px(accountMenu, 'border-top-left-radius')) <= 5, 'Account menu must use flat chrome');
+      assert.ok(num(await px(accountMenu, 'border-top-left-radius')) <= 6.1, 'Account menu must use flat chrome');
+      assert.equal(await accountMenu.getAttribute('data-acg-account-switcher'), 'v7',
+        'Approved V7 account switcher must replace the old summary list');
+      assert.equal(await accountMenu.locator('.acg-acct-current-code').textContent(), 'ACG · V4-POSITIONS',
+        'Selected account name must preserve the ACG naming format');
+      assert.equal(await accountMenu.locator('.acg-acct-metric').count(), 2,
+        'Current account summary should show exactly two focused metrics');
+      assert.equal(await accountMenu.locator('.acg-acct-archive-trigger').count(), 0,
+        'Do not waste space on a history section when there is no history');
+      const menuRect = await accountMenu.boundingBox();
+      assert.ok(menuRect.width >= 355 && menuRect.width <= 368,
+        'Compact account menu should be approximately 365px: ' + menuRect.width);
+      await page.screenshot({ path: 'artifacts/unified-terminal-' + width + '-accounts.png' });
       await account.click();
 
       await shell.getByRole('button', { name: 'Markets', exact: true }).click();
@@ -323,6 +335,48 @@ try {
       await page.close();
     }
   }
+  // Additional deterministic account-switch acceptance covers the states that
+  // the single-account fixture cannot: active alternatives, archive expansion,
+  // read-only breached review and returning to an active account.
+  const multi = await browser.newPage({ viewport: {width:1440,height:820} });
+  const multiErrors = [];
+  multi.on('pageerror', error => multiErrors.push(error.message));
+  try {
+    await multi.goto(url + '&account_review=1', {waitUntil:'domcontentloaded'});
+    const switcher = multi.locator('[data-v4-header-account]');
+    await switcher.waitFor({state:'visible'});
+    await switcher.click();
+    const menu = multi.locator('[data-acg-account-switcher="v7"]');
+    await menu.waitFor({state:'visible'});
+    assert.match(await menu.locator('.acg-acct-total').textContent(), /4 accounts/);
+    assert.equal(await menu.locator('[data-acg-account-row="available"]').count(),1,
+      'Other tradable account is a compact selectable row');
+    const archivedToggle=menu.getByRole('button',{name:/Previous accounts/});
+    assert.equal(await archivedToggle.getAttribute('aria-expanded'),'false',
+      'Archived section must be collapsed by default');
+    await archivedToggle.click();
+    assert.equal(await archivedToggle.getAttribute('aria-expanded'),'true');
+    assert.equal(await menu.locator('[data-acg-account-row="archived"]').count(),2,
+      'Breached and closed accounts must remain accessible');
+    await multi.screenshot({path:'artifacts/unified-terminal-1440-account-archive.png'});
+    await menu.locator('[data-acg-account-row="available"]').click();
+    await menu.waitFor({state:'hidden'});
+    assert.match(await switcher.locator('[data-v4-header-account-name]').textContent(), /ACG · 886426/,
+      'Switching should update selected account identity without a new login');
+    await switcher.click();
+    const secondMenu=multi.locator('[data-acg-account-switcher="v7"]');
+    assert.match(await secondMenu.locator('.acg-acct-current-code').textContent(), /ACG · 886426/);
+    await secondMenu.getByRole('button',{name:/Previous accounts/}).click();
+    await secondMenu.locator('[data-acg-account-row="archived"]').first().click();
+    await secondMenu.waitFor({state:'hidden'});
+    await switcher.click();
+    const readOnlyMenu=multi.locator('[data-acg-account-switcher="v7"]');
+    assert.match(await readOnlyMenu.locator('.acg-acct-current-code').textContent(), /ACG · ARCHIVE-001/);
+    assert.equal(await readOnlyMenu.locator('.acg-acct-readonly').count(),1,
+      'A breached selected account must clearly indicate read-only history');
+    await multi.screenshot({path:'artifacts/unified-terminal-1440-account-readonly.png'});
+    assert.deepEqual(multiErrors, [], 'Account switcher must not cause React errors');
+  } finally {await multi.close();}
   console.log('UNIFIED_TERMINAL_DESIGN_PASS', JSON.stringify(results));
 } finally {
   await browser.close();

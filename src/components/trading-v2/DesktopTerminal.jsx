@@ -49,6 +49,7 @@ import DesktopTradeReview from './desktop/DesktopTradeReview.jsx';
 import DesktopWorkspaceMenu from './desktop/DesktopWorkspaceMenu.jsx';
 import SignOutAction from './SignOutAction.jsx';
 import DesktopWatchlist from './desktop/DesktopWatchlist.jsx';
+import DesktopAccountSwitcherV7 from './desktop/DesktopAccountSwitcherV7.jsx';
 import DesktopChartSettingsPopover from './desktop/DesktopChartSettingsPopover.jsx';
 import ChartObjectManager from './desktop/ChartObjectManager.jsx';
 import ResizeHandle from './desktop/ResizeHandle.jsx';
@@ -1334,6 +1335,33 @@ export default function DesktopTerminal({
               </>}
             </button>
             {v4IsOpen('account',accountMenuOpen) && (
+              V4_DESKTOP_EXECUTION_ENABLED ? (
+                <DesktopAccountSwitcherV7
+                  account={account}
+                  accounts={accounts}
+                  activeAccountId={activeAccountId}
+                  currency={currency}
+                  accountPnl={accountPnl}
+                  accountSwitching={accountSwitching}
+                  accountSwitchError={accountSwitchError}
+                  readOnly={readOnly}
+                  formatMoney={money}
+                  formatPnl={formatPnl}
+                  formatSize={accountSize}
+                  signOutAction={<SignOutAction variant="desktop"/>}
+                  onClose={() => { setAccountMenuOpen(false); v4Close(); }}
+                  onChooseAccount={id => {
+                    try {
+                      const changed = onSelectAccount(id);
+                      if (changed !== false) { setAccountMenuOpen(false); v4Close(); }
+                      return changed;
+                    } catch (error) {
+                      setNotice(error?.message || 'Unable to switch account');
+                      return false;
+                    }
+                  }}
+                />
+              ) : (
               <div data-v4-header-menu={V4_DESKTOP_EXECUTION_ENABLED ? 'account' : undefined} className="acg-motion-popover absolute right-0 top-10 z-[140] w-[330px] overflow-hidden rounded-md border border-white/[0.10] bg-[#111113] shadow-[0_20px_60px_rgba(0,0,0,.65)]">
                 <div className="border-b border-white/[0.07] px-3 py-2.5">
                   <strong className="block text-[10px] text-[#E6EDF3]">Trading accounts</strong>
@@ -1385,6 +1413,7 @@ export default function DesktopTerminal({
                 </div>
                 <SignOutAction variant="desktop" />
               </div>
+              )
             )}
           </div>
           {!V4_DESKTOP_EXECUTION_ENABLED && <div className="relative">

@@ -1,0 +1,111 @@
+/*
+ * ACG Trader V7 accounts: scoped dropdown only. No changes to trade execution,
+ * actual account-switch logic, header button, approved V6 font face or mobile.
+ */
+@media (min-width:1024px) {
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"].acg-account-switcher {
+    display: flex !important;
+    flex-direction: column;
+    width: 365px !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: min(540px, calc(100dvh - 64px)) !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    color: #e8ebef !important;
+    background: #131518 !important;
+    border: 1px solid #393d43 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 18px 46px rgba(0,0,0,.58) !important;
+    font-size: 11px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-account-switcher .acg-acct-head {
+    display: flex;
+    flex: 0 0 48px;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 48px;
+    padding: 0 13px !important;
+    margin: 0 !important;
+    background: #131518 !important;
+    border-bottom: 1px solid #292d32;
+  }
+  .acg-account-switcher .acg-acct-heading {font-size:12.5px;font-weight:700;letter-spacing:-.015em;color:#f0f2f5}
+  .acg-account-switcher .acg-acct-total {font-size:10px;color:#929ca8}
+  .acg-account-switcher .acg-acct-scroll {flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;scrollbar-color:#3a4048 transparent;scrollbar-width:thin}
+  .acg-account-switcher .acg-acct-current-block {padding:12px 12px 10px}
+  .acg-account-switcher .acg-acct-eyebrow,.acg-account-switcher .acg-acct-group-head>span:first-child {
+    font-size:9px;font-weight:720;letter-spacing:.09em;text-transform:uppercase;color:#929ca8
+  }
+  .acg-account-switcher .acg-acct-eyebrow {margin-bottom:9px}
+  .acg-account-switcher .acg-acct-selected {position:relative;border:1px solid #41474e;border-radius:4px;background:#1e2125;overflow:hidden}
+  .acg-account-switcher .acg-acct-selected::before {content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:#dce3eb}
+  .acg-account-switcher .acg-acct-identity {display:flex;align-items:center;gap:9px;padding:11px 10px 10px 12px;min-width:0}
+  .acg-account-switcher .acg-acct-avatar {display:grid;place-items:center;flex:0 0 29px;width:29px;height:29px;border:1px solid #3f4852;border-radius:4px;background:#292d32;color:#e1e5e9;font-size:13px;font-weight:750}
+  .acg-account-switcher .acg-acct-identity-text {flex:1 1 0;min-width:0}
+  .acg-account-switcher .acg-acct-current-code {display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;font-weight:700;color:#f1f3f5}
+  .acg-account-switcher .acg-acct-subline {display:block;margin-top:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:10px;color:#a2aab4}
+  .acg-account-switcher .acg-acct-selected-state {display:flex;align-items:center;flex:0 0 auto;gap:4px;color:#cfd8e2;font-size:9px;font-weight:600}
+  .acg-account-switcher .acg-acct-financials {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin:0 10px;padding:10px 2px 11px;border-top:1px solid #373b41}
+  .acg-account-switcher .acg-acct-metric {min-width:0}
+  .acg-account-switcher .acg-acct-metric>span {display:block;margin-bottom:4px;color:#949eaa;font-size:9.5px}
+  .acg-account-switcher .acg-acct-metric>strong {display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f1f3f5;font-size:13px;font-weight:670;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .acg-account-switcher .acg-acct-metric>strong.acg-acct-negative {color:#e17d88}
+  .acg-account-switcher .acg-acct-no-current {padding:10px 12px;color:#98a2ad;font-size:11px}
+  .acg-account-switcher .acg-acct-readonly,.acg-account-switcher .acg-acct-notice,.acg-account-switcher .acg-acct-error {margin:9px 0 0;padding:7px 9px;border-radius:4px;background:#22252b;color:#bbc6d1;font-size:10px;line-height:1.45}
+  .acg-account-switcher .acg-acct-error {background:#2c1b21;color:#e3a2ab}
+  .acg-account-switcher .acg-acct-section {border-top:1px solid #292d31;padding:0 8px 9px}
+  .acg-account-switcher .acg-acct-group-head {display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 5px 8px}
+  .acg-account-switcher .acg-acct-group-head>span:last-child {font-size:10px;color:#818c98;white-space:nowrap}
+  .acg-account-switcher .acg-acct-other-list {margin-bottom:8px;border:1px solid #32363d;border-radius:4px;overflow:hidden}
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-account-switcher .acg-acct-row {
+    display:flex;align-items:center;gap:9px;width:100%;min-height:55px;padding:8px 10px !important;
+    border:0 !important;border-bottom:1px solid #30343a !important;border-radius:0 !important;
+    background:#181a1e !important;text-align:left;color:#e7ebef;cursor:pointer;transition:background-color 120ms ease
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-account-switcher .acg-acct-row:last-child {border-bottom:0 !important}
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-account-switcher .acg-acct-row:hover:not(:disabled) {background:#24272c !important}
+  .acg-account-switcher .acg-acct-row-avatar {display:grid;place-items:center;flex:0 0 26px;width:26px;height:26px;background:#292d32;border:1px solid #3a4048;border-radius:4px;color:#dfe5eb;font-size:11px;font-weight:730}
+  .acg-account-switcher .acg-acct-row-body {min-width:0;flex:1 1 0}
+  .acg-account-switcher .acg-acct-row-code {display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:650;color:#e8ebef}
+  .acg-account-switcher .acg-acct-row-sub {display:block;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#939fab;font-size:9.5px}
+  .acg-account-switcher .acg-acct-status {flex:0 0 auto;color:#aab4bf;font-size:9px}
+  .acg-account-switcher .acg-acct-status-active {color:#a2d6b7}
+  .acg-account-switcher .acg-acct-status-archived {background:#302226;color:#da9ca3;padding:4px 6px;border-radius:3px}
+  .acg-account-switcher .acg-acct-row-chevron {flex:0 0 auto;color:#85909d}
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-account-switcher .acg-acct-archive-trigger {
+    display:flex;align-items:center;width:100%;min-height:43px;gap:9px;padding:10px 9px !important;
+    border:0 !important;border-radius:4px !important;background:#181a1e !important;text-align:left;color:#d4dbe2;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-account-switcher .acg-acct-archive-trigger:hover {background:#24272c !important}
+  .acg-account-switcher .acg-acct-archive-trigger>span:nth-child(2) {flex:1 1 auto;font-size:11px;font-weight:590}
+  .acg-account-switcher .acg-acct-archive-count {color:#929da9;font-size:9.5px;white-space:nowrap}
+  .acg-account-switcher .acg-acct-expand-chevron {flex:0 0 auto;color:#9ba6b3;transition:transform 130ms ease}
+  .acg-account-switcher .acg-acct-expand-chevron.is-open {transform:rotate(90deg)}
+  .acg-account-switcher .acg-acct-archive-list {margin-top:5px;border:1px solid #30343a;border-radius:4px;overflow:hidden}
+  .acg-account-switcher .acg-acct-footer {display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;padding:0 12px;border-top:1px solid #292d32;background:#15171a}
+  .acg-account-switcher .acg-acct-footer-copy {color:#919ba6;font-size:9.5px}
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-account-switcher [data-v4-signout="desktop"] {padding:0 !important;border:0 !important;margin:0;flex:0 1 auto}
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-account-switcher [data-v4-signout="desktop"]>button {
+    display:flex;align-items:center;gap:7px;min-height:36px;width:auto;padding:7px 3px !important;
+    background:transparent !important;border:0 !important;border-radius:4px !important;
+    color:#bdc6d0;font-size:10.5px !important
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-account-switcher [data-v4-signout="desktop"]>button:hover {color:#f1f3f6}
+  /* Keep the existing two-step sign-out confirmation fully readable. It can
+     expand the footer vertically instead of being compressed into one row. */
+  .acg-account-switcher .acg-acct-footer:has([data-v4-signout="desktop"] .space-y-2) {
+    display: block !important;
+    padding: 10px 12px !important;
+  }
+  .acg-account-switcher .acg-acct-footer:has([data-v4-signout="desktop"] .space-y-2) .acg-acct-footer-copy {
+    display: none;
+  }
+  .acg-account-switcher .acg-acct-footer:has([data-v4-signout="desktop"] .space-y-2) [data-v4-signout="desktop"] {
+    width: 100% !important;
+  }
+  .acg-account-switcher :is(button):focus-visible {outline:2px solid #e2e6eb !important;outline-offset:-2px}
+  .acg-account-switcher :is(button):disabled {opacity:.55;cursor:wait}
+}
+@media (prefers-reduced-motion:reduce) {
+ .acg-account-switcher * {transition:none !important}
+}
