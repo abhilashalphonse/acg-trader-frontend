@@ -13,6 +13,12 @@ const unifiedCss = await readFile('src/components/trading-v2/desktop/UnifiedTerm
 assert.doesNotMatch(unifiedCss,
   /(?:^|[;{\n])\s*(?:font-family|font-size|font-weight|font-feature-settings|font-variant(?:-numeric)?|letter-spacing|line-height|text-rendering)\s*:/im,
   'Unified workspace CSS must not override V6 typography');
+const densityCss = await readFile('src/components/trading-v2/desktop/DesktopTerminalDensityV6.css', 'utf8');
+assert.doesNotMatch(densityCss,
+  /(?:^|[;{\n])\s*(?:font-family|font-feature-settings|font-synthesis|font-optical-sizing|text-rendering|-webkit-font-smoothing)\s*:/im,
+  'V6 density must preserve the existing font face and font rendering');
+assert.match(densityCss, /\.acg-desktop-v3\.acg-unified-shell/,
+  'Density must be scoped to the unified desktop workspace');
 await mkdir('artifacts', { recursive: true });
 
 async function px(locator, prop) {
@@ -47,6 +53,22 @@ try {
       await ticket.waitFor({ state: 'visible', timeout: 20000 });
       await ticket.locator('.v4-exits .v4-disclosure').click();
       await ticket.locator('.v4-exit-card').first().waitFor({ state: 'visible' });
+      // Density is measured in the rendered UI, not inferred from stylesheet
+      // declarations. Execution fields must become shorter while preserving
+      // the primary 47px Buy/Sell actions as reliable trading targets.
+      const ticketBody = ticket.locator('.v4-ticket-body');
+      const amountHeight = await ticket.locator('.v4-amount').evaluate(el => el.getBoundingClientRect().height);
+      const quoteHeight = await ticket.locator('.v4-quote-strip').evaluate(el => el.getBoundingClientRect().height);
+      const modeHeight = await ticket.locator('.v4-mainmodes .v4-capsule-button').first()
+        .evaluate(el => el.getBoundingClientRect().height);
+      const tradeButtonHeight = await ticket.locator('.v4-trade-actions .v4-buy')
+        .evaluate(el => el.getBoundingClientRect().height);
+      assert.ok(amountHeight <= 41, 'Compact amount height at ' + width + ': ' + amountHeight);
+      assert.ok(quoteHeight <= 32, 'Compact quote strip at ' + width + ': ' + quoteHeight);
+      assert.ok(modeHeight <= 30, 'Compact mode switcher at ' + width + ': ' + modeHeight);
+      assert.ok(num(await px(ticketBody, 'row-gap')) <= 6,
+        'Trade ticket must use compact section spacing');
+      assert.ok(tradeButtonHeight >= 44, 'Buy action must remain usable: ' + tradeButtonHeight);
       const headerHeight = await header.evaluate(el => el.getBoundingClientRect().height);
       assert.ok(Math.abs(headerHeight - 48) <= 1, 'Header must be precisely 48px: ' + width + ' / ' + headerHeight);
       assert.equal(num(await px(shell, 'padding-left')), 0, 'Desktop shell must have no outer gutter');
@@ -82,7 +104,13 @@ try {
         'Markets category controls must have 4px corners');
       const firstMarketRow = markets.locator('.acg-v4-market-row').first();
       if (await firstMarketRow.count()) {
-        assert.ok(num(await px(firstMarketRow, 'min-height')) <= 50, 'Markets rows must remain compact');
+        assert.ok(num(await px(firstMarketRow, 'min-height')) <= 40,
+          'Markets rows should target TradingView-style density');
+        const rowHeight = await firstMarketRow.evaluate(el => el.getBoundingClientRect().height);
+        assert.ok(rowHeight <= 40, 'Instrument row should render at 39px, got ' + rowHeight + ' at ' + width);
+        const priceFont = num(await px(firstMarketRow.locator('.acg-v4-market-price').first(), 'font-size'));
+        assert.ok(priceFont >= 10 && priceFont <= 11.5,
+          'Prices must remain legible but dense: ' + priceFont + ' at ' + width);
       }
       await page.screenshot({ path: 'artifacts/unified-terminal-' + width + '-markets.png' });
 
