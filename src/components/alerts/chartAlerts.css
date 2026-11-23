@@ -3,7 +3,7 @@
 .acg-chart-alerts-layer button{font:inherit;color:inherit;appearance:none;border:0;background:transparent;cursor:pointer;padding:0}
 .acg-chart-alerts-layer button:focus-visible{outline:2px solid var(--alert-muted);outline-offset:2px;border-radius:3px}
 .acg-chart-alerts-layer button:disabled{cursor:wait;opacity:.5}
-.acg-chart-alert-tag{position:absolute;display:flex;align-items:center;height:23px;transform:translateY(-50%);border:1px solid var(--alert-border);border-radius:4px;background:var(--alert-bg);color:var(--alert-text);opacity:0;pointer-events:none;white-space:nowrap;box-sizing:border-box;box-shadow:0 1px 3px #0001;transition:opacity 100ms ease}
+.acg-chart-alert-tag{position:absolute;display:flex;align-items:center;height:23px;transform:translateY(-50%);border:1px solid var(--alert-border);border-radius:4px;background:var(--alert-bg);color:var(--alert-text);opacity:0;pointer-events:none;white-space:nowrap;box-sizing:border-box;box-shadow:0 1px 3px #0001}
 .acg-chart-alert-tag.is-active,.acg-chart-alert-tag:focus-within{opacity:1;pointer-events:auto}
 .acg-chart-alert-tag button{display:inline-flex;align-items:center;justify-content:center;gap:5px;height:21px;min-width:22px;padding:0 5px;flex-shrink:0}
 .acg-chart-alert-tag button:hover{background:var(--alert-hover)}
