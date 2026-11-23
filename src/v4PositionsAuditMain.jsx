@@ -51,6 +51,19 @@ const JOURNAL_FIXTURE=[
   message:'Old browser journal item',orderId:'old-order'}
 ];
 const publicReview=new URLSearchParams(window.location.search).get('public_review')==='1';
+const accountReview=publicReview && new URLSearchParams(window.location.search).get('account_review')==='1';
+// Synthetic account-switch test data; no API calls or real account mutations.
+const ACCOUNT_REVIEW_EXTRA=Object.freeze([
+  {id:'account-review-other',accountCode:'ACG-886426',accountType:'CHALLENGE',status:'ACTIVE',
+   challenge:{phase:2},currency:'USD',initialBalance:50000,balance:50050,equity:50045,
+   floatingPnl:-5,valuationStatus:'LIVE',tradingEnabled:true},
+  {id:'account-review-breached',accountCode:'ACG-ARCHIVE-001',accountType:'TRIAL',status:'BREACHED',
+   challenge:{phase:1},currency:'USD',initialBalance:100000,balance:94400,equity:94400,
+   floatingPnl:0,valuationStatus:'STALE',tradingEnabled:false},
+  {id:'account-review-closed',accountCode:'ACG-ARCHIVE-002',accountType:'CHALLENGE',status:'CLOSED',
+   currency:'USD',initialBalance:5000,balance:4900,equity:4900,
+   floatingPnl:0,valuationStatus:'STALE',tradingEnabled:false},
+]);
 function PositionsQA(){
  const [positions,setPositions]=useState(POSITIONS);
  const [pending,setPending]=useState(PENDING);
@@ -71,6 +84,7 @@ function PositionsQA(){
  const [protectionDraft,setProtectionDraft]=useState(null);
  const [showHelp,setShowHelp]=useState(false);
  const market=symbol==='BTCUSD'?BTC:symbol==='XAUUSD'?GOLD:EURO;
+ const accountOptions=accountReview?[ACCOUNT,...ACCOUNT_REVIEW_EXTRA]:[account];
  const markets=useMemo(()=>[EURO,BTC,GOLD],[]);
  if(!publicReview)window.v4PositionsQA={
   get commands(){return commands;},
@@ -94,8 +108,15 @@ function PositionsQA(){
  {publicReview&&<div role="status" style={{position:'relative',zIndex:50,display:'flex',alignItems:'center',justifyContent:'center',height:30,background:'#191B20',borderBottom:'1px solid #43464D',color:'#E5E6EA',font:'500 11px Inter,system-ui,sans-serif'}}>
   ACG Trader V4 · FULL TERMINAL DESIGN REVIEW · Simulated account · No real market data · Actions affect mock data only
  </div>}
- <DesktopTerminal onOpenHelp={()=>setShowHelp(true)} readOnly={false} market={market} tick={market} markets={markets} activeSymbol={symbol}
-  onSelectSymbol={setSymbol} account={account} accounts={[account]} activeAccountId={account.id}
+ <DesktopTerminal onOpenHelp={()=>setShowHelp(true)} readOnly={['BREACHED','CLOSED','DISABLED'].includes(account?.status)} market={market} tick={market} markets={markets} activeSymbol={symbol}
+  onSelectSymbol={setSymbol} account={account} accounts={accountOptions} activeAccountId={account.id}
+  onSelectAccount={id=>{
+    if(!accountReview)return false;
+    const next=accountOptions.find(item=>String(item.id)===String(id));
+    if(!next)return false;
+    setAccount({...next});
+    return true;
+  }}
    orderType={orderType} onOrderTypeChange={setOrderType}
    lots={lots} onLotsChange={setLots}
    sizingMode={sizingMode} onSizingModeChange={setSizingMode}
