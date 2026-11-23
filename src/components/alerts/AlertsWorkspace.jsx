@@ -75,7 +75,8 @@ export function AlertsProvider({children,markets=[],symbol,onSelectSymbol}){
   const openChart=useCallback(async(event)=>{
     const target=event.evidence.symbol||rules.find(r=>r.id===event.alertId)?.symbol||event.evidence.streamId.split(':').at(-1);
     onSelectSymbol(target);if(event.evidence.timeframe)window.dispatchEvent(new CustomEvent('acg-alert-timeframe',{detail:event.evidence.timeframe}));
-    await request('/history/read',{method:'POST',body:{ids:[event.id]}});setToast(null);
+    await request('/history/read',{method:'POST',body:{ids:[event.id]}});
+    setEvents(previous=>previous.map(row=>row.id===event.id?{...row,readAt:new Date().toISOString()}:row));setToast(null);
     if(!host.current)close();await refresh();
   },[rules,onSelectSymbol,request,close,refresh]);
   useEffect(()=>{
