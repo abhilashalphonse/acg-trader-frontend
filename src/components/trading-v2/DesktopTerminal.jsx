@@ -33,6 +33,7 @@ import DesktopManagePositionV4 from './desktop/DesktopManagePositionV4.jsx';
 import DesktopManagePendingV4 from './desktop/DesktopManagePendingV4.jsx';
 import './desktop/DesktopTerminal.theme.css';
 import './desktop/DesktopHeaderV4.css';
+import './desktop/UnifiedTerminalWorkspace.css';
 import DesktopPositionManager from './desktop/DesktopPositionManager.jsx';
 import DesktopMultiChart from './desktop/DesktopMultiChart.jsx';
 import DesktopTradeReview from './desktop/DesktopTradeReview.jsx';
@@ -1135,7 +1136,7 @@ export default function DesktopTerminal({
   };
 
   return (
-    <div ref={shellRef} className="acg-terminal acg-desktop-v3 relative flex h-dvh min-h-0 flex-col gap-1 overflow-hidden bg-black p-1 text-[#E6EDF3]">
+    <div ref={shellRef} className="acg-terminal acg-desktop-v3 acg-unified-shell relative flex h-dvh min-h-0 flex-col gap-1 overflow-hidden bg-black p-1 text-[#E6EDF3]">
       {notice && <div className="acg-motion-notice pointer-events-none absolute right-3 top-[66px] z-[120] flex max-w-[390px] items-center gap-3 rounded-md border border-white/[0.06] bg-[#101010]/95 px-3 py-2.5 text-[10px] font-semibold text-[#E6EDF3] shadow-[0_16px_48px_rgba(0,0,0,.45)]"><span>{notice}</span><button type="button" onClick={() => setNotice('')} className="pointer-events-auto grid size-6 place-items-center rounded-md text-[#8094a7]"><X size={13}/></button></div>}
 
 
@@ -1386,7 +1387,7 @@ export default function DesktopTerminal({
 
       <div className="min-h-0 flex-1">
         <div
-          className="relative grid h-full min-h-0 min-w-0 gap-x-1 gap-y-1 bg-black transition-[grid-template-columns,grid-template-rows] duration-300 ease-out"
+          className="acg-unified-workspace-grid relative grid h-full min-h-0 min-w-0 bg-black transition-[grid-template-columns,grid-template-rows] duration-300 ease-out"
           style={{
             gridTemplateColumns: `minmax(0, 1fr) ${sidebarContentWidth}px ${sidebarRailWidth}px`,
             gridTemplateRows: `minmax(0, 1fr) ${dockHeight}px`,
@@ -1720,7 +1721,7 @@ export default function DesktopTerminal({
               onChange={updateSidebarWidth}
               ariaLabel="Resize trade dock"
               className="absolute bottom-0 top-0"
-              style={{ right: sidebarContentWidth + sidebarRailWidth + 10 }}
+              style={{ right: sidebarContentWidth + sidebarRailWidth }}
             />
           )}
 
@@ -1735,7 +1736,7 @@ export default function DesktopTerminal({
               onDoubleClick={() => updateDockHeight(heightBounds.defaultDock)}
               ariaLabel="Resize chart and positions dock"
               className="absolute left-0 right-0"
-              style={{ bottom: dockHeight + 4 }}
+              style={{ bottom: dockHeight }}
             />
           )}
         </div>
