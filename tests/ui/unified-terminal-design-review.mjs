@@ -83,6 +83,17 @@ try {
         compactIdentity.icon.x > compactIdentity.selector.x &&
         compactIdentity.icon.x < compactIdentity.symbol.x,
         'Gradient A must remain separate while the instrument artwork precedes its symbol');
+      const logoGeometry = await navbarBrand.evaluate(el => ({
+        radius: parseFloat(getComputedStyle(el).borderTopLeftRadius),
+        containerRadius: parseFloat(getComputedStyle(el.parentElement).borderTopLeftRadius),
+      }));
+      assert.ok(logoGeometry.radius >= 6.5 && logoGeometry.containerRadius >= 6.5,
+        'Brand logo corners should be slightly more rounded: ' + JSON.stringify(logoGeometry));
+      const logoToSelectorGap = compactIdentity.selector.x -
+        (compactIdentity.brand.x + compactIdentity.brand.width);
+      assert.ok(logoToSelectorGap >= 8.5 && logoToSelectorGap <= 12.5,
+        'Provide a clear but compact gap between logo and instrument pill: ' +
+        JSON.stringify({ width, gap: logoToSelectorGap }));
       assert.ok(Math.abs(compactIdentity.icon.y - compactIdentity.symbol.y) <= 4,
         'Instrument icon and name must be aligned in one row');
       assert.ok(compactIdentity.icon.width >= 19 && compactIdentity.icon.width <= 21,

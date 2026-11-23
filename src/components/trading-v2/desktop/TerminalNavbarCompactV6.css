@@ -26,7 +26,7 @@
     height: 100% !important;
     margin: 0 11px 0 0 !important;
     padding: 0 12px 0 0 !important;
-    gap: 7px !important;
+    gap: 11px !important;
     display: flex;
     align-items: center;
   }
@@ -38,14 +38,15 @@
     border: 0 !important;
     background: transparent !important;
     padding: 0 !important;
-    border-radius: 5px !important;
+    border-radius: 7px !important;
+    overflow: hidden;
   }
   .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-instrument-image] [data-acg-nav-brand-mark] {
     width: 22px !important;
     height: 22px !important;
     max-width: 22px !important;
     max-height: 22px !important;
-    border-radius: 5px !important;
+    border-radius: 7px !important;
   }
   .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-identity {
     flex-direction: row !important;
@@ -194,7 +195,7 @@
   .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-instrument {
     margin-right: 5px !important;
     padding-right: 7px !important;
-    gap: 5px !important;
+    gap: 9px !important;
   }
   .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-primary > button:first-child {
     padding-inline: 7px !important;
