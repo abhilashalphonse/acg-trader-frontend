@@ -58,7 +58,7 @@ try{
     await page.mouse.move(surface.x+width-5,surface.y+170);
     const plus=page.getByRole('button',{name:/^Add alert at /});await plus.waitFor();
     const price=await plus.locator('.acg-chart-alert-axis-price').innerText();
-    assert.match(price,/^\\d+\\.\\d{5}$/);
+    assert.match(price,/^[0-9]+[.][0-9]{5}$/);
     let axis=await plus.boundingBox();
     assert.ok(Math.abs(axis.y+axis.height/2-(surface.y+170))<2,'Control tracks the cursor price');
     assert.ok(Math.abs(axis.x+axis.width-(surface.x+surface.width))<2,'Price label joins the right price scale');
