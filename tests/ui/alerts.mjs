@@ -64,6 +64,11 @@ try{
     assert.equal(await log.locator('article.acg-alert-row').count(),50);
     await panel.getByRole('button',{name:'Load older alerts'}).click();
     await page.waitForFunction(()=>document.querySelectorAll('[aria-label="Alert log"] article.acg-alert-row').length===60);
+    if(!mobile){
+      assert.equal(await log.getByText('New',{exact:true}).count(),1);
+      await log.locator('article').filter({hasText:'New'}).getByRole('button',{name:'Open chart'}).click();
+      await page.waitForFunction(()=>document.querySelectorAll('[aria-label="Alert log"] .acg-alert-unread').length===0);
+    }
     await panel.getByRole('tab',{name:/^Alerts/}).click();
     await panel.getByRole('button',{name:'Delete EURUSD alert'}).click();
     await panel.getByText('Your next move, on watch').waitFor();
