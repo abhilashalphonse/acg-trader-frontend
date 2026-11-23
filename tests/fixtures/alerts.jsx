@@ -18,7 +18,13 @@ const markets=[
 ];
 const account={id:'fixture',accountCode:'FIXTURE',accountType:'DEMO',status:'ACTIVE',currency:'USD',balance:100000,equity:100000,freeMargin:100000,margin:0,floatingPnl:0,valuationStatus:'LIVE',leverage:100,tradingEnabled:true,capabilities:{},tradingPermissions:{},riskPolicy:{},challenge:{}};
 const watchlists={activeList:{id:'fixture',name:'Watchlist'},activeSymbols:['EURUSD','BTCUSD'],isWatched:()=>true,toggleSymbol:noop,watchedSymbols:['EURUSD','BTCUSD']};
-const candles=Array.from({length:120},(_,n)=>({time:Math.floor(Date.now()/60000)*60-(120-n)*60,open:1.1,high:1.101,low:1.099,close:1.1001}));
+const candles=Array.from({length:120},(_,n)=>{
+  const time=Math.floor(Date.now()/60000)*60-(120-n)*60;
+  if(!chartOnly)return {time,open:1.1,high:1.101,low:1.099,close:1.1001};
+  const base=1.1001+Math.sin(n*.11)*.00042+Math.sin(n*.37)*.00009;
+  const open=Number(base.toFixed(5)),close=Number((base+Math.sin(n*1.73)*.00008).toFixed(5));
+  return {time,open,close,high:Number((Math.max(open,close)+.00004).toFixed(5)),low:Number((Math.min(open,close)-.00004).toFixed(5))};
+});
 const history=Array.from({length:60},(_,i)=>({id:(1000-i).toString(16).padStart(24,'0'),alertId:'past',readAt:i===55?null:new Date().toISOString(),createdAt:new Date().toISOString(),evidence:{symbol:'EURUSD',streamId:'twelve-data:EURUSD',condition:{type:'crosses_above',level:'1.10'},marketTimeMs:Date.now()-i*1000,priceSource:'last',observedPrice:'1.11',soundEnabled:true}}));
 window.fetch=async(input,options={})=>{
   const url=new URL(input,location.href),method=options.method||'GET',body=options.body?JSON.parse(options.body):null;
