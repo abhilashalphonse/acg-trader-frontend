@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'src/components/trading-v2/desktop/UnifiedTerminalWorkspace.css'
+      - 'src/components/trading-v2/desktop/TerminalIconographyV6.css'
       - 'src/components/trading-v2/desktop/DesktopTerminalDensityV6.css'
       - 'src/components/trading-v2/DesktopTerminal.jsx'
       - 'src/components/trading-v2/desktop/DesktopOrderTicketV4.css'

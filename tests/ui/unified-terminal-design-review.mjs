@@ -13,6 +13,12 @@ const unifiedCss = await readFile('src/components/trading-v2/desktop/UnifiedTerm
 assert.doesNotMatch(unifiedCss,
   /(?:^|[;{\n])\s*(?:font-family|font-size|font-weight|font-feature-settings|font-variant(?:-numeric)?|letter-spacing|line-height|text-rendering)\s*:/im,
   'Unified workspace CSS must not override V6 typography');
+const iconCss = await readFile('src/components/trading-v2/desktop/TerminalIconographyV6.css', 'utf8');
+assert.doesNotMatch(iconCss,
+  /(?:^|[;{\n])\s*(?:font-family|font-feature-settings|font-smoothing|font-size|line-height)\s*:/im,
+  'Icon refresh must never modify V6 typography');
+assert.match(iconCss, /\.acg-desktop-v3\.acg-unified-shell/,
+  'Icon treatment must remain scoped to the approved desktop workspace');
 const densityCss = await readFile('src/components/trading-v2/desktop/DesktopTerminalDensityV6.css', 'utf8');
 assert.doesNotMatch(densityCss,
   /(?:^|[;{\n])\s*(?:font-family|font-feature-settings|font-synthesis|font-optical-sizing|text-rendering|-webkit-font-smoothing)\s*:/im,
@@ -69,6 +75,22 @@ try {
       assert.ok(num(await px(ticketBody, 'row-gap')) <= 6,
         'Trade ticket must use compact section spacing');
       assert.ok(tradeButtonHeight >= 44, 'Buy action must remain usable: ' + tradeButtonHeight);
+      // The icon system is part of the desktop chrome, not chart rendering.
+      // Validate a common stroke width and a flat selected rail indicator.
+      const tradeRail = shell.locator('aside[aria-label="Desktop panel dock"] [data-acg-rail-action="trade"]');
+      assert.equal(await tradeRail.getAttribute('data-acg-rail-active'), 'true',
+        'Trade must be selected when the execution ticket is open');
+      const tradeGlyph = tradeRail.locator('svg');
+      assert.ok(Math.abs(num(await px(tradeGlyph, 'stroke-width')) - 1.65) < .03,
+        'Trade icon should use the V6 outline stroke');
+      const activeRail = await tradeRail.evaluate(el => ({
+        radius: getComputedStyle(el).borderTopLeftRadius,
+        shadow: getComputedStyle(el).boxShadow,
+      }));
+      assert.ok(num(activeRail.radius) <= 3.5 && activeRail.shadow === 'none',
+        'Active rail icons should be flat and compact');
+      const indicatorsIcon = header.locator('.acg-v4-header-indicator-icon');
+      assert.equal(await indicatorsIcon.count(), 1, 'Use an outline indicators icon instead of the old fx glyph');
       const headerHeight = await header.evaluate(el => el.getBoundingClientRect().height);
       assert.ok(Math.abs(headerHeight - 48) <= 1, 'Header must be precisely 48px: ' + width + ' / ' + headerHeight);
       assert.equal(num(await px(shell, 'padding-left')), 0, 'Desktop shell must have no outer gutter');
