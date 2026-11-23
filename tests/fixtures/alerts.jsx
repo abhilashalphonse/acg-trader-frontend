@@ -16,11 +16,12 @@ const markets=[
 const account={id:'fixture',accountCode:'FIXTURE',accountType:'DEMO',status:'ACTIVE',currency:'USD',balance:100000,equity:100000,freeMargin:100000,margin:0,floatingPnl:0,valuationStatus:'LIVE',leverage:100,tradingEnabled:true,capabilities:{},tradingPermissions:{},riskPolicy:{},challenge:{}};
 const watchlists={activeList:{id:'fixture',name:'Watchlist'},activeSymbols:['EURUSD','BTCUSD'],isWatched:()=>true,toggleSymbol:noop,watchedSymbols:['EURUSD','BTCUSD']};
 const candles=Array.from({length:120},(_,n)=>({time:Math.floor(Date.now()/60000)*60-(120-n)*60,open:1.1,high:1.101,low:1.099,close:1.1001}));
-const history=Array.from({length:60},(_,i)=>({id:(1000-i).toString(16).padStart(24,'0'),alertId:'past',readAt:new Date().toISOString(),createdAt:new Date().toISOString(),evidence:{symbol:'EURUSD',streamId:'twelve-data:EURUSD',condition:{type:'crosses_above',level:'1.10'},marketTimeMs:Date.now()-i*1000,priceSource:'last',observedPrice:'1.11',soundEnabled:true}}));
+const history=Array.from({length:60},(_,i)=>({id:(1000-i).toString(16).padStart(24,'0'),alertId:'past',readAt:i===55?null:new Date().toISOString(),createdAt:new Date().toISOString(),evidence:{symbol:'EURUSD',streamId:'twelve-data:EURUSD',condition:{type:'crosses_above',level:'1.10'},marketTimeMs:Date.now()-i*1000,priceSource:'last',observedPrice:'1.11',soundEnabled:true}}));
 window.fetch=async(input,options={})=>{
   const url=new URL(input,location.href),method=options.method||'GET',body=options.body?JSON.parse(options.body):null;
   let data={};
   if(url.pathname==='/v1/alerts/config')data={enabled:true,maxAlerts:100,pushPublicKey:null};
+  else if(url.pathname==='/v1/alerts/history/read'){for(const row of history)if(body.ids.includes(row.id))row.readAt=new Date().toISOString();}
   else if(url.pathname==='/v1/alerts/history'){const older=url.searchParams.has('before');data={events:older?history.slice(50):history.slice(0,50),gaps:[],nextBefore:older?null:history[49].id};}
   else if(url.pathname==='/v1/alerts'&&method==='GET')data={alerts:rules};
   else if(url.pathname==='/v1/alerts'&&method==='POST'){const r={...body,id:crypto.randomUUID(),status:'STARTING',monitoring:'STARTING',version:1};rules.push(r);data={alert:r};}
