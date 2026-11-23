@@ -1459,6 +1459,7 @@ export default function ChartArea({
   positionProtectionDraft = null,
   onPositionProtectionDraftChange = () => {},
   indicators = [],
+  guestCandles = null,
   positions = [],
   pendingOrders = [],
   onModifyPending = () => {},
@@ -1736,6 +1737,7 @@ export default function ChartArea({
           askPrice={ask}
           positions={positions}
           indicators={indicators}
+          guestCandles={guestCandles}
           onCoordinateApi={setCoordinateApi}
           showBidAskLines={desktopEnhanced && !compactContext}
           showMobileQuoteMarkers={mobileReference}
