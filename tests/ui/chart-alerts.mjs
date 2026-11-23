@@ -23,6 +23,7 @@ try{
     await page.mouse.move(60,rect.y+rect.height/2);
     await page.waitForFunction(()=>document.querySelector('[data-chart-alert-tag]')?.classList.contains('is-active'));
     assert.match(await tag.innerText(),/EURUSD · Crossing · 1.10040/);
+    assert.equal(await tag.evaluate(el=>getComputedStyle(el).opacity),'1');
     await page.screenshot({path:'artifacts/alerts-chart-hover-'+(dark?'dark':'light')+'.png'});
     const drag=tag.getByRole('button',{name:'Move EURUSD alert level'});
     const grip=await drag.boundingBox();
@@ -52,6 +53,7 @@ try{
     await page.getByRole('alert').filter({hasText:'Could not confirm the alert update'}).waitFor();
     await page.waitForFunction(()=>!document.querySelector('[data-chart-alert-tag]')?.textContent.includes('Saving'));
     assert.equal(await tag.innerText(),original);
+    await page.getByRole('alert').filter({hasText:'Could not confirm the alert update'}).waitFor({state:'hidden'});
     // The axis + creates an alert with the exact displayed, tick-normalised price.
     surface=await layer.boundingBox();
     const width=Number(await layer.getAttribute('data-plot-width'));
