@@ -15,7 +15,7 @@ try{
     const page=await browser.newPage({viewport:{width:1180,height:760}}),errors=[];
     page.on('pageerror',error=>errors.push(error.message));
     await page.goto(base+'/tests/fixtures/alerts.html?chartAlerts=1');
-    const layer=page.locator('[data-chart-alerts-layer]'),tag=page.locator('[data-chart-alert-tag]');
+    const layer=page.locator('[data-chart-alerts-layer]'),tag=page.locator('[data-chart-alert-tag="chart-alert:level"]');
     await tag.waitFor({state:'attached'});
     if(dark){await page.getByRole('button',{name:'Switch chart theme'}).click();await page.waitForFunction(()=>document.querySelector('[data-chart-alerts-layer]')?.dataset.theme==='dark');await tag.waitFor({state:'attached'});}
     assert.equal(await layer.getAttribute('data-theme'),dark?'dark':'light');
@@ -54,43 +54,64 @@ try{
     await page.waitForFunction(()=>!document.querySelector('[data-chart-alert-tag]')?.textContent.includes('Saving'));
     assert.equal(await tag.innerText(),original);
     await page.getByRole('alert').filter({hasText:'Could not confirm the alert update'}).waitFor({state:'hidden'});
-    // The axis + creates an alert with the exact displayed, tick-normalised price.
+    // Price label stays transparent to native scale dragging.
     surface=await layer.boundingBox();
     const width=Number(await layer.getAttribute('data-plot-width'));
+    const beforeScale=(await tag.boundingBox()).y;
+    await page.mouse.move(surface.x+width+28,surface.y+300);
+    await page.mouse.down();await page.mouse.move(surface.x+width+28,surface.y+380,{steps:8});await page.mouse.up();
+    await page.waitForFunction(y=>Math.abs(document.querySelector('[data-chart-alert-tag]').getBoundingClientRect().y-y)>1,beforeScale);
+    assert.equal(await page.getByLabel('Alert write count').innerText(),'2','Scaling does not submit alert writes');
+    assert.equal(await page.getByRole('dialog').count(),0,'Scaling does not open an editor');
+    // Only the small + is interactive; the attached price label passes pointer input to the chart.
     await page.mouse.move(surface.x+width-5,surface.y+170);
     const plus=page.getByRole('button',{name:/^Add alert at /});await plus.waitFor();
-    const price=await plus.locator('.acg-chart-alert-axis-price').innerText();
+    const axisGroup=page.locator('.acg-chart-alert-axis-add');
+    const price=await axisGroup.locator('.acg-chart-alert-axis-price').innerText();
     assert.match(price,/^[0-9]+[.][0-9]{5}$/);
-    let axis=await plus.boundingBox();
-    assert.ok(Math.abs(axis.y+axis.height/2-(surface.y+170))<2,'Control tracks the cursor price');
-    assert.ok(Math.abs(axis.x+axis.width-(surface.x+surface.width))<2,'Price label joins the right price scale');
-    assert.equal(await plus.evaluate(el=>getComputedStyle(el).color),'rgb(255, 255, 255)');
-    assert.equal(await plus.locator('svg').evaluate(el=>getComputedStyle(el).stroke),'rgb(255, 255, 255)');
+    const axis=await axisGroup.boundingBox();
+    assert.ok(Math.abs(axis.y+axis.height/2-(surface.y+170))<2);
+    assert.equal(await axisGroup.evaluate(el=>getComputedStyle(el).pointerEvents),'none');
+    assert.equal(await plus.evaluate(el=>getComputedStyle(el).pointerEvents),'auto');
+    assert.ok((await plus.boundingBox()).width<=24,'Only the narrow icon strip captures input');
     await page.screenshot({path:'artifacts/alerts-chart-axis-'+(dark?'dark':'light')+'.png'});
-    await page.mouse.move(surface.x+width-5,surface.y+240);
-    axis=await plus.boundingBox();
-    assert.ok(Math.abs(axis.y+axis.height/2-(surface.y+240))<2,'Control follows a second hovered price');
-    assert.notEqual(await plus.locator('.acg-chart-alert-axis-price').innerText(),price);
     await page.mouse.move(surface.x+100,surface.y+240);
     await page.waitForFunction(()=>!document.querySelector('.acg-chart-alert-axis-add'));
-    assert.equal(await page.locator('.acg-chart-alert-price-guide').count(),0);
     await page.mouse.move(surface.x+width-5,surface.y+170);await plus.waitFor();
-    await page.mouse.move(10,10);
-    await page.waitForFunction(()=>!document.querySelector('.acg-chart-alert-axis-add'));
-    await page.mouse.move(surface.x+width-5,surface.y+170);await plus.click();
+    const selected=await axisGroup.locator('.acg-chart-alert-axis-price').innerText();
+    const chartBefore=await layer.boundingBox();
+    await plus.click();
+    assert.equal(await page.getByRole('menu',{name:'Chart alert actions'}).count(),0,'Plus opens editor directly');
+    const create=page.getByRole('dialog',{name:'Create alert',exact:true});await create.waitFor();
+    assert.equal(await create.getByLabel('Price',{exact:true}).inputValue(),selected);
+    assert.equal(await create.getByLabel('Instrument',{exact:true}).inputValue(),'EURUSD');
+    const chartAfter=await layer.boundingBox();
+    assert.equal(chartAfter.width,chartBefore.width,'Opening editor preserves chart width');
+    assert.equal(chartAfter.height,chartBefore.height,'Opening editor preserves chart height');
+    assert.equal(await page.getByLabel('Panel opens').innerText(),'0','Editor never opens the side panel underneath');
+    const settings=create.getByRole('tabpanel',{name:'Alert settings'});
+    assert.equal(await settings.evaluate(el=>el.scrollHeight>el.clientHeight),false,'Core settings fit without scrolling');
+    assert.ok((await create.boundingBox()).height<540,'Default editor has a compact height');
+    await page.screenshot({path:'artifacts/alerts-chart-create-'+(dark?'dark':'light')+'.png'});
+    await create.getByRole('button',{name:'Cancel',exact:true}).click();
     const menu=page.getByRole('menu',{name:'Chart alert actions'});
-    const selected=await menu.locator('.acg-chart-alert-context-heading strong').innerText();
+    await page.mouse.click(surface.x+100,surface.y+220,{button:'right'});
+    await menu.waitFor();
+    const contextPrice=await menu.locator('.acg-chart-alert-context-heading strong').innerText();
     await page.screenshot({path:'artifacts/alerts-chart-context-'+(dark?'dark':'light')+'.png'});
     await menu.getByRole('menuitem',{name:/^Add alert on EURUSD at /}).click();
-    const create=page.getByRole('dialog',{name:'Create alert',exact:true});
-    assert.equal(await create.getByLabel('Price',{exact:true}).inputValue(),selected);
-    await create.getByRole('button',{name:'Cancel',exact:true}).click();
+    await create.waitFor();
+    assert.equal(await create.getByLabel('Price',{exact:true}).inputValue(),contextPrice,'Context menu preserves the captured price');
+    await create.getByRole('button',{name:'Create alert',exact:true}).click();
+    await create.waitFor({state:'hidden'});
+    await page.waitForFunction(()=>document.querySelectorAll('[data-chart-alert-tag]').length===2);
+    // Keep the original rule selected for the direct management regression.
     await page.mouse.click(surface.x+100,surface.y+220,{button:'right'});
     await menu.waitFor();await page.keyboard.press('Escape');assert.equal(await menu.count(),0);
     // Versioned pause/delete controls operate directly on the hovered chart tag.
     rect=await tag.boundingBox();await page.mouse.move(60,rect.y+rect.height/2);
     await tag.getByRole('button',{name:dark?'Pause EURUSD chart alert':'Delete EURUSD chart alert'}).click();
-    await page.waitForFunction(()=>document.querySelectorAll('[data-chart-alert-tag]').length===0);
+    await tag.waitFor({state:'detached'});
     assert.deepEqual(errors,[]);await page.close();
   }
   console.log('PASS: light/dark chart alert labels, versioned drag, Escape, rejected-write recovery, axis creation and pause/delete');
