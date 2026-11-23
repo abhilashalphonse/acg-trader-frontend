@@ -1,12 +1,15 @@
-import React,{useState} from 'react';
+import React,{useEffect,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {AuthContext} from '../../src/auth/AuthProvider.jsx';
 import {TradingContext} from '../../src/store/TradingProvider.jsx';
 import {AlertsProvider,useAlerts} from '../../src/components/alerts/AlertsWorkspace.jsx';
+import TradingChart from '../../src/components/TradingChart.jsx';
 import DesktopTerminal from '../../src/components/trading-v2/DesktopTerminal.jsx';
 import MobileInstrumentSheet from '../../src/components/trading-v2/MobileInstrumentSheet.jsx';
 import '../../src/index.css';
-let rules=[];
+const chartOnly=new URLSearchParams(location.search).has('chartAlerts');
+let rejected=false,writes=0;
+let rules=chartOnly?[{id:'chart-alert',version:1,symbol:'EURUSD',status:'MONITORING',monitoring:'MONITORING',condition:{type:'crosses',level:'1.10040'},priceSource:'bid',frequency:'repeat',cooldownMs:300000,expiresAt:null,pushEnabled:false,soundEnabled:false,note:'Preserve chart settings',name:''}]:[];
 const noop=()=>{};
 const auth={authenticated:true,accessToken:null,principal:{tenantId:'fixture',ownerExternalRef:'fixture'},ensureFreshAccessToken:async()=>'fixture-only',logout:noop};
 const markets=[
@@ -25,19 +28,39 @@ window.fetch=async(input,options={})=>{
   else if(url.pathname==='/v1/alerts/history'){const older=url.searchParams.has('before');data={events:older?history.slice(50):history.slice(0,50),gaps:[],nextBefore:older?null:history[49].id};}
   else if(url.pathname==='/v1/alerts'&&method==='GET')data={alerts:rules};
   else if(url.pathname==='/v1/alerts'&&method==='POST'){const r={...body,id:crypto.randomUUID(),status:'STARTING',monitoring:'STARTING',version:1};rules.push(r);data={alert:r};}
-  else if(url.pathname.startsWith('/v1/alerts/')){const id=url.pathname.split('/')[3];if(method==='DELETE')rules=rules.filter(r=>r.id!==id);else{rules=rules.map(r=>r.id===id?{...r,...body,version:r.version+1}:r);data={alert:rules.find(r=>r.id===id)};}}
+  else if(url.pathname.startsWith('/v1/alerts/')){
+    if(method==='PUT'){
+      writes++;window.dispatchEvent(new Event('fixture-alert-write'));
+      if(rejected){rejected=false;return new Response(JSON.stringify({error:{message:'Fixture version conflict'}}),{status:409,headers:{'Content-Type':'application/json'}});}
+    }
+    const id=url.pathname.split('/')[3];if(method==='DELETE')rules=rules.filter(r=>r.id!==id);else{rules=rules.map(r=>r.id===id?{...r,...body,version:r.version+1}:r);data={alert:rules.find(r=>r.id===id)};}}
   else if(url.pathname.includes('/candles'))data={candles,pagination:{hasMore:false}};
   else if(url.pathname.includes('/quotes'))data={quotes:markets};
   else if(url.pathname.includes('/orders')&&method!=='GET')throw new Error('Fixture must never submit trades');
   return new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
 };
 function MobileLauncher(){const a=useAlerts(),[open,setOpen]=useState(false);return <><button onClick={()=>a.open()} disabled={!a.enabled}>Open alerts</button><button onClick={()=>setOpen(true)}>Open watchlist</button>{open&&<MobileInstrumentSheet auditMobile markets={markets} activeSymbol="EURUSD" watchlists={watchlists} onClose={()=>setOpen(false)}/>}</>;}
+function ChartSurface(){
+  const a=useAlerts(),[theme,setTheme]=useState('light'),[count,setCount]=useState(0);
+  useEffect(()=>a.registerHost({show:noop,hide:noop}),[a.registerHost]);
+  useEffect(()=>{const update=()=>setCount(writes);window.addEventListener('fixture-alert-write',update);return()=>window.removeEventListener('fixture-alert-write',update);},[]);
+  return <div style={{height:'100dvh',background:theme==='light'?'white':'#09090b'}}>
+    <div style={{height:40,display:'flex',gap:20,padding:6,color:theme==='light'?'#222':'#ddd'}}>
+      <button onClick={()=>setTheme(theme==='light'?'dark':'light')}>Switch chart theme</button>
+      <button onClick={()=>{rejected=true;}}>Reject next alert update</button>
+      <output aria-label="Alert write count">{count}</output>
+    </div>
+    <div style={{height:'calc(100dvh - 40px)',position:'relative'}}>
+      <TradingChart symbol="EURUSD" instrument={markets[0]} timeframe="M1" chartTheme={theme}/>
+    </div>
+  </div>;
+}
 function Fixture(){
   const [symbol,setSymbol]=useState('EURUSD'),mobile=new URLSearchParams(location.search).has('mobile');
   const market=markets.find(m=>m.symbol===symbol);
   return <AuthContext.Provider value={auth}><TradingContext.Provider value={{market:{candlesByKey:{}},connection:{status:'ready'},subscribeMarket:()=>noop}}>
     <AlertsProvider markets={markets} symbol={symbol} onSelectSymbol={setSymbol}>
-      {mobile?<MobileLauncher/>:<DesktopTerminal market={market} tick={market} markets={markets} activeSymbol={symbol} onSelectSymbol={setSymbol} account={account} accounts={[account]} activeAccountId={account.id} watchlists={watchlists}
+      {chartOnly?<ChartSurface/>:mobile?<MobileLauncher/>:<DesktopTerminal market={market} tick={market} markets={markets} activeSymbol={symbol} onSelectSymbol={setSymbol} account={account} accounts={[account]} activeAccountId={account.id} watchlists={watchlists}
         exposureAllowed={false} exposureBlockReason="Fixture: trading disabled" onManualOrder={()=>{throw new Error('Trading forbidden');}}/>}
     </AlertsProvider>
   </TradingContext.Provider></AuthContext.Provider>;

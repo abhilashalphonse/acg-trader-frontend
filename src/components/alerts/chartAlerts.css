@@ -1,0 +1,29 @@
+.acg-chart-alerts-layer{--alert-bg:#181A1F;--alert-border:#555963;--alert-text:#E0E3E9;--alert-muted:#949AA6;--alert-hover:#2B2E36;--alert-shadow:0 4px 16px #0005;position:absolute;inset:0;z-index:72;pointer-events:none;font:11px Inter,system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.acg-chart-alerts-layer[data-theme=light]{--alert-bg:#fff;--alert-border:#7D828A;--alert-text:#252A32;--alert-muted:#69717D;--alert-hover:#F0F2F5;--alert-shadow:0 4px 16px #1b24331c}
+.acg-chart-alerts-layer button{font:inherit;color:inherit;appearance:none;border:0;background:transparent;cursor:pointer;padding:0}
+.acg-chart-alerts-layer button:focus-visible{outline:2px solid var(--alert-muted);outline-offset:2px;border-radius:3px}
+.acg-chart-alerts-layer button:disabled{cursor:wait;opacity:.5}
+.acg-chart-alert-tag{position:absolute;display:flex;align-items:center;height:23px;transform:translateY(-50%);border:1px solid var(--alert-border);border-radius:4px;background:var(--alert-bg);color:var(--alert-text);opacity:0;pointer-events:none;white-space:nowrap;box-sizing:border-box;box-shadow:0 1px 3px #0001;transition:opacity 100ms ease}
+.acg-chart-alert-tag.is-active,.acg-chart-alert-tag:focus-within{opacity:1;pointer-events:auto}
+.acg-chart-alert-tag button{display:inline-flex;align-items:center;justify-content:center;gap:5px;height:21px;min-width:22px;padding:0 5px;flex-shrink:0}
+.acg-chart-alert-tag button:hover{background:var(--alert-hover)}
+.acg-chart-alert-tag .acg-chart-alert-drag{cursor:ns-resize;touch-action:none;color:var(--alert-muted);min-width:17px;padding:0 2px}
+.acg-chart-alert-tag .acg-chart-alert-title{flex:1;min-width:0;max-width:242px;justify-content:flex-start;padding:0 5px 0 2px}
+.acg-chart-alert-title span{overflow:hidden;text-overflow:ellipsis}
+.acg-chart-alert-title svg{flex-shrink:0;color:var(--alert-muted)}
+.acg-chart-alert-title .is-interrupted{color:#BA8B40}
+.acg-chart-alert-divider{height:12px;width:1px;background:var(--alert-border);opacity:.45;margin-inline:1px}
+.acg-chart-alert-axis-add{position:absolute;pointer-events:auto;display:grid;place-items:center;width:19px;height:19px;transform:translateY(-50%);background:var(--alert-bg)!important;border:1px solid var(--alert-border)!important;border-radius:3px;color:var(--alert-text);box-shadow:0 1px 3px #0002}
+.acg-chart-alert-axis-add:hover{background:var(--alert-hover)!important}
+.acg-chart-alert-context{position:absolute;pointer-events:auto;width:286px;box-sizing:border-box;padding:5px;background:var(--alert-bg);border:1px solid color-mix(in srgb,var(--alert-border) 65%,transparent);border-radius:7px;box-shadow:var(--alert-shadow);color:var(--alert-text)}
+.acg-chart-alert-context-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 9px 9px;font-size:10px;color:var(--alert-muted)}
+.acg-chart-alert-context-heading strong{font-size:11px;font-weight:500;color:var(--alert-text)}
+.acg-chart-alert-context button{display:flex;align-items:center;gap:9px;width:100%;min-height:34px;padding:7px 9px;border-radius:4px;text-align:left}
+.acg-chart-alert-context button span{flex:1}
+.acg-chart-alert-context button svg{flex-shrink:0;color:var(--alert-muted)}
+.acg-chart-alert-context button:hover,.acg-chart-alert-context button:focus-visible{background:var(--alert-hover)}
+.acg-chart-alert-context kbd{font:9px Inter,system-ui,sans-serif;color:var(--alert-muted);white-space:nowrap}
+.acg-chart-alert-context-separator{height:1px;background:var(--alert-border);opacity:.25;margin:3px 4px}
+.acg-chart-alert-notice{position:absolute;bottom:34px;left:12px;max-width:min(360px,calc(100% - 24px));padding:10px 12px;border:1px solid var(--alert-border);border-radius:5px;background:var(--alert-bg);color:var(--alert-text);font-size:11px;line-height:1.6}
+@media(pointer:coarse){.acg-chart-alert-tag{height:31px}.acg-chart-alert-tag button{height:29px;min-width:29px}.acg-chart-alert-tag .acg-chart-alert-drag{min-width:24px}.acg-chart-alert-axis-add{width:25px;height:25px}}
+@media(prefers-reduced-motion:reduce){.acg-chart-alert-tag{transition:none}}

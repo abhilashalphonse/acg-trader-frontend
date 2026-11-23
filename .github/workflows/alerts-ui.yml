@@ -8,6 +8,8 @@ on:
       - 'src/components/trading-v2/MobileInstrumentSheet.jsx'
       - 'tests/fixtures/alerts.*'
       - 'tests/ui/alerts.mjs'
+      - 'tests/ui/chart-alerts.mjs'
+      - 'src/components/TradingChart.jsx'
       - '.github/workflows/alerts-ui.yml'
       - 'package*.json'
   push:
@@ -17,6 +19,8 @@ on:
       - 'src/components/trading-v2/**'
       - 'tests/fixtures/alerts.*'
       - 'tests/ui/alerts.mjs'
+      - 'tests/ui/chart-alerts.mjs'
+      - 'src/components/TradingChart.jsx'
       - '.github/workflows/alerts-ui.yml'
   workflow_dispatch:
 permissions:
@@ -34,6 +38,7 @@ jobs:
       - run: npm ci
       - run: npm install --no-save --no-audit --no-fund playwright@1.56.1
       - run: node tests/ui/alerts.mjs
+      - run: node tests/ui/chart-alerts.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
