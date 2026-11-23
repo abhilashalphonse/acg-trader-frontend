@@ -1,5 +1,5 @@
 import React, {useEffect,useMemo,useState} from 'react';
-import {ArrowUpRight, CandlestickChart, ChartNoAxesCombined, ChevronDown, LockKeyhole, Menu, PanelRightClose, PanelRightOpen, X} from 'lucide-react';
+import {ArrowUpRight, CandlestickChart, ChartNoAxesCombined, ChevronDown, LockKeyhole, PanelRightClose, PanelRightOpen, X} from 'lucide-react';
 import {TradingContext} from '../../store/TradingProvider.jsx';
 import ChartArea from '../trading-v2/ChartArea.jsx';
 import IndicatorManager from '../trading-v2/IndicatorManager.jsx';

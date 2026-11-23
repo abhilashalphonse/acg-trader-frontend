@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import process from 'node:process';
 import {spawn} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
 import {mkdir} from 'node:fs/promises';
@@ -26,7 +27,12 @@ try{
     const pathname=new URL(request.url()).pathname;
     if(/^\/v1\/(?:market|trading|orders|positions)\//.test(pathname))unauthorizedCalls.push(pathname);
   });
-  page.on('websocket',sock=>ws.push(sock.url()));
+  page.on('websocket',sock=>{
+   const url=new URL(sock.url());
+   // Vite dev-server HMR is not an ACG market-data subscription.
+   if(url.host==='127.0.0.1:5197' && url.pathname==='/')return;
+   ws.push(sock.url());
+  });
   try{
     await page.goto(origin+'/acg-landing-v6.html',{waitUntil:'domcontentloaded'});
     if(width<500)await page.locator('details.mobile-nav summary').click();
