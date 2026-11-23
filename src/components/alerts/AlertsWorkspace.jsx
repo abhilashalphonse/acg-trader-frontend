@@ -60,9 +60,12 @@ export function AlertsProvider({children,markets=[],symbol,onSelectSymbol}){
     if(!config||!navigator.serviceWorker)return;
     let alive=true;
     navigator.serviceWorker.getRegistration('/alerts-sw.js').then(registration=>registration?.pushManager.getSubscription())
-      .then(subscription=>{if(alive)setDeviceSubscribed(Boolean(subscription));}).catch(()=>{});
+      .then(async subscription=>{
+        const status=subscription?await request('/push/status',{method:'POST',body:{endpoint:subscription.endpoint}}):{subscribed:false};
+        if(alive)setDeviceSubscribed(status.subscribed);
+      }).catch(()=>{});
     return()=>{alive=false;};
-  },[config]);
+  },[config,request]);
   useEffect(()=>{if(!toast)return;const timer=setTimeout(()=>setToast(null),12000);return()=>clearTimeout(timer);},[toast]);
   const close=useCallback(()=>{setOpen(false);setError('');host.current?.hide();},[]);
   const show=useCallback(()=>{setOpen(true);host.current?.show();},[]);
