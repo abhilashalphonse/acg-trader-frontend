@@ -64,10 +64,34 @@ try {
       assert.ok(brandMarkState.url.endsWith('.svg') &&
         brandMarkState.naturalWidth > 0 && brandMarkState.naturalHeight > 0,
         'Navbar A must load as a crisp vector asset: ' + JSON.stringify(brandMarkState));
-      assert.ok(brandMarkState.width >= 27 && brandMarkState.width <= 29 &&
-        brandMarkState.height >= 27 && brandMarkState.height <= 29,
-        'Candidate mark must fit the 28px navbar icon slot: ' + JSON.stringify(brandMarkState));
+      assert.ok(brandMarkState.width >= 21 && brandMarkState.width <= 23 &&
+        brandMarkState.height >= 21 && brandMarkState.height <= 23,
+        'Candidate mark must fit the cleaner 22px navbar icon slot: ' + JSON.stringify(brandMarkState));
 
+      // Match the supplied reference: one line, compact dark selector, quiet status dot.
+      const compactIdentity = await header.locator('.acg-v4-header-instrument').evaluate(el => {
+        const button = el.querySelector('.acg-v4-header-primary > button:first-child');
+        const status = el.querySelector('.acg-v4-header-status-dot');
+        const symbol = el.querySelector('.acg-v4-header-primary strong');
+        const metric = (node) => { const r = node.getBoundingClientRect(); return { y:r.y+r.height/2, width:r.width, height:r.height }; };
+        return { selector:metric(button), brand:metric(el.querySelector('[data-acg-nav-brand-mark]')),
+          status:metric(status), symbol:metric(symbol), background:getComputedStyle(button).backgroundColor };
+      });
+      assert.ok(Math.abs(compactIdentity.selector.y - compactIdentity.status.y) <= 4,
+        'Market status must share the same row as the symbol');
+      assert.ok(compactIdentity.selector.height <= 28 && compactIdentity.brand.width <= 23,
+        'Instrument selector and brand must be compact');
+      assert.notEqual(compactIdentity.background,'rgb(242, 242, 244)',
+        'Instrument selector should be a subdued dark capsule, not a bright block');
+      const selectedTimeframe = header.locator('[data-v4-timeframe][aria-pressed="true"]');
+      if (await selectedTimeframe.isVisible()) {
+        const current = await selectedTimeframe.evaluate(el => ({
+          height:el.getBoundingClientRect().height, background:getComputedStyle(el).backgroundColor
+        }));
+        assert.ok(current.height <= 27, 'Selected timeframe must use a small quiet control');
+        assert.notEqual(current.background,'rgb(242, 242, 244)',
+          'Selected timeframe should no longer use an oversized white fill');
+      }
       const grid = shell.locator('.acg-unified-workspace-grid');
       // The default desktop layout deliberately starts with the sidebar closed.
       // Open the actual trade rail before inspecting ticket controls.
@@ -109,7 +133,7 @@ try {
       const indicatorsIcon = header.locator('.acg-v4-header-indicator-icon');
       assert.equal(await indicatorsIcon.count(), 1, 'Use an outline indicators icon instead of the old fx glyph');
       const headerHeight = await header.evaluate(el => el.getBoundingClientRect().height);
-      assert.ok(Math.abs(headerHeight - 48) <= 1, 'Header must be precisely 48px: ' + width + ' / ' + headerHeight);
+      assert.ok(Math.abs(headerHeight - 44) <= 1, 'Compact header must be 44px: ' + width + ' / ' + headerHeight);
       assert.equal(num(await px(shell, 'padding-left')), 0, 'Desktop shell must have no outer gutter');
       assert.equal(num(await px(shell, 'row-gap')), 0, 'Desktop shell must have no vertical gutter');
       assert.equal(num(await px(grid, 'column-gap')), 0, 'Chart/sidebar gap must be zero');

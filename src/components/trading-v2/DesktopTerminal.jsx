@@ -41,6 +41,7 @@ import './desktop/UnifiedTerminalWorkspace.css';
 import './desktop/DesktopTerminalDensityV6.css';
 import './desktop/TerminalIconographyV6.css';
 import './desktop/TerminalAccountButtonV6.css';
+import './desktop/TerminalNavbarCompactV6.css';
 import DesktopPositionManager from './desktop/DesktopPositionManager.jsx';
 import DesktopMultiChart from './desktop/DesktopMultiChart.jsx';
 import DesktopTradeReview from './desktop/DesktopTradeReview.jsx';
