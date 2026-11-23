@@ -122,8 +122,9 @@ try {
       assert.ok(accountBox.width <= 190 && Math.abs(accountBox.height - 34) <= 1,
         'Account button should remain proportionate to the 48px navbar: ' + JSON.stringify(accountBox));
       const avatar = account.locator('.acg-v4-header-account-mark');
-      assert.ok(num(await px(avatar, 'border-top-left-radius')) <= 15,
-        'Account avatar may be circular but button body must remain squared');
+      const avatarRadius = await px(avatar, 'border-top-left-radius');
+      assert.ok(avatarRadius.includes('%') || num(avatarRadius) <= 15,
+        'Avatar may be circular; the account button body must remain squared: ' + avatarRadius);
       assert.ok(num(await px(account, 'border-top-left-radius')) <= 4.1,
         'Account selector must have compact 4px corners');
       const chevron = account.locator('.acg-v4-header-account-chevron > svg');
