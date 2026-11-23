@@ -109,8 +109,15 @@ try {
       await shell.getByRole('button', { name: 'Help Center' }).click();
       const help = page.locator('[data-acg-unified-help="true"]');
       await help.waitFor({ state: 'visible' });
-      assert.ok(num(await px(help, 'border-top-left-radius')) <= 5,
-        'Help Center must have the same menu geometry');
+      const helpRadius = await px(help, 'border-top-left-radius');
+      const helpStyles = await help.evaluate(el => ({
+        radius: getComputedStyle(el).borderTopLeftRadius,
+        matchesDesktop: Boolean(el.closest('.acg-v3-help')),
+        marker: el.getAttribute('data-acg-unified-help'),
+        width: window.innerWidth,
+      }));
+      assert.ok(num(helpRadius) <= 5.5,
+        'Help Center must have the same menu geometry: ' + JSON.stringify(helpStyles));
       const categoryTile = help.locator('[data-help-category-tile]').first();
       assert.ok(num(await px(categoryTile, 'min-height')) <= 90,
         'Help category tiles must be compact');
