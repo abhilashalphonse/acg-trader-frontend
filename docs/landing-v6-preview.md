@@ -1,8 +1,9 @@
 # ACG Trader public landing — approved V6
 
 The approved, self-contained landing-page V6 HTML is copied into
-`public/acg-landing-v6.html` with **only its existing nav CTA**
-pointing to the current ACG Trader login route.
+`public/acg-landing-v6.html` with a separate top-nav **Explore Markets** discovery CTA that points to
+`/terminal`, and a distinct **Log in** control that continues to point to the
+existing authenticated terminal login route.
 
 ## Preview workflow
 
@@ -15,7 +16,14 @@ the existing AuthProvider, SessionGate and V4 terminal as before.
 Federation tickets, existing V4/mobile audit params and explicit
 `?acg_login=1` are never redirected to marketing.
 
-The navbar **Start Trading** opens the existing native Connect Prop login, with an opt-in tenant identifier field; the hero's **Try Demo** opens the feature-gated standalone Supabase registration. The existing ACG Funded terminal gate
+The navbar **Explore Markets** is reserved for the forthcoming public guest
+chart workspace. This *landing-only* branch does not bypass the terminal
+`SessionGate`; until a licensed, read-only guest implementation is accepted,
+visitors who follow the CTA still encounter authorized-account login.
+Do not merge this CTA change independently of the guest release. The
+navbar **Log in** still opens the existing native trading-account sign-in,
+and the hero's **Start Trading** still opens the authorized account login.
+The existing ACG Funded terminal gate
 remains reachable at `/?acg_login=1`. Onboarding is visually reviewable in
 preview, but provider calls remain disabled until a dedicated build has
 `VITE_ACG_SUPABASE_AUTH_ENABLED=true` and the backend identity/session
