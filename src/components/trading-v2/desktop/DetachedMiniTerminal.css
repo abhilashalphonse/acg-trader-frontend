@@ -566,3 +566,229 @@
   .acg-mini-quick-actions button strong{font-size:11px}
   .acg-mini-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+
+/*
+ * V6 DESK DENSITY | MINI POPUP
+ * A compact counterpart to DesktopTerminalDensityV6.css, not a replacement
+ * for the popup quick order. Scope is the detached document ONLY.
+ *
+ * Do not alter font-family, font-smoothing, font features, window dimensions,
+ * order callbacks, risk validation, or the fixed-height tab arrangement.
+ */
+body.acg-mini-window .acg-mini-terminal {
+  --mini-bg: #0c0d0f;
+  --mini-raised: #16181b;
+  --mini-field: #15171a;
+  --mini-border: rgba(230,234,239,.115);
+  --mini-text: #f1f3f6;
+  --mini-muted: #a1aab6;
+  background: var(--mini-bg);
+  color: var(--mini-text);
+}
+/* Stable 52px instrument band and 28px tabs as in the accepted mini spec. */
+body.acg-mini-window .acg-mini-context {
+  background: var(--mini-bg);
+  border-bottom: 1px solid rgba(230,234,239,.08);
+  padding-inline: 7px;
+  gap: 5px;
+}
+body.acg-mini-window .acg-mini-market-avatar {
+  width: 27px;
+  height: 27px;
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
+}
+body.acg-mini-window .acg-mini-market-identity {
+  gap: 1px;
+}
+body.acg-mini-window .acg-mini-instrument select {
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0;
+}
+body.acg-mini-window .acg-mini-market-name {
+  color: #a0a7b0;
+}
+body.acg-mini-window .acg-mini-market-price strong {
+  font-size: 12px;
+  letter-spacing: 0;
+}
+body.acg-mini-window .acg-mini-tabs {
+  background: var(--mini-bg);
+  border-bottom: 1px solid var(--mini-border);
+  padding: 0 8px;
+  gap: 15px;
+}
+body.acg-mini-window .acg-mini-tabs button {
+  letter-spacing: 0;
+  font-size: 10px;
+}
+body.acg-mini-window .acg-mini-tabs button[aria-pressed="true"] {
+  border-bottom-color: #e1e5e9;
+}
+body.acg-mini-window .acg-mini-content,
+body.acg-mini-window .acg-mini-rows {
+  background: var(--mini-bg);
+}
+body.acg-mini-window .acg-mini-quick-order {
+  padding: 5px 8px 5px;
+  gap: 4px;
+}
+body.acg-mini-window .acg-mini-quick-actions {
+  gap: 4px;
+}
+body.acg-mini-window .acg-mini-quick-actions button {
+  border-radius: 4px;
+  box-shadow: none;
+  gap: 0;
+}
+body.acg-mini-window .acg-mini-quick-actions button span {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+body.acg-mini-window .acg-mini-quick-actions button strong {
+  font-size: 12px;
+  line-height: 15px;
+  letter-spacing: 0;
+}
+body.acg-mini-window .acg-mini-quick-actions .acg-mini-buy {
+  background: #1d61de;
+}
+body.acg-mini-window .acg-mini-quick-actions .acg-mini-sell {
+  background: #cb3050;
+}
+body.acg-mini-window .acg-mini-spread {
+  color: #d2d8e0;
+}
+body.acg-mini-window .acg-mini-free-margin,
+body.acg-mini-window .acg-mini-estimate {
+  min-height: 18px;
+  font-size: 9.5px;
+  color: var(--mini-muted);
+}
+body.acg-mini-window .acg-mini-free-margin strong,
+body.acg-mini-window .acg-mini-estimate strong {
+  font-size: 10px;
+  color: #e5e9ee;
+}
+body.acg-mini-window .acg-mini-order-family {
+  border: 1px solid var(--mini-border);
+  background: #191b1f;
+  border-radius: 4px;
+  padding: 2px;
+}
+body.acg-mini-window .acg-mini-order-family button {
+  border-radius: 3px;
+  font-size: 10px;
+  color: #b5bdc8;
+}
+body.acg-mini-window .acg-mini-order-family button[aria-pressed="true"] {
+  background: #34383e;
+  color: #fff;
+  box-shadow: none;
+}
+body.acg-mini-window .acg-mini-quantity-label label,
+body.acg-mini-window .acg-mini-field label {
+  font-size: 9.5px;
+  color: #b0b9c4;
+}
+body.acg-mini-window .acg-mini-sizing-switch {
+  border-radius: 4px;
+  height: 21px;
+  padding: 2px 6px;
+  background: #1d2025;
+  border-color: var(--mini-border);
+}
+body.acg-mini-window .acg-mini-quantity {
+  border-radius: 4px;
+  background: #17191d;
+  border-color: var(--mini-border);
+}
+body.acg-mini-window .acg-mini-quantity input {
+  font-size: 13px;
+}
+body.acg-mini-window .acg-mini-quantity button:first-child {
+  border-right-color: var(--mini-border);
+}
+body.acg-mini-window .acg-mini-quantity button:last-child {
+  border-left-color: var(--mini-border);
+}
+body.acg-mini-window .acg-mini-field>input,
+body.acg-mini-window .acg-mini-pending-field input {
+  border: 1px solid var(--mini-border);
+  border-radius: 4px;
+  background: var(--mini-field);
+}
+body.acg-mini-window .acg-mini-risk-row {
+  gap: 5px;
+}
+body.acg-mini-window .acg-mini-risk-row button {
+  border-radius: 4px;
+  border-color: var(--mini-border);
+  background: #1c1f23;
+  min-width: 48px;
+}
+body.acg-mini-window .acg-mini-estimate {
+  border-top: 1px solid var(--mini-border);
+  margin-top: 1px;
+}
+body.acg-mini-window :is(.acg-mini-quick-warning,.acg-mini-policy-note,.acg-mini-closed) {
+  border-radius: 4px;
+  padding: 5px 7px;
+  font-size: 9px;
+  line-height: 1.35;
+}
+/* Activity rows keep all entry/current/SL/TP data visible and fit two rows
+ * without expanding the popup. No information is removed from the cards. */
+body.acg-mini-window .acg-mini-rows {
+  padding: 6px;
+  gap: 4px;
+}
+body.acg-mini-window .acg-mini-row {
+  background: #16191d;
+  border: 1px solid rgba(230,234,239,.11);
+  border-radius: 4px;
+  padding: 6px 7px;
+  gap: 3px;
+}
+body.acg-mini-window .acg-mini-row:hover {
+  background: #202328;
+  border-color: rgba(230,234,239,.23);
+}
+body.acg-mini-window .acg-mini-row-head {
+  gap: 4px;
+}
+body.acg-mini-window .acg-mini-row-identity strong {
+  font-size: 11px;
+  letter-spacing: 0;
+}
+body.acg-mini-window .acg-mini-row-volume {
+  font-size: 9px;
+}
+body.acg-mini-window .acg-mini-facts {
+  padding-top: 4px;
+  border-top-color: var(--mini-border);
+  gap: 3px;
+}
+body.acg-mini-window .acg-mini-facts>span {
+  gap: 1px;
+}
+body.acg-mini-window .acg-mini-back {
+  padding: 6px 8px;
+}
+body.acg-mini-window .acg-mini-titlebar {
+  background: #131518;
+  border-bottom-color: var(--mini-border);
+}
+body.acg-mini-window .acg-mini-titlebar-actions button,
+body.acg-mini-window .acg-mini-empty button {
+  border-radius: 4px;
+}
+@media (prefers-reduced-motion: reduce) {
+  body.acg-mini-window .acg-mini-terminal button {
+    transition-duration: 0ms !important;
+  }
+}
