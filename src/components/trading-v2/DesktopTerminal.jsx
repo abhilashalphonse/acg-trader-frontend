@@ -52,7 +52,7 @@ import ChartObjectManager from './desktop/ChartObjectManager.jsx';
 import ResizeHandle from './desktop/ResizeHandle.jsx';
 import PositionsPanel from './PositionsPanel.jsx';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
-import acgNavbarGradientA from '../../assets/acg-navbar-gradient-a.svg';
+import acgNavbarGradientA from '../../assets/acg-navbar-gradient-a.svg?no-inline';
 import IndicatorManager from './IndicatorManager.jsx';
 import { accountStatusLabel, accountTypeBadge } from '../../utils/accountPresentation.js';
 import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
