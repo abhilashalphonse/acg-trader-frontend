@@ -58,7 +58,7 @@ export function AlertsProvider({children,markets=[],symbol,onSelectSymbol}){
   useEffect(()=>{if(!toast)return;const timer=setTimeout(()=>setToast(null),12000);return()=>clearTimeout(timer);},[toast]);
   const close=useCallback(()=>{setOpen(false);setError('');host.current?.hide();},[]);
   const show=useCallback(()=>{setOpen(true);host.current?.show();},[]);
-  const openManager=useCallback((atSymbol=null)=>{setDraft(null);setFilterSymbol(atSymbol);if(atSymbol)setTab('alerts');setError('');show();},[show]);
+  const openManager=useCallback((atSymbol=null)=>{const target=typeof atSymbol==='string'?atSymbol:null;setDraft(null);setFilterSymbol(target);if(target)setTab('alerts');setError('');show();},[show]);
   const create=useCallback((atSymbol=symbol,level)=>{requestId.current=crypto.randomUUID();setDraft(blank(atSymbol,level));setError('');show();},[symbol,show]);
   const edit=useCallback(rule=>{setDraft(rule);setError('');show();},[show]);
   const openChart=useCallback(async(event)=>{
