@@ -1,0 +1,52 @@
+name: Unified terminal visual geometry acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'src/components/trading-v2/desktop/UnifiedTerminalWorkspace.css'
+      - 'src/components/trading-v2/DesktopTerminal.jsx'
+      - 'src/components/trading-v2/desktop/DesktopOrderTicketV4.css'
+      - 'src/components/trading-v2/desktop/DesktopMarketsV4.css'
+      - 'src/components/trading-v2/desktop/DesktopHeaderV4.css'
+      - 'src/components/trading-v2/desktop/DesktopChartSettingsPopover.jsx'
+      - 'tests/ui/unified-terminal-design-review.mjs'
+      - '.github/workflows/unified-terminal-design-review.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  visual-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install frontend and Chrome acceptance runner
+        run: |
+          npm ci
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - name: Launch simulated terminal without a trading backend
+        run: |
+          set -euo pipefail
+          VITE_ACG_EXECUTION_V4_ENABLED=true VITE_ACG_DOCK_LIVE_ENABLED=true VITE_ACG_TRADER_API_BASE=http://127.0.0.1:65534 VITE_ACG_TRADER_WS_URL=ws://127.0.0.1:65534 npm run dev -- --host 127.0.0.1 > /tmp/acg-unified-terminal.log 2>&1 &
+          echo $! > /tmp/acg-unified-terminal.pid
+          curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-connrefused 'http://127.0.0.1:5174/v4-positions-audit.html?public_review=1' > /dev/null
+      - name: Assert geometry and capture trade/markets/settings screenshots
+        run: node tests/ui/unified-terminal-design-review.mjs
+      - name: Upload visual review screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unified-terminal-visual-review
+          path: artifacts/unified-terminal-*.png
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Stop mock terminal
+        if: always()
+        run: |
+          if [ -f /tmp/acg-unified-terminal.pid ]; then kill "$(cat /tmp/acg-unified-terminal.pid)" 2>/dev/null || true; fi
