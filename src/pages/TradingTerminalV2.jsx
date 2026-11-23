@@ -177,6 +177,7 @@ export default function TradingTerminalV2({
   };
 
   const [timeframe, setTimeframe] = useState(prefsRef.current.timeframe || '30m');
+  useEffect(()=>{const select=e=>setTimeframe(e.detail);window.addEventListener('acg-alert-timeframe',select);return()=>window.removeEventListener('acg-alert-timeframe',select);},[]);
   const [chartMode, setChartMode] = useState(prefsRef.current.chartMode || 'candles');
   const [selectedTool, setSelectedTool] = useState('cursor');
   const [activeNav, setActiveNav] = useState('trade');
@@ -303,7 +304,7 @@ export default function TradingTerminalV2({
       setPositionProtectionDraft(null);
       setExecutionEvent(null);
       trading.selectAccount(target);
-      showNotice('Switching account — synchronizing trading state…');
+      showNotice('Switching account - synchronizing trading state.');
       return true;
     } catch (error) {
       showNotice(error?.message || 'Unable to switch trading account');
@@ -374,7 +375,7 @@ export default function TradingTerminalV2({
 
   const handleTradingError = (error, context = 'Trading command') => {
     if (String(error?.code || '').toUpperCase() === 'MARKET_SESSION_CLOSED') {
-      const message = 'Market closed · trading resumes when the session opens.';
+      const message = 'Market closed � trading resumes when the session opens.';
       setExecutionEvent(null);
       logEvent('info', `${context}: ${message}`);
       showNotice(message);
@@ -551,7 +552,7 @@ export default function TradingTerminalV2({
 
     const closable = positions.filter(position => closeAvailabilityFor(position).allowed);
     if (!closable.length) {
-      showNotice('Markets are closed · positions remain open until their sessions resume.');
+      showNotice('Markets are closed � positions remain open until their sessions resume.');
       return false;
     }
 
@@ -595,7 +596,7 @@ export default function TradingTerminalV2({
       const parts = [];
       if (preflightClosed) parts.push(`${preflightClosed} market closed`);
       if (preflightUnavailable) parts.push(`${preflightUnavailable} waiting for market data`);
-      showNotice(parts.join(' · ') || 'Selected positions are not currently executable.');
+      showNotice(parts.join(' � ') || 'Selected positions are not currently executable.');
       return false;
     }
 
@@ -619,7 +620,7 @@ export default function TradingTerminalV2({
     if (skipped) parts.push(`${skipped} market closed`);
     if (preflightUnavailable) parts.push(`${preflightUnavailable} waiting for market data`);
     if (failed) parts.push(`${failed} failed`);
-    const message = parts.join(' · ') || 'No positions were closed';
+    const message = parts.join(' � ') || 'No positions were closed';
 
     logEvent(failed ? 'warning' : skipped || preflightUnavailable ? 'info' : 'position', `${label}: ${message}`);
     showNotice(message);
@@ -1021,7 +1022,7 @@ export default function TradingTerminalV2({
     if (!['buy', 'sell'].includes(side)) return;
     const livePrice = Number(side === 'buy' ? instrument.ask : instrument.bid);
     if (!Number.isFinite(livePrice) || livePrice <= 0) {
-      showNotice('Live market price is unavailable — risk setup was not loaded');
+      showNotice('Live market price is unavailable - risk setup was not loaded');
       return;
     }
     const rawEntry = Number(setup.entry);
@@ -1083,7 +1084,7 @@ export default function TradingTerminalV2({
     setSelectedTool('cursor');
     setActiveNav('trade');
     setOverlay(null);
-    logEvent('planner', `${sideUpper} risk setup loaded from chart · ${numericRisk.toFixed(2)}% risk`, {
+    logEvent('planner', `${sideUpper} risk setup loaded from chart � ${numericRisk.toFixed(2)}% risk`, {
       symbol: setup.symbol,
       entry,
       stopLoss: sl,
@@ -1092,7 +1093,7 @@ export default function TradingTerminalV2({
       riskPercent: numericRisk,
       orderType: nextOrderType,
     });
-    showNotice('Risk setup loaded into order planner — review and confirm');
+    showNotice('Risk setup loaded into order planner - review and confirm');
   };
 
   const cancelPlan = () => {
@@ -1330,9 +1331,9 @@ export default function TradingTerminalV2({
     logEvent('order', `${String(order.side).toUpperCase()} ${String(order.orderType).toUpperCase()} loaded for cancel-and-replace modification`);
     showNotice(
       isDesktop && protectionField === 'sl'
-        ? 'SL active on chart — drag to adjust, then update the pending order.'
+        ? 'SL active on chart - drag to adjust, then update the pending order.'
         : isDesktop && protectionField === 'tp'
-          ? 'TP active on chart — drag to adjust, then update the pending order.'
+          ? 'TP active on chart - drag to adjust, then update the pending order.'
           : 'Pending order loaded for modification'
     );
   };

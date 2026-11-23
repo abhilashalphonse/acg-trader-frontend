@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Bell } from 'lucide-react';
+import { useAlerts } from '../alerts/AlertsWorkspace.jsx';
 import { ArrowUpDown, ChartNoAxesCombined, ChevronDown, CircleHelp, MoreVertical, Search, Settings2, UserRound } from 'lucide-react';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
@@ -10,16 +12,17 @@ function displaySymbol(market) {
   return /^[A-Z]{6}$/.test(symbol) ? symbol.slice(0, 3) + '/' + symbol.slice(3) : symbol;
 }
 function money(value, currency) {
-  if (value === null || value === undefined || !Number.isFinite(Number(value))) return '—';
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return '-';
   try {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD', maximumFractionDigits: 2, signDisplay: Number(value) > 0 ? 'always' : 'auto' }).format(Number(value));
-  } catch { return '—'; }
+  } catch { return '-'; }
 }
 export default function MobileAuditHeader({
   market, account, timeframe, onTimeframe, positionsCount = 0,
   onSelectInstrument, onOpenTrades, onOpenAccount,
   onOpenIndicators, onOpenSettings, onOpenHelp, chartReadout = null,
 }) {
+  const alerts = useAlerts();
   const [panel, setPanel] = useState(null);
   const timeOpen = panel === 'time';
   const headerRef = useRef(null);
@@ -40,6 +43,7 @@ export default function MobileAuditHeader({
     return () => { document.removeEventListener('pointerdown', dismiss); document.removeEventListener('keydown', escape); };
   }, [panel]);
   const destinations = [
+    ...(alerts?.enabled ? [['Alerts', Bell, alerts.open]] : []),
     ['Markets', Search, onSelectInstrument], ['Trades', ArrowUpDown, onOpenTrades],
     ['Accounts', UserRound, onOpenAccount], ['Indicators', ChartNoAxesCombined, onOpenIndicators],
     ['Platform settings', Settings2, onOpenSettings], ['Help & support', CircleHelp, onOpenHelp],
@@ -58,9 +62,9 @@ export default function MobileAuditHeader({
       <div className="flex min-w-0 flex-1 flex-col justify-center">
         <div className="flex min-w-0 items-center gap-1">
           <button type="button" onClick={() => { setPanel(null); onSelectInstrument(); }} className="flex min-w-0 items-center gap-0.5 text-[13px] font-semibold text-[#f0f2f4]" aria-label="Select instrument">
-            <span className="truncate">{displaySymbol(market) || '—'}</span><ChevronDown size={12}/>
+            <span className="truncate">{displaySymbol(market) || '-'}</span><ChevronDown size={12}/>
           </button>
-          <span className="text-[12px] text-[#777e86]" aria-hidden="true">·</span>
+          <span className="text-[12px] text-[#777e86]" aria-hidden="true">�</span>
           <div className="relative shrink-0">
             <button ref={timeTrigger} type="button" className="flex min-h-8 items-center gap-0.5 text-[12px] text-[#a4adb5]" onClick={() => setPanel(timeOpen ? null : 'time')} aria-label="Select chart timeframe" aria-expanded={timeOpen}>
               {timeframe}<ChevronDown size={12}/>
@@ -73,8 +77,8 @@ export default function MobileAuditHeader({
         <div data-mobile-header-readout title={readout ? `${readout.inspecting ? 'Selected' : 'Latest'} candle close ${summaryPrice}; candle change ${changeText}` : 'Current bid'} className="flex min-w-0 items-center gap-1 overflow-hidden whitespace-nowrap text-[10px] font-medium tabular-nums">
           <span className={`size-1.5 rounded-full ${status === 'LIVE' ? 'bg-emerald-400' : status === 'STALE' ? 'bg-amber-400' : 'bg-[#6e7882]'}`}/>
           <span className={`shrink-0 ${statusColor}`}>{readout?.inspecting ? 'CANDLE' : status}</span>
-          <span className="shrink-0 text-[#66666f]">·</span>
-          <span className="truncate text-[#b9b9c1]">{summaryPrice || '—'}</span>
+          <span className="shrink-0 text-[#66666f]">�</span>
+          <span className="truncate text-[#b9b9c1]">{summaryPrice || '-'}</span>
           {changeText && <span className={`shrink-0 ${changeTone}`}>{change > 0 && Math.abs(change) >= 0.005 ? '+' : ''}{changeText}</span>}
         </div>
       </div>

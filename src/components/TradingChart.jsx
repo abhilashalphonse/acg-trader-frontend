@@ -1,4 +1,5 @@
 import { candleReadout } from '../utils/candleReadout.js';
+import { useAlerts } from './alerts/AlertsWorkspace.jsx';
 import { mobileChartReadout } from '../utils/mobileChartReadout.js';
 import { initialChartRange, normalizeChartViewport } from '../utils/chartViewport.js';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -121,6 +122,8 @@ export default function TradingChart({
   onOpenIndicatorSettings = () => {},
   onRemoveIndicator = () => {},
 }) {
+  const alerts = useAlerts();
+  const [alertMenu, setAlertMenu] = useState(null);
   const { authenticated } = useTraderAuth();
   const { market, connection, subscribeMarket } = useTradingStore();
   const hostRef = useRef(null);
@@ -154,6 +157,16 @@ export default function TradingChart({
   const canvasPalette = desktopChartPalette(chartTheme);
   const lightCanvas = chartTheme === 'light';
   const [readyKey, setReadyKey] = useState(null);
+  useEffect(() => {
+    const series = seriesRef.current;
+    if (!series || !readyKey || !alerts?.enabled) return;
+    const lines=[];
+    for (const rule of alerts.rules.filter(r=>r.symbol===symbol&&['STARTING','MONITORING'].includes(r.status))) {
+      const values=rule.condition.lower?[rule.condition.lower,rule.condition.upper]:[rule.condition.level];
+      for(const value of values)if(Number(value)>0)lines.push(series.createPriceLine({price:Number(value),color:'#92929e',lineWidth:1,lineStyle:LineStyle.Dashed,axisLabelVisible:true,title:'? '+(rule.name||'Alert')}));
+    }
+    return()=>{for(const line of lines){try{series.removePriceLine(line);}catch{/* chart disposed */}}};
+  },[alerts?.enabled,alerts?.rules,readyKey,symbol]);
   const [displayBar, setDisplayBar] = useState(null);
   const [inspectingCandle, setInspectingCandle] = useState(false);
   const selectedCandleTimeRef = useRef(null);
@@ -1237,7 +1250,7 @@ export default function TradingChart({
     onChartReadout(readyKey === chartRequestKey && !error
       ? mobileChartReadout({ symbol, timeframe, bar:displayBar, inspecting:inspectingCandle }) : null);
   }, [auditMobile, onChartReadout, readyKey, chartRequestKey, error, symbol, timeframe, displayBar, inspectingCandle]);
-  const format = value => value != null && Number.isFinite(Number(value)) ? Number(value).toFixed(decimals) : '—';
+  const format = value => value != null && Number.isFinite(Number(value)) ? Number(value).toFixed(decimals) : '-';
   const candleChange = ohlc && Number.isFinite(Number(ohlc.open)) && Number.isFinite(Number(ohlc.close))
     ? Number(ohlc.close) - Number(ohlc.open)
     : null;
@@ -1250,7 +1263,7 @@ export default function TradingChart({
       ? 'text-[#2dd39b]'
       : 'text-[#f05d68]';
   const signed = (value, formatter) => {
-    if (!Number.isFinite(Number(value))) return '—';
+    if (!Number.isFinite(Number(value))) return '-';
     const numeric = Number(value);
     return `${numeric > 0 ? '+' : ''}${formatter(numeric)}`;
   };
@@ -1267,7 +1280,7 @@ export default function TradingChart({
     if (!binding) return null;
     return <span className="acg-indicator-values">{binding.readouts.map(line => {
       const value = indicatorValueAt(line.data, displayBar?.time);
-      return <span key={line.key} style={{ color: line.style?.color || '#b5c3d5' }} title={line.label}>{Number.isFinite(value) ? value.toFixed(binding.precision) : '—'}</span>;
+      return <span key={line.key} style={{ color: line.style?.color || '#b5c3d5' }} title={line.label}>{Number.isFinite(value) ? value.toFixed(binding.precision) : '-'}</span>;
     })}</span>;
   };
 
@@ -1322,8 +1335,19 @@ export default function TradingChart({
   );
 
   return <div data-acg-chart-theme={lightCanvas ? "light" : "dark"}
+    onContextMenu={event=>{
+      if(!alerts?.enabled||!seriesRef.current||!hostRef.current)return;
+      const rect=hostRef.current.getBoundingClientRect();
+      const value=seriesRef.current.coordinateToPrice(event.clientY-rect.top);
+      if(!(value>0))return;
+      event.preventDefault();
+      setAlertMenu({x:Math.min(event.clientX-rect.left,Math.max(0,rect.width-230)),y:Math.min(event.clientY-rect.top,Math.max(0,rect.height-40)),price:Number(value).toFixed(Number(instrument?.digits)||5)});
+    }}
+    onPointerDown={()=>{if(alertMenu)setAlertMenu(null);}}
     className={`relative size-full min-h-0 min-w-0 overflow-hidden ${lightCanvas ? "bg-[#FAFBFC]" : "bg-black"}`}>
     <div ref={hostRef} className="absolute inset-0" />
+    {alertMenu&&<button className="acg-alert-chart-menu" style={{left:alertMenu.x,top:alertMenu.y}}
+      onPointerDown={e=>e.stopPropagation()} onClick={()=>{alerts.create(symbol,alertMenu.price);setAlertMenu(null);}}>Add alert at {alertMenu.price}</button>}
     {mobileReference && (
       <div className="pointer-events-none absolute bottom-8 left-2 z-20 select-none" aria-hidden="true">
         <img
@@ -1345,9 +1369,9 @@ export default function TradingChart({
         <>
           <div className="flex items-center gap-1.5 text-[14px] font-extrabold tracking-[-0.015em] text-[#f2f6f9]">
             <span>{symbol}</span>
-            <span className="text-[#7f8b98]">·</span>
+            <span className="text-[#7f8b98]">�</span>
             <span>{mobileTimeframeLabel}</span>
-            <span className="text-[#7f8b98]">·</span>
+            <span className="text-[#7f8b98]">�</span>
             <span>ACG</span>
             <span className={`ml-0.5 size-1.5 rounded-full ${mobileQuoteLive ? 'bg-[#24d7b7]' : 'bg-[#697785]'}`} aria-label={mobileQuoteLive ? 'Live quotes' : 'Quotes unavailable'} />
           </div>
@@ -1405,9 +1429,9 @@ export default function TradingChart({
           <div className={`flex items-center gap-1.5 text-[12px] font-semibold tracking-[-0.01em] ${lightCanvas ? "" : "text-[#F0F3F6]"}`}
             style={lightCanvas ? {color:canvasPalette.instrumentTitle} : undefined}>
             <span>{symbol}</span>
-            <span className={lightCanvas ? undefined : "text-[#7F8A95]"} style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>·</span>
+            <span className={lightCanvas ? undefined : "text-[#7F8A95]"} style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>�</span>
             <span className={lightCanvas ? undefined : "text-[#7F8A95]"} style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>{timeframe}</span>
-            <span className={lightCanvas ? undefined : "text-[#7F8A95]"} style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>·</span>
+            <span className={lightCanvas ? undefined : "text-[#7F8A95]"} style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>�</span>
             <span className={lightCanvas ? undefined : "text-[#AAB5BF]"} style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>ACG</span>
             <span className={`ml-0.5 size-1.5 rounded-full ${mobileQuoteLive ? 'bg-[#24d7b7]' : 'bg-[#697785]'}`} aria-label={mobileQuoteLive ? 'Live quotes' : 'Quotes unavailable'} />
           </div>
@@ -1451,7 +1475,7 @@ export default function TradingChart({
       if (!pane || pane.height <= 0) return null;
       return (
         <div key={indicator.instanceId} className="group pointer-events-auto absolute left-2.5 z-[70] flex h-6 items-center rounded-md bg-black/72 px-1.5 text-[9px] font-semibold text-[#8fa1b1] shadow-[0_2px_10px_rgba(0,0,0,.28)] backdrop-blur-sm" style={{ top: Math.max(4, pane.top + 5) }}>
-          <span>{indicator.id === 'volume' ? `${volumeLabel(ohlc)} · ${volumeValue(ohlc)}` : indicatorLabel(indicator)}</span>
+          <span>{indicator.id === 'volume' ? `${volumeLabel(ohlc)} � ${volumeValue(ohlc)}` : indicatorLabel(indicator)}</span>
           {indicator.id !== 'volume' && indicatorReadout(indicator)}
           {showIndicatorControls && <IndicatorActions indicator={indicator} compact />}
         </div>
