@@ -1,0 +1,227 @@
+/*
+ * ACG Trader | Compact navbar comparison (PR #236)
+ *
+ * Reference direction: small standalone app mark, dark symbol capsule,
+ * one-line instrument identity, quiet active timeframe and thin dividers.
+ * Deliberately limited to desktop navbar chrome. Preserve V6 font FACE,
+ * type feature settings, account control, chart tools and their callbacks.
+ */
+@media (min-width:1024px) {
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header.acg-desktop-market-strip {
+    flex: 0 0 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    padding-inline: 10px !important;
+    border-radius: 0 !important;
+    border-color: rgba(231,235,239,.10) !important;
+    background: #0a0b0d !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-instrument {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    max-width: 230px !important;
+    min-width: 0 !important;
+    height: 100% !important;
+    margin: 0 11px 0 0 !important;
+    padding: 0 12px 0 0 !important;
+    gap: 7px !important;
+    display: flex;
+    align-items: center;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-instrument-image] {
+    flex: 0 0 22px !important;
+    width: 22px !important;
+    min-width: 22px !important;
+    height: 22px !important;
+    border: 0 !important;
+    background: transparent !important;
+    padding: 0 !important;
+    border-radius: 5px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-instrument-image] [data-acg-nav-brand-mark] {
+    width: 22px !important;
+    height: 22px !important;
+    max-width: 22px !important;
+    max-height: 22px !important;
+    border-radius: 5px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-identity {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 6px !important;
+    min-width: 0;
+    height: 100%;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-primary {
+    height: 28px !important;
+    gap: 3px !important;
+    align-items: center;
+  }
+  /* The symbol itself is a single compact clickable pill; keeps its market
+     panel action and dropdown affordance unchanged. */
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-primary > button:first-child {
+    height: 27px !important;
+    min-height: 27px !important;
+    max-width: 148px;
+    padding: 0 9px !important;
+    gap: 5px !important;
+    border: 1px solid rgba(231,235,239,.09) !important;
+    border-radius: 14px !important;
+    background: #202226 !important;
+    box-shadow: none !important;
+    color: #e8ebef !important;
+    white-space: nowrap;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-primary > button:first-child:hover {
+    border-color: rgba(231,235,239,.24) !important;
+    background: #2a2d32 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-primary strong {
+    font-size: 11.5px !important;
+    line-height: 16px !important;
+    font-weight: 650 !important;
+    letter-spacing: 0 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-primary > button:first-child > svg {
+    width: 11px !important;
+    height: 11px !important;
+    stroke-width: 1.6;
+    color: #b7bdc5;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-primary > button[aria-label*="favorites"] {
+    width: 22px !important;
+    height: 26px !important;
+    border-radius: 4px !important;
+    color: #8f98a3 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-primary .acg-favorite-icon {
+    width: 12px !important;
+    height: 12px !important;
+    stroke-width: 1.65px;
+  }
+  /* Keep the market status available to screen readers but do not take a
+     second text row. The small dot is always shown to the right of the symbol. */
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-secondary {
+    display: flex !important;
+    width: 6px !important;
+    min-width: 6px !important;
+    height: 27px !important;
+    align-items: center !important;
+    justify-content: center;
+    margin: 0 !important;
+    gap: 0 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-status-dot {
+    width: 5px !important;
+    height: 5px !important;
+    flex: 0 0 5px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-secondary > span:last-child {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    clip-path: inset(50%) !important;
+    white-space: nowrap !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-desktop-chart-toolbar {
+    height: 100% !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    gap: 3px !important;
+    background: transparent !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-timeframes {
+    display: flex;
+    align-items: center;
+    height: 28px !important;
+    gap: 1px !important;
+    padding: 0 1px !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-timeframes button {
+    box-sizing: border-box;
+    height: 26px !important;
+    min-height: 26px !important;
+    min-width: 27px !important;
+    padding: 0 5px !important;
+    border: 0 !important;
+    border-radius: 5px !important;
+    color: #9da5af !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    font-size: 11px !important;
+    font-weight: 550 !important;
+    line-height: 16px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-timeframes button[aria-pressed="true"],
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-timeframes button[aria-pressed="true"]:is(:hover,:focus,:active) {
+    color: #f0f2f5 !important;
+    background: #2a2d32 !important;
+    border: 1px solid rgba(231,235,239,.13) !important;
+    font-weight: 650 !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-compact-timeframe > button {
+    min-width: 46px !important;
+    height: 26px !important;
+    border-radius: 5px !important;
+    background: #2a2d32 !important;
+    color: #f0f2f5 !important;
+    font-size: 11px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-tools {
+    gap: 2px !important;
+    padding: 0 3px !important;
+    height: 100% !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-tool] {
+    width: 28px !important;
+    min-width: 28px !important;
+    height: 28px !important;
+    border-radius: 4px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-tool] > svg,
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-indicator-icon {
+    width: 15px !important;
+    height: 15px !important;
+    stroke-width: 1.65 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-divider {
+    height: 16px !important;
+    margin: 0 3px !important;
+    background: rgba(231,235,239,.11) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-right {
+    gap: 5px !important;
+    padding-left: 9px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-right::before {
+    height: 18px !important;
+    background: rgba(231,235,239,.10) !important;
+  }
+  /* Account button retains its approved identity format and geometry. */
+}
+@media (min-width:1024px) and (max-width:1279px) {
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-instrument {
+    margin-right: 5px !important;
+    padding-right: 7px !important;
+    gap: 5px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-primary > button:first-child {
+    padding-inline: 7px !important;
+  }
+}
+@media (min-width:1024px) and (max-width:1099px) {
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-timeframes {
+    display: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-compact-timeframe {
+    display: block !important;
+  }
+}
