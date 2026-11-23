@@ -85,7 +85,7 @@ export default function DesktopChartSettingsPopover({
       </div>
 
       <div className="max-h-[min(70vh,560px)] overflow-y-auto p-3">
-        <div className="mb-4">
+        <div data-acg-settings-theme className="mb-4">
           <div className="mb-2 text-[8px] font-bold uppercase tracking-[0.08em] text-[#687784]">Chart canvas</div>
           <div role="group" aria-label="Chart canvas theme"
             className="grid grid-cols-2 gap-1 rounded-[8px] border border-white/[0.08] bg-[#111316] p-1">
@@ -104,7 +104,7 @@ export default function DesktopChartSettingsPopover({
             Changes the chart canvas, grid and labels. Terminal controls stay dark.
           </div>
         </div>
-        <div className="mb-2 flex items-end justify-between">
+        <div data-acg-settings-candle-heading className="mb-2 flex items-end justify-between">
           <div>
             <div className="text-[8px] font-bold uppercase tracking-[0.08em] text-[#687784]">Candles</div>
             <div className="mt-0.5 text-[8px] text-[#53616D]">Bullish / Bearish</div>
@@ -115,7 +115,7 @@ export default function DesktopChartSettingsPopover({
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-lg border border-white/[0.07] bg-black/30">
+        <div data-acg-settings-candles className="overflow-hidden rounded-lg border border-white/[0.07] bg-black/30">
           {COLOR_ROWS.map(([label, upKey, downKey], index) => (
             <div key={label} className={`grid grid-cols-[1fr_auto_auto] items-center gap-2 px-2.5 py-2 ${index ? 'border-t border-white/[0.06]' : ''}`}>
               <span className="text-[9px] font-semibold text-[#B7C1CA]">{label}</span>
@@ -133,7 +133,7 @@ export default function DesktopChartSettingsPopover({
           ))}
         </div>
 
-        <div className="mt-4 space-y-2">
+        <div data-acg-settings-spacing className="mt-4 space-y-2">
           <div className="text-[8px] font-bold uppercase tracking-[0.08em] text-[#687784]">Chart spacing</div>
           {[
             ['Top space (%)', 'top', 100, 2, 30],
@@ -155,7 +155,7 @@ export default function DesktopChartSettingsPopover({
           <div className="text-[7px] leading-4 text-[#566572]">Initial candles applies when opening or resetting a chart.</div>
         </div>
 
-        <div className="mt-4">
+        <div data-acg-settings-timezone className="mt-4">
           <div className="mb-1.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#687784]">Timezone</div>
           <select
             value={settings?.timezone || 'UTC'}
@@ -175,7 +175,7 @@ export default function DesktopChartSettingsPopover({
         </div>
       </div>
 
-      <div className="flex items-center border-t border-white/[0.07] px-3 py-2.5">
+      <div data-acg-settings-footer className="flex items-center border-t border-white/[0.07] px-3 py-2.5">
         <button
           type="button"
           onClick={() => onChange({

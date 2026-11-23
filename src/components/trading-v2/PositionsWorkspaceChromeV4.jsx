@@ -49,7 +49,7 @@ export function PositionsAccountSummary({account,positions=null,markets=[]}){
   const show=()=>{
     const rect=buttonRef.current?.getBoundingClientRect();
     if(rect){
-      const width=296,height=exposure?272:222;
+      const width=288,height=exposure?224:160;
       const left=Math.max(8,Math.min(window.innerWidth-width-8,rect.right-width));
       const top=rect.top-height-8>=8?rect.top-height-8:Math.min(window.innerHeight-height-8,rect.bottom+7);
       setPlacement({left,top});
@@ -66,6 +66,20 @@ export function PositionsAccountSummary({account,positions=null,markets=[]}){
     document.addEventListener('pointerdown',outside);
     document.addEventListener('keydown',escape);
     return ()=>{document.removeEventListener('pointerdown',outside);document.removeEventListener('keydown',escape);};
+  },[open]);
+  // The portal is outside the dock's clipping layer. Position it using its
+  // rendered height rather than an estimated card height, keeping it tightly
+  // attached to the Overview trigger at all desktop viewport sizes.
+  React.useLayoutEffect(()=>{
+    if(!open || !popupRef.current || !buttonRef.current)return;
+    const anchor=buttonRef.current.getBoundingClientRect();
+    const panel=popupRef.current.getBoundingClientRect();
+    const gap=7;
+    const left=Math.max(8,Math.min(window.innerWidth-panel.width-8,anchor.right-panel.width));
+    const top=anchor.top-panel.height-gap>=8
+      ?anchor.top-panel.height-gap
+      :Math.min(window.innerHeight-panel.height-8,anchor.bottom+gap);
+    setPlacement(old=>old.left===left&&old.top===top?old:{left,top});
   },[open]);
   return <div className="v4-positions-account-summary" aria-label="Account trading metrics">
     {snapshot.map(metric=><div className={'v4-positions-metric metric-'+metric.key} key={metric.key}
@@ -86,7 +100,7 @@ export function PositionsAccountSummary({account,positions=null,markets=[]}){
       <Wallet size={14} aria-hidden="true"/><span>Overview</span><ChevronDown size={12} aria-hidden="true"/>
     </button>
     {open&&createPortal(
-      <section ref={popupRef} className="v4-account-overview-popover" role="dialog"
+      <section ref={popupRef} data-acg-unified-overview="true" className="v4-account-overview-popover" role="dialog"
         aria-label="Account overview" style={{position:'fixed',...placement,zIndex:9999}}>
         <div className="v4-account-overview-title">
           <strong>Account overview</strong>

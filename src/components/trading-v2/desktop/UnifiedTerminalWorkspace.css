@@ -779,3 +779,353 @@
     max-width: 86px;
   }
 }
+
+
+/* ==========================================================================
+   Screenshot-based finishing pass — account, settings, Help Center, overview.
+   Portaled surfaces are explicitly tagged; no general-purpose popovers,
+   order execution, market-data, or mobile UI are restyled by these rules.
+   ========================================================================== */
+@media (min-width:1024px) {
+  /* Make account code legible without spending the whole 48px navbar width.
+     Two tidy lines prevent code/type collisions at 1024–1440px. */
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account] {
+    border-radius: 4px !important;
+    height: 34px !important;
+    gap: 6px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account] .acg-v4-header-account-copy {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    gap: 0 !important;
+    overflow: hidden;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account-name] {
+    max-width: 145px;
+    font-size: 11px !important;
+    font-weight: 680 !important;
+    line-height: 15px !important;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account] .acg-v4-header-account-type {
+    color: #9ba3ad !important;
+    font-size: 9.5px !important;
+    line-height: 12px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account] .acg-v4-header-account-mark {
+    width: 25px;
+    height: 25px;
+    flex-basis: 25px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] {
+    background: #111316 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:first-child {
+    padding: 10px 12px !important;
+    background: #15171a !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:first-child > div {
+    gap: 7px 10px !important;
+    margin-top: 8px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:first-child > div > span {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 2px;
+    font-size: 9.5px !important;
+    color: #939aa6 !important;
+    line-height: 13px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:first-child > div > span b {
+    margin: 0 !important;
+    color: #e3e6ea !important;
+    font-size: 11.5px !important;
+    font-weight: 670 !important;
+    font-variant-numeric: tabular-nums;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:first-child > span:last-child {
+    margin-top: 8px !important;
+    font-size: 9.5px !important;
+    line-height: 14px !important;
+    color: #a0a7b0 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:nth-child(2) {
+    max-height: 330px;
+    scrollbar-color: #3a3e44 transparent;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] button {
+    border-radius: 0 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] button strong {
+    font-size: 11px !important;
+    font-weight: 680 !important;
+  }
+
+  /* Settings: information density without shrinking already-small labels. */
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] {
+    width: 300px;
+    max-width: min(300px, calc(100vw - 55px));
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] > div:nth-child(2) {
+    max-height: min(590px, calc(100dvh - 146px));
+    padding: 10px 12px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [data-acg-settings-theme],
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [data-acg-settings-timezone] {
+    margin-bottom: 11px !important;
+    margin-top: 0 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [data-acg-settings-spacing] {
+    margin-top: 11px !important;
+    margin-bottom: 11px !important;
+    gap: 7px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [data-acg-settings-candle-heading] {
+    margin-bottom: 7px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] :is([data-acg-settings-theme],[data-acg-settings-candle-heading],[data-acg-settings-spacing],[data-acg-settings-timezone])
+    :is([class*="uppercase"],[class*="tracking-"]) {
+    font-size: 9.5px !important;
+    font-weight: 650 !important;
+    letter-spacing: .07em !important;
+    color: #a1aab5 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [data-acg-settings-candles] > div {
+    min-height: 39px;
+    padding-block: 5px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [data-acg-settings-candles] > div > span {
+    color: #c8cfd7 !important;
+    font-size: 10.5px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] label:has(input[type="color"]) {
+    width: 31px;
+    height: 31px;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [data-acg-settings-spacing] label {
+    font-size: 10.5px !important;
+    color: #c0c8d0 !important;
+    min-height: 30px;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [data-acg-settings-spacing] input {
+    width: 66px;
+    height: 30px;
+    font-size: 11.5px !important;
+    font-variant-numeric: tabular-nums;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [data-acg-settings-timezone] select {
+    height: 34px;
+    font-size: 11px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [data-acg-settings-footer] {
+    padding-block: 8px !important;
+  }
+
+  /* Desktop Help is a tool panel, not a giant mobile-sheet clone.
+     All navigation, forms, article content and focus trapping remain intact. */
+  .acg-v3-help [data-acg-unified-help="true"] {
+    top: 54px !important;
+    bottom: auto !important;
+    right: 45px !important;
+    width: 390px !important;
+    max-width: calc(100vw - 59px) !important;
+    height: min(614px, calc(100dvh - 68px)) !important;
+    border-radius: 5px !important;
+    border: 1px solid rgba(230,234,239,.16) !important;
+    background: #111316 !important;
+    box-shadow: 0 18px 42px rgba(0,0,0,.48) !important;
+    color: #e5e9ee !important;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] > header {
+    height: 46px !important;
+    min-height: 46px !important;
+    padding: 0 12px !important;
+    background: #15171a;
+    border-bottom-color: rgba(230,234,239,.1) !important;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] > header h2 {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] > header button {
+    height: 30px !important;
+    width: 30px !important;
+    border-radius: 4px !important;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] > header svg {
+    width: 17px;
+    height: 17px;
+    color: #b6c0ca;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] [data-help-scroll] {
+    padding: 12px !important;
+    scrollbar-color: #3e4248 transparent;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] [data-help-home] {
+    display: flex;
+    flex-direction: column;
+    gap: 13px !important;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] [data-help-home] p {
+    margin-bottom: 7px !important;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] [data-help-home] > div > p {
+    color: #a3acb7 !important;
+    font-size: 10px !important;
+    font-weight: 650;
+    line-height: 15px;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] [data-help-home] [data-help-search] {
+    min-height: 36px !important;
+    padding: 0 11px !important;
+    background: #191c20 !important;
+    border-radius: 4px !important;
+    border-color: rgba(230,234,239,.14) !important;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] [data-help-home] [data-help-search] input {
+    min-height: 34px;
+    font-size: 11.5px !important;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] [data-help-category-grid] {
+    gap: 7px !important;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] [data-help-category-tile] {
+    min-height: 88px !important;
+    padding: 10px 11px !important;
+    border-radius: 4px !important;
+    border-color: rgba(230,234,239,.10) !important;
+    background: #181a1e !important;
+    box-shadow: none !important;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] [data-help-category-tile]:hover {
+    background: #24272b !important;
+    border-color: rgba(230,234,239,.25) !important;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] [data-help-category-tile] > svg {
+    width: 16px;
+    height: 16px;
+    margin-bottom: 8px !important;
+    color: #b6bec7 !important;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] [data-help-category-tile] > span:nth-of-type(1) {
+    font-size: 11.5px !important;
+    font-weight: 660 !important;
+    color: #edf0f4;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] [data-help-category-tile] > span:nth-of-type(2) {
+    margin-top: 2px !important;
+    font-size: 10px !important;
+    color: #a5afb9 !important;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] [data-help-contact-list] {
+    border-radius: 4px !important;
+    border-color: rgba(230,234,239,.12) !important;
+    background: #17191d;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] [data-help-contact-item] {
+    min-height: 53px !important;
+    padding: 7px 11px !important;
+    gap: 9px !important;
+    border-bottom-color: rgba(230,234,239,.08) !important;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] [data-help-contact-item] > svg {
+    width: 16px;
+    height: 16px;
+    color: #aeb7c2 !important;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] [data-help-contact-item] span.block:first-child {
+    font-size: 11.5px !important;
+    font-weight: 650 !important;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] [data-help-contact-item] span.block:last-child {
+    margin-top: 2px !important;
+    font-size: 10px !important;
+    color: #9ca6b1 !important;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] [data-help-contact-item]:hover {
+    background: #22252a !important;
+  }
+  .acg-v3-help [data-acg-unified-help="true"] [data-help-scroll] :is(button,input,textarea,select):focus-visible {
+    outline: 2px solid #dce3e9 !important;
+    outline-offset: -2px;
+  }
+
+  /* The overview is portaled into document.body. It needs its own tag instead
+     of a selector rooted under .acg-unified-shell. */
+  [data-acg-unified-overview="true"].v4-account-overview-popover {
+    width: 288px !important;
+    max-width: calc(100vw - 16px) !important;
+    border-radius: 5px !important;
+    border: 1px solid rgba(230,234,239,.16) !important;
+    background: #15171a !important;
+    box-shadow: 0 15px 36px rgba(0,0,0,.43) !important;
+    padding: 11px 12px !important;
+  }
+  [data-acg-unified-overview="true"] .v4-account-overview-title {
+    margin-bottom: 10px !important;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(230,234,239,.1);
+  }
+  [data-acg-unified-overview="true"] .v4-account-overview-title strong {
+    font-size: 11.5px !important;
+    font-weight: 700;
+  }
+  [data-acg-unified-overview="true"] .v4-account-overview-title span {
+    font-size: 9.5px !important;
+  }
+  [data-acg-unified-overview="true"] .v4-account-overview-grid {
+    gap: 9px 12px !important;
+  }
+  [data-acg-unified-overview="true"] .v4-account-overview-field {
+    gap: 3px;
+  }
+  [data-acg-unified-overview="true"] .v4-account-overview-field > span {
+    font-size: 10px !important;
+    color: #9faab4 !important;
+  }
+  [data-acg-unified-overview="true"] .v4-account-overview-field > strong {
+    font-size: 12px !important;
+    font-weight: 670 !important;
+    font-variant-numeric: tabular-nums;
+  }
+  [data-acg-unified-overview="true"] .v4-account-exposure {
+    margin-top: 11px !important;
+    padding-top: 9px !important;
+    border-top-color: rgba(230,234,239,.12) !important;
+  }
+  [data-acg-unified-overview="true"] .v4-account-exposure-title {
+    margin-bottom: 6px !important;
+    font-size: 10px !important;
+    color: #cdd4db !important;
+  }
+  [data-acg-unified-overview="true"] .v4-account-exposure > div:not(.v4-account-exposure-title) {
+    margin-top: 5px;
+    color: #a2acb5;
+    font-size: 10px;
+  }
+  [data-acg-unified-overview="true"] .v4-account-exposure > div > strong {
+    font-variant-numeric: tabular-nums;
+    font-size: 11px;
+  }
+  .acg-unified-shell .v4-account-overview-trigger {
+    border-radius: 4px !important;
+    background: #1b1d21 !important;
+    border-color: rgba(230,234,239,.15) !important;
+    font-weight: 600 !important;
+  }
+}
+
+@media (min-width:1024px) and (max-width:1279px) {
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account-name] {
+    max-width: 105px;
+  }
+}
+@media (min-width:1024px) and (max-width:1099px) {
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account-name] {
+    max-width: 90px;
+  }
+}
