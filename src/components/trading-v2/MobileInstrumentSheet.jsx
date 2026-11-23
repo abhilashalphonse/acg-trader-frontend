@@ -1,3 +1,5 @@
+import {useAlerts} from '../alerts/AlertsWorkspace.jsx';
+import {Bell} from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, Search, Star } from 'lucide-react';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
@@ -63,6 +65,7 @@ export default function MobileInstrumentSheet({
   onClose = () => {},
   onViewportQuoteSymbolsChange = () => {},
 }) {
+  const alerts=useAlerts();
   const [tab, setTab] = useState('markets');
   const [query, setQuery] = useState('');
   const [group, setGroup] = useState('Forex');
@@ -268,6 +271,8 @@ export default function MobileInstrumentSheet({
                   })()}
                 </div>
               </button>
+              {alerts?.enabled&&<button type="button" className="grid size-11 shrink-0 place-items-center text-[#9A9BA4]" aria-label={'Add alert on '+item.symbol} title="Add alert"
+                onClick={()=>{onClose();alerts.create(item.symbol,item.last??item.price??item.mid??item.bid);}}><Bell size={16} fill={alerts.rules.some(rule=>rule.symbol===item.symbol&&['STARTING','MONITORING'].includes(rule.status))?'currentColor':'none'}/></button>}
               <button type="button" onClick={() => watchlists?.toggleSymbol?.(item.symbol)} className={`grid size-11 shrink-0 place-items-center ${favorite ? 'text-[#f6c95d]' : 'text-[#687580]'}`} aria-label={favorite ? 'Remove from watchlist' : 'Add to watchlist'}>
                 <Star size={17} fill={favorite ? 'currentColor' : 'none'}/>
               </button>
