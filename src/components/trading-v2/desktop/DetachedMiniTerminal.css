@@ -722,6 +722,12 @@ body.acg-mini-window .acg-mini-pending-field input {
   border-radius: 4px;
   background: var(--mini-field);
 }
+/* Preserve a visibly locked pending price until a side/order is planned. */
+body.acg-mini-window .acg-mini-pending-field input:disabled {
+  background: #12151a;
+  color: #8c97a5;
+  opacity: 1;
+}
 body.acg-mini-window .acg-mini-risk-row {
   gap: 5px;
 }

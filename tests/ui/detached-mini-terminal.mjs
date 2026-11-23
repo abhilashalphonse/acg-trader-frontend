@@ -172,6 +172,13 @@ try {
     return rows.length===2 && content && rows[0].getBoundingClientRect().top>=content.top-1
       && rows[1].getBoundingClientRect().bottom<=content.bottom+1;
   }), 'Both position cards fit fully into actual 270 by 560 window without scrolling');
+  const cardChrome = await popup.locator('.acg-mini-row').first().evaluate(el => ({
+    radius: parseFloat(getComputedStyle(el).borderTopLeftRadius),
+    padding: parseFloat(getComputedStyle(el).paddingTop),
+    height: el.getBoundingClientRect().height,
+  }));
+  check(cardChrome.radius<=4 && cardChrome.padding<=6 && cardChrome.height<=112,
+    'Positions and pending cards use compact square density with all facts intact');
   await popup.screenshot({path:'tests/ui/artifacts/mini-terminal-positions-list.png'});
   await popup.locator('.acg-mini-row').first().click();
   check(await popup.locator('.acg-mini-back').isVisible(), 'Position editor works in pop-out');
@@ -245,12 +252,32 @@ try {
       pending: color('.acg-mini-pending-field input'),
     };
   });
-  check(palette.shell === 'rgb(13, 15, 19)'
+  check(palette.shell === 'rgb(12, 13, 15)'
     && palette.buy === 'rgb(29, 97, 222)'
     && palette.sell === 'rgb(203, 48, 80)'
-    && palette.family === 'rgb(23, 26, 32)'
+    && palette.family === 'rgb(25, 27, 31)'
     && palette.pending === 'rgb(18, 21, 26)',
-    'Mini popup uses the unified graphite palette with restrained buy/sell accents');
+    'V6 mini popup uses unified black/graphite chrome and preserves buy/sell/disabled colors');
+  const miniChrome = await popup.evaluate(() => {
+    const radius = selector => parseFloat(getComputedStyle(document.querySelector(selector)).borderTopLeftRadius);
+    const font = getComputedStyle(document.querySelector('.acg-mini-terminal')).fontFamily;
+    const d = document.querySelector('.acg-mini-terminal');
+    return {
+      tradeRadius: radius('.acg-mini-quick-actions button'),
+      selectorRadius: radius('.acg-mini-order-family'),
+      quantityRadius: radius('.acg-mini-quantity'),
+      pendingRadius: radius('.acg-mini-pending-field input'),
+      font,
+      popupHeight: d.getBoundingClientRect().height,
+    };
+  });
+  check(miniChrome.tradeRadius<=4 && miniChrome.selectorRadius<=4
+    && miniChrome.quantityRadius<=4 && miniChrome.pendingRadius<=4,
+    'Compact popup uses 4px square controls rather than mismatched rounded cards');
+  check(miniChrome.font.toLowerCase().includes('inter'),
+    'Keep approved popup Inter family; density pass does not replace or blur its font');
+  check(Math.abs(miniChrome.popupHeight - 560) <= 1,
+    'Popup body stays 560px high with the new density treatment');
   await popup.getByRole('button',{name:'Market',exact:true}).click();
   const riskSwitch=popup.getByRole('button',{name:'Toggle mini risk sizing'});
   if(await riskSwitch.isEnabled()){
