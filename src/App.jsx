@@ -8,7 +8,7 @@ import { useTraderAuth } from './hooks/useTraderAuth.js';
 import { useTradingStore } from './hooks/useTradingStore.js';
 import { useWatchlists } from './hooks/useWatchlists.js';
 import { deriveTerminalStatus } from './utils/terminalStatus.js';
-import { formatInstrumentPrice } from './utils/instrumentFormatting.js';
+import { formatBrowserTabTitle } from './utils/browserTabTitle.js';
 import { resolveActiveAccountId } from './utils/accountLifecycleRouting.js';
 import { riskCriticalMarketSymbols } from './utils/marketSubscriptions.js';
 import { conversionQuoteSymbolsForInstrument } from './utils/verifiedFxConversion.js';
@@ -178,18 +178,16 @@ export default function App() {
     ? (markets.find(item => item.marketDataAvailable !== false) || null)
     : (activeMarket || markets[0] || null);
 
+  // Update the tab from the selected chart and authoritative price/change feed.
+  // Missing daily change is omitted, never fabricated as 0.00%.
   useEffect(() => {
     if (typeof document === 'undefined') return;
-    const symbol = String(market?.symbol || activeSymbol || '').replace('/', '').toUpperCase();
-    const livePrice = activeTick?.price ?? activeTick?.last ?? activeTick?.mid ?? market?.last ?? market?.bid;
-    const formattedPrice = formatInstrumentPrice(livePrice, market, '');
-
-    document.title = symbol && formattedPrice
-      ? `${symbol} ${formattedPrice}`
-      : symbol
-        ? symbol
-        : 'ACG Trader';
-  }, [activeSymbol, activeTick?.last, activeTick?.mid, activeTick?.price, market?.bid, market?.digits, market?.last, market?.pipSize, market?.symbol, market?.tickSize]);
+    document.title = formatBrowserTabTitle({ activeSymbol, market, tick: activeTick });
+  }, [
+    activeSymbol, activeTick?.price, activeTick?.last, activeTick?.mid,
+    activeTick?.changePercent, market?.symbol, market?.last, market?.bid,
+    market?.digits, market?.pipSize, market?.tickSize, market?.changePercent,
+  ]);
 
   const primaryAccount = useMemo(() => {
     const granted = auth.principal?.accountIds?.map(String) || [];

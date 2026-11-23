@@ -246,9 +246,10 @@ export function useMarketData(instruments, activeSymbol, requestedSymbols = null
       marketDataError: realtimeStatus?.message || gateway?.subscriptionError || null,
       sessionOpen,
       subscribed: subscribedSet.has(symbol),
-      previousClose: Number.isFinite(Number(quote?.previousClose)) ? Number(quote.previousClose) : null,
-      change: Number.isFinite(Number(quote?.change)) ? Number(quote.change) : null,
-      changePercent: Number.isFinite(Number(quote?.changePercent)) ? Number(quote.changePercent) : null,
+      // Number(null) === 0. Preserve missing daily quote fields as null.
+      previousClose: quote?.previousClose != null && quote.previousClose !== '' && Number.isFinite(Number(quote.previousClose)) ? Number(quote.previousClose) : null,
+      change: quote?.change != null && quote.change !== '' && Number.isFinite(Number(quote.change)) ? Number(quote.change) : null,
+      changePercent: quote?.changePercent != null && quote.changePercent !== '' && Number.isFinite(Number(quote.changePercent)) ? Number(quote.changePercent) : null,
       ...itemDirections,
     };
   }), [directions, gatewayStatus, instruments, market.quotesBySymbol, market.symbolStatusBySymbol, subscribedSet]);
