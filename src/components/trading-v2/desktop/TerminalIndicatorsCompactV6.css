@@ -1,0 +1,279 @@
+/*
+ * ACG Trader | Compact desktop indicator library (PR #236)
+ *
+ * The navbar indicator popup is not a separate full-size settings page.
+ * Keep all available indicator names, search/filter/edit actions, settings,
+ * favorites, feedback, keyboard focus, and the existing V6 font family.
+ * This intentionally does not touch general chart drawing inspectors.
+ */
+@media (min-width: 1024px) {
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] {
+    width: 354px !important;
+    max-width: min(354px, calc(100vw - 24px)) !important;
+    max-height: min(552px, calc(100dvh - 92px)) !important;
+    padding: 9px 10px !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    border: 1px solid rgba(231,235,239,.15) !important;
+    border-radius: 5px !important;
+    background: #111316 !important;
+    box-shadow: 0 14px 32px rgba(0,0,0,.46) !important;
+    backdrop-filter: none !important;
+    scrollbar-color: #3a3e45 transparent;
+    scrollbar-width: thin;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] > div:first-child {
+    display: flex;
+    align-items: center;
+    min-height: 38px !important;
+    margin: 0 0 9px !important;
+    padding: 0 0 8px !important;
+    border-bottom: 1px solid rgba(231,235,239,.10) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] > div:first-child strong {
+    font-size: 12px !important;
+    line-height: 16px;
+    font-weight: 680;
+    color: #eff2f6;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] > div:first-child span {
+    font-size: 10px !important;
+    line-height: 14px;
+    margin-top: 1px !important;
+    color: #99a4b1 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] > div:first-child button {
+    width: 27px;
+    height: 27px;
+    min-height: 27px;
+    border-radius: 4px !important;
+    color: #a9b4bf;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-chart-tools {
+    --tool-bg: #17191d;
+    --tool-raised: #22252a;
+    --tool-border: rgba(231,235,239,.12);
+    --tool-text: #e7ebf0;
+    --tool-muted: #9ca6b1;
+    --tool-accent: #a9bfd6;
+    color: var(--tool-text);
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-search {
+    height: 36px;
+    min-height: 36px;
+    padding: 0 9px;
+    gap: 7px;
+    border: 1px solid var(--tool-border) !important;
+    border-radius: 4px !important;
+    background: #17191d !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-search > svg {
+    width: 15px;
+    height: 15px;
+    stroke-width: 1.65;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-search input {
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    font-size: 11px !important;
+    color: #edf0f4 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-search:focus-within {
+    border-color: #899db3 !important;
+    box-shadow: 0 0 0 1px rgba(137,157,179,.45) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-section-heading {
+    min-height: 32px;
+    margin: 8px 0 !important;
+    gap: 7px;
+    align-items: center;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-tabs {
+    align-items: stretch;
+    gap: 5px;
+    border-bottom: 1px solid rgba(231,235,239,.12);
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-tabs button {
+    min-height: 29px;
+    padding: 5px 8px !important;
+    font-size: 11px !important;
+    line-height: 17px;
+    border-bottom: 2px solid transparent;
+    color: #9ca7b3;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-tabs button[aria-pressed="true"] {
+    border-bottom-color: #c9d1d9 !important;
+    background: transparent !important;
+    color: #eef1f5 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-count {
+    font-size: 10px;
+    color: #a7b1bc;
+    white-space: nowrap;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-categories {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 4px;
+    margin: 0 0 7px !important;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-categories::-webkit-scrollbar {
+    display: none;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-categories button {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 27px;
+    min-height: 27px;
+    padding: 4px 6px !important;
+    border: 1px solid var(--tool-border) !important;
+    border-radius: 4px !important;
+    background: #181a1e !important;
+    font-size: 10px !important;
+    line-height: 16px;
+    color: #a9b2bc !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-categories button[aria-pressed="true"] {
+    background: #2b2e33 !important;
+    border-color: rgba(231,235,239,.28) !important;
+    color: #f0f2f6 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-categories button:hover {
+    background: #272a2f !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-indicator-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 65px;
+    padding: 8px 4px !important;
+    border-bottom: 1px solid rgba(231,235,239,.08) !important;
+    background: transparent !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-indicator-row:hover {
+    background: #191c20 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-indicator-description,
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-indicator-edit {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow-wrap: normal;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-indicator-description strong,
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-indicator-edit strong {
+    font-size: 11px !important;
+    line-height: 15px;
+    font-weight: 670 !important;
+    color: #eef1f5;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-indicator-description span,
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-indicator-edit span {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    margin-top: 2px !important;
+    font-size: 10px !important;
+    line-height: 13px;
+    color: #aab4bf;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-indicator-description small {
+    display: block;
+    margin-top: 3px !important;
+    color: #818c98;
+    font-size: 9px !important;
+    line-height: 12px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-favorite.acg-tool-icon,
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-actions .acg-tool-icon {
+    width: 26px;
+    height: 27px;
+    min-height: 27px;
+    border-radius: 4px;
+    color: #a4afba;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-favorite.acg-tool-icon svg,
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-actions svg {
+    width: 15px;
+    height: 15px;
+    stroke-width: 1.65;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-add {
+    flex: 0 0 auto;
+    height: 29px;
+    min-height: 29px;
+    padding: 5px 7px !important;
+    gap: 4px;
+    border: 1px solid rgba(231,235,239,.14) !important;
+    border-radius: 4px !important;
+    background: #1c1f23 !important;
+    color: #bdcfe3 !important;
+    font-size: 10px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-add:hover {
+    background: #292d32 !important;
+    color: #edf2f7 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-add svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 1.65;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-editor-heading {
+    margin: 0 0 9px !important;
+    gap: 7px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-editor-body {
+    padding: 10px 0;
+    gap: 10px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-grid {
+    gap: 8px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-field {
+    gap: 4px;
+    font-size: 10px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-field :is(input,select,textarea) {
+    height: 32px;
+    border: 1px solid var(--tool-border) !important;
+    border-radius: 4px !important;
+    background: #1c1f23 !important;
+    padding: 5px 8px;
+    color: #eef1f5 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-footer {
+    padding-top: 10px;
+    gap: 5px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-button {
+    min-height: 30px;
+    padding: 6px 9px;
+    font-size: 10px !important;
+    border-radius: 4px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-notice {
+    min-height: 22px;
+    padding-top: 5px;
+    font-size: 10px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-notice:empty {
+    display: none;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] .acg-tool-help {
+    font-size: 10px;
+    margin: 9px 0;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="indicators"] :is(button,input,select,textarea):focus-visible {
+    outline: 2px solid #c9d6e4 !important;
+    outline-offset: 1px;
+  }
+}

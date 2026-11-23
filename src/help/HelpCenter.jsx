@@ -23,6 +23,9 @@ const tile = 'rounded-lg border border-white/[0.08] bg-[#14181e] transition hove
 export default function HelpCenter({ onClose, desktop = false, symbol = '', timeframe = '' }) {
   const { principal } = useTraderAuth();
   const fundedEmail = fundedSupportEmail(principal);
+  const panelTile = desktop
+    ? 'rounded-[4px] border border-white/[0.10] bg-[#181a1e] transition hover:border-white/25 hover:bg-[#23262a]'
+    : tile;
   const validFundedEmail = Boolean(fundedEmail);
   const rootRef = useRef(null);
   const returnFocusRef = useRef(null);
@@ -127,14 +130,16 @@ export default function HelpCenter({ onClose, desktop = false, symbol = '', time
     <div className={desktop ? "acg-v3-help fixed inset-0 z-[135]" : "fixed inset-0 z-[135]"} data-acg-hotkeys-suspend="true" onKeyDown={handleKeys}>
       <button type="button" aria-label="Close Help Center" onClick={() => !busy && onClose()}
         className="absolute inset-0 h-full w-full cursor-default bg-black/55 md:bg-black/20" />
-      <section ref={rootRef} role="dialog" aria-modal="true" aria-label="ACG Trader Help Center"
+      <section ref={rootRef} role="dialog" aria-modal="true" aria-label="ACG Trader Help Center" id={desktop ? "acg-unified-help-dialog" : undefined} data-acg-unified-help={desktop ? "true" : undefined}
         className={
           'absolute flex flex-col overflow-hidden border border-white/[0.10] bg-[#0A0C0F] text-[#e6edf5] shadow-[0_18px_75px_rgba(0,0,0,.65)] ' +
           (desktop
-            ? 'right-[50px] top-[56px] bottom-[14px] w-[390px] max-w-[calc(100vw-68px)] rounded-xl'
+            ? 'right-[45px] top-[54px] bottom-auto h-[min(614px,calc(100dvh-68px))] w-[390px] max-w-[calc(100vw-59px)] rounded-[5px]'
             : 'bottom-0 left-0 right-0 mx-auto h-[90dvh] max-w-[460px] rounded-t-[24px]')
         }>
-        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3">
+        <header className={desktop
+          ? "flex h-[46px] shrink-0 items-center justify-between gap-3 border-b border-white/[0.10] bg-[#15171a] px-3 py-0"
+          : "flex shrink-0 items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3"}>
           <div className="flex min-w-0 items-center gap-2.5">
             {page.kind !== 'home' ? (
               <button data-help-first type="button" aria-label="Back" onClick={back}
@@ -152,12 +157,16 @@ export default function HelpCenter({ onClose, desktop = false, symbol = '', time
           <button type="button" aria-label="Close Help Center" disabled={busy} onClick={onClose}
             className="grid size-9 shrink-0 place-items-center rounded-md text-[#a2b2c3] hover:bg-white/[0.07] disabled:opacity-50"><X size={19}/></button>
         </header>
-        <div data-help-scroll className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 [scrollbar-width:thin]">
+        <div data-help-scroll className={desktop
+          ? "min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 [scrollbar-width:thin]"
+          : "min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 [scrollbar-width:thin]"}>
           {page.kind === 'home' && (
-            <div className="space-y-5">
+            <div data-help-home className={desktop ? "space-y-3.5" : "space-y-5"}>
               <div>
                 <p className="mb-3 text-[13px] text-[#9aaabd]">How can we help you?</p>
-                <label className="flex items-center gap-2 rounded-lg border border-white/[0.11] bg-[#151a20] px-3 py-2.5">
+                <label data-help-search className={desktop
+                  ? "flex h-9 items-center gap-2 rounded-[4px] border border-white/[0.14] bg-[#191c20] px-3"
+                  : "flex items-center gap-2 rounded-lg border border-white/[0.11] bg-[#151a20] px-3 py-2.5"}>
                   <Search size={16} className="shrink-0 text-[#8b9aab]"/>
                   <input data-help-first autoComplete="off" type="search" value={query} onChange={event => setQuery(event.target.value)}
                     placeholder="Search answers and guides" aria-label="Search help articles"
@@ -169,7 +178,7 @@ export default function HelpCenter({ onClose, desktop = false, symbol = '', time
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-[#8193a8]">{results.length} result(s)</p>
                   {results.map(article => (
                     <button key={article.id} type="button" onClick={() => openPage('article', article.id)}
-                      className={'w-full p-3 text-left ' + tile}>
+                      className={'w-full p-3 text-left ' + panelTile}>
                       <span className="block text-[13px] font-semibold">{article.title}</span>
                       <span className="mt-1 block text-[12px] leading-relaxed text-[#93a2b1]">{article.summary}</span>
                     </button>
@@ -179,14 +188,14 @@ export default function HelpCenter({ onClose, desktop = false, symbol = '', time
               ) : (
                 <div>
                   <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#8596ad]">Explore ACG Trader</p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div data-help-category-grid className="grid grid-cols-2 gap-2">
                     {HELP_SECTIONS.map(section => {
                       const Icon = SECTION_ICONS[section.id];
                       const count = HELP_ARTICLES.filter(article => article.section === section.id).length;
                       return (
                         <button type="button" key={section.id} onClick={() => openPage('section', section.id)}
-                          className={'min-h-[115px] p-3 text-left ' + tile}>
-                          <Icon size={19} className="mb-3 text-[#739aff]"/>
+                          data-help-category-tile className={(desktop ? 'min-h-[88px] p-2.5 text-left ' : 'min-h-[115px] p-3 text-left ') + panelTile}>
+                          <Icon size={desktop ? 16 : 19} className={desktop ? "mb-2 text-[#adb7c2]" : "mb-3 text-[#739aff]"}/>
                           <span className="block text-[13px] font-semibold">{section.label}</span>
                           <span className="mt-1 block text-[11px] text-[#8e9db0]">{count} articles</span>
                         </button>
@@ -197,11 +206,15 @@ export default function HelpCenter({ onClose, desktop = false, symbol = '', time
               )}
               <div>
                 <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#8596ad]">Contact & Feedback</p>
-                <div className="overflow-hidden rounded-lg border border-white/[0.08]">
+                <div data-help-contact-list className={desktop
+                  ? "overflow-hidden rounded-[4px] border border-white/[0.10] bg-[#17191d]"
+                  : "overflow-hidden rounded-lg border border-white/[0.08]"}>
                   {FORMS.map(form => {
                     const Icon = FORM_ICONS[form.id];
                     return <button type="button" key={form.id} onClick={() => openPage('form', form.id)}
-                      className="flex min-h-[64px] w-full items-center gap-3 border-b border-white/[0.08] px-3 text-left last:border-0 hover:bg-white/[0.045]">
+                      data-help-contact-item className={desktop
+                        ? "flex min-h-[53px] w-full items-center gap-2.5 border-b border-white/[0.08] px-3 py-1.5 text-left last:border-0 hover:bg-white/[0.045]"
+                        : "flex min-h-[64px] w-full items-center gap-3 border-b border-white/[0.08] px-3 text-left last:border-0 hover:bg-white/[0.045]"}>
                       <Icon size={19} className="shrink-0 text-[#9caec6]"/>
                       <span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold">{form.title}</span>
                         <span className="mt-1 block text-[11px] text-[#8595a8]">{form.subtitle}</span></span>
@@ -216,7 +229,7 @@ export default function HelpCenter({ onClose, desktop = false, symbol = '', time
             <div className="space-y-3">
               <p className={caption}>Select a topic to read the guide or get a quick answer.</p>
               {sectionArticles.map(article => (
-                <div key={article.id} className={tile}>
+                <div key={article.id} className={panelTile}>
                   {page.id === 'faq' ? (
                     <>
                       <button type="button" aria-expanded={expandedFaq === article.id}

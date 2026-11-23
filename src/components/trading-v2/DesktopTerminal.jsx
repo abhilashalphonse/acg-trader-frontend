@@ -4,10 +4,14 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Bell,
   BookOpen,
+  ArrowLeftRight,
   Check,
   CandlestickChart,
   ChartNoAxesCombined,
   ChevronDown,
+  Rows3,
+  Sigma,
+  SlidersHorizontal,
   Columns2,
   Grid2X2,
   History,
@@ -33,6 +37,12 @@ import DesktopManagePositionV4 from './desktop/DesktopManagePositionV4.jsx';
 import DesktopManagePendingV4 from './desktop/DesktopManagePendingV4.jsx';
 import './desktop/DesktopTerminal.theme.css';
 import './desktop/DesktopHeaderV4.css';
+import './desktop/UnifiedTerminalWorkspace.css';
+import './desktop/DesktopTerminalDensityV6.css';
+import './desktop/TerminalIconographyV6.css';
+import './desktop/TerminalAccountButtonV6.css';
+import './desktop/TerminalNavbarCompactV6.css';
+import './desktop/TerminalIndicatorsCompactV6.css';
 import DesktopPositionManager from './desktop/DesktopPositionManager.jsx';
 import DesktopMultiChart from './desktop/DesktopMultiChart.jsx';
 import DesktopTradeReview from './desktop/DesktopTradeReview.jsx';
@@ -44,6 +54,7 @@ import ChartObjectManager from './desktop/ChartObjectManager.jsx';
 import ResizeHandle from './desktop/ResizeHandle.jsx';
 import PositionsPanel from './PositionsPanel.jsx';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
+import acgNavbarGradientA from '../../assets/acg-navbar-gradient-a.svg?no-inline';
 import IndicatorManager from './IndicatorManager.jsx';
 import { accountStatusLabel, accountTypeBadge } from '../../utils/accountPresentation.js';
 import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
@@ -1146,7 +1157,7 @@ export default function DesktopTerminal({
   };
 
   return (
-    <div ref={shellRef} className="acg-terminal acg-desktop-v3 relative flex h-dvh min-h-0 flex-col gap-1 overflow-hidden bg-black p-1 text-[#E6EDF3]">
+    <div ref={shellRef} className="acg-terminal acg-desktop-v3 acg-unified-shell relative flex h-dvh min-h-0 flex-col gap-1 overflow-hidden bg-black p-1 text-[#E6EDF3]">
       {notice && <div className="acg-motion-notice pointer-events-none absolute right-3 top-[66px] z-[120] flex max-w-[390px] items-center gap-3 rounded-md border border-white/[0.06] bg-[#101010]/95 px-3 py-2.5 text-[10px] font-semibold text-[#E6EDF3] shadow-[0_16px_48px_rgba(0,0,0,.45)]"><span>{notice}</span><button type="button" onClick={() => setNotice('')} className="pointer-events-auto grid size-6 place-items-center rounded-md text-[#8094a7]"><X size={13}/></button></div>}
 
 
@@ -1160,29 +1171,38 @@ export default function DesktopTerminal({
           <button type="button" data-v4-header-instrument-image={V4_DESKTOP_EXECUTION_ENABLED ? 'true' : undefined}
             onClick={() => openMarketPanel('markets', false)} className="shrink-0"
             title="Open markets and watchlist" aria-label="Open markets and watchlist">
-            <InstrumentAvatar instrument={market} size={30}/>
+            {V4_DESKTOP_EXECUTION_ENABLED
+              ? <img data-acg-nav-brand-mark src={acgNavbarGradientA} width="28" height="28" alt="" aria-hidden="true" draggable={false}/>
+              : <InstrumentAvatar instrument={market} size={30}/>}
+
           </button>
           <div className="acg-v4-header-identity min-w-0">
             <div className="acg-v4-header-primary flex min-w-0 items-center gap-1">
               <button type="button" onClick={() => openMarketPanel('markets', false)} className="flex min-w-0 items-center gap-1 text-left" title="Open markets and watchlist">
+                {V4_DESKTOP_EXECUTION_ENABLED && (
+                  <span data-acg-header-instrument-icon className="acg-v4-header-symbol-avatar inline-flex shrink-0 items-center justify-center" aria-hidden="true">
+                    <InstrumentAvatar instrument={market} size={20} singleAsset />
+                  </span>
+                )}
                 <strong key={activeSymbol || 'symbol'} className="acg-motion-symbol truncate text-[14px] font-extrabold tracking-[-0.025em] text-[#f3f6f8]">{market?.displaySymbol || displaySymbol(market?.symbol)}</strong>
                 <ChevronDown size={12} className="shrink-0 text-[#f3f6f8]"/>
               </button>
-              <button
-                type="button"
-                onClick={() => watchlists?.toggleSymbol?.(activeSymbol)}
-                className={favorite ? "grid size-5 shrink-0 place-items-center rounded text-[#CDD1D6] hover:bg-white/[0.05]" : "grid size-5 shrink-0 place-items-center rounded text-[#71808e] hover:bg-white/[0.05] hover:text-white"}
-                title={favorite ? "Remove from favorites" : "Add to favorites"}
-                aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
-              >
-                <Star key={favorite ? 'favorite-on' : 'favorite-off'} className="acg-favorite-icon" data-active={favorite ? 'true' : 'false'} size={12} fill={favorite ? 'currentColor' : 'none'}/>
-              </button>
+              {!V4_DESKTOP_EXECUTION_ENABLED && (
+                <button
+                  type="button"
+                  onClick={() => watchlists?.toggleSymbol?.(activeSymbol)}
+                  className={favorite ? "grid size-5 shrink-0 place-items-center rounded text-[#CDD1D6] hover:bg-white/[0.05]" : "grid size-5 shrink-0 place-items-center rounded text-[#71808e] hover:bg-white/[0.05] hover:text-white"}
+                  title={favorite ? "Remove from favorites" : "Add to favorites"}
+                  aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
+                >
+                  <Star key={favorite ? 'favorite-on' : 'favorite-off'} className="acg-favorite-icon" data-active={favorite ? 'true' : 'false'} size={12} fill={favorite ? 'currentColor' : 'none'}/>
+                </button>
+              )}
             </div>
             {V4_DESKTOP_EXECUTION_ENABLED ? (
-              <div className="acg-v4-header-secondary" role="status" data-market-status={v4HeaderStatus}>
-                <span className="acg-v4-header-status-dot" aria-hidden="true"/>
-                <span>{v4HeaderStatus === 'open' ? 'Market open' : v4HeaderStatus === 'closed' ? 'Market closed' : 'Market unavailable'}</span>
-              </div>
+              <span className="sr-only" role="status" data-market-status={v4HeaderStatus}>
+                {v4HeaderStatus === 'open' ? 'Market open' : v4HeaderStatus === 'closed' ? 'Market closed' : 'Market unavailable'}
+              </span>
             ) : (
               <button type="button" onClick={() => openMarketPanel('markets', false)} className="mt-0.5 flex min-w-0 items-center gap-1.5 text-left text-[8px] font-bold text-[#697988]" title="Open markets and watchlist">
                 <span className="truncate">{marketLabel(market)}</span>
@@ -1248,7 +1268,7 @@ export default function DesktopTerminal({
             <div className="relative">
               <button type="button" data-v4-header-tool="indicators" aria-label={V4_DESKTOP_EXECUTION_ENABLED ? 'Indicators' : undefined} aria-expanded={v4IsOpen('indicators',indicatorPanelOpen)} onClick={() => {
                 setIndicatorFocusId(null); setObjectManagerOpen(false); v4Toggle('indicators',setIndicatorPanelOpen);
-              }} className={indicatorPanelOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#C9CDD2]/60 bg-[#222427] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title="Indicators"><span className="acg-v4-header-fx text-[11px] font-black">ƒx</span><span className="acg-v4-header-tool-label">Indicators</span>{indicators.length > 0 && <span className="acg-v4-header-indicator-count grid min-w-3 place-items-center rounded bg-[#181b20] px-1 text-[6px] text-[#aab5bf]">{indicators.length}</span>}<ChevronDown className="acg-v4-header-tool-chevron" size={10}/></button>
+              }} className={indicatorPanelOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#C9CDD2]/60 bg-[#222427] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title="Indicators"><Sigma className="acg-v4-header-indicator-icon" size={18} strokeWidth={1.65} aria-hidden="true"/><span className="acg-v4-header-tool-label">Indicators</span>{indicators.length > 0 && <span className="acg-v4-header-indicator-count grid min-w-3 place-items-center rounded bg-[#181b20] px-1 text-[6px] text-[#aab5bf]">{indicators.length}</span>}<ChevronDown className="acg-v4-header-tool-chevron" size={10}/></button>
               {v4IsOpen('indicators',indicatorPanelOpen) && (
                 <div data-v4-header-menu={V4_DESKTOP_EXECUTION_ENABLED ? 'indicators' : undefined} className="acg-motion-popover absolute right-0 top-8 z-[110] w-[390px] max-h-[min(680px,calc(100dvh-150px))] overflow-y-auto rounded-lg border border-white/[0.10] bg-[#09090B]/98 p-3 shadow-[0_24px_70px_rgba(0,0,0,.68)] backdrop-blur-xl [scrollbar-width:thin]">
                   <div className="mb-3 flex items-center justify-between border-b border-white/[0.07] pb-2.5"><div><strong className="block text-[11px] text-[#EDF3F7]">Indicators</strong><span className="mt-0.5 block text-[8px] text-[#687D91]">Active chart · {activeSymbol} · {activeChartTimeframe}</span></div><button type="button" onClick={() => { setIndicatorPanelOpen(false); v4Close(); }} className="grid size-7 place-items-center rounded text-[#7D91A4] hover:bg-white/[0.04] hover:text-white"><X size={13}/></button></div>
@@ -1323,7 +1343,7 @@ export default function DesktopTerminal({
                     <span>P/L <b className={accountPnl >= 0 ? "ml-1 text-[#42D7A1]" : "ml-1 text-[#FF5968]"}>{formatPnl(accountPnl, currency)}</b></span>
                     <span>Free <b className="ml-1 text-[#C7D1D9]">{money(account?.freeMargin, currency)}</b></span>
                   </div>
-                  <span className="mt-2 block text-[8px] leading-4 text-[#6F8191]">Execution stays locked until the selected account has a fresh snapshot and history.</span>
+                  {accountSwitching && <span role="status" className="mt-2 block text-[10px] leading-4 text-[#A6B0BA]">Switching account · waiting for a fresh snapshot and trade history before execution resumes.</span>}
                 </div>
                 {accountSwitchError && <div className="border-b border-[#553038] bg-[#190d10] px-3 py-2 text-[8px] font-semibold text-[#e99aa3]">{accountSwitchError} · Select the account again to retry.</div>}
                 <div className="max-h-[420px] overflow-y-auto [scrollbar-width:thin]">
@@ -1397,7 +1417,7 @@ export default function DesktopTerminal({
 
       <div className="min-h-0 flex-1">
         <div
-          className="relative grid h-full min-h-0 min-w-0 gap-x-1 gap-y-1 bg-black transition-[grid-template-columns,grid-template-rows] duration-300 ease-out"
+          className="acg-unified-workspace-grid relative grid h-full min-h-0 min-w-0 bg-black transition-[grid-template-columns,grid-template-rows] duration-300 ease-out"
           style={{
             gridTemplateColumns: `minmax(0, 1fr) ${sidebarContentWidth}px ${sidebarRailWidth}px`,
             gridTemplateRows: `minmax(0, 1fr) ${dockHeight}px`,
@@ -1601,9 +1621,9 @@ export default function DesktopTerminal({
                 ? "mb-1 grid size-9 place-items-center rounded-md bg-[#222225] text-[#C9CDD2] ring-1 ring-inset ring-[#C9CDD2]/70"
                 : "mb-1 grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"}
               title="Trade"
-              aria-label="Trade"
+              aria-label="Trade" data-acg-rail-action="trade" data-acg-rail-active={!desktopLayout.sidebarCollapsed && activeNav === 'trade' ? 'true' : 'false'}
             >
-              <ChartNoAxesCombined size={17}/>
+              <ArrowLeftRight size={17}/>
             </button>
             {DOCK_AUDIT_ENABLED && (
               <React.Suspense fallback={null}>
@@ -1664,7 +1684,7 @@ export default function DesktopTerminal({
                 ? "mb-1 grid size-9 place-items-center rounded-md bg-[#222225] text-[#C9CDD2] ring-1 ring-inset ring-[#C9CDD2]/70"
                 : "mb-1 grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"}
               title="Markets"
-              aria-label="Markets"
+              aria-label="Markets" data-acg-rail-action="markets" data-acg-rail-active={!desktopLayout.sidebarCollapsed && activeNav === 'markets' ? 'true' : 'false'}
             >
               <List size={17}/>
             </button>
@@ -1675,19 +1695,19 @@ export default function DesktopTerminal({
                 ? "mb-1 grid size-9 place-items-center rounded-md bg-[#222225] text-[#C9CDD2] ring-1 ring-inset ring-[#C9CDD2]/70"
                 : "mb-1 grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"}
               title={dockBodyVisible ? "Close positions dock" : "Open positions dock"}
-              aria-label={dockBodyVisible ? "Close positions dock" : "Open positions dock"}
+              aria-label={dockBodyVisible ? "Close positions dock" : "Open positions dock"} data-acg-rail-action="positions" data-acg-rail-active={dockBodyVisible ? 'true' : 'false'}
             >
-              <Layers3 size={17}/>
+              <Rows3 size={17}/>
             </button>
             {alerts?.enabled && <button type="button" onClick={() => {
               if (!desktopLayout.sidebarCollapsed && activeNav === 'alerts') alerts.close();
               else alerts.open();
             }} aria-expanded={!desktopLayout.sidebarCollapsed && activeNav === 'alerts'}
               className={`relative mb-1 grid size-9 place-items-center rounded-md hover:bg-white/[0.04] hover:text-white ${!desktopLayout.sidebarCollapsed && activeNav === 'alerts'?'bg-[#222225] text-white':'text-[#9a9aa6]'}`}
-              title="Alerts (Alt+A to create)" aria-label="Open alerts"><Bell size={17}/>{alerts.unread>0&&<span className="absolute right-1 top-1 size-1.5 rounded-full bg-white"/>}</button>}
+              title="Alerts (Alt+A to create)" aria-label="Open alerts" data-acg-rail-action="alerts" data-acg-rail-active={!desktopLayout.sidebarCollapsed && activeNav === 'alerts' ? 'true' : 'false'}><Bell size={17}/>{alerts.unread>0&&<span className="absolute right-1 top-1 size-1.5 rounded-full bg-white"/>}</button>}
             <button type="button" onClick={onOpenHelp}
               className="mt-auto mb-1 grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"
-              title="Help Center" aria-label="Help Center">
+              title="Help Center" aria-label="Help Center" data-acg-rail-action="help">
               <CircleHelp size={17}/>
             </button>
             <button
@@ -1700,9 +1720,9 @@ export default function DesktopTerminal({
                 ? "grid size-9 place-items-center rounded-md bg-[#222225] text-[#C9CDD2] ring-1 ring-inset ring-[#C9CDD2]/70"
                 : "grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"}
               title="Chart appearance settings"
-              aria-label="Chart appearance settings"
+              aria-label="Chart appearance settings" data-acg-rail-action="settings" data-acg-rail-active={v4IsOpen('settings',chartSettingsOpen) ? 'true' : 'false'}
             >
-              <Settings size={17}/>
+              <SlidersHorizontal size={17}/>
             </button>
           </aside>
 
@@ -1734,7 +1754,7 @@ export default function DesktopTerminal({
               onChange={updateSidebarWidth}
               ariaLabel="Resize trade dock"
               className="absolute bottom-0 top-0"
-              style={{ right: sidebarContentWidth + sidebarRailWidth + 10 }}
+              style={{ right: sidebarContentWidth + sidebarRailWidth }}
             />
           )}
 
@@ -1749,7 +1769,7 @@ export default function DesktopTerminal({
               onDoubleClick={() => updateDockHeight(heightBounds.defaultDock)}
               ariaLabel="Resize chart and positions dock"
               className="absolute left-0 right-0"
-              style={{ bottom: dockHeight + 4 }}
+              style={{ bottom: dockHeight }}
             />
           )}
         </div>

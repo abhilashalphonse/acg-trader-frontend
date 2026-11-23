@@ -1,0 +1,331 @@
+/*
+ * ACG Trader | V6 desk-density pass
+ *
+ * Target the live V4 execution ticket and Markets/Favorites only.
+ * Preserve the approved V6 font FAMILY, weight loading, rendering features,
+ * quote colors, trading actions, risk calculations and chart behavior.
+ * This file intentionally contains no font-family, font-feature-settings,
+ * font-smoothing, global heading, or terminal-wide type overrides.
+ */
+@media (min-width:1024px) {
+  /* TradingView-style information density, with ACG's own colors and structure. */
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-ticket-body {
+    padding: 0 9px 8px !important;
+    gap: 6px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-instrument {
+    min-height: 43px !important;
+    height: 43px;
+    margin-inline: -9px !important;
+    padding-inline: 9px !important;
+    gap: 6px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-symbol strong {
+    font-size: 12.5px !important;
+    line-height: 16px !important;
+    letter-spacing: 0 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-symbol span {
+    font-size: 10px !important;
+    line-height: 13px;
+    margin-top: 0;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-head-actions button {
+    width: 27px;
+    height: 27px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-head-actions svg {
+    width: 16px;
+    height: 16px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-session {
+    min-height: 19px;
+    font-size: 10px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-session > span:last-child {
+    font-size: 9.5px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-quote-strip {
+    min-height: 29px !important;
+    padding: 5px 7px !important;
+    border-radius: 3px !important;
+    gap: 3px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-quote-strip > span {
+    font-size: 10px !important;
+    gap: 4px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-quote-strip strong {
+    font-size: 11px !important;
+    font-weight: 650;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-capsule {
+    padding: 2px !important;
+    gap: 2px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-capsule-button {
+    min-height: 28px;
+    height: 28px;
+    padding: 5px 2px !important;
+    font-size: 11px !important;
+    line-height: 16px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-mainmodes .v4-capsule-button,
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-position-modes .v4-capsule-button {
+    min-height: 28px !important;
+    height: 28px;
+    font-size: 11px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-block {
+    gap: 6px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-section-heading {
+    min-height: 17px;
+    font-size: 10px !important;
+    letter-spacing: .04em;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-section-heading > span:last-child {
+    font-size: 10.5px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-amount {
+    grid-template-columns: 30px minmax(0,1fr) 30px !important;
+    min-height: 40px !important;
+    height: 40px;
+    gap: 6px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-amount > button {
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 3px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-amount > button svg {
+    width: 16px;
+    height: 16px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-hero-input {
+    height: 40px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-hero-value,
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-hero-input input {
+    font-size: 19px !important;
+    line-height: 26px !important;
+    letter-spacing: -.01em !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-hero-input input {
+    height: 36px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-slider {
+    gap: 2px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-slider input {
+    height: 12px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-scale {
+    font-size: 9.5px !important;
+    line-height: 13px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-translation {
+    min-height: 15px !important;
+    font-size: 10px;
+    line-height: 14px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-exits {
+    gap: 6px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-disclosure {
+    min-height: 21px;
+    padding: 2px 0;
+    font-size: 10.5px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-exit-card {
+    padding: 7px 9px !important;
+    gap: 6px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-exit-heading strong {
+    font-size: 11.5px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-exit-controls {
+    gap: 6px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-exit-controls > input,
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-select-wrap,
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-select-wrap > select {
+    min-height: 29px !important;
+    height: 29px !important;
+    font-size: 11px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-select-wrap > svg {
+    top: 7px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-ratio-slab {
+    padding: 7px 9px !important;
+    gap: 5px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-ratio-slab > div {
+    gap: 2px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-ratio-slab span {
+    font-size: 10px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-ratio-slab strong {
+    font-size: 12px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-advanced-content {
+    padding: 8px 9px !important;
+    gap: 6px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-pending {
+    gap: 6px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-inline-setting input {
+    min-height: 30px !important;
+    height: 30px;
+  }
+  /* Compact footer preserves the strong blue/red decision controls and
+     never hides margin/financial warnings or alters disabled states. */
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-execution-footer {
+    padding: 8px 9px !important;
+    gap: 6px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-margin-summary {
+    padding: 7px 9px !important;
+    gap: 7px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-margin-summary > div {
+    gap: 3px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-margin-summary span {
+    font-size: 10px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-margin-summary strong {
+    font-size: 11.5px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-trade-actions {
+    gap: 6px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-trade-actions button {
+    min-height: 47px !important;
+    padding: 7px 9px !important;
+    gap: 2px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-trade-actions button span {
+    font-size: 10.5px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-trade-actions button strong {
+    font-size: 14px !important;
+    line-height: 18px;
+  }
+
+  /* Market data: 39px rows (~25% more instruments per vertical screen
+     than the former 48px rows), with compact columns and 19px avatars. */
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] > header {
+    min-height: 39px !important;
+    height: 39px !important;
+    padding-inline: 9px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] > header h2 {
+    font-size: 12px !important;
+    line-height: 16px;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] > header button {
+    width: 27px !important;
+    height: 27px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-categories {
+    gap: 3px !important;
+    padding: 5px 8px !important;
+    grid-template-columns: 28px minmax(0,.87fr) minmax(0,1.63fr) minmax(0,.82fr) minmax(0,.82fr);
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-category {
+    height: 26px !important;
+    min-height: 26px;
+    font-size: 10px !important;
+    padding: 0 2px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-category svg {
+    width: 13px;
+    height: 13px;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] :is(.acg-v4-market-column-header,.acg-v4-market-row) {
+    grid-template-columns: minmax(0,1fr) 54px 54px 49px !important;
+    column-gap: 4px !important;
+    padding-right: 8px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-column-header {
+    min-height: 25px !important;
+    height: 25px;
+    font-size: 9px !important;
+    letter-spacing: .025em !important;
+    padding-left: 8px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-row {
+    min-height: 39px !important;
+    height: 39px;
+    padding-block: 3px !important;
+    padding-left: 27px !important;
+    border-left-width: 1px;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-favorite {
+    left: 2px;
+    width: 24px !important;
+    height: 30px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-instrument {
+    gap: 5px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-avatar {
+    width: 19px !important;
+    height: 19px !important;
+    flex-basis: 19px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-avatar > * {
+    max-width: 19px;
+    max-height: 19px;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-instrument-text {
+    gap: 1px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-symbol {
+    font-size: 11px !important;
+    font-weight: 660 !important;
+    line-height: 14px !important;
+    letter-spacing: 0 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-subtitle {
+    font-size: 9.5px !important;
+    line-height: 12px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-price {
+    font-size: 10.5px !important;
+    font-weight: 640 !important;
+    line-height: 15px !important;
+    letter-spacing: 0 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-change {
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    line-height: 15px !important;
+    letter-spacing: 0 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-section-title {
+    min-height: 22px !important;
+    padding: 3px 9px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] [data-market-selected="true"] .acg-v4-market-row {
+    border-left-width: 1px;
+  }
+}
+/* Constrained market panels keep all bid, ask and change columns; no
+   numerical field is hidden, and text can truncate rather than overlap. */
+@media (min-width:1024px) {
+  @container (max-width:320px) {
+    .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] :is(.acg-v4-market-column-header,.acg-v4-market-row) {
+      grid-template-columns: minmax(0,1fr) 47px 47px 43px !important;
+      column-gap: 3px !important;
+      padding-right: 5px !important;
+    }
+    .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-row {
+      padding-left: 26px !important;
+    }
+  }
+}

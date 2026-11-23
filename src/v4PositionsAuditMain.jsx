@@ -1,6 +1,7 @@
 import React,{useMemo,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import DesktopTerminal from './components/trading-v2/DesktopTerminal.jsx';
+import HelpCenter from './help/HelpCenter.jsx';
 import {AuthProvider} from './auth/AuthProvider.jsx';
 import {TradingProvider} from './store/TradingProvider.jsx';
 import './index.css';
@@ -68,6 +69,7 @@ function PositionsQA(){
  const [commands,setCommands]=useState([]);
  const [retries,setRetries]=useState(0);
  const [protectionDraft,setProtectionDraft]=useState(null);
+ const [showHelp,setShowHelp]=useState(false);
  const market=symbol==='BTCUSD'?BTC:symbol==='XAUUSD'?GOLD:EURO;
  const markets=useMemo(()=>[EURO,BTC,GOLD],[]);
  if(!publicReview)window.v4PositionsQA={
@@ -92,7 +94,7 @@ function PositionsQA(){
  {publicReview&&<div role="status" style={{position:'relative',zIndex:50,display:'flex',alignItems:'center',justifyContent:'center',height:30,background:'#191B20',borderBottom:'1px solid #43464D',color:'#E5E6EA',font:'500 11px Inter,system-ui,sans-serif'}}>
   ACG Trader V4 · FULL TERMINAL DESIGN REVIEW · Simulated account · No real market data · Actions affect mock data only
  </div>}
- <DesktopTerminal readOnly={false} market={market} tick={market} markets={markets} activeSymbol={symbol}
+ <DesktopTerminal onOpenHelp={()=>setShowHelp(true)} readOnly={false} market={market} tick={market} markets={markets} activeSymbol={symbol}
   onSelectSymbol={setSymbol} account={account} accounts={[account]} activeAccountId={account.id}
    orderType={orderType} onOrderTypeChange={setOrderType}
    lots={lots} onLotsChange={setLots}
@@ -124,6 +126,7 @@ function PositionsQA(){
   }}
   onManualOrder={()=>{if(publicReview)return false;throw Error('Fixture must never place an order');}}
  />
+ {showHelp && <HelpCenter desktop onClose={()=>setShowHelp(false)} symbol={symbol} timeframe="30m"/>}
  </>;
 }
 createRoot(document.getElementById('v4-positions-fixture')).render(

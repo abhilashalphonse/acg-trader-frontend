@@ -1,0 +1,1133 @@
+/*
+ * ACG Trader | Unified Desktop Workspace
+ *
+ * Reviewable, reversible desktop-only visual refinement.
+ * Owns terminal CHROME, never chart price rendering, order commands,
+ * drawing coordinates, watchlist data, popup state, or mobile layout.
+ * Keep this after DesktopTerminal.theme.css and DesktopHeaderV4.css.
+ * Typography is owned by the existing V6/base terminal styles. Never set
+ * font family, size, weight, spacing, line height or font features here.
+ */
+@media (min-width: 1024px) {
+  .acg-desktop-v3.acg-unified-shell {
+    --acg-unified-panel: #0c0d0f;
+    --acg-unified-panel-raised: #16171a;
+    --acg-unified-line: rgba(230, 234, 239, .105);
+    --acg-unified-line-soft: rgba(230, 234, 239, .068);
+    --acg-unified-text: #f2f3f5;
+    --acg-unified-secondary: #b6bcc5;
+    --acg-unified-muted: #929ba5;
+    gap: 0 !important;
+    padding: 0 !important;
+    background: var(--acg-unified-panel) !important;
+    
+    
+    
+  }
+
+  /* A single 48px navigation band, not a detached rounded card. */
+  .acg-desktop-v3.acg-unified-shell header.acg-desktop-market-strip {
+    flex: 0 0 48px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    margin: 0 !important;
+    padding: 0 10px !important;
+    gap: 0 !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--acg-unified-line) !important;
+    border-radius: 0 !important;
+    background: var(--acg-unified-panel) !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-desktop-chart-toolbar {
+    height: 100% !important;
+    background: transparent !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-instrument {
+    height: 100%;
+    padding-right: 8px;
+    margin-right: 6px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-timeframes {
+    height: 32px !important;
+    gap: 2px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-timeframes button {
+    height: 28px !important;
+    border-radius: 4px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-tools [data-v4-header-tool] {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 4px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account] {
+    height: 34px !important;
+    border-radius: 6px !important;
+    background: var(--acg-unified-panel-raised) !important;
+    border-color: var(--acg-unified-line) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account]:hover {
+    background: #1d1f22 !important;
+  }
+  /* Only the avatar is round; the account container follows the shell geometry. */
+  .acg-desktop-v3.acg-unified-shell .acg-v4-header-account-mark {
+    border-radius: 50%;
+  }
+
+  /* Keep the existing adjustable columns and dock row; remove only gutters. */
+  .acg-desktop-v3.acg-unified-shell .acg-unified-workspace-grid {
+    gap: 0 !important;
+    background: var(--acg-unified-panel) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .acg-unified-workspace-grid > section:first-child {
+    background: transparent !important;
+    border: 0 !important;
+  }
+
+  /* A hairline distinguishes chart from side panel without double outlines. */
+  .acg-desktop-v3.acg-unified-shell .acg-unified-workspace-grid > .acg-motion-side-panel {
+    border: 0 !important;
+    border-left: 1px solid var(--acg-unified-line) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: var(--acg-unified-panel) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Desktop panel dock"] {
+    border: 0 !important;
+    border-left: 1px solid var(--acg-unified-line) !important;
+    border-radius: 0 !important;
+    background: var(--acg-unified-panel) !important;
+    box-shadow: none !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Desktop panel dock"] > button {
+    width: 32px !important;
+    height: 32px !important;
+    margin-bottom: 3px !important;
+    border-radius: 4px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Desktop panel dock"] > button > svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 1.75;
+  }
+
+  /* Remove the embedded 'card around the chart' in BOTH chart themes. */
+  .acg-desktop-v3.acg-unified-shell .grid:has(> aside[aria-label="Drawing tools"]) {
+    gap: 0 !important;
+    grid-template-columns: 44px minmax(0, 1fr) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Drawing tools"] {
+    background: var(--acg-unified-panel) !important;
+    border: 0 !important;
+    border-right: 1px solid var(--acg-unified-line) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+    gap: 2px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Drawing tools"] :is(button,.acg-mobile-drawing-tool) {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    border-radius: 4px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Drawing tools"] :is(button,.acg-mobile-drawing-tool) svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 1.7;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Drawing tools"] .acg-mobile-drawing-tool-selected,
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Drawing tools"] [aria-pressed="true"] {
+    background: #24262a !important;
+    color: #f0f1f2 !important;
+    border-color: rgba(235,238,240,.25) !important;
+    box-shadow: inset 0 0 0 1px rgba(235,238,240,.20) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .grid:has(> aside[aria-label="Drawing tools"]) > div.relative.h-full {
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .grid:has(> aside[aria-label="Drawing tools"]) > div.relative.h-full > div {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* The positions dock joins the workspace instead of floating below it. */
+  .acg-desktop-v3.acg-unified-shell .acg-desktop-dock-shell {
+    border: 0 !important;
+    border-top: 1px solid var(--acg-unified-line) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: var(--acg-unified-panel) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .acg-desktop-positions {
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .acg-desktop-positions > div:first-child {
+    min-height: 40px !important;
+    height: 40px !important;
+    padding-inline: 10px !important;
+    border-bottom: 1px solid var(--acg-unified-line-soft) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .acg-desktop-positions > div:first-child button {
+    border-radius: 4px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .acg-desktop-positions :is(strong,b,[class*="font-mono"]) {
+    
+  }
+
+  /* Menus and overlays are genuinely elevated. Structural panels are flat. */
+  .acg-desktop-v3.acg-unified-shell .acg-motion-popover,
+  .acg-desktop-v3.acg-unified-shell .acg-v3-popover {
+    border-radius: 6px !important;
+    border-color: rgba(230,234,239,.17) !important;
+    box-shadow: 0 14px 36px rgba(0,0,0,.42) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell button:focus-visible,
+  .acg-desktop-v3.acg-unified-shell :is(input,select,textarea):focus-visible {
+    outline: 2px solid #cbd0d6 !important;
+    outline-offset: -2px;
+  }
+  .acg-desktop-v3.acg-unified-shell :is(button,[role="button"]):not(:disabled) {
+    transition-property: background-color, border-color, color, opacity;
+    transition-duration: 120ms;
+    transition-timing-function: ease-out;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .acg-desktop-v3.acg-unified-shell :is(button,[role="button"]) {
+      transition-duration: 0ms !important;
+    }
+  }
+}
+
+/* Compact desktop: do not hide trade tools or change chart proportions. */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .acg-desktop-v3.acg-unified-shell header.acg-desktop-market-strip {
+    padding-inline: 7px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-instrument {
+    margin-right: 3px;
+  }
+}
+
+
+/* ==========================================================================
+   Integrated chrome refinement — execution, watchlist, menus and compact nav.
+   Exactly the same 4px-radius / 1px-divider / neutral-silver language as the
+   unified shell. Visual only: never change order, price, or permission states.
+   ========================================================================== */
+@media (min-width: 1024px) {
+  /* Keep the 48px top band genuinely compact at each desktop breakpoint.
+     No detached borders/pills between symbol, interval tools and account. */
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header {
+    min-width: 0;
+    padding-inline: 8px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-instrument {
+    flex: 0 1 176px;
+    width: 176px;
+    max-width: 176px;
+    min-width: 138px;
+    margin-right: 4px;
+    padding-right: 6px;
+    gap: 7px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-instrument-image] {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    flex-basis: 28px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-primary strong {
+    
+    
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-secondary {
+    height: 13px;
+    
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-tools {
+    gap: 2px !important;
+    padding-inline: 3px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-right {
+    min-width: 0;
+    padding-left: 8px;
+    gap: 5px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-right::before {
+    height: 22px;
+    background: var(--acg-unified-line);
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-divider {
+    background: var(--acg-unified-line);
+    height: 18px;
+    margin-inline: 1px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account] {
+    max-width: 225px;
+    min-width: 0;
+    gap: 5px;
+    padding-left: 5px;
+    border-radius: 4px !important;
+    background: #141518 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-account-copy {
+    min-width: 0;
+    gap: 5px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account-name] {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    
+    max-width: 136px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-account-type {
+    
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-account-chevron {
+    flex-basis: 25px;
+    width: 25px;
+    border-left-color: var(--acg-unified-line);
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-timeframes button[aria-pressed="true"] {
+    box-shadow: none !important;
+    border-radius: 4px !important;
+  }
+
+  /* Order ticket: section rhythm and hierarchy, not floating widgets. */
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope {
+    --v4-bg: var(--acg-unified-panel);
+    --v4-surface: var(--acg-unified-panel-raised);
+    background: var(--acg-unified-panel) !important;
+    color: var(--acg-unified-text);
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-ticket-body {
+    padding: 0 10px 10px !important;
+    gap: 10px !important;
+    scrollbar-color: #3e4046 transparent;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-instrument {
+    min-height: 46px;
+    margin: 0 -10px;
+    padding: 0 10px;
+    gap: 7px;
+    border-bottom: 1px solid var(--acg-unified-line);
+    flex-shrink: 0;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-coin {
+    flex-basis: 27px;
+    width: 27px;
+    height: 27px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-symbol strong {
+    
+    
+    
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-symbol span {
+    
+    color: var(--acg-unified-muted);
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-head-actions {
+    gap: 3px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-head-actions button {
+    height: 30px;
+    width: 30px;
+    border-radius: 4px;
+    color: var(--acg-unified-secondary);
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-head-actions button:hover {
+    background: #202227;
+    color: #fff;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-session {
+    min-height: 18px;
+    
+    color: var(--acg-unified-secondary);
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-session > span:last-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
+    
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-quote-strip {
+    border-radius: 4px !important;
+    border: 1px solid var(--acg-unified-line-soft);
+    background: #131417 !important;
+    min-height: 35px;
+    padding: 7px 8px;
+    gap: 4px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-quote-strip > span {
+    
+    color: var(--acg-unified-muted);
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-quote-strip strong {
+    
+    
+    color: #e4e7eb;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-capsule {
+    padding: 2px;
+    gap: 2px;
+    background: #181a1e;
+    border: 1px solid var(--acg-unified-line-soft);
+    border-radius: 4px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-capsule-button {
+    border-radius: 3px !important;
+    padding: 7px 3px;
+    
+    
+    color: var(--acg-unified-secondary);
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-capsule-button.selected {
+    background: #dfe2e6 !important;
+    color: #121417 !important;
+    
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-capsule-button:not(.selected):hover {
+    background: #292b30;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-mainmodes .v4-capsule-button {
+    min-height: 30px;
+    
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-block {
+    gap: 9px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-section-heading {
+    color: var(--acg-unified-muted);
+    
+    
+    
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-amount {
+    grid-template-columns: 34px minmax(0,1fr) 34px;
+    gap: 7px;
+    min-height: 47px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-amount > button {
+    width: 34px;
+    height: 34px;
+    border-radius: 4px;
+    background: #23252a;
+    border: 1px solid var(--acg-unified-line);
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-hero-input {
+    height: 47px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-hero-value {
+    
+    
+    
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-hero-input input {
+    height: 40px;
+    border: 1px solid var(--acg-unified-line) !important;
+    border-radius: 4px !important;
+    background: #181a1f;
+    
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-translation {
+    
+    color: var(--acg-unified-secondary);
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket :is(.v4-exit-card,.v4-ratio-slab,.v4-advanced-content,.v4-margin-summary,.v4-settings) {
+    border-radius: 4px !important;
+    background: #17191d !important;
+    border: 1px solid var(--acg-unified-line-soft);
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-exit-card {
+    padding: 10px;
+    gap: 9px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-exit-heading strong {
+    
+    
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-exit-controls {
+    gap: 6px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-exit-controls > input,
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-select-wrap > select,
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-advanced-content :is(input,select),
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-inline-setting input {
+    min-height: 34px;
+    border: 1px solid var(--acg-unified-line) !important;
+    border-radius: 4px !important;
+    background: #101215 !important;
+    color: var(--acg-unified-text) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-select-wrap {
+    height: 34px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-select-wrap > svg {
+    top: 9px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-ratio-slab {
+    padding: 10px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-advanced-content {
+    padding: 10px;
+    gap: 9px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-execution-footer {
+    background: var(--acg-unified-panel) !important;
+    border-top: 1px solid var(--acg-unified-line);
+    padding: 10px !important;
+    gap: 8px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-margin-summary {
+    padding: 9px 10px;
+    gap: 8px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-margin-summary strong {
+    
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-trade-actions {
+    gap: 6px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-trade-actions button,
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-manage-footer button {
+    min-height: 47px;
+    border-radius: 4px !important;
+    padding: 8px 10px;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-trade-actions button strong {
+    
+  }
+  /* Buy/sell colors, disabled affordances and warnings deliberately inherited. */
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-notice {
+    border-radius: 4px !important;
+  }
+
+  /* Markets and Favorites: full-height integrated panel, narrower row rhythm. */
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] {
+    --v4-market-bg: var(--acg-unified-panel);
+    --v4-market-surface: #212328;
+    --v4-market-hairline: var(--acg-unified-line-soft);
+    --v4-market-secondary: var(--acg-unified-secondary);
+    --v4-market-subtle: var(--acg-unified-muted);
+    background: var(--acg-unified-panel) !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] > header {
+    min-height: 46px;
+    height: 46px;
+    padding-inline: 10px;
+    border-bottom-color: var(--acg-unified-line) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] > header h2 {
+    
+    
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] > header button {
+    width: 30px;
+    height: 30px;
+    border-radius: 4px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] :is(.acg-v4-market-category,.acg-v4-market-favorite) {
+    border-radius: 4px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-categories {
+    gap: 3px;
+    padding: 6px 9px;
+    border-bottom-color: var(--acg-unified-line-soft);
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-category {
+    height: 30px;
+    background: #17191c;
+    color: var(--acg-unified-secondary);
+    
+    
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-category.is-selected {
+    color: #121417;
+    background: #e1e4e8;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-category:not(.is-selected):hover {
+    background: #282b30;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] label:has(> input[aria-label="Search markets input"]) {
+    height: 34px;
+    margin-top: 7px;
+    border-radius: 4px !important;
+    background: #16181b;
+    border-color: var(--acg-unified-line) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] [data-v4-market-header] {
+    min-height: 28px;
+    padding-inline: 10px;
+    background: #141518 !important;
+    border-bottom-color: var(--acg-unified-line-soft);
+    color: var(--acg-unified-muted);
+    
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-section-title {
+    min-height: 25px;
+    background: #15171a;
+    color: #cdd2d8;
+    border-top-color: var(--acg-unified-line-soft);
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-row-wrap {
+    border-bottom-color: var(--acg-unified-line-soft);
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-row {
+    min-height: 48px;
+    padding-block: 5px;
+    column-gap: 5px;
+    border-left-width: 2px;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-symbol {
+    
+    
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-subtitle {
+    
+    color: var(--acg-unified-muted);
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-price {
+    
+    
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] [data-market-selected="true"] .acg-v4-market-row {
+    background: #202328;
+    border-left-color: #d8dde3;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-row:hover {
+    background: #1b1e22;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] [role="menu"] {
+    border: 1px solid var(--acg-unified-line) !important;
+    border-radius: 5px !important;
+    background: #16181b !important;
+    box-shadow: 0 12px 30px rgba(0,0,0,.42) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] [role="menuitemradio"] {
+    min-height: 31px;
+    border-radius: 3px !important;
+  }
+
+  /* Account switcher: one bounded list, slim rows and controlled hierarchy. */
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu] {
+    border-radius: 5px !important;
+    border-color: rgba(230,234,239,.17) !important;
+    background: #121417 !important;
+    box-shadow: 0 14px 34px rgba(0,0,0,.45) !important;
+    padding: 6px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] {
+    width: min(320px, calc(100vw - 16px));
+    max-height: min(580px, calc(100dvh - 72px));
+    padding: 0;
+    border-radius: 5px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:first-child {
+    padding: 11px 12px 9px;
+    background: #17191d;
+    border-bottom: 1px solid var(--acg-unified-line);
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:first-child strong {
+    
+    
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:first-child span {
+    
+    
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:nth-child(2) > div > button,
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:last-child > div > button {
+    min-height: 53px;
+    padding: 9px 12px;
+    gap: 8px;
+    border-radius: 0 !important;
+    border-bottom-color: var(--acg-unified-line-soft) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] button:hover:not(:disabled) {
+    background: #202328 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] button strong {
+    
+    
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] button span {
+    
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] button > div > span:last-child {
+    color: var(--acg-unified-muted);
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="layout"] .group,
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="chart"] > button,
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="more"] > button {
+    border-radius: 3px !important;
+  }
+
+  /* Chart appearance/settings dialog: premium compact inspection panel. */
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] {
+    width: 286px;
+    max-width: min(286px, calc(100vw - 55px));
+    top: 0;
+    right: 44px;
+    background: #121417 !important;
+    border-color: rgba(230,234,239,.17) !important;
+    border-radius: 5px !important;
+    box-shadow: 0 14px 34px rgba(0,0,0,.42) !important;
+    backdrop-filter: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] > div:first-child {
+    height: 46px;
+    padding-inline: 12px;
+    border-bottom-color: var(--acg-unified-line) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] > div:nth-child(2) {
+    padding: 11px 12px;
+    scrollbar-color: #42454a transparent;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [role="group"][aria-label="Chart canvas theme"] {
+    gap: 3px;
+    padding: 3px;
+    border-radius: 4px !important;
+    border-color: var(--acg-unified-line) !important;
+    background: #1a1d21 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [role="group"][aria-label="Chart canvas theme"] button {
+    height: 32px;
+    border-radius: 3px !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [role="group"][aria-label="Chart canvas theme"] button[aria-pressed="true"] {
+    background: #33373d !important;
+    color: #f4f6f8 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] .overflow-hidden.rounded-lg {
+    border-radius: 4px !important;
+    border-color: var(--acg-unified-line-soft) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] label:has(input[type="color"]) {
+    border-radius: 4px !important;
+    background: #1c1f23 !important;
+    border-color: var(--acg-unified-line) !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] :is(input:not([type="color"]),select) {
+    border-radius: 4px !important;
+    background: #1b1d21 !important;
+    border-color: var(--acg-unified-line) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] > div:last-child {
+    border-top-color: var(--acg-unified-line) !important;
+    background: #16181c;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] > div:last-child button {
+    border-radius: 4px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell :is(.v4-ticket,[data-v4-markets-panel],[data-v4-chart-settings="true"]) :is(button,input,select):focus-visible {
+    outline: 2px solid #e2e6eb !important;
+    outline-offset: -2px;
+  }
+}
+/* Tighten layout, never discard symbol/account access at 1024px. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-instrument {
+    flex-basis: 145px;
+    width: 145px;
+    max-width: 145px;
+    min-width: 125px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account] {
+    max-width: 190px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account-name] {
+    max-width: 98px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-right {
+    gap: 3px;
+    padding-left: 4px;
+  }
+}
+@media (min-width: 1024px) and (max-width: 1099px) {
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-instrument {
+    flex-basis: 129px;
+    width: 129px;
+    max-width: 129px;
+    min-width: 118px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account] {
+    max-width: 170px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account-name] {
+    max-width: 86px;
+  }
+}
+
+
+/* ==========================================================================
+   Screenshot-based finishing pass — account, settings, Help Center, overview.
+   Portaled surfaces are explicitly tagged; no general-purpose popovers,
+   order execution, market-data, or mobile UI are restyled by these rules.
+   ========================================================================== */
+@media (min-width:1024px) {
+  /* Make account code legible without spending the whole 48px navbar width.
+     Two tidy lines prevent code/type collisions at 1024–1440px. */
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account] {
+    border-radius: 4px !important;
+    height: 34px !important;
+    gap: 6px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account] .acg-v4-header-account-copy {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    gap: 0 !important;
+    overflow: hidden;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account-name] {
+    max-width: 145px;
+    
+    
+    
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account] .acg-v4-header-account-type {
+    color: #9ba3ad !important;
+    
+    
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account] .acg-v4-header-account-mark {
+    width: 25px;
+    height: 25px;
+    flex-basis: 25px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] {
+    background: #111316 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:first-child {
+    padding: 10px 12px !important;
+    background: #15171a !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:first-child > div {
+    gap: 7px 10px !important;
+    margin-top: 8px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:first-child > div > span {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 2px;
+    
+    color: #939aa6 !important;
+    
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:first-child > div > span b {
+    margin: 0 !important;
+    color: #e3e6ea !important;
+    
+    
+    
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:first-child > span:last-child {
+    margin-top: 8px !important;
+    
+    
+    color: #a0a7b0 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:nth-child(2) {
+    max-height: 330px;
+    scrollbar-color: #3a3e44 transparent;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] button {
+    border-radius: 0 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] button strong {
+    
+    
+  }
+
+  /* Settings: information density without shrinking already-small labels. */
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] {
+    width: 300px;
+    max-width: min(300px, calc(100vw - 55px));
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] > div:nth-child(2) {
+    max-height: min(590px, calc(100dvh - 146px));
+    padding: 10px 12px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [data-acg-settings-theme],
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [data-acg-settings-timezone] {
+    margin-bottom: 11px !important;
+    margin-top: 0 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [data-acg-settings-spacing] {
+    margin-top: 11px !important;
+    margin-bottom: 11px !important;
+    gap: 7px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [data-acg-settings-candle-heading] {
+    margin-bottom: 7px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] :is([data-acg-settings-theme],[data-acg-settings-candle-heading],[data-acg-settings-spacing],[data-acg-settings-timezone])
+    :is([class*="uppercase"],[class*="tracking-"]) {
+    
+    
+    
+    color: #a1aab5 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [data-acg-settings-candles] > div {
+    min-height: 39px;
+    padding-block: 5px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [data-acg-settings-candles] > div > span {
+    color: #c8cfd7 !important;
+    
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] label:has(input[type="color"]) {
+    width: 31px;
+    height: 31px;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [data-acg-settings-spacing] label {
+    
+    color: #c0c8d0 !important;
+    min-height: 30px;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [data-acg-settings-spacing] input {
+    width: 66px;
+    height: 30px;
+    
+    
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [data-acg-settings-timezone] select {
+    height: 34px;
+    
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [data-acg-settings-footer] {
+    padding-block: 8px !important;
+  }
+
+  /* Desktop Help is a tool panel, not a giant mobile-sheet clone.
+     All navigation, forms, article content and focus trapping remain intact. */
+  #acg-unified-help-dialog {
+    top: 54px !important;
+    bottom: auto !important;
+    right: 45px !important;
+    width: 390px !important;
+    max-width: calc(100vw - 59px) !important;
+    height: min(614px, calc(100dvh - 68px)) !important;
+    border-radius: 5px !important;
+    border: 1px solid rgba(230,234,239,.16) !important;
+    background: #111316 !important;
+    box-shadow: 0 18px 42px rgba(0,0,0,.48) !important;
+    color: #e5e9ee !important;
+  }
+  #acg-unified-help-dialog > header {
+    height: 46px !important;
+    min-height: 46px !important;
+    padding: 0 12px !important;
+    background: #15171a;
+    border-bottom-color: rgba(230,234,239,.1) !important;
+  }
+  #acg-unified-help-dialog > header h2 {
+    
+    
+  }
+  #acg-unified-help-dialog > header button {
+    height: 30px !important;
+    width: 30px !important;
+    border-radius: 4px !important;
+  }
+  #acg-unified-help-dialog > header svg {
+    width: 17px;
+    height: 17px;
+    color: #b6c0ca;
+  }
+  #acg-unified-help-dialog [data-help-scroll] {
+    padding: 12px !important;
+    scrollbar-color: #3e4248 transparent;
+  }
+  #acg-unified-help-dialog [data-help-home] {
+    display: flex;
+    flex-direction: column;
+    gap: 13px !important;
+  }
+  #acg-unified-help-dialog [data-help-home] p {
+    margin-bottom: 7px !important;
+  }
+  #acg-unified-help-dialog [data-help-home] > div > p {
+    color: #a3acb7 !important;
+    
+    
+    
+  }
+  #acg-unified-help-dialog [data-help-home] [data-help-search] {
+    min-height: 36px !important;
+    padding: 0 11px !important;
+    background: #191c20 !important;
+    border-radius: 4px !important;
+    border-color: rgba(230,234,239,.14) !important;
+  }
+  #acg-unified-help-dialog [data-help-home] [data-help-search] input {
+    min-height: 34px;
+    
+  }
+  #acg-unified-help-dialog [data-help-category-grid] {
+    gap: 7px !important;
+  }
+  #acg-unified-help-dialog [data-help-category-tile] {
+    min-height: 88px !important;
+    padding: 10px 11px !important;
+    border-radius: 4px !important;
+    border-color: rgba(230,234,239,.10) !important;
+    background: #181a1e !important;
+    box-shadow: none !important;
+  }
+  #acg-unified-help-dialog [data-help-category-tile]:hover {
+    background: #24272b !important;
+    border-color: rgba(230,234,239,.25) !important;
+  }
+  #acg-unified-help-dialog [data-help-category-tile] > svg {
+    width: 16px;
+    height: 16px;
+    margin-bottom: 8px !important;
+    color: #b6bec7 !important;
+  }
+  #acg-unified-help-dialog [data-help-category-tile] > span:nth-of-type(1) {
+    
+    
+    color: #edf0f4;
+  }
+  #acg-unified-help-dialog [data-help-category-tile] > span:nth-of-type(2) {
+    margin-top: 2px !important;
+    
+    color: #a5afb9 !important;
+  }
+  #acg-unified-help-dialog [data-help-contact-list] {
+    border-radius: 4px !important;
+    border-color: rgba(230,234,239,.12) !important;
+    background: #17191d;
+  }
+  #acg-unified-help-dialog [data-help-contact-item] {
+    min-height: 53px !important;
+    padding: 7px 11px !important;
+    gap: 9px !important;
+    border-bottom-color: rgba(230,234,239,.08) !important;
+  }
+  #acg-unified-help-dialog [data-help-contact-item] > svg {
+    width: 16px;
+    height: 16px;
+    color: #aeb7c2 !important;
+  }
+  #acg-unified-help-dialog [data-help-contact-item] span.block:first-child {
+    
+    
+  }
+  #acg-unified-help-dialog [data-help-contact-item] span.block:last-child {
+    margin-top: 2px !important;
+    
+    color: #9ca6b1 !important;
+  }
+  #acg-unified-help-dialog [data-help-contact-item]:hover {
+    background: #22252a !important;
+  }
+  #acg-unified-help-dialog [data-help-scroll] :is(button,input,textarea,select):focus-visible {
+    outline: 2px solid #dce3e9 !important;
+    outline-offset: -2px;
+  }
+
+  /* The overview is portaled into document.body. It needs its own tag instead
+     of a selector rooted under .acg-unified-shell. */
+  [data-acg-unified-overview="true"].v4-account-overview-popover {
+    width: 288px !important;
+    max-width: calc(100vw - 16px) !important;
+    border-radius: 5px !important;
+    border: 1px solid rgba(230,234,239,.16) !important;
+    background: #15171a !important;
+    box-shadow: 0 15px 36px rgba(0,0,0,.43) !important;
+    padding: 11px 12px !important;
+  }
+  [data-acg-unified-overview="true"] .v4-account-overview-title {
+    margin-bottom: 10px !important;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(230,234,239,.1);
+  }
+  [data-acg-unified-overview="true"] .v4-account-overview-title strong {
+    
+    
+  }
+  [data-acg-unified-overview="true"] .v4-account-overview-title span {
+    
+  }
+  [data-acg-unified-overview="true"] .v4-account-overview-grid {
+    gap: 9px 12px !important;
+  }
+  [data-acg-unified-overview="true"] .v4-account-overview-field {
+    gap: 3px;
+  }
+  [data-acg-unified-overview="true"] .v4-account-overview-field > span {
+    
+    color: #9faab4 !important;
+  }
+  [data-acg-unified-overview="true"] .v4-account-overview-field > strong {
+    
+    
+    
+  }
+  [data-acg-unified-overview="true"] .v4-account-exposure {
+    margin-top: 11px !important;
+    padding-top: 9px !important;
+    border-top-color: rgba(230,234,239,.12) !important;
+  }
+  [data-acg-unified-overview="true"] .v4-account-exposure-title {
+    margin-bottom: 6px !important;
+    
+    color: #cdd4db !important;
+  }
+  [data-acg-unified-overview="true"] .v4-account-exposure > div:not(.v4-account-exposure-title) {
+    margin-top: 5px;
+    color: #a2acb5;
+    
+  }
+  [data-acg-unified-overview="true"] .v4-account-exposure > div > strong {
+    
+    
+  }
+  .acg-unified-shell .v4-account-overview-trigger {
+    border-radius: 4px !important;
+    background: #1b1d21 !important;
+    border-color: rgba(230,234,239,.15) !important;
+    
+  }
+}
+
+@media (min-width:1024px) and (max-width:1279px) {
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account-name] {
+    max-width: 105px;
+  }
+}
+@media (min-width:1024px) and (max-width:1099px) {
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account-name] {
+    max-width: 90px;
+  }
+}

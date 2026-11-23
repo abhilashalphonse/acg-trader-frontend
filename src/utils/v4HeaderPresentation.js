@@ -16,7 +16,12 @@ export function v4HeaderFxMonogram(market){
 }
 export function v4HeaderAccountLabel(account){
   const raw=String(account?.accountCode||'').trim();
-  return raw?'ACG · '+raw.slice(-6):'Trading account';
+  if (!raw) return 'Trading account';
+  // Preserve the owner's original one-line naming convention:
+  // "ACG · 886425  Trial". Never display an arbitrary six-letter suffix.
+  // Strip only a duplicated ACG prefix, not the account identifier.
+  const code=raw.replace(/^ACG(?:\s*[·-]\s*|[_\s]+)?/i, '').trim();
+  return code ? 'ACG · '+code : 'ACG';
 }
 
 /** Presentation-only account kind: backend and legacy account rules stay unchanged. */

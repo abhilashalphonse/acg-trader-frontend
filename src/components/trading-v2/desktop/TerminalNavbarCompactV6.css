@@ -1,0 +1,211 @@
+/*
+ * ACG Trader | Compact navbar comparison (PR #236)
+ *
+ * Reference direction: small standalone app mark, dark symbol capsule,
+ * one-line instrument identity, quiet active timeframe and thin dividers.
+ * Deliberately limited to desktop navbar chrome. Preserve V6 font FACE,
+ * type feature settings, account control, chart tools and their callbacks.
+ */
+@media (min-width:1024px) {
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header.acg-desktop-market-strip {
+    flex: 0 0 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    padding-inline: 10px !important;
+    border-radius: 0 !important;
+    border-color: rgba(231,235,239,.10) !important;
+    background: #0a0b0d !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-instrument {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    max-width: 230px !important;
+    min-width: 0 !important;
+    height: 100% !important;
+    margin: 0 11px 0 0 !important;
+    padding: 0 12px 0 0 !important;
+    gap: 11px !important;
+    display: flex;
+    align-items: center;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-instrument-image] {
+    flex: 0 0 30px !important;
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 30px !important;
+    border: 0 !important;
+    background: transparent !important;
+    padding: 0 !important;
+    border-radius: 8px !important;
+    overflow: hidden;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-instrument-image] [data-acg-nav-brand-mark] {
+    width: 30px !important;
+    height: 30px !important;
+    max-width: 30px !important;
+    max-height: 30px !important;
+    border-radius: 8px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-identity {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 6px !important;
+    min-width: 0;
+    height: 100%;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-primary {
+    height: 28px !important;
+    gap: 3px !important;
+    align-items: center;
+  }
+  /* The symbol is a compact pill with its instrument-specific identity, while
+     the gradient A remains a separate brand mark to its left. */
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-primary > button:first-child {
+    height: 27px !important;
+    min-height: 27px !important;
+    max-width: 172px;
+    padding: 0 8px !important;
+    gap: 6px !important;
+    border: 1px solid rgba(231,235,239,.09) !important;
+    border-radius: 14px !important;
+    background: #202226 !important;
+    box-shadow: none !important;
+    color: #e8ebef !important;
+    white-space: nowrap;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-primary > button:first-child:hover {
+    border-color: rgba(231,235,239,.24) !important;
+    background: #2a2d32 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-primary strong {
+    font-size: 11.5px !important;
+    line-height: 16px !important;
+    font-weight: 650 !important;
+    letter-spacing: 0 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-primary > button:first-child > svg {
+    width: 11px !important;
+    height: 11px !important;
+    stroke-width: 1.6;
+    color: #b7bdc5;
+  }
+  /* Instrument-specific artwork stays inside the selector, paired with its
+     label. Favorites remain available in Markets; session status stays in the
+     accessibility tree without an extra green dot in the navbar. */
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-acg-header-instrument-icon] {
+    display: inline-grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    flex: 0 0 20px;
+    overflow: visible;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-acg-header-instrument-icon] > span {
+    width: 20px !important;
+    height: 20px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-acg-header-instrument-icon] .rounded-full {
+    box-shadow: none !important;
+    border-color: rgba(231,235,239,.15) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-desktop-chart-toolbar {
+    height: 100% !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    gap: 3px !important;
+    background: transparent !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-timeframes {
+    display: flex;
+    align-items: center;
+    height: 28px !important;
+    gap: 1px !important;
+    padding: 0 1px !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-timeframes button {
+    box-sizing: border-box;
+    height: 26px !important;
+    min-height: 26px !important;
+    min-width: 27px !important;
+    padding: 0 5px !important;
+    border: 0 !important;
+    border-radius: 5px !important;
+    color: #9da5af !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    font-size: 11px !important;
+    font-weight: 550 !important;
+    line-height: 16px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-timeframes button[aria-pressed="true"],
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-timeframes button[aria-pressed="true"]:is(:hover,:focus,:active) {
+    color: #f0f2f5 !important;
+    background: #2a2d32 !important;
+    border: 1px solid rgba(231,235,239,.13) !important;
+    font-weight: 650 !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-compact-timeframe > button {
+    min-width: 46px !important;
+    height: 26px !important;
+    border-radius: 5px !important;
+    background: #2a2d32 !important;
+    color: #f0f2f5 !important;
+    font-size: 11px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-tools {
+    gap: 2px !important;
+    padding: 0 3px !important;
+    height: 100% !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-tool] {
+    width: 28px !important;
+    min-width: 28px !important;
+    height: 28px !important;
+    border-radius: 4px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-tool] > svg,
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-indicator-icon {
+    width: 15px !important;
+    height: 15px !important;
+    stroke-width: 1.65 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-divider {
+    height: 16px !important;
+    margin: 0 3px !important;
+    background: rgba(231,235,239,.11) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-right {
+    gap: 5px !important;
+    padding-left: 9px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-right::before {
+    height: 18px !important;
+    background: rgba(231,235,239,.10) !important;
+  }
+  /* Account button retains its approved identity format and geometry. */
+}
+@media (min-width:1024px) and (max-width:1279px) {
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-instrument {
+    margin-right: 5px !important;
+    padding-right: 7px !important;
+    gap: 9px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-primary > button:first-child {
+    padding-inline: 7px !important;
+  }
+}
+@media (min-width:1024px) and (max-width:1099px) {
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-timeframes {
+    display: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-compact-timeframe {
+    display: block !important;
+  }
+}
