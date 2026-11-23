@@ -7,7 +7,7 @@ import {mkdir} from 'node:fs/promises';
 await mkdir('artifacts',{recursive:true});
 const port=5186,base='http://127.0.0.1:'+port;
 const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','--host','127.0.0.1','--port',String(port),'--strictPort'],{env:{...process.env,VITE_ACG_EXECUTION_V4_ENABLED:'true'},stdio:'ignore'});
-const browser=await chromium.launch({headless:true,...(process.env.ALERTS_CHROME_PATH?{executablePath:process.env.ALERTS_CHROME_PATH}:{}),args:['--no-sandbox']});
+const browser=await chromium.launch({headless:true,...(process.env.ALERTS_CHROME_PATH?{executablePath:process.env.ALERTS_CHROME_PATH}:{channel:'chrome'}),args:['--no-sandbox']});
 try{
   let ready=false;for(let i=0;i<60;i++){try{if((await fetch(base+'/tests/fixtures/alerts.html')).ok){ready=true;break;}}catch{}await delay(300);}
   assert.ok(ready,'Vite starts');
