@@ -266,13 +266,13 @@ function loadMultiChart(activeSymbol, timeframe, indicators = []) {
 function displaySymbol(symbol = '') {
   if (symbol.includes('/')) return symbol;
   if (/^[A-Z]{6}$/.test(symbol)) return `${symbol.slice(0, 3)}/${symbol.slice(3)}`;
-  return symbol || '-';
+  return symbol || '—';
 }
 
 function money(value, currency = 'USD') {
-  if (value === null || value === undefined || value === '') return '-';
+  if (value === null || value === undefined || value === '') return '—';
   const number = Number(value);
-  if (!Number.isFinite(number)) return '-';
+  if (!Number.isFinite(number)) return '—';
   try {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(number);
   } catch {
@@ -282,7 +282,7 @@ function money(value, currency = 'USD') {
 
 function accountSize(value) {
   const numeric = Number(value);
-  if (!Number.isFinite(numeric) || numeric <= 0) return '-';
+  if (!Number.isFinite(numeric) || numeric <= 0) return '—';
   if (numeric >= 1_000_000) return (numeric / 1_000_000).toFixed(numeric % 1_000_000 === 0 ? 0 : 1) + 'M';
   if (numeric >= 1_000) return (numeric / 1_000).toFixed(numeric % 1_000 === 0 ? 0 : 1) + 'K';
   return numeric.toLocaleString('en-US');
@@ -305,7 +305,7 @@ function accountGroups(accounts = []) {
 
 function formatPnl(value, currency = 'USD') {
   const number = Number(value);
-  if (!Number.isFinite(number)) return '-';
+  if (!Number.isFinite(number)) return '—';
   const absolute = money(Math.abs(number), currency);
   return (number >= 0 ? '+' : '-') + absolute;
 }
@@ -1227,7 +1227,7 @@ export default function DesktopTerminal({
                   {chartLayout > 1 && <>
                     <div className="my-1 border-t border-white/[0.06]"/>
                     <button type="button" onClick={toggleChartLink} className={chartLinked ? "flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#C9CDD2] hover:bg-white/[0.03]" : "flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"}><span className="flex items-center gap-2">{chartLinked ? <Link2 size={12}/> : <Link2Off size={12}/>}Link symbols</span><span className="text-[#6F8191]">{chartLinked ? 'On' : 'Off'}</span></button>
-                    <button type="button" onClick={applyActiveIndicatorsToAllCharts} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Copy indicators to all</span><span className="text-[#6F8191]">�x {indicators.length}</span></button>
+                    <button type="button" onClick={applyActiveIndicatorsToAllCharts} className="flex w-full items-center justify-between rounded px-2 py-2 text-left text-[8px] font-semibold text-[#A1AFBC] hover:bg-white/[0.03]"><span>Copy indicators to all</span><span className="text-[#6F8191]">ƒx {indicators.length}</span></button>
                   </>}
                   </>}
                 </div>
@@ -1237,10 +1237,10 @@ export default function DesktopTerminal({
             <div className="relative">
               <button type="button" data-v4-header-tool="indicators" aria-label={V4_DESKTOP_EXECUTION_ENABLED ? 'Indicators' : undefined} aria-expanded={v4IsOpen('indicators',indicatorPanelOpen)} onClick={() => {
                 setIndicatorFocusId(null); setObjectManagerOpen(false); v4Toggle('indicators',setIndicatorPanelOpen);
-              }} className={indicatorPanelOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#C9CDD2]/60 bg-[#222427] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title="Indicators"><span className="acg-v4-header-fx text-[11px] font-black">�x</span><span className="acg-v4-header-tool-label">Indicators</span>{indicators.length > 0 && <span className="acg-v4-header-indicator-count grid min-w-3 place-items-center rounded bg-[#181b20] px-1 text-[6px] text-[#aab5bf]">{indicators.length}</span>}<ChevronDown className="acg-v4-header-tool-chevron" size={10}/></button>
+              }} className={indicatorPanelOpen ? "flex h-7 items-center gap-1.5 rounded-md border border-[#C9CDD2]/60 bg-[#222427] px-2.5 text-[8px] font-semibold text-[#f1f4f6]" : "flex h-7 items-center gap-1.5 rounded-md border border-white/[0.06] px-2.5 text-[8px] font-semibold text-[#8996a1] hover:text-white"} title="Indicators"><span className="acg-v4-header-fx text-[11px] font-black">ƒx</span><span className="acg-v4-header-tool-label">Indicators</span>{indicators.length > 0 && <span className="acg-v4-header-indicator-count grid min-w-3 place-items-center rounded bg-[#181b20] px-1 text-[6px] text-[#aab5bf]">{indicators.length}</span>}<ChevronDown className="acg-v4-header-tool-chevron" size={10}/></button>
               {v4IsOpen('indicators',indicatorPanelOpen) && (
                 <div data-v4-header-menu={V4_DESKTOP_EXECUTION_ENABLED ? 'indicators' : undefined} className="acg-motion-popover absolute right-0 top-8 z-[110] w-[390px] max-h-[min(680px,calc(100dvh-150px))] overflow-y-auto rounded-lg border border-white/[0.10] bg-[#09090B]/98 p-3 shadow-[0_24px_70px_rgba(0,0,0,.68)] backdrop-blur-xl [scrollbar-width:thin]">
-                  <div className="mb-3 flex items-center justify-between border-b border-white/[0.07] pb-2.5"><div><strong className="block text-[11px] text-[#EDF3F7]">Indicators</strong><span className="mt-0.5 block text-[8px] text-[#687D91]">Active chart � {activeSymbol} � {activeChartTimeframe}</span></div><button type="button" onClick={() => { setIndicatorPanelOpen(false); v4Close(); }} className="grid size-7 place-items-center rounded text-[#7D91A4] hover:bg-white/[0.04] hover:text-white"><X size={13}/></button></div>
+                  <div className="mb-3 flex items-center justify-between border-b border-white/[0.07] pb-2.5"><div><strong className="block text-[11px] text-[#EDF3F7]">Indicators</strong><span className="mt-0.5 block text-[8px] text-[#687D91]">Active chart · {activeSymbol} · {activeChartTimeframe}</span></div><button type="button" onClick={() => { setIndicatorPanelOpen(false); v4Close(); }} className="grid size-7 place-items-center rounded text-[#7D91A4] hover:bg-white/[0.04] hover:text-white"><X size={13}/></button></div>
                   <IndicatorManager desktop applied={indicators} favorites={indicatorFavorites} onAdd={onAddIndicator} onRemove={onRemoveIndicator} onToggleVisible={onToggleIndicator} onUpdate={onUpdateIndicator} onToggleFavorite={onToggleIndicatorFavorite} focusInstanceId={indicatorFocusId} onClearFocus={() => setIndicatorFocusId(null)}/>
                 </div>
               )}
@@ -1259,11 +1259,11 @@ export default function DesktopTerminal({
           <div className="ml-2 flex h-full items-center">
             <div className="min-w-[92px] border-l border-white/[0.055] px-3">
               <span className="block text-[7px] uppercase tracking-[0.07em] text-[#637484]">24h High</span>
-              <strong key={marketHigh == null ? 'high-empty' : `high-${marketHigh}`} className="acg-motion-value mt-1 block font-mono text-[9px] font-bold text-[#cdd7df]">{marketHigh == null ? '-' : formatInstrumentPrice(marketHigh, market)}</strong>
+              <strong key={marketHigh == null ? 'high-empty' : `high-${marketHigh}`} className="acg-motion-value mt-1 block font-mono text-[9px] font-bold text-[#cdd7df]">{marketHigh == null ? '—' : formatInstrumentPrice(marketHigh, market)}</strong>
             </div>
             <div className="min-w-[92px] border-l border-white/[0.055] px-3">
               <span className="block text-[7px] uppercase tracking-[0.07em] text-[#637484]">24h Low</span>
-              <strong key={marketLow == null ? 'low-empty' : `low-${marketLow}`} className="acg-motion-value mt-1 block font-mono text-[9px] font-bold text-[#cdd7df]">{marketLow == null ? '-' : formatInstrumentPrice(marketLow, market)}</strong>
+              <strong key={marketLow == null ? 'low-empty' : `low-${marketLow}`} className="acg-motion-value mt-1 block font-mono text-[9px] font-bold text-[#cdd7df]">{marketLow == null ? '—' : formatInstrumentPrice(marketLow, market)}</strong>
             </div>
             {marketVolume != null && (
               <div className="min-w-[92px] border-l border-white/[0.055] px-3">
@@ -1275,7 +1275,7 @@ export default function DesktopTerminal({
         )}
         {V4_DESKTOP_EXECUTION_ENABLED && <div className="acg-v4-header-spacer" aria-hidden="true"/>}
         <div className="acg-v4-header-right ml-auto flex items-center gap-2">
-          {readOnly && <span className="hidden rounded-md border border-rose-400/20 bg-rose-400/[0.08] px-2 py-1 text-[7px] font-black uppercase tracking-[0.09em] text-rose-300 2xl:inline-flex">Read-only � Breached</span>}
+          {readOnly && <span className="hidden rounded-md border border-rose-400/20 bg-rose-400/[0.08] px-2 py-1 text-[7px] font-black uppercase tracking-[0.09em] text-rose-300 2xl:inline-flex">Read-only · Breached</span>}
           <div className="acg-v4-header-valuation hidden text-right 2xl:block">
             <span className="block text-[7px] uppercase tracking-[0.08em] text-[#637484]">Valuation</span>
             <b className={valuationStatus === 'LIVE' ? "mt-0.5 block text-[8px] text-[#42D7A1]" : valuationStatus === 'STALE' ? "mt-0.5 block text-[8px] text-[#E7BD58]" : "mt-0.5 block text-[8px] text-[#A1AFBC]"}>{valuationStatus}</b>
@@ -1297,7 +1297,7 @@ export default function DesktopTerminal({
                 {accountSwitching ? <Loader2 size={11} className="shrink-0 animate-spin text-[#C9CDD2]"/> : <span className={`acg-v4-header-account-dot ${canOpen ? "size-1.5 shrink-0 rounded-full bg-[#9FA5AA]" : valuationStatus === 'STALE' ? "size-1.5 shrink-0 rounded-full bg-[#e8bd55]" : "size-1.5 shrink-0 rounded-full bg-[#343434]"}`}/>}
                 <div className="min-w-0 flex-1 leading-none">
                   <strong data-v4-header-account-name className="block truncate text-[9px]">{account?.accountCode || accountStatus}</strong>
-                  <span className="mt-1 block truncate text-[8px] text-[#6F8191]">{accountTypeBadge(account)} � {accountSize(account?.initialBalance ?? account?.startingBalance ?? account?.challenge?.accountSize ?? account?.balance)}{Number(account?.leverage)>0 ? ` � 1:${Number(account.leverage)}` : ''}</span>
+                  <span className="mt-1 block truncate text-[8px] text-[#6F8191]">{accountTypeBadge(account)} · {accountSize(account?.initialBalance ?? account?.startingBalance ?? account?.challenge?.accountSize ?? account?.balance)}{Number(account?.leverage)>0 ? ` · 1:${Number(account.leverage)}` : ''}</span>
                 </div>
                 <ChevronDown size={11} className={v4IsOpen('account',accountMenuOpen) ? "acg-motion-chevron shrink-0 rotate-180 text-[#6F8191]" : "acg-motion-chevron shrink-0 text-[#6F8191]"}/>
               </>}
@@ -1314,7 +1314,7 @@ export default function DesktopTerminal({
                   </div>
                   <span className="mt-2 block text-[8px] leading-4 text-[#6F8191]">Execution stays locked until the selected account has a fresh snapshot and history.</span>
                 </div>
-                {accountSwitchError && <div className="border-b border-[#553038] bg-[#190d10] px-3 py-2 text-[8px] font-semibold text-[#e99aa3]">{accountSwitchError} � Select the account again to retry.</div>}
+                {accountSwitchError && <div className="border-b border-[#553038] bg-[#190d10] px-3 py-2 text-[8px] font-semibold text-[#e99aa3]">{accountSwitchError} · Select the account again to retry.</div>}
                 <div className="max-h-[420px] overflow-y-auto [scrollbar-width:thin]">
                   {groupedAccounts.map(group => (
                     <div key={group.id}>
@@ -1340,7 +1340,7 @@ export default function DesktopTerminal({
                               </div>
                               <div className="mt-1 flex items-center gap-1.5 text-[8px] text-[#6F8191]">
                                 <span className="font-bold text-[#A1AFBC]">{accountSize(item.initialBalance ?? item.startingBalance ?? item.challenge?.accountSize ?? item.balance)}</span>
-                                {phase && <><span>�</span><span>{phase}</span></>}<span>�</span><span>{accountStatusLabel(itemStatus)}</span>
+                                {phase && <><span>·</span><span>{phase}</span></>}<span>·</span><span>{accountStatusLabel(itemStatus)}</span>
                               </div>
                               <span className="mt-0.5 block text-[7px] text-[#556572]">Equity {money(item.equity, item.currency || 'USD')}</span>
                             </div>

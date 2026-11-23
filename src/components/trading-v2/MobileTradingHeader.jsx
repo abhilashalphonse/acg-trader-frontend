@@ -41,9 +41,9 @@ function marketCategory(market) {
 }
 
 function money(value, currency = 'USD') {
-  if (value === null || value === undefined || value === '') return '-';
+  if (value === null || value === undefined || value === '') return '—';
   const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return '-';
+  if (!Number.isFinite(numeric)) return '—';
   try {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -89,7 +89,7 @@ export default function MobileTradingHeader({
         </span>
         <div className="acg-mobile-instrument-meta min-w-0">
           <div className="flex min-w-0 items-center gap-1.5">
-            <strong className="truncate text-[17px] font-black leading-none tracking-[-0.035em] text-[#f7f9fb]">{symbol || '-'}</strong>
+            <strong className="truncate text-[17px] font-black leading-none tracking-[-0.035em] text-[#f7f9fb]">{symbol || '—'}</strong>
             <ChevronDown size={16} className="shrink-0 text-[#c4ccd5]" strokeWidth={2.2}/>
           </div>
           <div className="mt-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.065em]">

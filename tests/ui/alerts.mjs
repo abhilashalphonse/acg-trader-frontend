@@ -1,4 +1,5 @@
 import {chromium} from 'playwright';
+import process from 'node:process';
 import assert from 'node:assert/strict';
 const browser=await chromium.launch({executablePath:process.env.ALERTS_CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
 try{
@@ -14,7 +15,7 @@ try{
     await page.getByLabel('Condition',{exact:true}).selectOption('enters_range');
     await page.getByLabel('Lower price').fill('3240');await page.getByLabel('Upper price').fill('3260');
     await page.getByRole('button',{name:'Save changes'}).click();
-    await page.getByText('Enters range 3240 - 3260',{exact:true}).waitFor();
+    await page.getByText('Enters range 3240 – 3260',{exact:true}).waitFor();
     await page.getByRole('button',{name:'Pause or restart alert'}).click();
     await page.getByText('paused',{exact:true}).waitFor();
     await page.screenshot({path:'alerts-'+viewport.width+'.png'});

@@ -78,7 +78,7 @@ function loadTerminalPrefs() {
 
 function formatMoneyForNotice(value, currency = 'USD') {
   const number = Number(value);
-  if (!Number.isFinite(number)) return '-';
+  if (!Number.isFinite(number)) return '—';
   try {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD', maximumFractionDigits: 2 }).format(number);
   } catch {
@@ -583,7 +583,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       stage: 'ready',
     });
     setSelectedTool('cursor');
-    showNotice(`${field.toUpperCase()} moved � review and tap Apply`);
+    showNotice(`${field.toUpperCase()} moved · review and tap Apply`);
     return true;
   };
 
@@ -605,7 +605,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     if (mobileAudit) setAuditChartSelection({objectType:'position',id:position.id,revision:Date.now()});
     const preferredField = Number(position.sl) > 0 ? 'sl' : Number(position.tp) > 0 ? 'tp' : null;
     if (!preferredField) {
-      showNotice('Position selected � tap SL or TP below the chart to add protection');
+      showNotice('Position selected · tap SL or TP below the chart to add protection');
       return true;
     }
     return beginPositionProtection(preferredField, position.id);
@@ -655,7 +655,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       stage: 'ready',
     });
     setSelectedTool('cursor');
-    showNotice(`${field.toUpperCase()} removed from draft � tap Apply to confirm`);
+    showNotice(`${field.toUpperCase()} removed from draft · tap Apply to confirm`);
     return true;
   };
 
@@ -807,7 +807,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     if (!['buy', 'sell'].includes(side)) return;
     const livePrice = Number(side === 'buy' ? instrument.ask : instrument.bid);
     if (!Number.isFinite(livePrice) || livePrice <= 0) {
-      showNotice('Live market price is unavailable - risk setup was not loaded');
+      showNotice('Live market price is unavailable — risk setup was not loaded');
       return;
     }
 
@@ -870,7 +870,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
     });
     setSelectedTool('cursor');
     setOverlay(null);
-    logEvent('planner', `${sideUpper} risk setup loaded from chart � ${numericRisk.toFixed(2)}% risk`, {
+    logEvent('planner', `${sideUpper} risk setup loaded from chart · ${numericRisk.toFixed(2)}% risk`, {
       symbol: setup.symbol,
       entry,
       stopLoss: sl,
@@ -879,7 +879,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       riskPercent: numericRisk,
       orderType: nextOrderType,
     });
-    showNotice('Risk setup loaded into order planner - review and confirm');
+    showNotice('Risk setup loaded into order planner — review and confirm');
   };
 
   const cancelPlan = () => {

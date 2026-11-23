@@ -163,7 +163,7 @@ export default function TradingChart({
     const lines=[];
     for (const rule of alerts.rules.filter(r=>r.symbol===symbol&&['STARTING','MONITORING'].includes(r.status))) {
       const values=rule.condition.lower?[rule.condition.lower,rule.condition.upper]:[rule.condition.level];
-      for(const value of values)if(Number(value)>0)lines.push(series.createPriceLine({price:Number(value),color:'#92929e',lineWidth:1,lineStyle:LineStyle.Dashed,axisLabelVisible:true,title:'? '+(rule.name||'Alert')}));
+      for(const value of values)if(Number(value)>0)lines.push(series.createPriceLine({price:Number(value),color:'#92929e',lineWidth:1,lineStyle:LineStyle.Dashed,axisLabelVisible:true,title:'◷ '+(rule.name||'Alert')}));
     }
     return()=>{for(const line of lines){try{series.removePriceLine(line);}catch{/* chart disposed */}}};
   },[alerts?.enabled,alerts?.rules,readyKey,symbol]);
@@ -1250,7 +1250,7 @@ export default function TradingChart({
     onChartReadout(readyKey === chartRequestKey && !error
       ? mobileChartReadout({ symbol, timeframe, bar:displayBar, inspecting:inspectingCandle }) : null);
   }, [auditMobile, onChartReadout, readyKey, chartRequestKey, error, symbol, timeframe, displayBar, inspectingCandle]);
-  const format = value => value != null && Number.isFinite(Number(value)) ? Number(value).toFixed(decimals) : '-';
+  const format = value => value != null && Number.isFinite(Number(value)) ? Number(value).toFixed(decimals) : '—';
   const candleChange = ohlc && Number.isFinite(Number(ohlc.open)) && Number.isFinite(Number(ohlc.close))
     ? Number(ohlc.close) - Number(ohlc.open)
     : null;
@@ -1263,7 +1263,7 @@ export default function TradingChart({
       ? 'text-[#2dd39b]'
       : 'text-[#f05d68]';
   const signed = (value, formatter) => {
-    if (!Number.isFinite(Number(value))) return '-';
+    if (!Number.isFinite(Number(value))) return '—';
     const numeric = Number(value);
     return `${numeric > 0 ? '+' : ''}${formatter(numeric)}`;
   };
@@ -1280,7 +1280,7 @@ export default function TradingChart({
     if (!binding) return null;
     return <span className="acg-indicator-values">{binding.readouts.map(line => {
       const value = indicatorValueAt(line.data, displayBar?.time);
-      return <span key={line.key} style={{ color: line.style?.color || '#b5c3d5' }} title={line.label}>{Number.isFinite(value) ? value.toFixed(binding.precision) : '-'}</span>;
+      return <span key={line.key} style={{ color: line.style?.color || '#b5c3d5' }} title={line.label}>{Number.isFinite(value) ? value.toFixed(binding.precision) : '—'}</span>;
     })}</span>;
   };
 
@@ -1369,9 +1369,9 @@ export default function TradingChart({
         <>
           <div className="flex items-center gap-1.5 text-[14px] font-extrabold tracking-[-0.015em] text-[#f2f6f9]">
             <span>{symbol}</span>
-            <span className="text-[#7f8b98]">�</span>
+            <span className="text-[#7f8b98]">·</span>
             <span>{mobileTimeframeLabel}</span>
-            <span className="text-[#7f8b98]">�</span>
+            <span className="text-[#7f8b98]">·</span>
             <span>ACG</span>
             <span className={`ml-0.5 size-1.5 rounded-full ${mobileQuoteLive ? 'bg-[#24d7b7]' : 'bg-[#697785]'}`} aria-label={mobileQuoteLive ? 'Live quotes' : 'Quotes unavailable'} />
           </div>
@@ -1429,9 +1429,9 @@ export default function TradingChart({
           <div className={`flex items-center gap-1.5 text-[12px] font-semibold tracking-[-0.01em] ${lightCanvas ? "" : "text-[#F0F3F6]"}`}
             style={lightCanvas ? {color:canvasPalette.instrumentTitle} : undefined}>
             <span>{symbol}</span>
-            <span className={lightCanvas ? undefined : "text-[#7F8A95]"} style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>�</span>
+            <span className={lightCanvas ? undefined : "text-[#7F8A95]"} style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>·</span>
             <span className={lightCanvas ? undefined : "text-[#7F8A95]"} style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>{timeframe}</span>
-            <span className={lightCanvas ? undefined : "text-[#7F8A95]"} style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>�</span>
+            <span className={lightCanvas ? undefined : "text-[#7F8A95]"} style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>·</span>
             <span className={lightCanvas ? undefined : "text-[#AAB5BF]"} style={lightCanvas ? {color:canvasPalette.instrumentMuted} : undefined}>ACG</span>
             <span className={`ml-0.5 size-1.5 rounded-full ${mobileQuoteLive ? 'bg-[#24d7b7]' : 'bg-[#697785]'}`} aria-label={mobileQuoteLive ? 'Live quotes' : 'Quotes unavailable'} />
           </div>
@@ -1475,7 +1475,7 @@ export default function TradingChart({
       if (!pane || pane.height <= 0) return null;
       return (
         <div key={indicator.instanceId} className="group pointer-events-auto absolute left-2.5 z-[70] flex h-6 items-center rounded-md bg-black/72 px-1.5 text-[9px] font-semibold text-[#8fa1b1] shadow-[0_2px_10px_rgba(0,0,0,.28)] backdrop-blur-sm" style={{ top: Math.max(4, pane.top + 5) }}>
-          <span>{indicator.id === 'volume' ? `${volumeLabel(ohlc)} � ${volumeValue(ohlc)}` : indicatorLabel(indicator)}</span>
+          <span>{indicator.id === 'volume' ? `${volumeLabel(ohlc)} · ${volumeValue(ohlc)}` : indicatorLabel(indicator)}</span>
           {indicator.id !== 'volume' && indicatorReadout(indicator)}
           {showIndicatorControls && <IndicatorActions indicator={indicator} compact />}
         </div>
