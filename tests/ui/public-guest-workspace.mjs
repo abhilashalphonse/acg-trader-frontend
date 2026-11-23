@@ -54,6 +54,28 @@ try{
     await library.waitFor({state:'visible'});
     await library.getByRole('button',{name:'Add Relative Strength Index'}).click();
     assert.match(await library.locator('.acg-tool-count').textContent(),/2 on chart/);
+    if(width===1440){
+      // Exercise the actual V6 drawing rail and persisted guest namespace.
+      const layer=guest.locator('.acg-guest-chart svg.touch-none').first();
+      await layer.waitFor({state:'visible'});
+      await guest.getByTitle('Trend line',{exact:true}).first().click();
+      const box=await layer.boundingBox();
+      assert.ok(box && box.width>380 && box.height>220,'Price-pane drawing surface has room for drag');
+      await page.mouse.move(box.x+155,box.y+125);
+      await page.mouse.down();
+      await page.mouse.move(box.x+350,box.y+220,{steps:12});
+      await page.mouse.up();
+      await page.waitForFunction(()=>{
+        try{return JSON.parse(localStorage.getItem('acg-trader-drawings-v3:GUEST_XAUUSD')||'[]').length>0}
+        catch{return false}
+      },null,{timeout:15000});
+      const isolatedDrawing=await page.evaluate(()=>({
+        guest:JSON.parse(localStorage.getItem('acg-trader-drawings-v3:GUEST_XAUUSD')||'[]').length,
+        authenticated:localStorage.getItem('acg-trader-drawings-v3:XAUUSD'),
+      }));
+      assert.ok(isolatedDrawing.guest>0,'Guest created a real drawing');
+      assert.equal(isolatedDrawing.authenticated,null,'Guest drawing never writes into signed-in account storage');
+    }
     await page.screenshot({path:'artifacts/guest-explore-markets-'+width+'.png',fullPage:true});
     assert.deepEqual(errors,[],'No chart React errors');
     assert.deepEqual(unauthorizedCalls,[],'No privileged market/order requests');

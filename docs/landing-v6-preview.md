@@ -16,13 +16,28 @@ the existing AuthProvider, SessionGate and V4 terminal as before.
 Federation tickets, existing V4/mobile audit params and explicit
 `?acg_login=1` are never redirected to marketing.
 
-The navbar **Explore Markets** is reserved for the forthcoming public guest
-chart workspace. This *landing-only* branch does not bypass the terminal
-`SessionGate`; until a licensed, read-only guest implementation is accepted,
-visitors who follow the CTA still encounter authorized-account login.
-Do not merge this CTA change independently of the guest release. The
-navbar **Log in** still opens the existing native trading-account sign-in,
-and the hero's **Start Trading** still opens the authorized account login.
+The navbar **Explore Markets** now routes signed-out visitors to a
+**separate sample-data guest chart workspace**, which reuses ACG's real
+chart, drawing and indicator UI without issuing market/trading API requests,
+opening account sessions, subscribing to trading WebSockets or submitting
+orders. It offers three explicitly labeled **synthetic candle examples**
+(EUR/USD, gold, Bitcoin), not actual historical or live market prices.
+Guest drawings are stored locally in a separate `GUEST_` namespace.
+Guest indicators persist as local IDs only; full settings and cloud
+synchronization are not yet supported for anonymous users.
+
+For signed-in sessions `/terminal` still opens the authorized normal terminal.
+Explicit `?acg_login=1`, Connect Prop / tenant, federation tickets and
+audit links continue to use their existing security boundaries. The navbar
+**Log in** and hero **Start Trading** still open authorized account access.
+Start Demo routes to the existing auth/signup experience, whose availability
+depends on the independently accepted onboarding configuration.
+
+**Release gate:** The guest chart is an honest product preview, *not a live
+market browsing service*. Do not represent it as live or remove the sample
+data banner until the appropriate market data public-display rights,
+rate-limited shared feed, licensing/entitlement checks and dedicated
+security acceptance are completed.
 The existing ACG Funded terminal gate
 remains reachable at `/?acg_login=1`. Onboarding is visually reviewable in
 preview, but provider calls remain disabled until a dedicated build has
