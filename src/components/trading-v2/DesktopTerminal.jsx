@@ -1178,24 +1178,30 @@ export default function DesktopTerminal({
           <div className="acg-v4-header-identity min-w-0">
             <div className="acg-v4-header-primary flex min-w-0 items-center gap-1">
               <button type="button" onClick={() => openMarketPanel('markets', false)} className="flex min-w-0 items-center gap-1 text-left" title="Open markets and watchlist">
+                {V4_DESKTOP_EXECUTION_ENABLED && (
+                  <span data-acg-header-instrument-icon className="acg-v4-header-symbol-avatar inline-flex shrink-0 items-center justify-center" aria-hidden="true">
+                    <InstrumentAvatar instrument={market} size={20} singleAsset />
+                  </span>
+                )}
                 <strong key={activeSymbol || 'symbol'} className="acg-motion-symbol truncate text-[14px] font-extrabold tracking-[-0.025em] text-[#f3f6f8]">{market?.displaySymbol || displaySymbol(market?.symbol)}</strong>
                 <ChevronDown size={12} className="shrink-0 text-[#f3f6f8]"/>
               </button>
-              <button
-                type="button"
-                onClick={() => watchlists?.toggleSymbol?.(activeSymbol)}
-                className={favorite ? "grid size-5 shrink-0 place-items-center rounded text-[#CDD1D6] hover:bg-white/[0.05]" : "grid size-5 shrink-0 place-items-center rounded text-[#71808e] hover:bg-white/[0.05] hover:text-white"}
-                title={favorite ? "Remove from favorites" : "Add to favorites"}
-                aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
-              >
-                <Star key={favorite ? 'favorite-on' : 'favorite-off'} className="acg-favorite-icon" data-active={favorite ? 'true' : 'false'} size={12} fill={favorite ? 'currentColor' : 'none'}/>
-              </button>
+              {!V4_DESKTOP_EXECUTION_ENABLED && (
+                <button
+                  type="button"
+                  onClick={() => watchlists?.toggleSymbol?.(activeSymbol)}
+                  className={favorite ? "grid size-5 shrink-0 place-items-center rounded text-[#CDD1D6] hover:bg-white/[0.05]" : "grid size-5 shrink-0 place-items-center rounded text-[#71808e] hover:bg-white/[0.05] hover:text-white"}
+                  title={favorite ? "Remove from favorites" : "Add to favorites"}
+                  aria-label={favorite ? "Remove from favorites" : "Add to favorites"}
+                >
+                  <Star key={favorite ? 'favorite-on' : 'favorite-off'} className="acg-favorite-icon" data-active={favorite ? 'true' : 'false'} size={12} fill={favorite ? 'currentColor' : 'none'}/>
+                </button>
+              )}
             </div>
             {V4_DESKTOP_EXECUTION_ENABLED ? (
-              <div className="acg-v4-header-secondary" role="status" data-market-status={v4HeaderStatus}>
-                <span className="acg-v4-header-status-dot" aria-hidden="true"/>
-                <span>{v4HeaderStatus === 'open' ? 'Market open' : v4HeaderStatus === 'closed' ? 'Market closed' : 'Market unavailable'}</span>
-              </div>
+              <span className="sr-only" role="status" data-market-status={v4HeaderStatus}>
+                {v4HeaderStatus === 'open' ? 'Market open' : v4HeaderStatus === 'closed' ? 'Market closed' : 'Market unavailable'}
+              </span>
             ) : (
               <button type="button" onClick={() => openMarketPanel('markets', false)} className="mt-0.5 flex min-w-0 items-center gap-1.5 text-left text-[8px] font-bold text-[#697988]" title="Open markets and watchlist">
                 <span className="truncate">{marketLabel(market)}</span>

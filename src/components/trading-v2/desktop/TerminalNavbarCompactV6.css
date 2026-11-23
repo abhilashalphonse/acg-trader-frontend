@@ -59,14 +59,14 @@
     gap: 3px !important;
     align-items: center;
   }
-  /* The symbol itself is a single compact clickable pill; keeps its market
-     panel action and dropdown affordance unchanged. */
+  /* The symbol is a compact pill with its instrument-specific identity, while
+     the gradient A remains a separate brand mark to its left. */
   .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-primary > button:first-child {
     height: 27px !important;
     min-height: 27px !important;
-    max-width: 148px;
-    padding: 0 9px !important;
-    gap: 5px !important;
+    max-width: 172px;
+    padding: 0 8px !important;
+    gap: 6px !important;
     border: 1px solid rgba(231,235,239,.09) !important;
     border-radius: 14px !important;
     background: #202226 !important;
@@ -90,42 +90,25 @@
     stroke-width: 1.6;
     color: #b7bdc5;
   }
-  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-primary > button[aria-label*="favorites"] {
-    width: 22px !important;
-    height: 26px !important;
-    border-radius: 4px !important;
-    color: #8f98a3 !important;
+  /* Instrument-specific artwork stays inside the selector, paired with its
+     label. Favorites remain available in Markets; session status stays in the
+     accessibility tree without an extra green dot in the navbar. */
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-acg-header-instrument-icon] {
+    display: inline-grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    flex: 0 0 20px;
+    overflow: visible;
   }
-  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-primary .acg-favorite-icon {
-    width: 12px !important;
-    height: 12px !important;
-    stroke-width: 1.65px;
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-acg-header-instrument-icon] > span {
+    width: 20px !important;
+    height: 20px !important;
   }
-  /* Keep the market status available to screen readers but do not take a
-     second text row. The small dot is always shown to the right of the symbol. */
-  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-secondary {
-    display: flex !important;
-    width: 6px !important;
-    min-width: 6px !important;
-    height: 27px !important;
-    align-items: center !important;
-    justify-content: center;
-    margin: 0 !important;
-    gap: 0 !important;
-  }
-  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-status-dot {
-    width: 5px !important;
-    height: 5px !important;
-    flex: 0 0 5px !important;
-  }
-  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-secondary > span:last-child {
-    position: absolute !important;
-    width: 1px !important;
-    height: 1px !important;
-    overflow: hidden !important;
-    clip: rect(0, 0, 0, 0) !important;
-    clip-path: inset(50%) !important;
-    white-space: nowrap !important;
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-acg-header-instrument-icon] .rounded-full {
+    box-shadow: none !important;
+    border-color: rgba(231,235,239,.15) !important;
   }
   .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-desktop-chart-toolbar {
     height: 100% !important;

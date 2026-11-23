@@ -68,17 +68,31 @@ try {
         brandMarkState.height >= 21 && brandMarkState.height <= 23,
         'Candidate mark must fit the cleaner 22px navbar icon slot: ' + JSON.stringify(brandMarkState));
 
-      // Match the supplied reference: one line, compact dark selector, quiet status dot.
+      // The A brand mark sits outside the capsule; the actual instrument
+      // artwork appears inside it. No favorite star or visual session dot.
       const compactIdentity = await header.locator('.acg-v4-header-instrument').evaluate(el => {
         const button = el.querySelector('.acg-v4-header-primary > button:first-child');
-        const status = el.querySelector('.acg-v4-header-status-dot');
-        const symbol = el.querySelector('.acg-v4-header-primary strong');
-        const metric = (node) => { const r = node.getBoundingClientRect(); return { y:r.y+r.height/2, width:r.width, height:r.height }; };
-        return { selector:metric(button), brand:metric(el.querySelector('[data-acg-nav-brand-mark]')),
-          status:metric(status), symbol:metric(symbol), background:getComputedStyle(button).backgroundColor };
+        const brand = el.querySelector('[data-acg-nav-brand-mark]');
+        const icon = button.querySelector('[data-acg-header-instrument-icon]');
+        const symbol = button.querySelector('strong');
+        const metric = (node) => { const r = node.getBoundingClientRect(); return { x:r.x, y:r.y+r.height/2, width:r.width, height:r.height }; };
+        return { selector:metric(button), brand:metric(brand), icon:metric(icon),
+          symbol:metric(symbol), background:getComputedStyle(button).backgroundColor };
       });
-      assert.ok(Math.abs(compactIdentity.selector.y - compactIdentity.status.y) <= 4,
-        'Market status must share the same row as the symbol');
+      assert.ok(compactIdentity.brand.x < compactIdentity.selector.x &&
+        compactIdentity.icon.x > compactIdentity.selector.x &&
+        compactIdentity.icon.x < compactIdentity.symbol.x,
+        'Gradient A must remain separate while the instrument artwork precedes its symbol');
+      assert.ok(Math.abs(compactIdentity.icon.y - compactIdentity.symbol.y) <= 4,
+        'Instrument icon and name must be aligned in one row');
+      assert.ok(compactIdentity.icon.width >= 19 && compactIdentity.icon.width <= 21,
+        'Market identity icon must fit the 20px pill slot');
+      assert.equal(await header.locator('.acg-v4-header-primary .acg-favorite-icon').count(), 0,
+        'Remove favorite star only from the desktop navbar');
+      assert.equal(await header.locator('.acg-v4-header-status-dot').count(), 0,
+        'No green market status dot remains in the desktop navbar');
+      assert.equal(await header.locator('[role="status"][data-market-status]').count(), 1,
+        'Keep market session status accessible without a visual dot');
       assert.ok(compactIdentity.selector.height <= 28 && compactIdentity.brand.width <= 23,
         'Instrument selector and brand must be compact');
       assert.notEqual(compactIdentity.background,'rgb(242, 242, 244)',
