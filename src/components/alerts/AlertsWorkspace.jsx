@@ -71,8 +71,8 @@ export function AlertsProvider({children,markets=[],symbol,onSelectSymbol}){
   const close=useCallback(()=>{setOpen(false);setError('');host.current?.hide();},[]);
   const show=useCallback(()=>{setOpen(true);host.current?.show();},[]);
   const openManager=useCallback((atSymbol=null)=>{const target=typeof atSymbol==='string'?atSymbol:null;setDraft(null);setFilterSymbol(target);if(target)setTab('alerts');setError('');show();},[show]);
-  const create=useCallback((atSymbol=symbol,level)=>{requestId.current=crypto.randomUUID();setDraft(blank(atSymbol,level));setError('');show();},[symbol,show]);
-  const edit=useCallback(rule=>{setDraft(rule);setError('');show();},[show]);
+  const create=useCallback((atSymbol=symbol,level)=>{requestId.current=crypto.randomUUID();setDraft(blank(atSymbol,level));setError('');},[symbol]);
+  const edit=useCallback(rule=>{setDraft(rule);setError('');},[]);
   const openChart=useCallback(async(event)=>{
     const target=event.evidence.symbol||rules.find(r=>r.id===event.alertId)?.symbol||event.evidence.streamId.split(':').at(-1);
     onSelectSymbol(target);if(event.evidence.timeframe)window.dispatchEvent(new CustomEvent('acg-alert-timeframe',{detail:event.evidence.timeframe}));
@@ -88,7 +88,7 @@ export function AlertsProvider({children,markets=[],symbol,onSelectSymbol}){
     if(url.searchParams.has('alertSymbol')&&markets.length){navigate({symbol:url.searchParams.get('alertSymbol'),timeframe:url.searchParams.get('alertTimeframe')});url.searchParams.delete('alertSymbol');url.searchParams.delete('alertTimeframe');history.replaceState({},'',url);}
     return()=>navigator.serviceWorker?.removeEventListener('message',message);
   },[markets,onSelectSymbol]);
-  useEffect(()=>{const key=e=>{if(e.altKey&&e.key.toLowerCase()==='a'&&config){e.preventDefault();create();}};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[create,config]);
+  useEffect(()=>{const key=e=>{if(!e.defaultPrevented&&!e.target.closest?.('[role="dialog"],input,textarea,select')&&e.altKey&&e.key.toLowerCase()==='a'&&config){e.preventDefault();create();}};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[create,config]);
   const action=async(fn)=>{
     const revision=scopeRevision.current;setBusy(true);setError('');
     try{const result=await fn();if(revision!==scopeRevision.current)return false;await refresh();return result??true;}
@@ -98,7 +98,7 @@ export function AlertsProvider({children,markets=[],symbol,onSelectSymbol}){
   const save=async body=>action(async()=>{
     const revision=scopeRevision.current;
     await request(draft.id?'/'+draft.id:'',{method:draft.id?'PUT':'POST',body:draft.id?{...body,version:draft.version}:{...body,clientRequestId:requestId.current}});
-    if(revision===scopeRevision.current){setDraft(null);setTab('alerts');}
+    if(revision===scopeRevision.current){setDraft(null);setTab('alerts');show();}
   });
   const loadMore=()=>action(async()=>{
     if(!nextBefore)return;const revision=scopeRevision.current;
@@ -208,11 +208,16 @@ function AlertForm({draft,markets,busy,pushAvailable,deviceSubscribed,onDisableP
       <label>Condition<select aria-label="Condition" value={type} onChange={e=>patch('condition',{...form.condition,type:e.target.value})}>{Object.entries(CONDITIONS).map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></label>
       <div className="acg-alert-form-grid">{range?<><label>Lower price<input required inputMode="decimal" pattern="[0-9]+([.][0-9]+)?" value={form.condition.lower||''} onChange={e=>patch('condition',{...form.condition,lower:e.target.value})}/></label><label>Upper price<input required inputMode="decimal" pattern="[0-9]+([.][0-9]+)?" value={form.condition.upper||''} onChange={e=>patch('condition',{...form.condition,upper:e.target.value})}/></label></>:<><label>Price<input required inputMode="decimal" pattern="[0-9]+([.][0-9]+)?" value={form.condition.level||''} onChange={e=>patch('condition',{...form.condition,level:e.target.value})}/></label><label>{candle?'Timeframe':'Price source'}<select aria-label={candle?'Timeframe':'Price source'} value={candle?(form.timeframe||'15m'):form.priceSource} onChange={e=>patch(candle?'timeframe':'priceSource',e.target.value)}>{(candle?['1m','5m','15m','30m','1h','4h','1d']:['last','bid','ask']).map(v=><option key={v} value={v}>{v.toUpperCase()}</option>)}</select></label></>}</div>
       {range&&<label>Price source<select value={form.priceSource} onChange={e=>patch('priceSource',e.target.value)}>{['last','bid','ask'].map(v=><option key={v}>{v}</option>)}</select></label>}
-      <div className="acg-alert-form-grid"><label>Frequency<select aria-label="Frequency" value={form.frequency} onChange={e=>patch('frequency',e.target.value)}><option value="once">Once</option><option value="repeat">Repeating</option></select></label>{form.frequency==='repeat'&&<label>Minimum interval<select aria-label="Minimum interval" value={form.cooldownMs} onChange={e=>patch('cooldownMs',Number(e.target.value))}><option value="0">Every crossing</option><option value="60000">1 minute</option><option value="300000">5 minutes</option><option value="3600000">1 hour</option></select></label>}</div>
-      <label>Expiry<select value={form.expiresAt?'custom':'none'} onChange={e=>patch('expiresAt',e.target.value==='none'?null:new Date(Date.now()+7*86400000).toISOString())}><option value="none">Until cancelled</option><option value="custom">Choose date and time</option></select></label>
+      <div className="acg-alert-form-grid">
+        <label>Frequency<select aria-label="Frequency" value={form.frequency} onChange={e=>patch('frequency',e.target.value)}><option value="once">Once</option><option value="repeat">Repeating</option></select></label>
+        <label>Expiry<select value={form.expiresAt?'custom':'none'} onChange={e=>patch('expiresAt',e.target.value==='none'?null:new Date(Date.now()+7*86400000).toISOString())}><option value="none">Until cancelled</option><option value="custom">Choose date and time</option></select></label>
+      </div>
+      {form.frequency==='repeat'&&<label>Minimum interval<select aria-label="Minimum interval" value={form.cooldownMs} onChange={e=>patch('cooldownMs',Number(e.target.value))}><option value="0">Every crossing</option><option value="60000">1 minute</option><option value="300000">5 minutes</option><option value="3600000">1 hour</option></select></label>}
       {form.expiresAt&&<input aria-label="Expiry date and time" type="datetime-local" required value={new Date(Date.parse(form.expiresAt)-new Date(form.expiresAt).getTimezoneOffset()*60000).toISOString().slice(0,16)} onChange={e=>{if(e.target.value)patch('expiresAt',new Date(e.target.value).toISOString());}}/>}
-      <label>Name<input maxLength={80} value={form.name} placeholder="Optional" onChange={e=>patch('name',e.target.value)}/></label>
-      <label>Personal note<textarea maxLength={300} value={form.note} placeholder="What are you watching for?" onChange={e=>patch('note',e.target.value)}/></label>
+      <details className="acg-alert-optional"><summary>Name and note <span>Optional</span></summary>
+        <label>Name<input maxLength={80} value={form.name} placeholder="Alert name" onChange={e=>patch('name',e.target.value)}/></label>
+        <label>Personal note<textarea maxLength={300} value={form.note} placeholder="What are you watching for?" onChange={e=>patch('note',e.target.value)}/></label>
+      </details>
     </div>
     <div className="acg-alert-form" hidden={tab!=='notifications'} role="tabpanel" aria-label="Alert notifications">
       <div className="acg-alert-notification-option"><Bell size={16}/><div><strong>Terminal notification</strong><p>Every trigger is saved in the log and shown in the terminal.</p></div></div>
@@ -221,6 +226,6 @@ function AlertForm({draft,markets,busy,pushAvailable,deviceSubscribed,onDisableP
       <p className="acg-alert-footnote">Sound plays while the terminal is open. The terminal mute control overrides this alert's setting.</p>
       {pushAvailable&&<><label className="acg-alert-checkbox"><input type="checkbox" checked={form.pushEnabled} onChange={e=>patch('pushEnabled',e.target.checked)}/> Device push notification</label><button type="button" className="acg-alert-link" disabled={busy} onClick={deviceSubscribed?onDisablePush:onEnablePush}>{deviceSubscribed?'Disable this device':'Enable this device'}</button><p className="acg-alert-footnote">Allow notifications on this device to receive pushes while the terminal is closed.</p></>}
     </div>
-    <div className="acg-alert-editor-actions"><div className="acg-alert-summary"><p>{form.symbol} · {conditionText(body)}<br/><small>{candle?`${body.timeframe} close · LAST`:body.priceSource.toUpperCase()} · {form.frequency==='once'?'Notify once':'Repeat after reset'}</small></p></div><div><button type="button" onClick={onCancel}>Cancel</button><button className="acg-alert-primary" disabled={busy}>{busy?'Saving…':draft.id?'Save changes':'Create alert'}<Check size={15}/></button></div><p className="acg-alert-footnote">Alerts notify you. They do not place trades.</p></div>
+    <div className="acg-alert-editor-actions"><p className="acg-alert-compact-summary">{form.symbol} · {conditionText(body)}</p><div><button type="button" onClick={onCancel}>Cancel</button><button className="acg-alert-primary" disabled={busy}>{busy?'Saving…':draft.id?'Save changes':'Create alert'}<Check size={14}/></button></div></div>
   </form>;
 }
