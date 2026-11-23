@@ -47,14 +47,14 @@ window.fetch=async(input,options={})=>{
 };
 function MobileLauncher(){const a=useAlerts(),[open,setOpen]=useState(false);return <><button onClick={()=>a.open()} disabled={!a.enabled}>Open alerts</button><button onClick={()=>setOpen(true)}>Open watchlist</button>{open&&<MobileInstrumentSheet auditMobile markets={markets} activeSymbol="EURUSD" watchlists={watchlists} onClose={()=>setOpen(false)}/>}</>;}
 function ChartSurface(){
-  const a=useAlerts(),[theme,setTheme]=useState('light'),[count,setCount]=useState(0);
-  useEffect(()=>a.registerHost({show:noop,hide:noop}),[a.registerHost]);
+  const a=useAlerts(),[theme,setTheme]=useState('light'),[count,setCount]=useState(0),[hostShows,setHostShows]=useState(0);
+  useEffect(()=>a.registerHost({show:()=>setHostShows(n=>n+1),hide:noop}),[a.registerHost]);
   useEffect(()=>{const update=()=>setCount(writes);window.addEventListener('fixture-alert-write',update);return()=>window.removeEventListener('fixture-alert-write',update);},[]);
   return <div style={{height:'100dvh',background:theme==='light'?'white':'#09090b'}}>
     <div style={{height:40,display:'flex',gap:20,padding:6,color:theme==='light'?'#222':'#ddd'}}>
       <button onClick={()=>setTheme(theme==='light'?'dark':'light')}>Switch chart theme</button>
       <button onClick={()=>{rejected=true;}}>Reject next alert update</button>
-      <output aria-label="Alert write count">{count}</output>
+      <output aria-label="Alert write count">{count}</output><output aria-label="Panel opens">{hostShows}</output>
     </div>
     <div style={{height:'calc(100dvh - 40px)',position:'relative'}}>
       <TradingChart symbol="EURUSD" instrument={markets[0]} timeframe="M1" chartTheme={theme}/>
