@@ -17,9 +17,11 @@ export function v4HeaderFxMonogram(market){
 export function v4HeaderAccountLabel(account){
   const raw=String(account?.accountCode||'').trim();
   if (!raw) return 'Trading account';
-  // The navbar already carries ACG branding. Keep the full identifying code
-  // rather than showing an arbitrary six-character tail (e.g. "ITIONS").
-  return raw.replace(/^ACG[-_\s]+/i, '') || raw;
+  // Preserve the owner's original one-line naming convention:
+  // "ACG · 886425  Trial". Never display an arbitrary six-letter suffix.
+  // Strip only a duplicated ACG prefix, not the account identifier.
+  const code=raw.replace(/^ACG(?:\s*[·-]\s*|[_\s]+)?/i, '').trim();
+  return code ? 'ACG · '+code : 'ACG';
 }
 
 /** Presentation-only account kind: backend and legacy account rules stay unchanged. */

@@ -15,10 +15,12 @@ test('FX monogram is only used for supported currency pairs; keep native icon ot
  assert.equal(v4HeaderFxMonogram({symbol:'BTCUSD',assetClass:'CRYPTO'}),null);
  assert.equal(v4HeaderFxMonogram({symbol:'ZARUSD',assetClass:'FOREX'}),null);
 });
-test('Header account selector displays a recognizable code instead of an arbitrary suffix',()=>{
- assert.equal(v4HeaderAccountLabel({accountCode:'ACG-33E47A598D2F'}),'33E47A598D2F');
- assert.equal(v4HeaderAccountLabel({accountCode:'ACG-V4-POSITIONS'}),'V4-POSITIONS');
- assert.equal(v4HeaderAccountLabel({accountCode:'BROKER-XY-2904'}),'BROKER-XY-2904');
+test('V6 account button keeps original ACG · identifier and inline account type naming',()=>{
+ assert.equal(v4HeaderAccountLabel({accountCode:'ACG-886425'}),'ACG · 886425');
+ assert.equal(v4HeaderAccountLabel({accountCode:'ACG · 886425'}),'ACG · 886425');
+ assert.equal(v4HeaderAccountLabel({accountCode:'ACG-V4-POSITIONS'}),'ACG · V4-POSITIONS');
+ assert.equal(v4HeaderAccountLabel({accountCode:'ACG-33E47A598D2F'}),'ACG · 33E47A598D2F');
+ assert.equal(v4HeaderAccountLabel({accountCode:'BROKER-XY-2904'}),'ACG · BROKER-XY-2904');
  assert.equal(v4HeaderAccountLabel({accountCode:'ACG'}),'ACG');
  assert.equal(v4HeaderAccountLabel({}),'Trading account');
 });

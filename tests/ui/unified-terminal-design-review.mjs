@@ -114,10 +114,18 @@ try {
 
       const account = header.locator('[data-v4-header-account]');
       const accountName = account.locator('[data-v4-header-account-name]');
-      assert.equal((await accountName.textContent()).trim(), 'V4-POSITIONS',
-        'Account selector must display a meaningful name rather than its last six letters');
-      assert.equal((await account.locator('.acg-v4-header-account-type').textContent()).trim(), 'Trial',
-        'Account category should remain on a separate readable line');
+      assert.equal((await accountName.textContent()).trim(), 'ACG · V4-POSITIONS',
+        'Account selector must keep the ACG · identifier naming convention');
+      const accountType = account.locator('.acg-v4-header-account-type');
+      assert.equal((await accountType.textContent()).trim(), 'Trial',
+        'Account category must remain visible');
+      const textAlignment = await account.evaluate(el => {
+        const code = el.querySelector('[data-v4-header-account-name]').getBoundingClientRect();
+        const type = el.querySelector('.acg-v4-header-account-type').getBoundingClientRect();
+        return { codeY: code.y + code.height/2, typeY: type.y + type.height/2 };
+      });
+      assert.ok(Math.abs(textAlignment.codeY - textAlignment.typeY) <= 3,
+        'Account code and Trial must share one horizontal line: ' + JSON.stringify(textAlignment));
       const accountBox = await account.boundingBox();
       assert.ok(accountBox.width <= 190 && Math.abs(accountBox.height - 34) <= 1,
         'Account button should remain proportionate to the 48px navbar: ' + JSON.stringify(accountBox));
