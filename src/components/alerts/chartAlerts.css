@@ -13,9 +13,13 @@
 .acg-chart-alert-title svg{flex-shrink:0;color:var(--alert-muted)}
 .acg-chart-alert-title .is-interrupted{color:#BA8B40}
 .acg-chart-alert-divider{height:12px;width:1px;background:var(--alert-border);opacity:.45;margin-inline:1px}
-.acg-chart-alert-axis-add{position:absolute;pointer-events:auto;display:grid;place-items:center;width:19px;height:19px;transform:translateY(-50%);background:var(--alert-bg)!important;border:1px solid var(--alert-border)!important;border-radius:3px;color:var(--alert-text);box-shadow:0 1px 3px #0002}
-.acg-chart-alert-axis-add:hover{background:var(--alert-hover)!important}
-.acg-chart-alert-context{position:absolute;pointer-events:auto;width:286px;box-sizing:border-box;padding:5px;background:var(--alert-bg);border:1px solid color-mix(in srgb,var(--alert-border) 65%,transparent);border-radius:7px;box-shadow:var(--alert-shadow);color:var(--alert-text)}
+.acg-chart-alert-price-guide{position:absolute;left:0;border-top:1px dashed var(--alert-muted);opacity:.65;pointer-events:none}
+.acg-chart-alerts-layer .acg-chart-alert-axis-add{position:absolute;right:0;pointer-events:auto;display:flex;align-items:stretch;min-width:22px;height:22px;transform:translateY(-50%);background:#30343B!important;border:1px solid #30343B!important;border-radius:3px 0 0 3px;color:#FFF!important;box-shadow:none;white-space:nowrap;padding:0!important;line-height:20px;font-size:11px}
+.acg-chart-alert-axis-icon{display:flex;align-items:center;justify-content:center;flex:0 0 21px;border-right:1px solid #FFFFFF45}
+.acg-chart-alert-axis-icon svg{display:block;flex:none;stroke:#FFF!important;opacity:1!important}
+.acg-chart-alert-axis-price{display:flex;align-items:center;justify-content:center;flex:1;padding:0 5px;font-variant-numeric:tabular-nums}
+.acg-chart-alerts-layer .acg-chart-alert-axis-add:hover{background:#454B56!important;border-color:#454B56!important}
+.acg-chart-alert-context{position:absolute;pointer-events:auto;width:min(306px,calc(100% - 12px));box-sizing:border-box;padding:5px;background:var(--alert-bg);border:1px solid color-mix(in srgb,var(--alert-border) 65%,transparent);border-radius:7px;box-shadow:var(--alert-shadow);color:var(--alert-text)}
 .acg-chart-alert-context-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 9px 9px;font-size:10px;color:var(--alert-muted)}
 .acg-chart-alert-context-heading strong{font-size:11px;font-weight:500;color:var(--alert-text)}
 .acg-chart-alert-context button{display:flex;align-items:center;gap:9px;width:100%;min-height:34px;padding:7px 9px;border-radius:4px;text-align:left}
@@ -25,5 +29,5 @@
 .acg-chart-alert-context kbd{font:9px Inter,system-ui,sans-serif;color:var(--alert-muted);white-space:nowrap}
 .acg-chart-alert-context-separator{height:1px;background:var(--alert-border);opacity:.25;margin:3px 4px}
 .acg-chart-alert-notice{position:absolute;bottom:34px;left:12px;max-width:min(360px,calc(100% - 24px));padding:10px 12px;border:1px solid var(--alert-border);border-radius:5px;background:var(--alert-bg);color:var(--alert-text);font-size:11px;line-height:1.6}
-@media(pointer:coarse){.acg-chart-alert-tag{height:31px}.acg-chart-alert-tag button{height:29px;min-width:29px}.acg-chart-alert-tag .acg-chart-alert-drag{min-width:24px}.acg-chart-alert-axis-add{width:25px;height:25px}}
+@media(pointer:coarse){.acg-chart-alert-tag{height:31px}.acg-chart-alert-tag button{height:29px;min-width:29px}.acg-chart-alert-tag .acg-chart-alert-drag{min-width:24px}}
 @media(prefers-reduced-motion:reduce){.acg-chart-alert-tag{transition:none}}
