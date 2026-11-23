@@ -1,5 +1,7 @@
+import {createPortal} from 'react-dom';
+import {useAlerts} from '../../alerts/AlertsWorkspace.jsx';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronUp, GripVertical, ListFilter, MoreHorizontal, Plus, Search, Settings2, Star, X } from 'lucide-react';
+import { Bell, ChevronDown, ChevronUp, GripVertical, ListFilter, MoreHorizontal, Plus, Search, Settings2, Star, X } from 'lucide-react';
 import InstrumentAvatar from '../InstrumentAvatar.jsx';
 import './DesktopMarketsV4.css';
 import { formatInstrumentPrice, instrumentPipSize } from '../../../utils/instrumentFormatting.js';
@@ -214,6 +216,27 @@ export default function DesktopWatchlist({
   onNotice = () => {},
   onViewportQuoteSymbolsChange = () => {},
 }) {
+  const alerts=useAlerts();
+  const [alertMenu,setAlertMenu]=useState(null);
+  const alertMenuRef=useRef(null);
+  useEffect(()=>{
+    if(!alertMenu)return;
+    const dismiss=event=>{if(!alertMenuRef.current?.contains(event.target))setAlertMenu(null);};
+    const escape=event=>{if(event.key==='Escape'){event.stopPropagation();setAlertMenu(null);}};
+    document.addEventListener('pointerdown',dismiss);document.addEventListener('keydown',escape);
+    alertMenuRef.current?.querySelector('button')?.focus();
+    return()=>{document.removeEventListener('pointerdown',dismiss);document.removeEventListener('keydown',escape);};
+  },[alertMenu]);
+  const alertCount=symbol=>alerts?.rules.filter(rule=>rule.symbol===symbol&&['STARTING','MONITORING'].includes(rule.status)).length||0;
+  const showAlertMenu=(event,item)=>{
+    if(!alerts?.enabled)return;
+    event.preventDefault();const rect=event.currentTarget.getBoundingClientRect();
+    setAlertMenu({item,x:Math.max(8,Math.min(event.clientX||rect.left,window.innerWidth-220)),y:Math.max(8,Math.min(event.clientY||rect.bottom,window.innerHeight-110))});
+  };
+  const alertContextMenu=alertMenu&&createPortal(<div ref={alertMenuRef} className="acg-instrument-alert-menu" role="menu" aria-label={alertMenu.item.symbol+' actions'} style={{left:alertMenu.x,top:alertMenu.y}}>
+    <button type="button" role="menuitem" onClick={()=>{const item=alertMenu.item;setAlertMenu(null);alerts.create(item.symbol,item.last??item.price??item.mid??item.bid);}}><Bell size={14}/> Add alert on {alertMenu.item.symbol}</button>
+    <button type="button" role="menuitem" onClick={()=>{const item=alertMenu.item;setAlertMenu(null);alerts.open(item.symbol);}}>View alerts</button>
+  </div>,document.body);
   const [search, setSearch] = useState('');
   const [listMenuOpen, setListMenuOpen] = useState(false);
   const [columnsOpen, setColumnsOpen] = useState(false);
@@ -447,6 +470,7 @@ export default function DesktopWatchlist({
       <section data-v4-markets-panel aria-label="Markets discovery"
         className="acg-v3-watchlist relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[#09090B]"
         onKeyDown={onKeyDown}>
+        {alertContextMenu}
         <header className="relative flex min-h-12 shrink-0 items-center justify-between border-b border-white/[0.07] px-3">
           <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-[#F2F2F4]">Markets</h2>
           <div className="flex items-center gap-1">
@@ -543,6 +567,7 @@ export default function DesktopWatchlist({
               <div key={item.symbol}
                 ref={node=>{if(node)rowRefs.current.set(item.symbol,node);else rowRefs.current.delete(item.symbol);}}
                 className="acg-v4-market-row-wrap"
+                onContextMenu={event=>showAlertMenu(event,item)}
                 data-market-symbol={item.symbol} data-market-selected={selected?'true':'false'}>
                 <button type="button" className="acg-v4-market-row"
                   onClick={()=>selectInstrument(item.symbol)}
@@ -551,7 +576,7 @@ export default function DesktopWatchlist({
                   <span className="acg-v4-market-instrument">
                     <span className="acg-v4-market-avatar"><InstrumentAvatar instrument={item} size={23}/></span>
                     <span className="acg-v4-market-instrument-text">
-                      <strong className="acg-v4-market-symbol">{commodityDisplaySymbol(item)||item.displaySymbol||displaySymbol(item.symbol)}</strong>
+                      <strong className="acg-v4-market-symbol">{commodityDisplaySymbol(item)||item.displaySymbol||displaySymbol(item.symbol)}{alertCount(item.symbol)>0&&<Bell className="acg-watchlist-alert-badge" size={11} aria-label={alertCount(item.symbol)+' active alerts'}><title>{alertCount(item.symbol)} active alerts</title></Bell>}</strong>
                       <small className="acg-v4-market-subtitle" title={subtitle}>{subtitle}</small>
                     </span>
                   </span>
@@ -585,6 +610,7 @@ export default function DesktopWatchlist({
 
   return (
     <div className="acg-v3-watchlist flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden" onKeyDown={onKeyDown}>
+      {alertContextMenu}
       <div className="grid h-8 shrink-0 grid-cols-2 border-b border-white/[0.06] bg-[#09090B] p-0.5">
         <button type="button" onClick={() => onModeChange('watchlist')} className={mode === 'watchlist' ? "relative rounded text-[8px] font-bold text-[#f0f4f7]" : "rounded text-[8px] font-semibold text-[#687988] hover:text-white"}>Watchlist{mode === 'watchlist' && <span className="acg-active-underline absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#C9CDD2]"/>}</button>
         <button type="button" onClick={() => onModeChange('markets')} className={mode === 'markets' ? "relative rounded text-[8px] font-bold text-[#f0f4f7]" : "rounded text-[8px] font-semibold text-[#687988] hover:text-white"}>Markets{mode === 'markets' && <span className="acg-active-underline absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#C9CDD2]"/>}</button>
@@ -687,12 +713,13 @@ export default function DesktopWatchlist({
               onDrop={() => { if (dragSymbol && dragSymbol !== item.symbol) watchlists?.moveSymbol?.(dragSymbol, item.symbol); setDragSymbol(null); }}
               className={`acg-motion-row grid items-center border-b border-white/[0.06] px-2 py-0.5 transition ${selected ? 'border-l border-[#CCD1D6] bg-[#222225]' : 'border-l border-transparent hover:bg-white/[0.018]'} ${dragSymbol === item.symbol ? 'opacity-45' : ''}`}
               style={{ gridTemplateColumns: gridTemplate }}
+              onContextMenu={event=>showAlertMenu(event,item)}
             >
               <button type="button" onClick={() => selectInstrument(item.symbol)} className="flex min-w-0 items-center gap-1.5 py-2 text-left">
                 {mode !== 'markets' && !search && isWatched && <GripVertical size={9} className="shrink-0 text-[#44515D]"/>}
                 <InstrumentAvatar instrument={item} size={21}/>
                 <span className="min-w-0">
-                  <b className="block truncate text-[11px] font-semibold text-[#E6EDF3]">{commodityDisplaySymbol(item) || item.displaySymbol || displaySymbol(item.symbol)}</b>
+                  <b className="block truncate text-[11px] font-semibold text-[#E6EDF3]">{commodityDisplaySymbol(item) || item.displaySymbol || displaySymbol(item.symbol)}{alertCount(item.symbol)>0&&<Bell className="acg-watchlist-alert-badge" size={11} aria-label={alertCount(item.symbol)+' active alerts'}/>}</b>
                   <small className="mt-0.5 flex min-w-0 items-center gap-1 truncate text-[8px]">
                     {mode === 'markets' && <span className="truncate text-[#6F8191]">{categoryLabel(item)}</span>}
                     {mode === 'markets' && <span className="text-[#44515D]">·</span>}
