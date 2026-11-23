@@ -1,0 +1,218 @@
+/*
+ * ACG Trader | Unified Desktop Workspace
+ *
+ * Reviewable, reversible desktop-only visual refinement.
+ * Owns terminal CHROME, never chart price rendering, order commands,
+ * drawing coordinates, watchlist data, popup state, or mobile layout.
+ * Keep this after DesktopTerminal.theme.css and DesktopHeaderV4.css.
+ */
+@media (min-width: 1024px) {
+  .acg-desktop-v3.acg-unified-shell {
+    --acg-unified-panel: #0c0d0f;
+    --acg-unified-panel-raised: #16171a;
+    --acg-unified-line: rgba(230, 234, 239, .105);
+    --acg-unified-line-soft: rgba(230, 234, 239, .068);
+    --acg-unified-text: #f2f3f5;
+    --acg-unified-secondary: #b6bcc5;
+    --acg-unified-muted: #929ba5;
+    gap: 0 !important;
+    padding: 0 !important;
+    background: var(--acg-unified-panel) !important;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* A single 48px navigation band, not a detached rounded card. */
+  .acg-desktop-v3.acg-unified-shell header.acg-desktop-market-strip {
+    flex: 0 0 48px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    margin: 0 !important;
+    padding: 0 10px !important;
+    gap: 0 !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--acg-unified-line) !important;
+    border-radius: 0 !important;
+    background: var(--acg-unified-panel) !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-desktop-chart-toolbar {
+    height: 100% !important;
+    background: transparent !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-instrument {
+    height: 100%;
+    padding-right: 8px;
+    margin-right: 6px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-timeframes {
+    height: 32px !important;
+    gap: 2px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-timeframes button {
+    height: 28px !important;
+    border-radius: 4px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-tools [data-v4-header-tool] {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 4px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account] {
+    height: 34px !important;
+    border-radius: 6px !important;
+    background: var(--acg-unified-panel-raised) !important;
+    border-color: var(--acg-unified-line) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account]:hover {
+    background: #1d1f22 !important;
+  }
+  /* Only the avatar is round; the account container follows the shell geometry. */
+  .acg-desktop-v3.acg-unified-shell .acg-v4-header-account-mark {
+    border-radius: 50%;
+  }
+
+  /* Keep the existing adjustable columns and dock row; remove only gutters. */
+  .acg-desktop-v3.acg-unified-shell .acg-unified-workspace-grid {
+    gap: 0 !important;
+    background: var(--acg-unified-panel) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .acg-unified-workspace-grid > section:first-child {
+    background: transparent !important;
+    border: 0 !important;
+  }
+
+  /* A hairline distinguishes chart from side panel without double outlines. */
+  .acg-desktop-v3.acg-unified-shell .acg-unified-workspace-grid > .acg-motion-side-panel {
+    border: 0 !important;
+    border-left: 1px solid var(--acg-unified-line) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: var(--acg-unified-panel) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Desktop panel dock"] {
+    border: 0 !important;
+    border-left: 1px solid var(--acg-unified-line) !important;
+    border-radius: 0 !important;
+    background: var(--acg-unified-panel) !important;
+    box-shadow: none !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Desktop panel dock"] > button {
+    width: 32px !important;
+    height: 32px !important;
+    margin-bottom: 3px !important;
+    border-radius: 4px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Desktop panel dock"] > button > svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 1.75;
+  }
+
+  /* Remove the embedded 'card around the chart' in BOTH chart themes. */
+  .acg-desktop-v3.acg-unified-shell .grid:has(> aside[aria-label="Drawing tools"]) {
+    gap: 0 !important;
+    grid-template-columns: 44px minmax(0, 1fr) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Drawing tools"] {
+    background: var(--acg-unified-panel) !important;
+    border: 0 !important;
+    border-right: 1px solid var(--acg-unified-line) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+    gap: 2px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Drawing tools"] :is(button,.acg-mobile-drawing-tool) {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    border-radius: 4px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Drawing tools"] :is(button,.acg-mobile-drawing-tool) svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 1.7;
+  }
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Drawing tools"] .acg-mobile-drawing-tool-selected,
+  .acg-desktop-v3.acg-unified-shell aside[aria-label="Drawing tools"] [aria-pressed="true"] {
+    background: #24262a !important;
+    color: #f0f1f2 !important;
+    border-color: rgba(235,238,240,.25) !important;
+    box-shadow: inset 0 0 0 1px rgba(235,238,240,.20) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .grid:has(> aside[aria-label="Drawing tools"]) > div.relative.h-full {
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .grid:has(> aside[aria-label="Drawing tools"]) > div.relative.h-full > div {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* The positions dock joins the workspace instead of floating below it. */
+  .acg-desktop-v3.acg-unified-shell .acg-desktop-dock-shell {
+    border: 0 !important;
+    border-top: 1px solid var(--acg-unified-line) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: var(--acg-unified-panel) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .acg-desktop-positions {
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .acg-desktop-positions > div:first-child {
+    min-height: 40px !important;
+    height: 40px !important;
+    padding-inline: 10px !important;
+    border-bottom: 1px solid var(--acg-unified-line-soft) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .acg-desktop-positions > div:first-child button {
+    border-radius: 4px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .acg-desktop-positions :is(strong,b,[class*="font-mono"]) {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Menus and overlays are genuinely elevated. Structural panels are flat. */
+  .acg-desktop-v3.acg-unified-shell .acg-motion-popover,
+  .acg-desktop-v3.acg-unified-shell .acg-v3-popover {
+    border-radius: 6px !important;
+    border-color: rgba(230,234,239,.17) !important;
+    box-shadow: 0 14px 36px rgba(0,0,0,.42) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell button:focus-visible,
+  .acg-desktop-v3.acg-unified-shell :is(input,select,textarea):focus-visible {
+    outline: 2px solid #cbd0d6 !important;
+    outline-offset: -2px;
+  }
+  .acg-desktop-v3.acg-unified-shell :is(button,[role="button"]):not(:disabled) {
+    transition-property: background-color, border-color, color, opacity;
+    transition-duration: 120ms;
+    transition-timing-function: ease-out;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .acg-desktop-v3.acg-unified-shell :is(button,[role="button"]) {
+      transition-duration: 0ms !important;
+    }
+  }
+}
+
+/* Compact desktop: do not hide trade tools or change chart proportions. */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .acg-desktop-v3.acg-unified-shell header.acg-desktop-market-strip {
+    padding-inline: 7px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-instrument {
+    margin-right: 3px;
+  }
+}
