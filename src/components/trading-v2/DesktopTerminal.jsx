@@ -34,6 +34,7 @@ import DesktopManagePendingV4 from './desktop/DesktopManagePendingV4.jsx';
 import './desktop/DesktopTerminal.theme.css';
 import './desktop/DesktopHeaderV4.css';
 import './desktop/UnifiedTerminalWorkspace.css';
+import './desktop/DesktopTerminalDensityV6.css';
 import DesktopPositionManager from './desktop/DesktopPositionManager.jsx';
 import DesktopMultiChart from './desktop/DesktopMultiChart.jsx';
 import DesktopTradeReview from './desktop/DesktopTradeReview.jsx';
