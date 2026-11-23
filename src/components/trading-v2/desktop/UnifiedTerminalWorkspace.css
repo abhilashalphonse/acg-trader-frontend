@@ -927,7 +927,7 @@
 
   /* Desktop Help is a tool panel, not a giant mobile-sheet clone.
      All navigation, forms, article content and focus trapping remain intact. */
-  .acg-v3-help [data-acg-unified-help="true"] {
+  #acg-unified-help-dialog {
     top: 54px !important;
     bottom: auto !important;
     right: 45px !important;
@@ -940,60 +940,60 @@
     box-shadow: 0 18px 42px rgba(0,0,0,.48) !important;
     color: #e5e9ee !important;
   }
-  .acg-v3-help [data-acg-unified-help="true"] > header {
+  #acg-unified-help-dialog > header {
     height: 46px !important;
     min-height: 46px !important;
     padding: 0 12px !important;
     background: #15171a;
     border-bottom-color: rgba(230,234,239,.1) !important;
   }
-  .acg-v3-help [data-acg-unified-help="true"] > header h2 {
+  #acg-unified-help-dialog > header h2 {
     font-size: 13px !important;
     font-weight: 700 !important;
   }
-  .acg-v3-help [data-acg-unified-help="true"] > header button {
+  #acg-unified-help-dialog > header button {
     height: 30px !important;
     width: 30px !important;
     border-radius: 4px !important;
   }
-  .acg-v3-help [data-acg-unified-help="true"] > header svg {
+  #acg-unified-help-dialog > header svg {
     width: 17px;
     height: 17px;
     color: #b6c0ca;
   }
-  .acg-v3-help [data-acg-unified-help="true"] [data-help-scroll] {
+  #acg-unified-help-dialog [data-help-scroll] {
     padding: 12px !important;
     scrollbar-color: #3e4248 transparent;
   }
-  .acg-v3-help [data-acg-unified-help="true"] [data-help-home] {
+  #acg-unified-help-dialog [data-help-home] {
     display: flex;
     flex-direction: column;
     gap: 13px !important;
   }
-  .acg-v3-help [data-acg-unified-help="true"] [data-help-home] p {
+  #acg-unified-help-dialog [data-help-home] p {
     margin-bottom: 7px !important;
   }
-  .acg-v3-help [data-acg-unified-help="true"] [data-help-home] > div > p {
+  #acg-unified-help-dialog [data-help-home] > div > p {
     color: #a3acb7 !important;
     font-size: 10px !important;
     font-weight: 650;
     line-height: 15px;
   }
-  .acg-v3-help [data-acg-unified-help="true"] [data-help-home] [data-help-search] {
+  #acg-unified-help-dialog [data-help-home] [data-help-search] {
     min-height: 36px !important;
     padding: 0 11px !important;
     background: #191c20 !important;
     border-radius: 4px !important;
     border-color: rgba(230,234,239,.14) !important;
   }
-  .acg-v3-help [data-acg-unified-help="true"] [data-help-home] [data-help-search] input {
+  #acg-unified-help-dialog [data-help-home] [data-help-search] input {
     min-height: 34px;
     font-size: 11.5px !important;
   }
-  .acg-v3-help [data-acg-unified-help="true"] [data-help-category-grid] {
+  #acg-unified-help-dialog [data-help-category-grid] {
     gap: 7px !important;
   }
-  .acg-v3-help [data-acg-unified-help="true"] [data-help-category-tile] {
+  #acg-unified-help-dialog [data-help-category-tile] {
     min-height: 88px !important;
     padding: 10px 11px !important;
     border-radius: 4px !important;
@@ -1001,55 +1001,55 @@
     background: #181a1e !important;
     box-shadow: none !important;
   }
-  .acg-v3-help [data-acg-unified-help="true"] [data-help-category-tile]:hover {
+  #acg-unified-help-dialog [data-help-category-tile]:hover {
     background: #24272b !important;
     border-color: rgba(230,234,239,.25) !important;
   }
-  .acg-v3-help [data-acg-unified-help="true"] [data-help-category-tile] > svg {
+  #acg-unified-help-dialog [data-help-category-tile] > svg {
     width: 16px;
     height: 16px;
     margin-bottom: 8px !important;
     color: #b6bec7 !important;
   }
-  .acg-v3-help [data-acg-unified-help="true"] [data-help-category-tile] > span:nth-of-type(1) {
+  #acg-unified-help-dialog [data-help-category-tile] > span:nth-of-type(1) {
     font-size: 11.5px !important;
     font-weight: 660 !important;
     color: #edf0f4;
   }
-  .acg-v3-help [data-acg-unified-help="true"] [data-help-category-tile] > span:nth-of-type(2) {
+  #acg-unified-help-dialog [data-help-category-tile] > span:nth-of-type(2) {
     margin-top: 2px !important;
     font-size: 10px !important;
     color: #a5afb9 !important;
   }
-  .acg-v3-help [data-acg-unified-help="true"] [data-help-contact-list] {
+  #acg-unified-help-dialog [data-help-contact-list] {
     border-radius: 4px !important;
     border-color: rgba(230,234,239,.12) !important;
     background: #17191d;
   }
-  .acg-v3-help [data-acg-unified-help="true"] [data-help-contact-item] {
+  #acg-unified-help-dialog [data-help-contact-item] {
     min-height: 53px !important;
     padding: 7px 11px !important;
     gap: 9px !important;
     border-bottom-color: rgba(230,234,239,.08) !important;
   }
-  .acg-v3-help [data-acg-unified-help="true"] [data-help-contact-item] > svg {
+  #acg-unified-help-dialog [data-help-contact-item] > svg {
     width: 16px;
     height: 16px;
     color: #aeb7c2 !important;
   }
-  .acg-v3-help [data-acg-unified-help="true"] [data-help-contact-item] span.block:first-child {
+  #acg-unified-help-dialog [data-help-contact-item] span.block:first-child {
     font-size: 11.5px !important;
     font-weight: 650 !important;
   }
-  .acg-v3-help [data-acg-unified-help="true"] [data-help-contact-item] span.block:last-child {
+  #acg-unified-help-dialog [data-help-contact-item] span.block:last-child {
     margin-top: 2px !important;
     font-size: 10px !important;
     color: #9ca6b1 !important;
   }
-  .acg-v3-help [data-acg-unified-help="true"] [data-help-contact-item]:hover {
+  #acg-unified-help-dialog [data-help-contact-item]:hover {
     background: #22252a !important;
   }
-  .acg-v3-help [data-acg-unified-help="true"] [data-help-scroll] :is(button,input,textarea,select):focus-visible {
+  #acg-unified-help-dialog [data-help-scroll] :is(button,input,textarea,select):focus-visible {
     outline: 2px solid #dce3e9 !important;
     outline-offset: -2px;
   }
