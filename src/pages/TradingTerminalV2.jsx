@@ -177,6 +177,7 @@ export default function TradingTerminalV2({
   };
 
   const [timeframe, setTimeframe] = useState(prefsRef.current.timeframe || '30m');
+  useEffect(()=>{const select=e=>setTimeframe(e.detail);window.addEventListener('acg-alert-timeframe',select);return()=>window.removeEventListener('acg-alert-timeframe',select);},[]);
   const [chartMode, setChartMode] = useState(prefsRef.current.chartMode || 'candles');
   const [selectedTool, setSelectedTool] = useState('cursor');
   const [activeNav, setActiveNav] = useState('trade');

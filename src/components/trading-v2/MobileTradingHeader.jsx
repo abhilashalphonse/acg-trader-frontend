@@ -1,4 +1,6 @@
 import React from 'react';
+import { Bell } from 'lucide-react';
+import { useAlerts } from '../alerts/AlertsWorkspace.jsx';
 import { ArrowUpDown, ChevronDown, MoreVertical } from 'lucide-react';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import { marketVenue } from '../../utils/marketClassification.js';
@@ -66,6 +68,7 @@ export default function MobileTradingHeader({
   onOpenAccount = () => {},
 }) {
   const symbol = market?.displaySymbol || displaySymbol(market?.symbol);
+  const alerts = useAlerts();
   const category = marketCategory(market);
   const marketStatus = market?.sessionOpen === false ? 'CLOSED' : market?.live ? 'LIVE' : String(market?.marketState || 'WAIT').toUpperCase();
   const floatingPnl = account?.floatingPnl == null ? null : Number(account.floatingPnl);
@@ -127,6 +130,7 @@ export default function MobileTradingHeader({
       >
         <MoreVertical size={20} strokeWidth={2}/>
       </button>
+      {alerts?.enabled&&<button type="button" onClick={alerts.open} aria-label="Open alerts" className="grid min-h-10 min-w-8 place-items-center"><Bell size={18}/></button>}
     </header>
   );
 }

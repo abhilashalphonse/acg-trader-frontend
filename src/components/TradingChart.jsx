@@ -1,4 +1,5 @@
 import { candleReadout } from '../utils/candleReadout.js';
+import { useAlerts } from './alerts/AlertsWorkspace.jsx';
 import { mobileChartReadout } from '../utils/mobileChartReadout.js';
 import { initialChartRange, normalizeChartViewport } from '../utils/chartViewport.js';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -121,6 +122,8 @@ export default function TradingChart({
   onOpenIndicatorSettings = () => {},
   onRemoveIndicator = () => {},
 }) {
+  const alerts = useAlerts();
+  const [alertMenu, setAlertMenu] = useState(null);
   const { authenticated } = useTraderAuth();
   const { market, connection, subscribeMarket } = useTradingStore();
   const hostRef = useRef(null);
@@ -154,6 +157,16 @@ export default function TradingChart({
   const canvasPalette = desktopChartPalette(chartTheme);
   const lightCanvas = chartTheme === 'light';
   const [readyKey, setReadyKey] = useState(null);
+  useEffect(() => {
+    const series = seriesRef.current;
+    if (!series || !readyKey || !alerts?.enabled) return;
+    const lines=[];
+    for (const rule of alerts.rules.filter(r=>r.symbol===symbol&&['STARTING','MONITORING'].includes(r.status))) {
+      const values=rule.condition.lower?[rule.condition.lower,rule.condition.upper]:[rule.condition.level];
+      for(const value of values)if(Number(value)>0)lines.push(series.createPriceLine({price:Number(value),color:'#92929e',lineWidth:1,lineStyle:LineStyle.Dashed,axisLabelVisible:true,title:'◷ '+(rule.name||'Alert')}));
+    }
+    return()=>{for(const line of lines){try{series.removePriceLine(line);}catch{/* chart disposed */}}};
+  },[alerts?.enabled,alerts?.rules,readyKey,symbol]);
   const [displayBar, setDisplayBar] = useState(null);
   const [inspectingCandle, setInspectingCandle] = useState(false);
   const selectedCandleTimeRef = useRef(null);
@@ -1322,8 +1335,19 @@ export default function TradingChart({
   );
 
   return <div data-acg-chart-theme={lightCanvas ? "light" : "dark"}
+    onContextMenu={event=>{
+      if(!alerts?.enabled||!seriesRef.current||!hostRef.current)return;
+      const rect=hostRef.current.getBoundingClientRect();
+      const value=seriesRef.current.coordinateToPrice(event.clientY-rect.top);
+      if(!(value>0))return;
+      event.preventDefault();
+      setAlertMenu({x:Math.min(event.clientX-rect.left,Math.max(0,rect.width-230)),y:Math.min(event.clientY-rect.top,Math.max(0,rect.height-40)),price:Number(value).toFixed(Number(instrument?.digits)||5)});
+    }}
+    onPointerDown={()=>{if(alertMenu)setAlertMenu(null);}}
     className={`relative size-full min-h-0 min-w-0 overflow-hidden ${lightCanvas ? "bg-[#FAFBFC]" : "bg-black"}`}>
     <div ref={hostRef} className="absolute inset-0" />
+    {alertMenu&&<button className="acg-alert-chart-menu" style={{left:alertMenu.x,top:alertMenu.y}}
+      onPointerDown={e=>e.stopPropagation()} onClick={()=>{alerts.create(symbol,alertMenu.price);setAlertMenu(null);}}>Add alert at {alertMenu.price}</button>}
     {mobileReference && (
       <div className="pointer-events-none absolute bottom-8 left-2 z-20 select-none" aria-hidden="true">
         <img

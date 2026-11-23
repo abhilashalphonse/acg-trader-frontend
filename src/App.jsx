@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { AlertsProvider } from './components/alerts/AlertsWorkspace.jsx';
 import TerminalStatusBanner from './components/TerminalStatusBanner.jsx';
 import ACGStartupLoader from './components/ACGStartupLoader.jsx';
 import { useInstrumentCatalog } from './hooks/useInstrumentCatalog.js';
@@ -247,11 +248,13 @@ export default function App() {
         actionBusy={auth.refreshing}
         onAction={auth.status === 'reauth-required' ? () => { void auth.refreshSession().catch(() => {}); } : null}
       />
+      <AlertsProvider markets={markets} symbol={market?.symbol || activeSymbol} onSelectSymbol={setActiveSymbol}>
       <Suspense fallback={<ACGStartupLoader />}>
         {isDesktop
           ? <TradingTerminalV2 {...sharedProps} />
           : <MobileTraderShell {...sharedProps} mobileAudit={MOBILE_AUDIT_ENABLED} />}
       </Suspense>
+      </AlertsProvider>
     </>
   );
 }

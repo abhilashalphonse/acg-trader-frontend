@@ -1,4 +1,5 @@
 import { CircleHelp } from 'lucide-react';
+import { useAlerts } from '../alerts/AlertsWorkspace.jsx';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Bell,
@@ -405,6 +406,7 @@ export default function DesktopTerminal({
   positionsError = null,
   onRetryPositions = () => {},
 }) {
+  const alerts = useAlerts();
   // One authoritative preview for the chart, fixed ticket, and floating ticket.
   // Derive market entries from the same quote before position sizing.
   const orderExecutionPreview = React.useMemo(() => {
@@ -1666,6 +1668,9 @@ export default function DesktopTerminal({
             >
               <Layers3 size={17}/>
             </button>
+            {alerts?.enabled && <button type="button" onClick={alerts.open}
+              className="relative mb-1 grid size-9 place-items-center rounded-md text-[#9a9aa6] hover:bg-white/[0.04] hover:text-white"
+              title="Alerts (Alt+A)" aria-label="Open alerts"><Bell size={17}/>{alerts.unread>0&&<span className="absolute right-1 top-1 size-1.5 rounded-full bg-white"/>}</button>}
             <button type="button" onClick={onOpenHelp}
               className="mt-auto mb-1 grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"
               title="Help Center" aria-label="Help Center">

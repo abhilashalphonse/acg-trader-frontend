@@ -133,6 +133,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const readOnly = String(account?.status || '').toUpperCase() === 'BREACHED';
 
   const [timeframe, setTimeframe] = useState(prefsRef.current.timeframe || '1m');
+  useEffect(()=>{const select=e=>setTimeframe(e.detail);window.addEventListener('acg-alert-timeframe',select);return()=>window.removeEventListener('acg-alert-timeframe',select);},[]);
   const [chartMode, setChartMode] = useState(prefsRef.current.chartMode || 'candles');
   const [selectedTool, setSelectedTool] = useState('cursor');
   const favorite = watchlists?.isWatched?.(activeSymbol) === true;

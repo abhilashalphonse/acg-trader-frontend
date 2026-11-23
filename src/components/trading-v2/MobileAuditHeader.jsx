@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Bell } from 'lucide-react';
+import { useAlerts } from '../alerts/AlertsWorkspace.jsx';
 import { ArrowUpDown, ChartNoAxesCombined, ChevronDown, CircleHelp, MoreVertical, Search, Settings2, UserRound } from 'lucide-react';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
 import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
@@ -20,6 +22,7 @@ export default function MobileAuditHeader({
   onSelectInstrument, onOpenTrades, onOpenAccount,
   onOpenIndicators, onOpenSettings, onOpenHelp, chartReadout = null,
 }) {
+  const alerts = useAlerts();
   const [panel, setPanel] = useState(null);
   const timeOpen = panel === 'time';
   const headerRef = useRef(null);
@@ -40,6 +43,7 @@ export default function MobileAuditHeader({
     return () => { document.removeEventListener('pointerdown', dismiss); document.removeEventListener('keydown', escape); };
   }, [panel]);
   const destinations = [
+    ...(alerts?.enabled ? [['Alerts', Bell, alerts.open]] : []),
     ['Markets', Search, onSelectInstrument], ['Trades', ArrowUpDown, onOpenTrades],
     ['Accounts', UserRound, onOpenAccount], ['Indicators', ChartNoAxesCombined, onOpenIndicators],
     ['Platform settings', Settings2, onOpenSettings], ['Help & support', CircleHelp, onOpenHelp],
