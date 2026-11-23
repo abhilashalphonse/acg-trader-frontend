@@ -56,6 +56,8 @@ export default function ChartAlertsOverlay({chart,series,hostRef,symbol,instrume
     };
     const move=event=>{
       schedule();if(drag.current)return;
+      if(event.buttons){setPointer(null);setHovered(null);return;}
+      if(event.target.closest?.('.acg-chart-alert-axis-icon'))return;
       const p=point(event);
       if(!p){setPointer(null);return;}
       const size=geometry.current;
@@ -155,14 +157,18 @@ export default function ChartAlertsOverlay({chart,series,hostRef,symbol,instrume
     })}
     {pointer&&pointer.price>0&&!menu&&<>
       <div className="acg-chart-alert-price-guide" aria-hidden="true" style={{top:pointer.y,width:view.width}}/>
-      <button type="button" className="acg-chart-alert-axis-add" aria-label={'Add alert at '+chartAlertPrice(pointer.price,instrument)} title={'Add alert on '+symbol+' at '+chartAlertPrice(pointer.price,instrument)}
-        style={{left:Math.max(0,view.width-22),top:pointer.y}} onPointerDown={event=>event.stopPropagation()} onClick={()=>{
-          const price=chartAlertPrice(pointer.price,instrument);if(price){setMenu({x:Math.max(6,view.width-310),y:Math.max(6,Math.min(pointer.y,view.height-125)),price});setPointer(null);}
-        }}><span className="acg-chart-alert-axis-icon"><Plus size={14} strokeWidth={1.75}/></span><span className="acg-chart-alert-axis-price">{chartAlertPrice(pointer.price,instrument)}</span></button>
+      <div className="acg-chart-alert-axis-add" style={{left:Math.max(0,view.width-22),top:pointer.y}}>
+        <button type="button" className="acg-chart-alert-axis-icon" aria-label={'Add alert at '+chartAlertPrice(pointer.price,instrument)} title={'Add alert on '+symbol+' at '+chartAlertPrice(pointer.price,instrument)}
+          onPointerDown={event=>{event.preventDefault();event.stopPropagation();}} onClick={event=>{
+            event.stopPropagation();const price=chartAlertPrice(pointer.price,instrument);
+            if(price){alerts.create(symbol,price);setPointer(null);}
+          }}><Plus size={14} strokeWidth={1.75}/></button>
+        <span className="acg-chart-alert-axis-price">{chartAlertPrice(pointer.price,instrument)}</span>
+      </div>
     </>}
     {menu&&<div ref={menuRef} className="acg-chart-alert-context" role="menu" aria-label="Chart alert actions" style={{left:menu.x,top:menu.y}} data-acg-hotkeys-suspend="true">
       <div className="acg-chart-alert-context-heading"><span>{symbol}</span><strong>{menu.price}</strong></div>
-      <button type="button" role="menuitem" onClick={()=>{alerts.create(symbol,menu.price);setMenu(null);}}><BellPlus size={16}/><span>Add alert on {symbol} at {menu.price}</span><kbd>Alt A</kbd></button>
+      <button type="button" role="menuitem" onClick={()=>{alerts.create(symbol,menu.price);setMenu(null);}}><BellPlus size={16}/><span>Add alert on <strong>{symbol}</strong> at <strong>{menu.price}</strong></span></button>
       <div className="acg-chart-alert-context-separator"/>
       <button type="button" role="menuitem" onClick={()=>{alerts.open(symbol);setMenu(null);}}><Settings2 size={15}/><span>Manage {symbol} alerts</span></button>
     </div>}
