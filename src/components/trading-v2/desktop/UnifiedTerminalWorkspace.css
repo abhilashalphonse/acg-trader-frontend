@@ -216,3 +216,566 @@
     margin-right: 3px;
   }
 }
+
+
+/* ==========================================================================
+   Integrated chrome refinement — execution, watchlist, menus and compact nav.
+   Exactly the same 4px-radius / 1px-divider / neutral-silver language as the
+   unified shell. Visual only: never change order, price, or permission states.
+   ========================================================================== */
+@media (min-width: 1024px) {
+  /* Keep the 48px top band genuinely compact at each desktop breakpoint.
+     No detached borders/pills between symbol, interval tools and account. */
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header {
+    min-width: 0;
+    padding-inline: 8px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-instrument {
+    flex: 0 1 176px;
+    width: 176px;
+    max-width: 176px;
+    min-width: 138px;
+    margin-right: 4px;
+    padding-right: 6px;
+    gap: 7px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-instrument-image] {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    flex-basis: 28px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-primary strong {
+    font-size: 13px !important;
+    line-height: 17px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-secondary {
+    height: 13px;
+    font-size: 9.5px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-tools {
+    gap: 2px !important;
+    padding-inline: 3px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-right {
+    min-width: 0;
+    padding-left: 8px;
+    gap: 5px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-right::before {
+    height: 22px;
+    background: var(--acg-unified-line);
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-divider {
+    background: var(--acg-unified-line);
+    height: 18px;
+    margin-inline: 1px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account] {
+    max-width: 225px;
+    min-width: 0;
+    gap: 5px;
+    padding-left: 5px;
+    border-radius: 4px !important;
+    background: #141518 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-account-copy {
+    min-width: 0;
+    gap: 5px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account-name] {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 11px !important;
+    max-width: 136px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-account-type {
+    font-size: 10px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-account-chevron {
+    flex-basis: 25px;
+    width: 25px;
+    border-left-color: var(--acg-unified-line);
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-timeframes button[aria-pressed="true"] {
+    box-shadow: none !important;
+    border-radius: 4px !important;
+  }
+
+  /* Order ticket: section rhythm and hierarchy, not floating widgets. */
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope {
+    --v4-bg: var(--acg-unified-panel);
+    --v4-surface: var(--acg-unified-panel-raised);
+    background: var(--acg-unified-panel) !important;
+    color: var(--acg-unified-text);
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-ticket-body {
+    padding: 0 10px 10px !important;
+    gap: 10px !important;
+    scrollbar-color: #3e4046 transparent;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket.v4-live-scope .v4-instrument {
+    min-height: 46px;
+    margin: 0 -10px;
+    padding: 0 10px;
+    gap: 7px;
+    border-bottom: 1px solid var(--acg-unified-line);
+    flex-shrink: 0;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-coin {
+    flex-basis: 27px;
+    width: 27px;
+    height: 27px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-symbol strong {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-symbol span {
+    font-size: 10px;
+    color: var(--acg-unified-muted);
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-head-actions {
+    gap: 3px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-head-actions button {
+    height: 30px;
+    width: 30px;
+    border-radius: 4px;
+    color: var(--acg-unified-secondary);
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-head-actions button:hover {
+    background: #202227;
+    color: #fff;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-session {
+    min-height: 18px;
+    font-size: 10px;
+    color: var(--acg-unified-secondary);
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-session > span:last-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
+    font-size: 9.5px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-quote-strip {
+    border-radius: 4px !important;
+    border: 1px solid var(--acg-unified-line-soft);
+    background: #131417 !important;
+    min-height: 35px;
+    padding: 7px 8px;
+    gap: 4px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-quote-strip > span {
+    font-size: 10px;
+    color: var(--acg-unified-muted);
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-quote-strip strong {
+    font-size: 11px;
+    font-weight: 650;
+    color: #e4e7eb;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-capsule {
+    padding: 2px;
+    gap: 2px;
+    background: #181a1e;
+    border: 1px solid var(--acg-unified-line-soft);
+    border-radius: 4px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-capsule-button {
+    border-radius: 3px !important;
+    padding: 7px 3px;
+    font-size: 10px;
+    line-height: 16px;
+    color: var(--acg-unified-secondary);
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-capsule-button.selected {
+    background: #dfe2e6 !important;
+    color: #121417 !important;
+    font-weight: 700;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-capsule-button:not(.selected):hover {
+    background: #292b30;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-mainmodes .v4-capsule-button {
+    min-height: 30px;
+    font-size: 11px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-block {
+    gap: 9px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-section-heading {
+    color: var(--acg-unified-muted);
+    font-size: 10px;
+    font-weight: 650;
+    letter-spacing: .05em;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-amount {
+    grid-template-columns: 34px minmax(0,1fr) 34px;
+    gap: 7px;
+    min-height: 47px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-amount > button {
+    width: 34px;
+    height: 34px;
+    border-radius: 4px;
+    background: #23252a;
+    border: 1px solid var(--acg-unified-line);
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-hero-input {
+    height: 47px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-hero-value {
+    font-size: 25px !important;
+    font-weight: 700;
+    letter-spacing: -.025em;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-hero-input input {
+    height: 40px;
+    border: 1px solid var(--acg-unified-line) !important;
+    border-radius: 4px !important;
+    background: #181a1f;
+    font-size: 21px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-translation {
+    font-size: 10px;
+    color: var(--acg-unified-secondary);
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket :is(.v4-exit-card,.v4-ratio-slab,.v4-advanced-content,.v4-margin-summary,.v4-settings) {
+    border-radius: 4px !important;
+    background: #17191d !important;
+    border: 1px solid var(--acg-unified-line-soft);
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-exit-card {
+    padding: 10px;
+    gap: 9px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-exit-heading strong {
+    font-size: 12px;
+    font-weight: 650;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-exit-controls {
+    gap: 6px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-exit-controls > input,
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-select-wrap > select,
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-advanced-content :is(input,select),
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-inline-setting input {
+    min-height: 34px;
+    border: 1px solid var(--acg-unified-line) !important;
+    border-radius: 4px !important;
+    background: #101215 !important;
+    color: var(--acg-unified-text) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-select-wrap {
+    height: 34px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-select-wrap > svg {
+    top: 9px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-ratio-slab {
+    padding: 10px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-advanced-content {
+    padding: 10px;
+    gap: 9px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-execution-footer {
+    background: var(--acg-unified-panel) !important;
+    border-top: 1px solid var(--acg-unified-line);
+    padding: 10px !important;
+    gap: 8px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-margin-summary {
+    padding: 9px 10px;
+    gap: 8px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-margin-summary strong {
+    font-size: 12px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-trade-actions {
+    gap: 6px;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-trade-actions button,
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-manage-footer button {
+    min-height: 47px;
+    border-radius: 4px !important;
+    padding: 8px 10px;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-trade-actions button strong {
+    font-size: 15px;
+  }
+  /* Buy/sell colors, disabled affordances and warnings deliberately inherited. */
+  .acg-desktop-v3.acg-unified-shell .v4-ticket .v4-notice {
+    border-radius: 4px !important;
+  }
+
+  /* Markets and Favorites: full-height integrated panel, narrower row rhythm. */
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] {
+    --v4-market-bg: var(--acg-unified-panel);
+    --v4-market-surface: #212328;
+    --v4-market-hairline: var(--acg-unified-line-soft);
+    --v4-market-secondary: var(--acg-unified-secondary);
+    --v4-market-subtle: var(--acg-unified-muted);
+    background: var(--acg-unified-panel) !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] > header {
+    min-height: 46px;
+    height: 46px;
+    padding-inline: 10px;
+    border-bottom-color: var(--acg-unified-line) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] > header h2 {
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] > header button {
+    width: 30px;
+    height: 30px;
+    border-radius: 4px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] :is(.acg-v4-market-category,.acg-v4-market-favorite) {
+    border-radius: 4px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-categories {
+    gap: 3px;
+    padding: 6px 9px;
+    border-bottom-color: var(--acg-unified-line-soft);
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-category {
+    height: 30px;
+    background: #17191c;
+    color: var(--acg-unified-secondary);
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-category.is-selected {
+    color: #121417;
+    background: #e1e4e8;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-category:not(.is-selected):hover {
+    background: #282b30;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] label:has(> input[aria-label="Search markets input"]) {
+    height: 34px;
+    margin-top: 7px;
+    border-radius: 4px !important;
+    background: #16181b;
+    border-color: var(--acg-unified-line) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] [data-v4-market-header] {
+    min-height: 28px;
+    padding-inline: 10px;
+    background: #141518 !important;
+    border-bottom-color: var(--acg-unified-line-soft);
+    color: var(--acg-unified-muted);
+    font-size: 9px;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-section-title {
+    min-height: 25px;
+    background: #15171a;
+    color: #cdd2d8;
+    border-top-color: var(--acg-unified-line-soft);
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-row-wrap {
+    border-bottom-color: var(--acg-unified-line-soft);
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-row {
+    min-height: 48px;
+    padding-block: 5px;
+    column-gap: 5px;
+    border-left-width: 2px;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-symbol {
+    font-size: 11.5px;
+    font-weight: 680;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-subtitle {
+    font-size: 10px;
+    color: var(--acg-unified-muted);
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-price {
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] [data-market-selected="true"] .acg-v4-market-row {
+    background: #202328;
+    border-left-color: #d8dde3;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] .acg-v4-market-row:hover {
+    background: #1b1e22;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] [role="menu"] {
+    border: 1px solid var(--acg-unified-line) !important;
+    border-radius: 5px !important;
+    background: #16181b !important;
+    box-shadow: 0 12px 30px rgba(0,0,0,.42) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-markets-panel] [role="menuitemradio"] {
+    min-height: 31px;
+    border-radius: 3px !important;
+  }
+
+  /* Account switcher: one bounded list, slim rows and controlled hierarchy. */
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu] {
+    border-radius: 5px !important;
+    border-color: rgba(230,234,239,.17) !important;
+    background: #121417 !important;
+    box-shadow: 0 14px 34px rgba(0,0,0,.45) !important;
+    padding: 6px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] {
+    width: min(320px, calc(100vw - 16px));
+    max-height: min(580px, calc(100dvh - 72px));
+    padding: 0;
+    border-radius: 5px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:first-child {
+    padding: 11px 12px 9px;
+    background: #17191d;
+    border-bottom: 1px solid var(--acg-unified-line);
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:first-child strong {
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:first-child span {
+    line-height: 16px;
+    font-size: 10px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:nth-child(2) > div > button,
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] > div:last-child > div > button {
+    min-height: 53px;
+    padding: 9px 12px;
+    gap: 8px;
+    border-radius: 0 !important;
+    border-bottom-color: var(--acg-unified-line-soft) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] button:hover:not(:disabled) {
+    background: #202328 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] button strong {
+    font-size: 11px;
+    font-weight: 650;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] button span {
+    font-size: 10px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="account"] button > div > span:last-child {
+    color: var(--acg-unified-muted);
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="layout"] .group,
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="chart"] > button,
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-menu="more"] > button {
+    border-radius: 3px !important;
+  }
+
+  /* Chart appearance/settings dialog: premium compact inspection panel. */
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] {
+    width: 286px;
+    max-width: min(286px, calc(100vw - 55px));
+    top: 0;
+    right: 44px;
+    background: #121417 !important;
+    border-color: rgba(230,234,239,.17) !important;
+    border-radius: 5px !important;
+    box-shadow: 0 14px 34px rgba(0,0,0,.42) !important;
+    backdrop-filter: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] > div:first-child {
+    height: 46px;
+    padding-inline: 12px;
+    border-bottom-color: var(--acg-unified-line) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] > div:nth-child(2) {
+    padding: 11px 12px;
+    scrollbar-color: #42454a transparent;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [role="group"][aria-label="Chart canvas theme"] {
+    gap: 3px;
+    padding: 3px;
+    border-radius: 4px !important;
+    border-color: var(--acg-unified-line) !important;
+    background: #1a1d21 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [role="group"][aria-label="Chart canvas theme"] button {
+    height: 32px;
+    border-radius: 3px !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] [role="group"][aria-label="Chart canvas theme"] button[aria-pressed="true"] {
+    background: #33373d !important;
+    color: #f4f6f8 !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] .overflow-hidden.rounded-lg {
+    border-radius: 4px !important;
+    border-color: var(--acg-unified-line-soft) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] label:has(input[type="color"]) {
+    border-radius: 4px !important;
+    background: #1c1f23 !important;
+    border-color: var(--acg-unified-line) !important;
+    box-shadow: none !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] :is(input:not([type="color"]),select) {
+    border-radius: 4px !important;
+    background: #1b1d21 !important;
+    border-color: var(--acg-unified-line) !important;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] > div:last-child {
+    border-top-color: var(--acg-unified-line) !important;
+    background: #16181c;
+  }
+  .acg-desktop-v3.acg-unified-shell [data-v4-chart-settings="true"] > div:last-child button {
+    border-radius: 4px !important;
+  }
+  .acg-desktop-v3.acg-unified-shell :is(.v4-ticket,[data-v4-markets-panel],[data-v4-chart-settings="true"]) :is(button,input,select):focus-visible {
+    outline: 2px solid #e2e6eb !important;
+    outline-offset: -2px;
+  }
+}
+/* Tighten layout, never discard symbol/account access at 1024px. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-instrument {
+    flex-basis: 145px;
+    width: 145px;
+    max-width: 145px;
+    min-width: 125px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account] {
+    max-width: 190px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account-name] {
+    max-width: 98px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-right {
+    gap: 3px;
+    padding-left: 4px;
+  }
+}
+@media (min-width: 1024px) and (max-width: 1099px) {
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header .acg-v4-header-instrument {
+    flex-basis: 129px;
+    width: 129px;
+    max-width: 129px;
+    min-width: 118px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account] {
+    max-width: 170px;
+  }
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-account-name] {
+    max-width: 86px;
+  }
+}
