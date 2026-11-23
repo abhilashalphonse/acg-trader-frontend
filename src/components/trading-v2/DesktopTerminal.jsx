@@ -52,6 +52,7 @@ import ChartObjectManager from './desktop/ChartObjectManager.jsx';
 import ResizeHandle from './desktop/ResizeHandle.jsx';
 import PositionsPanel from './PositionsPanel.jsx';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
+import acgNavbarGradientA from '../../assets/acg-navbar-gradient-a.svg';
 import IndicatorManager from './IndicatorManager.jsx';
 import { accountStatusLabel, accountTypeBadge } from '../../utils/accountPresentation.js';
 import { formatInstrumentPrice } from '../../utils/instrumentFormatting.js';
@@ -1168,7 +1169,10 @@ export default function DesktopTerminal({
           <button type="button" data-v4-header-instrument-image={V4_DESKTOP_EXECUTION_ENABLED ? 'true' : undefined}
             onClick={() => openMarketPanel('markets', false)} className="shrink-0"
             title="Open markets and watchlist" aria-label="Open markets and watchlist">
-            <InstrumentAvatar instrument={market} size={30}/>
+            {V4_DESKTOP_EXECUTION_ENABLED
+              ? <img data-acg-nav-brand-mark src={acgNavbarGradientA} width="28" height="28" alt="" aria-hidden="true" draggable={false}/>
+              : <InstrumentAvatar instrument={market} size={30}/>}
+
           </button>
           <div className="acg-v4-header-identity min-w-0">
             <div className="acg-v4-header-primary flex min-w-0 items-center gap-1">

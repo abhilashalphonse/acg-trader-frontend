@@ -51,6 +51,23 @@ try {
       assert.match(baselineTypography.fontFeatures, /ss01/i,
         'V6 stylistic font feature ss01 must remain enabled at ' + width);
       const header = shell.locator('header.acg-desktop-market-strip');
+      // Only the top navbar market avatar is replaced by the candidate A mark.
+      // It is a real vector SVG served by the bundle, not a blurred bitmap.
+      const navbarBrand = header.locator('button[data-v4-header-instrument-image] img[data-acg-nav-brand-mark]');
+      await navbarBrand.waitFor({ state: 'visible', timeout: 20000 });
+      const brandMarkState = await navbarBrand.evaluate(async el => {
+        if (!el.complete) await el.decode();
+        const { width, height } = el.getBoundingClientRect();
+        return { width, height, naturalWidth: el.naturalWidth, naturalHeight: el.naturalHeight,
+          url: new URL(el.currentSrc).pathname };
+      });
+      assert.ok(brandMarkState.url.endsWith('.svg') &&
+        brandMarkState.naturalWidth > 0 && brandMarkState.naturalHeight > 0,
+        'Navbar A must load as a crisp vector asset: ' + JSON.stringify(brandMarkState));
+      assert.ok(brandMarkState.width >= 27 && brandMarkState.width <= 29 &&
+        brandMarkState.height >= 27 && brandMarkState.height <= 29,
+        'Candidate mark must fit the 28px navbar icon slot: ' + JSON.stringify(brandMarkState));
+
       const grid = shell.locator('.acg-unified-workspace-grid');
       // The default desktop layout deliberately starts with the sidebar closed.
       // Open the actual trade rail before inspecting ticket controls.

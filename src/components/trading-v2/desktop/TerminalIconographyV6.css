@@ -136,3 +136,20 @@ body.acg-mini-window .acg-mini-terminal .acg-mini-back svg,
 body.acg-mini-window .acg-mini-terminal .acg-mini-instrument svg {
   stroke-width: 1.65;
 }
+
+/* Temporary identity experiment in the desktop market-selector image slot.
+   The instrument name, dropdown button, market status and instrument icons
+   in the rest of the product are unchanged. */
+@media (min-width: 1024px) {
+  .acg-desktop-v3.acg-unified-shell header.acg-v4-header [data-v4-header-instrument-image] [data-acg-nav-brand-mark] {
+    display: block;
+    width: 28px !important;
+    height: 28px !important;
+    max-width: 28px;
+    max-height: 28px;
+    flex: 0 0 28px;
+    object-fit: contain;
+    border-radius: 6px;
+    box-shadow: none;
+  }
+}
