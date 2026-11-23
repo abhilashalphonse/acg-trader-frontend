@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 // Synthetic full terminal fixture only; do not connect trading APIs.
@@ -7,6 +7,12 @@ const url = 'http://127.0.0.1:5174/v4-positions-audit.html?public_review=1&acg_v
 const browser = await chromium.launch({ headless: true, channel: 'chrome', args: ['--no-sandbox'] });
 const widths = [1024, 1280, 1440, 1920];
 const results = [];
+// PR #236 must never replace the approved V6 typography. The parent styles
+// retain font family/features and component-specific readable text sizes.
+const unifiedCss = await readFile('src/components/trading-v2/desktop/UnifiedTerminalWorkspace.css', 'utf8');
+assert.doesNotMatch(unifiedCss,
+  /(?:^|[;{\n])\s*(?:font-family|font-size|font-weight|font-feature-settings|font-variant(?:-numeric)?|letter-spacing|line-height|text-rendering)\s*:/im,
+  'Unified workspace CSS must not override V6 typography');
 await mkdir('artifacts', { recursive: true });
 
 async function px(locator, prop) {
@@ -23,6 +29,15 @@ try {
       await page.goto(url, { waitUntil: 'domcontentloaded' });
       const shell = page.locator('.acg-desktop-v3.acg-unified-shell');
       await shell.waitFor({ state: 'visible', timeout: 30000 });
+      const baselineTypography = await shell.evaluate(el => ({
+        fontFamily: getComputedStyle(el).fontFamily,
+        parentFontFamily: getComputedStyle(el.parentElement).fontFamily,
+        fontFeatures: getComputedStyle(el).fontFeatureSettings,
+      }));
+      assert.equal(baselineTypography.fontFamily, baselineTypography.parentFontFamily,
+        'Terminal must inherit the existing V6/base font family at ' + width);
+      assert.match(baselineTypography.fontFeatures, /ss01/i,
+        'V6 stylistic font feature ss01 must remain enabled at ' + width);
       const header = shell.locator('header.acg-desktop-market-strip');
       const grid = shell.locator('.acg-unified-workspace-grid');
       // The default desktop layout deliberately starts with the sidebar closed.
