@@ -113,6 +113,22 @@ try {
       await page.screenshot({ path: 'artifacts/unified-terminal-' + width + '-trade.png' });
 
       const account = header.locator('[data-v4-header-account]');
+      const accountName = account.locator('[data-v4-header-account-name]');
+      assert.equal((await accountName.textContent()).trim(), 'V4-POSITIONS',
+        'Account selector must display a meaningful name rather than its last six letters');
+      assert.equal((await account.locator('.acg-v4-header-account-type').textContent()).trim(), 'Trial',
+        'Account category should remain on a separate readable line');
+      const accountBox = await account.boundingBox();
+      assert.ok(accountBox.width <= 190 && Math.abs(accountBox.height - 34) <= 1,
+        'Account button should remain proportionate to the 48px navbar: ' + JSON.stringify(accountBox));
+      const avatar = account.locator('.acg-v4-header-account-mark');
+      assert.ok(num(await px(avatar, 'border-top-left-radius')) <= 15,
+        'Account avatar may be circular but button body must remain squared');
+      assert.ok(num(await px(account, 'border-top-left-radius')) <= 4.1,
+        'Account selector must have compact 4px corners');
+      const chevron = account.locator('.acg-v4-header-account-chevron > svg');
+      assert.ok(num(await px(chevron, 'width')) <= 14.5,
+        'Chevron should be subtle and not dominate the selector');
       await account.click();
       const accountMenu = header.locator('[data-v4-header-menu="account"]');
       await accountMenu.waitFor({ state: 'visible' });
