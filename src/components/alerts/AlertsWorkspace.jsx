@@ -20,6 +20,7 @@ export function AlertsProvider({children,markets=[],symbol,onSelectSymbol}){
   const [soundEnabled,setSoundEnabled]=useState(sound.current.enabled);
   const [config,setConfig]=useState(null),[rules,setRules]=useState([]),[events,setEvents]=useState([]),[gaps,setGaps]=useState([]);
   const [open,setOpen]=useState(false),[draft,setDraft]=useState(null),[tab,setTab]=useState('alerts'),[error,setError]=useState(''),[busy,setBusy]=useState(false),[toast,setToast]=useState(null);
+  const [deviceSubscribed,setDeviceSubscribed]=useState(false);
   const [hosted,setHosted]=useState(false),[filterSymbol,setFilterSymbol]=useState(null),[nextBefore,setNextBefore]=useState(null);
   const host=useRef(null),seen=useRef(null),requestId=useRef(null),scopeRevision=useRef(0),olderLoaded=useRef(false);
   const registerHost=useCallback(value=>{
@@ -44,7 +45,7 @@ export function AlertsProvider({children,markets=[],symbol,onSelectSymbol}){
     seen.current=new Set(history.events.map(e=>e.id));
   },[request]);
   useEffect(()=>{
-    let alive=true;scopeRevision.current++;setConfig(null);setRules([]);setEvents([]);setGaps([]);setNextBefore(null);setDraft(null);setOpen(false);setToast(null);setBusy(false);setError('');seen.current=null;olderLoaded.current=false;
+    let alive=true;scopeRevision.current++;setConfig(null);setDeviceSubscribed(false);setRules([]);setEvents([]);setGaps([]);setNextBefore(null);setDraft(null);setOpen(false);setToast(null);setBusy(false);setError('');seen.current=null;olderLoaded.current=false;
     if(!auth.authenticated)return;
     request('/config').then(c=>{if(alive){setConfig(c);refresh().catch(()=>{});}}).catch(()=>{});
     return()=>{alive=false;scopeRevision.current++;};
@@ -55,6 +56,13 @@ export function AlertsProvider({children,markets=[],symbol,onSelectSymbol}){
     const timer=setInterval(poll,5000);return()=>clearInterval(timer);
   },[config,refresh,open]);
   useEffect(()=>{if(!config)return;sound.current.start();return()=>sound.current.stop();},[config]);
+  useEffect(()=>{
+    if(!config||!navigator.serviceWorker)return;
+    let alive=true;
+    navigator.serviceWorker.getRegistration('/alerts-sw.js').then(registration=>registration?.pushManager.getSubscription())
+      .then(subscription=>{if(alive)setDeviceSubscribed(Boolean(subscription));}).catch(()=>{});
+    return()=>{alive=false;};
+  },[config]);
   useEffect(()=>{if(!toast)return;const timer=setTimeout(()=>setToast(null),12000);return()=>clearTimeout(timer);},[toast]);
   const close=useCallback(()=>{setOpen(false);setError('');host.current?.hide();},[]);
   const show=useCallback(()=>{setOpen(true);host.current?.show();},[]);
@@ -102,10 +110,19 @@ export function AlertsProvider({children,markets=[],symbol,onSelectSymbol}){
     const text=config.pushPublicKey.replaceAll('-','+').replaceAll('_','/');
     const bytes=Uint8Array.from(atob(text+'='.repeat((4-text.length%4)%4)),c=>c.charCodeAt(0));
     const subscription=await registration.pushManager.getSubscription()||await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:bytes});
-    const json=subscription.toJSON();await request('/push',{method:'POST',body:{endpoint:json.endpoint,keys:json.keys}});setError('Push enabled on this device.');
+    const json=subscription.toJSON();await request('/push',{method:'POST',body:{endpoint:json.endpoint,keys:json.keys}});setDeviceSubscribed(true);setError('Push enabled on this device.');
+  });
+  const disablePush=()=>action(async()=>{
+    const registration=await navigator.serviceWorker?.getRegistration('/alerts-sw.js');
+    const subscription=await registration?.pushManager.getSubscription();
+    if(subscription){
+      await request('/push/remove',{method:'POST',body:{endpoint:subscription.endpoint}});
+      await subscription.unsubscribe();
+    }
+    setDeviceSubscribed(false);setError('Push disabled on this device.');
   });
   const value={enabled:!!config,rules,events,gaps,config,tab,setTab,error,setError,busy,symbol,markets,filterSymbol,setFilterSymbol,
-    create,open:openManager,close,edit,registerHost,isOpen:open,hosted,soundEnabled,toggleSound,testSound,push,loadMore,nextBefore,openChart,
+    create,open:openManager,close,edit,registerHost,isOpen:open,hosted,soundEnabled,toggleSound,testSound,push,disablePush,deviceSubscribed,loadMore,nextBefore,openChart,
     inspect:rule=>onSelectSymbol(rule.symbol),
     status:rule=>action(()=>request('/'+rule.id+'/status',{method:'PATCH',body:{version:rule.version,status:['STARTING','MONITORING'].includes(rule.status)?'PAUSED':'STARTING'}})),
     remove:rule=>action(()=>request('/'+rule.id,{method:'DELETE',body:{version:rule.version}})),
@@ -117,7 +134,7 @@ export function AlertsProvider({children,markets=[],symbol,onSelectSymbol}){
       <header className="acg-alert-editor-header"><div><Bell size={17}/><h2>{draft.id?'Edit alert':'Create alert'}</h2></div><button type="button" aria-label="Close alert settings" onClick={()=>{setDraft(null);setError('');}}><X size={18}/></button></header>
       <AlertMessage/>
       <AlertForm key={draft.id||requestId.current} draft={draft} markets={markets} busy={busy} pushAvailable={!!config.pushPublicKey}
-        onSave={save} onCancel={()=>{setDraft(null);setError('');}} onTestSound={testSound} onEnablePush={push}/>
+        deviceSubscribed={deviceSubscribed} onDisablePush={disablePush} onSave={save} onCancel={()=>{setDraft(null);setError('');}} onTestSound={testSound} onEnablePush={push}/>
     </AlertModal>}
   </>,document.body)}</AlertsContext.Provider>;
 }
@@ -172,7 +189,7 @@ function AlertList(){
       {shown.map(r=><article className="acg-alert-row" key={r.id}><div className="acg-alert-row-title"><button className="acg-alert-symbol" onClick={()=>a.inspect(r)}>{r.symbol}</button><span className={r.monitoring==='MONITORING'&&r.status==='MONITORING'?'acg-alert-monitoring':''}>{labelStatus(r)}</span></div>{r.name&&<b>{r.name}</b>}<p>{conditionText(r)}</p><small>{r.priceSource.toUpperCase()}{r.timeframe?` · ${r.timeframe}`:''} · {r.frequency==='once'?'Once':'Repeating'}</small>{r.note&&<p className="acg-alert-note">{r.note}</p>}<div className="acg-alert-row-bottom"><small>{r.expiresAt?'Until '+new Date(r.expiresAt).toLocaleString():'Until cancelled'}</small><div><button disabled={a.busy} onClick={()=>a.edit(r)} aria-label={'Edit '+r.symbol+' alert'}><Pencil size={14}/></button><button disabled={a.busy} onClick={()=>a.status(r)} aria-label={r.status==='PAUSED'?'Resume alert':'Pause or restart alert'}>{r.status==='PAUSED'||['COMPLETED','EXPIRED'].includes(r.status)?<Play size={14}/>:<Pause size={14}/>}</button><button disabled={a.busy} onClick={()=>a.remove(r)} aria-label={'Delete '+r.symbol+' alert'}><Trash2 size={14}/></button></div></div></article>)}
     </div></>;
 }
-function AlertForm({draft,markets,busy,pushAvailable,onSave,onCancel,onTestSound,onEnablePush}){
+function AlertForm({draft,markets,busy,pushAvailable,deviceSubscribed,onDisablePush,onSave,onCancel,onTestSound,onEnablePush}){
   const [form,setForm]=useState(()=>({...blank(draft.symbol),...draft,condition:{...draft.condition}})),[tab,setTab]=useState('settings');
   const patch=(key,value)=>setForm(f=>({...f,[key]:value}));
   const type=form.condition.type,range=type.includes('range'),candle=type.startsWith('candle');
@@ -196,7 +213,7 @@ function AlertForm({draft,markets,busy,pushAvailable,onSave,onCancel,onTestSound
       <label className="acg-alert-checkbox"><input type="checkbox" checked={form.soundEnabled!==false} onChange={e=>patch('soundEnabled',e.target.checked)}/> Play sound</label>
       <button type="button" className="acg-alert-link" onClick={onTestSound}>Preview sound</button>
       <p className="acg-alert-footnote">Sound plays while the terminal is open. The terminal mute control overrides this alert's setting.</p>
-      {pushAvailable&&<><label className="acg-alert-checkbox"><input type="checkbox" checked={form.pushEnabled} onChange={e=>patch('pushEnabled',e.target.checked)}/> Device push notification</label><button type="button" className="acg-alert-link" disabled={busy} onClick={onEnablePush}>Enable this device</button><p className="acg-alert-footnote">Allow notifications on this device to receive pushes while the terminal is closed.</p></>}
+      {pushAvailable&&<><label className="acg-alert-checkbox"><input type="checkbox" checked={form.pushEnabled} onChange={e=>patch('pushEnabled',e.target.checked)}/> Device push notification</label><button type="button" className="acg-alert-link" disabled={busy} onClick={deviceSubscribed?onDisablePush:onEnablePush}>{deviceSubscribed?'Disable this device':'Enable this device'}</button><p className="acg-alert-footnote">Allow notifications on this device to receive pushes while the terminal is closed.</p></>}
     </div>
     <div className="acg-alert-editor-actions"><div className="acg-alert-summary"><p>{form.symbol} · {conditionText(body)}<br/><small>{candle?`${body.timeframe} close · LAST`:body.priceSource.toUpperCase()} · {form.frequency==='once'?'Notify once':'Repeat after reset'}</small></p></div><div><button type="button" onClick={onCancel}>Cancel</button><button className="acg-alert-primary" disabled={busy}>{busy?'Saving…':draft.id?'Save changes':'Create alert'}<Check size={15}/></button></div><p className="acg-alert-footnote">Alerts notify you. They do not place trades.</p></div>
   </form>;
