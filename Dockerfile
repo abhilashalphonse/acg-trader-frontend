@@ -16,6 +16,8 @@ ARG VITE_ACG_EXECUTION_V4_ENABLED=true
 # Release-approved compact positions dock + detachable mini popup are live by
 # default. Railway can set this build arg to false for rapid rollback.
 ARG VITE_ACG_DOCK_LIVE_ENABLED=true
+# Publish mock design review only when explicitly enabled by an isolated preview.
+ARG VITE_ACG_PUBLIC_DOCK_PREVIEW=false
 RUN npm run build && node scripts/prepare-landing-films.mjs
 
 FROM node:24-alpine

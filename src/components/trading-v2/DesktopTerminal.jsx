@@ -1,5 +1,5 @@
 import { CircleHelp } from 'lucide-react';
-import { useAlerts } from '../alerts/AlertsWorkspace.jsx';
+import { AlertsPanel, useAlerts } from '../alerts/AlertsWorkspace.jsx';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Bell,
@@ -453,6 +453,17 @@ export default function DesktopTerminal({
   },[]);
   const [positionsExpanded, setPositionsExpanded] = useState(false);
   const [desktopLayout, setDesktopLayout] = useState(loadDesktopLayout);
+  useEffect(() => alerts?.registerHost({
+    show() {
+      setPositionsExpanded(false);
+      setActiveNav('alerts');
+      setDesktopLayout(current => ({ ...current, sidebarCollapsed: false }));
+    },
+    hide() {
+      setActiveNav(current => current === 'alerts' ? 'trade' : current);
+      setDesktopLayout(current => ({ ...current, sidebarCollapsed: true }));
+    },
+  }), [alerts?.registerHost]);
   // Initial V4 dock sizing is resolved in loadDesktopLayout(), so render
   // and persisted sizing never race with legacy mount-time migrations.
   const [floatingOrder, setFloatingOrder] = useState(loadFloatingOrder);
@@ -1487,7 +1498,7 @@ export default function DesktopTerminal({
 
           {!desktopLayout.sidebarCollapsed && !positionsExpanded && (
             <aside className="acg-motion-side-panel relative flex min-h-0 flex-col overflow-hidden rounded-[16px] border border-white/[0.07] bg-[#09090B] shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_12px_30px_rgba(0,0,0,.22)]" style={{ gridColumn: '2', gridRow: '1' }}>
-              {marketPanelOpen ? (
+              {activeNav === 'alerts' ? <AlertsPanel/> : marketPanelOpen ? (
                 <div className="min-h-0 flex-1">
                   <DesktopWatchlist
                     markets={markets}
@@ -1669,9 +1680,12 @@ export default function DesktopTerminal({
             >
               <Layers3 size={17}/>
             </button>
-            {alerts?.enabled && <button type="button" onClick={alerts.open}
-              className="relative mb-1 grid size-9 place-items-center rounded-md text-[#9a9aa6] hover:bg-white/[0.04] hover:text-white"
-              title="Alerts (Alt+A)" aria-label="Open alerts"><Bell size={17}/>{alerts.unread>0&&<span className="absolute right-1 top-1 size-1.5 rounded-full bg-white"/>}</button>}
+            {alerts?.enabled && <button type="button" onClick={() => {
+              if (!desktopLayout.sidebarCollapsed && activeNav === 'alerts') alerts.close();
+              else alerts.open();
+            }} aria-expanded={!desktopLayout.sidebarCollapsed && activeNav === 'alerts'}
+              className={`relative mb-1 grid size-9 place-items-center rounded-md hover:bg-white/[0.04] hover:text-white ${!desktopLayout.sidebarCollapsed && activeNav === 'alerts'?'bg-[#222225] text-white':'text-[#9a9aa6]'}`}
+              title="Alerts (Alt+A to create)" aria-label="Open alerts"><Bell size={17}/>{alerts.unread>0&&<span className="absolute right-1 top-1 size-1.5 rounded-full bg-white"/>}</button>}
             <button type="button" onClick={onOpenHelp}
               className="mt-auto mb-1 grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"
               title="Help Center" aria-label="Help Center">

@@ -51,8 +51,13 @@ jobs:
         run: npm run build
       - name: Verify no lazy terminal CSS preload is needed
         run: node scripts/assert-production-terminal-css.mjs
-      - name: Install FFmpeg probe for media release checks
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Ensure FFmpeg probe for media release checks
+        run: |
+          if ! command -v ffprobe >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq ffmpeg
+          fi
+          ffprobe -version
       - name: Verify locally versioned cinematic media in production build
         run: node scripts/prepare-landing-films.mjs
       - name: Audit first-party cinematic MP4 files for mobile compatibility
