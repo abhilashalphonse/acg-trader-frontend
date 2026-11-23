@@ -1,5 +1,5 @@
 .acg-alert-panel{position:relative;display:flex;flex-direction:column;width:100%;height:100%;min-height:0;background:#09090B;color:#ededf0;font-family:Inter,system-ui,sans-serif;font-size:12px;overflow:hidden;color-scheme:dark}.acg-alert-panel *{box-sizing:border-box}.acg-alert-panel button,.acg-alert-toast button{cursor:pointer;border:0;background:transparent;color:inherit;display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:5px}.acg-alert-panel button:disabled{opacity:.45;cursor:wait}.acg-alert-panel button:focus-visible,.acg-alert-panel input:focus-visible,.acg-alert-panel select:focus-visible,.acg-alert-panel textarea:focus-visible{outline:2px solid #d1d1d7;outline-offset:2px}.acg-alert-panel button:hover{background:#ffffff0c}.acg-alert-panel header{height:52px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid #27272c}.acg-alert-panel header>div{display:flex;align-items:center;gap:9px}.acg-alert-panel h2{font-size:14px;font-weight:600;margin:0}.acg-alert-panel header button{width:30px;height:30px}.acg-alert-backdrop{position:fixed;inset:0;z-index:1090;background:#0002}.acg-alert-tabs{display:flex;gap:5px;align-items:center;padding:10px 12px;border-bottom:1px solid #252529}.acg-alert-tabs button{padding:7px 10px;color:#92929d}.acg-alert-tabs button[aria-pressed=true]{background:#26262b;color:#fafafa}.acg-alert-tabs span{color:#a1a1aa;font-size:10px}.acg-alert-tabs .acg-alert-add{margin-left:auto;color:#ededf0}.acg-alert-filters{display:flex;gap:7px;padding:12px}.acg-alert-panel input,.acg-alert-panel select,.acg-alert-panel textarea{background:#19191d;border:1px solid #35353c;color:#eeeef1;border-radius:5px;font:inherit;padding:9px 10px;min-width:0;width:100%}.acg-alert-filters select{width:115px}.acg-alert-scroll{overflow:auto;flex:1;min-height:0;overscroll-behavior:contain}.acg-alert-row{margin:0 12px 9px;border:1px solid #2b2b30;border-radius:7px;padding:12px}.acg-alert-row-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}.acg-alert-row-title strong{font-size:12px;letter-spacing:.03em}.acg-alert-row-title span{font-size:10px;color:#a6a6b1;text-transform:capitalize}.acg-alert-row-title .acg-alert-monitoring{color:#b8c8bf}.acg-alert-row b{font-weight:500;font-size:11px}.acg-alert-row p{margin:4px 0 7px;line-height:1.5;font-variant-numeric:tabular-nums}.acg-alert-row small{color:#92929e;font-size:10px}.acg-alert-row .acg-alert-note{color:#aaaab5;font-size:11px}.acg-alert-row-bottom{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:10px;padding-top:7px;border-top:1px solid #27272c}.acg-alert-row-bottom>div{display:flex;gap:2px}.acg-alert-row-bottom button{width:29px;height:29px}.acg-alert-empty{display:flex;align-items:center;text-align:center;flex-direction:column;padding:55px 25px;color:#8c8c98}.acg-alert-empty h3{color:#e5e5eb;font-size:14px;font-weight:500;margin:16px 0 0}.acg-alert-empty p{font-size:12px;line-height:1.7;max-width:260px;margin:10px 0 22px}.acg-alert-panel .acg-alert-primary{background:#e5e5eb;color:#111115;min-height:37px;padding:10px 14px;font-weight:600;justify-content:space-between}.acg-alert-panel .acg-alert-primary:hover{background:#fff}.acg-alert-panel footer{border-top:1px solid #2a2a30;padding:12px;display:flex;gap:8px;align-items:center;justify-content:space-between;color:#92929d;font-size:9px;flex-wrap:wrap}.acg-alert-panel footer button{font-size:10px;color:#d2d2db;text-decoration:underline}.acg-alert-form{padding:14px 16px 20px;overflow:auto;display:flex;flex-direction:column;gap:15px}.acg-alert-form label{display:flex;flex-direction:column;gap:7px;font-size:11px;color:#a9a9b5}.acg-alert-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.acg-alert-form-grid label{min-width:0}.acg-alert-form details{border-top:1px solid #2b2b31;padding-top:12px}.acg-alert-form summary{cursor:pointer;color:#c7c7d0}.acg-alert-form details label{margin-top:14px}.acg-alert-form textarea{resize:vertical;min-height:65px}.acg-alert-form .acg-alert-checkbox{flex-direction:row;flex-wrap:wrap;align-items:center;gap:7px}.acg-alert-checkbox input{width:14px;height:14px}.acg-alert-checkbox span{font-size:9px;color:#878792}.acg-alert-summary{padding:12px;display:flex;align-items:flex-start;gap:9px;border-radius:6px;background:#ffffff04;border:1px solid #303035}.acg-alert-summary p{margin:0;line-height:1.7}.acg-alert-summary small{font-size:10px;color:#a1a1ad}.acg-alert-footnote{font-size:10px;line-height:1.6;color:#8c8c99;margin:0}.acg-alert-form .acg-alert-back{justify-content:flex-start;padding:0;font-size:11px;color:#a8a8b4}.acg-alert-error{margin:10px 12px 0;border:1px solid #77634455;background:#775c221c;padding:10px;line-height:1.6;font-size:11px;color:#e4cfaa;display:flex;align-items:start;justify-content:space-between}.acg-alert-link{margin-top:9px;font-size:10px;color:#d1d1da}.acg-alert-gap{color:#b8aa92}.acg-alert-toast{position:fixed;right:60px;top:70px;z-index:1200;display:flex;align-items:start;gap:12px;max-width:350px;background:#202024;color:#e9e9ef;border:1px solid #4a4a52;border-radius:8px;padding:15px;font:12px Inter,system-ui,sans-serif;box-shadow:0 15px 40px #0008}.acg-alert-toast p{font-size:11px;color:#aaaab5;margin:7px 0}.acg-alert-toast>button{margin-left:12px}.acg-alert-toast div>button{text-decoration:underline;font-size:11px;padding:0}.acg-alert-panel .acg-alert-unread{color:#ededf0}.acg-alert-chart-menu{position:absolute;z-index:100;padding:9px 12px;background:#242428;color:#eee;border:1px solid #484850;border-radius:5px;font-size:11px;box-shadow:0 8px 30px #0008;cursor:pointer}
-@media(max-width:1023px){.acg-alert-panel{left:0;right:0;top:10dvh;bottom:0;width:100%;border-radius:14px 14px 0 0}.acg-alert-panel button{min-height:36px}.acg-alert-panel input,.acg-alert-panel select,.acg-alert-panel textarea{font-size:16px}.acg-alert-panel footer{padding-bottom:max(14px,env(safe-area-inset-bottom))}.acg-alert-backdrop{background:#0008}.acg-alert-toast{right:12px;left:12px;top:65px;max-width:none}.acg-alert-row-bottom button{min-width:36px}}
+@media(max-width:640px){.acg-alert-panel{left:0;right:0;top:10dvh;bottom:0;width:100%;border-radius:14px 14px 0 0}.acg-alert-panel button{min-height:36px}.acg-alert-panel input,.acg-alert-panel select,.acg-alert-panel textarea{font-size:16px}.acg-alert-panel footer{padding-bottom:max(14px,env(safe-area-inset-bottom))}.acg-alert-backdrop{background:#0008}.acg-alert-toast{right:12px;left:12px;top:65px;max-width:none}.acg-alert-row-bottom button{min-width:36px}}
 
 /* Alerts occupy the existing terminal panel; only settings use a dialog. */
 .acg-alert-panel header{height:48px;padding:0 12px}
@@ -40,7 +40,7 @@
 .acg-instrument-alert-menu button{display:flex;align-items:center;gap:8px;width:100%;min-height:34px;padding:7px 9px;text-align:left;border:0;border-radius:4px;background:transparent;color:inherit;font:inherit;cursor:pointer}
 .acg-instrument-alert-menu button:hover,.acg-instrument-alert-menu button:focus-visible{background:#2b2b30;outline:none}
 .acg-watchlist-alert-badge{display:inline-block;vertical-align:middle;margin-left:5px;color:#b7b9c2;flex-shrink:0}
-@media(max-width:1023px){
+@media(max-width:640px){
   .acg-alert-modal{padding:0;align-items:stretch;background:#000}
   .acg-alert-dialog,.acg-alert-dialog--sheet{width:100%;height:100dvh;max-height:100dvh;max-width:none;border:0;border-radius:0;box-shadow:none;padding-top:env(safe-area-inset-top)}
   .acg-alert-panel{position:relative;inset:auto;width:100%;border-radius:0}
@@ -50,4 +50,35 @@
   .acg-alert-dialog button{min-height:36px}
   .acg-alert-dialog input,.acg-alert-dialog select,.acg-alert-dialog textarea{font-size:16px}
   .acg-alert-editor-actions{padding-bottom:max(14px,env(safe-area-inset-bottom))}
+}
+
+/* Compact editor: one primary task, optional metadata below it. */
+.acg-alert-dialog:not(.acg-alert-dialog--sheet){width:min(440px,100%);background:#141518;border-color:#35373d;border-radius:8px}
+.acg-alert-editor-header{padding:12px 18px;min-height:48px}
+.acg-alert-editor-header h2{font-size:13px}
+.acg-alert-editor-header button{width:26px;height:26px}
+.acg-alert-dialog .acg-alert-tabs{padding:0 18px;gap:20px;height:42px}
+.acg-alert-dialog .acg-alert-tabs button{height:42px;padding:0 2px;border-radius:0;color:#9499a4;border-bottom:2px solid transparent}
+.acg-alert-dialog .acg-alert-tabs button[aria-selected=true]{background:transparent;color:#f2f3f5;border-bottom-color:#d5d8df}
+.acg-alert-dialog .acg-alert-form{padding:18px;gap:12px;max-height:calc(100dvh - 245px)}
+.acg-alert-dialog .acg-alert-form label{gap:5px;color:#adb2bd;font-size:11px}
+.acg-alert-dialog input,.acg-alert-dialog select{height:32px;padding:6px 9px;border-radius:4px;background:#1c1e23;border-color:#363940;font-size:12px}
+.acg-alert-dialog textarea{background:#1c1e23;border-color:#363940;min-height:56px;resize:vertical}
+.acg-alert-dialog .acg-alert-form-grid{gap:12px}
+.acg-alert-optional{padding-top:10px!important;border-top:1px solid #2b2d33!important}
+.acg-alert-optional summary{font-size:11px;color:#c3c7d0;list-style-position:inside}
+.acg-alert-optional summary span{float:right;color:#7d8490;font-size:10px}
+.acg-alert-dialog .acg-alert-optional label{margin-top:10px}
+.acg-alert-editor-actions{padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#141518}
+.acg-alert-compact-summary{margin:0;color:#9299a5;line-height:1.5;font-size:10px;max-width:46%;font-variant-numeric:tabular-nums}
+.acg-alert-editor-actions>div:last-of-type{margin:0;gap:6px;flex-shrink:0}
+.acg-alert-editor-actions button{min-height:32px;padding:6px 12px;font-size:11px}
+.acg-alert-dialog .acg-alert-primary{border-radius:4px}
+@media(max-width:640px){
+ .acg-alert-dialog:not(.acg-alert-dialog--sheet){width:100%;border-radius:0}
+ .acg-alert-dialog .acg-alert-form{flex:1;max-height:none}
+ .acg-alert-dialog input,.acg-alert-dialog select,.acg-alert-dialog textarea{font-size:16px;min-height:38px}
+ .acg-alert-dialog .acg-alert-tabs button{min-height:42px}
+ .acg-alert-editor-actions{padding-bottom:max(14px,env(safe-area-inset-bottom))}
+ .acg-alert-compact-summary{max-width:40%}
 }
