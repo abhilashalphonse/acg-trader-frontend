@@ -1324,7 +1324,7 @@ export default function DesktopTerminal({
                     <span>P/L <b className={accountPnl >= 0 ? "ml-1 text-[#42D7A1]" : "ml-1 text-[#FF5968]"}>{formatPnl(accountPnl, currency)}</b></span>
                     <span>Free <b className="ml-1 text-[#C7D1D9]">{money(account?.freeMargin, currency)}</b></span>
                   </div>
-                  <span className="mt-2 block text-[8px] leading-4 text-[#6F8191]">Execution stays locked until the selected account has a fresh snapshot and history.</span>
+                  {accountSwitching && <span role="status" className="mt-2 block text-[10px] leading-4 text-[#A6B0BA]">Switching account · waiting for a fresh snapshot and trade history before execution resumes.</span>}
                 </div>
                 {accountSwitchError && <div className="border-b border-[#553038] bg-[#190d10] px-3 py-2 text-[8px] font-semibold text-[#e99aa3]">{accountSwitchError} · Select the account again to retry.</div>}
                 <div className="max-h-[420px] overflow-y-auto [scrollbar-width:thin]">
