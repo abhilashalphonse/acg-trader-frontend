@@ -25,8 +25,13 @@ try {
       await shell.waitFor({ state: 'visible', timeout: 30000 });
       const header = shell.locator('header.acg-desktop-market-strip');
       const grid = shell.locator('.acg-unified-workspace-grid');
+      // The default desktop layout deliberately starts with the sidebar closed.
+      // Open the actual trade rail before inspecting ticket controls.
+      await shell.getByRole('button', { name: 'Trade', exact: true }).click();
       const ticket = shell.locator('.v4-ticket.v4-live-scope');
       await ticket.waitFor({ state: 'visible', timeout: 20000 });
+      await ticket.locator('.v4-exits .v4-disclosure').click();
+      await ticket.locator('.v4-exit-card').first().waitFor({ state: 'visible' });
       const headerHeight = await header.evaluate(el => el.getBoundingClientRect().height);
       assert.ok(Math.abs(headerHeight - 48) <= 1, 'Header must be precisely 48px: ' + width + ' / ' + headerHeight);
       assert.equal(num(await px(shell, 'padding-left')), 0, 'Desktop shell must have no outer gutter');
