@@ -1,8 +1,9 @@
 import React, {createContext,useCallback,useContext,useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
-import {Bell,Plus,X,Pause,Play,Pencil,Trash2,ChevronLeft,Check,ExternalLink} from 'lucide-react';
+import {Bell,Plus,X,Pause,Play,Pencil,Trash2,ChevronLeft,Check,ExternalLink,Volume2,VolumeX} from 'lucide-react';
 import {useTraderAuth} from '../../hooks/useTraderAuth.js';
 import {apiRequest} from '../../api/client.js';
+import {createAlertSound} from './alertSound.js';
 import './alerts.css';
 
 const AlertsContext=createContext(null);
@@ -13,6 +14,9 @@ function labelStatus(rule){if(!['STARTING','MONITORING'].includes(rule.status))r
 function blank(symbol,level){return {symbol:symbol||'XAUUSD',name:'',note:'',condition:{type:'crosses',level:level?String(level):''},priceSource:'last',timeframe:null,frequency:'once',cooldownMs:60000,expiresAt:null,pushEnabled:false};}
 export function AlertsProvider({children,markets=[],symbol,onSelectSymbol}){
   const auth=useTraderAuth();
+  const sound=useRef(null);
+  if(!sound.current)sound.current=createAlertSound();
+  const [soundEnabled,setSoundEnabled]=useState(sound.current.enabled);
   const [config,setConfig]=useState(null),[rules,setRules]=useState([]),[events,setEvents]=useState([]),[gaps,setGaps]=useState([]);
   const [open,setOpen]=useState(false),[draft,setDraft]=useState(null),[tab,setTab]=useState('alerts'),[error,setError]=useState(''),[busy,setBusy]=useState(false),[toast,setToast]=useState(null);
   const seen=useRef(null),requestId=useRef(null),panelRef=useRef(null),triggerRef=useRef(null);
@@ -27,7 +31,7 @@ export function AlertsProvider({children,markets=[],symbol,onSelectSymbol}){
     if(revision!==scopeRevision.current)return;
     setRules(list.alerts);setEvents(history.events);setGaps(history.gaps);
     const fresh=history.events.filter(e=>!e.readAt&&!seen.current?.has(e.id));
-    if(seen.current&&fresh.length)setToast(fresh[0]);
+    if(seen.current&&fresh.length){setToast(fresh[0]);void sound.current.play();}
     seen.current=new Set(history.events.map(e=>e.id));
   },[request]);
   useEffect(()=>{
@@ -37,6 +41,7 @@ export function AlertsProvider({children,markets=[],symbol,onSelectSymbol}){
     return()=>{alive=false;scopeRevision.current++;};
   },[auth.authenticated,auth.principal?.tenantId,auth.principal?.ownerExternalRef,request,refresh]);
   useEffect(()=>{if(!config)return;let pending=false;const poll=async()=>{if(pending)return;pending=true;try{await refresh();}catch(e){if(open)setError(e.message);}finally{pending=false;}};const timer=setInterval(poll,5000);return()=>clearInterval(timer);},[config,refresh,open]);
+  useEffect(()=>{if(!config)return;sound.current.start();return()=>sound.current.stop();},[config]);
   useEffect(()=>{if(!toast)return;const timer=setTimeout(()=>setToast(null),12000);return()=>clearTimeout(timer);},[toast]);
   const close=useCallback(()=>{setOpen(false);setDraft(null);setError('');triggerRef.current?.focus?.();},[]);
   useEffect(()=>{
@@ -72,6 +77,8 @@ export function AlertsProvider({children,markets=[],symbol,onSelectSymbol}){
     await request(draft.id?'/'+draft.id:'',{method:draft.id?'PUT':'POST',body:draft.id?{...body,version:draft.version}:{...body,clientRequestId:requestId.current}});
     setDraft(null);setTab('alerts');
   });
+  const toggleSound=()=>{const next=!soundEnabled;sound.current.setEnabled(next);setSoundEnabled(next);if(next)void sound.current.preview();};
+  const testSound=async()=>{if(!await sound.current.preview())setError('Sound could not play. Check this tab is unmuted and your device volume is on.');};
   const push=async()=>action(async()=>{
     if(!('serviceWorker'in navigator)||!('PushManager'in window))throw new Error('Push is not supported in this browser. On iPhone, add ACG Trader to your Home Screen first.');
     const permission=await Notification.requestPermission();if(permission!=='granted')throw new Error('Allow notifications in your browser settings to enable push.');
@@ -94,7 +101,7 @@ export function AlertsProvider({children,markets=[],symbol,onSelectSymbol}){
           {events.map(e=><article key={e.id} className="acg-alert-row"><div className="acg-alert-row-title"><strong>{e.evidence.streamId.split(':').at(-1)}</strong>{!e.readAt&&<span className="acg-alert-unread">New</span>}</div><p>{conditionText({condition:e.evidence.condition})}</p><small>{new Date(e.evidence.marketTimeMs).toLocaleString()} · {e.evidence.priceSource}{e.evidence.observedPrice?' · '+e.evidence.observedPrice:''}{e.pushStatus?' · Push '+(e.pushStatus==='ACCEPTED'?'sent':e.pushStatus.toLowerCase()):''}</small><button className="acg-alert-link" onClick={()=>action(()=>openChart(e))}>Open chart <ExternalLink size={12}/></button></article>)}
           {gaps.map(g=><article className="acg-alert-row acg-alert-gap" key={g.id}><strong>Monitoring gap · {g.streamId.split(':').at(-1)}</strong><p>Market data was unavailable. Monitoring resumed with a fresh baseline.</p><small>{new Date(g.createdAt).toLocaleString()}</small></article>)}
         </div>}
-        <footer><span>Runs when your terminal is closed</span>{config.pushPublicKey&&<button disabled={busy} onClick={push}>Enable device push</button>}</footer>
+        <footer><span>Runs when your terminal is closed</span><button onClick={toggleSound} aria-label={soundEnabled?'Mute alert sound':'Enable alert sound'} aria-pressed={soundEnabled} title={soundEnabled?'Mute alert sound':'Enable alert sound'}>{soundEnabled?<Volume2 size={15}/>:<VolumeX size={15}/>}</button><button disabled={!soundEnabled} onClick={testSound}>Test sound</button>{config.pushPublicKey&&<button disabled={busy} onClick={push}>Enable device push</button>}</footer>
       </>}
     </section></>}
   </>,document.body)}</AlertsContext.Provider>;
