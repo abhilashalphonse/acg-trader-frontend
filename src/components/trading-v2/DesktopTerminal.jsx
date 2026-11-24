@@ -419,6 +419,10 @@ export default function DesktopTerminal({
   onRetryPositions = () => {},
 }) {
   const alerts = useAlerts();
+  // Match the margin calculator; never display an old account's leverage while switching.
+  const headerLeverage = activeAccountId && !accountSwitching ? effectiveLeverage(account, market) : null;
+  const headerLeverageLabel = Number.isFinite(headerLeverage) && headerLeverage > 0
+    ? `${Number(headerLeverage.toPrecision(8))}x` : null;
   // One authoritative preview for the chart, fixed ticket, and floating ticket.
   // Derive market entries from the same quote before position sizing.
   const orderExecutionPreview = React.useMemo(() => {
@@ -1186,6 +1190,9 @@ export default function DesktopTerminal({
                   </span>
                 )}
                 <strong key={activeSymbol || 'symbol'} className="acg-motion-symbol truncate text-[14px] font-extrabold tracking-[-0.025em] text-[#f3f6f8]">{market?.displaySymbol || displaySymbol(market?.symbol)}</strong>
+                {V4_DESKTOP_EXECUTION_ENABLED && headerLeverageLabel && (
+                  <span data-acg-header-leverage aria-label={`Effective leverage ${headerLeverageLabel}`} title={`Effective leverage: ${headerLeverageLabel}`} className="shrink-0 rounded-[4px] bg-[#34353a] px-[5px] py-[2px] text-[11px] font-medium leading-[12px] tabular-nums text-[#a6a7ad]">{headerLeverageLabel}</span>
+                )}
                 <ChevronDown size={12} className="shrink-0 text-[#f3f6f8]"/>
               </button>
               {!V4_DESKTOP_EXECUTION_ENABLED && (
