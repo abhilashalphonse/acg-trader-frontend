@@ -108,6 +108,23 @@ try {
         'Instrument selector and brand must be compact');
       assert.notEqual(compactIdentity.background,'rgb(242, 242, 244)',
         'Instrument selector should be a subdued dark capsule, not a bright block');
+      const leverage = header.locator('[data-acg-header-leverage]');
+      assert.equal((await leverage.textContent()).trim(), '100x',
+        'EURUSD must show the effective fixture account/instrument leverage');
+      const leverageGeometry = await leverage.evaluate(el => {
+        const badge = el.getBoundingClientRect();
+        const symbol = el.previousElementSibling.getBoundingClientRect();
+        const chevron = el.nextElementSibling.getBoundingClientRect();
+        const pill = el.parentElement.getBoundingClientRect();
+        return { badgeLeft: badge.left, badgeRight: badge.right, symbolRight: symbol.right,
+          chevronLeft: chevron.left, chevronRight: chevron.right, pillRight: pill.right,
+          height: badge.height, fontSize: getComputedStyle(el).fontSize };
+      });
+      assert.ok(leverageGeometry.badgeLeft >= leverageGeometry.symbolRight &&
+        leverageGeometry.badgeRight <= leverageGeometry.chevronLeft &&
+        leverageGeometry.chevronRight <= leverageGeometry.pillRight &&
+        leverageGeometry.height <= 20,
+        'Leverage must fit between the symbol and chevron: ' + JSON.stringify({ width, leverageGeometry }));
       const selectedTimeframe = header.locator('[data-v4-timeframe][aria-pressed="true"]');
       if (await selectedTimeframe.isVisible()) {
         const current = await selectedTimeframe.evaluate(el => ({
