@@ -380,6 +380,8 @@ try {
     await menu.waitFor({state:'hidden'});
     assert.match(await switcher.locator('[data-v4-header-account-name]').textContent(), /ACG · 886426/,
       'Switching should update selected account identity without a new login');
+    assert.equal(await multi.locator('[data-acg-header-leverage]').count(), 0,
+      'Hide leverage after switching to an account without confirmed leverage');
     await switcher.click();
     const secondMenu=multi.locator('[data-acg-account-switcher="v7"]');
     assert.match(await secondMenu.locator('.acg-acct-current-code').textContent(), /ACG · 886426/);
