@@ -100,7 +100,7 @@ export default function App() {
     apiRequest('/v1/ai/staff-preview/capability',{token:auth.accessToken,query:{accountId:pilotAccountId},signal:controller.signal})
       .then(result=>{
         if(!controller.signal.aborted&&result?.contractVersion==='staff-ai-preview-v1'&&result.previewEnabled===true&&typeof result.runtimeEnabled==='boolean')
-          setStaffPreview({sessionId:pilotSessionId,accountId:pilotAccountId,token:auth.accessToken,runtimeEnabled:result.runtimeEnabled});
+          setStaffPreview({sessionId:pilotSessionId,accountId:pilotAccountId,token:auth.accessToken,runtimeEnabled:result.runtimeEnabled,runtimeMode:result.runtimeMode});
       }).catch(()=>{});
     return ()=>controller.abort();
   },[auth.accessReady,auth.accessToken,pilotAccountId,pilotSessionId,auth.principal?.authMethod]);

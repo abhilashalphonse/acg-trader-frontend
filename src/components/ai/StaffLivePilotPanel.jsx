@@ -43,8 +43,28 @@ export function projectStaffPilotResult(result,{symbol,timeframe,operationId},no
   return {status:r.status,asOfMs:r.asOfMs,source:result.source.provider,facts:[...new Map([...facts,...structure].map(f=>[f.id,f])).values()],
     tokens:usage.inputTokens+usage.outputTokens};
 }
+export function projectStaffEducationResult(result,operationId,now=Date.now()){
+  const r=result?.response;
+  if(result?.contractVersion!=='restricted-pilot-v1'||result.mode!=='EDUCATION_ONLY'||result.executionAllowed!==false||
+    result.operationId!==operationId||result.state!=='VERIFIED'||result.workspace?.symbol!=='EDUCATION'||
+    result.workspace?.timeframe!=='1m'||result.workspace?.includeChartContext!==false||result.source?.provider!=='ACG_INTERNAL_ORIGINAL'||
+    r?.schemaVersion!=='verified-response-v1'||r.verification!=='RECOMPUTED_REFERENCE_SELECTION_ONLY'||r.symbol!==null||r.contextId!==null||
+    !hash(r.responseId)||!hash(r.packageId)||!['ANSWER','INSUFFICIENT_EVIDENCE','UNSUPPORTED'].includes(r.status)||
+    !Number.isSafeInteger(r.verifiedAtMs)||!Number.isSafeInteger(r.expiresAtMs)||r.verifiedAtMs>now+5000||
+    now>=r.expiresAtMs||r.verifiedAtMs>=r.expiresAtMs||
+    !Array.isArray(r.frames)||r.frames.length!==0||!Array.isArray(r.observations)||r.observations.length!==0||
+    !Array.isArray(r.interpretations)||r.interpretations.length!==0||
+    !Array.isArray(r.education)||r.education.length>8)return null;
+  if(!r.education.every(k=>hash(k.knowledgeId)&&k.origin==='ACG_INTERNAL_ORIGINAL'&&k.reviewStatus==='ENGINEERING_DRAFT'&&
+    typeof k.title==='string'&&k.title.length<=120&&typeof k.text==='string'&&k.text.length<=1500))return null;
+  const u=result.usage;
+  if(!Number.isSafeInteger(u?.inputTokens)||u.inputTokens<0||u.inputTokens>32768||
+     !Number.isSafeInteger(u?.outputTokens)||u.outputTokens<0||u.outputTokens>1024)return null;
+  return {status:r.status,education:r.education,tokens:u.inputTokens+u.outputTokens};
+}
 export default function StaffLivePilotPanel({runtime,symbol,timeframe}){
-  const chart=chartContextLabel(symbol,timeframe);
+  const educationOnly=runtime?.runtimeMode==='EDUCATION_ONLY';
+  const chart=educationOnly?{symbol:'EDUCATION',timeframe:'1m'}:chartContextLabel(symbol,timeframe);
   const [connectionId]=useState(()=>crypto.randomUUID());
   const [consent,setConsent]=useState(null);
   const [checked,setChecked]=useState(false);
@@ -61,10 +81,10 @@ export default function StaffLivePilotPanel({runtime,symbol,timeframe}){
     setConsent(null);setChecked(false);setReport(null);setNotice('');
     call('status',{},controller.signal).then(v=>{
       if(!controller.signal.aborted&&v?.contractVersion==='restricted-pilot-v1'&&v.executionAllowed===false&&
-        Number.isSafeInteger(v.revision)&&v.revision>=0&&v.model==='gpt-6-luna')setConsent(v);
+        Number.isSafeInteger(v.revision)&&v.revision>=0&&v.model==='gpt-6-luna'&&v.mode===(educationOnly?'EDUCATION_ONLY':'HISTORICAL_REFERENCE_ONLY'))setConsent(v);
     }).catch(()=>{if(!controller.signal.aborted)setNotice('Pilot unavailable for this chart or account.');});
     return ()=>{controller.abort();active.current=null;};
-  },[runtime?.token,runtime?.accountId,runtime?.sessionId,chart.symbol,chart.timeframe,connectionId,valid]);
+  },[runtime?.token,runtime?.accountId,runtime?.sessionId,chart.symbol,chart.timeframe,connectionId,valid,educationOnly]);
   async function run(intent){
     const controller=active.current;
     if(!valid||!controller||controller.signal.aborted||inFlight.current||!checked||!consent)return;
@@ -77,7 +97,7 @@ export default function StaffLivePilotPanel({runtime,symbol,timeframe}){
       const operationId=crypto.randomUUID();
       const result=await call('generate',{operationId,intent},controller.signal);
       if(controller.signal.aborted)return;
-      const projected=projectStaffPilotResult(result,{...chart,operationId});
+      const projected=educationOnly?projectStaffEducationResult(result,operationId):projectStaffPilotResult(result,{...chart,operationId});
       if(!projected){setNotice(result?.state==='HELD_UNKNOWN'?'Request outcome uncertain. No automatic retry.':'No verified report returned.');return;}
       setReport(projected);
     }catch{if(!controller.signal.aborted)setNotice('Request unavailable. No automatic retry.');}
@@ -95,18 +115,22 @@ export default function StaffLivePilotPanel({runtime,symbol,timeframe}){
     finally{inFlight.current=false;if(!controller.signal.aborted)setBusy(false);}
   }
   return <>
-    <div className="aic-context"><div><span>Staff pilot · GPT-6 Luna</span><strong>{chart.symbol||'No chart'} · {chart.timeframe||'—'}</strong></div>
-      <label><input type="checkbox" checked={checked} disabled={!consent||busy} onChange={e=>e.target.checked?setChecked(true):void revoke()}/> Include historical chart context</label></div>
+    <div className="aic-context"><div><span>Staff pilot · GPT-6 Luna</span><strong>{educationOnly?'Education · no chart export':(chart.symbol||'No chart')+' · '+(chart.timeframe||'—')}</strong></div>
+      <label><input type="checkbox" checked={checked} disabled={!consent||busy} onChange={e=>e.target.checked?setChecked(true):void revoke()}/> {educationOnly?'Allow AI education request':'Include historical chart context'}</label></div>
     <div className="aic-body">
-      {report?<section className="aic-report" aria-label="Verified historical AI report">
+      {educationOnly?(report?<section className="aic-report" aria-label="Verified educational AI response">
+        <div className="aic-report-heading"><strong>AI-selected explanation</strong><span>GPT-6 Luna</span></div>
+        {report.education.length?report.education.map(k=><div key={k.knowledgeId}><strong>{k.title}</strong><p>{k.text}</p></div>):<p>No supported reference selected.</p>}
+        <p>{report.tokens} provider-reported tokens. ACG reference material; no market data or trade execution.</p>
+      </section>:<div className="aic-empty"><h3>Test ACG AI</h3><p>Ask about a trading concept. This live pilot sends only original ACG education material, not your chart or account data.</p></div>):report?<section className="aic-report" aria-label="Verified historical AI report">
         <div className="aic-report-heading"><strong>AI-selected historical report</strong><span>{chart.symbol} · {chart.timeframe}</span></div>
         <p>GPT-6 Luna selected references; ACG recomputed the facts. As of {utc(report.asOfMs)}. Source: {report.source}.</p>
         {report.facts.length?<dl className="aic-report-facts">{report.facts.map(f=><div key={f.id}><dt>{f.label}</dt><dd>{f.value}</dd></div>)}</dl>:<p>No supported numerical or structural reference selected.</p>}
         <p>{report.tokens} provider-reported tokens. Historical evidence only; no execution or prediction.</p>
       </section>:<div className="aic-empty"><h3>Analyse the current chart</h3><p>Choose an approved historical analysis. No order execution or account data export.</p></div>}
       {notice&&<p role="status">{notice}</p>}
-      <div className="aic-suggestions"><button disabled={!checked||busy||!consent} onClick={()=>void run('HISTORICAL_OVERVIEW')}>Market overview</button>
-        <button disabled={!checked||busy||!consent} onClick={()=>void run('HISTORICAL_STRUCTURE')}>Market structure</button></div>
+      <div className="aic-suggestions">{educationOnly?<>{[['EDUCATION_STRUCTURE','Market structure / BOS'],['EDUCATION_LIQUIDITY','Liquidity references'],['EDUCATION_FVG','Fair value gaps']].map(([intent,label])=><button key={intent} disabled={!checked||busy||!consent} onClick={()=>void run(intent)}>{label}</button>)}</>:<><button disabled={!checked||busy||!consent} onClick={()=>void run('HISTORICAL_OVERVIEW')}>Market overview</button>
+        <button disabled={!checked||busy||!consent} onClick={()=>void run('HISTORICAL_STRUCTURE')}>Market structure</button></>}</div>
     </div>
     <div className="aic-footer"><span className="aic-model">{busy?'Analysing…':'Staff pilot · $1/day · 20 requests/day'}</span></div>
   </>;
