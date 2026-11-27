@@ -1,16 +1,19 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {ArrowUp,ChevronDown,ChevronLeft,MessageSquarePlus,Sparkles,X} from 'lucide-react';
 import {chartContextLabel,MAX_QUESTION_BYTES,questionBytes,SUGGESTIONS} from './aiPreview.js';
+import {workspaceContext} from './workspaceReport.js';
+import VerifiedWorkspaceReport from './VerifiedWorkspaceReport.jsx';
 import './nativeAiChat.css';
 
 // Presentation only. No fetch, generated response, credential entry, persistence,
 // account values, trade actions or automatic context attachment.
-export default function NativeAiChat({symbol,timeframe,onClose,mobile=false}){
+export default function NativeAiChat({symbol,timeframe,onClose,mobile=false,reportFixture=null}){
   const chart=chartContextLabel(symbol,timeframe);
   const [draft,setDraft]=useState('');
   const [funding,setFunding]=useState('BYO_API');
   const [fundingOpen,setFundingOpen]=useState(false);
   const [attachChart,setAttachChart]=useState(false);
+  const [report,setReport]=useState(null);
   const draftRef=useRef(null);
   const rootRef=useRef(null);
   const validContext=Boolean(chart.symbol&&chart.timeframe);
@@ -28,7 +31,7 @@ export default function NativeAiChat({symbol,timeframe,onClose,mobile=false}){
     return ()=>document.removeEventListener('pointerdown',dismiss);
   },[fundingOpen]);
   function choose(prompt){setDraft(prompt);draftRef.current?.focus();}
-  function clear(){setDraft('');setFundingOpen(false);draftRef.current?.focus();}
+  function clear(){setReport(null);setDraft('');setFundingOpen(false);draftRef.current?.focus();}
   return <section ref={rootRef} tabIndex={-1} className={'acg-ai-chat'+(mobile?' acg-ai-chat-mobile':'')} aria-label="ACG AI assistant preview" data-ai-chat-preview onKeyDown={e=>{
     if(e.key==='Escape'){e.stopPropagation();if(fundingOpen)setFundingOpen(false);else onClose();}
   }}>
@@ -40,9 +43,10 @@ export default function NativeAiChat({symbol,timeframe,onClose,mobile=false}){
     </header>
     <div className="aic-context">
       <div><span>Workspace</span><strong>{validContext?chart.symbol+' · '+chart.timeframe:'No chart selected'}</strong></div>
-      <label><input type="checkbox" disabled={!validContext} checked={attachChart&&validContext} onChange={e=>setAttachChart(e.target.checked)}/> Include chart context</label>
+      <label><input type="checkbox" disabled={!validContext} checked={attachChart&&validContext} onChange={e=>{setAttachChart(e.target.checked);setReport(null);}}/> Include chart context</label>
     </div>
     <div className="aic-body">
+      {report&&attachChart&&validContext?<VerifiedWorkspaceReport envelope={report.envelope} expected={{...report.expected,symbol:chart.symbol,timeframe:chart.timeframe,includeChartContext:attachChart}} fixture/>:<>
       <div className="aic-empty">
         <Sparkles size={25} strokeWidth={1.4}/>
         <h3>What would you like to explore?</h3>
@@ -51,6 +55,8 @@ export default function NativeAiChat({symbol,timeframe,onClose,mobile=false}){
       <div className="aic-suggestions" aria-label="Suggested questions">
         {SUGGESTIONS.map(s=><button type="button" key={s.label} onClick={()=>choose(s.prompt)}>{s.label}<span aria-hidden="true">↗</span></button>)}
       </div>
+      </>}
+      {import.meta.env.DEV&&typeof reportFixture==='function'&&attachChart&&validContext&&<button type="button" className="aic-report-trigger" onClick={()=>setReport(reportFixture(workspaceContext(symbol,timeframe,true)))}>Show sample report</button>}
     </div>
     <div className="aic-footer">
       <div className="aic-settings">
