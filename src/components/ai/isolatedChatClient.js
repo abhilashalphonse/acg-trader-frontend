@@ -2,7 +2,7 @@
 // The host must provide an authenticated POST function and a current-scope fence.
 // No provider key, customer credential or external provider endpoint belongs here.
 const routes=Object.freeze({
-  capabilities:[],preflight:['selection','profile'],
+  capabilities:[],preflight:['selection','profile','workspace'],
   create:['conversationId','selection','profile','workspace'],
   list:[],history:['conversationId','afterSequence','limit'],
   append:['conversationId','messageId','text'],cancel:['conversationId','messageId'],
