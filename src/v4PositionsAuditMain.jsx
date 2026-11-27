@@ -1,6 +1,7 @@
 import React,{useMemo,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import DesktopTerminal from './components/trading-v2/DesktopTerminal.jsx';
+import {sampleWorkspaceReport} from '../tests/fixtures/aiWorkspaceReport.js';
 import HelpCenter from './help/HelpCenter.jsx';
 import {AuthProvider} from './auth/AuthProvider.jsx';
 import {TradingProvider} from './store/TradingProvider.jsx';
@@ -108,7 +109,7 @@ function PositionsQA(){
  {publicReview&&<div role="status" style={{position:'relative',zIndex:50,display:'flex',alignItems:'center',justifyContent:'center',height:30,background:'#191B20',borderBottom:'1px solid #43464D',color:'#E5E6EA',font:'500 11px Inter,system-ui,sans-serif'}}>
   ACG Trader V4 · FULL TERMINAL DESIGN REVIEW · Simulated account · No real market data · Actions affect mock data only
  </div>}
- <DesktopTerminal onOpenHelp={()=>setShowHelp(true)} readOnly={['BREACHED','CLOSED','DISABLED'].includes(account?.status)} market={market} tick={market} markets={markets} activeSymbol={symbol}
+ <DesktopTerminal aiReportFixture={import.meta.env.DEV?sampleWorkspaceReport:null} onOpenHelp={()=>setShowHelp(true)} readOnly={['BREACHED','CLOSED','DISABLED'].includes(account?.status)} market={market} tick={market} markets={markets} activeSymbol={symbol}
   onSelectSymbol={setSymbol} account={account} accounts={accountOptions} activeAccountId={account.id}
   onSelectAccount={id=>{
     if(!accountReview)return false;
