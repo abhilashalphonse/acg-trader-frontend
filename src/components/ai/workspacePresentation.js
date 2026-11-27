@@ -23,3 +23,18 @@ export function regenerationQuestion(messages,historyStart,answerId){
     messages[index-1]?.role!=='user'||index-1<historyStart)return null;
   return messages[index-1].text;
 }
+
+export function workspaceFailureNotice(result,expected){
+  if(result?.contractVersion!=='restricted-pilot-v1'||result.mode!=='WORKSPACE_CHAT'||result.executionAllowed!==false||
+    result.operationId!==expected.operationId||result.workspace?.symbol!==expected.symbol||result.workspace?.timeframe!==expected.timeframe)
+    return 'AI response could not be verified. No automatic retry.';
+  if(result.state==='HELD_UNKNOWN')return 'Request outcome uncertain. No automatic retry.';
+  if(result.state!=='FAILED')return 'AI response could not be verified. No automatic retry.';
+  switch(result.failureReason){
+    case 'COMPLETION_LIMIT':return 'AI reached its response limit before finishing. Try a more focused question.';
+    case 'PROVIDER_REFUSED':return 'The AI provider did not return an answer.';
+    case 'INVALID_ANSWER':return 'AI returned an unreadable answer. No automatic retry.';
+    case 'DELIVERY_UNAVAILABLE':return 'AI response could not be delivered. No automatic retry.';
+    default:return 'AI did not complete this answer. No automatic retry.';
+  }
+}
