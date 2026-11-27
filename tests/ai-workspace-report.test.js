@@ -18,7 +18,7 @@ test('verified report projection renders only allowlisted historical facts',()=>
   for(const mutate of [e=>{e.response.quoteStatus='RECENT_PROVIDER_EVENT';},e=>{e.dispatchAllowed=true;},
     e=>{e.response.observations[0].data.kind='BUY_NOW';},e=>{e.response.observations[0].data.value='<img onerror=alert(1)>';},
     e=>{e.response.observations[0].timeframe='5m';},e=>{e.response.observations.push(e.response.observations[0]);},
-    e=>{e.response.expiresAtMs+=1;},e=>{e.response.observations[0].data.throughCloseTimeMs=now+1;}]){
+    e=>{e.response.frames=[null];},e=>{e.response.expiresAtMs+=1;},e=>{e.response.observations[0].data.throughCloseTimeMs=now+1;}]){
     const bad=structuredClone(envelope);mutate(bad);assert.equal(projectWorkspaceReport(bad,expected,now),null);
   }
 });
