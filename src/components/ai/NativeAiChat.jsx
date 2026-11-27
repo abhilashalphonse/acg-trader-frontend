@@ -4,6 +4,7 @@ import {chartContextLabel,MAX_QUESTION_BYTES,questionBytes,SUGGESTIONS} from './
 import {workspaceContext} from './workspaceReport.js';
 import VerifiedWorkspaceReport from './VerifiedWorkspaceReport.jsx';
 import './nativeAiChat.css';
+import StaffWorkspaceChat from './StaffWorkspaceChat.jsx';
 import StaffLivePilotPanel from './StaffLivePilotPanel.jsx';
 import IsolatedConversationPanel from './IsolatedConversationPanel.jsx';
 
@@ -48,11 +49,11 @@ export default function NativeAiChat({symbol,timeframe,onClose,mobile=false,repo
   }}>
     <header className="aic-header">
       {mobile&&<button className="aic-icon" type="button" onClick={onClose} aria-label="Back to chart"><ChevronLeft size={19}/></button>}
-      <Sparkles size={16} strokeWidth={1.7}/><h2>ACG AI</h2><span className="aic-preview">{staffRuntime?"Staff pilot":"Preview"}</span>
+      <Sparkles size={16} strokeWidth={1.7}/><h2>ACG AI</h2><span className="aic-preview">{staffRuntime?.runtimeMode==='WORKSPACE_CHAT'?'Staff':staffRuntime?'Staff pilot':'Preview'}</span>
       <button type="button" className="aic-icon aic-new" onClick={clear} title="New chat draft" aria-label="New chat draft"><MessageSquarePlus size={17}/></button>
       {!mobile&&<button type="button" className="aic-icon" onClick={onClose} aria-label="Close AI assistant"><X size={17}/></button>}
     </header>
-    {staffRuntime?<StaffLivePilotPanel key={JSON.stringify([isolatedGeneration,staffRuntime.sessionId,staffRuntime.accountId,chart.symbol,chart.timeframe])} runtime={staffRuntime} symbol={symbol} timeframe={timeframe}/>:import.meta.env.DEV&&isolatedClient?<IsolatedScopedChat key={isolatedGeneration+':'+chart.symbol+':'+chart.timeframe} client={isolatedClient} chart={chart}/>:<>
+    {staffRuntime?.runtimeMode==='WORKSPACE_CHAT'?<StaffWorkspaceChat key={JSON.stringify([isolatedGeneration,staffRuntime.sessionId,staffRuntime.accountId,chart.symbol,chart.timeframe])} runtime={staffRuntime} symbol={symbol} timeframe={timeframe}/>:staffRuntime?<StaffLivePilotPanel key={JSON.stringify([isolatedGeneration,staffRuntime.sessionId,staffRuntime.accountId,chart.symbol,chart.timeframe])} runtime={staffRuntime} symbol={symbol} timeframe={timeframe}/>:import.meta.env.DEV&&isolatedClient?<IsolatedScopedChat key={isolatedGeneration+':'+chart.symbol+':'+chart.timeframe} client={isolatedClient} chart={chart}/>:<>
     <div className="aic-context">
       <div><span>Workspace</span><strong>{validContext?chart.symbol+' · '+chart.timeframe:'No chart selected'}</strong></div>
       <label><input type="checkbox" disabled={!validContext} checked={attachChart&&validContext} onChange={e=>{setAttachChart(e.target.checked);setReport(null);}}/> Include chart context</label>
