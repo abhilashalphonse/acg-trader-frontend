@@ -88,9 +88,11 @@ function buildWindows(instrument, now, timeZone) {
 function explicitStatus(instrument) {
   const state = String(instrument?.marketState || '').toUpperCase();
   if (instrument?.status && instrument.status !== 'ACTIVE') return 'unavailable';
-  if (['DISABLED', 'ERROR', 'DISCONNECTED', 'WAITING', 'SUBSCRIPTION_ERROR'].includes(state)) return 'unavailable';
+  // A live quote is not proof that orders are permitted outside the instrument
+  // calendar, and a disconnected provider does not itself close an exchange.
+  // Only explicitly published session state may override scheduled hours.
   if (instrument?.sessionOpen === false || state === 'CLOSED') return 'closed';
-  if (instrument?.sessionOpen === true || ['OPEN', 'LIVE'].includes(state)) return 'open';
+  if (instrument?.sessionOpen === true) return 'open';
   return null;
 }
 
