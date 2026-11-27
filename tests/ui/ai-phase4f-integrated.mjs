@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import process from 'node:process';
 import {chromium} from 'playwright';
 let raw='';for await(const chunk of process.stdin){raw+=chunk;if(raw.length>16000)throw Error('Invalid fixture input');}
 const {root,authority,token,foreignToken}=JSON.parse(raw);
