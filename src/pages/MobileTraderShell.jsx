@@ -115,7 +115,7 @@ function fillEvent(result, fallback) {
   };
 }
 
-export default function MobileTraderShell({ market, tick, markets = [], activeSymbol, onSelectSymbol = () => {}, watchlists = null, onViewportQuoteSymbolsChange = () => {}, mobileAudit = false, staffAiPreview = false }) {
+export default function MobileTraderShell({ market, tick, markets = [], activeSymbol, onSelectSymbol = () => {}, watchlists = null, onViewportQuoteSymbolsChange = () => {}, mobileAudit = false, staffAiPreview = false, staffAiRuntime = null }) {
   const shellRef = useRef(null);
   const noticeTimerRef = useRef(null);
   const executionDismissRef = useRef(null);
@@ -1397,7 +1397,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
           />
         )}
 
-        {aiPreview && overlay === 'ai' && <MobileAiChat key={JSON.stringify([trading.accountId || null,trading.accountSwitching,activeSymbol,timeframe])} symbol={activeSymbol} timeframe={timeframe} onClose={() => setOverlay(null)}/>}
+        {aiPreview && overlay === 'ai' && <MobileAiChat key={JSON.stringify([trading.accountId || null,trading.accountSwitching,activeSymbol,timeframe])} symbol={activeSymbol} timeframe={timeframe} staffRuntime={staffAiRuntime?.accountId===trading.accountId&&!trading.accountSwitching&&!trading.accountGrantMissing?staffAiRuntime:null} onClose={() => setOverlay(null)}/>}
         {overlay && !['markets', 'trades', 'account', 'ai'].includes(overlay) && (
           <FrontendSheet
             auditMobile={mobileAudit} onChartModeChange={setChartMode} onTimeframeChange={setTimeframe}
