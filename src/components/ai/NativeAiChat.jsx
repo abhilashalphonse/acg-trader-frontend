@@ -10,17 +10,17 @@ export default function NativeAiChat({symbol,timeframe,onClose,mobile=false}){
   const [draft,setDraft]=useState('');
   const [funding,setFunding]=useState('BYO_API');
   const [fundingOpen,setFundingOpen]=useState(false);
-  const [attachChart,setAttachChart]=useState(Boolean(chart.symbol&&chart.timeframe));
+  const [attachChart,setAttachChart]=useState(false);
   const draftRef=useRef(null);
   const rootRef=useRef(null);
-  const returnFocus=useRef(null);
   const validContext=Boolean(chart.symbol&&chart.timeframe);
   const bytes=questionBytes(draft);
   useEffect(()=>{
-    const previous=document.activeElement;returnFocus.current=previous;
+    if(mobile)return;
+    const previous=document.activeElement;
     rootRef.current?.focus({preventScroll:true});
     return ()=>{if(previous instanceof HTMLElement&&previous.isConnected)previous.focus({preventScroll:true});};
-  },[]);
+  },[mobile]);
   useEffect(()=>{
     if(!fundingOpen)return;
     const dismiss=e=>{if(!rootRef.current?.querySelector('[data-ai-funding]')?.contains(e.target))setFundingOpen(false);};
