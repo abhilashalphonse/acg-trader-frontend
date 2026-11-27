@@ -4,6 +4,7 @@ import {chartContextLabel,MAX_QUESTION_BYTES,questionBytes,SUGGESTIONS} from './
 import {workspaceContext} from './workspaceReport.js';
 import VerifiedWorkspaceReport from './VerifiedWorkspaceReport.jsx';
 import './nativeAiChat.css';
+import StaffLivePilotPanel from './StaffLivePilotPanel.jsx';
 import IsolatedConversationPanel from './IsolatedConversationPanel.jsx';
 
 // Consent is local, never restored automatically, and changing chart identity
@@ -16,7 +17,7 @@ function IsolatedScopedChat({client,chart}){
 
 // Presentation only in production. No fetch, generated response, credential entry, persistence,
 // account values, trade actions or automatic context attachment.
-export default function NativeAiChat({symbol,timeframe,onClose,mobile=false,reportFixture=null,isolatedClient=null}){
+export default function NativeAiChat({symbol,timeframe,onClose,mobile=false,reportFixture=null,isolatedClient=null,staffRuntime=null}){
   const chart=chartContextLabel(symbol,timeframe);
   const [draft,setDraft]=useState('');
   const [isolatedGeneration,setIsolatedGeneration]=useState(0);
@@ -41,17 +42,17 @@ export default function NativeAiChat({symbol,timeframe,onClose,mobile=false,repo
     return ()=>document.removeEventListener('pointerdown',dismiss);
   },[fundingOpen]);
   function choose(prompt){setDraft(prompt);draftRef.current?.focus();}
-  function clear(){if(import.meta.env.DEV&&isolatedClient){setIsolatedGeneration(v=>v+1);return;}setReport(null);setDraft('');setFundingOpen(false);draftRef.current?.focus();}
+  function clear(){if(staffRuntime){setIsolatedGeneration(v=>v+1);return;}if(import.meta.env.DEV&&isolatedClient){setIsolatedGeneration(v=>v+1);return;}setReport(null);setDraft('');setFundingOpen(false);draftRef.current?.focus();}
   return <section ref={rootRef} tabIndex={-1} className={'acg-ai-chat'+(mobile?' acg-ai-chat-mobile':'')} aria-label="ACG AI assistant preview" data-ai-chat-preview onKeyDown={e=>{
     if(e.key==='Escape'){e.stopPropagation();if(fundingOpen)setFundingOpen(false);else onClose();}
   }}>
     <header className="aic-header">
       {mobile&&<button className="aic-icon" type="button" onClick={onClose} aria-label="Back to chart"><ChevronLeft size={19}/></button>}
-      <Sparkles size={16} strokeWidth={1.7}/><h2>ACG AI</h2><span className="aic-preview">Preview</span>
+      <Sparkles size={16} strokeWidth={1.7}/><h2>ACG AI</h2><span className="aic-preview">{staffRuntime?"Staff pilot":"Preview"}</span>
       <button type="button" className="aic-icon aic-new" onClick={clear} title="New chat draft" aria-label="New chat draft"><MessageSquarePlus size={17}/></button>
       {!mobile&&<button type="button" className="aic-icon" onClick={onClose} aria-label="Close AI assistant"><X size={17}/></button>}
     </header>
-    {import.meta.env.DEV&&isolatedClient?<IsolatedScopedChat key={isolatedGeneration+':'+chart.symbol+':'+chart.timeframe} client={isolatedClient} chart={chart}/>:<>
+    {staffRuntime?<StaffLivePilotPanel key={JSON.stringify([isolatedGeneration,staffRuntime.sessionId,staffRuntime.accountId,chart.symbol,chart.timeframe])} runtime={staffRuntime} symbol={symbol} timeframe={timeframe}/>:import.meta.env.DEV&&isolatedClient?<IsolatedScopedChat key={isolatedGeneration+':'+chart.symbol+':'+chart.timeframe} client={isolatedClient} chart={chart}/>:<>
     <div className="aic-context">
       <div><span>Workspace</span><strong>{validContext?chart.symbol+' · '+chart.timeframe:'No chart selected'}</strong></div>
       <label><input type="checkbox" disabled={!validContext} checked={attachChart&&validContext} onChange={e=>{setAttachChart(e.target.checked);setReport(null);}}/> Include chart context</label>
