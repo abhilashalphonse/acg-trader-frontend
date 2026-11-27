@@ -105,7 +105,7 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe}){
         {m.role==='assistant'?<AssistantMarkdown text={m.text}/>:<div className="aic-message-text">{m.text}</div>}
         {m.role==='assistant'&&<div className="aic-answer-footer"><span>AI interpretation · {m.context?.market?'Chart included':'No chart'} · {m.context?.account?'Account included':'No account'}</span><button type="button" className="aic-copy" aria-label="Copy response" title="Copy response" onClick={()=>void copyAnswer(m)}>{copyState?.id===m.id&&copyState.ok?<Check size={14}/>:<Copy size={14}/>}</button>{copyState?.id===m.id&&<span role="status" className="aic-copy-status">{copyState.ok?'Copied':'Copy failed'}</span>}</div>}
       </article>)}
-      {busy&&<div className="aic-answer-heading aic-analysis-loading"><LoaderCircle size={14}/> Analysing market context…</div>}
+      {busy&&<div className="aic-answer-heading aic-analysis-loading"><LoaderCircle size={14}/> Thinking…</div>}
       {notice&&<p role="status" className="aic-disclaimer">{notice}</p>}
       <div ref={bottom}/>
     </div>
