@@ -86,8 +86,8 @@ export default function ChartInstrumentHeader({
     };
   }, [open, reposition]);
 
-  const muted = light ? 'text-[#76828D]' : 'text-[#83919F]';
-  const text = light ? 'text-[#141A21]' : 'text-[#E9EDF1]';
+  const muted = light ? 'text-[#6B7280]' : 'text-[#83919F]';
+  const text = light ? 'text-[#000000]' : 'text-[#E9EDF1]';
   const statusClass = isOpen
     ? (light ? 'bg-[#E1F5EE] text-[#117B61]' : 'bg-[#13382F] text-[#69D6B3]')
     : isClosed
