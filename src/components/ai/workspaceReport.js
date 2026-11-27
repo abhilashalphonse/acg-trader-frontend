@@ -11,6 +11,14 @@ export function workspaceContext(symbol,timeframe,consent){
   const c=chartContextLabel(symbol,timeframe);
   return consent===true&&c.symbol&&c.timeframe?{...c,includeChartContext:true}:null;
 }
+// Conversations are pinned to the chart/profile at creation. Never switch a
+// stored conversation into a different chart or opt it into context silently.
+export function matchesConversationWorkspace(conversation,workspace){
+  if(!conversation||conversation.status!=='ACTIVE')return false;
+  if(!workspace)return conversation.profile==='EDUCATION'&&conversation.workspace==null;
+  const w=conversation.workspace;
+  return conversation.profile==='STRUCTURE'&&w?.includeChartContext===true&&w.symbol===workspace.symbol&&w.timeframe===workspace.timeframe;
+}
 // Presentation contract validation, not cryptographic evidence verification.
 // Only use with a trusted authenticated server response or labelled test fixture.
 export function projectWorkspaceReport(envelope,expected,now=Date.now()){
