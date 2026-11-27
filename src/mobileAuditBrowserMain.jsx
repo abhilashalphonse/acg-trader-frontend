@@ -17,6 +17,9 @@ import MobileTradesSheet from './components/trading-v2/MobileTradesSheet.jsx';
 import MobileAccountSheet from './components/trading-v2/MobileAccountSheet.jsx';
 import FrontendSheet from './components/trading-v2/FrontendSheet.jsx';
 import MobileAuditHeader from './components/trading-v2/MobileAuditHeader.jsx';
+import MobileAiChat from './components/ai/MobileAiChat.jsx';
+import {sampleWorkspaceReport} from '../tests/fixtures/aiWorkspaceReport.js';
+import {isAiChatPreviewEnabled} from './components/ai/aiPreview.js';
 import MobileAuditExecutionDock from './components/trading-v2/MobileAuditExecutionDock.jsx';
 import MobileAuditDrawingPalette from './components/trading-v2/MobileAuditDrawingPalette.jsx';
 import { createDefaultTradePlan, effectiveTradePlan } from './utils/tradePlanExecution.js';
@@ -80,6 +83,8 @@ function Demo() {
   const [attempts, setAttempts] = useState(0);
   const [selectedTool, setSelectedTool] = useState('cursor');
   const [lastDestination, setLastDestination] = useState(null);
+  const [aiOpen,setAiOpen]=useState(false);
+  const aiPreview=isAiChatPreviewEnabled(import.meta.env.DEV,window.location.search);
   const [readout, setReadout] = useState(() => mobileChartReadout({symbol:'EURUSD', timeframe:'M15', bar:{open:1.1208,close:1.12099}}));
   const locked = useRef(false);
   const withPlan = plan ? effectiveTradePlan(plan, market) : null;
@@ -131,7 +136,7 @@ function Demo() {
   return <div className="acg-mobile-chart-shell acg-mobile-audit-shell flex h-dvh min-h-0 flex-col overflow-hidden bg-black text-white">
     <MobileAuditHeader market={market} account={account} timeframe={timeframe} onTimeframe={setTimeframe} chartReadout={readout}
       positionsCount={3} onSelectInstrument={() => setLastDestination('markets')} onOpenTrades={() => setLastDestination('trades')} onOpenAccount={() => setLastDestination('account')}
-      onOpenIndicators={() => setLastDestination('indicators')} onOpenSettings={() => setLastDestination('platform')} onOpenHelp={() => setLastDestination('help')}/>
+      onOpenIndicators={() => setLastDestination('indicators')} onOpenSettings={() => setLastDestination('platform')} onOpenHelp={() => setLastDestination('help')} onOpenAi={aiPreview?()=>setAiOpen(true):undefined}/>
     <div className="acg-mobile-reference-content flex min-h-0 flex-1 flex-col">
       <div data-audit-fixture-chart className="relative min-h-0 flex-1 bg-[#09090b]">
         <FixtureChart market={market} account={account} plan={withPlan} onChange={onChange}>
@@ -145,6 +150,7 @@ function Demo() {
           exposureAllowed commandPending={pending}/></div>{managed&&<div data-fixture-managed className="h-[118px]">Managing position</div>}
       </div>
     </div>
+    {aiPreview&&aiOpen&&<MobileAiChat key={market.symbol+':'+timeframe} symbol={market.symbol} timeframe={timeframe} reportFixture={sampleWorkspaceReport} onClose={()=>setAiOpen(false)}/>}
   </div>;
 }
 function ManagedDemo() {
