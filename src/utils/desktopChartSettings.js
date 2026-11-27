@@ -11,6 +11,12 @@ export const DEFAULT_DESKTOP_CHART_SETTINGS = Object.freeze({
     downBorder: '#F23645',
     upWick: '#089981',
     downWick: '#F23645',
+    upBodyOpacity: 1,
+    downBodyOpacity: 1,
+    upBorderOpacity: 1,
+    downBorderOpacity: 1,
+    upWickOpacity: 1,
+    downWickOpacity: 1,
   }),
   timezone: 'UTC',
   viewport: DEFAULT_CHART_VIEWPORT,
@@ -91,6 +97,24 @@ function color(value, fallback) {
   return HEX_COLOR.test(String(value || '').trim()) ? String(value).toUpperCase() : fallback;
 }
 
+function opacity(value) {
+  if (value == null || value === '') return 1;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? Math.max(0, Math.min(1, numeric)) : 1;
+}
+
+// Lightweight Charts accepts CSS colors; keep opaque values as hex to preserve
+// previous chart rendering while applying slider opacity to each candle part.
+export function chartCandleColor(candle, key, fallback) {
+  const hex = color(candle?.[key], fallback);
+  const alpha = opacity(candle?.[`${key}Opacity`]);
+  if (alpha >= 1) return hex;
+  const red = parseInt(hex.slice(1, 3), 16);
+  const green = parseInt(hex.slice(3, 5), 16);
+  const blue = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${red},${green},${blue},${Number(alpha.toFixed(2))})`;
+}
+
 export function normalizeDesktopChartSettings(value) {
   const candle = value?.candle || {};
   const defaults = DEFAULT_DESKTOP_CHART_SETTINGS.candle;
@@ -107,6 +131,12 @@ export function normalizeDesktopChartSettings(value) {
       downBorder: color(candle.downBorder, defaults.downBorder),
       upWick: color(candle.upWick, defaults.upWick),
       downWick: color(candle.downWick, defaults.downWick),
+      upBodyOpacity: opacity(candle.upBodyOpacity),
+      downBodyOpacity: opacity(candle.downBodyOpacity),
+      upBorderOpacity: opacity(candle.upBorderOpacity),
+      downBorderOpacity: opacity(candle.downBorderOpacity),
+      upWickOpacity: opacity(candle.upWickOpacity),
+      downWickOpacity: opacity(candle.downWickOpacity),
     },
     timezone,
     viewport: normalizeChartViewport(value?.viewport),
