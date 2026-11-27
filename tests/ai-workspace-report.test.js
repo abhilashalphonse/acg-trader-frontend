@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {workspaceContext,projectWorkspaceReport} from '../src/components/ai/workspaceReport.js';
+import {workspaceContext,projectWorkspaceReport,matchesConversationWorkspace} from '../src/components/ai/workspaceReport.js';
 import {sampleWorkspaceReport} from './fixtures/aiWorkspaceReport.js';
 const now=Date.UTC(2026,0,5,10,20);
 test('workspace context requires explicit consent and only symbol/timeframe',()=>{
@@ -21,4 +21,14 @@ test('verified report projection renders only allowlisted historical facts',()=>
     e=>{e.response.frames=[null];},e=>{e.response.expiresAtMs+=1;},e=>{e.response.observations[0].data.throughCloseTimeMs=now+1;}]){
     const bad=structuredClone(envelope);mutate(bad);assert.equal(projectWorkspaceReport(bad,expected,now),null);
   }
+});
+
+test('chart conversation scope is pinned to explicit consent and chart identity',()=>{
+  const w=workspaceContext('XAUUSD','1m',true),c={status:'ACTIVE',profile:'STRUCTURE',workspace:w};
+  assert.equal(matchesConversationWorkspace(c,w),true);
+  assert.equal(matchesConversationWorkspace(c,null),false);
+  assert.equal(matchesConversationWorkspace(c,workspaceContext('EURUSD','1m',true)),false);
+  assert.equal(matchesConversationWorkspace(c,workspaceContext('XAUUSD','5m',true)),false);
+  assert.equal(matchesConversationWorkspace({...c,status:'DELETED'},w),false);
+  assert.equal(matchesConversationWorkspace({status:'ACTIVE',profile:'EDUCATION',workspace:null},null),true);
 });
