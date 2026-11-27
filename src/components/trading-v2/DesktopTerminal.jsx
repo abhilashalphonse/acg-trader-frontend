@@ -339,6 +339,7 @@ export default function DesktopTerminal({
   market,
   tick,
   aiReportFixture = null,
+  staffAiPreview = false,
   markets = [],
   activeSymbol = market?.symbol,
   onSelectSymbol = () => {},
@@ -449,7 +450,7 @@ export default function DesktopTerminal({
   const openMiniTerminal = useCallback(() => miniTerminalRef.current?.open(), []);
   const searchRef = useRef(null);
   const [activeNav, setActiveNav] = useState('trade');
-  const aiPreview = V4_DESKTOP_EXECUTION_ENABLED && isAiChatPreviewEnabled(import.meta.env.DEV, typeof window !== 'undefined' ? window.location.search : '');
+  const aiPreview = V4_DESKTOP_EXECUTION_ENABLED && (staffAiPreview === true || isAiChatPreviewEnabled(import.meta.env.DEV, typeof window !== 'undefined' ? window.location.search : ''));
   const [notice, setNotice] = useState('');
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
