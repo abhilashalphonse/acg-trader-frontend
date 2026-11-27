@@ -30,3 +30,11 @@ test('numbered list start and wrapped continuation are preserved',()=>{
   assert.equal(a[0].items[0].text,'Wait for confirmation before considering entry.');
   assert.equal(a[0].items.length,2);
 });
+test('conversational trading follow-up preserves normal paragraph and optional short heading',()=>{
+  const text="You've probably missed the first rally, but the opportunity may not be over.\n\n### What I'd watch next\n- **3680.26:** Wait for a confirmed breakout.\n- **3672.02:** A breakdown could suggest a deeper pullback.\n\nThe live quote is unavailable.";
+  const blocks=parseAssistantMarkdown(text);
+  assert.deepEqual(blocks.map(b=>b.type),['paragraph','heading','list','paragraph']);
+  assert.equal(blocks[0].text,"You've probably missed the first rally, but the opportunity may not be over.");
+  assert.deepEqual(inlineParts(blocks[0].text),[{type:'text',text:blocks[0].text}]);
+  assert.equal(blocks[2].items.length,2);
+});
