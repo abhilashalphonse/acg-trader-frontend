@@ -4,7 +4,7 @@ import {apiRequest} from '../../api/client.js';
 import {chartContextLabel} from './aiPreview.js';
 import AssistantMarkdown from './AssistantMarkdown.jsx';
 import InstrumentAvatar from '../trading-v2/InstrumentAvatar.jsx';
-import {chartFeedStatus,followUpSuggestions,regenerationQuestion} from './workspacePresentation.js';
+import {chartFeedStatus,followUpSuggestions,regenerationQuestion,workspaceFailureNotice} from './workspacePresentation.js';
 const bytes=s=>new TextEncoder().encode(s).length;
 const allowedFrames=['1m','5m','15m','30m','1h','4h','1d','1w'];
 const secretPattern=/(?:sk-[A-Za-z0-9_-]{16,}|(?:api[_ -]?key|password|secret|authorization|bearer)\s*[:=]\s*\S+|-----BEGIN [A-Z ]+PRIVATE KEY-----|eyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|mongodb(?:\+srv)?:\/\/)/i;
@@ -98,7 +98,7 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market}){
       const result=await call('generate',{operationId,intent:'WORKSPACE_CHAT',question,history,includeMarket,includeAccount},controller.signal);
       if(controller.signal.aborted)return;
       const answer=projectWorkspaceAnswer(result,{operationId,...chart,includeMarket,includeAccount});
-      if(!answer){setNotice(result?.state==='HELD_UNKNOWN'?'Request outcome uncertain. No automatic retry.':'No AI answer returned.');return;}
+      if(!answer){setNotice(workspaceFailureNotice(result,{operationId,...chart}));return;}
       setMessages(m=>[...(regenerateId?m.slice(0,-1):m),{id:crypto.randomUUID(),role:'assistant',...answer}]);
     }catch{if(!controller.signal.aborted)setNotice('AI request unavailable. No automatic retry.');}
     finally{inFlight.current=false;if(!controller.signal.aborted)setBusy(false);}

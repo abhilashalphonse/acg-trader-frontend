@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {chartFeedStatus,followUpSuggestions,regenerationQuestion} from '../src/components/ai/workspacePresentation.js';
+import {chartFeedStatus,followUpSuggestions,regenerationQuestion,workspaceFailureNotice} from '../src/components/ai/workspacePresentation.js';
 test('status only shows live for the selected instrument with known current terminal quote',()=>{
   const q={symbol:'XAUUSD',sessionOpen:true,live:true,isStale:false,bid:3680,ask:3680.1};
   assert.equal(chartFeedStatus(q,'XAUUSD'),'LIVE');
@@ -22,4 +22,14 @@ test('regenerate only the latest answered question in the current context scope'
   assert.equal(regenerationQuestion(m,0,'a'),null);
   assert.equal(regenerationQuestion(m,3,'b'),null);
   assert.equal(regenerationQuestion(m.slice(0,-1),0,'b'),null);
+});
+
+test('failure notice only trusts matching workspace response identity',()=>{
+  const expected={operationId:'fixture',symbol:'XAUUSD',timeframe:'5m'};
+  const result={contractVersion:'restricted-pilot-v1',mode:'WORKSPACE_CHAT',executionAllowed:false,operationId:'fixture',workspace:{symbol:'XAUUSD',timeframe:'5m'},state:'FAILED',failureReason:'COMPLETION_LIMIT'};
+  assert.match(workspaceFailureNotice(result,expected),/response limit/);
+  assert.match(workspaceFailureNotice({...result,operationId:'other'},expected),/could not be verified/);
+  assert.match(workspaceFailureNotice({...result,state:'HELD_UNKNOWN'},expected),/outcome uncertain/);
+  assert.match(workspaceFailureNotice({...result,failureReason:'INVALID_ANSWER'},expected),/unreadable answer/);
+  assert.match(workspaceFailureNotice({...result,failureReason:'untrusted reason'},expected),/did not complete/);
 });
