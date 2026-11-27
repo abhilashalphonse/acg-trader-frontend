@@ -38,3 +38,35 @@
 .aic-assistant-message{align-self:stretch}
 .aic-message-text{white-space:pre-wrap;overflow-wrap:anywhere}
 .aic-answer-heading{display:flex;align-items:center;gap:6px;font-weight:600;font-size:11px;margin-bottom:5px}
+
+/* Structured response typography; independent of global Tailwind resets. */
+.aic-workspace-message{flex-shrink:0;min-width:0;max-width:100%}
+.aic-user-message{max-width:94%}
+.aic-assistant-message{width:100%;text-align:left}
+.aic-markdown{min-width:0;max-width:100%;font-size:12px;line-height:1.65;color:#dce0e5;overflow-wrap:anywhere;text-align:left}
+.aic-markdown>*{margin:0 0 9px}
+.aic-markdown>*:last-child{margin-bottom:0}
+.aic-markdown p{white-space:pre-wrap}
+.aic-markdown h3,.aic-markdown h4,.aic-markdown h5{font-weight:650;color:#f1f2f4;line-height:1.4;margin:14px 0 6px;letter-spacing:0}
+.aic-markdown h3{font-size:13px}.aic-markdown h4,.aic-markdown h5{font-size:12px}
+.aic-markdown>h3:first-child,.aic-markdown>h4:first-child,.aic-markdown>h5:first-child{margin-top:0}
+.aic-markdown strong{font-weight:650;color:#f1f2f4}
+.aic-markdown ul,.aic-markdown ol{padding-inline-start:19px;list-style-position:outside}
+.aic-markdown ul{list-style-type:disc}.aic-markdown ol{list-style-type:decimal}
+.aic-markdown li{padding-inline-start:2px;margin:4px 0}
+.aic-markdown li>ul,.aic-markdown li>ol{margin:4px 0 6px;padding-inline-start:17px}
+.aic-markdown li>ul{list-style-type:circle}
+.aic-markdown-table{max-width:100%;overflow-x:auto;border:1px solid #303137;border-radius:5px;overscroll-behavior-x:contain}
+.aic-markdown-table table{width:100%;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
+.aic-markdown-table th,.aic-markdown-table td{padding:6px 7px;text-align:left;vertical-align:top;border-bottom:1px solid #292b31;min-width:60px}
+.aic-markdown-table th{background:#17181b;font-weight:600;color:#f0f1f3}
+.aic-markdown-table tbody tr:last-child td{border-bottom:0}
+.aic-markdown hr{border:0;border-top:1px solid #303137;margin:12px 0}
+.aic-markdown blockquote{border-left:2px solid #666d78;padding-left:10px;color:#b7bec8;white-space:pre-wrap}
+.aic-markdown code{font:11px ui-monospace,SFMono-Regular,Consolas,monospace;background:#191b20;border-radius:3px;padding:1px 3px}
+.aic-markdown pre{overflow-x:auto;background:#121316;padding:8px;border:1px solid #303137;border-radius:5px}
+.aic-markdown pre code{padding:0;background:none;white-space:pre}
+.acg-ai-chat-mobile .aic-markdown{font-size:13px;line-height:1.65}
+.acg-ai-chat-mobile .aic-markdown h3{font-size:14px}
+.acg-ai-chat-mobile .aic-markdown h4,.acg-ai-chat-mobile .aic-markdown h5{font-size:13px}
+.acg-ai-chat-mobile .aic-markdown-table table{font-size:12px}
