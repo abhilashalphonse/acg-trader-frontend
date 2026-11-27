@@ -6,7 +6,15 @@ import VerifiedWorkspaceReport from './VerifiedWorkspaceReport.jsx';
 import './nativeAiChat.css';
 import IsolatedConversationPanel from './IsolatedConversationPanel.jsx';
 
-// Presentation only. No fetch, generated response, credential entry, persistence,
+// Consent is local, never restored automatically, and changing chart identity
+// remounts the entire isolated controller, aborting old response handling.
+function IsolatedScopedChat({client,chart}){
+  const [consent,setConsent]=useState(false);
+  return <IsolatedConversationPanel key={consent?'chart':'education'} client={client} chart={chart}
+    workspace={workspaceContext(chart.symbol,chart.timeframe,consent)} onConsentChange={setConsent}/>;
+}
+
+// Presentation only in production. No fetch, generated response, credential entry, persistence,
 // account values, trade actions or automatic context attachment.
 export default function NativeAiChat({symbol,timeframe,onClose,mobile=false,reportFixture=null,isolatedClient=null}){
   const chart=chartContextLabel(symbol,timeframe);
@@ -43,7 +51,7 @@ export default function NativeAiChat({symbol,timeframe,onClose,mobile=false,repo
       <button type="button" className="aic-icon aic-new" onClick={clear} title="New chat draft" aria-label="New chat draft"><MessageSquarePlus size={17}/></button>
       {!mobile&&<button type="button" className="aic-icon" onClick={onClose} aria-label="Close AI assistant"><X size={17}/></button>}
     </header>
-    {import.meta.env.DEV&&isolatedClient?<IsolatedConversationPanel key={isolatedGeneration} client={isolatedClient}/>:<>
+    {import.meta.env.DEV&&isolatedClient?<IsolatedScopedChat key={isolatedGeneration+':'+chart.symbol+':'+chart.timeframe} client={isolatedClient} chart={chart}/>:<>
     <div className="aic-context">
       <div><span>Workspace</span><strong>{validContext?chart.symbol+' · '+chart.timeframe:'No chart selected'}</strong></div>
       <label><input type="checkbox" disabled={!validContext} checked={attachChart&&validContext} onChange={e=>{setAttachChart(e.target.checked);setReport(null);}}/> Include chart context</label>
