@@ -1559,7 +1559,7 @@ export default function DesktopTerminal({
 
           {!desktopLayout.sidebarCollapsed && !positionsExpanded && (
             <aside className="acg-motion-side-panel relative flex min-h-0 flex-col overflow-hidden rounded-[16px] border border-white/[0.07] bg-[#09090B] shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_12px_30px_rgba(0,0,0,.22)]" style={{ gridColumn: '2', gridRow: '1' }}>
-              {aiPreview && activeNav === 'ai' ? <NativeAiChat key={JSON.stringify([activeAccountId || null,account?.id || null,accountSwitching,activeChartIndex,multiChart?.cells?.[activeChartIndex]?.symbol || activeSymbol,activeChartTimeframe])} symbol={multiChart?.cells?.[activeChartIndex]?.symbol || activeSymbol} timeframe={activeChartTimeframe} reportFixture={aiReportFixture} staffRuntime={staffAiRuntime} onClose={() => setDesktopLayout(current => ({ ...current, sidebarCollapsed: true }))}/> : activeNav === 'alerts' ? <AlertsPanel/> : marketPanelOpen ? (
+              {aiPreview && activeNav === 'ai' ? <NativeAiChat key={JSON.stringify([activeAccountId || null,account?.id || null,accountSwitching,activeChartIndex,multiChart?.cells?.[activeChartIndex]?.symbol || activeSymbol,activeChartTimeframe])} symbol={multiChart?.cells?.[activeChartIndex]?.symbol || activeSymbol} timeframe={activeChartTimeframe} market={market?.symbol===(multiChart?.cells?.[activeChartIndex]?.symbol || activeSymbol)?market:markets.find(m=>m.symbol===(multiChart?.cells?.[activeChartIndex]?.symbol || activeSymbol))} reportFixture={aiReportFixture} staffRuntime={staffAiRuntime} onClose={() => setDesktopLayout(current => ({ ...current, sidebarCollapsed: true }))}/> : activeNav === 'alerts' ? <AlertsPanel/> : marketPanelOpen ? (
                 <div className="min-h-0 flex-1">
                   <DesktopWatchlist
                     markets={markets}
@@ -1753,7 +1753,7 @@ export default function DesktopTerminal({
             }} aria-label="Open ACG AI preview" title="ACG AI preview" data-acg-rail-action="ai"
               aria-expanded={!desktopLayout.sidebarCollapsed && activeNav === 'ai'}
               data-acg-rail-active={!desktopLayout.sidebarCollapsed && activeNav === 'ai' ? 'true' : 'false'}
-              className={`mb-1 grid size-9 place-items-center rounded-md hover:bg-white/[0.04] hover:text-white ${!desktopLayout.sidebarCollapsed && activeNav === 'ai' ? 'bg-[#222225] text-white' : 'text-[#9a9aa6]'}`}><Sparkles size={17}/></button>}
+              className={`mb-1 grid size-9 place-items-center rounded-md hover:bg-white/[0.04] hover:text-white ${!desktopLayout.sidebarCollapsed && activeNav === 'ai' ? 'bg-[#262039] text-[#c4a6ff] ring-1 ring-inset ring-[#7354a8]' : 'text-[#9a9aa6]'}`}><Sparkles size={17}/></button>}
             <button type="button" onClick={onOpenHelp}
               className="mt-auto mb-1 grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"
               title="Help Center" aria-label="Help Center" data-acg-rail-action="help">
