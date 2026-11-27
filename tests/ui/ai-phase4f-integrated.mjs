@@ -41,7 +41,9 @@ try{
     const label=await panel.getByRole('button',{name:/Conversation .* · 1 messages/}).first().textContent();
     await desktop.clock.setFixedTime(new Date(asOf+11000));
     await panel.locator('[data-ai-report-unavailable]').waitFor();
-    await consent.uncheck();
+    await desktop.getByRole('button',{name:'Switch fixture chart'}).click();
+    await consent.waitFor();assert.equal(await consent.isChecked(),false);
+    assert.equal(await panel.locator('[data-ai-report-unavailable]').count(),0);
     assert.equal(await panel.locator('[data-ai-workspace-report]').count(),0);
     assert.equal(await panel.getByRole('button',{name:label,exact:true}).count(),0);
     await desktop.close();
