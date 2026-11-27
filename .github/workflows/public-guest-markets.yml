@@ -1,0 +1,42 @@
+name: Public guest markets browser acceptance
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/acg-landing-v6.html'
+      - 'src/main.jsx'
+      - 'src/public/**'
+      - 'src/components/PublicTerminalGate.jsx'
+      - 'src/components/public/**'
+      - 'src/components/TradingChart.jsx'
+      - 'src/components/trading-v2/ChartArea.jsx'
+      - 'tests/public-guest-markets.test.js'
+      - 'tests/ui/public-guest-workspace.mjs'
+      - '.github/workflows/public-guest-markets.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  guest-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node --test tests/public-guest-markets.test.js
+      - name: Guest browser acceptance with no provider subscriptions
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          node tests/ui/public-guest-workspace.mjs
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-guest-browser-screenshots
+          path: artifacts/guest-explore-markets-*.png
+          if-no-files-found: ignore
+          retention-days: 7

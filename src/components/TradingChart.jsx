@@ -121,6 +121,7 @@ export default function TradingChart({
   onToggleIndicator = () => {},
   onOpenIndicatorSettings = () => {},
   onRemoveIndicator = () => {},
+  guestCandles = null,
 }) {
   const { authenticated } = useTraderAuth();
   const { market, connection, subscribeMarket } = useTradingStore();
@@ -251,9 +252,9 @@ export default function TradingChart({
   useEffect(() => { coordinateCallbackRef.current = onCoordinateApi; }, [onCoordinateApi]);
   useEffect(() => { indicatorsRef.current = indicators; }, [indicators]);
   useEffect(() => {
-    if (!authenticated || !symbol || !backendTimeframe) return undefined;
+    if (guestCandles || !authenticated || !symbol || !backendTimeframe) return undefined;
     return subscribeMarket({ quotes: [String(symbol).toUpperCase()], candles: [{ symbol: String(symbol).toUpperCase(), timeframe: backendTimeframe }] });
-  }, [authenticated, backendTimeframe, subscribeMarket, symbol]);
+  }, [authenticated, backendTimeframe, subscribeMarket, symbol, guestCandles]);
 
   const clearIndicatorSeries = useCallback(chart => {
     if (!chart) return;
@@ -683,7 +684,8 @@ export default function TradingChart({
     const loadOlderHistory = async () => {
       const paging = historyPagingRef.current;
       if (
-        disposed
+        guestCandles
+        || disposed
         || paging.loading
         || !paging.hasMore
         || !Number.isFinite(Number(paging.nextBefore))
@@ -757,9 +759,14 @@ export default function TradingChart({
     chart.subscribeCrosshairMove(crosshairHandler);
     void (async () => {
       try {
-        const page = await fetchCandlePage(symbol, timeframe, historyLimit, controller.signal);
+        // Guest samples are bundled and must never request private market APIs.
+        const page = Array.isArray(guestCandles)
+          ? { bars: guestCandles, pagination: { hasMore: false } }
+          : await fetchCandlePage(symbol, timeframe, historyLimit, controller.signal);
         if (disposed) return;
-        const bars = mergeLiveCandleIntoSeries(page.bars, latestLiveCandleRef.current, historyProfile.max);
+        const bars = Array.isArray(guestCandles)
+          ? page.bars
+          : mergeLiveCandleIntoSeries(page.bars, latestLiveCandleRef.current, historyProfile.max);
         if (!bars.length) throw new Error('No market candles returned');
         setSeriesData(bars);
         const providerFirstTime = page.bars[0]?.time ?? null;
@@ -830,7 +837,7 @@ export default function TradingChart({
       barsByTimeRef.current = new Map();
       chart.remove();
     };
-  }, [symbol, timeframe, chartMode, chartRequestKey, refreshDisplayBar, renderIndicators, decimals, minMove, historyLimit, historyProfile.max, historyProfile.page, setRealtimeTracking, chartRightBars, mobileReference, desktopEnhanced, visibleBars, showAttributionLogo, compactContext]);
+  }, [symbol, timeframe, chartMode, chartRequestKey, refreshDisplayBar, renderIndicators, decimals, minMove, historyLimit, historyProfile.max, historyProfile.page, setRealtimeTracking, chartRightBars, mobileReference, desktopEnhanced, visibleBars, showAttributionLogo, compactContext, guestCandles]);
 
   // Repaint in place: do not recreate the chart, reset zoom, or reload candles.
   useEffect(() => {
@@ -933,7 +940,7 @@ export default function TradingChart({
     const status = connection?.status || null;
     const previousStatus = previousConnectionStatusRef.current;
     previousConnectionStatusRef.current = status;
-    if (status !== 'ready' || previousStatus === 'ready' || !initialLoadCompleteRef.current || !seriesRef.current) return undefined;
+    if (guestCandles || status !== 'ready' || previousStatus === 'ready' || !initialLoadCompleteRef.current || !seriesRef.current) return undefined;
 
     const controller = new AbortController();
     void (async () => {
@@ -955,13 +962,14 @@ export default function TradingChart({
     })();
 
     return () => controller.abort();
-  }, [refreshDisplayBar, chartMode, connection?.status, historyLimit, historyProfile.max, renderIndicators, symbol, timeframe]);
+  }, [refreshDisplayBar, chartMode, connection?.status, historyLimit, historyProfile.max, renderIndicators, symbol, timeframe, guestCandles]);
 
   useEffect(() => {
     const previousRevision = previousHistoryRecoveryRevisionRef.current;
     previousHistoryRecoveryRevisionRef.current = historyRecoveryRevision;
     if (
-      historyRecoveryRevision <= previousRevision
+      guestCandles
+      || historyRecoveryRevision <= previousRevision
       || !initialLoadCompleteRef.current
       || !seriesRef.current
     ) return undefined;
@@ -991,7 +999,7 @@ export default function TradingChart({
     })();
 
     return () => controller.abort();
-  }, [refreshDisplayBar, chartMode, historyLimit, historyProfile.max, historyRecoveryRevision, renderIndicators, symbol, timeframe]);
+  }, [refreshDisplayBar, chartMode, historyLimit, historyProfile.max, historyRecoveryRevision, renderIndicators, symbol, timeframe, guestCandles]);
 
   useEffect(() => {
     const syncPaneLayout = () => {
@@ -1325,9 +1333,9 @@ export default function TradingChart({
   return <div data-acg-chart-theme={lightCanvas ? "light" : "dark"}
     className={`relative size-full min-h-0 min-w-0 overflow-hidden ${lightCanvas ? "bg-[#FAFBFC]" : "bg-black"}`}>
     <div ref={hostRef} className="absolute inset-0" />
-    <ChartAlertsOverlay key={chartRequestKey} chart={readyKey===chartRequestKey?chartRef.current:null}
+    {!guestCandles && <ChartAlertsOverlay key={chartRequestKey} chart={readyKey===chartRequestKey?chartRef.current:null}
       series={readyKey===chartRequestKey?seriesRef.current:null} hostRef={hostRef}
-      symbol={symbol} instrument={instrument} theme={lightCanvas?'light':'dark'}/>
+      symbol={symbol} instrument={instrument} theme={lightCanvas?'light':'dark'}/>}
     {mobileReference && (
       <div className="pointer-events-none absolute bottom-8 left-2 z-20 select-none" aria-hidden="true">
         <img

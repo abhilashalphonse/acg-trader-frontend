@@ -1459,6 +1459,8 @@ export default function ChartArea({
   positionProtectionDraft = null,
   onPositionProtectionDraftChange = () => {},
   indicators = [],
+  guestCandles = null,
+  drawingStorageSymbol = null,
   positions = [],
   pendingOrders = [],
   onModifyPending = () => {},
@@ -1509,6 +1511,7 @@ export default function ChartArea({
   const [drawingSnap, setDrawingSnap] = useState('off');
   const [lockAllDrawings, setLockAllDrawings] = useState(false);
   const [keepDrawingTool, setKeepDrawingTool] = useState(false);
+  const drawingKey = drawingStorageSymbol || symbol;
   const [drawingCount, setDrawingCount] = useState(0);
   const [hiddenDrawingCount, setHiddenDrawingCount] = useState(0);
   const [narrowMobile, setNarrowMobile] = useState(() => (
@@ -1658,7 +1661,7 @@ export default function ChartArea({
               onToggleVisibility={() => setShowDrawings(value => !value)}
               hiddenDrawingCount={hiddenDrawingCount}
               onRestoreHiddenDrawings={() => {
-                commitDrawings(symbol, current => current.map(item => item.hidden ? {...item,hidden:false} : item));
+                commitDrawings(drawingKey, current => current.map(item => item.hidden ? {...item,hidden:false} : item));
                 setHiddenDrawingCount(0);
                 setShowDrawings(true);
               }}
@@ -1736,6 +1739,7 @@ export default function ChartArea({
           askPrice={ask}
           positions={positions}
           indicators={indicators}
+          guestCandles={guestCandles}
           onCoordinateApi={setCoordinateApi}
           showBidAskLines={desktopEnhanced && !compactContext}
           showMobileQuoteMarkers={mobileReference}
@@ -1772,7 +1776,7 @@ export default function ChartArea({
           showDrawings={showDrawings}
           onToggleVisibility={() => setShowDrawings(value => !value)}
           onRestoreHiddenDrawings={() => {
-            commitDrawings(symbol, current => current.map(item => item.hidden ? { ...item, hidden: false } : item));
+            commitDrawings(drawingKey, current => current.map(item => item.hidden ? { ...item, hidden: false } : item));
             setHiddenDrawingCount(0);
             setShowDrawings(true);
           }}
@@ -1784,7 +1788,7 @@ export default function ChartArea({
           onTogglePin={() => setKeepDrawingTool(value => !value)}
         />}
         {!compactContext && showDrawings && <DrawingLayer
-          symbol={symbol}
+          symbol={drawingKey}
           timeframe={chartTimeframe}
           tool={selectedTool}
           onToolChange={onSelectTool}

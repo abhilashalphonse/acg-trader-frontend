@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import StandaloneAuthPage from './components/StandaloneAuthPage.jsx';
 import SessionGate from './components/SessionGate.jsx';
+import PublicTerminalGate from './components/PublicTerminalGate.jsx';
 import AppErrorBoundary from './components/AppErrorBoundary.jsx';
 import { AuthProvider } from './auth/AuthProvider.jsx';
 import { TradingProvider } from './store/TradingProvider.jsx';
@@ -28,11 +29,13 @@ if (import.meta.env.VITE_ACG_PUBLIC_DOCK_PREVIEW === 'true') {
   createRoot(document.getElementById('root')).render(
     <AppErrorBoundary>
     <AuthProvider>
-      <TradingProvider>
-        <SessionGate>
-          <App />
-        </SessionGate>
-      </TradingProvider>
+      <PublicTerminalGate>
+        <TradingProvider>
+          <SessionGate>
+            <App />
+          </SessionGate>
+        </TradingProvider>
+      </PublicTerminalGate>
     </AuthProvider>
     </AppErrorBoundary>,
   );

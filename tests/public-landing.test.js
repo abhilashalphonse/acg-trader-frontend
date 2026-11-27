@@ -29,6 +29,17 @@ test('public homepage uses V4 design language and current production capability 
   assert.match(html, /class="acg-cinema-actions"/);
   assert.match(html, /href="\/contact\.html\?topic=enterprise"/);
   assert.match(html, /Start Trading/);
+  // Navbar discovery remains distinct from explicit authentication.
+  // This is staged until the read-only guest chart workspace is enabled;
+  // /terminal currently retains the secure SessionGate.
+  const desktopNav = html.match(/<div class="header-actions">([^\n]+)<\/div>/)?.[1] || '';
+  const mobileNav = html.match(/<nav class="mobile-dropdown"[^>]*>([^\n]+)<\/nav>/)?.[1] || '';
+  assert.ok(desktopNav.includes('href="/terminal?acg_login=1">Log in</a>'));
+  assert.ok(desktopNav.includes('href="/terminal">Explore Markets '));
+  assert.ok(!desktopNav.includes('Start Trading'));
+  assert.ok(mobileNav.includes('href="/terminal?acg_login=1">Log in</a>'));
+  assert.ok(mobileNav.includes('class="mobile-signin" href="/terminal">Explore Markets ↗</a>'));
+
   assert.match(html, /For Enterprise/);
   const heroCss = readFileSync(new URL('../public/acg-cinema-hero.css', import.meta.url), 'utf8');
   assert.match(heroCss, /\.acg-cinema\{/);
