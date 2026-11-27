@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {ArrowUp,Sparkles,Copy,Check,LoaderCircle} from 'lucide-react';
+import {ArrowUp,Sparkles,Copy,Check,LoaderCircle,ChartNoAxesCombined,Crosshair,Layers,ShieldCheck,ArrowUpRight} from 'lucide-react';
 import {apiRequest} from '../../api/client.js';
 import {chartContextLabel} from './aiPreview.js';
 import AssistantMarkdown from './AssistantMarkdown.jsx';
@@ -7,7 +7,12 @@ const bytes=s=>new TextEncoder().encode(s).length;
 const allowedFrames=['1m','5m','15m','30m','1h','4h','1d','1w'];
 const secretPattern=/(?:sk-[A-Za-z0-9_-]{16,}|(?:api[_ -]?key|password|secret|authorization|bearer)\s*[:=]\s*\S+|-----BEGIN [A-Z ]+PRIVATE KEY-----|eyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|mongodb(?:\+srv)?:\/\/)/i;
 const validQuestion=q=>typeof q==='string'&&q.trim().length>0&&bytes(q)<=4096&&!secretPattern.test(q);
-const suggestions=['Analyse the current chart','Review my account risk','Where are the liquidity levels?'];
+const instrumentNames={XAUUSD:'gold',XAGUSD:'silver',USOIL:'WTI oil',UKOIL:'Brent oil',NATGAS:'natural gas',BTCUSD:'Bitcoin',ETHUSD:'Ethereum'};
+const suggestionIcons=[ChartNoAxesCombined,Crosshair,Layers,ShieldCheck];
+function workspaceSuggestions(symbol){
+  const name=Object.hasOwn(instrumentNames,symbol)?instrumentNames[symbol]:symbol;
+  return [name?"What's happening with "+name+"?":"What's happening in the markets?","Are there any trading setups?","Analyse the market structure","How much risk am I taking?"];
+}
 export function boundedWorkspaceHistory(messages,question){
   const result=[];
   let remaining=6000-bytes(question);
@@ -32,6 +37,7 @@ export function projectWorkspaceAnswer(result,expected){
 }
 export default function StaffWorkspaceChat({runtime,symbol,timeframe}){
   const chart=chartContextLabel(symbol,timeframe);
+  const suggestions=workspaceSuggestions(chart.symbol);
   const [connectionId]=useState(()=>crypto.randomUUID());
   const [consent,setConsent]=useState(null);
   const [includeMarket,setMarket]=useState(true);
@@ -90,16 +96,16 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe}){
     finally{inFlight.current=false;if(!controller.signal.aborted)setBusy(false);}
   }
   return <>
-    <div className="aic-context">
-      <div><span>GPT-6 Luna</span><strong>{chart.symbol||'No chart'} · {chart.timeframe||'—'}</strong></div>
-      <div className="aic-workspace-toggles">
-        <label><input type="checkbox" checked={includeMarket} disabled={busy} onChange={e=>changeContext(setMarket,e.target.checked)}/> Chart context</label>
-        <label><input type="checkbox" checked={includeAccount} disabled={busy} onChange={e=>changeContext(setAccount,e.target.checked)}/> Account context</label>
-      </div>
+    <div className="aic-context aic-workspace-context">
+      <div className="aic-workspace-instrument"><div className="aic-instrument-title"><strong>{chart.symbol||'No chart'}</strong><span>{Object.hasOwn(instrumentNames,chart.symbol)?instrumentNames[chart.symbol]+' · ':''}{chart.timeframe||'—'}</span></div><span className="aic-model">GPT-6 Luna</span></div>
     </div>
-    <div className="aic-body aic-workspace-body" aria-live="polite">
-      {!messages.length&&<><div className="aic-empty"><Sparkles size={25} strokeWidth={1.4}/><h3>How can I help?</h3><p>Ask about your chart, trading account or a trading concept.</p></div>
-      <div className="aic-suggestions">{suggestions.map(q=><button key={q} type="button" onClick={()=>{setDraft(q);input.current?.focus();}}>{q}</button>)}</div></>}
+    <div className={'aic-body aic-workspace-body'+(!messages.length?' aic-welcome-body':'')} aria-live="polite">
+      {!messages.length&&<div className="aic-welcome">
+        <Sparkles className="aic-welcome-icon" size={32} strokeWidth={1.45} aria-hidden="true"/>
+        <h3>What's on your mind?</h3>
+        <p>Explore the markets, find trading opportunities or understand your risk.</p>
+        <div className="aic-welcome-suggestions">{suggestions.map((q,i)=>{const Icon=suggestionIcons[i];return <button key={q} type="button" onClick={()=>{setDraft(q);input.current?.focus();}}><Icon size={16} strokeWidth={1.6} aria-hidden="true"/><span>{q}</span><ArrowUpRight className="aic-suggestion-arrow" size={13} aria-hidden="true"/></button>;})}</div>
+      </div>}
       {messages.map((m,i)=><article key={m.id} ref={i===messages.length-1&&m.role==='assistant'?latestAnswer:null} className={'aic-workspace-message '+(m.role==='user'?'aic-user-message':'aic-assistant-message')}>
         {m.role==='assistant'&&<div className="aic-answer-heading"><span className="aic-answer-avatar"><Sparkles size={14}/></span><strong>ACG AI</strong>{m.context?.market&&<span className="aic-answer-instrument">{chart.symbol} · {chart.timeframe}</span>}</div>}
         {m.role==='assistant'?<AssistantMarkdown text={m.text}/>:<div className="aic-message-text">{m.text}</div>}
@@ -109,14 +115,20 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe}){
       {notice&&<p role="status" className="aic-disclaimer">{notice}</p>}
       <div ref={bottom}/>
     </div>
-    <div className="aic-footer">
-      <div className="aic-composer">
-        <textarea ref={input} value={draft} aria-label="Message ACG AI" placeholder="Ask ACG AI…" rows={3}
+    <div className="aic-footer aic-workspace-footer">
+      <div className="aic-composer aic-workspace-composer">
+        <textarea ref={input} value={draft} aria-label="Message ACG AI" placeholder="Ask anything about your trading…" rows={2}
           onChange={e=>{if(bytes(e.target.value)<=4096)setDraft(e.target.value);}}
           onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent?.isComposing){e.preventDefault();void send();}}}/>
-        <div className="aic-composer-bottom"><span>{busy?'Working…':'Read-only assistant'}</span><button type="button" aria-label="Send message" disabled={busy||!consent||!validQuestion(draft)} onClick={()=>void send()}><ArrowUp size={17}/></button></div>
+        <div className="aic-composer-bottom">
+          <div className="aic-context-chips" role="group" aria-label="Context shared with AI">
+            <button type="button" className="aic-context-chip" aria-pressed={includeMarket} aria-label="Chart context" disabled={busy} onClick={()=>changeContext(setMarket,!includeMarket)}><span className="aic-chip-check">{includeMarket&&<Check size={12}/>}</span>Chart</button>
+            <button type="button" className="aic-context-chip" aria-pressed={includeAccount} aria-label="Account context" disabled={busy} onClick={()=>changeContext(setAccount,!includeAccount)}><span className="aic-chip-check">{includeAccount&&<Check size={12}/>}</span>Account</button>
+          </div>
+          <button className="aic-workspace-send" type="button" aria-label="Send message" disabled={busy||!consent||!validQuestion(draft)} onClick={()=>void send()}>{busy?<LoaderCircle size={17} className="aic-send-spinner"/>:<ArrowUp size={17}/>}</button>
+        </div>
       </div>
-      <p className="aic-disclaimer">Sending shares the selected context and message with OpenAI. AI can make mistakes. No trade execution.</p>
+      <p className="aic-disclaimer">Selected context and messages are shared with OpenAI. AI can make mistakes. No trade execution.</p>
     </div>
   </>;
 }
