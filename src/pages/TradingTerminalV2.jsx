@@ -153,6 +153,7 @@ function fillEvent(result, fallback) {
 
 export default function TradingTerminalV2({
   staffAiPreview = false,
+  staffAiRuntime = null,
   market,
   tick,
   markets = [],
@@ -1395,6 +1396,7 @@ export default function TradingTerminalV2({
         <TradingPermissionNotice status={tradingPolicyStatus} />
         <DesktopTerminal
           staffAiPreview={staffAiPreview && !trading.accountSwitching && !trading.accountGrantMissing}
+          staffAiRuntime={staffAiRuntime?.accountId===trading.activeAccountId&&!trading.accountSwitching&&!trading.accountGrantMissing?staffAiRuntime:null}
           market={market}
           tick={tick}
           markets={markets}
