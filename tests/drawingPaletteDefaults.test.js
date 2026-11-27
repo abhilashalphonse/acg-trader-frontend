@@ -65,8 +65,9 @@ test('palette has accessible neutral and colored swatches and shared editors',()
     for(const color of row) assert.match(color,/^#[A-F0-9]{6}$/);
   }
   const picker=source('src/components/trading-v2/DrawingColorPicker.jsx');
-  assert.match(picker,/role="dialog" aria-label="Drawing color palette"/);
-  assert.match(picker,/aria-label="Drawing opacity"/);
+  assert.match(picker,/role="dialog" aria-label=/);
+  assert.match(picker,/title = .Drawing color./);
+  assert.match(picker,/title === .Drawing color. . .Drawing opacity./);
   assert.match(picker,/createPortal/);
   assert.match(source('src/components/trading-v2/v4/V4DrawingEditor.jsx'),/DrawingColorPicker/);
   assert.match(source('src/components/trading-v2/ChartToolControls.jsx'),/drawing \? <div className="acg-tool-colors">/);
