@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   DEFAULT_DESKTOP_CHART_SETTINGS,
+  chartCandleColor,
   desktopChartPalette,
   chartTimezoneLabel,
   formatChartClock,
@@ -21,6 +22,12 @@ test('desktop chart settings default to TradingView-style candle colors and UTC'
       downBorder: '#F23645',
       upWick: '#089981',
       downWick: '#F23645',
+      upBodyOpacity: 1,
+      downBodyOpacity: 1,
+      upBorderOpacity: 1,
+      downBorderOpacity: 1,
+      upWickOpacity: 1,
+      downWickOpacity: 1,
     },
     timezone: 'UTC',
     viewport: { top: 0.12, bottom: 0.16, bars: 42 },
@@ -41,6 +48,27 @@ test('invalid stored colors and timezone fall back safely', () => {
   assert.equal(settings.candle.downBody, '#123456');
   assert.equal(settings.candle.upBorder, '#ABCDEF');
   assert.equal(settings.timezone, 'UTC');
+});
+
+test('candle opacity is normalized and renders through the shared palette', () => {
+  const settings = normalizeDesktopChartSettings({
+    candle: {
+      upBody: '#12AB34', upBodyOpacity: 0.4,
+      downWick: '#102030', downWickOpacity: 0,
+      upBorderOpacity: 4,
+      downBodyOpacity: -2,
+      downBorderOpacity: 'invalid',
+    },
+  });
+  assert.equal(settings.candle.upBodyOpacity, 0.4);
+  assert.equal(settings.candle.downWickOpacity, 0);
+  assert.equal(settings.candle.upBorderOpacity, 1);
+  assert.equal(settings.candle.downBodyOpacity, 0);
+  assert.equal(settings.candle.downBorderOpacity, 1);
+  assert.equal(chartCandleColor(settings.candle, 'upBody', '#000000'), 'rgba(18,171,52,0.4)');
+  assert.equal(chartCandleColor(settings.candle, 'downWick', '#000000'), 'rgba(16,32,48,0)');
+  assert.equal(chartCandleColor(settings.candle, 'upBorder', '#000000'), '#089981');
+  assert.equal(chartCandleColor(null, 'upBody', '#123456'), '#123456');
 });
 
 test('fixed offset timezone formatting is deterministic', () => {
