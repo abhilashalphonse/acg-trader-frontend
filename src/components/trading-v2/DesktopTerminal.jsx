@@ -1,4 +1,6 @@
-import { CircleHelp } from 'lucide-react';
+import { CircleHelp, Sparkles } from 'lucide-react';
+import NativeAiChat from '../ai/NativeAiChat.jsx';
+import { isAiChatPreviewEnabled } from '../ai/aiPreview.js';
 import { AlertsPanel, useAlerts } from '../alerts/AlertsWorkspace.jsx';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -446,6 +448,7 @@ export default function DesktopTerminal({
   const openMiniTerminal = useCallback(() => miniTerminalRef.current?.open(), []);
   const searchRef = useRef(null);
   const [activeNav, setActiveNav] = useState('trade');
+  const aiPreview = V4_DESKTOP_EXECUTION_ENABLED && isAiChatPreviewEnabled(import.meta.env.DEV, typeof window !== 'undefined' ? window.location.search : '');
   const [notice, setNotice] = useState('');
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -1553,7 +1556,7 @@ export default function DesktopTerminal({
 
           {!desktopLayout.sidebarCollapsed && !positionsExpanded && (
             <aside className="acg-motion-side-panel relative flex min-h-0 flex-col overflow-hidden rounded-[16px] border border-white/[0.07] bg-[#09090B] shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_12px_30px_rgba(0,0,0,.22)]" style={{ gridColumn: '2', gridRow: '1' }}>
-              {activeNav === 'alerts' ? <AlertsPanel/> : marketPanelOpen ? (
+              {aiPreview && activeNav === 'ai' ? <NativeAiChat key={JSON.stringify([account?.id || null,activeSymbol,activeChartTimeframe])} symbol={activeSymbol} timeframe={activeChartTimeframe} onClose={() => setDesktopLayout(current => ({ ...current, sidebarCollapsed: true }))}/> : activeNav === 'alerts' ? <AlertsPanel/> : marketPanelOpen ? (
                 <div className="min-h-0 flex-1">
                   <DesktopWatchlist
                     markets={markets}
@@ -1741,6 +1744,13 @@ export default function DesktopTerminal({
             }} aria-expanded={!desktopLayout.sidebarCollapsed && activeNav === 'alerts'}
               className={`relative mb-1 grid size-9 place-items-center rounded-md hover:bg-white/[0.04] hover:text-white ${!desktopLayout.sidebarCollapsed && activeNav === 'alerts'?'bg-[#222225] text-white':'text-[#9a9aa6]'}`}
               title="Alerts (Alt+A to create)" aria-label="Open alerts" data-acg-rail-action="alerts" data-acg-rail-active={!desktopLayout.sidebarCollapsed && activeNav === 'alerts' ? 'true' : 'false'}><Bell size={17}/>{alerts.unread>0&&<span className="absolute right-1 top-1 size-1.5 rounded-full bg-white"/>}</button>}
+            {aiPreview && <button type="button" onClick={() => {
+              if (!desktopLayout.sidebarCollapsed && activeNav === 'ai') toggleSidebar();
+              else { setPositionsExpanded(false); setActiveNav('ai'); setDesktopLayout(current => ({ ...current, sidebarCollapsed: false })); }
+            }} aria-label="Open ACG AI preview" title="ACG AI preview" data-acg-rail-action="ai"
+              aria-expanded={!desktopLayout.sidebarCollapsed && activeNav === 'ai'}
+              data-acg-rail-active={!desktopLayout.sidebarCollapsed && activeNav === 'ai' ? 'true' : 'false'}
+              className={`mb-1 grid size-9 place-items-center rounded-md hover:bg-white/[0.04] hover:text-white ${!desktopLayout.sidebarCollapsed && activeNav === 'ai' ? 'bg-[#222225] text-white' : 'text-[#9a9aa6]'}`}><Sparkles size={17}/></button>}
             <button type="button" onClick={onOpenHelp}
               className="mt-auto mb-1 grid size-9 place-items-center rounded-md text-[#7F8D99] hover:bg-white/[0.04] hover:text-white"
               title="Help Center" aria-label="Help Center" data-acg-rail-action="help">
