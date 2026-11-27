@@ -6,7 +6,7 @@ const routes=Object.freeze({
   create:['conversationId','selection','profile','workspace'],
   list:[],history:['conversationId','afterSequence','limit'],
   append:['conversationId','messageId','text'],cancel:['conversationId','messageId'],
-  analyze:['conversationId','messageId'],delete:['conversationId']
+  analyze:['conversationId','messageId'],generate:['conversationId','messageId'],delete:['conversationId']
 });
 const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 const account=v=>typeof v==='string'&&/^[0-9a-f]{24}$/.test(v);
@@ -33,7 +33,8 @@ export function createIsolatedChatClient({isolated=false,accountId,connectionId,
     if(body.conversationId&&operation!=='history'&&result.conversationId!==body.conversationId)throw fail('AI_INVALID_RESPONSE');
     if(operation==='history'&&result.conversation?.conversationId!==body.conversationId)throw fail('AI_INVALID_RESPONSE');
     if(body.messageId&&result.messageId!==body.messageId)throw fail('AI_INVALID_RESPONSE');
-    if(['append','cancel','analyze','preflight'].includes(operation)&&(result.dispatchAllowed!==false||result.creditDeducted!==false))throw fail('AI_INVALID_RESPONSE');
+    if(['append','cancel','analyze','preflight','generate'].includes(operation)&&(result.dispatchAllowed!==false||result.creditDeducted!==false))throw fail('AI_INVALID_RESPONSE');
+    if(operation==='generate'&&(result.fixtureProviderOnly!==true||typeof result.replayed!=='boolean'||!result.providerRun))throw fail('AI_INVALID_RESPONSE');
     // Transport validation is not a display/evidence verifier. Use the existing
     // workspace report projection and operation-specific UI validation before render.
     return result;
