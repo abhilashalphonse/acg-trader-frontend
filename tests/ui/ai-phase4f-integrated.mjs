@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import process from 'node:process';
 import {chromium} from 'playwright';
 let raw='';for await(const chunk of process.stdin){raw+=chunk;if(raw.length>16000)throw Error('Invalid fixture input');}
-const {root,authority,token,foreignToken,providerMode=false,workspaceMode=false,asOf,existingConversationId}=JSON.parse(raw);
+const {root,authority,token,foreignToken,providerMode=false,workspaceMode=false,marketProviderMode=false,asOf,existingConversationId}=JSON.parse(raw);
 if(!/^http:\/\/127\.0\.0\.1:\d+$/.test(root)||typeof token!=='string'||typeof foreignToken!=='string')throw Error('Isolated fixture required');
 const base='http://127.0.0.1:5174';
 const browser=await chromium.launch({headless:true,channel:'chrome',args:['--no-sandbox']});
@@ -24,7 +24,37 @@ async function pageFor(mobile,credential=token){
   return page;
 }
 try{
-  if(workspaceMode){
+  if(marketProviderMode){
+    const desktop=await pageFor(false),panel=desktop.locator('[data-ai-chat-preview]');
+    const consent=panel.getByRole('checkbox',{name:'Include chart context'});
+    await consent.waitFor();assert.equal(await consent.isChecked(),false);
+    assert.equal(await panel.getByRole('button',{name:'Ask AI about chart'}).count(),0);
+    await consent.check();
+    await panel.getByRole('textbox',{name:'Message ACG AI'}).fill('Historical closed price from chart');
+    await panel.getByRole('button',{name:'Ask AI about chart'}).click();
+    const report=panel.locator('[data-ai-workspace-report]');
+    await report.waitFor();
+    assert.match(await report.textContent(),/AI-selected historical report/);
+    assert.match(await report.textContent(),/Last closed price119/);
+    assert.match(await report.textContent(),/not current market data/);
+    const label=await panel.getByRole('button',{name:/Conversation .* · 1 messages/}).first().textContent();
+    await desktop.getByRole('button',{name:'Switch fixture chart'}).click();
+    await consent.waitFor();assert.equal(await consent.isChecked(),false);
+    assert.equal(await panel.locator('[data-ai-workspace-report]').count(),0);
+    await desktop.close();
+    const mobile=await pageFor(true),mp=mobile.locator('[data-ai-chat-preview]');
+    const mc=mp.getByRole('checkbox',{name:'Include chart context'});
+    await mc.waitFor();assert.equal(await mc.isChecked(),false);
+    await mc.check();await mp.getByRole('button',{name:label,exact:true}).click();
+    await mp.locator('[data-market-provider-state="VERIFIED"]').waitFor();
+    assert.equal(await mp.locator('[data-ai-workspace-report]').count(),0);
+    await mp.getByRole('button',{name:'Cancel message'}).click();
+    await mp.locator('[data-market-provider-state="SUPPRESSED"]').waitFor();
+    await mp.getByRole('button',{name:'Delete conversation'}).click();
+    await mp.getByRole('button',{name:label,exact:true}).waitFor({state:'detached'});
+    await mobile.close();
+    console.log('PASS Phase 4F market provider browser: authenticated selected evidence, explicit consent, chart change, mobile history and cancellation');
+  }else if(workspaceMode){
     const desktop=await pageFor(false);
     const panel=desktop.locator('[data-ai-chat-preview]');
     const consent=panel.getByRole('checkbox',{name:'Include chart context'});
