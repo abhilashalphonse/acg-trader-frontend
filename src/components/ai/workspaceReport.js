@@ -26,7 +26,7 @@ export function projectWorkspaceReport(envelope,expected,now=Date.now()){
     !['ANSWER','INSUFFICIENT_EVIDENCE'].includes(r.status)||![r.asOfMs,r.verifiedAtMs,r.expiresAtMs].every(clock)||
     r.asOfMs>r.verifiedAtMs||r.verifiedAtMs>now||now>=r.expiresAtMs||r.expiresAtMs!==r.asOfMs+10000||
     !Array.isArray(r.observations)||r.observations.length>8||!Array.isArray(r.interpretations)||r.interpretations.length>1||
-    !Array.isArray(r.education)||r.education.length!==0||!Array.isArray(r.frames)||r.frames.length!==1||r.frames[0].timeframe!==w.timeframe||
+    !Array.isArray(r.education)||r.education.length!==0||!Array.isArray(r.frames)||r.frames.length!==1||r.frames[0]?.timeframe!==w.timeframe||
     !Array.isArray(r.limitations)||!r.limitations.includes('NO_SEMANTIC_RELEVANCE_OR_COMPLETENESS_PROOF')||
     !['twelve-data','accelpix'].includes(envelope.source?.provider))return null;
   const facts=[],seen=new Set();
