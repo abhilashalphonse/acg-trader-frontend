@@ -70,3 +70,46 @@
 .acg-ai-chat-mobile .aic-markdown h3{font-size:14px}
 .acg-ai-chat-mobile .aic-markdown h4,.acg-ai-chat-mobile .aic-markdown h5{font-size:13px}
 .acg-ai-chat-mobile .aic-markdown-table table{font-size:12px}
+
+/* Native analytical response layout, tuned for compact trading sidebars. */
+.aic-workspace-body{gap:18px;padding:12px;scroll-padding-top:12px}
+.aic-assistant-message{padding:0 0 12px;border-bottom:1px solid #24262b;scroll-margin-top:8px}
+.aic-answer-heading{gap:7px;margin-bottom:12px;font-size:12px;color:#e5e7eb;min-height:25px}
+.aic-answer-avatar{display:grid;place-items:center;flex:none;width:25px;height:25px;background:#191b20;border:1px solid #303239;border-radius:5px;color:#c8cdd6}
+.aic-answer-instrument{margin-left:auto;font-size:10px;font-weight:500;color:#9da5b0;white-space:nowrap}
+.aic-analysis-report{display:flex;flex-direction:column;gap:0;min-width:0;text-align:left}
+.aic-analysis-section{min-width:0;padding:13px 0;border-bottom:1px solid #282a2f}
+.aic-analysis-section:first-child{padding-top:0}
+.aic-analysis-section:last-child{border-bottom:0;padding-bottom:0}
+.aic-analysis-label{margin:0 0 8px;color:#9ba3ae;font-size:10px;letter-spacing:.065em;text-transform:uppercase;font-weight:650;line-height:1.4}
+.aic-analysis-content{font-size:12px;line-height:1.62}
+.aic-analysis-content .aic-analysis-headline{font-size:15px;font-weight:650;line-height:1.4;color:#f0f2f5;letter-spacing:-.015em;margin:0 0 7px}
+.aic-analysis-rows{margin:0}
+.aic-analysis-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,auto);gap:3px 9px;align-items:baseline;padding:8px 0;border-bottom:1px solid #24262b}
+.aic-analysis-row:last-child{border-bottom:0;padding-bottom:0}
+.aic-analysis-row:first-child{padding-top:0}
+.aic-analysis-row dt{min-width:0;font-weight:500;color:#c6ccd4}
+.aic-analysis-row dd{margin:0;text-align:right;min-width:0;overflow-wrap:anywhere;font-weight:600}
+.aic-analysis-row .aic-row-context{grid-column:1/-1;text-align:left;color:#929aa6;font-size:11px;font-weight:400;line-height:1.5}
+.aic-analysis-row .aic-level-value{font-variant-numeric:tabular-nums;color:#f1f3f5}
+.aic-outlook-positive,.aic-outlook-positive strong,.aic-analysis-bullish .aic-analysis-label{color:#54bd9a}
+.aic-outlook-negative,.aic-outlook-negative strong,.aic-analysis-bearish .aic-analysis-label{color:#e68a8a}
+.aic-outlook-neutral{color:#b4bdc8}
+.aic-analysis-bullish,.aic-analysis-bearish{border-bottom:0;padding:11px 0 11px 10px;margin-top:7px;border-left:2px solid #3c8e75}
+.aic-analysis-bearish{border-left-color:#a55c65}
+.aic-analysis-assessment{margin-top:12px;padding:10px!important;background:#15171b;border:1px solid #30343b!important;border-radius:5px}
+.aic-analysis-assessment .aic-analysis-label{color:#d6dbe2}
+.aic-answer-footer{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:12px;color:#9099a4;font-size:10px;line-height:1.4}
+.aic-answer-footer>span:first-child{flex:1;min-width:0}
+.aic-copy{display:grid;place-items:center;width:26px;height:26px;padding:0;border:0;border-radius:4px;background:transparent;color:#a9b0bc}
+.aic-copy:hover{background:#24262b;color:#f1f2f4}
+.aic-copy-status{color:#b5bec8}
+.aic-analysis-loading{color:#a6aeb9}
+.aic-analysis-loading svg{animation:aic-analysis-spin 1s linear infinite}
+@keyframes aic-analysis-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.aic-analysis-loading svg{animation:none}}
+.acg-ai-chat-mobile .aic-analysis-content{font-size:13px}
+.acg-ai-chat-mobile .aic-analysis-content .aic-analysis-headline{font-size:16px}
+.acg-ai-chat-mobile .aic-copy{width:36px;height:36px}
+.aic-composer:focus-within{border-color:#555a64}
+.acg-ai-chat .aic-composer textarea:focus-visible{outline:none}

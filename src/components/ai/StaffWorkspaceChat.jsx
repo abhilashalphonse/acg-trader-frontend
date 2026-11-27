@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {ArrowUp,Sparkles} from 'lucide-react';
+import {ArrowUp,Sparkles,Copy,Check,LoaderCircle} from 'lucide-react';
 import {apiRequest} from '../../api/client.js';
 import {chartContextLabel} from './aiPreview.js';
 import AssistantMarkdown from './AssistantMarkdown.jsx';
@@ -40,6 +40,8 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe}){
   const [draft,setDraft]=useState('');
   const [busy,setBusy]=useState(false);
   const [notice,setNotice]=useState('');
+  const [copyState,setCopyState]=useState(null);
+  const latestAnswer=useRef(null);
   const active=useRef(null),inFlight=useRef(false),historyStart=useRef(0),bottom=useRef(null),input=useRef(null);
   const valid=Boolean(runtime?.token&&runtime.accountId&&chart.symbol&&allowedFrames.includes(chart.timeframe));
   const call=(op,extra,signal)=>apiRequest('/v1/ai/pilot/'+op,{method:'POST',token:runtime.token,
@@ -54,7 +56,15 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe}){
     }).catch(()=>{if(!controller.signal.aborted)setNotice('AI workspace access is unavailable.');});
     return ()=>{controller.abort();active.current=null;};
   },[runtime?.token,runtime?.accountId,runtime?.sessionId,chart.symbol,chart.timeframe,connectionId,valid]);
-  useEffect(()=>{bottom.current?.scrollIntoView({block:'end',behavior:'auto'});},[messages,busy]);
+  useEffect(()=>{
+    const latest=messages.at(-1);
+    if(!busy&&latest?.role==='assistant')latestAnswer.current?.scrollIntoView({block:'start',behavior:'auto'});
+    else bottom.current?.scrollIntoView({block:'end',behavior:'auto'});
+  },[messages,busy]);
+  async function copyAnswer(message){
+    try{await navigator.clipboard.writeText(message.text);setCopyState({id:message.id,ok:true});}
+    catch{setCopyState({id:message.id,ok:false});}
+  }
   function changeContext(setter,value){
     historyStart.current=messages.length;setter(value);
     setNotice('Context updated. Earlier messages will not be included in the next AI request.');
@@ -62,7 +72,7 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe}){
   async function send(){
     const controller=active.current,question=draft.trim();
     if(!valid||!consent||!controller||controller.signal.aborted||inFlight.current||!validQuestion(question))return;
-    inFlight.current=true;setBusy(true);setNotice('');setDraft('');
+    inFlight.current=true;setBusy(true);setNotice('');setDraft('');setCopyState(null);
     const history=boundedWorkspaceHistory(messages.slice(historyStart.current),question);
     setMessages(m=>[...m,{id:crypto.randomUUID(),role:'user',text:question}]);
     try{
@@ -90,12 +100,12 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe}){
     <div className="aic-body aic-workspace-body" aria-live="polite">
       {!messages.length&&<><div className="aic-empty"><Sparkles size={25} strokeWidth={1.4}/><h3>How can I help?</h3><p>Ask about your chart, trading account or a trading concept.</p></div>
       <div className="aic-suggestions">{suggestions.map(q=><button key={q} type="button" onClick={()=>{setDraft(q);input.current?.focus();}}>{q}</button>)}</div></>}
-      {messages.map(m=><article key={m.id} className={'aic-workspace-message '+(m.role==='user'?'aic-user-message':'aic-assistant-message')}>
-        {m.role==='assistant'&&<div className="aic-answer-heading"><Sparkles size={13}/> ACG AI</div>}
+      {messages.map((m,i)=><article key={m.id} ref={i===messages.length-1&&m.role==='assistant'?latestAnswer:null} className={'aic-workspace-message '+(m.role==='user'?'aic-user-message':'aic-assistant-message')}>
+        {m.role==='assistant'&&<div className="aic-answer-heading"><span className="aic-answer-avatar"><Sparkles size={14}/></span><strong>ACG AI</strong>{m.context?.market&&<span className="aic-answer-instrument">{chart.symbol} · {chart.timeframe}</span>}</div>}
         {m.role==='assistant'?<AssistantMarkdown text={m.text}/>:<div className="aic-message-text">{m.text}</div>}
-        {m.role==='assistant'&&<p className="aic-disclaimer">AI interpretation · {m.context?.market?'Chart included':'No chart'} · {m.context?.account?'Account included':'No account'}</p>}
+        {m.role==='assistant'&&<div className="aic-answer-footer"><span>AI interpretation · {m.context?.market?'Chart included':'No chart'} · {m.context?.account?'Account included':'No account'}</span><button type="button" className="aic-copy" aria-label="Copy response" title="Copy response" onClick={()=>void copyAnswer(m)}>{copyState?.id===m.id&&copyState.ok?<Check size={14}/>:<Copy size={14}/>}</button>{copyState?.id===m.id&&<span role="status" className="aic-copy-status">{copyState.ok?'Copied':'Copy failed'}</span>}</div>}
       </article>)}
-      {busy&&<div className="aic-answer-heading"><Sparkles size={13}/> Analysing…</div>}
+      {busy&&<div className="aic-answer-heading aic-analysis-loading"><LoaderCircle size={14}/> Analysing market context…</div>}
       {notice&&<p role="status" className="aic-disclaimer">{notice}</p>}
       <div ref={bottom}/>
     </div>
