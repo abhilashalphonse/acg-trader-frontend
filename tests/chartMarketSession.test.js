@@ -59,7 +59,11 @@ test('holiday closures and explicit venue-state overrides are respected', () => 
   const authoritativeClosed = chartMarketSession({ ...fx, sessionOpen: false },
     Date.parse('2026-11-27T16:00:00Z'));
   assert.equal(authoritativeClosed.status, 'closed');
-  const unavailable = chartMarketSession({ ...fx, marketState: 'DISCONNECTED' },
+  const quoteDisconnected = chartMarketSession({ ...fx, marketState: 'DISCONNECTED' },
+    Date.parse('2026-11-27T16:00:00Z'));
+  assert.equal(quoteDisconnected.status, 'open',
+    'A disconnected data feed does not change instrument session hours');
+  const unavailable = chartMarketSession({ ...fx, status: 'DISABLED' },
     Date.parse('2026-11-27T16:00:00Z'));
   assert.equal(unavailable.status, 'unavailable');
 });
