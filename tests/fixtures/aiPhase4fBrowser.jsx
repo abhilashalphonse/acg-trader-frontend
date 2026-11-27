@@ -1,4 +1,4 @@
-import React from 'react';
+import React,{useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import NativeAiChat from '../../src/components/ai/NativeAiChat.jsx';
 import MobileAiChat from '../../src/components/ai/MobileAiChat.jsx';
@@ -12,4 +12,11 @@ const client=createIsolatedChatClient({isolated:true,...authority,isCurrent:()=>
 }});
 const root=createRoot(document.getElementById('root'));
 const Component=new URLSearchParams(location.search).get('mobile')==='1'?MobileAiChat:NativeAiChat;
-root.render(<div style={{width:'min(100vw, 400px)',height:'100dvh',display:'flex'}}><Component symbol="XAUUSD" timeframe="1m" isolatedClient={client} onClose={()=>root.unmount()}/></div>);
+function Fixture(){
+  const [symbol,setSymbol]=useState('XAUUSD');
+  return <div style={{width:'min(100vw, 400px)',height:'100dvh',display:'flex',flexDirection:'column'}}>
+    {Component===NativeAiChat&&<button type="button" onClick={()=>setSymbol(s=>s==='XAUUSD'?'EURUSD':'XAUUSD')}>Switch fixture chart</button>}
+    <Component symbol={symbol} timeframe="1m" isolatedClient={client} onClose={()=>root.unmount()}/>
+  </div>;
+}
+root.render(<Fixture/>);
