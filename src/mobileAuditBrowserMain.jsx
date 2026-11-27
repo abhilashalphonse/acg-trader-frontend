@@ -18,6 +18,7 @@ import MobileAccountSheet from './components/trading-v2/MobileAccountSheet.jsx';
 import FrontendSheet from './components/trading-v2/FrontendSheet.jsx';
 import MobileAuditHeader from './components/trading-v2/MobileAuditHeader.jsx';
 import MobileAiChat from './components/ai/MobileAiChat.jsx';
+import {sampleWorkspaceReport} from '../tests/fixtures/aiWorkspaceReport.js';
 import {isAiChatPreviewEnabled} from './components/ai/aiPreview.js';
 import MobileAuditExecutionDock from './components/trading-v2/MobileAuditExecutionDock.jsx';
 import MobileAuditDrawingPalette from './components/trading-v2/MobileAuditDrawingPalette.jsx';
@@ -149,7 +150,7 @@ function Demo() {
           exposureAllowed commandPending={pending}/></div>{managed&&<div data-fixture-managed className="h-[118px]">Managing position</div>}
       </div>
     </div>
-    {aiPreview&&aiOpen&&<MobileAiChat key={market.symbol+':'+timeframe} symbol={market.symbol} timeframe={timeframe} onClose={()=>setAiOpen(false)}/>}
+    {aiPreview&&aiOpen&&<MobileAiChat key={market.symbol+':'+timeframe} symbol={market.symbol} timeframe={timeframe} reportFixture={sampleWorkspaceReport} onClose={()=>setAiOpen(false)}/>}
   </div>;
 }
 function ManagedDemo() {
