@@ -2,17 +2,18 @@ import assert from 'node:assert/strict';
 import process from 'node:process';
 import {chromium} from 'playwright';
 let raw='';for await(const chunk of process.stdin){raw+=chunk;if(raw.length>16000)throw Error('Invalid fixture input');}
-const {root,authority,token,foreignToken,providerMode=false,existingConversationId}=JSON.parse(raw);
+const {root,authority,token,foreignToken,providerMode=false,workspaceMode=false,asOf,existingConversationId}=JSON.parse(raw);
 if(!/^http:\/\/127\.0\.0\.1:\d+$/.test(root)||typeof token!=='string'||typeof foreignToken!=='string')throw Error('Isolated fixture required');
 const base='http://127.0.0.1:5174';
 const browser=await chromium.launch({headless:true,channel:'chrome',args:['--no-sandbox']});
 let calls=0;
 async function pageFor(mobile,credential=token){
   const page=await browser.newPage({viewport:mobile?{width:393,height:852}:{width:1440,height:900},isMobile:mobile,hasTouch:mobile});
+  if(workspaceMode){assert.ok(Number.isSafeInteger(asOf));await page.clock.setFixedTime(new Date(asOf+100));}
   await page.addInitScript(a=>{window.__phase4fAuthority=a;},authority);
   await page.route('**/v1/ai/chat/**',async route=>{
     const path=new URL(route.request().url()).pathname;
-    assert.match(path,/^\/v1\/ai\/chat\/(?:capabilities|preflight|conversations\/(?:create|list|history|append|cancel|delete|generate))$/);
+    assert.match(path,/^\/v1\/ai\/chat\/(?:capabilities|preflight|conversations\/(?:create|list|history|append|cancel|delete|generate|analyze))$/);
     assert.equal(route.request().method(),'POST');
     const body=route.request().postData();calls++;
     const response=await fetch(root+path,{method:'POST',headers:{authorization:'Bearer '+credential,'content-type':'application/json'},body,redirect:'error'});
@@ -23,7 +24,55 @@ async function pageFor(mobile,credential=token){
   return page;
 }
 try{
-  if(providerMode){
+  if(workspaceMode){
+    const desktop=await pageFor(false);
+    const panel=desktop.locator('[data-ai-chat-preview]');
+    const consent=panel.getByRole('checkbox',{name:'Include chart context'});
+    await consent.waitFor();assert.equal(await consent.isChecked(),false);
+    assert.equal(await panel.getByRole('button',{name:'Analyze chart'}).count(),0);
+    await consent.check();
+    await panel.getByRole('textbox',{name:'Message ACG AI'}).fill('Phase 4F chart evidence fixture');
+    await panel.getByRole('button',{name:'Analyze chart'}).click();
+    const report=panel.locator('[data-ai-workspace-report]');
+    await report.waitFor();
+    assert.match(await report.textContent(),/Last closed price119/);
+    assert.match(await report.textContent(),/XAUUSD · 1m/);
+    assert.match(await report.textContent(),/not current market data/);
+    const label=await panel.getByRole('button',{name:/Conversation .* · 1 messages/}).first().textContent();
+    await desktop.clock.setFixedTime(new Date(asOf+11000));
+    await panel.locator('[data-ai-report-unavailable]').waitFor();
+    await consent.uncheck();
+    assert.equal(await panel.locator('[data-ai-workspace-report]').count(),0);
+    assert.equal(await panel.getByRole('button',{name:label,exact:true}).count(),0);
+    await desktop.close();
+    const mobile=await pageFor(true);
+    const mp=mobile.locator('[data-ai-chat-preview]');
+    const mc=mp.getByRole('checkbox',{name:'Include chart context'});
+    await mc.waitFor();assert.equal(await mc.isChecked(),false);
+    assert.equal(await mp.getByRole('button',{name:label,exact:true}).count(),0);
+    await mc.check();
+    await mp.getByRole('button',{name:label,exact:true}).click();
+    await mp.getByText('Phase 4F chart evidence fixture',{exact:true}).waitFor();
+    assert.equal(await mp.locator('[data-ai-workspace-report]').count(),0);
+    await mp.getByRole('button',{name:'Refresh historical report'}).click();
+    await mp.locator('[data-ai-workspace-report]').waitFor();
+    await mc.uncheck();
+    assert.equal(await mp.locator('[data-ai-workspace-report]').count(),0);
+    await mc.check();
+    await mp.getByRole('button',{name:label,exact:true}).click();
+    await mp.getByRole('button',{name:'Cancel message'}).click();
+    await mp.getByText('Cancelled',{exact:true}).waitFor();
+    assert.equal(await mp.getByRole('button',{name:'Refresh historical report'}).count(),0);
+    await mp.getByRole('button',{name:'Delete conversation'}).click();
+    await mp.getByRole('button',{name:label,exact:true}).waitFor({state:'detached'});
+    await mobile.close();
+    const denied=await pageFor(false,foreignToken);
+    await denied.getByRole('alert').waitFor();
+    assert.equal(await denied.getByRole('checkbox',{name:'Include chart context'}).count(),0);
+    assert.equal(await denied.locator('[data-ai-workspace-report]').count(),0);
+    await denied.close();
+    console.log('PASS Phase 4F workspace browser: explicit consent, verified market report, expiry, mobile history, refresh, consent withdrawal, cancellation and foreign-session denial');
+  }else if(providerMode){
     const desktop=await pageFor(false);
     const panel=desktop.locator('[data-ai-chat-preview]');
     await panel.getByRole('button',{name:'Send to isolated provider'}).waitFor();
