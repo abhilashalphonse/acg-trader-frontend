@@ -115,7 +115,7 @@ function fillEvent(result, fallback) {
   };
 }
 
-export default function MobileTraderShell({ market, tick, markets = [], activeSymbol, onSelectSymbol = () => {}, watchlists = null, onViewportQuoteSymbolsChange = () => {}, mobileAudit = false }) {
+export default function MobileTraderShell({ market, tick, markets = [], activeSymbol, onSelectSymbol = () => {}, watchlists = null, onViewportQuoteSymbolsChange = () => {}, mobileAudit = false, staffAiPreview = false }) {
   const shellRef = useRef(null);
   const noticeTimerRef = useRef(null);
   const executionDismissRef = useRef(null);
@@ -161,7 +161,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const [indicators, setIndicators] = useState(loadIndicators);
   const [indicatorFavorites, setIndicatorFavorites] = useState(loadIndicatorFavorites);
   const [overlay, setOverlay] = useState(null);
-  const aiPreview = mobileAudit && isAiChatPreviewEnabled(import.meta.env.DEV, typeof window !== 'undefined' ? window.location.search : '');
+  const aiPreview = mobileAudit && ((staffAiPreview === true && !trading.accountSwitching && !trading.accountGrantMissing) || isAiChatPreviewEnabled(import.meta.env.DEV, typeof window !== 'undefined' ? window.location.search : ''));
   const [mobileChartReadout, setMobileChartReadout] = useState(null);
   const [notice, setNotice] = useState('');
   const exposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market, commandState: trading.commandState });
