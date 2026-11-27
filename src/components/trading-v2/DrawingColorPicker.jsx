@@ -77,7 +77,7 @@ export default function DrawingColorPicker({
   };
 
   const picker = open && typeof document !== 'undefined' && createPortal(
-    <div ref={panelRef} role="dialog" aria-label="Drawing color palette" className="acg-drawing-color-panel"
+    <div ref={panelRef} role="dialog" aria-label={`${title} palette`} className="acg-drawing-color-panel"
       style={{ position: 'fixed', top: position.top, left: position.left }}
       onPointerDown={event => event.stopPropagation()} onMouseDown={event => event.stopPropagation()}>
       <div className="acg-drawing-color-panel-title">Color</div>
@@ -110,7 +110,7 @@ export default function DrawingColorPicker({
           <span>Opacity</span><output>{percent}%</output>
         </div>
         <input type="range" className="acg-drawing-opacity-slider" min="0" max="100" step="1"
-          value={percent} aria-label="Drawing opacity"
+          value={percent} aria-label={title === 'Drawing color' ? 'Drawing opacity' : `${title} opacity`}
           onChange={event => onChange?.({ opacity: Number(event.target.value) / 100 })} />
       </div>
     </div>, document.body);
