@@ -2,6 +2,7 @@ import React,{useEffect,useRef,useState} from 'react';
 import {ArrowUp,Sparkles} from 'lucide-react';
 import {apiRequest} from '../../api/client.js';
 import {chartContextLabel} from './aiPreview.js';
+import AssistantMarkdown from './AssistantMarkdown.jsx';
 const bytes=s=>new TextEncoder().encode(s).length;
 const allowedFrames=['1m','5m','15m','30m','1h','4h','1d','1w'];
 const secretPattern=/(?:sk-[A-Za-z0-9_-]{16,}|(?:api[_ -]?key|password|secret|authorization|bearer)\s*[:=]\s*\S+|-----BEGIN [A-Z ]+PRIVATE KEY-----|eyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|mongodb(?:\+srv)?:\/\/)/i;
@@ -91,7 +92,7 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe}){
       <div className="aic-suggestions">{suggestions.map(q=><button key={q} type="button" onClick={()=>{setDraft(q);input.current?.focus();}}>{q}</button>)}</div></>}
       {messages.map(m=><article key={m.id} className={'aic-workspace-message '+(m.role==='user'?'aic-user-message':'aic-assistant-message')}>
         {m.role==='assistant'&&<div className="aic-answer-heading"><Sparkles size={13}/> ACG AI</div>}
-        <div className="aic-message-text">{m.text}</div>
+        {m.role==='assistant'?<AssistantMarkdown text={m.text}/>:<div className="aic-message-text">{m.text}</div>}
         {m.role==='assistant'&&<p className="aic-disclaimer">AI interpretation · {m.context?.market?'Chart included':'No chart'} · {m.context?.account?'Account included':'No account'}</p>}
       </article>)}
       {busy&&<div className="aic-answer-heading"><Sparkles size={13}/> Analysing…</div>}
