@@ -1,0 +1,44 @@
+name: Native AI chat preview acceptance
+on:
+  pull_request:
+    paths:
+      - 'src/components/ai/**'
+      - 'src/components/trading-v2/DesktopTerminal.jsx'
+      - 'src/components/trading-v2/MobileAuditHeader.jsx'
+      - 'src/pages/MobileTraderShell.jsx'
+      - 'src/mobileAuditBrowserMain.jsx'
+      - 'tests/ai-preview.test.js'
+      - 'tests/ui/ai-native-chat.mjs'
+      - '.github/workflows/ai-native-chat.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npm install --no-save --no-audit --no-fund playwright@1.56.1
+      - name: Start local synthetic fixtures
+        run: |
+          VITE_ACG_EXECUTION_V4_ENABLED=true VITE_ACG_DOCK_LIVE_ENABLED=true VITE_ACG_TRADER_API_BASE=http://127.0.0.1:65534 VITE_ACG_TRADER_WS_URL=ws://127.0.0.1:65534 npm run dev -- --host 127.0.0.1 --port 5174 > /tmp/acg-ai-preview.log 2>&1 &
+          echo $! > /tmp/acg-ai-preview.pid
+          curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-connrefused 'http://127.0.0.1:5174/v4-positions-audit.html?public_review=1' > /dev/null
+      - run: node tests/ui/ai-native-chat.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-ai-preview-screenshots
+          path: artifacts/ai-*.png
+          if-no-files-found: ignore
+          retention-days: 7
+      - if: always()
+        run: if [ -f /tmp/acg-ai-preview.pid ]; then kill "$(cat /tmp/acg-ai-preview.pid)" 2>/dev/null || true; fi
