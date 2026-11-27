@@ -23,7 +23,8 @@ export function matchesConversationWorkspace(conversation,workspace){
 // Only use with a trusted authenticated server response or labelled test fixture.
 export function projectWorkspaceReport(envelope,expected,now=Date.now()){
   if(!envelope||!expected||!clock(now)||envelope.contractVersion!=='native-chat-v1'||envelope.runtimeEnabled!==false||
-    envelope.mode!=='DETERMINISTIC_HISTORICAL_REPORT'||envelope.semanticAnswer!==false||envelope.offlineOnly!==true||
+    !['DETERMINISTIC_HISTORICAL_REPORT','FIXTURE_PROVIDER_MARKET_REPORT'].includes(envelope.mode)||
+    (envelope.mode==='FIXTURE_PROVIDER_MARKET_REPORT'&&envelope.fixtureProviderOnly!==true)||envelope.semanticAnswer!==false||envelope.offlineOnly!==true||
     envelope.dispatchAllowed!==false||envelope.creditDeducted!==false||
     !uuid(expected.conversationId)||!uuid(expected.messageId)||envelope.conversationId!==expected.conversationId||envelope.messageId!==expected.messageId)return null;
   const w=workspaceContext(expected.symbol,expected.timeframe,expected.includeChartContext);
@@ -54,7 +55,29 @@ export function projectWorkspaceReport(envelope,expected,now=Date.now()){
   }
   if((r.status==='ANSWER')!==Boolean(facts.length||structure))return null;
   const coverage=r.frames[0]?.coverage?.status;
-  return {symbol:w.symbol,timeframe:w.timeframe,status:r.status,asOfMs:r.asOfMs,expiresAtMs:r.expiresAtMs,
+  return {symbol:w.symbol,timeframe:w.timeframe,status:r.status,providerSelected:envelope.mode==='FIXTURE_PROVIDER_MARKET_REPORT',asOfMs:r.asOfMs,expiresAtMs:r.expiresAtMs,
     provider:envelope.source.provider,coverage:Object.hasOwn(COVERAGE,coverage)?COVERAGE[coverage]:'Coverage not independently verified',
     facts,structure};
+}
+
+// A chart provider receipt is metadata, not saved market evidence. Replays and
+// history may show the disposition, but never reconstruct a previous report.
+export function projectMarketRun(message){
+  const r=message?.providerRun;
+  if(!r){if(message?.verifiedMarket||message?.verifiedEducation||message?.fixtureProviderOnly===true)throw Error('Invalid market receipt');return null;}
+  if(message.fixtureProviderOnly!==true||message.dispatchAllowed!==false||message.creditDeducted!==false||message.verifiedEducation!=null||
+    !['CLAIMED','VERIFIED','FAILED','HELD_UNKNOWN','SUPPRESSED'].includes(r.state)||!Array.isArray(r.referenceIds)||r.referenceIds.length!==0)
+    throw Error('Invalid market receipt');
+  if(r.state==='VERIFIED'&&(!hash(r.responseId)||!clock(r.verifiedAtMs)||!clock(r.responseExpiresAtMs)||r.verifiedAtMs>=r.responseExpiresAtMs))throw Error('Invalid market receipt');
+  if(r.state!=='VERIFIED'&&(message.verifiedMarket||r.responseId!=null))throw Error('Invalid market receipt');
+  return {state:r.state,responseId:r.responseId??null,verifiedAtMs:r.verifiedAtMs??null,responseExpiresAtMs:r.responseExpiresAtMs??null};
+}
+export function projectMarketGeneration(result,expected,now=Date.now()){
+  const run=projectMarketRun(result);
+  if(!run||run.state!=='VERIFIED'||result.replayed===true){if(result.verifiedMarket)throw Error('Unexpected market report');return null;}
+  const envelope={...result.verifiedMarket,contractVersion:result.contractVersion,runtimeEnabled:result.runtimeEnabled};
+  if(envelope.mode!=='FIXTURE_PROVIDER_MARKET_REPORT'||envelope.response?.responseId!==run.responseId||
+    envelope.response?.verifiedAtMs!==run.verifiedAtMs||envelope.response?.expiresAtMs!==run.responseExpiresAtMs||
+    !projectWorkspaceReport(envelope,expected,now))throw Error('Invalid provider market report');
+  return envelope;
 }
