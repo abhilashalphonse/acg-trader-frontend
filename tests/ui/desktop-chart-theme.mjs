@@ -19,6 +19,17 @@ try{
     'Floating fit icon must not appear over the chart');
   assert.equal(await chart.getAttribute('data-acg-chart-theme'),'dark',
     'Existing users default to the approved dark chart');
+  const sessionButton=chart.locator('[data-acg-chart-session-button]').first();
+  await sessionButton.waitFor({state:'visible'});
+  await sessionButton.click();
+  const sessionPopover=page.getByRole('dialog',{name:'Market session details'});
+  await sessionPopover.waitFor({state:'visible'});
+  assert.equal(await sessionPopover.getByText('Session timezone').count(),1,
+    'Session details identify their exchange timezone');
+  assert.equal(await sessionPopover.getByText('Trading schedule').count(),1,
+    'Instrument session timeline and hours are present');
+  await page.keyboard.press('Escape');
+  await sessionPopover.waitFor({state:'hidden'});
   await page.getByRole('button',{name:'Trade',exact:true}).click();
   const settingsButton=page.getByRole('button',{name:'Chart appearance settings'});
   await settingsButton.click();
@@ -81,8 +92,8 @@ try{
   assert.equal(stored.candle.upBodyOpacity,0.4,'Candle opacity persists after reload');
   await page.getByRole('group',{name:'Chart canvas theme'}).getByRole('button',{name:'Dark'}).click();
   await page.locator('[data-acg-chart-theme="dark"]').first().waitFor({state:'visible'});
-  assert.equal(await page.locator('[data-testid="chart-symbol-row"]').count(),0,
-    'Dark theme retains its existing readout layout');
+  assert.equal(await page.locator('[data-testid="chart-symbol-row"]').count()>=1,true,
+    'Both themes render the same compact chart instrument header');
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('acg-trader-desktop-chart-settings-v1')||'{}').theme==='dark');
   assert.deepEqual(errors,[],'Theme switching does not cause a runtime crash');
   console.log('DESKTOP_CHART_THEME_PASS');
