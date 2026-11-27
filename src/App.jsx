@@ -99,8 +99,8 @@ export default function App() {
     setStaffPreview(null);
     apiRequest('/v1/ai/staff-preview/capability',{token:auth.accessToken,query:{accountId:pilotAccountId},signal:controller.signal})
       .then(result=>{
-        if(!controller.signal.aborted&&result?.contractVersion==='staff-ai-preview-v1'&&result.previewEnabled===true&&result.runtimeEnabled===false)
-          setStaffPreview({sessionId:pilotSessionId,accountId:pilotAccountId,token:auth.accessToken});
+        if(!controller.signal.aborted&&result?.contractVersion==='staff-ai-preview-v1'&&result.previewEnabled===true&&typeof result.runtimeEnabled==='boolean')
+          setStaffPreview({sessionId:pilotSessionId,accountId:pilotAccountId,token:auth.accessToken,runtimeEnabled:result.runtimeEnabled});
       }).catch(()=>{});
     return ()=>controller.abort();
   },[auth.accessReady,auth.accessToken,pilotAccountId,pilotSessionId,auth.principal?.authMethod]);
@@ -247,6 +247,7 @@ export default function App() {
 
   const sharedProps = {
     staffAiPreview:staffAiPreview===true,
+    staffAiRuntime:staffAiPreview===true&&staffPreview.runtimeEnabled===true?staffPreview:null,
     market,
     tick: activeTick,
     markets,
