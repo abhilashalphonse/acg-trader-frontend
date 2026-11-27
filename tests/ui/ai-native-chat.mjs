@@ -10,6 +10,13 @@ async function assertDraft(page){
   const draft=panel.getByRole('textbox',{name:'Message ACG AI'});
   assert.equal(await draft.inputValue(),'');
   assert.equal(await panel.getByRole('checkbox',{name:'Include chart context'}).isChecked(),false);
+  assert.equal(await panel.getByRole('button',{name:'Show sample report'}).count(),0);
+  await panel.getByRole('checkbox',{name:'Include chart context'}).check();
+  await panel.getByRole('button',{name:'Show sample report'}).click();
+  const report=panel.locator('[data-ai-workspace-report]');await report.waitFor();
+  assert.match(await report.textContent(),/Synthetic fixture/);assert.match(await report.textContent(),/Last closed price119/);
+  await panel.getByRole('checkbox',{name:'Include chart context'}).uncheck();
+  assert.equal(await report.count(),0);
   await panel.getByRole('checkbox',{name:'Include chart context'}).check();
   await panel.getByRole('button',{name:'Explain BOS'}).click();
   assert.equal(await draft.inputValue(),'Explain break of structure (BOS).');
@@ -66,5 +73,5 @@ try{
     assert.deepEqual(errors,[]);
     await page.close();
   }
-  console.log('PASS native AI preview desktop and mobile geometry, explicit context, draft, disabled send and chart continuity');
+  console.log('PASS native AI preview desktop and mobile geometry, explicit context, labelled report, consent removal, draft, disabled send and chart continuity');
 }finally{await browser.close();}
