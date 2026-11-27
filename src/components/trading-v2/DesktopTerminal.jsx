@@ -338,6 +338,7 @@ function executableMarket(market) {
 export default function DesktopTerminal({
   market,
   tick,
+  aiReportFixture = null,
   markets = [],
   activeSymbol = market?.symbol,
   onSelectSymbol = () => {},
@@ -1556,7 +1557,7 @@ export default function DesktopTerminal({
 
           {!desktopLayout.sidebarCollapsed && !positionsExpanded && (
             <aside className="acg-motion-side-panel relative flex min-h-0 flex-col overflow-hidden rounded-[16px] border border-white/[0.07] bg-[#09090B] shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_12px_30px_rgba(0,0,0,.22)]" style={{ gridColumn: '2', gridRow: '1' }}>
-              {aiPreview && activeNav === 'ai' ? <NativeAiChat key={JSON.stringify([activeAccountId || null,account?.id || null,accountSwitching,activeChartIndex,multiChart?.cells?.[activeChartIndex]?.symbol || activeSymbol,activeChartTimeframe])} symbol={multiChart?.cells?.[activeChartIndex]?.symbol || activeSymbol} timeframe={activeChartTimeframe} onClose={() => setDesktopLayout(current => ({ ...current, sidebarCollapsed: true }))}/> : activeNav === 'alerts' ? <AlertsPanel/> : marketPanelOpen ? (
+              {aiPreview && activeNav === 'ai' ? <NativeAiChat key={JSON.stringify([activeAccountId || null,account?.id || null,accountSwitching,activeChartIndex,multiChart?.cells?.[activeChartIndex]?.symbol || activeSymbol,activeChartTimeframe])} symbol={multiChart?.cells?.[activeChartIndex]?.symbol || activeSymbol} timeframe={activeChartTimeframe} reportFixture={aiReportFixture} onClose={() => setDesktopLayout(current => ({ ...current, sidebarCollapsed: true }))}/> : activeNav === 'alerts' ? <AlertsPanel/> : marketPanelOpen ? (
                 <div className="min-h-0 flex-1">
                   <DesktopWatchlist
                     markets={markets}
