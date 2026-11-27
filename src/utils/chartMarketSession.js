@@ -52,7 +52,7 @@ function toUtcMs(day, minute, timeZone) {
 }
 
 function minutes(clock) {
-  const match = /^(\\d{2}):(\\d{2})$/.exec(String(clock || ''));
+  const match = /^(\d{2}):(\d{2})$/.exec(String(clock || ''));
   if (!match) return null;
   const hour = Number(match[1]), minute = Number(match[2]);
   return hour <= 23 && minute <= 59 ? hour * 60 + minute : null;
