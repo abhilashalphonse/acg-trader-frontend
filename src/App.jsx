@@ -4,6 +4,7 @@ import TerminalStatusBanner from './components/TerminalStatusBanner.jsx';
 import ACGStartupLoader from './components/ACGStartupLoader.jsx';
 import { useInstrumentCatalog } from './hooks/useInstrumentCatalog.js';
 import { useMarketData } from './hooks/useMarketData.js';
+import { apiRequest } from './api/client.js';
 import { useTraderAuth } from './hooks/useTraderAuth.js';
 import { useTradingStore } from './hooks/useTradingStore.js';
 import { useWatchlists } from './hooks/useWatchlists.js';
@@ -87,6 +88,23 @@ export default function App() {
   const isDesktop = useDesktopLayout();
   const auth = useTraderAuth();
   const { trading, connection } = useTradingStore();
+  const pilotAccountId=auth.principal?.selectedAccountId || null;
+  const pilotSessionId=auth.principal?.sessionId || auth.principal?.id || null;
+  const [staffPreview,setStaffPreview]=useState(null);
+  useEffect(()=>{
+    if(!auth.accessReady||!auth.accessToken||!pilotAccountId||!pilotSessionId||auth.principal?.authMethod!=='FEDERATED'){
+      setStaffPreview(null);return;
+    }
+    const controller=new AbortController();
+    setStaffPreview(null);
+    apiRequest('/v1/ai/staff-preview/capability',{token:auth.accessToken,query:{accountId:pilotAccountId},signal:controller.signal})
+      .then(result=>{
+        if(!controller.signal.aborted&&result?.contractVersion==='staff-ai-preview-v1'&&result.previewEnabled===true&&result.runtimeEnabled===false)
+          setStaffPreview({sessionId:pilotSessionId,accountId:pilotAccountId,token:auth.accessToken});
+      }).catch(()=>{});
+    return ()=>controller.abort();
+  },[auth.accessReady,auth.accessToken,pilotAccountId,pilotSessionId,auth.principal?.authMethod]);
+  const staffAiPreview=auth.accessReady&&staffPreview?.sessionId===pilotSessionId&&staffPreview?.accountId===pilotAccountId&&staffPreview?.token===auth.accessToken;
   const { instruments, loading: instrumentsLoading, error: instrumentsError } = useInstrumentCatalog();
   const watchlists = useWatchlists(instruments);
   const [activeSymbol, setActiveSymbol] = useState(null);
@@ -228,6 +246,7 @@ export default function App() {
   }
 
   const sharedProps = {
+    staffAiPreview:staffAiPreview===true,
     market,
     tick: activeTick,
     markets,
