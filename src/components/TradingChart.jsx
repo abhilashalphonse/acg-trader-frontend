@@ -32,7 +32,7 @@ import { drawingBarsBetween, drawingTimeToLogical, logicalToDrawingTime } from '
 import { ArrowRight, Eye, EyeOff, Settings2, X } from 'lucide-react';
 import ACGStartupLoader from './ACGStartupLoader.jsx';
 import { indicatorValueAt } from '../utils/chartToolSettings.js';
-import { desktopChartPalette, formatChartCrosshairTime, formatChartTick } from '../utils/desktopChartSettings.js';
+import { chartCandleColor, desktopChartPalette, formatChartCrosshairTime, formatChartTick } from '../utils/desktopChartSettings.js';
 
 const chartTokens = {
   background: '#09090b',
@@ -494,13 +494,13 @@ export default function TradingChart({
     const series = chartMode === 'line'
       ? chart.addSeries(LineSeries, { color: compactContext ? 'rgba(0,0,0,0)' : chartTokens.blue, lineWidth: 2, priceFormat, ...basisOptions, crosshairMarkerVisible: !compactContext })
       : chart.addSeries(CandlestickSeries, {
-          upColor: compactContext ? 'rgba(0,0,0,0)' : (candleAppearance?.upBody || chartTokens.buy),
-          downColor: compactContext ? 'rgba(0,0,0,0)' : (candleAppearance?.downBody || chartTokens.sell),
-          wickUpColor: compactContext ? 'rgba(0,0,0,0)' : (candleAppearance?.upWick || chartTokens.buyWick),
-          wickDownColor: compactContext ? 'rgba(0,0,0,0)' : (candleAppearance?.downWick || chartTokens.sellWick),
+          upColor: compactContext ? 'rgba(0,0,0,0)' : chartCandleColor(candleAppearance, 'upBody', chartTokens.buy),
+          downColor: compactContext ? 'rgba(0,0,0,0)' : chartCandleColor(candleAppearance, 'downBody', chartTokens.sell),
+          wickUpColor: compactContext ? 'rgba(0,0,0,0)' : chartCandleColor(candleAppearance, 'upWick', chartTokens.buyWick),
+          wickDownColor: compactContext ? 'rgba(0,0,0,0)' : chartCandleColor(candleAppearance, 'downWick', chartTokens.sellWick),
           borderVisible: Boolean(customCandle),
-          borderUpColor: candleAppearance?.upBorder || chartTokens.buy,
-          borderDownColor: candleAppearance?.downBorder || chartTokens.sell,
+          borderUpColor: chartCandleColor(candleAppearance, 'upBorder', chartTokens.buy),
+          borderDownColor: chartCandleColor(candleAppearance, 'downBorder', chartTokens.sell),
           priceFormat,
           ...basisOptions,
         });
@@ -861,21 +861,27 @@ export default function TradingChart({
     if (!series || chartMode !== 'candles') return;
     const custom = candleAppearance && !compactContext;
     series.applyOptions({
-      upColor: compactContext ? 'rgba(0,0,0,0)' : (candleAppearance?.upBody || chartTokens.buy),
-      downColor: compactContext ? 'rgba(0,0,0,0)' : (candleAppearance?.downBody || chartTokens.sell),
-      wickUpColor: compactContext ? 'rgba(0,0,0,0)' : (candleAppearance?.upWick || chartTokens.buyWick),
-      wickDownColor: compactContext ? 'rgba(0,0,0,0)' : (candleAppearance?.downWick || chartTokens.sellWick),
+      upColor: compactContext ? 'rgba(0,0,0,0)' : chartCandleColor(candleAppearance, 'upBody', chartTokens.buy),
+      downColor: compactContext ? 'rgba(0,0,0,0)' : chartCandleColor(candleAppearance, 'downBody', chartTokens.sell),
+      wickUpColor: compactContext ? 'rgba(0,0,0,0)' : chartCandleColor(candleAppearance, 'upWick', chartTokens.buyWick),
+      wickDownColor: compactContext ? 'rgba(0,0,0,0)' : chartCandleColor(candleAppearance, 'downWick', chartTokens.sellWick),
       borderVisible: Boolean(custom),
-      borderUpColor: candleAppearance?.upBorder || chartTokens.buy,
-      borderDownColor: candleAppearance?.downBorder || chartTokens.sell,
+      borderUpColor: chartCandleColor(candleAppearance, 'upBorder', chartTokens.buy),
+      borderDownColor: chartCandleColor(candleAppearance, 'downBorder', chartTokens.sell),
     });
   }, [
     candleAppearance?.downBody,
+    candleAppearance?.downBodyOpacity,
     candleAppearance?.downBorder,
+    candleAppearance?.downBorderOpacity,
     candleAppearance?.downWick,
+    candleAppearance?.downWickOpacity,
     candleAppearance?.upBody,
+    candleAppearance?.upBodyOpacity,
     candleAppearance?.upBorder,
+    candleAppearance?.upBorderOpacity,
     candleAppearance?.upWick,
+    candleAppearance?.upWickOpacity,
     chartMode,
     compactContext,
   ]);

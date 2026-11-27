@@ -57,11 +57,28 @@ try{
   }
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('acg-trader-desktop-chart-settings-v1')||'{}').theme==='light');
   assert.equal(await theme.getByRole('button',{name:'Light'}).getAttribute('aria-pressed'),'true');
+  // The chart candle swatches must open the same portal palette as drawings.
+  await page.getByRole('button',{name:'Bullish body color'}).click();
+  const candlePalette=page.getByRole('dialog',{name:'Bullish body color palette'});
+  await candlePalette.waitFor({state:'visible'});
+  await candlePalette.getByRole('button',{name:'Select #FFFFFF'}).click();
+  await candlePalette.getByRole('slider',{name:'Bullish body color opacity'}).fill('40');
+  await page.waitForFunction(()=>{
+    const candle=JSON.parse(localStorage.getItem('acg-trader-desktop-chart-settings-v1')||'{}').candle||{};
+    return candle.upBody==='#FFFFFF' && candle.upBodyOpacity===0.4;
+  });
+  assert.equal(await page.getByRole('dialog',{name:'Chart appearance settings'}).count(),1,
+    'Adjusting the palette must not close chart settings');
+  await page.getByRole('button',{name:'Bullish body color'}).click();
   assert.equal(await page.locator('.v4-execution-footer').count()>0,true,
     'Trading controls remain rendered alongside light chart');
   await page.reload({waitUntil:'domcontentloaded'});
   await page.locator('[data-acg-chart-theme="light"]').first().waitFor({state:'visible',timeout:20000});
   await page.getByRole('button',{name:'Chart appearance settings'}).click();
+  assert.equal(await page.getByRole('button',{name:'Bullish body color'}).getAttribute('aria-expanded'),'false');
+  const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('acg-trader-desktop-chart-settings-v1')||'{}'));
+  assert.equal(stored.candle.upBody,'#FFFFFF','Candle palette color persists after reload');
+  assert.equal(stored.candle.upBodyOpacity,0.4,'Candle opacity persists after reload');
   await page.getByRole('group',{name:'Chart canvas theme'}).getByRole('button',{name:'Dark'}).click();
   await page.locator('[data-acg-chart-theme="dark"]').first().waitFor({state:'visible'});
   assert.equal(await page.locator('[data-testid="chart-symbol-row"]').count(),0,

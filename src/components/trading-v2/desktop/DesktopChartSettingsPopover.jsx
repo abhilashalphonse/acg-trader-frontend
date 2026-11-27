@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Moon, RotateCcw, Sun, X } from 'lucide-react';
+import DrawingColorPicker from '../DrawingColorPicker.jsx';
 import {
   CHART_TIMEZONE_OPTIONS,
   DEFAULT_DESKTOP_CHART_SETTINGS,
@@ -11,18 +12,15 @@ const COLOR_ROWS = [
   ['Wick', 'upWick', 'downWick'],
 ];
 
-function ColorCell({ value, onChange, label }) {
+function ColorCell({ value, opacity, onChange, label }) {
   return (
-    <label className="relative grid size-8 cursor-pointer place-items-center rounded-md border border-white/[0.10] bg-[#111113] shadow-[inset_0_1px_0_rgba(255,255,255,.025)]" title={label}>
-      <span className="size-5 rounded-[3px] border border-white/[0.16]" style={{ backgroundColor: value }}/>
-      <input
-        type="color"
-        value={value}
-        onChange={event => onChange(event.target.value)}
-        className="absolute inset-0 cursor-pointer opacity-0"
-        aria-label={label}
-      />
-    </label>
+    <DrawingColorPicker
+      color={value}
+      opacity={opacity}
+      onChange={onChange}
+      title={label}
+      className="acg-chart-color-trigger"
+    />
   );
 }
 
@@ -59,6 +57,10 @@ export default function DesktopChartSettingsPopover({
   const patchCandle = patch => onChange({
     ...settings,
     candle: { ...candle, ...patch },
+  });
+  const patchCandleColor = (key, change) => patchCandle({
+    ...(change.color !== undefined ? { [key]: change.color } : {}),
+    ...(change.opacity !== undefined ? { [`${key}Opacity`]: change.opacity } : {}),
   });
 
   return (
@@ -121,12 +123,14 @@ export default function DesktopChartSettingsPopover({
               <span className="text-[9px] font-semibold text-[#B7C1CA]">{label}</span>
               <ColorCell
                 value={candle[upKey]}
-                onChange={value => patchCandle({ [upKey]: value })}
+                opacity={candle[`${upKey}Opacity`] ?? 1}
+                onChange={change => patchCandleColor(upKey, change)}
                 label={`Bullish ${label.toLowerCase()} color`}
               />
               <ColorCell
                 value={candle[downKey]}
-                onChange={value => patchCandle({ [downKey]: value })}
+                opacity={candle[`${downKey}Opacity`] ?? 1}
+                onChange={change => patchCandleColor(downKey, change)}
                 label={`Bearish ${label.toLowerCase()} color`}
               />
             </div>
