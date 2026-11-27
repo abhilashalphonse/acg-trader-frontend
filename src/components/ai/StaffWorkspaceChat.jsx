@@ -1,8 +1,10 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {ArrowUp,Sparkles,Copy,Check,LoaderCircle,ChartNoAxesCombined,Crosshair,Layers,ShieldCheck,ArrowUpRight} from 'lucide-react';
+import {ArrowUp,Sparkles,Copy,Check,LoaderCircle,ChartNoAxesCombined,Crosshair,Layers,ShieldCheck,ArrowUpRight,ThumbsUp,ThumbsDown,RefreshCw,MessageCircle,AlignLeft} from 'lucide-react';
 import {apiRequest} from '../../api/client.js';
 import {chartContextLabel} from './aiPreview.js';
 import AssistantMarkdown from './AssistantMarkdown.jsx';
+import InstrumentAvatar from '../trading-v2/InstrumentAvatar.jsx';
+import {chartFeedStatus,followUpSuggestions,regenerationQuestion} from './workspacePresentation.js';
 const bytes=s=>new TextEncoder().encode(s).length;
 const allowedFrames=['1m','5m','15m','30m','1h','4h','1d','1w'];
 const secretPattern=/(?:sk-[A-Za-z0-9_-]{16,}|(?:api[_ -]?key|password|secret|authorization|bearer)\s*[:=]\s*\S+|-----BEGIN [A-Z ]+PRIVATE KEY-----|eyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|mongodb(?:\+srv)?:\/\/)/i;
@@ -35,9 +37,11 @@ export function projectWorkspaceAnswer(result,expected){
     !Number.isSafeInteger(result.usage?.outputTokens)||result.usage.outputTokens<0||result.usage.outputTokens>2048)return null;
   return {text:result.answer,context:result.context,tokens:result.usage.inputTokens+result.usage.outputTokens};
 }
-export default function StaffWorkspaceChat({runtime,symbol,timeframe}){
+export default function StaffWorkspaceChat({runtime,symbol,timeframe,market}){
   const chart=chartContextLabel(symbol,timeframe);
   const suggestions=workspaceSuggestions(chart.symbol);
+  const instrument=market?.symbol===chart.symbol?market:null;
+  const feedStatus=chartFeedStatus(instrument,chart.symbol);
   const [connectionId]=useState(()=>crypto.randomUUID());
   const [consent,setConsent]=useState(null);
   const [includeMarket,setMarket]=useState(true);
@@ -47,6 +51,7 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe}){
   const [busy,setBusy]=useState(false);
   const [notice,setNotice]=useState('');
   const [copyState,setCopyState]=useState(null);
+  const [feedback,setFeedback]=useState({});
   const latestAnswer=useRef(null);
   const active=useRef(null),inFlight=useRef(false),historyStart=useRef(0),bottom=useRef(null),input=useRef(null);
   const valid=Boolean(runtime?.token&&runtime.accountId&&chart.symbol&&allowedFrames.includes(chart.timeframe));
@@ -75,12 +80,15 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe}){
     historyStart.current=messages.length;setter(value);
     setNotice('Context updated. Earlier messages will not be included in the next AI request.');
   }
-  async function send(){
-    const controller=active.current,question=draft.trim();
+  async function send(regenerateId=null){
+    const retryQuestion=regenerateId?regenerationQuestion(messages,historyStart.current,regenerateId):null;
+    if(regenerateId&&!retryQuestion)return;
+    const controller=active.current,question=(retryQuestion||draft).trim();
     if(!valid||!consent||!controller||controller.signal.aborted||inFlight.current||!validQuestion(question))return;
     inFlight.current=true;setBusy(true);setNotice('');setDraft('');setCopyState(null);
-    const history=boundedWorkspaceHistory(messages.slice(historyStart.current),question);
-    setMessages(m=>[...m,{id:crypto.randomUUID(),role:'user',text:question}]);
+    const prior=regenerateId?messages.slice(0,-2):messages;
+    const history=boundedWorkspaceHistory(prior.slice(historyStart.current),question);
+    if(!regenerateId)setMessages(m=>[...m,{id:crypto.randomUUID(),role:'user',text:question}]);
     try{
       const grant=await call('grant',{expectedRevision:consent.revision,explicitConsent:true},controller.signal);
       if(controller.signal.aborted)return;
@@ -91,13 +99,13 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe}){
       if(controller.signal.aborted)return;
       const answer=projectWorkspaceAnswer(result,{operationId,...chart,includeMarket,includeAccount});
       if(!answer){setNotice(result?.state==='HELD_UNKNOWN'?'Request outcome uncertain. No automatic retry.':'No AI answer returned.');return;}
-      setMessages(m=>[...m,{id:crypto.randomUUID(),role:'assistant',...answer}]);
+      setMessages(m=>[...(regenerateId?m.slice(0,-1):m),{id:crypto.randomUUID(),role:'assistant',...answer}]);
     }catch{if(!controller.signal.aborted)setNotice('AI request unavailable. No automatic retry.');}
     finally{inFlight.current=false;if(!controller.signal.aborted)setBusy(false);}
   }
   return <>
     <div className="aic-context aic-workspace-context">
-      <div className="aic-workspace-instrument"><div className="aic-instrument-title"><strong>{chart.symbol||'No chart'}</strong><span>{Object.hasOwn(instrumentNames,chart.symbol)?instrumentNames[chart.symbol]+' · ':''}{chart.timeframe||'—'}</span></div><span className="aic-model">GPT-6 Luna</span></div>
+      <div className="aic-workspace-instrument"><div className="aic-instrument-identity">{instrument&&<InstrumentAvatar instrument={instrument} size={30}/>}<div className="aic-instrument-title"><strong>{chart.symbol||'No chart'}{feedStatus!=='UNKNOWN'&&<span className={'aic-feed-dot aic-feed-'+feedStatus.toLowerCase()} title={'Terminal feed: '+feedStatus.toLowerCase()} aria-label={'Terminal feed: '+feedStatus.toLowerCase()}/>}</strong><span>{Object.hasOwn(instrumentNames,chart.symbol)?instrumentNames[chart.symbol]+' · ':instrument?.name?instrument.name+' · ':''}{chart.timeframe||'—'}</span></div></div><span className="aic-model aic-model-pill" title="Current supported model">GPT-6 Luna</span></div>
     </div>
     <div className={'aic-body aic-workspace-body'+(!messages.length?' aic-welcome-body':'')} aria-live="polite">
       {!messages.length&&<div className="aic-welcome">
@@ -107,9 +115,18 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe}){
         <div className="aic-welcome-suggestions">{suggestions.map((q,i)=>{const Icon=suggestionIcons[i];return <button key={q} type="button" onClick={()=>{setDraft(q);input.current?.focus();}}><Icon size={16} strokeWidth={1.6} aria-hidden="true"/><span>{q}</span><ArrowUpRight className="aic-suggestion-arrow" size={13} aria-hidden="true"/></button>;})}</div>
       </div>}
       {messages.map((m,i)=><article key={m.id} ref={i===messages.length-1&&m.role==='assistant'?latestAnswer:null} className={'aic-workspace-message '+(m.role==='user'?'aic-user-message':'aic-assistant-message')}>
-        {m.role==='assistant'&&<div className="aic-answer-heading"><span className="aic-answer-avatar"><Sparkles size={14}/></span><strong>ACG AI</strong>{m.context?.market&&<span className="aic-answer-instrument">{chart.symbol} · {chart.timeframe}</span>}</div>}
+        {m.role==='assistant'&&<div className="aic-answer-heading"><span className="aic-answer-avatar"><Sparkles size={14}/></span><strong>ACG AI</strong><span className="aic-answer-instrument">GPT-6 Luna</span></div>}
         {m.role==='assistant'?<AssistantMarkdown text={m.text}/>:<div className="aic-message-text">{m.text}</div>}
-        {m.role==='assistant'&&<div className="aic-answer-footer"><span>AI interpretation · {m.context?.market?'Chart included':'No chart'} · {m.context?.account?'Account included':'No account'}</span><button type="button" className="aic-copy" aria-label="Copy response" title="Copy response" onClick={()=>void copyAnswer(m)}>{copyState?.id===m.id&&copyState.ok?<Check size={14}/>:<Copy size={14}/>}</button>{copyState?.id===m.id&&<span role="status" className="aic-copy-status">{copyState.ok?'Copied':'Copy failed'}</span>}</div>}
+        {m.role==='assistant'&&<>
+          <div className="aic-answer-footer"><div className="aic-response-actions">
+            <button type="button" className="aic-copy" aria-label="Copy response" title="Copy response" onClick={()=>void copyAnswer(m)}>{copyState?.id===m.id&&copyState.ok?<Check size={15}/>:<Copy size={15}/>}</button>
+            <button type="button" className="aic-copy" aria-label="Helpful response" title="Mark helpful (this chat only)" aria-pressed={feedback[m.id]==='up'} onClick={()=>setFeedback(v=>({...v,[m.id]:v[m.id]==='up'?null:'up'}))}><ThumbsUp size={15}/></button>
+            <button type="button" className="aic-copy" aria-label="Unhelpful response" title="Mark unhelpful (this chat only)" aria-pressed={feedback[m.id]==='down'} onClick={()=>setFeedback(v=>({...v,[m.id]:v[m.id]==='down'?null:'down'}))}><ThumbsDown size={15}/></button>
+            {i===messages.length-1&&regenerationQuestion(messages,historyStart.current,m.id)&&<><span className="aic-action-divider"/><button type="button" className="aic-copy" aria-label="Regenerate response" title="Regenerate using current context (new AI request)" disabled={busy||!consent} onClick={()=>void send(m.id)}><RefreshCw size={15}/></button></>}
+          </div>{copyState?.id===m.id&&<span role="status" className="aic-copy-status">{copyState.ok?'Copied':'Copy failed'}</span>}</div>
+          {i===messages.length-1&&!busy&&i-1>=historyStart.current&&<div className="aic-followups">{followUpSuggestions(m.text).map((s,j)=><button key={s.label} type="button" onClick={()=>{setDraft(s.prompt);input.current?.focus();}}>{j===0&&s.label!=='Summarise'?<MessageCircle size={13}/>:<AlignLeft size={13}/>}<span>{s.label}</span></button>)}</div>}
+          <p className="aic-answer-context">{m.context?.market?'Chart context':'No chart context'} · {m.context?.account?'Account context':'No account context'}</p>
+        </>}
       </article>)}
       {busy&&<div className="aic-answer-heading aic-analysis-loading"><LoaderCircle size={14}/> Thinking…</div>}
       {notice&&<p role="status" className="aic-disclaimer">{notice}</p>}
@@ -117,7 +134,7 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe}){
     </div>
     <div className="aic-footer aic-workspace-footer">
       <div className="aic-composer aic-workspace-composer">
-        <textarea ref={input} value={draft} aria-label="Message ACG AI" placeholder="Ask anything about your trading…" rows={2}
+        <textarea ref={input} value={draft} aria-label="Message ACG AI" placeholder="Ask ACG AI…" rows={2}
           onChange={e=>{if(bytes(e.target.value)<=4096)setDraft(e.target.value);}}
           onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent?.isComposing){e.preventDefault();void send();}}}/>
         <div className="aic-composer-bottom">
