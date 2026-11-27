@@ -24,3 +24,5 @@
 .acg-ai-chat-mobile .aic-header{height:48px;padding:0 10px 0 6px}.acg-ai-chat-mobile .aic-header h2{font-size:14px}.acg-ai-chat-mobile .aic-icon{width:40px;height:40px}
 .acg-ai-chat-mobile .aic-body{padding:16px}.acg-ai-chat-mobile .aic-suggestions button{min-height:44px}.acg-ai-chat-mobile .aic-footer{padding:12px}.acg-ai-chat-mobile textarea{font-size:16px}
 .acg-ai-chat-mobile .aic-context label{min-height:32px}.acg-ai-chat-mobile .aic-choice{min-height:36px}
+
+@media(max-height:460px){.acg-ai-chat-mobile .aic-header{height:40px}.acg-ai-chat-mobile .aic-context{padding:4px 10px;gap:3px}.acg-ai-chat-mobile .aic-body{padding:6px 10px}.acg-ai-chat-mobile .aic-footer{padding:6px 10px}.acg-ai-chat-mobile .aic-composer textarea{min-height:32px;max-height:50px}.acg-ai-chat-mobile .aic-context label{min-height:24px}.acg-ai-chat-mobile .aic-choice{min-height:28px}}
