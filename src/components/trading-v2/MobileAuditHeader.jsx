@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, Sparkles } from 'lucide-react';
 import { useAlerts } from '../alerts/AlertsWorkspace.jsx';
 import { ArrowUpDown, ChartNoAxesCombined, ChevronDown, CircleHelp, MoreVertical, Search, Settings2, UserRound } from 'lucide-react';
 import InstrumentAvatar from './InstrumentAvatar.jsx';
@@ -20,7 +20,7 @@ function money(value, currency) {
 export default function MobileAuditHeader({
   market, account, timeframe, onTimeframe, positionsCount = 0,
   onSelectInstrument, onOpenTrades, onOpenAccount,
-  onOpenIndicators, onOpenSettings, onOpenHelp, chartReadout = null,
+  onOpenIndicators, onOpenSettings, onOpenHelp, onOpenAi, chartReadout = null,
 }) {
   const alerts = useAlerts();
   const [panel, setPanel] = useState(null);
@@ -43,6 +43,7 @@ export default function MobileAuditHeader({
     return () => { document.removeEventListener('pointerdown', dismiss); document.removeEventListener('keydown', escape); };
   }, [panel]);
   const destinations = [
+    ...(typeof onOpenAi === 'function' ? [['ACG AI preview', Sparkles, onOpenAi]] : []),
     ...(alerts?.enabled ? [['Alerts', Bell, alerts.open]] : []),
     ['Markets', Search, onSelectInstrument], ['Trades', ArrowUpDown, onOpenTrades],
     ['Accounts', UserRound, onOpenAccount], ['Indicators', ChartNoAxesCombined, onOpenIndicators],
