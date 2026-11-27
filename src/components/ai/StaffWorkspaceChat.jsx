@@ -85,7 +85,7 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market}){
     if(regenerateId&&!retryQuestion)return;
     const controller=active.current,question=(retryQuestion||draft).trim();
     if(!valid||!consent||!controller||controller.signal.aborted||inFlight.current||!validQuestion(question))return;
-    inFlight.current=true;setBusy(true);setNotice('');setDraft('');setCopyState(null);
+    inFlight.current=true;setBusy(true);setNotice('');if(!regenerateId)setDraft('');setCopyState(null);
     const prior=regenerateId?messages.slice(0,-2):messages;
     const history=boundedWorkspaceHistory(prior.slice(historyStart.current),question);
     if(!regenerateId)setMessages(m=>[...m,{id:crypto.randomUUID(),role:'user',text:question}]);
@@ -124,7 +124,7 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market}){
             <button type="button" className="aic-copy" aria-label="Unhelpful response" title="Mark unhelpful (this chat only)" aria-pressed={feedback[m.id]==='down'} onClick={()=>setFeedback(v=>({...v,[m.id]:v[m.id]==='down'?null:'down'}))}><ThumbsDown size={15}/></button>
             {i===messages.length-1&&regenerationQuestion(messages,historyStart.current,m.id)&&<><span className="aic-action-divider"/><button type="button" className="aic-copy" aria-label="Regenerate response" title="Regenerate using current context (new AI request)" disabled={busy||!consent} onClick={()=>void send(m.id)}><RefreshCw size={15}/></button></>}
           </div>{copyState?.id===m.id&&<span role="status" className="aic-copy-status">{copyState.ok?'Copied':'Copy failed'}</span>}</div>
-          {i===messages.length-1&&!busy&&i-1>=historyStart.current&&<div className="aic-followups">{followUpSuggestions(m.text).map((s,j)=><button key={s.label} type="button" onClick={()=>{setDraft(s.prompt);input.current?.focus();}}>{j===0&&s.label!=='Summarise'?<MessageCircle size={13}/>:<AlignLeft size={13}/>}<span>{s.label}</span></button>)}</div>}
+          {i===messages.length-1&&!busy&&i-1>=historyStart.current&&validQuestion(m.text)&&<div className="aic-followups">{followUpSuggestions(m.text).map((s,j)=><button key={s.label} type="button" onClick={()=>{setDraft(s.prompt);input.current?.focus();}}>{j===0&&s.label!=='Summarise'?<MessageCircle size={13}/>:<AlignLeft size={13}/>}<span>{s.label}</span></button>)}</div>}
           <p className="aic-answer-context">{m.context?.market?'Chart context':'No chart context'} · {m.context?.account?'Account context':'No account context'}</p>
         </>}
       </article>)}
