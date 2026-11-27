@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {workspaceContext,projectWorkspaceReport,matchesConversationWorkspace} from '../src/components/ai/workspaceReport.js';
+import {workspaceContext,projectWorkspaceReport,matchesConversationWorkspace,projectMarketGeneration,projectMarketRun} from '../src/components/ai/workspaceReport.js';
 import {sampleWorkspaceReport} from './fixtures/aiWorkspaceReport.js';
 const now=Date.UTC(2026,0,5,10,20);
 test('workspace context requires explicit consent and only symbol/timeframe',()=>{
@@ -31,4 +31,19 @@ test('chart conversation scope is pinned to explicit consent and chart identity'
   assert.equal(matchesConversationWorkspace(c,workspaceContext('XAUUSD','5m',true)),false);
   assert.equal(matchesConversationWorkspace({...c,status:'DELETED'},w),false);
   assert.equal(matchesConversationWorkspace({status:'ACTIVE',profile:'EDUCATION',workspace:null},null),true);
+});
+
+test('market provider report requires matching verified receipt and cannot be reconstructed from history',()=>{
+  const {envelope,expected}=sampleWorkspaceReport(workspaceContext('XAUUSD','1m',true),now);
+  const report={...envelope,mode:'FIXTURE_PROVIDER_MARKET_REPORT',fixtureProviderOnly:true};
+  const result={contractVersion:'native-chat-v1',runtimeEnabled:false,fixtureProviderOnly:true,dispatchAllowed:false,creditDeducted:false,verifiedEducation:null,
+    providerRun:{state:'VERIFIED',referenceIds:[],responseId:report.response.responseId,verifiedAtMs:report.response.verifiedAtMs,responseExpiresAtMs:report.response.expiresAtMs},
+    verifiedMarket:report,replayed:false};
+  assert.equal(projectWorkspaceReport(projectMarketGeneration(result,expected,now),expected,now).providerSelected,true);
+  const {verifiedMarket,...history}=result;
+  assert.equal(projectMarketRun(history).state,'VERIFIED');
+  assert.equal(projectMarketGeneration({...history,replayed:true},expected,now),null);
+  assert.throws(()=>projectMarketGeneration({...result,replayed:true},expected,now));
+  assert.throws(()=>projectMarketGeneration({...result,providerRun:{...result.providerRun,responseId:'f'.repeat(64)}},expected,now));
+  assert.throws(()=>projectMarketGeneration(result,expected,now+10000));
 });
