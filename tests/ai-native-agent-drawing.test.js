@@ -69,3 +69,22 @@ test('stop during animation and concurrent manual drawing edits prevent partial 
  assert.equal((await second).state,'STALE');
  assert.deepEqual(getDrawingSnapshot(symbol).present.map(x=>x.id),['manual']);
 });
+
+test('conversational undo reverses only the verified latest batch',async()=>{
+ const f=fixture('AGENTUNDO1'),symbol=f.request.workspace.symbol;
+ const manual={id:'manual',type:'hline',a:{time:closed/1000,price:99}};
+ commitDrawings(symbol,[manual]);f.request.drawingRevision=getDrawingSnapshot(symbol).revision;
+ const baseline=JSON.stringify(getDrawingSnapshot(symbol).present);
+ assert.equal((await f.e.execute(f)).state,'VERIFIED');
+ assert.deepEqual(f.e.undoLastBatch(),{state:'UNDONE',count:2});
+ assert.equal(JSON.stringify(getDrawingSnapshot(symbol).present),baseline);
+ assert.equal(f.e.undoLastBatch().state,'NO_AI_BATCH');
+});
+test('conversational undo refuses to overwrite a later manual revision',async()=>{
+ const f=fixture('AGENTUNDO2'),symbol=f.request.workspace.symbol;
+ assert.equal((await f.e.execute(f)).state,'VERIFIED');
+ commitDrawings(symbol,current=>[...current,{id:'manual-later',type:'hline',a:{time:closed/1000,price:99}}]);
+ const baseline=JSON.stringify(getDrawingSnapshot(symbol).present);
+ assert.equal(f.e.undoLastBatch().state,'UNDO_CONFLICT');
+ assert.equal(JSON.stringify(getDrawingSnapshot(symbol).present),baseline);
+});
