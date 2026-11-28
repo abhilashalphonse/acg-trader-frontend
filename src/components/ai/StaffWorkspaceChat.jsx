@@ -126,8 +126,8 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market,agen
         const outcome=await drawingPort.edit({request:drawingRequest,question,signal:controller.signal});
         if(controller.signal.aborted)return;
         const messagesByState={
-          EDITED:'Updated the AI drawing as requested. Its original source reference is preserved, but the geometry is now user-adjusted. You can undo the edit.',
-          NO_TARGET:'No matching visible drawing was found. Select the drawing you want to edit.',
+          EDITED:['MOVE','EXTEND','SHORTEN','EXTEND_TO_CLOSE'].includes(drawingEditCommand(question)?.kind)?'Updated the AI drawing as requested. Its original source reference is preserved, but the geometry is now user-adjusted. You can undo the edit.':'Updated the AI drawing appearance or visibility as requested. Its geometry and source reference are unchanged. You can undo the edit.',
+          NO_TARGET:'No matching drawing was found in this chart scope. Select the intended visible drawing, or use a specific show command for a hidden drawing.',
           AMBIGUOUS_TARGET:'More than one drawing matches. Select the intended drawing and repeat the command with “selected”.',
           PROTECTED_TARGET:'That drawing is manual, locked, or no longer verified as unchanged AI-owned. It was not edited.',
           OUT_OF_RANGE:'The requested time extension or shortening is outside the available closed-candle range. No change was made.',
