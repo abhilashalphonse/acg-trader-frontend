@@ -1,13 +1,14 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createNativeAgentDrawingExecutor} from '../src/components/ai/nativeAgentDrawingExecutor.js';
+import {drawingOwnershipEpoch,resetVerifiedDrawingOwnership,drawingOwnership} from '../src/components/ai/chartDrawingInventory.js';
 import {getDrawingSnapshot,commitDrawings,undoDrawings,patchDrawing,subscribeDrawings} from '../src/utils/drawingStore.js';
 const clock=1795836601000,closed=1795836600000,version='e'.repeat(64);
 const actionId='aabbccdd-1122-4333-8444-556677889900';
 function fixture(symbol){
  const workspace={symbol,timeframe:'5m',chartInstanceId:'chart-'+symbol};
  const ctx={enabled:true,workspace,chartContextVersion:version,latestClosedAtMs:closed};
- const request={userRequested:true,complete:true,workspace,actionId,chartContextVersion:version,latestClosedAtMs:closed,drawingRevision:getDrawingSnapshot(symbol).revision};
+ const request={userRequested:true,complete:true,ownershipEpoch:drawingOwnershipEpoch(),workspace,actionId,chartContextVersion:version,latestClosedAtMs:closed,drawingRevision:getDrawingSnapshot(symbol).revision};
  const src1='draw_'+'1'.repeat(32),src2='draw_'+'2'.repeat(32);
  const receipt={contractVersion:'chart-drawing-candidates-v1',actionId,context:{symbol,timeframe:'5m',chartContextVersion:version,latestClosedAtMs:closed,expiresAtMs:clock+9000},actions:[
  {sourceId:src1,drawingKey:src1,sourceTimeframe:'5m',geometry:{type:'hline',time:closed/1000-300,price:100}},
@@ -247,4 +248,25 @@ test('no deletion during interrupted cursor motion',async()=>{
  const running=f.e.confirmDeletion({request,preview,selection:null,readSelection:()=>null});
  f.e.stop();resolveMove(false);
  assert.equal((await running).state,'STOPPED');assert.equal(getDrawingSnapshot(symbol),before);
+});
+
+test('ownership reset fences old requests, pending confirmation, active motion and old undo',async()=>{
+ const f=fixture('AGENTEPOCH1'),symbol=f.request.workspace.symbol;
+ assert.equal((await f.e.execute(f)).state,'VERIFIED');
+ const baseline=getDrawingSnapshot(symbol);
+ const preview=f.e.previewDeletion({question:'Delete AI FVG',selection:null});
+ assert.equal(preview.state,'CONFIRM_REQUIRED');
+ resetVerifiedDrawingOwnership();
+ assert.equal(drawingOwnership(symbol,baseline.present[0]),'PROTECTED_AI');
+ assert.equal((await f.e.confirmDeletion({preview,request:{...f.request,drawingRevision:baseline.revision},selection:null,readSelection:()=>null})).state,'STALE');
+ assert.equal(f.e.undoLastBatch().state,'NO_AI_BATCH');
+ assert.equal((await f.e.execute(f)).state,'DENIED');
+ assert.equal(getDrawingSnapshot(symbol),baseline);
+ const next=fixture('AGENTEPOCH2');
+ let release;
+ next.cursor.move=()=>new Promise(resolve=>{release=resolve;});
+ const pending=next.e.execute(next);
+ resetVerifiedDrawingOwnership();release(true);
+ assert.equal((await pending).state,'STALE');
+ assert.equal(getDrawingSnapshot('AGENTEPOCH2').present.length,0);
 });
