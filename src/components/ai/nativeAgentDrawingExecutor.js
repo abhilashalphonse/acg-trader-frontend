@@ -5,6 +5,7 @@
 import {getDrawingSnapshot,commitDrawings,normalizeDrawing,undoDrawings} from '../../utils/drawingStore.js';
 import {canonicalDrawingTimeframe} from '../../utils/drawingTools.js';
 import {prepareChartDrawingPlan} from './chartDrawingPlan.js';
+import {registerVerifiedDrawings} from './chartDrawingInventory.js';
 
 const VERSION='chart-drawing-candidates-v1';
 const hex=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
@@ -119,6 +120,9 @@ export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor
    applied.set(request.actionId,{key:batchKey,expiresAtMs:receipt.context.expiresAtMs,after});
    lastBatch={after,before:baseline,expected,count:additions.length};
    op.committed=true;
+   // Recognition authority is issued only after exact native readback.
+   // A registry failure must not turn a committed drawing into a false failure.
+   try{registerVerifiedDrawings(chart.symbol,additions);}catch{/* remain protected */}
    let visualWarning=false;
    try{if(op.token)cursor.pulse(op.token);}catch{visualWarning=true;}
    return result('VERIFIED',{count:additions.length,ids:Object.freeze(additions.map(d=>d.id)),notificationWarning:commitError,visualWarning});
