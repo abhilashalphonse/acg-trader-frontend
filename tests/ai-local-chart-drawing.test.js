@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {chartDrawingCandidates,buildLocalDrawingReceipt} from '../src/components/ai/localChartDrawing.js';
 const start=1577836800,step=3600;
-const rows=[[102,104,100,103],[103,105,101,104],[104,105,95,101],[101,104,100,103],[103,106,102,105],[110,112,109,111],[111,114,105,112],[112,113,110,112],[112,113,110,112],[112,113,110,112]];
+const rows=[[102,104,100,103],[103,105,101,104],[104,105,95,101],[101,104,100,103],[103,106,102,105],[110,112,109,111],[111,114,105,112],[112,113,105,112],[112,113,110,112],[112,113,110,112]];
 const candles=rows.map(([open,high,low,close],i)=>({time:start+i*step,open,high,low,close,complete:true,synthetic:false}));
 const args={candles,step,command:'LIQUIDITY_THEN_FVG'};
 const expected=[{type:'hline',time:start+6*step,price:114},{type:'hline',time:start+2*step,price:95},{type:'rectangle',fromTime:start+5*step,toTime:start+9*step,lower:104,upper:109}];
@@ -11,6 +11,11 @@ test('historical viewport only: exact liquidity and FVG geometry without quotes 
  assert.deepEqual(chartDrawingCandidates({...args,command:'FVG_THEN_LIQUIDITY'}),[expected[2],...expected.slice(0,2)]);
  assert.deepEqual(chartDrawingCandidates({...args,isVisible:g=>g.type==='rectangle'}),[expected[2]]);
  assert.equal(chartDrawingCandidates({...args,command:'TRADE'}),null);
+});
+test('a distinct untouched swing is not silently discarded',()=>{
+ const extra=candles.map((b,i)=>i===7?{...b,low:110}:b);
+ const result=chartDrawingCandidates({...args,candles:extra});
+ assert.deepEqual(result,[{type:'hline',time:start+6*step,price:105},expected[0],expected[1],expected[2]]);
 });
 test('an old session gap does not suppress intact local patterns; a gap inside an FVG does',()=>{
  const withGap=candles.map((b,i)=>({...b,time:b.time+(i>=1?86400:0)}));
