@@ -17,6 +17,7 @@ function cellGrid(layout) {
 
 export default function DesktopMultiChart({
   compactContext = false,
+  agentDrawingPort = null,
   chartOrderV4 = false,
   directPendingCancel = false,
   chartSettings = null,
@@ -165,6 +166,7 @@ export default function DesktopMultiChart({
                   onCreateRiskOrder={isActive ? onCreateRiskOrder : () => {}}
                   chartInstanceId={`desktop-chart-${index}`}
                   drawingInteractionEnabled={isActive}
+                  agentDrawingPort={isActive ? agentDrawingPort : null}
                   onTradePlanChange={isActive ? onTradePlanChange : () => {}}
                   onUpdatePosition={onUpdatePosition}
                   positionProtectionDraft={isActive && String(positionProtectionDraft?.symbol || '').toUpperCase() === String(symbol || '').toUpperCase() ? positionProtectionDraft : null}
