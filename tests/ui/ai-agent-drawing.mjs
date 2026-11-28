@@ -42,7 +42,8 @@ try{
        const step=tfSeconds[b.timeframe],time=b.latestClosedAtMs/1000,price=fixturePrices[b.symbol],d=price*.001;
        const id=n=>'draw_'+String(n).repeat(32);
        const make=(n,geometry)=>({sourceId:id(n),drawingKey:id(n),sourceTimeframe:b.timeframe,geometry});
-       const actions=b.command==='LIQUIDITY'?[make(1,{type:'hline',time:time-8*step,price:price+d*.15}),make(2,{type:'hline',time:time-4*step,price:price-d*.15})]:[make(3,{type:'rectangle',fromTime:time-8*step,toTime:time-step,lower:price-d*.25,upper:price+d*.25})];
+       let actions=b.command==='LIQUIDITY'?[make(1,{type:'hline',time:time-8*step,price:price+d*.15}),make(2,{type:'hline',time:time-4*step,price:price-d*.15})]:[make(3,{type:'rectangle',fromTime:time-8*step,toTime:time-step,lower:price-d*.25,upper:price+d*.25})];
+       if(mode==='stop')actions=Array.from({length:6},(_,i)=>make(i+3,{type:'rectangle',fromTime:time-(12-i)*step,toTime:time-step,lower:price-d*.25,upper:price+d*.25}));
        const receipt={contractVersion:'chart-drawing-candidates-v1',actionId:b.actionId,context:{symbol:b.symbol,timeframe:b.timeframe,chartContextVersion:b.chartContextVersion,latestClosedAtMs:b.latestClosedAtMs,expiresAtMs:Date.now()+9000},actions};
        if(mode==='mismatch')receipt.context.chartContextVersion='f'.repeat(64);
        return json(route,{...common,state:'DRAWING_READY',actionId:b.actionId,workspace:{symbol:b.symbol,timeframe:b.timeframe},receipt});
@@ -63,6 +64,8 @@ try{
  await page.waitForFunction(()=>document.querySelector('.acg-agent-cursor-surface')!==null);
  // Wait for chart history (the fixture never contacts a live provider).
  await page.waitForFunction(()=>performance.getEntriesByType('resource').some(e=>e.name.includes('/v1/market/candles')));
+ await page.waitForFunction(()=>!document.querySelector('[data-ai-chat-preview] button[aria-label="Send message"]')?.disabled||document.querySelector('.acg-agent-cursor-surface')!==null);
+ await page.waitForTimeout(350);
  await input.fill('Mark significant liquidity levels');await send.click();
  await panel.getByText(/Marked 2 liquidity level/).waitFor();
  assert.equal(drawRequests.length,1);assert.equal(drawRequests[0].command,'LIQUIDITY');
@@ -83,7 +86,7 @@ try{
  await panel.getByText('Drawing response could not be verified. No drawings applied.').waitFor();
  assert.deepEqual(await read(),first);
  // Stop during real cursor movement: the batch must not commit.
- mode='normal';await input.fill('Draw FVGs');await send.click();
+ mode='stop';await input.fill('Draw FVGs');await send.click();
  await cursor.waitFor({state:'visible'});
  await panel.getByRole('button',{name:'Stop response'}).click();
  await panel.getByText(/Response stopped/).waitFor();
