@@ -92,6 +92,17 @@ try{
  await panel.getByText(/Marked 2 liquidity level/).waitFor().catch(async error=>{console.error('Drawing fixture diagnostic:',await panel.innerText(),JSON.stringify(drawRequests),JSON.stringify(errors));throw error;});
  assert.equal(drawRequests.length,1);assert.equal(drawRequests[0].command,'LIQUIDITY');
  const first=await read();assert.equal(first.length,2);assert.ok(first.every(d=>d.createdBy==='ai'&&d.type==='hline'&&!d.locked));
+ // Local recognition uses the native store, not provider output or a new
+ // consent grant. A freshly verified batch has two unchanged AI drawings.
+ const inspectionRevision=revision,inspectionCalls=drawRequests.length;
+ await input.fill('List drawings');await send.click();
+ await panel.getByText('AI-created and unchanged: 2',{exact:true}).waitFor();
+ assert.equal(revision,inspectionRevision);assert.equal(drawRequests.length,inspectionCalls);
+ assert.deepEqual(await read(),first);
+ await input.fill('Which drawing is selected?');await send.click();
+ await panel.getByText('No visible drawing is selected on this chart.',{exact:true}).waitFor();
+ assert.equal(revision,inspectionRevision);assert.deepEqual(await read(),first);
+
  await cursor.waitFor({state:'detached'});
  await input.fill('Draw FVGs');
  await send.click();
