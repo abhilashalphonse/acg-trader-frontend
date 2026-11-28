@@ -167,6 +167,32 @@ try{
  await panel.getByRole('button',{name:'Stop response'}).click();
  await panel.getByText(/Response stopped/).waitFor();
  assert.deepEqual(await read(),first);
+ // Start a fresh verified FVG after cancellation and exercise actual SVG labels.
+ await cursor.waitFor({state:'detached'});
+ mode='normal';await input.fill('Draw FVGs');
+ await page.waitForFunction(()=>document.querySelector('[data-ai-chat-preview] button[aria-label="Send message"]')?.disabled===false);
+ const newDraws=drawRequests.length;
+ await send.click();await page.waitForFunction(()=>JSON.parse(localStorage.getItem('acg-trader-drawings-v3:EURUSD')||'[]').length===3);
+ await cursor.waitFor({state:'detached'});
+ const appearanceBaseline=await read(),appearanceRevision=revision;
+ assert.equal(drawRequests.length,newDraws+1);
+ async function changeAppearance(question,n){
+  await input.fill(question);await send.click();
+  await panel.getByText(/Updated the AI drawing appearance or visibility as requested/).nth(n-1).waitFor();
+  await cursor.waitFor({state:'detached'});
+  const stored=await read();assert.equal(stored.length,3);assert.deepEqual(stored.slice(0,2),appearanceBaseline.slice(0,2));
+  assert.deepEqual(stored[2].a,appearanceBaseline[2].a);assert.deepEqual(stored[2].b,appearanceBaseline[2].b);
+  assert.equal(revision,appearanceRevision);assert.equal(drawRequests.length,newDraws+1);
+  return stored[2];
+ }
+ assert.equal((await changeAppearance('Change AI FVG to blue',1)).style.color,'#2962FF');
+ assert.equal((await changeAppearance('Label AI FVG as "Demand zone"',2)).text,'Demand zone');
+ const annotation=page.locator('[data-ai-drawing-label="'+appearanceBaseline[2].id+'"]');
+ await annotation.waitFor({state:'visible'});assert.equal(await annotation.textContent(),'Demand zone');
+ assert.equal((await changeAppearance('Hide AI FVG',3)).hidden,true);await annotation.waitFor({state:'detached'});
+ assert.equal((await changeAppearance('Show AI FVG',4)).hidden,false);await annotation.waitFor({state:'visible'});
+ assert.equal((await changeAppearance('Show AI FVG on all timeframes',5)).timeframeVisibility,'all');
+ await page.screenshot({path:'artifacts/ai-agent-drawing-appearance.png',animations:'allow'});
  assert.deepEqual(unexpectedWrites,[]);assert.deepEqual(errors,[]);
  console.log('PASS mounted desktop chat, native chart anchors, gradient cursor, actual drawing store, batch undo, stale receipt and Stop; synthetic HTTP only');
  await page.close();
