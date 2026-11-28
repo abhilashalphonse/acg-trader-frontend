@@ -16,3 +16,17 @@ test('rejects premature, incomplete, duplicate, unknown and oversized streams',a
     context+generating+result.slice(0,-1),context+generating+e('result',{answer:'a'.repeat(66000)})])
     await assert.rejects(readWorkspaceEventStream(response(input,1024)));
 });
+
+test('renders ordered provisional deltas and requires exact final answer',async()=>{
+  const seen=[];
+  const text=context+generating+e('delta',{text:'Verified '})+e('delta',{text:'₹ answer'})+result;
+  assert.equal((await readWorkspaceEventStream(response(text,1),null,d=>seen.push(d))).answer,'Verified ₹ answer');
+  assert.deepEqual(seen,['Verified ','₹ answer']);
+  await assert.rejects(readWorkspaceEventStream(response(context+generating+e('delta',{text:'mismatch'})+result)));
+  await assert.rejects(readWorkspaceEventStream(response(context+e('delta',{text:'premature'})+generating+result)));
+});
+test('failed or interrupted token stream cannot produce a committed answer',async()=>{
+  const partial=context+generating+e('delta',{text:'Partial answer'});
+  await assert.rejects(readWorkspaceEventStream(response(partial)));
+  assert.equal((await readWorkspaceEventStream(response(partial+e('result',{state:'HELD_UNKNOWN'})))).state,'HELD_UNKNOWN');
+});
