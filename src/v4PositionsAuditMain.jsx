@@ -52,6 +52,9 @@ const JOURNAL_FIXTURE=[
   message:'Old browser journal item',orderId:'old-order'}
 ];
 const publicReview=new URLSearchParams(window.location.search).get('public_review')==='1';
+// Browser-only acceptance fixture. Never provide staff capability in a built bundle.
+const agentDrawingReview=import.meta.env.DEV&&publicReview&&new URLSearchParams(window.location.search).get('agent_drawing_review')==='1';
+const drawingRuntime=agentDrawingReview?Object.freeze({runtimeMode:'WORKSPACE_CHAT',token:'synthetic-browser-only',sessionId:'b'.repeat(24),accountId:ACCOUNT.id}):null;
 const accountReview=publicReview && new URLSearchParams(window.location.search).get('account_review')==='1';
 // Synthetic account-switch test data; no API calls or real account mutations.
 const ACCOUNT_REVIEW_EXTRA=Object.freeze([
@@ -109,7 +112,7 @@ function PositionsQA(){
  {publicReview&&<div role="status" style={{position:'relative',zIndex:50,display:'flex',alignItems:'center',justifyContent:'center',height:30,background:'#191B20',borderBottom:'1px solid #43464D',color:'#E5E6EA',font:'500 11px Inter,system-ui,sans-serif'}}>
   ACG Trader V4 · FULL TERMINAL DESIGN REVIEW · Simulated account · No real market data · Actions affect mock data only
  </div>}
- <DesktopTerminal aiReportFixture={import.meta.env.DEV?sampleWorkspaceReport:null} onOpenHelp={()=>setShowHelp(true)} readOnly={['BREACHED','CLOSED','DISABLED'].includes(account?.status)} market={market} tick={market} markets={markets} activeSymbol={symbol}
+ <DesktopTerminal staffAiPreview={agentDrawingReview} staffAiRuntime={drawingRuntime} aiReportFixture={import.meta.env.DEV?sampleWorkspaceReport:null} onOpenHelp={()=>setShowHelp(true)} readOnly={['BREACHED','CLOSED','DISABLED'].includes(account?.status)} market={market} tick={market} markets={markets} activeSymbol={symbol}
   onSelectSymbol={setSymbol} account={account} accounts={accountOptions} activeAccountId={account.id}
   onSelectAccount={id=>{
     if(!accountReview)return false;
