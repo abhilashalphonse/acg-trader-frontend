@@ -54,7 +54,10 @@ const JOURNAL_FIXTURE=[
 const publicReview=new URLSearchParams(window.location.search).get('public_review')==='1';
 // Browser-only acceptance fixture. Never provide staff capability in a built bundle.
 const agentDrawingReview=import.meta.env.DEV&&publicReview&&new URLSearchParams(window.location.search).get('agent_drawing_review')==='1';
-const drawingRuntime=agentDrawingReview?Object.freeze({runtimeMode:'WORKSPACE_CHAT',token:'synthetic-browser-only',sessionId:'b'.repeat(24),accountId:ACCOUNT.id}):null;
+const paired=agentDrawingReview&&import.meta.env.DEV?window.__acgPairedDrawingFixture:null;
+const pairedMarket=paired?Object.freeze({...EURO,...paired.market}):null;
+const pairedAccount=paired?Object.freeze({...ACCOUNT,id:paired.runtime.accountId}):ACCOUNT;
+const drawingRuntime=agentDrawingReview?Object.freeze(paired?.runtime||{runtimeMode:'WORKSPACE_CHAT',token:'synthetic-browser-only',sessionId:'b'.repeat(24),accountId:ACCOUNT.id}):null;
 const accountReview=publicReview && new URLSearchParams(window.location.search).get('account_review')==='1';
 // Synthetic account-switch test data; no API calls or real account mutations.
 const ACCOUNT_REVIEW_EXTRA=Object.freeze([
@@ -69,16 +72,16 @@ const ACCOUNT_REVIEW_EXTRA=Object.freeze([
    floatingPnl:0,valuationStatus:'STALE',tradingEnabled:false},
 ]);
 function PositionsQA(){
- const [positions,setPositions]=useState(POSITIONS);
- const [pending,setPending]=useState(PENDING);
+ const [positions,setPositions]=useState(paired?[]:POSITIONS);
+ const [pending,setPending]=useState(paired?[]:PENDING);
  const [history,setHistory]=useState(HISTORY_FIXTURE);
  const [journal,setJournal]=useState(JOURNAL_FIXTURE);
  const [historyLoading,setHistoryLoading]=useState(false);
  const [historyError,setHistoryError]=useState(null);
  const [loading,setLoading]=useState(false);
  const [error,setError]=useState(null);
- const [account,setAccount]=useState(ACCOUNT);
- const [symbol,setSymbol]=useState('EURUSD');
+ const [account,setAccount]=useState(pairedAccount);
+ const [symbol,setSymbol]=useState(pairedMarket?.symbol||'EURUSD');
  const [orderType,setOrderType]=useState('market');
  const [lots,setLots]=useState(0.01);
  const [sizingMode,setSizingMode]=useState('lots');
@@ -87,9 +90,9 @@ function PositionsQA(){
  const [retries,setRetries]=useState(0);
  const [protectionDraft,setProtectionDraft]=useState(null);
  const [showHelp,setShowHelp]=useState(false);
- const market=symbol==='BTCUSD'?BTC:symbol==='XAUUSD'?GOLD:EURO;
+ const market=pairedMarket||(symbol==='BTCUSD'?BTC:symbol==='XAUUSD'?GOLD:EURO);
  const accountOptions=accountReview?[ACCOUNT,...ACCOUNT_REVIEW_EXTRA]:[account];
- const markets=useMemo(()=>[EURO,BTC,GOLD],[]);
+ const markets=useMemo(()=>pairedMarket?[pairedMarket]:[EURO,BTC,GOLD],[]);
  if(!publicReview)window.v4PositionsQA={
   get commands(){return commands;},
   get retries(){return retries;},
@@ -112,7 +115,7 @@ function PositionsQA(){
  {publicReview&&<div role="status" style={{position:'relative',zIndex:50,display:'flex',alignItems:'center',justifyContent:'center',height:30,background:'#191B20',borderBottom:'1px solid #43464D',color:'#E5E6EA',font:'500 11px Inter,system-ui,sans-serif'}}>
   ACG Trader V4 · FULL TERMINAL DESIGN REVIEW · Simulated account · No real market data · Actions affect mock data only
  </div>}
- <DesktopTerminal staffAiPreview={agentDrawingReview} staffAiRuntime={drawingRuntime} aiReportFixture={import.meta.env.DEV?sampleWorkspaceReport:null} onOpenHelp={()=>setShowHelp(true)} readOnly={['BREACHED','CLOSED','DISABLED'].includes(account?.status)} market={market} tick={market} markets={markets} activeSymbol={symbol}
+ <DesktopTerminal timeframe={paired?'1H':'30m'} staffAiPreview={agentDrawingReview} staffAiRuntime={drawingRuntime} aiReportFixture={import.meta.env.DEV?sampleWorkspaceReport:null} onOpenHelp={()=>setShowHelp(true)} readOnly={['BREACHED','CLOSED','DISABLED'].includes(account?.status)} market={market} tick={market} markets={markets} activeSymbol={symbol}
   onSelectSymbol={setSymbol} account={account} accounts={accountOptions} activeAccountId={account.id}
   onSelectAccount={id=>{
     if(!accountReview)return false;
