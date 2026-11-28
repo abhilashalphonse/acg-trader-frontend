@@ -518,17 +518,25 @@ export default function TradingChart({
     };
     timeScale.subscribeVisibleLogicalRangeChange(visibleRangeHandler);
     const coordinateApi = {
-      // Only native, explicitly complete, nonsynthetic bars; no active price
-      // or guessed candle closure is accepted for the action context.
+      // Native viewport history is the evidence for visual annotations.
+      // No quote age, exchange session, or server history synchronization gate.
       agentDrawingSnapshot() {
         if (chartRef.current !== chart || !host.isConnected || !initialLoadCompleteRef.current) return null;
         const step = {M1:60,M5:300,M15:900,M30:1800,H1:3600,H4:14400,D1:86400,W1:604800}[timeframe];
         if (!step) return null;
-        const bars = barsRef.current.filter(b=>b.complete===true && b.synthetic===false).slice(-128);
-        const last=bars.at(-1);
+        const range=timeScale.getVisibleLogicalRange();
+        const bars=barsRef.current;
+        const end=range?Math.min(bars.length,Math.max(0,Math.floor(range.to)+1)):bars.length;
+        const start=Math.max(0,end-512,range?Math.ceil(range.from):end-128);
+        const visible=bars.slice(start,end);
+        // Keep invalid/synthetic bars in sequence so the planner cannot join
+        // patterns across them; exclude the forming tail from the fingerprint.
+        while(visible.at(-1)?.complete===false)visible.pop();
+        const candles=visible.map(b=>({time:b.time,open:b.open,high:b.high,low:b.low,close:b.close,complete:b.complete,synthetic:b.synthetic}));
+        const last=candles.at(-1);
         if (!last || !Number.isSafeInteger(last.time)) return null;
-        return {latestClosedAtMs:(last.time+step)*1000,
-          fingerprint:JSON.stringify(bars.map(b=>[b.time,b.open,b.high,b.low,b.close,b.stateVersion,b.stateEpoch]))};
+        return {latestClosedAtMs:(last.time+step)*1000,step,candles,
+          fingerprint:JSON.stringify(candles)};
       },
       plotSize() {
         return { width: timeScale.width(), height: chart.panes()[0]?.getHeight?.() || host.clientHeight };
