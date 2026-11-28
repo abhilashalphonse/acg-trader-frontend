@@ -91,10 +91,12 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market,agen
     if(!valid||!consent||!parent||parent.signal.aborted||inFlight.current||!validQuestion(question))return;
     const drawingCommand=!regenerateId&&consent.chartDrawingEnabled===true&&agentDrawingPort?chartDrawingCommand(question):null;
     const drawingPort=drawingCommand?agentDrawingPort.get():null;
-    const drawingRequest=drawingPort&&includeMarket&&drawingCommand!=='UNDO'?drawingPort.prepare():null;
-    if(drawingCommand&&(!drawingPort||!includeMarket||(drawingCommand!=='UNDO'&&(!drawingRequest||drawingRequest.workspace.symbol!==chart.symbol)))){setNotice('Open the active chart with chart context enabled and the cursor tool selected, then try again.');return;}
+    const controller=new AbortController();
+    let interruptReason=null;
+    const drawingRequest=drawingPort&&includeMarket&&drawingCommand!=='UNDO'?drawingPort.prepare({onInterrupt:reason=>{interruptReason=reason;controller.abort();}}):null;
+    if(drawingCommand&&(!drawingPort||!includeMarket||(drawingCommand!=='UNDO'&&(!drawingRequest||drawingRequest.workspace.symbol!==chart.symbol)))){if(drawingRequest)drawingPort.release(drawingRequest.actionId);setNotice('Open the active chart with chart context enabled and the cursor tool selected, then try again.');return;}
     if(regenerateId&&chartDrawingCommand(question))return;
-    const controller=new AbortController();operation.current=controller;
+    operation.current=controller;
     const abort=()=>controller.abort();parent.signal.addEventListener('abort',abort,{once:true});
     inFlight.current=true;setBusy(true);setPreview('');setProgress(null);setNotice('');if(!regenerateId)setDraft('');setCopyState(null);
     const prior=regenerateId?messages.slice(0,-2):messages;
@@ -138,9 +140,24 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market,agen
       setMessages(m=>[...(regenerateId?m.slice(0,-1):m),{id:crypto.randomUUID(),role:'assistant',...answer}]);
     }catch{if(!controller.signal.aborted)setNotice('AI request unavailable. No automatic retry.');}
     finally{
+      if(drawingRequest)drawingPort.release(drawingRequest.actionId);
       parent.signal.removeEventListener('abort',abort);
       if(operation.current===controller){operation.current=null;inFlight.current=false;}
-      if(!parent.signal.aborted){setBusy(false);setProgress(null);setPreview('');if(controller.signal.aborted){setConsent(null);setNotice('Response stopped. Reopen AI to refresh access. No automatic retry.');}}
+      if(!parent.signal.aborted){
+        setBusy(false);setProgress(null);setPreview('');
+        if(controller.signal.aborted){
+          setConsent(null);
+          const stopped=interruptReason==='MANUAL_CHART_INTERACTION'?'Drawing stopped: manual chart interaction took priority.':interruptReason==='CHART_CHANGED'?'Drawing stopped: active chart changed.':interruptReason==='PAGE_HIDDEN'||interruptReason==='WINDOW_BLUR'?'Drawing stopped: workspace lost focus.':interruptReason==='ESCAPE'?'Drawing stopped with Escape.':'Response stopped.';
+          if(drawingRequest){
+            setNotice(stopped+' No automatic retry.');
+            // Renew only the consent status, not the interrupted action. A new
+            // user request is required. A stale revision fails closed at grant.
+            call('status',{},parent.signal).then(v=>{
+              if(active.current===parent&&!parent.signal.aborted&&v?.contractVersion==='restricted-pilot-v1'&&v.mode==='WORKSPACE_CHAT'&&v.executionAllowed===false&&v.model==='gpt-6-luna'&&Number.isSafeInteger(v.revision)&&v.revision>=0)setConsent(v);
+            }).catch(()=>{});
+          }else setNotice(stopped+' Reopen AI to refresh access. No automatic retry.');
+        }
+      }
     }
   }
   return <>
