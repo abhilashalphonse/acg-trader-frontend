@@ -5,6 +5,7 @@ import {chartContextLabel} from './aiPreview.js';
 import AssistantMarkdown from './AssistantMarkdown.jsx';
 import {chartDrawingCommand,verifiedDrawingResponse} from './chartDrawingCommand.js';
 import {drawingInspectionCommand} from './chartDrawingInventory.js';
+import {drawingEditCommand} from './chartDrawingEdit.js';
 import InstrumentAvatar from '../trading-v2/InstrumentAvatar.jsx';
 import {chartFeedStatus,followUpSuggestions,regenerationQuestion,workspaceFailureNotice} from './workspacePresentation.js';
 const bytes=s=>new TextEncoder().encode(s).length;
@@ -99,13 +100,13 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market,agen
         'There are '+view.total+' visible drawings on your '+chart.symbol+' '+chart.timeframe+' chart.\n\n- AI-created and unchanged: '+view.counts.VERIFIED_AI+'\n- Protected AI-created: '+view.counts.PROTECTED_AI+'\n- Manual: '+view.counts.MANUAL+(view.selected?'\n\nSelected: '+view.selected.label+' ('+description[view.selected.ownership]+').':'');
       setDraft('');setNotice('');setMessages(m=>[...m,{id:crypto.randomUUID(),role:'user',text:question},{id:crypto.randomUUID(),role:'assistant',text,action:true,context:{market:true,account:false}}]);return;
     }
-    const drawingCommand=!regenerateId&&consent.chartDrawingEnabled===true&&agentDrawingPort?chartDrawingCommand(question):null;
+    const drawingCommand=!regenerateId&&consent.chartDrawingEnabled===true&&agentDrawingPort?(chartDrawingCommand(question)||(drawingEditCommand(question)?'EDIT':null)):null;
     const drawingPort=drawingCommand?agentDrawingPort.get():null;
     const controller=new AbortController();
     let interruptReason=null;
     const drawingRequest=drawingPort&&includeMarket&&drawingCommand!=='UNDO'?drawingPort.prepare({onInterrupt:reason=>{interruptReason=reason;controller.abort();}}):null;
     if(drawingCommand&&(!drawingPort||!includeMarket||(drawingCommand!=='UNDO'&&(!drawingRequest||drawingRequest.workspace.symbol!==chart.symbol)))){if(drawingRequest)drawingPort.release(drawingRequest.actionId);setNotice('Open the active chart with chart context enabled and the cursor tool selected, then try again.');return;}
-    if(regenerateId&&(chartDrawingCommand(question)||drawingInspectionCommand(question)))return;
+    if(regenerateId&&(chartDrawingCommand(question)||drawingInspectionCommand(question)||drawingEditCommand(question)))return;
     operation.current=controller;
     const abort=()=>controller.abort();parent.signal.addEventListener('abort',abort,{once:true});
     inFlight.current=true;setBusy(true);setPreview('');setProgress(null);setNotice('');if(!regenerateId)setDraft('');setCopyState(null);
@@ -117,6 +118,26 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market,agen
         if(controller.signal.aborted||agentDrawingPort.get()!==drawingPort)return;
         const outcome=drawingPort.undoLastBatch();
         const text=outcome.state==='UNDONE'?'Undid the last AI drawing batch ('+outcome.count+' drawings).':outcome.state==='UNDO_CONFLICT'?'The chart was edited after that batch. Use the chart history controls to undo safely.':outcome.state==='NO_AI_BATCH'?'There is no verified AI drawing batch to undo on this chart.':outcome.state==='FAILED_NO_COMMIT'?'Undo was not applied. Your drawings remain unchanged.':outcome.state==='RECOVERY_REQUIRED'||outcome.state==='FAILED_UNCERTAIN'?'Undo could not be verified. AI drawing actions are paused for this symbol until you reload. Inspect your chart first.':'Undo is unavailable.';
+        setMessages(m=>[...m,{id:crypto.randomUUID(),role:'assistant',text,action:true,context:{market:true,account:false}}]);return;
+      }
+      if(drawingCommand==='EDIT'){
+        if(controller.signal.aborted||agentDrawingPort.get()!==drawingPort)return;
+        setProgress('DRAWING');
+        const outcome=await drawingPort.edit({request:drawingRequest,question,signal:controller.signal});
+        if(controller.signal.aborted)return;
+        const messagesByState={
+          EDITED:'Updated the AI drawing as requested. Its original source reference is preserved, but the geometry is now user-adjusted. You can undo the edit.',
+          NO_TARGET:'No matching visible drawing was found. Select the drawing you want to edit.',
+          AMBIGUOUS_TARGET:'More than one drawing matches. Select the intended drawing and repeat the command with “selected”.',
+          PROTECTED_TARGET:'That drawing is manual, locked, or no longer verified as unchanged AI-owned. It was not edited.',
+          OUT_OF_RANGE:'The requested time extension or shortening is outside the available closed-candle range. No change was made.',
+          NO_CHANGES:'The drawing already has the requested geometry.',
+          OFFSCREEN:'The edit anchors are outside the visible chart. Adjust the view and try again.',
+          FAILED_NO_COMMIT:'The drawing edit was not applied. No automatic retry.',
+          FAILED_UNCERTAIN:'The edit could not be verified. AI drawing actions are paused for this symbol until you reload. Inspect your chart first.',
+          RECOVERY_REQUIRED:'AI drawing actions are paused for this symbol until you reload. Inspect your chart first.'
+        };
+        const text=messagesByState[outcome.state]||'The chart changed or the edit was stopped. No automatic retry.';
         setMessages(m=>[...m,{id:crypto.randomUUID(),role:'assistant',text,action:true,context:{market:true,account:false}}]);return;
       }
       const grant=await call('grant',{expectedRevision:consent.revision,explicitConsent:true},controller.signal);
