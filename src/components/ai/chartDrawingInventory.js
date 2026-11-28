@@ -4,6 +4,7 @@ import {getDrawingSnapshot,subscribeDrawings,visibleDrawingOnTimeframe} from '..
 import {canonicalDrawingTimeframe} from '../../utils/drawingTools.js';
 const owned=new Map();
 const MAX_SYMBOLS=128,MAX_OWNED=256,MAX_LIST=20;
+const FRAMES=new Set(['M1','M5','M15','M30','H1','H4','D1','W1']);
 const exact=x=>JSON.stringify(x);
 const symbolKey=s=>typeof s==='string'&&/^[A-Z0-9._-]{1,32}$/.test(s)?s:null;
 const sourceOk=s=>typeof s==='string'&&/^draw_[a-f0-9]{32}$/.test(s);
@@ -39,11 +40,11 @@ export function drawingOwnership(symbol,drawing){
  return owned.get(symbol)?.items.get(drawing.id)===exact(drawing)?'VERIFIED_AI':'PROTECTED_AI';
 }
 const labels={hline:'Horizontal line',rectangle:'Rectangle'};
-const project=(symbol,d)=>Object.freeze({id:d.id,type:d.type,label:labels[d.type]||'Chart drawing',ownership:drawingOwnership(symbol,d),locked:d.locked===true,hidden:d.hidden===true});
+const project=(symbol,d)=>Object.freeze({id:d.id,type:d.type,label:Object.hasOwn(labels,d.type)?labels[d.type]:'Chart drawing',ownership:drawingOwnership(symbol,d),locked:d.locked===true,hidden:d.hidden===true});
 export function inspectChartDrawings({symbol,timeframe,chartInstanceId,selection=null}={}){
  if(!symbolKey(symbol)||typeof chartInstanceId!=='string'||!chartInstanceId)return null;
  const frame=canonicalDrawingTimeframe(timeframe);
- if(!frame)return null;
+ if(!FRAMES.has(frame))return null;
  const snapshot=getDrawingSnapshot(symbol);
  const visible=snapshot.present.filter(d=>visibleDrawingOnTimeframe(d,frame));
  const selected=selection?.symbol===symbol&&selection.chartInstanceId===chartInstanceId?visible.find(d=>d.id===selection.selectedId):null;
