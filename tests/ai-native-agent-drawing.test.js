@@ -187,3 +187,18 @@ test('edit ambiguity, range and stop leave original drawings intact',async()=>{
  assert.equal((await pending).state,'STOPPED');
  assert.equal(getDrawingSnapshot(symbol),before);
 });
+
+test('appearance, annotation label, hide/show and visibility preserve exact geometry and ownership',async()=>{
+ const f=fixture('AGENTSTYLE1'),symbol=f.request.workspace.symbol;
+ assert.equal((await f.e.execute(f)).state,'VERIFIED');
+ const baseline=getDrawingSnapshot(symbol).present;
+ const edit=question=>f.e.edit({request:{...f.request,drawingRevision:getDrawingSnapshot(symbol).revision,actionId:'aabbccdd-1122-4333-8444-556677889904'},question,selection:null,readSelection:()=>null});
+ for(const question of ['Change AI FVG to blue','Make AI FVG dashed','Set AI FVG width to 3px','Set AI FVG opacity to 60%','Label AI FVG as "Demand zone"','Hide AI FVG','Show AI FVG','Show AI FVG on all timeframes']){
+  assert.equal((await edit(question)).state,'EDITED',question);
+  const current=getDrawingSnapshot(symbol).present;
+  assert.deepEqual(current[0],baseline[0]);assert.deepEqual(current[1].a,baseline[1].a);assert.deepEqual(current[1].b,baseline[1].b);assert.equal(current[1].sourceId,baseline[1].sourceId);assert.equal(current[1].aiGeometryAdjusted,undefined);
+ }
+ const d=getDrawingSnapshot(symbol).present[1];
+ assert.equal(d.style.color,'#2962FF');assert.equal(d.style.dash,'dashed');assert.equal(d.style.width,3);assert.equal(d.style.opacity,.6);assert.equal(d.text,'Demand zone');assert.equal(d.hidden,false);assert.equal(d.timeframeVisibility,'all');
+ assert.equal(f.e.undoLastBatch().state,'UNDONE');assert.equal(getDrawingSnapshot(symbol).present[1].timeframeVisibility,'M5');
+});
