@@ -5,7 +5,7 @@
 import {getDrawingSnapshot,commitDrawings,normalizeDrawing,undoDrawings} from '../../utils/drawingStore.js';
 import {canonicalDrawingTimeframe} from '../../utils/drawingTools.js';
 import {prepareChartDrawingPlan} from './chartDrawingPlan.js';
-import {registerVerifiedDrawings,drawingOwnership} from './chartDrawingInventory.js';
+import {registerVerifiedDrawings,drawingOwnership,drawingOwnershipEpoch} from './chartDrawingInventory.js';
 import {resolveDrawingDeletion} from './chartDrawingDelete.js';
 import {planDrawingEdit} from './chartDrawingEdit.js';
 
@@ -30,7 +30,7 @@ export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor
  const cancelDeletion=()=>{const had=Boolean(pendingDeletion);pendingDeletion=null;return had;};
  const stop=()=>{cancelDeletion();if(!active)return false;active.cancelled=true;if(active.token)cursor.stop(active.token);return true;};
  function executeCheck(request,receipt,signal,op,{checkRevision=true}={}){
-  if(disposed||signal?.aborted||op?.cancelled||!request||!same(request.workspace,chart)||request.userRequested!==true||request.complete!==true||!id(request.actionId)||!hex(request.chartContextVersion)||!Number.isSafeInteger(request.drawingRevision))return false;
+  if(disposed||(op&&op.epoch!==drawingOwnershipEpoch())||signal?.aborted||op?.cancelled||!request||!same(request.workspace,chart)||request.userRequested!==true||request.complete!==true||!id(request.actionId)||!hex(request.chartContextVersion)||!Number.isSafeInteger(request.drawingRevision))return false;
   const c=receipt?.context,t=now();
   if(receipt?.contractVersion!==VERSION||receipt.actionId!==request.actionId||!keys(c,'chartContextVersion,expiresAtMs,latestClosedAtMs,symbol,timeframe')||c.symbol!==chart.symbol||canonicalDrawingTimeframe(c.timeframe)!==canonicalDrawingTimeframe(chart.timeframe)||c.chartContextVersion!==request.chartContextVersion||c.latestClosedAtMs!==request.latestClosedAtMs||!Number.isSafeInteger(c.latestClosedAtMs)||!Number.isSafeInteger(c.expiresAtMs)||!Number.isSafeInteger(t)||t>=c.expiresAtMs||c.expiresAtMs-t>10000)return false;
   const current=readCurrentContext();
@@ -88,7 +88,7 @@ export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor
   if(additions.some(a=>!points(a)))return result('OFFSCREEN');
   const expected=exact([...before.present,...additions]);
   const baseline=exact(before.present);
-  const op={cancelled:false,token:null,lastPoint:null,committed:false,writeStarted:false};active=op;
+  const op={epoch:drawingOwnershipEpoch(),cancelled:false,token:null,lastPoint:null,committed:false,writeStarted:false};active=op;
   const abort=()=>{if(active===op)stop();};
   signal?.addEventListener?.('abort',abort,{once:true});
   try{
@@ -122,11 +122,11 @@ export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor
     uncertainSymbols.add(chart.symbol);return result('FAILED_UNCERTAIN',{count:0});
    }
    applied.set(request.actionId,{key:batchKey,expiresAtMs:receipt.context.expiresAtMs,after});
-   lastBatch={after,before:baseline,expected,count:additions.length};
+   lastBatch={epoch:op.epoch,after,before:baseline,expected,count:additions.length};
    op.committed=true;
    // Recognition authority is issued only after exact native readback.
    // A registry failure must not turn a committed drawing into a false failure.
-   try{registerVerifiedDrawings(chart.symbol,additions);}catch{/* remain protected */}
+   try{if(op.epoch===drawingOwnershipEpoch())registerVerifiedDrawings(chart.symbol,additions);}catch{/* remain protected */}
    let visualWarning=false;
    try{if(op.token)cursor.pulse(op.token);}catch{visualWarning=true;}
    return result('VERIFIED',{count:additions.length,ids:Object.freeze(additions.map(d=>d.id)),notificationWarning:commitError,visualWarning});
@@ -150,13 +150,13 @@ export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor
   if(resolved.state!=='READY')return result(resolved.state);
   const current=resolved.current;
   const preview=Object.freeze({state:'CONFIRM_REQUIRED',symbol:chart.symbol,timeframe:canonicalDrawingTimeframe(chart.timeframe),type:current.type,price:current.a.price,lower:current.type==='rectangle'?current.b.price:null,expiresAtMs:now()+30000});
-  pendingDeletion={preview,before,baseline:exact(before.present),question,selection:structuredClone(selection),targetId:current.id,target:exact(current)};
+  pendingDeletion={epoch:drawingOwnershipEpoch(),preview,before,baseline:exact(before.present),question,selection:structuredClone(selection),targetId:current.id,target:exact(current)};
   return preview;
  }
  async function confirmDeletion({preview,request,selection,readSelection,signal}={}){
   const deletion=pendingDeletion;
   cancelDeletion();
-  if(!deletion||deletion.preview!==preview||now()>=preview.expiresAtMs||
+  if(!deletion||deletion.epoch!==drawingOwnershipEpoch()||deletion.preview!==preview||now()>=preview.expiresAtMs||
    getDrawingSnapshot(chart.symbol)!==deletion.before||exact(getDrawingSnapshot(chart.symbol).present)!==deletion.baseline||exact(selection)!==exact(deletion.selection))return result('STALE');
   return runEdit({request,question:deletion.question,selection,readSelection,signal},deletion);
  }
@@ -177,7 +177,7 @@ export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor
   const oldPath=points(current),newPath=deletion?oldPath:points(edited);
   if(!oldPath||!newPath)return result('OFFSCREEN');
   const next=deletion?before.present.filter(d=>d.id!==current.id):before.present.map(d=>d.id===current.id?edited:d),expected=exact(next);
-  const op={cancelled:false,token:null,lastPoint:null,committed:false,writeStarted:false};active=op;
+  const op={epoch:drawingOwnershipEpoch(),cancelled:false,token:null,lastPoint:null,committed:false,writeStarted:false};active=op;
   const abort=()=>{if(active===op)stop();};
   signal?.addEventListener?.('abort',abort,{once:true});
   const stillValid=()=>executeCheck(request,receipt,signal,op)&&getDrawingSnapshot(chart.symbol)===before&&
@@ -199,8 +199,8 @@ export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor
     if(after===before&&exact(after.present)===baseline)return result('FAILED_NO_COMMIT');
     uncertainSymbols.add(chart.symbol);return result('FAILED_UNCERTAIN');
    }
-   lastBatch={after,before:baseline,expected,count:1};op.committed=true;
-   try{if(!deletion)registerVerifiedDrawings(chart.symbol,[edited]);}catch{/* conservative ownership downgrade */}
+   lastBatch={epoch:op.epoch,after,before:baseline,expected,count:1};op.committed=true;
+   try{if(!deletion&&op.epoch===drawingOwnershipEpoch())registerVerifiedDrawings(chart.symbol,[edited]);}catch{/* conservative ownership downgrade */}
    try{cursor.pulse(op.token);}catch{/* visual-only */}
    return result(deletion?'DELETED':'EDITED',{count:1,notificationWarning});
   }catch{
@@ -219,6 +219,7 @@ export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor
   if(disposed||active)return result('DENIED');
   if(uncertainSymbols.has(chart.symbol))return result('RECOVERY_REQUIRED');
   if(!lastBatch)return result('NO_AI_BATCH');
+  if(lastBatch.epoch!==drawingOwnershipEpoch()){lastBatch=null;return result('NO_AI_BATCH');}
   const current=getDrawingSnapshot(chart.symbol),batch=lastBatch;
   if(current!==batch.after||exact(current.present)!==batch.expected||exact(current.past.at(-1))!==batch.before)return result('UNDO_CONFLICT');
   let warning=false;
