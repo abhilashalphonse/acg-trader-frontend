@@ -193,6 +193,29 @@ try{
  assert.equal((await changeAppearance('Show AI FVG',4)).hidden,false);await annotation.waitFor({state:'visible'});
  assert.equal((await changeAppearance('Show AI FVG on all timeframes',5)).timeframeVisibility,'all');
  await page.screenshot({path:'artifacts/ai-agent-drawing-appearance.png',animations:'allow'});
+ // Destructive commands never mutate until the exact inline confirmation.
+ const deletionBaseline=await read(),deletionCalls=drawRequests.length,deletionRevision=revision;
+ const confirm=panel.getByRole('button',{name:'Confirm deletion',exact:true});
+ const cancel=panel.getByRole('button',{name:'Cancel deletion',exact:true});
+ await input.fill('Delete AI FVG');await send.click();await confirm.waitFor();
+ assert.deepEqual(await read(),deletionBaseline);
+ await cancel.click();await panel.getByText('Deletion cancelled. No drawing was removed.').waitFor();
+ assert.deepEqual(await read(),deletionBaseline);
+ await input.fill('Delete AI FVG');await send.click();await confirm.waitFor();
+ // A chart gesture invalidates the pending exact target.
+ await page.mouse.click(plot.x+plot.width*.45,plot.y+plot.height*.35);
+ await confirm.click();
+ await panel.getByText('Deletion stopped or the confirmation is no longer valid. No automatic retry.').waitFor();
+ assert.deepEqual(await read(),deletionBaseline);
+ await input.fill('Delete AI FVG');await send.click();await confirm.waitFor();
+ await confirm.click();await waitForCursor();
+ await panel.getByText('Deleted the confirmed AI drawing. You can undo this deletion.').waitFor();
+ assert.deepEqual(await read(),deletionBaseline.slice(0,2));
+ await input.fill('Undo the last AI drawing batch');await send.click();
+ await panel.getByText('Undid the last AI drawing batch (1 drawings).',{exact:true}).last().waitFor();
+ assert.deepEqual(await read(),deletionBaseline);
+ assert.equal(drawRequests.length,deletionCalls);assert.equal(revision,deletionRevision);
+
  assert.deepEqual(unexpectedWrites,[]);assert.deepEqual(errors,[]);
  console.log('PASS mounted desktop chat, native chart anchors, gradient cursor, actual drawing store, batch undo, stale receipt and Stop; synthetic HTTP only');
  await page.close();
