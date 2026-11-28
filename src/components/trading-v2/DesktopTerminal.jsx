@@ -451,6 +451,8 @@ export default function DesktopTerminal({
   const openMiniTerminal = useCallback(() => miniTerminalRef.current?.open(), []);
   const searchRef = useRef(null);
   const [activeNav, setActiveNav] = useState('trade');
+  const agentDrawingRef=useRef(null);
+  const agentDrawingPort=React.useMemo(()=>({onReady:port=>{agentDrawingRef.current=port;},get:()=>agentDrawingRef.current}),[]);
   const aiPreview = V4_DESKTOP_EXECUTION_ENABLED && (staffAiPreview === true || isAiChatPreviewEnabled(import.meta.env.DEV, typeof window !== 'undefined' ? window.location.search : ''));
   const [notice, setNotice] = useState('');
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
@@ -1468,6 +1470,7 @@ export default function DesktopTerminal({
           <section ref={chartWorkspaceRef} className="relative grid min-h-0 min-w-0 overflow-hidden bg-black grid-rows-[minmax(0,1fr)]" style={{ gridColumn: '1', gridRow: '1' }}>
             <div className="min-h-0 min-w-0 bg-black p-0">
               <DesktopMultiChart
+                agentDrawingPort={aiPreview && activeNav==='ai' && !desktopLayout.sidebarCollapsed && !positionsExpanded && !accountSwitching && staffAiRuntime?.runtimeMode==='WORKSPACE_CHAT' ? agentDrawingPort : null}
                 compactContext={positionsExpanded}
                 chartOrderV4={V4_DESKTOP_EXECUTION_ENABLED}
                 directPendingCancel={DOCK_AUDIT_ENABLED && miniTerminalDetached}
@@ -1559,7 +1562,7 @@ export default function DesktopTerminal({
 
           {!desktopLayout.sidebarCollapsed && !positionsExpanded && (
             <aside className="acg-motion-side-panel relative flex min-h-0 flex-col overflow-hidden rounded-[16px] border border-white/[0.07] bg-[#09090B] shadow-[inset_0_1px_0_rgba(255,255,255,0.018),0_12px_30px_rgba(0,0,0,.22)]" style={{ gridColumn: '2', gridRow: '1' }}>
-              {aiPreview && activeNav === 'ai' ? <NativeAiChat key={JSON.stringify([activeAccountId || null,account?.id || null,accountSwitching,activeChartIndex,multiChart?.cells?.[activeChartIndex]?.symbol || activeSymbol,activeChartTimeframe])} symbol={multiChart?.cells?.[activeChartIndex]?.symbol || activeSymbol} timeframe={activeChartTimeframe} market={market?.symbol===(multiChart?.cells?.[activeChartIndex]?.symbol || activeSymbol)?market:markets.find(m=>m.symbol===(multiChart?.cells?.[activeChartIndex]?.symbol || activeSymbol))} reportFixture={aiReportFixture} staffRuntime={staffAiRuntime} onClose={() => setDesktopLayout(current => ({ ...current, sidebarCollapsed: true }))}/> : activeNav === 'alerts' ? <AlertsPanel/> : marketPanelOpen ? (
+              {aiPreview && activeNav === 'ai' ? <NativeAiChat key={JSON.stringify([activeAccountId || null,account?.id || null,accountSwitching,activeChartIndex,multiChart?.cells?.[activeChartIndex]?.symbol || activeSymbol,activeChartTimeframe])} symbol={multiChart?.cells?.[activeChartIndex]?.symbol || activeSymbol} timeframe={activeChartTimeframe} market={market?.symbol===(multiChart?.cells?.[activeChartIndex]?.symbol || activeSymbol)?market:markets.find(m=>m.symbol===(multiChart?.cells?.[activeChartIndex]?.symbol || activeSymbol))} reportFixture={aiReportFixture} staffRuntime={staffAiRuntime} agentDrawingPort={agentDrawingPort} onClose={() => setDesktopLayout(current => ({ ...current, sidebarCollapsed: true }))}/> : activeNav === 'alerts' ? <AlertsPanel/> : marketPanelOpen ? (
                 <div className="min-h-0 flex-1">
                   <DesktopWatchlist
                     markets={markets}

@@ -518,6 +518,18 @@ export default function TradingChart({
     };
     timeScale.subscribeVisibleLogicalRangeChange(visibleRangeHandler);
     const coordinateApi = {
+      // Only native, explicitly complete, nonsynthetic bars; no active price
+      // or guessed candle closure is accepted for the action context.
+      agentDrawingSnapshot() {
+        if (chartRef.current !== chart || !host.isConnected || !initialLoadCompleteRef.current) return null;
+        const step = {M1:60,M5:300,M15:900,M30:1800,H1:3600,H4:14400,D1:86400,W1:604800}[timeframe];
+        if (!step) return null;
+        const bars = barsRef.current.filter(b=>b.complete===true && b.synthetic===false).slice(-128);
+        const last=bars.at(-1);
+        if (!last || !Number.isSafeInteger(last.time)) return null;
+        return {latestClosedAtMs:(last.time+step)*1000,
+          fingerprint:JSON.stringify(bars.map(b=>[b.time,b.open,b.high,b.low,b.close,b.stateVersion,b.stateEpoch]))};
+      },
       plotSize() {
         return { width: timeScale.width(), height: chart.panes()[0]?.getHeight?.() || host.clientHeight };
       },

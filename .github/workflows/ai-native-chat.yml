@@ -9,6 +9,8 @@ on:
       - 'src/mobileAuditBrowserMain.jsx'
       - 'tests/ai-preview.test.js'
       - 'tests/ui/ai-native-chat.mjs'
+      - 'tests/ui/ai-agent-drawing.mjs'
+      - 'src/v4PositionsAuditMain.jsx'
       - '.github/workflows/ai-native-chat.yml'
   workflow_dispatch:
 permissions:
@@ -33,6 +35,7 @@ jobs:
           echo $! > /tmp/acg-ai-preview.pid
           curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-connrefused 'http://127.0.0.1:5174/v4-positions-audit.html?public_review=1' > /dev/null
       - run: node tests/ui/ai-native-chat.mjs
+      - run: node tests/ui/ai-agent-drawing.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
