@@ -202,3 +202,49 @@ test('appearance, annotation label, hide/show and visibility preserve exact geom
  assert.equal(d.style.color,'#2962FF');assert.equal(d.style.dash,'dashed');assert.equal(d.style.width,3);assert.equal(d.style.opacity,.6);assert.equal(d.text,'Demand zone');assert.equal(d.hidden,false);assert.equal(d.timeframeVisibility,'all');
  assert.equal(f.e.undoLastBatch().state,'UNDONE');assert.equal(getDrawingSnapshot(symbol).present[1].timeframeVisibility,'M5');
 });
+
+test('deletion requires exact single-use preview and restores the native batch with undo',async()=>{
+ const f=fixture('AGENTDELETE1'),symbol=f.request.workspace.symbol;
+ assert.equal((await f.e.execute(f)).state,'VERIFIED');
+ const before=getDrawingSnapshot(symbol),request={...f.request,drawingRevision:before.revision,actionId:'aabbccdd-1122-4333-8444-556677889905'};
+ const args={request,selection:null,readSelection:()=>null};
+ assert.equal((await f.e.edit({...args,question:'Delete AI FVG'})).state,'DENIED');
+ const preview=f.e.previewDeletion({question:'Delete AI FVG',selection:null});
+ assert.equal(preview.state,'CONFIRM_REQUIRED');assert.equal(getDrawingSnapshot(symbol),before);
+ assert.equal((await f.e.confirmDeletion({...args,preview:{...preview}})).state,'STALE');
+ assert.equal(getDrawingSnapshot(symbol),before);
+ const fresh=f.e.previewDeletion({question:'Delete AI FVG',selection:null});
+ assert.equal((await f.e.confirmDeletion({...args,preview:fresh})).state,'DELETED');
+ assert.deepEqual(getDrawingSnapshot(symbol).present,[before.present[0]]);
+ assert.equal((await f.e.confirmDeletion({...args,preview:fresh})).state,'STALE');
+ assert.equal(f.e.undoLastBatch().state,'UNDONE');
+ assert.deepEqual(getDrawingSnapshot(symbol).present,before.present);
+});
+test('deletion preview is cancelled by stop, changed selection or a later manual revision',async()=>{
+ const f=fixture('AGENTDELETE2'),symbol=f.request.workspace.symbol;
+ assert.equal((await f.e.execute(f)).state,'VERIFIED');
+ const before=getDrawingSnapshot(symbol),request={...f.request,drawingRevision:before.revision,actionId:'aabbccdd-1122-4333-8444-556677889906'};
+ const selection={symbol,chartInstanceId:f.request.workspace.chartInstanceId,selectedId:before.present[1].id};
+ const args={request,selection,readSelection:()=>selection};
+ let preview=f.e.previewDeletion({question:'Delete selected AI drawing',selection});
+ assert.equal(preview.state,'CONFIRM_REQUIRED');
+ f.e.stop();assert.equal((await f.e.confirmDeletion({...args,preview})).state,'STALE');
+ preview=f.e.previewDeletion({question:'Delete selected AI drawing',selection});
+ assert.equal((await f.e.confirmDeletion({...args,preview,selection:null})).state,'STALE');
+ preview=f.e.previewDeletion({question:'Delete selected AI drawing',selection});
+ patchDrawing(symbol,selection.selectedId,{style:{color:'#FFFFFF'}});
+ const changed=getDrawingSnapshot(symbol);
+ assert.equal((await f.e.confirmDeletion({...args,preview})).state,'STALE');
+ assert.equal(getDrawingSnapshot(symbol),changed);
+ assert.equal(f.e.previewDeletion({question:'Delete selected AI drawing',selection}).state,'PROTECTED_TARGET');
+});
+test('no deletion during interrupted cursor motion',async()=>{
+ const f=fixture('AGENTDELETE3'),symbol=f.request.workspace.symbol;
+ assert.equal((await f.e.execute(f)).state,'VERIFIED');
+ const before=getDrawingSnapshot(symbol),request={...f.request,drawingRevision:before.revision,actionId:'aabbccdd-1122-4333-8444-556677889907'};
+ const preview=f.e.previewDeletion({question:'Remove AI FVG',selection:null});
+ let resolveMove;f.cursor.move=()=>new Promise(resolve=>{resolveMove=resolve;});
+ const running=f.e.confirmDeletion({request,preview,selection:null,readSelection:()=>null});
+ f.e.stop();resolveMove(false);
+ assert.equal((await running).state,'STOPPED');assert.equal(getDrawingSnapshot(symbol),before);
+});
