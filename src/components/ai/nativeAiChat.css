@@ -179,3 +179,15 @@
 .acg-ai-workspace-purple .aic-workspace-send:disabled{background:#38313f;color:#a39baa}
 .acg-ai-workspace-purple button:focus-visible{outline-color:var(--aic-accent)}
 .acg-ai-workspace-purple.acg-ai-chat-mobile .aic-followups button{min-height:36px;font-size:12px}
+
+/* Mobile staff drawing workspace: chart and conversation occupy separate
+   flex regions. Never cover native drawing targets with a modal sheet. */
+.acg-mobile-ai-split .acg-mobile-reference-chart-wrap{flex:1 1 45%;min-height:0;overflow:hidden}
+.acg-mobile-ai-inline{flex:0 1 55%;min-height:0;overflow:hidden;border-top:1px solid #292b31;background:#09090b}
+.acg-mobile-ai-inline .acg-ai-chat-mobile{padding-top:0}
+.acg-mobile-ai-inline .aic-header{flex-shrink:0;height:40px}
+.acg-mobile-ai-inline .aic-body{padding:8px 12px}
+.acg-mobile-ai-inline .aic-footer{padding:6px 10px}
+.acg-mobile-ai-inline .aic-context{padding:4px 10px}
+.acg-mobile-ai-inline .aic-workspace-composer textarea{min-height:32px;max-height:66px}
+@media(max-height:520px){.acg-mobile-ai-inline{flex-basis:68%}.acg-mobile-ai-inline .aic-workspace-context{display:none}.acg-mobile-ai-inline .aic-disclaimer{display:none}}
