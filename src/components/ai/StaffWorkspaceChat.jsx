@@ -33,6 +33,7 @@ export function projectWorkspaceAnswer(result,expected){
     result.workspace?.symbol!==expected.symbol||result.workspace?.timeframe!==expected.timeframe||
     result.state!=='ANSWERED'||typeof result.answer!=='string'||!result.answer.trim()||bytes(result.answer)>12000||
     result.context?.account!==expected.includeAccount||result.context?.market!==expected.includeMarket||
+    (Object.hasOwn(result.context,'accountUsed')&&(typeof result.context.accountUsed!=='boolean'||(result.context.accountUsed&&!result.context.account)))||
     !Number.isSafeInteger(result.usage?.inputTokens)||result.usage.inputTokens<0||result.usage.inputTokens>32768||
     !Number.isSafeInteger(result.usage?.outputTokens)||result.usage.outputTokens<0||result.usage.outputTokens>2048)return null;
   return {text:result.answer,context:result.context,tokens:result.usage.inputTokens+result.usage.outputTokens};
@@ -133,7 +134,7 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market}){
             {i===messages.length-1&&regenerationQuestion(messages,historyStart.current,m.id)&&<><span className="aic-action-divider"/><button type="button" className="aic-copy" aria-label="Regenerate response" title="Regenerate using current context (new AI request)" disabled={busy||!consent} onClick={()=>void send(m.id)}><RefreshCw size={15}/></button></>}
           </div>{copyState?.id===m.id&&<span role="status" className="aic-copy-status">{copyState.ok?'Copied':'Copy failed'}</span>}</div>
           {i===messages.length-1&&!busy&&i-1>=historyStart.current&&validQuestion(m.text)&&<div className="aic-followups">{followUpSuggestions(m.text).map((s,j)=><button key={s.label} type="button" onClick={()=>{setDraft(s.prompt);input.current?.focus();}}>{j===0&&s.label!=='Summarise'?<MessageCircle size={13}/>:<AlignLeft size={13}/>}<span>{s.label}</span></button>)}</div>}
-          <p className="aic-answer-context">{m.context?.market?'Chart context':'No chart context'} · {m.context?.account?'Account context':'No account context'}</p>
+          <p className="aic-answer-context">{m.context?.market?'Chart context':'No chart context'} · {(m.context?.accountUsed??m.context?.account)?'Account context':'No account context'}</p>
         </>}
       </article>)}
       {busy&&preview&&<article className="aic-workspace-message aic-assistant-message" aria-label="Response in progress"><div className="aic-answer-heading"><span className="aic-answer-avatar"><Sparkles size={14}/></span><strong>ACG AI</strong><span className="aic-answer-instrument">Generating…</span></div><div className="aic-message-text" style={{whiteSpace:'pre-wrap'}}>{preview}</div></article>}
