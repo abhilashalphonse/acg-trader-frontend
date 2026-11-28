@@ -59,12 +59,16 @@ try{
  await panel.getByRole('textbox',{name:'Message ACG AI'}).waitFor();
  const input=panel.getByRole('textbox',{name:'Message ACG AI'});
  const send=panel.getByRole('button',{name:'Send message'});
- // The cursor anchor intentionally has zero width and height; its positioned
- // child is the rendered artwork. Assert the actual image, not the anchor.
+ // Assert the actual decoded artwork and its intended physical size.
  const cursor=page.locator('.acg-agent-cursor.is-visible .acg-agent-cursor-image');
  const waitForCursor=async()=>{
-   await cursor.waitFor({state:'visible'});
-   assert.equal(await cursor.evaluate(img=>img.complete&&img.naturalWidth>0&&img.getBoundingClientRect().height===36),true);
+   await cursor.waitFor({state:'visible'}).catch(async error=>{
+     console.error('Cursor layout diagnostic:',await page.locator('.acg-agent-cursor-image').evaluateAll(images=>images.map(img=>{
+       const css=getComputedStyle(img),parent=img.parentElement,box=img.getBoundingClientRect();
+       return {decoded:img.complete,naturalWidth:img.naturalWidth,width:box.width,height:box.height,display:css.display,visibility:css.visibility,maxWidth:css.maxWidth,parentClass:parent.className,parentWidth:parent.getBoundingClientRect().width,opacity:getComputedStyle(parent).opacity};
+     })),await panel.innerText());throw error;
+   });
+   assert.equal(await cursor.evaluate(img=>img.complete&&img.naturalWidth>0&&Math.abs(img.getBoundingClientRect().height-36)<0.5&&Math.abs(img.getBoundingClientRect().width-30)<0.5),true);
  };
  const read=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('acg-trader-drawings-v3:EURUSD')||'[]'));
  await page.waitForFunction(()=>document.querySelector('.acg-agent-cursor-surface')!==null);
