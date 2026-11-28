@@ -1811,7 +1811,7 @@ export default function ChartArea({
         />}
         {agentDrawingPort && !compactContext && showDrawings && drawingInteractionEnabled && !tradePlan && !lockAllDrawings && selectedTool === 'cursor' && coordinateApi && <AgentDrawingSurface
           symbol={symbol} timeframe={chartTimeframe} chartInstanceId={chartInstanceId}
-          coordinateApi={coordinateApi} onReady={agentDrawingPort.onReady}
+          coordinateApi={coordinateApi} onReady={agentDrawingPort.onReady} mobile={mobileOverlayStyle}
         />}
         <TradePlanOverlay
           plan={v4AuditLayer && tradePlan?.editingOrderId ? null : tradePlan}
