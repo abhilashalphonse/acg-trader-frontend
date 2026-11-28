@@ -21,7 +21,11 @@ try{
  await page.route('http://127.0.0.1:65534/**',async route=>{
    const req=route.request(),url=new URL(req.url()),path=url.pathname;
    if(req.method()==='OPTIONS')return json(route,{},204);
-   if(path==='/v1/market/candles'){
+   // The ordinary AuthProvider probes for an existing refresh cookie at boot.
+   // This browser fixture has no real session; explicitly deny the probe.
+   // Keep every other non-allowlisted write (including trade APIs) forbidden.
+   if(path==='/v1/auth/refresh'&&req.method()==='POST')return json(route,{error:{code:'UNAUTHENTICATED'}},401);
+   if(path==='/v1/market/candles'&&req.method()==='GET'){
      const tf=url.searchParams.get('timeframe'),step=tfSeconds[tf]||1800;
      const end=Math.floor(fixtureClock/1000/step)*step;
      const price=fixturePrices[url.searchParams.get('symbol')]||1.1173;
