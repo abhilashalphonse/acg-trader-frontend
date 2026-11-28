@@ -1,12 +1,12 @@
 // The server sends bounded lifecycle events and exactly one terminal result.
-// Never display partial model text or automatically replay a failed request.
+// Partial model text is provisional; never automatically replay a failed request.
 const maxBytes=65536;
 const stages=['CONTEXT','GENERATING'];
-export async function readWorkspaceEventStream(response,onProgress){
+export async function readWorkspaceEventStream(response,onProgress,onDelta){
   const reader=response.body?.getReader();
   if(!reader)throw Error('Missing event stream');
   const decoder=new TextDecoder('utf-8',{fatal:true});
-  let total=0,buffer='',stageIndex=0,terminal=false,result;
+  let total=0,buffer='',stageIndex=0,terminal=false,result,preview='';
   const consume=block=>{
     if(terminal)throw Error('Event after terminal result');
     const lines=block.split('\n');
@@ -15,8 +15,14 @@ export async function readWorkspaceEventStream(response,onProgress){
     if(kind==='progress'){
       if(!data||Object.keys(data).length!==1||data.stage!==stages[stageIndex])throw Error('Invalid progress');
       stageIndex++;onProgress?.(data.stage);
+    }else if(kind==='delta'){
+      if(stageIndex!==stages.length||!data||Object.keys(data).length!==1||typeof data.text!=='string'||!data.text)throw Error('Invalid delta');
+      preview+=data.text;
+      if(new TextEncoder().encode(preview).byteLength>12000)throw Error('Answer stream limit');
+      onDelta?.(data.text);
     }else if(kind==='result'){
       if(stageIndex!==stages.length||!data||typeof data!=='object'||Array.isArray(data))throw Error('Invalid result');
+      if(preview&&data.state==='ANSWERED'&&(typeof data.answer!=='string'||data.answer.trim()!==preview.trim()))throw Error('Answer stream mismatch');
       result=data;terminal=true;
     }else if(kind==='error'){
       if(!data||Object.keys(data).length!==1||data.code!=='AI_UNAVAILABLE')throw Error('Invalid error');

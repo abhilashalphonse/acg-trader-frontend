@@ -60,6 +60,7 @@ export async function apiRequest(path, {
   signal = null,
   timeoutMs = traderConfig.requestTimeoutMs,
   workspaceProgress = null,
+  workspaceDelta = null,
 } = {}) {
   const abort = combineAbortSignals(signal, timeoutMs);
   const requestHeaders = new Headers(headers);
@@ -89,7 +90,7 @@ export async function apiRequest(path, {
   try {
     const contentType = response.headers.get('content-type') || '';
     payload = response.ok && typeof workspaceProgress === 'function' && path === '/v1/ai/pilot/generate' && contentType.split(';')[0].trim().toLowerCase() === 'text/event-stream'
-      ? await readWorkspaceEventStream(response, workspaceProgress) : await parseBody(response);
+      ? await readWorkspaceEventStream(response, workspaceProgress, workspaceDelta) : await parseBody(response);
   } catch (error) {
     abort.cleanup();
     throw new ApiError('Backend returned an unreadable response', {
