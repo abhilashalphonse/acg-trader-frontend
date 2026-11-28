@@ -30,7 +30,8 @@ export default function AgentDrawingSurface({symbol,timeframe,chartInstanceId,co
     return Object.freeze({workspace,actionId:crypto.randomUUID(),chartContextVersion,latestClosedAtMs:snapshot.latestClosedAtMs,drawingRevision:getDrawingSnapshot(symbol).revision,userRequested:true,complete:true});
    },
    execute:executor.execute,
-   stop:executor.stop
+   stop:executor.stop,
+   undoLastBatch:executor.undoLastBatch
   });
   setCursor(controller);onReady(port);
   return ()=>{disposed=true;pinned=null;executor.dispose();controller.dispose();onReady(null);};
