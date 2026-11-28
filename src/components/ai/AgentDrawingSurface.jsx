@@ -8,7 +8,7 @@ import {inspectChartDrawings,drawingOwnershipEpoch} from './chartDrawingInventor
 // Private chart capability scoped to the active mounted chart. The context
 // token binds to a local snapshot; the server independently verifies market
 // evidence and the completed-candle time. It is not an authentication token.
-export default function AgentDrawingSurface({symbol,timeframe,chartInstanceId,coordinateApi,onReady}){
+export default function AgentDrawingSurface({symbol,timeframe,chartInstanceId,coordinateApi,onReady,mobile=false}){
  const [cursor,setCursor]=useState(null);
  const anchor=useRef(null);
  useLayoutEffect(()=>{
@@ -20,10 +20,14 @@ export default function AgentDrawingSurface({symbol,timeframe,chartInstanceId,co
    if(d?.symbol===symbol&&d.chartInstanceId===chartInstanceId)selection={symbol,chartInstanceId,selectedId:d.selectedId};
   };
   window.addEventListener('acg-trader-drawing-selection-change',selectionChanged);
+  const usablePlot=()=>{
+   const size=coordinateApi.plotSize();
+   return !mobile||(Number.isFinite(size?.width)&&Number.isFinite(size?.height)&&size.width>=180&&size.height>=150);
+  };
   const controller=createAgentCursor({getBounds:()=>coordinateApi.plotSize()});
   const readCurrentContext=()=>{
    const snapshot=coordinateApi.agentDrawingSnapshot();
-   if(disposed||!pinned||!snapshot||snapshot.fingerprint!==pinned.fingerprint||snapshot.latestClosedAtMs!==pinned.latestClosedAtMs)return null;
+   if(disposed||!pinned||!usablePlot()||!snapshot||snapshot.fingerprint!==pinned.fingerprint||snapshot.latestClosedAtMs!==pinned.latestClosedAtMs)return null;
    return {enabled:true,workspace,chartContextVersion:pinned.chartContextVersion,latestClosedAtMs:pinned.latestClosedAtMs};
   };
   const executor=createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor:controller,readCurrentContext});
@@ -42,6 +46,8 @@ export default function AgentDrawingSurface({symbol,timeframe,chartInstanceId,co
   const escape=e=>{if(e.key==='Escape')interrupt('ESCAPE');};
   const hidden=()=>{if(document.hidden)interrupt('PAGE_HIDDEN');};
   const blur=()=>interrupt('WINDOW_BLUR');
+  const resize=()=>{if(mobile)interrupt('CHART_CHANGED');};
+  if(mobile){window.addEventListener('resize',resize);window.visualViewport?.addEventListener('resize',resize);}
   host?.addEventListener('pointerdown',gesture,true);
   host?.addEventListener('wheel',gesture,{capture:true,passive:true});
   window.addEventListener('keydown',escape,true);
@@ -49,7 +55,7 @@ export default function AgentDrawingSurface({symbol,timeframe,chartInstanceId,co
   document.addEventListener('visibilitychange',hidden);
   const port=Object.freeze({
    prepare({onInterrupt}={}){
-    if(disposed||pinned||document.hidden||typeof onInterrupt!=='function')return null;
+    if(disposed||pinned||!usablePlot()||document.hidden||typeof onInterrupt!=='function')return null;
     const snapshot=coordinateApi.agentDrawingSnapshot();
     if(!snapshot||!Number.isSafeInteger(snapshot.latestClosedAtMs))return null;
     const chartContextVersion=Array.from(crypto.getRandomValues(new Uint8Array(32)),n=>n.toString(16).padStart(2,'0')).join('');
@@ -60,7 +66,7 @@ export default function AgentDrawingSurface({symbol,timeframe,chartInstanceId,co
    inspectDrawings(){return disposed||pinned?null:inspectChartDrawings({...workspace,selection});},
    execute:executor.execute,
    edit({request,question,signal}){return executor.edit({request,question,selection,readSelection:()=>selection,signal});},
-   previewDeletion(question){return disposed||pinned||document.hidden?{state:'DENIED'}:executor.previewDeletion({question,selection});},
+   previewDeletion(question){return disposed||pinned||!usablePlot()||document.hidden?{state:'DENIED'}:executor.previewDeletion({question,selection});},
    confirmDeletion({preview,request,signal}){return executor.confirmDeletion({preview,request,selection,readSelection:()=>selection,signal});},
    cancelDeletion:executor.cancelDeletion,
    stop:()=>interrupt('STOP'),
@@ -75,9 +81,10 @@ export default function AgentDrawingSurface({symbol,timeframe,chartInstanceId,co
    host?.removeEventListener('wheel',gesture,true);
    window.removeEventListener('keydown',escape,true);
    window.removeEventListener('blur',blur);
+   if(mobile){window.removeEventListener('resize',resize);window.visualViewport?.removeEventListener('resize',resize);}
    document.removeEventListener('visibilitychange',hidden);
    executor.dispose();controller.dispose();onReady(null);
   };
- },[symbol,timeframe,chartInstanceId,coordinateApi,onReady]);
+ },[symbol,timeframe,chartInstanceId,coordinateApi,onReady,mobile]);
  return <><span ref={anchor} hidden aria-hidden="true"/>{cursor&&<AgentCursor controller={cursor}/>}</>;
 }
