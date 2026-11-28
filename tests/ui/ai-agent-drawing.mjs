@@ -11,7 +11,7 @@ try{
  const page=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'no-preference'});
  const errors=[],drawRequests=[],unexpectedWrites=[];
  page.on('pageerror',e=>errors.push(e.message));
- let revision=0,mode='normal';
+ let revision=0,mode='normal',holdReady=null,releaseHeld=null;
  const fixtureClock=Date.now(),latestByChart=new Map();
  const origin='http://127.0.0.1:5174';
  const common={contractVersion:'restricted-pilot-v1',mode:'WORKSPACE_CHAT',executionAllowed:false};
@@ -47,10 +47,18 @@ try{
        const id=n=>'draw_'+String(n).repeat(32);
        const make=(n,geometry)=>({sourceId:id(n),drawingKey:id(n),sourceTimeframe:b.timeframe,geometry});
        let actions=b.command==='LIQUIDITY'?[make(1,{type:'hline',time:time-8*step,price:price+d*.15}),make(2,{type:'hline',time:time-4*step,price:price-d*.15})]:[make(3,{type:'rectangle',fromTime:time-8*step,toTime:time-step,lower:price-d*.25,upper:price+d*.25})];
+       if(b.command==='LIQUIDITY_THEN_FVG')actions=[make(9,{type:'hline',time:time-6*step,price:price+d*.2}),make(8,{type:'rectangle',fromTime:time-5*step,toTime:time-step,lower:price-d*.15,upper:price+d*.1})];
        if(mode==='stop')actions=Array.from({length:6},(_,i)=>make(i+3,{type:'rectangle',fromTime:time-(12-i)*step,toTime:time-step,lower:price-d*.25,upper:price+d*.25}));
        const receipt={contractVersion:'chart-drawing-candidates-v1',actionId:b.actionId,context:{symbol:b.symbol,timeframe:b.timeframe,chartContextVersion:b.chartContextVersion,latestClosedAtMs:b.latestClosedAtMs,expiresAtMs:Date.now()+9000},actions};
        if(mode==='mismatch')receipt.context.chartContextVersion='f'.repeat(64);
-       return json(route,{...common,state:'DRAWING_READY',actionId:b.actionId,workspace:{symbol:b.symbol,timeframe:b.timeframe},receipt});
+       const response={...common,state:'DRAWING_READY',actionId:b.actionId,workspace:{symbol:b.symbol,timeframe:b.timeframe},receipt};
+       if(mode==='pending'){
+         await new Promise(resolve=>{releaseHeld=resolve;holdReady?.();});
+         // Deliver the old reply if the transport is still open. An aborted
+         // request may reject fulfillment; either way no drawing may commit.
+         return json(route,response).catch(()=>{});
+       }
+       return json(route,response);
      }
      unexpectedWrites.push(path);return json(route,{error:{code:'UNEXPECTED_AI_CALL'}},400);
    }
@@ -84,6 +92,7 @@ try{
  await panel.getByText(/Marked 2 liquidity level/).waitFor().catch(async error=>{console.error('Drawing fixture diagnostic:',await panel.innerText(),JSON.stringify(drawRequests),JSON.stringify(errors));throw error;});
  assert.equal(drawRequests.length,1);assert.equal(drawRequests[0].command,'LIQUIDITY');
  const first=await read();assert.equal(first.length,2);assert.ok(first.every(d=>d.createdBy==='ai'&&d.type==='hline'&&!d.locked));
+ await cursor.waitFor({state:'detached'});
  await input.fill('Draw FVGs');
  await send.click();
  await waitForCursor();
@@ -99,7 +108,32 @@ try{
  mode='mismatch';await input.fill('Draw FVGs');await send.click();
  await panel.getByText('Drawing response could not be verified. No drawings applied.').waitFor();
  assert.deepEqual(await read(),first);
+ // Ordered compound command and conversational undo, through the real chat.
+ mode='normal';await input.fill('Mark liquidity then draw FVGs');await send.click();
+ await panel.getByText(/Marked 2 liquidity\/FVG drawing/).waitFor();
+ const compound=await read();assert.deepEqual(compound.slice(-2).map(d=>d.type),['hline','rectangle']);
+ assert.equal(compound.at(-1).actionId,compound.at(-2).actionId);
+ assert.equal(drawRequests.at(-1).command,'LIQUIDITY_THEN_FVG');
+ const callsBeforeUndo=drawRequests.length;
+ await input.fill('Undo the last AI drawing batch');await send.click();
+ await panel.getByText('Undid the last AI drawing batch (2 drawings).').waitFor();
+ assert.deepEqual(await read(),first);assert.equal(drawRequests.length,callsBeforeUndo);
+ // Interrupt before receipt arrival via a genuine pointer gesture on the
+ // chart. Releasing the held reply must never resurrect the cancelled batch.
+ await cursor.waitFor({state:'detached'});
+ mode='pending';
+ const held=new Promise(resolve=>{holdReady=resolve;});
+ await input.fill('Draw FVGs');await send.click();await held;
+ const plot=await page.locator('.acg-agent-cursor-surface').boundingBox();
+ assert.ok(plot&&plot.width>0&&plot.height>0);
+ await page.mouse.click(plot.x+plot.width*.45,plot.y+plot.height*.35);
+ await panel.getByText('Drawing stopped: manual chart interaction took priority. No automatic retry.').waitFor();
+ releaseHeld();
+ await input.fill('Draw FVGs');
+ await page.waitForFunction(()=>document.querySelector('[data-ai-chat-preview] button[aria-label="Send message"]')?.disabled===false);
+ assert.deepEqual(await read(),first);
  // Stop during real cursor movement: the batch must not commit.
+ await cursor.waitFor({state:'detached'});
  mode='stop';await input.fill('Draw FVGs');await send.click();
  await waitForCursor();
  await panel.getByRole('button',{name:'Stop response'}).click();

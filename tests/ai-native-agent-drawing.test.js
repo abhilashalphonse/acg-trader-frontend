@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createNativeAgentDrawingExecutor} from '../src/components/ai/nativeAgentDrawingExecutor.js';
-import {getDrawingSnapshot,commitDrawings,undoDrawings,patchDrawing} from '../src/utils/drawingStore.js';
+import {getDrawingSnapshot,commitDrawings,undoDrawings,patchDrawing,subscribeDrawings} from '../src/utils/drawingStore.js';
 const clock=1795836601000,closed=1795836600000,version='e'.repeat(64);
 const actionId='aabbccdd-1122-4333-8444-556677889900';
 function fixture(symbol){
@@ -22,7 +22,7 @@ test('direct user command animates exact native anchors and commits one verified
  const f=fixture('AGENTTESTA'),symbol=f.request.workspace.symbol,before=getDrawingSnapshot(symbol);
  const out=await f.e.execute(f);
  assert.equal(out.state,'VERIFIED');assert.equal(out.count,2);
- assert.deepEqual(f.events.map(x=>x[0]),['start','move','move','pulse','finish']);
+ assert.deepEqual(f.events.map(x=>x[0]),['start','move','move','move','pulse','finish']);
  const after=getDrawingSnapshot(symbol);
  assert.equal(after.revision,before.revision+1);
  assert.equal(after.present[0].a.price,100);
@@ -68,4 +68,74 @@ test('stop during animation and concurrent manual drawing edits prevent partial 
  resolveMove(true);
  assert.equal((await second).state,'STALE');
  assert.deepEqual(getDrawingSnapshot(symbol).present.map(x=>x.id),['manual']);
+});
+
+test('conversational undo reverses only the verified latest batch',async()=>{
+ const f=fixture('AGENTUNDO1'),symbol=f.request.workspace.symbol;
+ const manual={id:'manual',type:'hline',a:{time:closed/1000,price:99}};
+ commitDrawings(symbol,[manual]);f.request.drawingRevision=getDrawingSnapshot(symbol).revision;
+ const baseline=JSON.stringify(getDrawingSnapshot(symbol).present);
+ assert.equal((await f.e.execute(f)).state,'VERIFIED');
+ assert.deepEqual(f.e.undoLastBatch(),{state:'UNDONE',count:2});
+ assert.equal(JSON.stringify(getDrawingSnapshot(symbol).present),baseline);
+ assert.equal(f.e.undoLastBatch().state,'NO_AI_BATCH');
+});
+test('conversational undo refuses to overwrite a later manual revision',async()=>{
+ const f=fixture('AGENTUNDO2'),symbol=f.request.workspace.symbol;
+ assert.equal((await f.e.execute(f)).state,'VERIFIED');
+ commitDrawings(symbol,current=>[...current,{id:'manual-later',type:'hline',a:{time:closed/1000,price:99}}]);
+ const baseline=JSON.stringify(getDrawingSnapshot(symbol).present);
+ assert.equal(f.e.undoLastBatch().state,'UNDO_CONFLICT');
+ assert.equal(JSON.stringify(getDrawingSnapshot(symbol).present),baseline);
+});
+
+test('pan or zoom during choreography invalidates the batch without a write',async()=>{
+ const f=fixture('AGENTPAN1'),symbol=f.request.workspace.symbol;
+ const original=f.coordinateApi.toScreen;let shift=0;
+ f.coordinateApi.toScreen=p=>{const point=original(p);return {...point,x:point.x+shift};};
+ f.cursor.move=async()=>{shift=12;return true;};
+ const out=await f.e.execute(f);
+ assert.equal(out.state,'STALE');assert.equal(getDrawingSnapshot(symbol).present.length,0);
+});
+
+test('exact receipt replay returns already applied without committing twice; changed receipt fails closed',async()=>{
+ const f=fixture('AGENTREPLAY1'),symbol=f.request.workspace.symbol;
+ assert.equal((await f.e.execute(f)).state,'VERIFIED');
+ const snapshot=getDrawingSnapshot(symbol);
+ assert.equal((await f.e.execute(f)).state,'ALREADY_APPLIED');
+ assert.equal(getDrawingSnapshot(symbol),snapshot);
+ const modified=structuredClone(f.receipt);modified.actions[0].geometry.price=101;
+ assert.equal((await f.e.execute({...f,receipt:modified})).state,'DENIED');
+ assert.equal(getDrawingSnapshot(symbol),snapshot);
+});
+test('cursor exception before commit produces a definite no-write outcome',async()=>{
+ const f=fixture('AGENTRECOVER1'),symbol=f.request.workspace.symbol;
+ f.cursor.move=async()=>{throw Error('visual failure');};
+ const before=getDrawingSnapshot(symbol);
+ assert.equal((await f.e.execute(f)).state,'FAILED_NO_COMMIT');
+ assert.equal(getDrawingSnapshot(symbol),before);
+});
+test('listener exception after a fully verified commit and undo does not falsely report failure',async()=>{
+ const f=fixture('AGENTRECOVER2'),symbol=f.request.workspace.symbol;
+ const before=getDrawingSnapshot(symbol);
+ const unsubscribe=subscribeDrawings(symbol,()=>{throw Error('listener failed');});
+ try{
+  const applied=await f.e.execute(f);assert.equal(applied.state,'VERIFIED');assert.equal(applied.notificationWarning,true);
+  const undone=f.e.undoLastBatch();assert.equal(undone.state,'UNDONE');assert.equal(undone.notificationWarning,true);
+  assert.deepEqual(getDrawingSnapshot(symbol).present,before.present);
+ }finally{unsubscribe();}
+});
+test('unexpected concurrent mutation during write quarantines symbol even across executor remount',async()=>{
+ const f=fixture('AGENTRECOVER3'),symbol=f.request.workspace.symbol;
+ const unsubscribe=subscribeDrawings(symbol,()=>{
+  unsubscribe();
+  commitDrawings(symbol,items=>[...items,{id:'unexpected-manual',type:'hline',a:{time:closed/1000,price:99}}]);
+ });
+ assert.equal((await f.e.execute(f)).state,'FAILED_UNCERTAIN');
+ const after=getDrawingSnapshot(symbol);
+ assert.equal(f.e.undoLastBatch().state,'RECOVERY_REQUIRED');
+ f.e.dispose();
+ const remount=fixture(symbol);
+ assert.equal((await remount.e.execute(remount)).state,'RECOVERY_REQUIRED');
+ assert.equal(getDrawingSnapshot(symbol),after);
 });

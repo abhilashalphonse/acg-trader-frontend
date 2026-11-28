@@ -23,7 +23,7 @@ export function normalizeDrawing(raw) {
     hidden: raw.hidden === true,
     timeframeVisibility: canonicalTimeframeVisibility(raw.timeframeVisibility),
     riskTarget: raw.riskTarget ? { ...raw.riskTarget } : null,
-    riskPercent: Number.isFinite(Number(raw.riskPercent)) ? Number(raw.riskPercent) : null,
+    riskPercent: raw.riskPercent != null && Number.isFinite(Number(raw.riskPercent)) ? Number(raw.riskPercent) : null,
     style: {
       ...DEFAULT_DRAWING_STYLE,
       ...(DRAWING_TOOL_DEFAULTS[raw.type] || {}),
