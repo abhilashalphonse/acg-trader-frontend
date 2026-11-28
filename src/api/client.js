@@ -1,4 +1,5 @@
 import { traderConfig } from './config.js';
+import { readWorkspaceEventStream } from './workspaceEventStream.js';
 
 export class ApiError extends Error {
   constructor(message, { status = 0, code = 'REQUEST_FAILED', details = null, requestId = null, cause = null } = {}) {
@@ -58,10 +59,11 @@ export async function apiRequest(path, {
   headers = {},
   signal = null,
   timeoutMs = traderConfig.requestTimeoutMs,
+  workspaceProgress = null,
 } = {}) {
   const abort = combineAbortSignals(signal, timeoutMs);
   const requestHeaders = new Headers(headers);
-  requestHeaders.set('Accept', 'application/json');
+  requestHeaders.set('Accept', typeof workspaceProgress === 'function' && path === '/v1/ai/pilot/generate' ? 'text/event-stream, application/json;q=0.9' : 'application/json');
   if (body !== undefined) requestHeaders.set('Content-Type', 'application/json');
   if (token) requestHeaders.set('Authorization', `Bearer ${token}`);
 
@@ -85,7 +87,9 @@ export async function apiRequest(path, {
 
   let payload;
   try {
-    payload = await parseBody(response);
+    const contentType = response.headers.get('content-type') || '';
+    payload = response.ok && typeof workspaceProgress === 'function' && path === '/v1/ai/pilot/generate' && contentType.split(';')[0].trim().toLowerCase() === 'text/event-stream'
+      ? await readWorkspaceEventStream(response, workspaceProgress) : await parseBody(response);
   } catch (error) {
     abort.cleanup();
     throw new ApiError('Backend returned an unreadable response', {
