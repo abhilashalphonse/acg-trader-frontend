@@ -3,6 +3,7 @@ import AgentCursor from './AgentCursor.jsx';
 import {createAgentCursor} from './agentCursorController.js';
 import {createNativeAgentDrawingExecutor} from './nativeAgentDrawingExecutor.js';
 import {getDrawingSnapshot} from '../../utils/drawingStore.js';
+import {inspectChartDrawings} from './chartDrawingInventory.js';
 
 // Private chart capability scoped to the active mounted chart. The context
 // token binds to a local snapshot; the server independently verifies market
@@ -13,7 +14,12 @@ export default function AgentDrawingSurface({symbol,timeframe,chartInstanceId,co
  useLayoutEffect(()=>{
   if(!coordinateApi?.plotSize||!coordinateApi?.toScreen||!coordinateApi?.agentDrawingSnapshot||typeof onReady!=='function')return;
   const workspace=Object.freeze({symbol,timeframe,chartInstanceId});
-  let pinned=null,disposed=false;
+  let pinned=null,disposed=false,selection=null;
+  const selectionChanged=e=>{
+   const d=e.detail;
+   if(d?.symbol===symbol&&d.chartInstanceId===chartInstanceId)selection={symbol,chartInstanceId,selectedId:d.selectedId};
+  };
+  window.addEventListener('acg-trader-drawing-selection-change',selectionChanged);
   const controller=createAgentCursor({getBounds:()=>coordinateApi.plotSize()});
   const readCurrentContext=()=>{
    const snapshot=coordinateApi.agentDrawingSnapshot();
@@ -50,6 +56,7 @@ export default function AgentDrawingSurface({symbol,timeframe,chartInstanceId,co
     pinned={...snapshot,chartContextVersion,actionId,onInterrupt};
     return Object.freeze({workspace,actionId,chartContextVersion,latestClosedAtMs:snapshot.latestClosedAtMs,drawingRevision:getDrawingSnapshot(symbol).revision,userRequested:true,complete:true});
    },
+   inspectDrawings(){return disposed||pinned?null:inspectChartDrawings({...workspace,selection});},
    execute:executor.execute,
    stop:()=>interrupt('STOP'),
    release(actionId){if(pinned?.actionId===actionId)pinned=null;},
@@ -57,7 +64,8 @@ export default function AgentDrawingSurface({symbol,timeframe,chartInstanceId,co
   });
   setCursor(controller);onReady(port);
   return ()=>{
-   disposed=true;interrupt('CHART_CHANGED');
+   disposed=true;selection=null;interrupt('CHART_CHANGED');
+   window.removeEventListener('acg-trader-drawing-selection-change',selectionChanged);
    host?.removeEventListener('pointerdown',gesture,true);
    host?.removeEventListener('wheel',gesture,true);
    window.removeEventListener('keydown',escape,true);
