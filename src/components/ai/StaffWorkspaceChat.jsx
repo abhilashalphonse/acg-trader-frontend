@@ -1,5 +1,5 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {ArrowUp,Sparkles,Copy,Check,LoaderCircle,ChartNoAxesCombined,Crosshair,Layers,ShieldCheck,ArrowUpRight,ThumbsUp,ThumbsDown,RefreshCw,MessageCircle,AlignLeft} from 'lucide-react';
+import {ArrowUp,Square,Sparkles,Copy,Check,LoaderCircle,ChartNoAxesCombined,Crosshair,Layers,ShieldCheck,ArrowUpRight,ThumbsUp,ThumbsDown,RefreshCw,MessageCircle,AlignLeft} from 'lucide-react';
 import {apiRequest} from '../../api/client.js';
 import {chartContextLabel} from './aiPreview.js';
 import AssistantMarkdown from './AssistantMarkdown.jsx';
@@ -50,17 +50,18 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market}){
   const [draft,setDraft]=useState('');
   const [busy,setBusy]=useState(false);
   const [progress,setProgress]=useState(null);
+  const [preview,setPreview]=useState('');
   const [notice,setNotice]=useState('');
   const [copyState,setCopyState]=useState(null);
   const [feedback,setFeedback]=useState({});
   const latestAnswer=useRef(null);
-  const active=useRef(null),inFlight=useRef(false),historyStart=useRef(0),bottom=useRef(null),input=useRef(null);
+  const active=useRef(null),operation=useRef(null),inFlight=useRef(false),historyStart=useRef(0),bottom=useRef(null),input=useRef(null);
   const valid=Boolean(runtime?.token&&runtime.accountId&&chart.symbol&&allowedFrames.includes(chart.timeframe));
-  const call=(op,extra,signal,workspaceProgress=null)=>apiRequest('/v1/ai/pilot/'+op,{method:'POST',token:runtime.token,
-    body:{accountId:runtime.accountId,connectionId,symbol:chart.symbol,timeframe:chart.timeframe,...extra},signal,timeoutMs:40000,workspaceProgress});
+  const call=(op,extra,signal,workspaceProgress=null,workspaceDelta=null)=>apiRequest('/v1/ai/pilot/'+op,{method:'POST',token:runtime.token,
+    body:{accountId:runtime.accountId,connectionId,symbol:chart.symbol,timeframe:chart.timeframe,...extra},signal,timeoutMs:40000,workspaceProgress,workspaceDelta});
   useEffect(()=>{
     if(!valid)return;
-    const controller=new AbortController();active.current=controller;setConsent(null);setNotice('');
+    const controller=new AbortController();active.current=controller;setConsent(null);setNotice('');setPreview('');setBusy(false);setProgress(null);
     call('status',{},controller.signal).then(v=>{
       if(!controller.signal.aborted&&v?.contractVersion==='restricted-pilot-v1'&&v.mode==='WORKSPACE_CHAT'&&
         v.executionAllowed===false&&v.model==='gpt-6-luna'&&Number.isSafeInteger(v.revision)&&v.revision>=0)setConsent(v);
@@ -72,7 +73,7 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market}){
     const latest=messages.at(-1);
     if(!busy&&latest?.role==='assistant')latestAnswer.current?.scrollIntoView({block:'start',behavior:'auto'});
     else bottom.current?.scrollIntoView({block:'end',behavior:'auto'});
-  },[messages,busy]);
+  },[messages,busy,preview]);
   async function copyAnswer(message){
     try{await navigator.clipboard.writeText(message.text);setCopyState({id:message.id,ok:true});}
     catch{setCopyState({id:message.id,ok:false});}
@@ -84,9 +85,11 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market}){
   async function send(regenerateId=null){
     const retryQuestion=regenerateId?regenerationQuestion(messages,historyStart.current,regenerateId):null;
     if(regenerateId&&!retryQuestion)return;
-    const controller=active.current,question=(retryQuestion||draft).trim();
-    if(!valid||!consent||!controller||controller.signal.aborted||inFlight.current||!validQuestion(question))return;
-    inFlight.current=true;setBusy(true);setProgress(null);setNotice('');if(!regenerateId)setDraft('');setCopyState(null);
+    const parent=active.current,question=(retryQuestion||draft).trim();
+    if(!valid||!consent||!parent||parent.signal.aborted||inFlight.current||!validQuestion(question))return;
+    const controller=new AbortController();operation.current=controller;
+    const abort=()=>controller.abort();parent.signal.addEventListener('abort',abort,{once:true});
+    inFlight.current=true;setBusy(true);setPreview('');setProgress(null);setNotice('');if(!regenerateId)setDraft('');setCopyState(null);
     const prior=regenerateId?messages.slice(0,-2):messages;
     const history=boundedWorkspaceHistory(prior.slice(historyStart.current),question);
     if(!regenerateId)setMessages(m=>[...m,{id:crypto.randomUUID(),role:'user',text:question}]);
@@ -96,13 +99,17 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market}){
       if(grant?.contractVersion!=='restricted-pilot-v1'||grant.mode!=='WORKSPACE_CHAT'||grant.executionAllowed!==false||grant.revision!==consent.revision+1)throw Error('Invalid grant');
       setConsent({...consent,revision:grant.revision,active:true});
       const operationId=crypto.randomUUID();
-      const result=await call('generate',{operationId,intent:'WORKSPACE_CHAT',question,history,includeMarket,includeAccount},controller.signal,stage=>{if(!controller.signal.aborted)setProgress(stage);});
+      const result=await call('generate',{operationId,intent:'WORKSPACE_CHAT',question,history,includeMarket,includeAccount},controller.signal,stage=>{if(!controller.signal.aborted)setProgress(stage);},delta=>{if(!controller.signal.aborted)setPreview(v=>v+delta);});
       if(controller.signal.aborted)return;
       const answer=projectWorkspaceAnswer(result,{operationId,...chart,includeMarket,includeAccount});
       if(!answer){setNotice(workspaceFailureNotice(result,{operationId,...chart}));return;}
       setMessages(m=>[...(regenerateId?m.slice(0,-1):m),{id:crypto.randomUUID(),role:'assistant',...answer}]);
     }catch{if(!controller.signal.aborted)setNotice('AI request unavailable. No automatic retry.');}
-    finally{inFlight.current=false;if(!controller.signal.aborted){setBusy(false);setProgress(null);}}
+    finally{
+      parent.signal.removeEventListener('abort',abort);
+      if(operation.current===controller){operation.current=null;inFlight.current=false;}
+      if(!parent.signal.aborted){setBusy(false);setProgress(null);setPreview('');if(controller.signal.aborted){setConsent(null);setNotice('Response stopped. Reopen AI to refresh access. No automatic retry.');}}
+    }
   }
   return <>
     <div className="aic-context aic-workspace-context">
@@ -129,7 +136,8 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market}){
           <p className="aic-answer-context">{m.context?.market?'Chart context':'No chart context'} · {m.context?.account?'Account context':'No account context'}</p>
         </>}
       </article>)}
-      {busy&&<div className="aic-answer-heading aic-analysis-loading"><LoaderCircle size={14}/> {progress==='CONTEXT'?'Reading workspace…':progress==='GENERATING'?'Generating response…':'Thinking…'}</div>}
+      {busy&&preview&&<article className="aic-workspace-message aic-assistant-message" aria-label="Response in progress"><div className="aic-answer-heading"><span className="aic-answer-avatar"><Sparkles size={14}/></span><strong>ACG AI</strong><span className="aic-answer-instrument">Generating…</span></div><div className="aic-message-text" style={{whiteSpace:'pre-wrap'}}>{preview}</div></article>}
+      {busy&&!preview&&<div className="aic-answer-heading aic-analysis-loading"><LoaderCircle size={14}/> {progress==='CONTEXT'?'Reading workspace…':progress==='GENERATING'?'Generating response…':'Thinking…'}</div>}
       {notice&&<p role="status" className="aic-disclaimer">{notice}</p>}
       <div ref={bottom}/>
     </div>
@@ -143,7 +151,7 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market}){
             <button type="button" className="aic-context-chip" aria-pressed={includeMarket} aria-label="Chart context" disabled={busy} onClick={()=>changeContext(setMarket,!includeMarket)}><span className="aic-chip-check">{includeMarket&&<Check size={12}/>}</span>Chart</button>
             <button type="button" className="aic-context-chip" aria-pressed={includeAccount} aria-label="Account context" disabled={busy} onClick={()=>changeContext(setAccount,!includeAccount)}><span className="aic-chip-check">{includeAccount&&<Check size={12}/>}</span>Account</button>
           </div>
-          <button className="aic-workspace-send" type="button" aria-label="Send message" disabled={busy||!consent||!validQuestion(draft)} onClick={()=>void send()}>{busy?<LoaderCircle size={17} className="aic-send-spinner"/>:<ArrowUp size={17}/>}</button>
+          <button className="aic-workspace-send" type="button" aria-label={busy?'Stop response':'Send message'} disabled={!busy&&(!consent||!validQuestion(draft))} onClick={()=>busy?operation.current?.abort():void send()}>{busy?<Square size={15}/>:<ArrowUp size={17}/>}</button>
         </div>
       </div>
       <p className="aic-disclaimer">Selected context and messages are shared with OpenAI. AI can make mistakes. No trade execution.</p>
