@@ -22,7 +22,7 @@ test('direct user command animates exact native anchors and commits one verified
  const f=fixture('AGENTTESTA'),symbol=f.request.workspace.symbol,before=getDrawingSnapshot(symbol);
  const out=await f.e.execute(f);
  assert.equal(out.state,'VERIFIED');assert.equal(out.count,2);
- assert.deepEqual(f.events.map(x=>x[0]),['start','move','move','pulse','finish']);
+ assert.deepEqual(f.events.map(x=>x[0]),['start','move','move','move','pulse','finish']);
  const after=getDrawingSnapshot(symbol);
  assert.equal(after.revision,before.revision+1);
  assert.equal(after.present[0].a.price,100);
@@ -87,4 +87,13 @@ test('conversational undo refuses to overwrite a later manual revision',async()=
  const baseline=JSON.stringify(getDrawingSnapshot(symbol).present);
  assert.equal(f.e.undoLastBatch().state,'UNDO_CONFLICT');
  assert.equal(JSON.stringify(getDrawingSnapshot(symbol).present),baseline);
+});
+
+test('pan or zoom during choreography invalidates the batch without a write',async()=>{
+ const f=fixture('AGENTPAN1'),symbol=f.request.workspace.symbol;
+ const original=f.coordinateApi.toScreen;let shift=0;
+ f.coordinateApi.toScreen=p=>{const point=original(p);return {...point,x:point.x+shift};};
+ f.cursor.move=async()=>{shift=12;return true;};
+ const out=await f.e.execute(f);
+ assert.equal(out.state,'STALE');assert.equal(getDrawingSnapshot(symbol).present.length,0);
 });
