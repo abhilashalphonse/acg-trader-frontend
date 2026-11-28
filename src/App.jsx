@@ -8,7 +8,7 @@ import { apiRequest } from './api/client.js';
 import { useTraderAuth } from './hooks/useTraderAuth.js';
 import { useTradingStore } from './hooks/useTradingStore.js';
 import { useWatchlists } from './hooks/useWatchlists.js';
-import { deriveTerminalStatus } from './utils/terminalStatus.js';
+import { deriveTerminalStatus, visibleTerminalStatus } from './utils/terminalStatus.js';
 import { formatBrowserTabTitle } from './utils/browserTabTitle.js';
 import { resolveActiveAccountId } from './utils/accountLifecycleRouting.js';
 import { riskCriticalMarketSymbols } from './utils/marketSubscriptions.js';
@@ -261,7 +261,7 @@ export default function App() {
   return (
     <>
       <TerminalStatusBanner
-        status={terminalStatus}
+        status={visibleTerminalStatus(terminalStatus)}
         actionLabel={auth.status === 'reauth-required' ? 'Reconnect' : null}
         actionBusy={auth.refreshing}
         onAction={auth.status === 'reauth-required' ? () => { void auth.refreshSession().catch(() => {}); } : null}
