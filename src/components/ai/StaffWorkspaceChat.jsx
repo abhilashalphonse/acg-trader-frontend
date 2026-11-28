@@ -106,7 +106,7 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market,agen
       if(drawingCommand==='UNDO'){
         if(controller.signal.aborted||agentDrawingPort.get()!==drawingPort)return;
         const outcome=drawingPort.undoLastBatch();
-        const text=outcome.state==='UNDONE'?'Undid the last AI drawing batch ('+outcome.count+' drawings).':outcome.state==='UNDO_CONFLICT'?'The chart was edited after that batch. Use the chart history controls to undo safely.':outcome.state==='NO_AI_BATCH'?'There is no verified AI drawing batch to undo on this chart.':'Undo could not be verified. Inspect the chart before retrying.';
+        const text=outcome.state==='UNDONE'?'Undid the last AI drawing batch ('+outcome.count+' drawings).':outcome.state==='UNDO_CONFLICT'?'The chart was edited after that batch. Use the chart history controls to undo safely.':outcome.state==='NO_AI_BATCH'?'There is no verified AI drawing batch to undo on this chart.':outcome.state==='FAILED_NO_COMMIT'?'Undo was not applied. Your drawings remain unchanged.':outcome.state==='RECOVERY_REQUIRED'||outcome.state==='FAILED_UNCERTAIN'?'Undo could not be verified. AI drawing actions are paused for this symbol until you reload. Inspect your chart first.':'Undo is unavailable.';
         setMessages(m=>[...m,{id:crypto.randomUUID(),role:'assistant',text,action:true,context:{market:true,account:false}}]);return;
       }
       const grant=await call('grant',{expectedRevision:consent.revision,explicitConsent:true},controller.signal);
@@ -128,7 +128,7 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market,agen
           const outcome=await drawingPort.execute({request:drawingRequest,receipt:verified.receipt,signal:controller.signal});
           if(outcome.state==='VERIFIED')text='Marked '+outcome.count+' '+(combined?'liquidity/FVG drawing(s)':drawingCommand==='FVG'?'fair value gap zone(s)':'liquidity level(s)')+' on your '+chart.symbol+' '+chart.timeframe+' chart. You can edit or undo them using the chart tools.';
           else if(outcome.state==='NO_CHANGES'||outcome.state==='ALREADY_APPLIED')text='These drawings are already present. Existing drawings and manual edits were preserved.';
-          else{if(!controller.signal.aborted)setNotice(outcome.state==='OFFSCREEN'?'Some verified anchors are outside the visible chart. Adjust the view and try again.':outcome.state==='FAILED_UNCERTAIN'?'Drawing result could not be verified. Inspect the chart before retrying.':'Chart changed or the drawing operation was stopped. No new action was committed.');return;}
+          else{if(!controller.signal.aborted)setNotice(outcome.state==='OFFSCREEN'?'Some verified anchors are outside the visible chart. Adjust the view and try again.':outcome.state==='FAILED_UNCERTAIN'||outcome.state==='RECOVERY_REQUIRED'?'Drawing result could not be verified. AI drawing actions are paused for this symbol until you reload. Inspect your chart first.':outcome.state==='FAILED_NO_COMMIT'?'Drawing was not applied. No automatic retry.':'Chart changed or the drawing operation was stopped. No new action was committed.');return;}
         }
         setMessages(m=>[...m,{id:crypto.randomUUID(),role:'assistant',text,action:true,context:{market:true,account:false}}]);return;
       }
