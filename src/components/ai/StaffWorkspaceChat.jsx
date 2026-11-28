@@ -91,8 +91,8 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market,agen
     if(!valid||!consent||!parent||parent.signal.aborted||inFlight.current||!validQuestion(question))return;
     const drawingCommand=!regenerateId&&consent.chartDrawingEnabled===true&&agentDrawingPort?chartDrawingCommand(question):null;
     const drawingPort=drawingCommand?agentDrawingPort.get():null;
-    const drawingRequest=drawingPort&&includeMarket?drawingPort.prepare():null;
-    if(drawingCommand&&(!drawingRequest||drawingRequest.workspace.symbol!==chart.symbol)){setNotice('Open the active chart with chart context enabled and the cursor tool selected, then try again.');return;}
+    const drawingRequest=drawingPort&&includeMarket&&drawingCommand!=='UNDO'?drawingPort.prepare():null;
+    if(drawingCommand&&(!drawingPort||!includeMarket||(drawingCommand!=='UNDO'&&(!drawingRequest||drawingRequest.workspace.symbol!==chart.symbol)))){setNotice('Open the active chart with chart context enabled and the cursor tool selected, then try again.');return;}
     if(regenerateId&&chartDrawingCommand(question))return;
     const controller=new AbortController();operation.current=controller;
     const abort=()=>controller.abort();parent.signal.addEventListener('abort',abort,{once:true});
@@ -101,6 +101,12 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market,agen
     const history=boundedWorkspaceHistory(prior.slice(historyStart.current),question);
     if(!regenerateId)setMessages(m=>[...m,{id:crypto.randomUUID(),role:'user',text:question}]);
     try{
+      if(drawingCommand==='UNDO'){
+        if(controller.signal.aborted||agentDrawingPort.get()!==drawingPort)return;
+        const outcome=drawingPort.undoLastBatch();
+        const text=outcome.state==='UNDONE'?'Undid the last AI drawing batch ('+outcome.count+' drawings).':outcome.state==='UNDO_CONFLICT'?'The chart was edited after that batch. Use the chart history controls to undo safely.':outcome.state==='NO_AI_BATCH'?'There is no verified AI drawing batch to undo on this chart.':'Undo could not be verified. Inspect the chart before retrying.';
+        setMessages(m=>[...m,{id:crypto.randomUUID(),role:'assistant',text,action:true,context:{market:true,account:false}}]);return;
+      }
       const grant=await call('grant',{expectedRevision:consent.revision,explicitConsent:true},controller.signal);
       if(controller.signal.aborted)return;
       if(grant?.contractVersion!=='restricted-pilot-v1'||grant.mode!=='WORKSPACE_CHAT'||grant.executionAllowed!==false||grant.revision!==consent.revision+1)throw Error('Invalid grant');
@@ -110,14 +116,15 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market,agen
         setProgress('CONTEXT');
         const value=await call('draw',{actionId:drawingRequest.actionId,command:drawingCommand,chartContextVersion:drawingRequest.chartContextVersion,latestClosedAtMs:drawingRequest.latestClosedAtMs},controller.signal);
         if(controller.signal.aborted||agentDrawingPort.get()!==drawingPort)return;
-        const verified=verifiedDrawingResponse(value,{request:drawingRequest,...chart});
+        const verified=verifiedDrawingResponse(value,{request:drawingRequest,...chart,command:drawingCommand});
         if(!verified){setNotice('Drawing response could not be verified. No drawings applied.');return;}
         let text;
-        if(verified.state==='EMPTY')text='No eligible '+(drawingCommand==='FVG'?'fair value gaps':'liquidity levels')+' were found in the verified chart evidence.';
+        const combined=drawingCommand.includes('_THEN_');
+        if(verified.state==='EMPTY')text='No eligible '+(combined?'liquidity levels or fair value gaps':drawingCommand==='FVG'?'fair value gaps':'liquidity levels')+' were found in the verified chart evidence.';
         else{
           setProgress('DRAWING');
           const outcome=await drawingPort.execute({request:drawingRequest,receipt:verified.receipt,signal:controller.signal});
-          if(outcome.state==='VERIFIED')text='Marked '+outcome.count+' '+(drawingCommand==='FVG'?'fair value gap zone(s)':'liquidity level(s)')+' on your '+chart.symbol+' '+chart.timeframe+' chart. You can edit or undo them using the chart tools.';
+          if(outcome.state==='VERIFIED')text='Marked '+outcome.count+' '+(combined?'liquidity/FVG drawing(s)':drawingCommand==='FVG'?'fair value gap zone(s)':'liquidity level(s)')+' on your '+chart.symbol+' '+chart.timeframe+' chart. You can edit or undo them using the chart tools.';
           else if(outcome.state==='NO_CHANGES'||outcome.state==='ALREADY_APPLIED')text='These drawings are already present. Existing drawings and manual edits were preserved.';
           else{if(!controller.signal.aborted)setNotice(outcome.state==='OFFSCREEN'?'Some verified anchors are outside the visible chart. Adjust the view and try again.':outcome.state==='FAILED_UNCERTAIN'?'Drawing result could not be verified. Inspect the chart before retrying.':'Chart changed or the drawing operation was stopped. No new action was committed.');return;}
         }
