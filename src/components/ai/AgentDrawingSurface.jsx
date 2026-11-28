@@ -30,6 +30,7 @@ export default function AgentDrawingSurface({symbol,timeframe,chartInstanceId,co
   // Cancel pending network requests as well as visible motion. Do not
   // consume events or synthesize clicks; manual chart controls take priority.
   const interrupt=reason=>{
+   executor.cancelDeletion();
    const current=pinned;
    if(!current)return false;
    pinned=null;executor.stop();
@@ -59,6 +60,9 @@ export default function AgentDrawingSurface({symbol,timeframe,chartInstanceId,co
    inspectDrawings(){return disposed||pinned?null:inspectChartDrawings({...workspace,selection});},
    execute:executor.execute,
    edit({request,question,signal}){return executor.edit({request,question,selection,readSelection:()=>selection,signal});},
+   previewDeletion(question){return disposed||pinned||document.hidden?{state:'DENIED'}:executor.previewDeletion({question,selection});},
+   confirmDeletion({preview,request,signal}){return executor.confirmDeletion({preview,request,selection,readSelection:()=>selection,signal});},
+   cancelDeletion:executor.cancelDeletion,
    stop:()=>interrupt('STOP'),
    release(actionId){if(pinned?.actionId===actionId)pinned=null;},
    undoLastBatch:executor.undoLastBatch
