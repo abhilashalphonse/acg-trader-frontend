@@ -3,6 +3,7 @@ import {ArrowUp,Square,Sparkles,Copy,Check,LoaderCircle,ChartNoAxesCombined,Cros
 import {apiRequest} from '../../api/client.js';
 import {chartContextLabel} from './aiPreview.js';
 import AssistantMarkdown from './AssistantMarkdown.jsx';
+import {chartDrawingCommand,verifiedDrawingResponse} from './chartDrawingCommand.js';
 import InstrumentAvatar from '../trading-v2/InstrumentAvatar.jsx';
 import {chartFeedStatus,followUpSuggestions,regenerationQuestion,workspaceFailureNotice} from './workspacePresentation.js';
 const bytes=s=>new TextEncoder().encode(s).length;
@@ -38,7 +39,7 @@ export function projectWorkspaceAnswer(result,expected){
     !Number.isSafeInteger(result.usage?.outputTokens)||result.usage.outputTokens<0||result.usage.outputTokens>2048)return null;
   return {text:result.answer,context:result.context,tokens:result.usage.inputTokens+result.usage.outputTokens};
 }
-export default function StaffWorkspaceChat({runtime,symbol,timeframe,market}){
+export default function StaffWorkspaceChat({runtime,symbol,timeframe,market,agentDrawingPort=null}){
   const chart=chartContextLabel(symbol,timeframe);
   const suggestions=workspaceSuggestions(chart.symbol);
   const instrument=market?.symbol===chart.symbol?market:null;
@@ -88,6 +89,11 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market}){
     if(regenerateId&&!retryQuestion)return;
     const parent=active.current,question=(retryQuestion||draft).trim();
     if(!valid||!consent||!parent||parent.signal.aborted||inFlight.current||!validQuestion(question))return;
+    const drawingCommand=!regenerateId&&consent.chartDrawingEnabled===true&&agentDrawingPort?chartDrawingCommand(question):null;
+    const drawingPort=drawingCommand?agentDrawingPort.get():null;
+    const drawingRequest=drawingPort&&includeMarket?drawingPort.prepare():null;
+    if(drawingCommand&&(!drawingRequest||drawingRequest.workspace.symbol!==chart.symbol)){setNotice('Open the active chart with chart context enabled and the cursor tool selected, then try again.');return;}
+    if(regenerateId&&chartDrawingCommand(question))return;
     const controller=new AbortController();operation.current=controller;
     const abort=()=>controller.abort();parent.signal.addEventListener('abort',abort,{once:true});
     inFlight.current=true;setBusy(true);setPreview('');setProgress(null);setNotice('');if(!regenerateId)setDraft('');setCopyState(null);
@@ -99,6 +105,24 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market}){
       if(controller.signal.aborted)return;
       if(grant?.contractVersion!=='restricted-pilot-v1'||grant.mode!=='WORKSPACE_CHAT'||grant.executionAllowed!==false||grant.revision!==consent.revision+1)throw Error('Invalid grant');
       setConsent({...consent,revision:grant.revision,active:true});
+      if(drawingCommand){
+        if(controller.signal.aborted||agentDrawingPort.get()!==drawingPort)return;
+        setProgress('CONTEXT');
+        const value=await call('draw',{actionId:drawingRequest.actionId,command:drawingCommand,chartContextVersion:drawingRequest.chartContextVersion,latestClosedAtMs:drawingRequest.latestClosedAtMs},controller.signal);
+        if(controller.signal.aborted||agentDrawingPort.get()!==drawingPort)return;
+        const verified=verifiedDrawingResponse(value,{request:drawingRequest,...chart});
+        if(!verified){setNotice('Drawing response could not be verified. No drawings applied.');return;}
+        let text;
+        if(verified.state==='EMPTY')text='No eligible '+(drawingCommand==='FVG'?'fair value gaps':'liquidity levels')+' were found in the verified chart evidence.';
+        else{
+          setProgress('DRAWING');
+          const outcome=await drawingPort.execute({request:drawingRequest,receipt:verified.receipt,signal:controller.signal});
+          if(outcome.state==='VERIFIED')text='Marked '+outcome.count+' '+(drawingCommand==='FVG'?'fair value gap zone(s)':'liquidity level(s)')+' on your '+chart.symbol+' '+chart.timeframe+' chart. You can edit or undo them using the chart tools.';
+          else if(outcome.state==='NO_CHANGES'||outcome.state==='ALREADY_APPLIED')text='These drawings are already present. Existing drawings and manual edits were preserved.';
+          else{if(!controller.signal.aborted)setNotice(outcome.state==='OFFSCREEN'?'Some verified anchors are outside the visible chart. Adjust the view and try again.':outcome.state==='FAILED_UNCERTAIN'?'Drawing result could not be verified. Inspect the chart before retrying.':'Chart changed or the drawing operation was stopped. No new action was committed.');return;}
+        }
+        setMessages(m=>[...m,{id:crypto.randomUUID(),role:'assistant',text,action:true,context:{market:true,account:false}}]);return;
+      }
       const operationId=crypto.randomUUID();
       const result=await call('generate',{operationId,intent:'WORKSPACE_CHAT',question,history,includeMarket,includeAccount},controller.signal,stage=>{if(!controller.signal.aborted)setProgress(stage);},delta=>{if(!controller.signal.aborted)setPreview(v=>v+delta);});
       if(controller.signal.aborted)return;
@@ -131,14 +155,14 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market}){
             <button type="button" className="aic-copy" aria-label="Copy response" title="Copy response" onClick={()=>void copyAnswer(m)}>{copyState?.id===m.id&&copyState.ok?<Check size={15}/>:<Copy size={15}/>}</button>
             <button type="button" className="aic-copy" aria-label="Helpful response" title="Mark helpful (this chat only)" aria-pressed={feedback[m.id]==='up'} onClick={()=>setFeedback(v=>({...v,[m.id]:v[m.id]==='up'?null:'up'}))}><ThumbsUp size={15}/></button>
             <button type="button" className="aic-copy" aria-label="Unhelpful response" title="Mark unhelpful (this chat only)" aria-pressed={feedback[m.id]==='down'} onClick={()=>setFeedback(v=>({...v,[m.id]:v[m.id]==='down'?null:'down'}))}><ThumbsDown size={15}/></button>
-            {i===messages.length-1&&regenerationQuestion(messages,historyStart.current,m.id)&&<><span className="aic-action-divider"/><button type="button" className="aic-copy" aria-label="Regenerate response" title="Regenerate using current context (new AI request)" disabled={busy||!consent} onClick={()=>void send(m.id)}><RefreshCw size={15}/></button></>}
+            {!m.action&&i===messages.length-1&&regenerationQuestion(messages,historyStart.current,m.id)&&<><span className="aic-action-divider"/><button type="button" className="aic-copy" aria-label="Regenerate response" title="Regenerate using current context (new AI request)" disabled={busy||!consent} onClick={()=>void send(m.id)}><RefreshCw size={15}/></button></>}
           </div>{copyState?.id===m.id&&<span role="status" className="aic-copy-status">{copyState.ok?'Copied':'Copy failed'}</span>}</div>
-          {i===messages.length-1&&!busy&&i-1>=historyStart.current&&validQuestion(m.text)&&<div className="aic-followups">{followUpSuggestions(m.text).map((s,j)=><button key={s.label} type="button" onClick={()=>{setDraft(s.prompt);input.current?.focus();}}>{j===0&&s.label!=='Summarise'?<MessageCircle size={13}/>:<AlignLeft size={13}/>}<span>{s.label}</span></button>)}</div>}
+          {!m.action&&i===messages.length-1&&!busy&&i-1>=historyStart.current&&validQuestion(m.text)&&<div className="aic-followups">{followUpSuggestions(m.text).map((s,j)=><button key={s.label} type="button" onClick={()=>{setDraft(s.prompt);input.current?.focus();}}>{j===0&&s.label!=='Summarise'?<MessageCircle size={13}/>:<AlignLeft size={13}/>}<span>{s.label}</span></button>)}</div>}
           <p className="aic-answer-context">{m.context?.market?'Chart context':'No chart context'} · {(m.context?.accountUsed??m.context?.account)?'Account context':'No account context'}</p>
         </>}
       </article>)}
       {busy&&preview&&<article className="aic-workspace-message aic-assistant-message" aria-label="Response in progress"><div className="aic-answer-heading"><span className="aic-answer-avatar"><Sparkles size={14}/></span><strong>ACG AI</strong><span className="aic-answer-instrument">Generating…</span></div><div className="aic-message-text" style={{whiteSpace:'pre-wrap'}}>{preview}</div></article>}
-      {busy&&!preview&&<div className="aic-answer-heading aic-analysis-loading"><LoaderCircle size={14}/> {progress==='CONTEXT'?'Reading workspace…':progress==='GENERATING'?'Generating response…':'Thinking…'}</div>}
+      {busy&&!preview&&<div className="aic-answer-heading aic-analysis-loading"><LoaderCircle size={14}/> {progress==='DRAWING'?'Drawing on chart…':progress==='CONTEXT'?'Reading workspace…':progress==='GENERATING'?'Generating response…':'Thinking…'}</div>}
       {notice&&<p role="status" className="aic-disclaimer">{notice}</p>}
       <div ref={bottom}/>
     </div>
