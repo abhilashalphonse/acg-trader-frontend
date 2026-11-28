@@ -31,6 +31,8 @@ export function workspaceFailureNotice(result,expected){
   if(result.state==='HELD_UNKNOWN')return 'Request outcome uncertain. No automatic retry.';
   if(result.state!=='FAILED')return 'AI response could not be verified. No automatic retry.';
   switch(result.failureReason){
+    case 'DAILY_REQUEST_LIMIT':return 'Daily AI request allowance reached. Requests reset at 00:00 UTC.';
+    case 'DAILY_SPEND_LIMIT':return 'Daily AI spending allowance cannot cover this request. Try after the 00:00 UTC reset.';
     case 'COMPLETION_LIMIT':return 'AI reached its response limit before finishing. Try a more focused question.';
     case 'PROVIDER_REFUSED':return 'The AI provider did not return an answer.';
     case 'INVALID_ANSWER':return 'AI returned an unreadable answer. No automatic retry.';
