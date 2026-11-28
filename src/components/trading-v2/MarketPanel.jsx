@@ -51,6 +51,7 @@ export default function MarketPanel({
   onMovePending,
   onCancelPositionProtection,
   fillAvailableHeight = false,
+  agentDrawingPort = null,
 }) {
   const [drawingToolbarOpen, setDrawingToolbarOpen] = useState(compactMobileToolbar);
 
@@ -114,6 +115,7 @@ export default function MarketPanel({
         onMovePending={onMovePending}
         onCancelPositionProtection={onCancelPositionProtection}
         fillAvailableHeight={fillAvailableHeight}
+        agentDrawingPort={agentDrawingPort}
       />
     </section>
   );

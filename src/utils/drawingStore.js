@@ -8,6 +8,7 @@ const KNOWN_TIMEFRAMES = ['S1','S5','S15','S30','M1','M5','M15','M30','H1','H4',
 
 const stores = new Map();
 const listeners = new Map();
+const mutationObservers = new Map();
 
 const symbolKey = symbol => String(symbol || '').toUpperCase();
 const storageKey = symbol => `${STORAGE_PREFIX}:${symbolKey(symbol)}`;
@@ -23,7 +24,7 @@ export function normalizeDrawing(raw) {
     hidden: raw.hidden === true,
     timeframeVisibility: canonicalTimeframeVisibility(raw.timeframeVisibility),
     riskTarget: raw.riskTarget ? { ...raw.riskTarget } : null,
-    riskPercent: Number.isFinite(Number(raw.riskPercent)) ? Number(raw.riskPercent) : null,
+    riskPercent: raw.riskPercent != null && Number.isFinite(Number(raw.riskPercent)) ? Number(raw.riskPercent) : null,
     style: {
       ...DEFAULT_DRAWING_STYLE,
       ...(DRAWING_TOOL_DEFAULTS[raw.type] || {}),
@@ -109,13 +110,32 @@ function emit(symbol) {
 
 function replaceState(symbol, next, { persistPresent = true } = {}) {
   const key = symbolKey(symbol);
-  stores.set(key, { ...next, revision: (next.revision || 0) + 1 });
+  const previous = ensure(key);
+  const updated = { ...next, revision: (next.revision || 0) + 1 };
+  stores.set(key, updated);
+  // Ownership observers see every native store revision before ordinary UI
+  // subscribers, including live drag, undo/redo and reentrant transactions.
+  // A throwing UI listener cannot conceal a manual change from ownership.
+  for (const observer of [...(mutationObservers.get(key) || [])]) observer(previous, updated);
   if (persistPresent) persist(key, next.present);
   emit(key);
 }
 
 export function getDrawingSnapshot(symbol) {
   return ensure(symbol);
+}
+
+// Internal store mutation observation, not a mutation or UI subscription.
+export function observeDrawingMutations(symbol, observer) {
+  const key = symbolKey(symbol);
+  ensure(key);
+  if (!mutationObservers.has(key)) mutationObservers.set(key, new Set());
+  const observers = mutationObservers.get(key);
+  observers.add(observer);
+  return () => {
+    observers.delete(observer);
+    if (!observers.size && mutationObservers.get(key) === observers) mutationObservers.delete(key);
+  };
 }
 
 export function subscribeDrawings(symbol, listener) {

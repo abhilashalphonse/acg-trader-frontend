@@ -18,6 +18,8 @@ import MobileAccountSheet from './components/trading-v2/MobileAccountSheet.jsx';
 import FrontendSheet from './components/trading-v2/FrontendSheet.jsx';
 import MobileAuditHeader from './components/trading-v2/MobileAuditHeader.jsx';
 import MobileAiChat from './components/ai/MobileAiChat.jsx';
+import MobileTraderShell from './pages/MobileTraderShell.jsx';
+import {initialTradingState} from './store/tradingReducer.js';
 import {sampleWorkspaceReport} from '../tests/fixtures/aiWorkspaceReport.js';
 import {isAiChatPreviewEnabled} from './components/ai/aiPreview.js';
 import MobileAuditExecutionDock from './components/trading-v2/MobileAuditExecutionDock.jsx';
@@ -240,5 +242,23 @@ function SurfaceDemo({surface}) {
   if(surface==='accounts')return <MobileAccountSheet auditMobile account={overview} accounts={[overview,{...account,id:'second',accountCode:'ACG-SECOND',accountType:'DEMO'}]} activeAccountId={selected} onSelectAccount={setSelected} onPlatformSettings={()=>setDestination({kind:'settings'})} onHelp={()=>setDestination({kind:'help'})} onClose={()=>setClosed(true)}/>;
   return <FrontendSheet auditMobile type="platform" account={account} terminalPrefs={prefs} onChartModeChange={setChartMode} onTimeframeChange={setTimeframe} onClose={()=>setClosed(true)}/>;
 }
+// Development-only actual mobile shell; synthetic scoped account and HTTP
+// receipts, no execution transport or real credentials.
+function MobileAgentDrawingFixture(){
+  const paired=import.meta.env.DEV?window.__acgPairedDrawingFixture:null;
+  const fixtureAccount=React.useMemo(()=>paired?{...account,id:paired.runtime.accountId}:account,[paired]);
+  const [revision,setRevision]=useState(0);
+  const [market]=useState(()=>({...initialMarket,bid:1.1173,ask:1.11731,...paired?.market}));
+  const markets=React.useMemo(()=>[market],[market]);
+  const auth=React.useMemo(()=>({authenticated:true,accessToken:null,principal:{accountIds:[fixtureAccount.id],selectedAccountId:fixtureAccount.id,accountGrants:[fixtureAccount]},setSelectedAccountId:()=>{}}),[]);
+  const commands=React.useMemo(()=>({
+    historyOrders:async()=>({items:[]}),historyDeals:async()=>({items:[]}),historyPositions:async()=>({items:[]}),
+  }),[]);
+  const requestSnapshot=React.useCallback(()=>setRevision(n=>n+1),[]);
+  const subscribeMarket=React.useCallback(()=>()=>{},[]);
+  const store=React.useMemo(()=>({...initialTradingState,connection:{status:'ready'},commands,requestSnapshot,subscribeMarket,trading:{...initialTradingState.trading,accountsById:{[fixtureAccount.id]:fixtureAccount},valuationsByAccountId:{[fixtureAccount.id]:{accountId:fixtureAccount.id,equity:fixtureAccount.equity,balance:fixtureAccount.balance,freeMargin:fixtureAccount.freeMargin,valuationStatus:'LIVE'}},snapshotRevisionByAccountId:{[fixtureAccount.id]:revision}}}),[commands,requestSnapshot,subscribeMarket,revision]);
+  const runtime=React.useMemo(()=>paired?.runtime||({runtimeMode:'WORKSPACE_CHAT',token:'synthetic-browser-only',sessionId:'b'.repeat(24),accountId:fixtureAccount.id}),[]);
+  return <AuthContext.Provider value={auth}><TradingContext.Provider value={store}><MobileTraderShell mobileAudit staffAiPreview staffAiRuntime={runtime} market={market} tick={market} markets={markets} activeSymbol={market.symbol}/></TradingContext.Provider></AuthContext.Provider>;
+}
 const fixtureParams=new URLSearchParams(location.search);
-createRoot(document.getElementById('root')).render(fixtureParams.has('surface') ? <SurfaceDemo surface={fixtureParams.get('surface')}/> : fixtureParams.has('manage') ? <ManagedDemo/> : <Demo/>);
+createRoot(document.getElementById('root')).render(import.meta.env.DEV&&fixtureParams.get('agent_drawing_review')==='1'?<MobileAgentDrawingFixture/>:fixtureParams.has('surface') ? <SurfaceDemo surface={fixtureParams.get('surface')}/> : fixtureParams.has('manage') ? <ManagedDemo/> : <Demo/>);

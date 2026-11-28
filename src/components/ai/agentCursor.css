@@ -1,0 +1,26 @@
+.acg-agent-cursor-surface {
+ position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:30;
+}
+.acg-agent-cursor {
+ position:absolute; top:0; left:0; width:30px; height:36px;
+ pointer-events:none; opacity:0; transition:opacity 140ms ease-out;
+}
+.acg-agent-cursor.is-visible {opacity:1;}
+.acg-agent-cursor-image {
+ position:absolute; top:-2px; left:-4px; width:30px; height:36px;
+ display:block; max-width:none; max-height:none;
+ pointer-events:none; user-select:none; object-fit:contain;
+}
+.acg-agent-cursor-ripple {
+ position:absolute; top:-12px; left:-12px; width:24px; height:24px;
+ border:1px solid #a9b7ff; border-radius:50%; opacity:0;
+ animation:acg-agent-cursor-pulse 340ms ease-out both;
+}
+@keyframes acg-agent-cursor-pulse {
+ from {transform:scale(.35);opacity:.7;}
+ to {transform:scale(1.5);opacity:0;}
+}
+@media (prefers-reduced-motion:reduce) {
+ .acg-agent-cursor {transition:none;}
+ .acg-agent-cursor-ripple {animation:none;}
+}

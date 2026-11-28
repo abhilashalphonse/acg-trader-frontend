@@ -18,7 +18,7 @@ function IsolatedScopedChat({client,chart}){
 
 // Presentation only in production. No fetch, generated response, credential entry, persistence,
 // account values, trade actions or automatic context attachment.
-export default function NativeAiChat({symbol,timeframe,market,onClose,mobile=false,reportFixture=null,isolatedClient=null,staffRuntime=null}){
+export default function NativeAiChat({symbol,timeframe,market,onClose,mobile=false,reportFixture=null,isolatedClient=null,staffRuntime=null,agentDrawingPort=null}){
   const chart=chartContextLabel(symbol,timeframe);
   const [draft,setDraft]=useState('');
   const [isolatedGeneration,setIsolatedGeneration]=useState(0);
@@ -53,7 +53,7 @@ export default function NativeAiChat({symbol,timeframe,market,onClose,mobile=fal
       <button type="button" className="aic-icon aic-new" onClick={clear} title="New chat draft" aria-label="New chat draft"><MessageSquarePlus size={17}/></button>
       {!mobile&&<button type="button" className="aic-icon" onClick={onClose} aria-label="Close AI assistant"><X size={17}/></button>}
     </header>
-    {staffRuntime?.runtimeMode==='WORKSPACE_CHAT'?<StaffWorkspaceChat key={JSON.stringify([isolatedGeneration,staffRuntime.sessionId,staffRuntime.accountId,chart.symbol,chart.timeframe])} runtime={staffRuntime} symbol={symbol} timeframe={timeframe} market={market}/>:staffRuntime?<StaffLivePilotPanel key={JSON.stringify([isolatedGeneration,staffRuntime.sessionId,staffRuntime.accountId,chart.symbol,chart.timeframe])} runtime={staffRuntime} symbol={symbol} timeframe={timeframe}/>:import.meta.env.DEV&&isolatedClient?<IsolatedScopedChat key={isolatedGeneration+':'+chart.symbol+':'+chart.timeframe} client={isolatedClient} chart={chart}/>:<>
+    {staffRuntime?.runtimeMode==='WORKSPACE_CHAT'?<StaffWorkspaceChat key={JSON.stringify([isolatedGeneration,staffRuntime.sessionId,staffRuntime.accountId,chart.symbol,chart.timeframe])} runtime={staffRuntime} symbol={symbol} timeframe={timeframe} market={market} agentDrawingPort={agentDrawingPort}/>:staffRuntime?<StaffLivePilotPanel key={JSON.stringify([isolatedGeneration,staffRuntime.sessionId,staffRuntime.accountId,chart.symbol,chart.timeframe])} runtime={staffRuntime} symbol={symbol} timeframe={timeframe}/>:import.meta.env.DEV&&isolatedClient?<IsolatedScopedChat key={isolatedGeneration+':'+chart.symbol+':'+chart.timeframe} client={isolatedClient} chart={chart}/>:<>
     <div className="aic-context">
       <div><span>Workspace</span><strong>{validContext?chart.symbol+' · '+chart.timeframe:'No chart selected'}</strong></div>
       <label><input type="checkbox" disabled={!validContext} checked={attachChart&&validContext} onChange={e=>{setAttachChart(e.target.checked);setReport(null);}}/> Include chart context</label>

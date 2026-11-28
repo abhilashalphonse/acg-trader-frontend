@@ -1,4 +1,6 @@
 import MobileAiChat from '../components/ai/MobileAiChat.jsx';
+import NativeAiChat from '../components/ai/NativeAiChat.jsx';
+import {resetVerifiedDrawingOwnership} from '../components/ai/chartDrawingInventory.js';
 import { isAiChatPreviewEnabled } from '../components/ai/aiPreview.js';
 import '../styles/mobileAuditSurfaces.css';
 import { mobileSizingPreferenceKey } from '../utils/mobileV4Preferences.js';
@@ -162,6 +164,14 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   const [indicatorFavorites, setIndicatorFavorites] = useState(loadIndicatorFavorites);
   const [overlay, setOverlay] = useState(null);
   const aiPreview = mobileAudit && ((staffAiPreview === true && !trading.accountSwitching && !trading.accountGrantMissing) || isAiChatPreviewEnabled(import.meta.env.DEV, typeof window !== 'undefined' ? window.location.search : ''));
+  const agentDrawingRef=useRef(null);
+  const agentDrawingPort=useMemo(()=>({onReady:port=>{agentDrawingRef.current=port;},get:()=>agentDrawingRef.current}),[]);
+  const scopedAiRuntime=staffAiRuntime?.accountId===trading.accountId&&!trading.accountSwitching&&!trading.accountGrantMissing?staffAiRuntime:null;
+  const splitAi=aiPreview&&overlay==='ai'&&!chartFocus&&scopedAiRuntime?.runtimeMode==='WORKSPACE_CHAT';
+  React.useLayoutEffect(()=>{
+    resetVerifiedDrawingOwnership();
+    return ()=>resetVerifiedDrawingOwnership();
+  },[scopedAiRuntime?.sessionId,scopedAiRuntime?.accountId,scopedAiRuntime?.token,trading.accountId,trading.accountSwitching]);
   const [mobileChartReadout, setMobileChartReadout] = useState(null);
   const [notice, setNotice] = useState('');
   const exposure = exposureAvailability({ account, connectionStatus: trading.connection.status, market, commandState: trading.commandState });
@@ -1248,7 +1258,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
   };
 
   const chartContent = (
-    <div className={`acg-mobile-chart-shell flex h-dvh min-h-0 flex-col overflow-hidden overscroll-none bg-black ${mobileAudit ? 'acg-mobile-audit-shell' : ''}`}>
+    <div className={`acg-mobile-chart-shell flex h-dvh min-h-0 flex-col overflow-hidden overscroll-none bg-black ${splitAi ? "acg-mobile-ai-split" : ""} ${mobileAudit ? 'acg-mobile-audit-shell' : ''}`}>
       {mobileAudit ? <MobileAuditHeader
         market={market}
         account={account}
@@ -1274,9 +1284,9 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
       />}
       <div className={`acg-mobile-reference-content flex min-h-0 flex-1 flex-col ${mobileAudit ? 'px-0 pt-0' : 'px-2 pt-[10px]'}`}>
         <div className="acg-mobile-reference-chart-wrap min-h-0 flex-1">
-          <MarketPanel onCheckStatus={checkAuditStatus} onBreakEven={movePositionToBreakEven} onSetTrailing={setPositionTrailing} mobileTradeSelection={auditChartSelection} onMobileManagementChange={mobileAudit ? setAuditManagement : undefined} managementDisabled={readOnly || trading.commandState.pending || trading.commandState.uncertain} onMovePending={movePendingOnChart} onCancelPositionProtection={cancelPositionProtection} onChartReadout={mobileAudit ? setMobileChartReadout : undefined} market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} accountCurrency={account.currency} account={mobileAudit ? auditAccount : account} riskPercent={riskPercent} onCreateRiskOrder={createPlanFromRiskTool} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onRemovePositionProtection={mobileAudit ? (id, field) => updatePosition(id, {[field]:null}) : removePositionProtectionFromChart} onRequestPositionProtection={mobileAudit ? (id, field, value) => value == null ? beginPositionProtection(field, id) : requestPositionProtectionChange(id, field, value) : requestPositionProtectionChange} onClosePosition={closePosition} historicalPosition={historicalChartContext} onClearHistoricalPosition={() => setHistoricalChartContext(null)} selectedPositionId={selectedOpenPositionId} onSelectPosition={selectOpenPosition} positionProtectionDraft={positionProtectionDraft} onPositionProtectionDraftChange={updatePositionProtectionDraft} onSelectInstrument={() => setOverlay('markets')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} compactMobileToolbar auditMobile={mobileAudit} fillAvailableHeight />
+          <MarketPanel onCheckStatus={checkAuditStatus} onBreakEven={movePositionToBreakEven} onSetTrailing={setPositionTrailing} mobileTradeSelection={auditChartSelection} onMobileManagementChange={mobileAudit ? setAuditManagement : undefined} managementDisabled={readOnly || trading.commandState.pending || trading.commandState.uncertain} onMovePending={movePendingOnChart} onCancelPositionProtection={cancelPositionProtection} onChartReadout={mobileAudit ? setMobileChartReadout : undefined} market={market} tick={tick} timeframe={timeframe} setTimeframe={setTimeframe} chartMode={chartMode} setChartMode={setChartMode} selectedTool={selectedTool} setSelectedTool={setSelectedTool} favorite={favorite} setFavorite={setFavorite} fullscreen={chartFocus} onFullscreen={enterChartFocus} tradePlan={canonicalTradePlan} tradePlanLots={tradePlanLots} accountCurrency={account.currency} account={mobileAudit ? auditAccount : account} riskPercent={riskPercent} onCreateRiskOrder={createPlanFromRiskTool} onTradePlanChange={updatePlan} positions={positions} pendingOrders={pendingOrders} onModifyPending={modifyPendingOrder} onCancelPending={cancelPendingOrder} onUpdatePosition={updatePosition} onRemovePositionProtection={mobileAudit ? (id, field) => updatePosition(id, {[field]:null}) : removePositionProtectionFromChart} onRequestPositionProtection={mobileAudit ? (id, field, value) => value == null ? beginPositionProtection(field, id) : requestPositionProtectionChange(id, field, value) : requestPositionProtectionChange} onClosePosition={closePosition} historicalPosition={historicalChartContext} onClearHistoricalPosition={() => setHistoricalChartContext(null)} selectedPositionId={selectedOpenPositionId} onSelectPosition={selectOpenPosition} positionProtectionDraft={positionProtectionDraft} onPositionProtectionDraftChange={updatePositionProtectionDraft} onSelectInstrument={() => setOverlay('markets')} onIndicators={() => setOverlay('indicators')} indicators={indicators} showInstrumentHeader={false} compactMobileToolbar auditMobile={mobileAudit} fillAvailableHeight agentDrawingPort={splitAi&&!positionProtectionDraft&&!auditManagement?agentDrawingPort:null} />
         </div>
-        <div className={`acg-mobile-reference-order-wrap relative z-50 shrink-0 ${mobileAudit ? 'mt-0 bg-[#101114] pb-[max(5px,env(safe-area-inset-bottom))]' : 'mt-1.5'}`}>
+        {splitAi?<div className="acg-mobile-ai-inline" data-mobile-ai-inline><NativeAiChat key={JSON.stringify([trading.accountId,scopedAiRuntime.sessionId,activeSymbol,timeframe])} symbol={activeSymbol} timeframe={timeframe} market={market} staffRuntime={scopedAiRuntime} agentDrawingPort={agentDrawingPort} onClose={()=>setOverlay(null)} mobile/></div>:<div className={`acg-mobile-reference-order-wrap relative z-50 shrink-0 ${mobileAudit ? 'mt-0 bg-[#101114] pb-[max(5px,env(safe-area-inset-bottom))]' : 'mt-1.5'}`}>
           {mobileAudit ? <>
             {auditManagement && !canonicalTradePlan && <MobileAuditManageDock management={auditManagement} market={market} account={auditAccount}/>}
             <div hidden={Boolean(auditManagement && !canonicalTradePlan)}><MobileAuditExecutionDock
@@ -1326,7 +1336,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
             onCancelPositionProtection={cancelPositionProtection}
             positionProtectionSaving={positionProtectionSaving}
           />}
-        </div>
+        </div>}
         {!mobileAudit && <div className="h-[max(5px,env(safe-area-inset-bottom))] shrink-0 bg-black" aria-hidden="true" />}
       </div>
     </div>
@@ -1397,7 +1407,7 @@ export default function MobileTraderShell({ market, tick, markets = [], activeSy
           />
         )}
 
-        {aiPreview && overlay === 'ai' && <MobileAiChat key={JSON.stringify([trading.accountId || null,trading.accountSwitching,activeSymbol,timeframe])} symbol={activeSymbol} timeframe={timeframe} market={market} staffRuntime={staffAiRuntime?.accountId===trading.accountId&&!trading.accountSwitching&&!trading.accountGrantMissing?staffAiRuntime:null} onClose={() => setOverlay(null)}/>}
+        {aiPreview && overlay === 'ai' && !splitAi && <MobileAiChat key={JSON.stringify([trading.accountId || null,trading.accountSwitching,activeSymbol,timeframe])} symbol={activeSymbol} timeframe={timeframe} market={market} staffRuntime={staffAiRuntime?.accountId===trading.accountId&&!trading.accountSwitching&&!trading.accountGrantMissing?staffAiRuntime:null} onClose={() => setOverlay(null)}/>}
         {overlay && !['markets', 'trades', 'account', 'ai'].includes(overlay) && (
           <FrontendSheet
             auditMobile={mobileAudit} onChartModeChange={setChartMode} onTimeframeChange={setTimeframe}
