@@ -2,7 +2,7 @@
 // bind a completed authenticated action response to the current direct user
 // request. Chat text, streamed deltas and model coordinates are NOT inputs.
 // No network, trading API, synthetic pointer events or approval dialogs.
-import {getDrawingSnapshot,commitDrawings,normalizeDrawing} from '../../utils/drawingStore.js';
+import {getDrawingSnapshot,commitDrawings,normalizeDrawing,undoDrawings} from '../../utils/drawingStore.js';
 import {canonicalDrawingTimeframe} from '../../utils/drawingTools.js';
 import {prepareChartDrawingPlan} from './chartDrawingPlan.js';
 
@@ -17,7 +17,7 @@ const anchors=(a,b)=>a?.time===b?.time&&a?.price===b?.price;
 const fingerprint=d=>JSON.stringify([d.type,d.a,d.b,d.timeframeVisibility,d.hidden,d.locked,d.style,d.text]);
 export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor,readCurrentContext,now=Date.now}={}){
  if(!workspace||typeof coordinateApi?.toScreen!=='function'||typeof coordinateApi?.plotSize!=='function'||!cursor||typeof readCurrentContext!=='function')throw new TypeError('Native chart ports required');
- const chart=Object.freeze({...workspace});let active=null,disposed=false;const applied=new Map();
+ const chart=Object.freeze({...workspace});let active=null,disposed=false,lastBatch=null;const applied=new Map();
  const stop=()=>{if(!active)return false;active.cancelled=true;if(active.token)cursor.stop(active.token);return true;};
  function executeCheck(request,receipt,signal,op){
   if(disposed||signal?.aborted||op?.cancelled||!request||!same(request.workspace,chart)||request.userRequested!==true||request.complete!==true||!id(request.actionId)||!hex(request.chartContextVersion)||!Number.isSafeInteger(request.drawingRevision))return false;
@@ -97,6 +97,7 @@ export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor
    const verified=after.revision===before.revision+1&&after.present.length===before.present.length+additions.length&&before.present.every(d=>after.present.some(x=>x.id===d.id&&fingerprint(x)===fingerprint(d)))&&additions.every(d=>after.present.some(x=>x.id===d.id&&x.type===d.type&&x.sourceId===d.sourceId&&x.actionId===d.actionId&&x.createdBy==='ai'&&x.timeframeVisibility===d.timeframeVisibility&&anchors(x.a,d.a)&&anchors(x.b,d.b)));
    if(!verified)return result('FAILED_UNCERTAIN',{count:0});
    applied.set(request.actionId,{key:batchKey,expiresAtMs:receipt.context.expiresAtMs});
+   lastBatch={after,before:JSON.stringify(before.present),count:additions.length};
    if(op.token)cursor.pulse(op.token);
    return result('VERIFIED',{count:additions.length,ids:Object.freeze(additions.map(d=>d.id)),notificationWarning:commitError});
   }finally{
@@ -105,5 +106,18 @@ export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor
    if(active===op)active=null;
   }
  }
- return Object.freeze({execute,stop,dispose(){disposed=true;stop();applied.clear();}});
+ // Undo only the exact latest verified AI transaction. A later manual edit,
+ // native undo/redo, or chart disposal invalidates this capability.
+ function undoLastBatch(){
+  if(disposed||active)return result('DENIED');
+  if(!lastBatch)return result('NO_AI_BATCH');
+  const current=getDrawingSnapshot(chart.symbol),batch=lastBatch;
+  if(current!==batch.after)return result('UNDO_CONFLICT');
+  let changed=false;
+  try{changed=undoDrawings(chart.symbol);}catch{return result('FAILED_UNCERTAIN');}
+  if(!changed||JSON.stringify(getDrawingSnapshot(chart.symbol).present)!==batch.before)return result('FAILED_UNCERTAIN');
+  lastBatch=null;
+  return result('UNDONE',{count:batch.count});
+ }
+ return Object.freeze({execute,stop,undoLastBatch,dispose(){disposed=true;lastBatch=null;stop();applied.clear();}});
 }
