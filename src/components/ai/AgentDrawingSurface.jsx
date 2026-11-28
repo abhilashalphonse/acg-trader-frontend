@@ -58,6 +58,7 @@ export default function AgentDrawingSurface({symbol,timeframe,chartInstanceId,co
    },
    inspectDrawings(){return disposed||pinned?null:inspectChartDrawings({...workspace,selection});},
    execute:executor.execute,
+   edit({request,question,signal}){return executor.edit({request,question,selection,readSelection:()=>selection,signal});},
    stop:()=>interrupt('STOP'),
    release(actionId){if(pinned?.actionId===actionId)pinned=null;},
    undoLastBatch:executor.undoLastBatch
