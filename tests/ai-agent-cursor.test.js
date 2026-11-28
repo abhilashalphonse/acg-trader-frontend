@@ -39,3 +39,18 @@ test('invalid local bounds, stale tokens and reduced motion fail safely',async()
  assert.equal(frames.size,0);assert.equal(c.getSnapshot().x,50);
  assert.equal(c.pulse(token),true);assert.equal(c.getSnapshot().ripple,0);
 });
+
+test('verified commit pulse lingers and new token or stop cancels its visual tail',()=>{
+ const f=fixture(),c=f.controller;
+ let token=c.start({x:10,y:20});
+ assert.equal(c.pulse(token),true);assert.equal(c.finish(token,{lingerMs:300}),true);
+ f.step(150);assert.equal(c.getSnapshot().visible,true);
+ assert.equal(c.getSnapshot().ripple,1);
+ const next=c.start({x:30,y:40});f.step(400);
+ assert.equal(c.getSnapshot().visible,true);assert.equal(c.getSnapshot().x,30);
+ assert.equal(c.stop(token),false);
+ assert.equal(c.finish(next,{lingerMs:300}),true);
+ f.step(300);assert.equal(c.getSnapshot().visible,false);
+ token=c.start({x:10,y:20});c.finish(token,{lingerMs:300});c.stop(token);
+ assert.equal(f.frames.size,0);assert.equal(c.getSnapshot().visible,false);
+});
