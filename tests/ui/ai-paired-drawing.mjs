@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import process from 'node:process';
 import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
 
