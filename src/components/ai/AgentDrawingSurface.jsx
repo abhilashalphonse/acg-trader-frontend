@@ -3,7 +3,7 @@ import AgentCursor from './AgentCursor.jsx';
 import {createAgentCursor} from './agentCursorController.js';
 import {createNativeAgentDrawingExecutor} from './nativeAgentDrawingExecutor.js';
 import {getDrawingSnapshot} from '../../utils/drawingStore.js';
-import {inspectChartDrawings} from './chartDrawingInventory.js';
+import {inspectChartDrawings,drawingOwnershipEpoch} from './chartDrawingInventory.js';
 
 // Private chart capability scoped to the active mounted chart. The context
 // token binds to a local snapshot; the server independently verifies market
@@ -55,7 +55,7 @@ export default function AgentDrawingSurface({symbol,timeframe,chartInstanceId,co
     const chartContextVersion=Array.from(crypto.getRandomValues(new Uint8Array(32)),n=>n.toString(16).padStart(2,'0')).join('');
     const actionId=crypto.randomUUID();
     pinned={...snapshot,chartContextVersion,actionId,onInterrupt};
-    return Object.freeze({workspace,actionId,chartContextVersion,latestClosedAtMs:snapshot.latestClosedAtMs,drawingRevision:getDrawingSnapshot(symbol).revision,userRequested:true,complete:true});
+    return Object.freeze({workspace,actionId,chartContextVersion,latestClosedAtMs:snapshot.latestClosedAtMs,drawingRevision:getDrawingSnapshot(symbol).revision,ownershipEpoch:drawingOwnershipEpoch(),userRequested:true,complete:true});
    },
    inspectDrawings(){return disposed||pinned?null:inspectChartDrawings({...workspace,selection});},
    execute:executor.execute,
