@@ -1,6 +1,6 @@
 // Phase 8B.5.1: local, chart-scoped drawing recognition. Persisted
 // createdBy/sourceId metadata is descriptive only, never mutation authority.
-import {getDrawingSnapshot,subscribeDrawings,visibleDrawingOnTimeframe} from '../../utils/drawingStore.js';
+import {getDrawingSnapshot,observeDrawingMutations,visibleDrawingOnTimeframe} from '../../utils/drawingStore.js';
 import {canonicalDrawingTimeframe} from '../../utils/drawingTools.js';
 const owned=new Map();
 const MAX_SYMBOLS=128,MAX_OWNED=256,MAX_LIST=20;
@@ -8,8 +8,8 @@ const FRAMES=new Set(['M1','M5','M15','M30','H1','H4','D1','W1']);
 const exact=x=>JSON.stringify(x);
 const symbolKey=s=>typeof s==='string'&&/^[A-Z0-9._-]{1,32}$/.test(s)?s:null;
 const sourceOk=s=>typeof s==='string'&&/^draw_[a-f0-9]{32}$/.test(s);
-function prune(symbol,entry){
- const current=getDrawingSnapshot(symbol).present;
+function prune(symbol,entry,snapshot){
+ const current=snapshot.present;
  for(const [id,baseline] of entry.items){
   const item=current.find(d=>d.id===id);
   if(!item||exact(item)!==baseline)entry.items.delete(id);
@@ -27,17 +27,24 @@ export function registerVerifiedDrawings(symbol,drawings){
  if(!entry){
   if(owned.size>=MAX_SYMBOLS)return false;
   entry={items:new Map(),unsubscribe:null};
-  entry.unsubscribe=subscribeDrawings(symbol,()=>prune(symbol,entry));
+  entry.unsubscribe=observeDrawingMutations(symbol,(_,next)=>prune(symbol,entry,next));
   owned.set(symbol,entry);
  }
  if(entry.items.size+verified.length>MAX_OWNED)return false;
  for(const d of verified)entry.items.set(d.id,exact(d));
  return true;
 }
+// Account/session transition intentionally downgrades all existing objects.
+export function resetVerifiedDrawingOwnership(){
+ for(const entry of owned.values())entry.unsubscribe();
+ owned.clear();
+}
 export function drawingOwnership(symbol,drawing){
  if(drawing?.createdBy!=='ai')return 'MANUAL';
  if(!symbolKey(symbol)||drawing.locked||!sourceOk(drawing.sourceId)||drawing.id!=='ai-'+drawing.sourceId)return 'PROTECTED_AI';
- return owned.get(symbol)?.items.get(drawing.id)===exact(drawing)?'VERIFIED_AI':'PROTECTED_AI';
+ const baseline=owned.get(symbol)?.items.get(drawing.id);
+ const live=getDrawingSnapshot(symbol).present.find(d=>d.id===drawing.id);
+ return baseline&&baseline===exact(drawing)&&baseline===exact(live)?'VERIFIED_AI':'PROTECTED_AI';
 }
 const labels={hline:'Horizontal line',rectangle:'Rectangle'};
 const project=(symbol,d)=>Object.freeze({id:d.id,type:d.type,label:Object.hasOwn(labels,d.type)?labels[d.type]:'Chart drawing',ownership:drawingOwnership(symbol,d),locked:d.locked===true,hidden:d.hidden===true});
