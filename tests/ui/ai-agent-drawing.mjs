@@ -59,7 +59,13 @@ try{
  await panel.getByRole('textbox',{name:'Message ACG AI'}).waitFor();
  const input=panel.getByRole('textbox',{name:'Message ACG AI'});
  const send=panel.getByRole('button',{name:'Send message'});
- const cursor=page.locator('.acg-agent-cursor.is-visible');
+ // The cursor anchor intentionally has zero width and height; its positioned
+ // child is the rendered artwork. Assert the actual image, not the anchor.
+ const cursor=page.locator('.acg-agent-cursor.is-visible .acg-agent-cursor-image');
+ const waitForCursor=async()=>{
+   await cursor.waitFor({state:'visible'});
+   assert.equal(await cursor.evaluate(img=>img.complete&&img.naturalWidth>0&&img.getBoundingClientRect().height===36),true);
+ };
  const read=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('acg-trader-drawings-v3:EURUSD')||'[]'));
  await page.waitForFunction(()=>document.querySelector('.acg-agent-cursor-surface')!==null);
  // Wait for chart history (the fixture never contacts a live provider).
@@ -72,8 +78,8 @@ try{
  const first=await read();assert.equal(first.length,2);assert.ok(first.every(d=>d.createdBy==='ai'&&d.type==='hline'&&!d.locked));
  await input.fill('Draw FVGs');
  await send.click();
- await cursor.waitFor({state:'visible'});
- await page.screenshot({path:'artifacts/ai-agent-drawing.png'});
+ await waitForCursor();
+ await page.screenshot({path:'artifacts/ai-agent-drawing.png',animations:'allow'});
  await panel.getByText(/Marked 1 fair value gap/).waitFor();
  const second=await read();assert.equal(second.length,3);assert.equal(second[2].type,'rectangle');
  assert.equal(second[2].actionId,drawRequests[1].actionId);
@@ -87,7 +93,7 @@ try{
  assert.deepEqual(await read(),first);
  // Stop during real cursor movement: the batch must not commit.
  mode='stop';await input.fill('Draw FVGs');await send.click();
- await cursor.waitFor({state:'visible'});
+ await waitForCursor();
  await panel.getByRole('button',{name:'Stop response'}).click();
  await panel.getByText(/Response stopped/).waitFor();
  assert.deepEqual(await read(),first);
