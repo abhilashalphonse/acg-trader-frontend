@@ -30,7 +30,7 @@ export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor
  const cancelDeletion=()=>{const had=Boolean(pendingDeletion);pendingDeletion=null;return had;};
  const stop=()=>{cancelDeletion();if(!active)return false;active.cancelled=true;if(active.token)cursor.stop(active.token);return true;};
  function executeCheck(request,receipt,signal,op,{checkRevision=true}={}){
-  if(disposed||(op&&op.epoch!==drawingOwnershipEpoch())||signal?.aborted||op?.cancelled||!request||!same(request.workspace,chart)||request.userRequested!==true||request.complete!==true||!id(request.actionId)||!hex(request.chartContextVersion)||!Number.isSafeInteger(request.drawingRevision))return false;
+  if(disposed||(op&&op.epoch!==drawingOwnershipEpoch())||signal?.aborted||op?.cancelled||!request||request.ownershipEpoch!==drawingOwnershipEpoch()||!same(request.workspace,chart)||request.userRequested!==true||request.complete!==true||!id(request.actionId)||!hex(request.chartContextVersion)||!Number.isSafeInteger(request.drawingRevision))return false;
   const c=receipt?.context,t=now();
   if(receipt?.contractVersion!==VERSION||receipt.actionId!==request.actionId||!keys(c,'chartContextVersion,expiresAtMs,latestClosedAtMs,symbol,timeframe')||c.symbol!==chart.symbol||canonicalDrawingTimeframe(c.timeframe)!==canonicalDrawingTimeframe(chart.timeframe)||c.chartContextVersion!==request.chartContextVersion||c.latestClosedAtMs!==request.latestClosedAtMs||!Number.isSafeInteger(c.latestClosedAtMs)||!Number.isSafeInteger(c.expiresAtMs)||!Number.isSafeInteger(t)||t>=c.expiresAtMs||c.expiresAtMs-t>10000)return false;
   const current=readCurrentContext();
