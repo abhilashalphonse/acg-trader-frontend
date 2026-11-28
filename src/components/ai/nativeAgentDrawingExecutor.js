@@ -39,6 +39,8 @@ export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor
  }
  async function execute({request,receipt,signal}={}){
   if(active)return result('BUSY');
+  // Pin the accepted request and receipt before the first animation await.
+  try{request=structuredClone(request);receipt=structuredClone(receipt);}catch{return result('DENIED');}
   if(!executeCheck(request,receipt,signal))return result('DENIED');
   if(!keys(receipt,'actionId,actions,context,contractVersion')||!Array.isArray(receipt.actions)||receipt.actions.length<1||receipt.actions.length>8)return result('DENIED');
   const ids=new Set();
