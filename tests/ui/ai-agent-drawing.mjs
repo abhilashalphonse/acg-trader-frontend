@@ -85,6 +85,7 @@ try{
  await panel.getByText(/Marked 2 liquidity level/).waitFor().catch(async error=>{console.error('Drawing fixture diagnostic:',await panel.innerText(),JSON.stringify(drawRequests),JSON.stringify(errors));throw error;});
  assert.equal(drawRequests.length,1);assert.equal(drawRequests[0].command,'LIQUIDITY');
  const first=await read();assert.equal(first.length,2);assert.ok(first.every(d=>d.createdBy==='ai'&&d.type==='hline'&&!d.locked));
+ await cursor.waitFor({state:'detached'});
  await input.fill('Draw FVGs');
  await send.click();
  await waitForCursor();
@@ -111,6 +112,7 @@ try{
  await panel.getByText('Undid the last AI drawing batch (2 drawings).').waitFor();
  assert.deepEqual(await read(),first);assert.equal(drawRequests.length,callsBeforeUndo);
  // Stop during real cursor movement: the batch must not commit.
+ await cursor.waitFor({state:'detached'});
  mode='stop';await input.fill('Draw FVGs');await send.click();
  await waitForCursor();
  await panel.getByRole('button',{name:'Stop response'}).click();
