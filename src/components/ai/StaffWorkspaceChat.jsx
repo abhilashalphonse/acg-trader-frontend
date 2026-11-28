@@ -6,6 +6,7 @@ import AssistantMarkdown from './AssistantMarkdown.jsx';
 import {chartDrawingCommand,verifiedDrawingResponse} from './chartDrawingCommand.js';
 import {drawingInspectionCommand} from './chartDrawingInventory.js';
 import {drawingEditCommand} from './chartDrawingEdit.js';
+import {drawingDeleteCommand} from './chartDrawingDelete.js';
 import InstrumentAvatar from '../trading-v2/InstrumentAvatar.jsx';
 import {chartFeedStatus,followUpSuggestions,regenerationQuestion,workspaceFailureNotice} from './workspacePresentation.js';
 const bytes=s=>new TextEncoder().encode(s).length;
@@ -58,6 +59,7 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market,agen
   const [notice,setNotice]=useState('');
   const [copyState,setCopyState]=useState(null);
   const [feedback,setFeedback]=useState({});
+  const [pendingDelete,setPendingDelete]=useState(null);
   const latestAnswer=useRef(null);
   const active=useRef(null),operation=useRef(null),inFlight=useRef(false),historyStart=useRef(0),bottom=useRef(null),input=useRef(null);
   const valid=Boolean(runtime?.token&&runtime.accountId&&chart.symbol&&allowedFrames.includes(chart.timeframe));
@@ -65,7 +67,7 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market,agen
     body:{accountId:runtime.accountId,connectionId,symbol:chart.symbol,timeframe:chart.timeframe,...extra},signal,timeoutMs:40000,workspaceProgress,workspaceDelta});
   useEffect(()=>{
     if(!valid)return;
-    const controller=new AbortController();active.current=controller;setConsent(null);setNotice('');setPreview('');setBusy(false);setProgress(null);
+    const controller=new AbortController();active.current=controller;setPendingDelete(null);setConsent(null);setNotice('');setPreview('');setBusy(false);setProgress(null);
     call('status',{},controller.signal).then(v=>{
       if(!controller.signal.aborted&&v?.contractVersion==='restricted-pilot-v1'&&v.mode==='WORKSPACE_CHAT'&&
         v.executionAllowed===false&&v.model==='gpt-6-luna'&&Number.isSafeInteger(v.revision)&&v.revision>=0)setConsent(v);
@@ -78,6 +80,43 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market,agen
     if(!busy&&latest?.role==='assistant')latestAnswer.current?.scrollIntoView({block:'start',behavior:'auto'});
     else bottom.current?.scrollIntoView({block:'end',behavior:'auto'});
   },[messages,busy,preview]);
+  useEffect(()=>{
+    if(!pendingDelete)return;
+    const timeout=setTimeout(()=>{
+      pendingDelete.port.cancelDeletion();setPendingDelete(null);
+      setNotice('Deletion confirmation expired. No drawing was removed.');
+    },Math.max(0,pendingDelete.preview.expiresAtMs-Date.now()));
+    return ()=>{clearTimeout(timeout);pendingDelete.port.cancelDeletion();};
+  },[pendingDelete]);
+  function cancelDelete(){
+    pendingDelete?.port.cancelDeletion();setPendingDelete(null);setNotice('Deletion cancelled. No drawing was removed.');
+  }
+  async function confirmDelete(){
+    const pending=pendingDelete,parent=active.current;
+    if(!pending||inFlight.current||!parent||parent.signal.aborted||!valid||!includeMarket||consent?.chartDrawingEnabled!==true)return;
+    if(agentDrawingPort?.get()!==pending.port||pending.parent!==parent||Date.now()>=pending.preview.expiresAtMs){
+      pending.port.cancelDeletion();setPendingDelete(null);setNotice('Deletion confirmation is no longer valid. No drawing was removed.');return;
+    }
+    const controller=new AbortController();
+    const request=pending.port.prepare({onInterrupt:()=>controller.abort()});
+    if(!request){pending.port.cancelDeletion();setPendingDelete(null);setNotice('The chart changed. Request deletion again.');return;}
+    const abort=()=>controller.abort();
+    parent.signal.addEventListener('abort',abort,{once:true});
+    operation.current=controller;inFlight.current=true;setBusy(true);setProgress('DRAWING');setNotice('');setPendingDelete(null);
+    try{
+      const outcome=await pending.port.confirmDeletion({preview:pending.preview,request,signal:controller.signal});
+      if(parent.signal.aborted)return;
+      const text=outcome.state==='DELETED'?'Deleted the confirmed AI drawing. You can undo this deletion.':
+        outcome.state==='FAILED_UNCERTAIN'||outcome.state==='RECOVERY_REQUIRED'?'Deletion could not be verified. AI drawing actions are paused for this symbol until you reload. Inspect the chart first.':
+        'Deletion stopped or the confirmation is no longer valid. No automatic retry.';
+      setMessages(m=>[...m,{id:crypto.randomUUID(),role:'assistant',text,action:true,context:{market:true,account:false}}]);
+    }catch{if(!parent.signal.aborted)setNotice('Deletion result unavailable. Inspect the chart before retrying.');}
+    finally{
+      pending.port.release(request.actionId);parent.signal.removeEventListener('abort',abort);
+      if(operation.current===controller){operation.current=null;inFlight.current=false;}
+      if(!parent.signal.aborted){setBusy(false);setProgress(null);}
+    }
+  }
   async function copyAnswer(message){
     try{await navigator.clipboard.writeText(message.text);setCopyState({id:message.id,ok:true});}
     catch{setCopyState({id:message.id,ok:false});}
@@ -90,7 +129,17 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market,agen
     const retryQuestion=regenerateId?regenerationQuestion(messages,historyStart.current,regenerateId):null;
     if(regenerateId&&!retryQuestion)return;
     const parent=active.current,question=(retryQuestion||draft).trim();
-    if(!valid||!consent||!parent||parent.signal.aborted||inFlight.current||!validQuestion(question))return;
+    if(!valid||!consent||!parent||parent.signal.aborted||inFlight.current||pendingDelete||!validQuestion(question))return;
+    if(regenerateId&&drawingDeleteCommand(question))return;
+    if(!regenerateId&&drawingDeleteCommand(question)){
+      const port=includeMarket&&consent.chartDrawingEnabled===true?agentDrawingPort?.get():null;
+      const outcome=port?.previewDeletion(question);
+      if(outcome?.state==='CONFIRM_REQUIRED'){
+        setPendingDelete({port,preview:outcome,parent});setNotice('');setDraft('');
+        setMessages(m=>[...m,{id:crypto.randomUUID(),role:'user',text:question}]);
+      }else setNotice(outcome?.state==='AMBIGUOUS_TARGET'?'More than one drawing matches. Select the intended drawing first.':outcome?.state==='PROTECTED_TARGET'?'That drawing is protected and cannot be deleted by AI.':outcome?.state==='RECOVERY_REQUIRED'?'AI drawing actions are paused for this symbol until you reload.':'No eligible drawing found in the active chart. No drawing was removed.');
+      return;
+    }
     const inspectionCommand=!regenerateId&&consent.chartDrawingEnabled===true&&agentDrawingPort?drawingInspectionCommand(question):null;
     if(inspectionCommand){
       const view=includeMarket?agentDrawingPort.get()?.inspectDrawings():null;
@@ -218,6 +267,12 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market,agen
       </article>)}
       {busy&&preview&&<article className="aic-workspace-message aic-assistant-message" aria-label="Response in progress"><div className="aic-answer-heading"><span className="aic-answer-avatar"><Sparkles size={14}/></span><strong>ACG AI</strong><span className="aic-answer-instrument">Generating…</span></div><div className="aic-message-text" style={{whiteSpace:'pre-wrap'}}>{preview}</div></article>}
       {busy&&!preview&&<div className="aic-answer-heading aic-analysis-loading"><LoaderCircle size={14}/> {progress==='DRAWING'?'Drawing on chart…':progress==='CONTEXT'?'Reading workspace…':progress==='GENERATING'?'Generating response…':'Thinking…'}</div>}
+      {pendingDelete&&<div className="aic-workspace-message aic-assistant-message" role="group" aria-label="Confirm drawing deletion">
+        <div className="aic-answer-heading"><strong>Confirm deletion</strong></div>
+        <p>Remove one AI {pendingDelete.preview.type==='rectangle'?'FVG rectangle':'liquidity line'} on {pendingDelete.preview.symbol} {pendingDelete.preview.timeframe} at {pendingDelete.preview.lower==null?pendingDelete.preview.price:pendingDelete.preview.lower+' – '+pendingDelete.preview.price}? Other drawings will remain unchanged.</p>
+        <div className="aic-followups"><button type="button" onClick={()=>void confirmDelete()}>Confirm deletion</button><button type="button" onClick={cancelDelete}>Cancel deletion</button></div>
+        <p className="aic-answer-context">Expires after 30 seconds. Chart interaction invalidates confirmation.</p>
+      </div>}
       {notice&&<p role="status" className="aic-disclaimer">{notice}</p>}
       <div ref={bottom}/>
     </div>
@@ -228,10 +283,10 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market,agen
           onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent?.isComposing){e.preventDefault();void send();}}}/>
         <div className="aic-composer-bottom">
           <div className="aic-context-chips" role="group" aria-label="Context shared with AI">
-            <button type="button" className="aic-context-chip" aria-pressed={includeMarket} aria-label="Chart context" disabled={busy} onClick={()=>changeContext(setMarket,!includeMarket)}><span className="aic-chip-check">{includeMarket&&<Check size={12}/>}</span>Chart</button>
+            <button type="button" className="aic-context-chip" aria-pressed={includeMarket} aria-label="Chart context" disabled={busy||!!pendingDelete} onClick={()=>changeContext(setMarket,!includeMarket)}><span className="aic-chip-check">{includeMarket&&<Check size={12}/>}</span>Chart</button>
             <button type="button" className="aic-context-chip" aria-pressed={includeAccount} aria-label="Account context" disabled={busy} onClick={()=>changeContext(setAccount,!includeAccount)}><span className="aic-chip-check">{includeAccount&&<Check size={12}/>}</span>Account</button>
           </div>
-          <button className="aic-workspace-send" type="button" aria-label={busy?'Stop response':'Send message'} disabled={!busy&&(!consent||!validQuestion(draft))} onClick={()=>busy?operation.current?.abort():void send()}>{busy?<Square size={15}/>:<ArrowUp size={17}/>}</button>
+          <button className="aic-workspace-send" type="button" aria-label={busy?'Stop response':'Send message'} disabled={!busy&&(!consent||!!pendingDelete||!validQuestion(draft))} onClick={()=>busy?operation.current?.abort():void send()}>{busy?<Square size={15}/>:<ArrowUp size={17}/>}</button>
         </div>
       </div>
       <p className="aic-disclaimer">Selected context and messages are shared with OpenAI. AI can make mistakes. No trade execution.</p>
