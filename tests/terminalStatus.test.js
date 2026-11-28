@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { deriveTerminalStatus } from '../src/utils/terminalStatus.js';
+import { deriveTerminalStatus, visibleTerminalStatus } from '../src/utils/terminalStatus.js';
 
 const liveAccount = { id: 'a1', status: 'ACTIVE', tradingEnabled: true, valuationStatus: 'LIVE', staleSymbols: [] };
 const liveMarket = { symbol: 'EURUSD', displaySymbol: 'EUR/USD', bid: '1.10000', ask: '1.10010', sessionOpen: true, isStale: false, marketState: 'LIVE' };
@@ -56,4 +56,36 @@ test('closed exchange session wins over feed outage state', () => {
   }));
   assert.equal(result.code, 'SESSION_CLOSED');
   assert.equal(result.blocksNewExposure, true);
+});
+
+test('routine market and connection events never create interruptive floating banners', () => {
+  const passive = [
+    base({ connectionStatus: 'reconnecting' }),
+    base({ activeMarket: { ...liveMarket, isStale: true, marketState: 'STALE' } }),
+    base({ activeMarket: { ...liveMarket, sessionOpen: false } }),
+    base({ activeMarket: { ...liveMarket, marketState: 'DISCONNECTED', sessionOpen: true } }),
+    base({ activeMarket: { ...liveMarket, bid: null, ask: null, marketState: 'WAITING' } }),
+    base({ account: { ...liveAccount, valuationStatus: 'STALE' }, valuationStatus: 'STALE' }),
+    base({ account: { ...liveAccount, valuationStatus: 'WAITING' }, valuationStatus: 'WAITING' }),
+  ];
+  for (const state of passive) {
+    const computed = deriveTerminalStatus(state);
+    assert.ok(computed?.blocksNewExposure, 'Original exposure-block status must remain intact');
+    assert.equal(visibleTerminalStatus(computed), null, computed.code);
+  }
+  assert.equal(visibleTerminalStatus(null), null);
+});
+
+test('authentication and account restriction alerts remain visible', () => {
+  const important = [
+    base({ authStatus: 'reauth-required' }),
+    base({ authenticated: false, authStatus: 'unauthenticated' }),
+    base({ account: { ...liveAccount, status: 'PAUSED' } }),
+    base({ account: { ...liveAccount, status: 'BREACHED' } }),
+    base({ account: { ...liveAccount, tradingEnabled: false } }),
+  ];
+  for (const state of important) {
+    const computed = deriveTerminalStatus(state);
+    assert.equal(visibleTerminalStatus(computed), computed, computed.code);
+  }
 });

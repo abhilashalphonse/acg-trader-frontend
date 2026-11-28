@@ -3,6 +3,28 @@ const PAUSED_ACCOUNT_STATUSES = new Set(['PAUSED']);
 const BAD_MARKET_STATES = new Set(['ERROR', 'DISCONNECTED', 'DISABLED']);
 const NON_LIVE_VALUATIONS = new Set(['WAITING', 'STALE']);
 
+// Routine market/transport transitions are already represented in the chart,
+// session details and disabled order ticket. They must not interrupt the chart
+// with an auto-reappearing floating banner. This controls presentation ONLY.
+const QUIET_TERMINAL_STATUSES = new Set([
+  'SESSION_LOADING',
+  'ACCOUNT_LOADING',
+  'REALTIME_RECONNECTING',
+  'SESSION_CLOSED',
+  'MARKET_UNAVAILABLE',
+  'QUOTE_STALE',
+  'QUOTE_WAITING',
+  'VALUATION_WAITING',
+  'VALUATION_STALE',
+]);
+
+export function visibleTerminalStatus(status) {
+  return status && !QUIET_TERMINAL_STATUSES.has(String(status.code || ''))
+    ? status
+    : null;
+}
+
+
 export function deriveTerminalStatus({
   authStatus,
   authenticated,
