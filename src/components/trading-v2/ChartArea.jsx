@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Eye, EyeOff, Magnet, Lock, Unlock, Pin } from 'lucide-react';
 import TradingChart from '../TradingChart.jsx';
 import DrawingLayer from './DrawingLayer.jsx';
+import AgentDrawingSurface from '../ai/AgentDrawingSurface.jsx';
 import { commitDrawings } from '../../utils/drawingStore.js';
 import V4FullTerminalOrders from './v4/V4FullTerminalOrders.jsx';
 import { formatInstrumentPrice, instrumentPipSize } from '../../utils/instrumentFormatting.js';
@@ -1488,6 +1489,7 @@ export default function ChartArea({
   managementDisabled = false,
   onChartReadout,
   fillAvailableHeight = false,
+  agentDrawingPort = null,
 }) {
   const [clockNow, setClockNow] = useState(() => new Date());
   const [coordinateApi, setCoordinateApi] = useState(null);
@@ -1806,6 +1808,10 @@ export default function ChartArea({
           chartInstanceId={chartInstanceId}
           interactionEnabled={drawingInteractionEnabled}
           preserveChartCrosshair={desktopEnhanced && !compactContext}
+        />}
+        {agentDrawingPort && !compactContext && showDrawings && drawingInteractionEnabled && !tradePlan && !lockAllDrawings && coordinateApi && <AgentDrawingSurface
+          symbol={symbol} timeframe={chartTimeframe} chartInstanceId={chartInstanceId}
+          coordinateApi={coordinateApi} readCurrentContext={agentDrawingPort.readCurrentContext} onReady={agentDrawingPort.onReady}
         />}
         <TradePlanOverlay
           plan={v4AuditLayer && tradePlan?.editingOrderId ? null : tradePlan}
