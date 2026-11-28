@@ -3,6 +3,7 @@
 import {getDrawingSnapshot,observeDrawingMutations,visibleDrawingOnTimeframe} from '../../utils/drawingStore.js';
 import {canonicalDrawingTimeframe} from '../../utils/drawingTools.js';
 const owned=new Map();
+let ownershipEpoch=0;
 const MAX_SYMBOLS=128,MAX_OWNED=256,MAX_LIST=20;
 const FRAMES=new Set(['M1','M5','M15','M30','H1','H4','D1','W1']);
 const exact=x=>JSON.stringify(x);
@@ -27,7 +28,9 @@ export function registerVerifiedDrawings(symbol,drawings){
  if(!entry){
   if(owned.size>=MAX_SYMBOLS)return false;
   entry={items:new Map(),unsubscribe:null};
-  entry.unsubscribe=observeDrawingMutations(symbol,(_,next)=>prune(symbol,entry,next));
+  entry.unsubscribe=observeDrawingMutations(symbol,(_,next)=>{
+   try{prune(symbol,entry,next);}catch{entry.unsubscribe();owned.delete(symbol);}
+  });
   owned.set(symbol,entry);
  }
  if(entry.items.size+verified.length>MAX_OWNED)return false;
@@ -35,7 +38,9 @@ export function registerVerifiedDrawings(symbol,drawings){
  return true;
 }
 // Account/session transition intentionally downgrades all existing objects.
+export const drawingOwnershipEpoch=()=>ownershipEpoch;
 export function resetVerifiedDrawingOwnership(){
+ ownershipEpoch++;
  for(const entry of owned.values())entry.unsubscribe();
  owned.clear();
 }
