@@ -4,6 +4,7 @@ import {apiRequest} from '../../api/client.js';
 import {chartContextLabel} from './aiPreview.js';
 import AssistantMarkdown from './AssistantMarkdown.jsx';
 import {chartDrawingCommand,verifiedDrawingResponse} from './chartDrawingCommand.js';
+import {drawingInspectionCommand} from './chartDrawingInventory.js';
 import InstrumentAvatar from '../trading-v2/InstrumentAvatar.jsx';
 import {chartFeedStatus,followUpSuggestions,regenerationQuestion,workspaceFailureNotice} from './workspacePresentation.js';
 const bytes=s=>new TextEncoder().encode(s).length;
@@ -89,13 +90,22 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market,agen
     if(regenerateId&&!retryQuestion)return;
     const parent=active.current,question=(retryQuestion||draft).trim();
     if(!valid||!consent||!parent||parent.signal.aborted||inFlight.current||!validQuestion(question))return;
+    const inspectionCommand=!regenerateId&&consent.chartDrawingEnabled===true&&agentDrawingPort?drawingInspectionCommand(question):null;
+    if(inspectionCommand){
+      const view=includeMarket?agentDrawingPort.get()?.inspectDrawings():null;
+      if(!view||view.symbol!==chart.symbol){setNotice('Open the active chart with chart context enabled to inspect drawings.');return;}
+      const description={VERIFIED_AI:'AI-created and unchanged',PROTECTED_AI:'protected AI-created',MANUAL:'manual'};
+      const text=inspectionCommand==='SELECTED'?view.selected?view.selected.label+' — '+description[view.selected.ownership]+(view.selected.locked?' · locked':'')+'.':'No visible drawing is selected on this chart.':
+        'There are '+view.total+' visible drawings on your '+chart.symbol+' '+chart.timeframe+' chart.\n\n- AI-created and unchanged: '+view.counts.VERIFIED_AI+'\n- Protected AI-created: '+view.counts.PROTECTED_AI+'\n- Manual: '+view.counts.MANUAL+(view.selected?'\n\nSelected: '+view.selected.label+' ('+description[view.selected.ownership]+').':'');
+      setDraft('');setNotice('');setMessages(m=>[...m,{id:crypto.randomUUID(),role:'user',text:question},{id:crypto.randomUUID(),role:'assistant',text,action:true,context:{market:true,account:false}}]);return;
+    }
     const drawingCommand=!regenerateId&&consent.chartDrawingEnabled===true&&agentDrawingPort?chartDrawingCommand(question):null;
     const drawingPort=drawingCommand?agentDrawingPort.get():null;
     const controller=new AbortController();
     let interruptReason=null;
     const drawingRequest=drawingPort&&includeMarket&&drawingCommand!=='UNDO'?drawingPort.prepare({onInterrupt:reason=>{interruptReason=reason;controller.abort();}}):null;
     if(drawingCommand&&(!drawingPort||!includeMarket||(drawingCommand!=='UNDO'&&(!drawingRequest||drawingRequest.workspace.symbol!==chart.symbol)))){if(drawingRequest)drawingPort.release(drawingRequest.actionId);setNotice('Open the active chart with chart context enabled and the cursor tool selected, then try again.');return;}
-    if(regenerateId&&chartDrawingCommand(question))return;
+    if(regenerateId&&(chartDrawingCommand(question)||drawingInspectionCommand(question)))return;
     operation.current=controller;
     const abort=()=>controller.abort();parent.signal.addEventListener('abort',abort,{once:true});
     inFlight.current=true;setBusy(true);setPreview('');setProgress(null);setNotice('');if(!regenerateId)setDraft('');setCopyState(null);
