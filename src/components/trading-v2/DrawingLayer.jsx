@@ -245,7 +245,7 @@ function DrawingShape({
   if (drawing.type === 'hline') {
     return (
       <g>
-        <line x1="0" y1={a.y} x2={size.width} y2={a.y} stroke="transparent" strokeWidth="16" {...common} />
+        <line data-drawing-hit-id={drawing.id} x1="0" y1={a.y} x2={size.width} y2={a.y} stroke="transparent" strokeWidth="16" {...common} />
         <line x1="0" y1={a.y} x2={size.width} y2={a.y} {...lineStyle(drawing)} className="pointer-events-none" />
         <DrawingAnnotationLabel drawing={drawing} x={8} y={a.y} size={size} chartTheme={chartTheme}/>
         {interactive && selected && !effectiveLocked && <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />}
