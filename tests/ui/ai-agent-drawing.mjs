@@ -111,6 +111,23 @@ try{
  await panel.getByText(/Marked 1 fair value gap/).waitFor();
  const second=await read();assert.equal(second.length,3);assert.equal(second[2].type,'rectangle');
  assert.equal(second[2].actionId,drawRequests[1].actionId);
+ // Edit the unique verified FVG through chat, without new HTTP draw or grant.
+ await cursor.waitFor({state:'detached'});
+ const editCalls=drawRequests.length,editRevision=revision;
+ await input.fill('Shorten AI FVG by 2 candles');await send.click();
+ await waitForCursor();
+ await panel.getByText(/Updated the AI drawing as requested/).waitFor();
+ const edited=await read();
+ assert.equal(edited.length,second.length);
+ assert.deepEqual(edited.slice(0,2),second.slice(0,2));
+ assert.equal(edited[2].sourceId,second[2].sourceId);
+ assert.equal(edited[2].b.time,second[2].b.time-2*tfSeconds[drawRequests[1].timeframe]);
+ assert.equal(edited[2].aiGeometryAdjusted,true);
+ assert.equal(drawRequests.length,editCalls);assert.equal(revision,editRevision);
+ await input.fill('Undo the last AI drawing batch');await send.click();
+ await panel.getByText('Undid the last AI drawing batch (1 drawings).',{exact:true}).waitFor();
+ assert.deepEqual(await read(),second);
+
  // Native chart undo, not a mock store.
  await input.evaluate(el=>el.blur());await page.keyboard.press('Control+z');
  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('acg-trader-drawings-v3:EURUSD')||'[]').length===2);
