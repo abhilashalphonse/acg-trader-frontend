@@ -30,7 +30,7 @@ try{
      const end=Math.floor(fixtureClock/1000/step)*step;
      const price=fixturePrices[url.searchParams.get('symbol')]||1.1173;
      const d=price*.001;
-     const rows=[...Array.from({length:90},()=>[103,104,102,103]),[102,104,100,103],[103,105,101,104],[104,105,95,101],[101,104,100,103],[103,106,102,105],[110,112,109,111],[111,114,105,112],[112,113,110,112],[112,113,110,112],[112,113,110,112]];
+     const rows=[...Array.from({length:90},()=>[103,104,102,103]),[102,104,100,103],[103,105,101,104],[104,105,95,101],[101,104,100,103],[103,106,102,105],[110,112,109,111],[111,114,105,112],[112,113,105,112],[112,113,110,112],[112,113,110,112]];
      const scale=v=>price+d*(v-110)/10;
      const candles=rows.map(([o,h,l,c],i)=>({time:end-(100-i)*step-7*86400,open:scale(o),high:scale(h),low:scale(l),close:scale(c),complete:true,synthetic:false,stateVersion:1}));
      return json(route,{candles,pagination:{hasMore:false}});
