@@ -5,7 +5,7 @@ import {drawingOwnershipEpoch,resetVerifiedDrawingOwnership,drawingOwnership} fr
 import {getDrawingSnapshot,commitDrawings,undoDrawings,patchDrawing,subscribeDrawings} from '../src/utils/drawingStore.js';
 const clock=1795836601000,closed=1795836600000,version='e'.repeat(64);
 const actionId='aabbccdd-1122-4333-8444-556677889900';
-function fixture(symbol){
+function fixture(symbol,now=()=>clock){
  const workspace={symbol,timeframe:'5m',chartInstanceId:'chart-'+symbol};
  const ctx={enabled:true,workspace,chartContextVersion:version,latestClosedAtMs:closed};
  const request={userRequested:true,complete:true,ownershipEpoch:drawingOwnershipEpoch(),workspace,actionId,chartContextVersion:version,latestClosedAtMs:closed,drawingRevision:getDrawingSnapshot(symbol).revision};
@@ -16,7 +16,7 @@ function fixture(symbol){
  let active=null;const events=[];const token={};
  const cursor={start:p=>{active=token;events.push(['start',p]);return token;},move:async(t,p)=>{events.push(['move',p]);return active===t;},pulse:t=>{events.push(['pulse']);return active===t;},finish:()=>{active=null;events.push(['finish']);},stop:()=>{active=null;events.push(['stop']);}};
  const coordinateApi={plotSize:()=>({width:400,height:300}),toScreen:p=>({x:100+(p.time-closed/1000)/10,y:200-p.price})};
- const e=createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor,readCurrentContext:()=>ctx,now:()=>clock});
+ const e=createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor,readCurrentContext:()=>ctx,now});
  return {e,ctx,request,receipt,cursor,coordinateApi,events};
 }
 test('direct user command animates exact native anchors and commits one verified, editable, undoable batch',async()=>{
@@ -269,4 +269,20 @@ test('ownership reset fences old requests, pending confirmation, active motion a
  resetVerifiedDrawingOwnership();release(true);
  assert.equal((await pending).state,'STALE');
  assert.equal(getDrawingSnapshot('AGENTEPOCH2').present.length,0);
+});
+
+test('expired deletion confirmation is consumed and never removes a drawing',async()=>{
+ let currentTime=clock;
+ const f=fixture('AGENTDELETEEXP',()=>currentTime),symbol=f.request.workspace.symbol;
+ assert.equal((await f.e.execute(f)).state,'VERIFIED');
+ const before=getDrawingSnapshot(symbol);
+ const request={...f.request,drawingRevision:before.revision,actionId:'aabbccdd-1122-4333-8444-556677889908'};
+ const preview=f.e.previewDeletion({question:'Delete AI FVG',selection:null});
+ assert.equal(preview.state,'CONFIRM_REQUIRED');
+ currentTime=preview.expiresAtMs;
+ const args={request,preview,selection:null,readSelection:()=>null};
+ assert.equal((await f.e.confirmDeletion(args)).state,'STALE');
+ currentTime=clock;
+ assert.equal((await f.e.confirmDeletion(args)).state,'STALE');
+ assert.equal(getDrawingSnapshot(symbol),before);
 });
