@@ -1,0 +1,45 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {chartDrawingCandidates,buildLocalDrawingReceipt} from '../src/components/ai/localChartDrawing.js';
+const start=1577836800,step=3600;
+const rows=[[102,104,100,103],[103,105,101,104],[104,105,95,101],[101,104,100,103],[103,106,102,105],[110,112,109,111],[111,114,105,112],[112,113,105,112],[112,113,110,112],[112,113,110,112]];
+const candles=rows.map(([open,high,low,close],i)=>({time:start+i*step,open,high,low,close,complete:true,synthetic:false}));
+const args={candles,step,command:'LIQUIDITY_THEN_FVG'};
+const expected=[{type:'hline',time:start+6*step,price:114},{type:'hline',time:start+2*step,price:95},{type:'rectangle',fromTime:start+5*step,toTime:start+9*step,lower:104,upper:109}];
+test('historical viewport only: exact liquidity and FVG geometry without quotes or wall-clock freshness',()=>{
+ assert.deepEqual(chartDrawingCandidates(args),expected);
+ assert.deepEqual(chartDrawingCandidates({...args,command:'FVG_THEN_LIQUIDITY'}),[expected[2],...expected.slice(0,2)]);
+ assert.deepEqual(chartDrawingCandidates({...args,isVisible:g=>g.type==='rectangle'}),[expected[2]]);
+ assert.equal(chartDrawingCandidates({...args,command:'TRADE'}),null);
+});
+test('a distinct untouched swing is not silently discarded',()=>{
+ const extra=candles.map((b,i)=>i===7?{...b,low:110}:b);
+ const result=chartDrawingCandidates({...args,candles:extra});
+ assert.deepEqual(result,[{type:'hline',time:start+6*step,price:105},expected[0],expected[1],expected[2]]);
+});
+test('an old session gap does not suppress intact local patterns; a gap inside an FVG does',()=>{
+ const withGap=candles.map((b,i)=>({...b,time:b.time+(i>=1?86400:0)}));
+ const result=chartDrawingCandidates({...args,candles:withGap});
+ assert.equal(result.length,3);
+ assert.equal(result[2].lower,104);assert.equal(result[2].upper,109);
+ const insideGap=candles.map((b,i)=>({...b,time:b.time+(i>=5?86400:0)}));
+ assert.equal(chartDrawingCandidates({...args,candles:insideGap,command:'FVG'}).length,0);
+ assert.equal(chartDrawingCandidates({...args,candles:insideGap,command:'LIQUIDITY'}).length,2);
+ const synthetic=candles.map((b,i)=>({...b,synthetic:i===4}));
+ assert.equal(chartDrawingCandidates({...args,candles:synthetic,command:'FVG'}).length,0);
+});
+test('pinned local receipt, stable identity and cancellation; no request or provider data required',async()=>{
+ const snapshot={candles,step,latestClosedAtMs:(start+10*step)*1000};
+ const request={workspace:{symbol:'EURUSD',timeframe:'H1',chartInstanceId:'active'},actionId:'00000000-0000-4000-8000-000000000001',chartContextVersion:'a'.repeat(64),latestClosedAtMs:snapshot.latestClosedAtMs,complete:true,userRequested:true};
+ const config={snapshot,request,command:'FVG',now:()=>1700000000000};
+ const r=await buildLocalDrawingReceipt(config);
+ assert.equal(r.state,'READY');assert.deepEqual(r.receipt.actions.map(a=>a.geometry),[expected[2]]);
+ assert.equal(r.receipt.context.expiresAtMs,1700000010000);
+ assert.match(r.receipt.actions[0].sourceId,/^draw_[a-f0-9]{32}$/);
+ const shifted={...snapshot,candles:[...candles,{...candles.at(-1),time:start+10*step}],latestClosedAtMs:(start+11*step)*1000};
+ const r2=await buildLocalDrawingReceipt({...config,snapshot:shifted,request:{...request,latestClosedAtMs:shifted.latestClosedAtMs}});
+ assert.equal(r2.receipt.actions[0].sourceId,r.receipt.actions[0].sourceId);
+ assert.equal(await buildLocalDrawingReceipt({...config,request:{...request,userRequested:false}}),null);
+ const controller=new AbortController();controller.abort();
+ assert.equal(await buildLocalDrawingReceipt({...config,signal:controller.signal}),null);
+});

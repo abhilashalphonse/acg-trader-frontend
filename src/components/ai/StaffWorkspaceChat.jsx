@@ -3,7 +3,7 @@ import {ArrowUp,Square,Sparkles,Copy,Check,LoaderCircle,ChartNoAxesCombined,Cros
 import {apiRequest} from '../../api/client.js';
 import {chartContextLabel} from './aiPreview.js';
 import AssistantMarkdown from './AssistantMarkdown.jsx';
-import {chartDrawingCommand,verifiedDrawingResponse} from './chartDrawingCommand.js';
+import {chartDrawingCommand} from './chartDrawingCommand.js';
 import {drawingInspectionCommand} from './chartDrawingInventory.js';
 import {drawingEditCommand} from './chartDrawingEdit.js';
 import {drawingDeleteCommand} from './chartDrawingDelete.js';
@@ -149,7 +149,8 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market,agen
         'There are '+view.total+' visible drawings on your '+chart.symbol+' '+chart.timeframe+' chart.\n\n- AI-created and unchanged: '+view.counts.VERIFIED_AI+'\n- Protected AI-created: '+view.counts.PROTECTED_AI+'\n- Manual: '+view.counts.MANUAL+(view.selected?'\n\nSelected: '+view.selected.label+' ('+description[view.selected.ownership]+').':'');
       setDraft('');setNotice('');setMessages(m=>[...m,{id:crypto.randomUUID(),role:'user',text:question},{id:crypto.randomUUID(),role:'assistant',text,action:true,context:{market:true,account:false}}]);return;
     }
-    const drawingCommand=!regenerateId&&consent.chartDrawingEnabled===true&&agentDrawingPort?(chartDrawingCommand(question)||(drawingEditCommand(question)?'EDIT':null)):null;
+    const drawingCommand=!regenerateId?(chartDrawingCommand(question)||(drawingEditCommand(question)?'EDIT':null)):null;
+    if(drawingCommand&&(consent.chartDrawingEnabled!==true||!agentDrawingPort)){setNotice('Chart drawing actions are unavailable in this workspace. No provider request was sent.');return;}
     const drawingPort=drawingCommand?agentDrawingPort.get():null;
     const controller=new AbortController();
     let interruptReason=null;
@@ -196,19 +197,18 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market,agen
       if(drawingCommand){
         if(controller.signal.aborted||agentDrawingPort.get()!==drawingPort)return;
         setProgress('CONTEXT');
-        const value=await call('draw',{actionId:drawingRequest.actionId,command:drawingCommand,chartContextVersion:drawingRequest.chartContextVersion,latestClosedAtMs:drawingRequest.latestClosedAtMs},controller.signal);
+        const verified=await drawingPort.plan({request:drawingRequest,command:drawingCommand,signal:controller.signal});
         if(controller.signal.aborted||agentDrawingPort.get()!==drawingPort)return;
-        const verified=verifiedDrawingResponse(value,{request:drawingRequest,...chart,command:drawingCommand});
-        if(!verified){setNotice('Drawing response could not be verified. No drawings applied.');return;}
+        if(!verified){setNotice('Chart context changed. No drawings applied.');return;}
         let text;
         const combined=drawingCommand.includes('_THEN_');
-        if(verified.state==='EMPTY')text='No eligible '+(combined?'liquidity levels or fair value gaps':drawingCommand==='FVG'?'fair value gaps':'liquidity levels')+' were found in the verified chart evidence.';
+        if(verified.state==='EMPTY')text='No eligible '+(combined?'liquidity levels or fair value gaps':drawingCommand==='FVG'?'fair value gaps':'liquidity levels')+' were found in the visible chart candles.';
         else{
           setProgress('DRAWING');
           const outcome=await drawingPort.execute({request:drawingRequest,receipt:verified.receipt,signal:controller.signal});
           if(outcome.state==='VERIFIED')text='Marked '+outcome.count+' '+(combined?'liquidity/FVG drawing(s)':drawingCommand==='FVG'?'fair value gap zone(s)':'liquidity level(s)')+' on your '+chart.symbol+' '+chart.timeframe+' chart. You can edit or undo them using the chart tools.';
           else if(outcome.state==='NO_CHANGES'||outcome.state==='ALREADY_APPLIED')text='These drawings are already present. Existing drawings and manual edits were preserved.';
-          else{if(!controller.signal.aborted)setNotice(outcome.state==='OFFSCREEN'?'Some verified anchors are outside the visible chart. Adjust the view and try again.':outcome.state==='FAILED_UNCERTAIN'||outcome.state==='RECOVERY_REQUIRED'?'Drawing result could not be verified. AI drawing actions are paused for this symbol until you reload. Inspect your chart first.':outcome.state==='FAILED_NO_COMMIT'?'Drawing was not applied. No automatic retry.':'Chart changed or the drawing operation was stopped. No new action was committed.');return;}
+          else{if(!controller.signal.aborted)setNotice(outcome.state==='OFFSCREEN'?'The chart moved while drawing. Adjust the view and try again.':outcome.state==='FAILED_UNCERTAIN'||outcome.state==='RECOVERY_REQUIRED'?'Drawing result could not be verified. AI drawing actions are paused for this symbol until you reload. Inspect your chart first.':outcome.state==='FAILED_NO_COMMIT'?'Drawing was not applied. No automatic retry.':'Chart changed or the drawing operation was stopped. No new action was committed.');return;}
         }
         setMessages(m=>[...m,{id:crypto.randomUUID(),role:'assistant',text,action:true,context:{market:true,account:false}}]);return;
       }

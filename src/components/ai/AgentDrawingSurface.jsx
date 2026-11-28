@@ -4,10 +4,11 @@ import {createAgentCursor} from './agentCursorController.js';
 import {createNativeAgentDrawingExecutor} from './nativeAgentDrawingExecutor.js';
 import {getDrawingSnapshot} from '../../utils/drawingStore.js';
 import {inspectChartDrawings,drawingOwnershipEpoch} from './chartDrawingInventory.js';
+import {buildLocalDrawingReceipt} from './localChartDrawing.js';
 
 // Private chart capability scoped to the active mounted chart. The context
-// token binds to a local snapshot; the server independently verifies market
-// evidence and the completed-candle time. It is not an authentication token.
+// token binds to the pinned native viewport snapshot, not server market data.
+// It is not an authentication token.
 export default function AgentDrawingSurface({symbol,timeframe,chartInstanceId,coordinateApi,onReady,mobile=false}){
  const [cursor,setCursor]=useState(null);
  const anchor=useRef(null);
@@ -62,6 +63,19 @@ export default function AgentDrawingSurface({symbol,timeframe,chartInstanceId,co
     const actionId=crypto.randomUUID();
     pinned={...snapshot,chartContextVersion,actionId,onInterrupt};
     return Object.freeze({workspace,actionId,chartContextVersion,latestClosedAtMs:snapshot.latestClosedAtMs,drawingRevision:getDrawingSnapshot(symbol).revision,ownershipEpoch:drawingOwnershipEpoch(),userRequested:true,complete:true});
+   },
+   async plan({request,command,signal}={}){
+    if(!pinned||request?.actionId!==pinned.actionId||request?.chartContextVersion!==pinned.chartContextVersion||!readCurrentContext()||signal?.aborted)return null;
+    const captured=pinned;
+    const isVisible=g=>{
+     const size=coordinateApi.plotSize();
+     const point=(time,price)=>coordinateApi.toScreen({time,price});
+     const inside=p=>p&&Number.isFinite(p.x)&&Number.isFinite(p.y)&&p.x>=0&&p.x<=size.width&&p.y>=0&&p.y<=size.height;
+     if(g.type==='hline')return inside(point(g.time,g.price));
+     return inside(point(g.fromTime,g.upper))&&inside(point(g.toTime,g.lower));
+    };
+    const result=await buildLocalDrawingReceipt({snapshot:captured,request,command,signal,isVisible});
+    return pinned===captured&&!signal?.aborted&&readCurrentContext()?result:null;
    },
    inspectDrawings(){return disposed||pinned?null:inspectChartDrawings({...workspace,selection});},
    execute:executor.execute,
