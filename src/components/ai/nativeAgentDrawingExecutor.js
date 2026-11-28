@@ -6,6 +6,7 @@ import {getDrawingSnapshot,commitDrawings,normalizeDrawing,undoDrawings} from '.
 import {canonicalDrawingTimeframe} from '../../utils/drawingTools.js';
 import {prepareChartDrawingPlan} from './chartDrawingPlan.js';
 import {registerVerifiedDrawings} from './chartDrawingInventory.js';
+import {planDrawingEdit} from './chartDrawingEdit.js';
 
 const VERSION='chart-drawing-candidates-v1';
 const hex=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
@@ -135,6 +136,57 @@ export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor
    if(active===op)active=null;
   }
  }
+ // Geometry edits use explicit user input, current chart selection and
+ // verified session ownership. No model proposals or external coordinates.
+ async function edit({request,question,selection,readSelection,signal}={}){
+  if(active)return result('BUSY');
+  if(uncertainSymbols.has(chart.symbol))return result('RECOVERY_REQUIRED');
+  if(!request||typeof readSelection!=='function')return result('DENIED');
+  try{request=structuredClone(request);selection=structuredClone(selection);}catch{return result('DENIED');}
+  // Reuse the same pinned context and time bounds as the creation path.
+  const receipt={contractVersion:VERSION,actionId:request.actionId,context:{symbol:chart.symbol,timeframe:chart.timeframe,chartContextVersion:request.chartContextVersion,latestClosedAtMs:request.latestClosedAtMs,expiresAtMs:now()+10000}};
+  if(!executeCheck(request,receipt,signal))return result('DENIED');
+  const before=getDrawingSnapshot(chart.symbol),baseline=exact(before.present);
+  const planned=planDrawingEdit({question,workspace:chart,snapshot:before,selection,latestClosedAtMs:request.latestClosedAtMs,now:now()});
+  if(planned.state!=='READY')return result(planned.state);
+  const {current,edited,command}=planned;
+  const oldPath=points(current),newPath=points(edited);
+  if(!oldPath||!newPath)return result('OFFSCREEN');
+  const next=before.present.map(d=>d.id===current.id?edited:d),expected=exact(next);
+  const op={cancelled:false,token:null,lastPoint:null,committed:false,writeStarted:false};active=op;
+  const abort=()=>{if(active===op)stop();};
+  signal?.addEventListener?.('abort',abort,{once:true});
+  const stillValid=()=>executeCheck(request,receipt,signal,op)&&getDrawingSnapshot(chart.symbol)===before&&
+    (!command.selected||exact(readSelection())===exact(selection))&&samePath(oldPath,points(current))&&samePath(newPath,points(edited));
+  try{
+   if(!stillValid())return result('STALE');
+   for(const p of [...oldPath,...newPath]){
+    if(!op.token){op.token=cursor.start(p);if(!op.token)return result('STOPPED');if(!await cursor.move(op.token,p,{durationMs:100}))return result('STOPPED');}
+    else if(!await cursor.move(op.token,p,{durationMs:travelMs(op.lastPoint,p)}))return result('STOPPED');
+    op.lastPoint=p;
+    if(!stillValid())return result(op.cancelled||signal?.aborted?'STOPPED':'STALE');
+   }
+   if(!stillValid())return result(op.cancelled||signal?.aborted?'STOPPED':'STALE');
+   op.writeStarted=true;let notificationWarning=false;
+   try{commitDrawings(chart.symbol,next);}catch{notificationWarning=true;}
+   const after=getDrawingSnapshot(chart.symbol);
+   if(after.revision!==before.revision+1||exact(after.present)!==expected||exact(after.past.at(-1))!==baseline||after.future.length){
+    if(after===before&&exact(after.present)===baseline)return result('FAILED_NO_COMMIT');
+    uncertainSymbols.add(chart.symbol);return result('FAILED_UNCERTAIN');
+   }
+   lastBatch={after,before:baseline,expected,count:1};op.committed=true;
+   try{registerVerifiedDrawings(chart.symbol,[edited]);}catch{/* conservative ownership downgrade */}
+   try{cursor.pulse(op.token);}catch{/* visual-only */}
+   return result('EDITED',{count:1,notificationWarning});
+  }catch{
+   if(op.writeStarted){uncertainSymbols.add(chart.symbol);return result('FAILED_UNCERTAIN');}
+   return result(op.cancelled||signal?.aborted?'STOPPED':'FAILED_NO_COMMIT');
+  }finally{
+   signal?.removeEventListener?.('abort',abort);
+   try{if(op.token)cursor.finish(op.token,{lingerMs:op.committed?300:0});}catch{}
+   if(active===op)active=null;
+  }
+ }
  // Undo only the exact latest verified AI transaction. A later manual edit,
  // native undo/redo, or chart disposal invalidates this capability.
  function undoLastBatch(){
@@ -151,5 +203,5 @@ export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor
   lastBatch=null;
   return result('UNDONE',{count:batch.count,...(warning?{notificationWarning:true}:{})});
  }
- return Object.freeze({execute,stop,undoLastBatch,dispose(){disposed=true;lastBatch=null;stop();applied.clear();}});
+ return Object.freeze({execute,edit,stop,undoLastBatch,dispose(){disposed=true;lastBatch=null;stop();applied.clear();}});
 }
