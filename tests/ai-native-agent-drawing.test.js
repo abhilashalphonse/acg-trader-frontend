@@ -139,3 +139,51 @@ test('unexpected concurrent mutation during write quarantines symbol even across
  assert.equal((await remount.e.execute(remount)).state,'RECOVERY_REQUIRED');
  assert.equal(getDrawingSnapshot(symbol),after);
 });
+
+test('edit unique verified FVG geometry atomically and undo the edit',async()=>{
+ const f=fixture('AGENTEDIT1'),symbol=f.request.workspace.symbol;
+ assert.equal((await f.e.execute(f)).state,'VERIFIED');
+ const before=getDrawingSnapshot(symbol);
+ const request={...f.request,drawingRevision:before.revision,actionId:'aabbccdd-1122-4333-8444-556677889901'};
+ const edited=await f.e.edit({request,question:'Shorten the AI FVG by 1 candle',selection:null,readSelection:()=>null});
+ assert.equal(edited.state,'EDITED');
+ const after=getDrawingSnapshot(symbol);
+ assert.equal(after.revision,before.revision+1);
+ assert.deepEqual(after.present[0],before.present[0]);
+ assert.equal(after.present[1].b.time,before.present[1].b.time-300);
+ assert.equal(after.present[1].sourceId,before.present[1].sourceId);
+ assert.equal(after.present[1].aiGeometryAdjusted,true);
+ assert.equal(f.e.undoLastBatch().state,'UNDONE');
+ assert.deepEqual(getDrawingSnapshot(symbol).present,before.present);
+});
+test('selected AI liquidity edits require exact current selection and unchanged ownership',async()=>{
+ const f=fixture('AGENTEDIT2'),symbol=f.request.workspace.symbol;
+ assert.equal((await f.e.execute(f)).state,'VERIFIED');
+ let before=getDrawingSnapshot(symbol);
+ const selection={symbol,chartInstanceId:f.request.workspace.chartInstanceId,selectedId:before.present[0].id};
+ const request=()=>({...f.request,drawingRevision:getDrawingSnapshot(symbol).revision,actionId:'aabbccdd-1122-4333-8444-556677889902'});
+ const edit=(question,selected=selection)=>f.e.edit({request:request(),question,selection:selected,readSelection:()=>selected});
+ assert.equal((await edit('Move selected AI liquidity line to 101',{...selection,chartInstanceId:'other'})).state,'NO_TARGET');
+ assert.equal((await edit('Move selected AI liquidity line to 101')).state,'EDITED');
+ assert.equal(getDrawingSnapshot(symbol).present[0].a.price,101);
+ patchDrawing(symbol,selection.selectedId,{style:{color:'#FFFFFF'}});
+ before=getDrawingSnapshot(symbol);
+ assert.equal((await edit('Move selected AI liquidity line to 102')).state,'PROTECTED_TARGET');
+ assert.equal(getDrawingSnapshot(symbol),before);
+});
+test('edit ambiguity, range and stop leave original drawings intact',async()=>{
+ const f=fixture('AGENTEDIT3'),symbol=f.request.workspace.symbol;
+ assert.equal((await f.e.execute(f)).state,'VERIFIED');
+ commitDrawings(symbol,items=>[...items,{id:'manual-hline',type:'hline',a:{time:closed/1000,price:98},timeframeVisibility:'M5'}]);
+ const before=getDrawingSnapshot(symbol);
+ const request={...f.request,drawingRevision:before.revision,actionId:'aabbccdd-1122-4333-8444-556677889903'};
+ const edit=question=>f.e.edit({request,question,selection:null,readSelection:()=>null});
+ assert.equal((await edit('Move AI liquidity line to 101')).state,'AMBIGUOUS_TARGET');
+ assert.equal((await edit('Extend AI FVG by 1 candle')).state,'OUT_OF_RANGE');
+ let release;
+ f.cursor.move=()=>new Promise(resolve=>{release=resolve;});
+ const pending=edit('Shorten AI FVG by 1 candle');
+ f.e.stop();release(false);
+ assert.equal((await pending).state,'STOPPED');
+ assert.equal(getDrawingSnapshot(symbol),before);
+});
