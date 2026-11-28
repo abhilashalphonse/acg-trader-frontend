@@ -1,5 +1,5 @@
 // The server sends bounded lifecycle events and exactly one terminal result.
-// Never display partial model text or automatically replay a failed request.
+// Partial model text is provisional; never automatically replay a failed request.
 const maxBytes=65536;
 const stages=['CONTEXT','GENERATING'];
 export async function readWorkspaceEventStream(response,onProgress,onDelta){
