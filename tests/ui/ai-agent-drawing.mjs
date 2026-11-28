@@ -11,7 +11,8 @@ try{
  const page=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'no-preference'});
  const errors=[],drawRequests=[],unexpectedWrites=[];
  page.on('pageerror',e=>errors.push(e.message));
- let revision=0,mode='normal',latest=0,chartTf=null;
+ let revision=0,mode='normal';
+ const fixtureClock=Date.now(),latestByChart=new Map();
  const origin='http://127.0.0.1:5174';
  const common={contractVersion:'restricted-pilot-v1',mode:'WORKSPACE_CHAT',executionAllowed:false};
  const fixturePrices={EURUSD:1.1173,BTCUSD:68101,XAUUSD:3881.77};
@@ -22,10 +23,10 @@ try{
    if(req.method()==='OPTIONS')return json(route,{},204);
    if(path==='/v1/market/candles'){
      const tf=url.searchParams.get('timeframe'),step=tfSeconds[tf]||1800;
-     const end=Math.floor(Date.now()/1000/step)*step;
+     const end=Math.floor(fixtureClock/1000/step)*step;
      const price=fixturePrices[url.searchParams.get('symbol')]||1.1173;
      const d=price*.001;
-     latest=end*1000;chartTf=tf;
+     if(!url.searchParams.has('before'))latestByChart.set(url.searchParams.get('symbol')+':'+tf,end*1000);
      const candles=Array.from({length:100},(_,i)=>({time:end-(100-i)*step,open:price+Math.sin(i/4)*d,high:price+Math.sin(i/4)*d+d*.35,low:price+Math.sin(i/4)*d-d*.35,close:price+Math.sin(i/4)*d+d*.1,complete:true,synthetic:false,stateVersion:1}));
      return json(route,{candles,pagination:{hasMore:false}});
    }
@@ -36,8 +37,7 @@ try{
      if(path.endsWith('/grant')){assert.equal(b.expectedRevision,revision);return json(route,{...common,revision:++revision});}
      if(path.endsWith('/draw')){
        drawRequests.push(b);
-       assert.equal(b.latestClosedAtMs,latest);
-       assert.equal(b.timeframe,chartTf);
+       assert.equal(b.latestClosedAtMs,latestByChart.get(b.symbol+':'+b.timeframe),'receipt must match the selected chart, not another history request');
        assert.ok(!Object.hasOwn(b,'price')&&!Object.hasOwn(b,'geometry'));
        const step=tfSeconds[b.timeframe],time=b.latestClosedAtMs/1000,price=fixturePrices[b.symbol],d=price*.001;
        const id=n=>'draw_'+String(n).repeat(32);
@@ -67,7 +67,7 @@ try{
  await page.waitForFunction(()=>!document.querySelector('[data-ai-chat-preview] button[aria-label="Send message"]')?.disabled||document.querySelector('.acg-agent-cursor-surface')!==null);
  await page.waitForTimeout(350);
  await input.fill('Mark significant liquidity levels');await send.click();
- await panel.getByText(/Marked 2 liquidity level/).waitFor();
+ await panel.getByText(/Marked 2 liquidity level/).waitFor().catch(async error=>{console.error('Drawing fixture diagnostic:',await panel.innerText(),JSON.stringify(drawRequests),JSON.stringify(errors));throw error;});
  assert.equal(drawRequests.length,1);assert.equal(drawRequests[0].command,'LIQUIDITY');
  const first=await read();assert.equal(first.length,2);assert.ok(first.every(d=>d.createdBy==='ai'&&d.type==='hline'&&!d.locked));
  await input.fill('Draw FVGs');
