@@ -49,14 +49,15 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market}){
   const [messages,setMessages]=useState([]);
   const [draft,setDraft]=useState('');
   const [busy,setBusy]=useState(false);
+  const [progress,setProgress]=useState(null);
   const [notice,setNotice]=useState('');
   const [copyState,setCopyState]=useState(null);
   const [feedback,setFeedback]=useState({});
   const latestAnswer=useRef(null);
   const active=useRef(null),inFlight=useRef(false),historyStart=useRef(0),bottom=useRef(null),input=useRef(null);
   const valid=Boolean(runtime?.token&&runtime.accountId&&chart.symbol&&allowedFrames.includes(chart.timeframe));
-  const call=(op,extra,signal)=>apiRequest('/v1/ai/pilot/'+op,{method:'POST',token:runtime.token,
-    body:{accountId:runtime.accountId,connectionId,symbol:chart.symbol,timeframe:chart.timeframe,...extra},signal,timeoutMs:40000});
+  const call=(op,extra,signal,workspaceProgress=null)=>apiRequest('/v1/ai/pilot/'+op,{method:'POST',token:runtime.token,
+    body:{accountId:runtime.accountId,connectionId,symbol:chart.symbol,timeframe:chart.timeframe,...extra},signal,timeoutMs:40000,workspaceProgress});
   useEffect(()=>{
     if(!valid)return;
     const controller=new AbortController();active.current=controller;setConsent(null);setNotice('');
@@ -85,7 +86,7 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market}){
     if(regenerateId&&!retryQuestion)return;
     const controller=active.current,question=(retryQuestion||draft).trim();
     if(!valid||!consent||!controller||controller.signal.aborted||inFlight.current||!validQuestion(question))return;
-    inFlight.current=true;setBusy(true);setNotice('');if(!regenerateId)setDraft('');setCopyState(null);
+    inFlight.current=true;setBusy(true);setProgress(null);setNotice('');if(!regenerateId)setDraft('');setCopyState(null);
     const prior=regenerateId?messages.slice(0,-2):messages;
     const history=boundedWorkspaceHistory(prior.slice(historyStart.current),question);
     if(!regenerateId)setMessages(m=>[...m,{id:crypto.randomUUID(),role:'user',text:question}]);
@@ -95,13 +96,13 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market}){
       if(grant?.contractVersion!=='restricted-pilot-v1'||grant.mode!=='WORKSPACE_CHAT'||grant.executionAllowed!==false||grant.revision!==consent.revision+1)throw Error('Invalid grant');
       setConsent({...consent,revision:grant.revision,active:true});
       const operationId=crypto.randomUUID();
-      const result=await call('generate',{operationId,intent:'WORKSPACE_CHAT',question,history,includeMarket,includeAccount},controller.signal);
+      const result=await call('generate',{operationId,intent:'WORKSPACE_CHAT',question,history,includeMarket,includeAccount},controller.signal,stage=>{if(!controller.signal.aborted)setProgress(stage);});
       if(controller.signal.aborted)return;
       const answer=projectWorkspaceAnswer(result,{operationId,...chart,includeMarket,includeAccount});
       if(!answer){setNotice(workspaceFailureNotice(result,{operationId,...chart}));return;}
       setMessages(m=>[...(regenerateId?m.slice(0,-1):m),{id:crypto.randomUUID(),role:'assistant',...answer}]);
     }catch{if(!controller.signal.aborted)setNotice('AI request unavailable. No automatic retry.');}
-    finally{inFlight.current=false;if(!controller.signal.aborted)setBusy(false);}
+    finally{inFlight.current=false;if(!controller.signal.aborted){setBusy(false);setProgress(null);}}
   }
   return <>
     <div className="aic-context aic-workspace-context">
@@ -128,7 +129,7 @@ export default function StaffWorkspaceChat({runtime,symbol,timeframe,market}){
           <p className="aic-answer-context">{m.context?.market?'Chart context':'No chart context'} · {m.context?.account?'Account context':'No account context'}</p>
         </>}
       </article>)}
-      {busy&&<div className="aic-answer-heading aic-analysis-loading"><LoaderCircle size={14}/> Thinking…</div>}
+      {busy&&<div className="aic-answer-heading aic-analysis-loading"><LoaderCircle size={14}/> {progress==='CONTEXT'?'Reading workspace…':progress==='GENERATING'?'Generating response…':'Thinking…'}</div>}
       {notice&&<p role="status" className="aic-disclaimer">{notice}</p>}
       <div ref={bottom}/>
     </div>
