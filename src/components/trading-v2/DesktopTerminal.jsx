@@ -1,5 +1,6 @@
 import { CircleHelp, Sparkles } from 'lucide-react';
 import NativeAiChat from '../ai/NativeAiChat.jsx';
+import {resetVerifiedDrawingOwnership} from '../ai/chartDrawingInventory.js';
 import { isAiChatPreviewEnabled } from '../ai/aiPreview.js';
 import { AlertsPanel, useAlerts } from '../alerts/AlertsWorkspace.jsx';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -451,6 +452,12 @@ export default function DesktopTerminal({
   const openMiniTerminal = useCallback(() => miniTerminalRef.current?.open(), []);
   const searchRef = useRef(null);
   const [activeNav, setActiveNav] = useState('trade');
+  // Do not carry mutation authority across authentication or account changes.
+  // This intentionally does not reset ownership on symbol/timeframe switches.
+  React.useLayoutEffect(()=>{
+    resetVerifiedDrawingOwnership();
+    return ()=>resetVerifiedDrawingOwnership();
+  },[staffAiRuntime?.sessionId,staffAiRuntime?.accountId,staffAiRuntime?.token,activeAccountId,accountSwitching]);
   const agentDrawingRef=useRef(null);
   const agentDrawingPort=React.useMemo(()=>({onReady:port=>{agentDrawingRef.current=port;},get:()=>agentDrawingRef.current}),[]);
   const aiPreview = V4_DESKTOP_EXECUTION_ENABLED && (staffAiPreview === true || isAiChatPreviewEnabled(import.meta.env.DEV, typeof window !== 'undefined' ? window.location.search : ''));

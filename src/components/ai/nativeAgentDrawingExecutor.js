@@ -5,6 +5,9 @@
 import {getDrawingSnapshot,commitDrawings,normalizeDrawing,undoDrawings} from '../../utils/drawingStore.js';
 import {canonicalDrawingTimeframe} from '../../utils/drawingTools.js';
 import {prepareChartDrawingPlan} from './chartDrawingPlan.js';
+import {registerVerifiedDrawings,drawingOwnership,drawingOwnershipEpoch} from './chartDrawingInventory.js';
+import {resolveDrawingDeletion} from './chartDrawingDelete.js';
+import {planDrawingEdit} from './chartDrawingEdit.js';
 
 const VERSION='chart-drawing-candidates-v1';
 const hex=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
@@ -23,10 +26,11 @@ const samePath=(a,b)=>a&&b&&a.length===b.length&&a.every((p,i)=>Math.hypot(p.x-b
 
 export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor,readCurrentContext,now=Date.now}={}){
  if(!workspace||typeof coordinateApi?.toScreen!=='function'||typeof coordinateApi?.plotSize!=='function'||!cursor||typeof readCurrentContext!=='function')throw new TypeError('Native chart ports required');
- const chart=Object.freeze({...workspace});let active=null,disposed=false,lastBatch=null;const applied=new Map();
- const stop=()=>{if(!active)return false;active.cancelled=true;if(active.token)cursor.stop(active.token);return true;};
+ const chart=Object.freeze({...workspace});let active=null,disposed=false,lastBatch=null,pendingDeletion=null;const applied=new Map();
+ const cancelDeletion=()=>{const had=Boolean(pendingDeletion);pendingDeletion=null;return had;};
+ const stop=()=>{cancelDeletion();if(!active)return false;active.cancelled=true;if(active.token)cursor.stop(active.token);return true;};
  function executeCheck(request,receipt,signal,op,{checkRevision=true}={}){
-  if(disposed||signal?.aborted||op?.cancelled||!request||!same(request.workspace,chart)||request.userRequested!==true||request.complete!==true||!id(request.actionId)||!hex(request.chartContextVersion)||!Number.isSafeInteger(request.drawingRevision))return false;
+  if(disposed||(op&&op.epoch!==drawingOwnershipEpoch())||signal?.aborted||op?.cancelled||!request||request.ownershipEpoch!==drawingOwnershipEpoch()||!same(request.workspace,chart)||request.userRequested!==true||request.complete!==true||!id(request.actionId)||!hex(request.chartContextVersion)||!Number.isSafeInteger(request.drawingRevision))return false;
   const c=receipt?.context,t=now();
   if(receipt?.contractVersion!==VERSION||receipt.actionId!==request.actionId||!keys(c,'chartContextVersion,expiresAtMs,latestClosedAtMs,symbol,timeframe')||c.symbol!==chart.symbol||canonicalDrawingTimeframe(c.timeframe)!==canonicalDrawingTimeframe(chart.timeframe)||c.chartContextVersion!==request.chartContextVersion||c.latestClosedAtMs!==request.latestClosedAtMs||!Number.isSafeInteger(c.latestClosedAtMs)||!Number.isSafeInteger(c.expiresAtMs)||!Number.isSafeInteger(t)||t>=c.expiresAtMs||c.expiresAtMs-t>10000)return false;
   const current=readCurrentContext();
@@ -44,6 +48,7 @@ export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor
   return [a,b];
  }
  async function execute({request,receipt,signal}={}){
+  cancelDeletion();
   if(active)return result('BUSY');
   if(uncertainSymbols.has(chart.symbol))return result('RECOVERY_REQUIRED');
   // Pin the accepted request and receipt before the first animation await.
@@ -83,7 +88,7 @@ export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor
   if(additions.some(a=>!points(a)))return result('OFFSCREEN');
   const expected=exact([...before.present,...additions]);
   const baseline=exact(before.present);
-  const op={cancelled:false,token:null,lastPoint:null,committed:false,writeStarted:false};active=op;
+  const op={epoch:drawingOwnershipEpoch(),cancelled:false,token:null,lastPoint:null,committed:false,writeStarted:false};active=op;
   const abort=()=>{if(active===op)stop();};
   signal?.addEventListener?.('abort',abort,{once:true});
   try{
@@ -117,8 +122,11 @@ export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor
     uncertainSymbols.add(chart.symbol);return result('FAILED_UNCERTAIN',{count:0});
    }
    applied.set(request.actionId,{key:batchKey,expiresAtMs:receipt.context.expiresAtMs,after});
-   lastBatch={after,before:baseline,expected,count:additions.length};
+   lastBatch={epoch:op.epoch,after,before:baseline,expected,count:additions.length};
    op.committed=true;
+   // Recognition authority is issued only after exact native readback.
+   // A registry failure must not turn a committed drawing into a false failure.
+   try{if(op.epoch===drawingOwnershipEpoch())registerVerifiedDrawings(chart.symbol,additions);}catch{/* remain protected */}
    let visualWarning=false;
    try{if(op.token)cursor.pulse(op.token);}catch{visualWarning=true;}
    return result('VERIFIED',{count:additions.length,ids:Object.freeze(additions.map(d=>d.id)),notificationWarning:commitError,visualWarning});
@@ -131,12 +139,87 @@ export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor
    if(active===op)active=null;
   }
  }
+ // Geometry edits use explicit user input, current chart selection and
+ // verified session ownership. No model proposals or external coordinates.
+ function previewDeletion({question,selection}={}){
+  cancelDeletion();
+  if(disposed||active)return result('DENIED');
+  if(uncertainSymbols.has(chart.symbol))return result('RECOVERY_REQUIRED');
+  const before=getDrawingSnapshot(chart.symbol);
+  const resolved=resolveDrawingDeletion({question,workspace:chart,snapshot:before,selection});
+  if(resolved.state!=='READY')return result(resolved.state);
+  const current=resolved.current;
+  const preview=Object.freeze({state:'CONFIRM_REQUIRED',symbol:chart.symbol,timeframe:canonicalDrawingTimeframe(chart.timeframe),type:current.type,price:current.a.price,lower:current.type==='rectangle'?current.b.price:null,expiresAtMs:now()+30000});
+  pendingDeletion={epoch:drawingOwnershipEpoch(),preview,before,baseline:exact(before.present),question,selection:structuredClone(selection),targetId:current.id,target:exact(current)};
+  return preview;
+ }
+ async function confirmDeletion({preview,request,selection,readSelection,signal}={}){
+  const deletion=pendingDeletion;
+  cancelDeletion();
+  if(!deletion||deletion.epoch!==drawingOwnershipEpoch()||deletion.preview!==preview||now()>=preview.expiresAtMs||
+   getDrawingSnapshot(chart.symbol)!==deletion.before||exact(getDrawingSnapshot(chart.symbol).present)!==deletion.baseline||exact(selection)!==exact(deletion.selection))return result('STALE');
+  return runEdit({request,question:deletion.question,selection,readSelection,signal},deletion);
+ }
+ const edit=args=>{cancelDeletion();return runEdit(args);};
+ async function runEdit({request,question,selection,readSelection,signal}={},deletion=null){
+  if(active)return result('BUSY');
+  if(uncertainSymbols.has(chart.symbol))return result('RECOVERY_REQUIRED');
+  if(!request||typeof readSelection!=='function')return result('DENIED');
+  try{request=structuredClone(request);selection=structuredClone(selection);}catch{return result('DENIED');}
+  // Reuse the same pinned context and time bounds as the creation path.
+  const receipt={contractVersion:VERSION,actionId:request.actionId,context:{symbol:chart.symbol,timeframe:chart.timeframe,chartContextVersion:request.chartContextVersion,latestClosedAtMs:request.latestClosedAtMs,expiresAtMs:now()+10000}};
+  if(!executeCheck(request,receipt,signal))return result('DENIED');
+  const before=getDrawingSnapshot(chart.symbol),baseline=exact(before.present);
+  const planned=deletion?resolveDrawingDeletion({question,workspace:chart,snapshot:before,selection}):planDrawingEdit({question,workspace:chart,snapshot:before,selection,latestClosedAtMs:request.latestClosedAtMs,now:now()});
+  if(planned.state!=='READY')return result(planned.state);
+  const {current,edited,command}=planned;
+  if(deletion&&(deletion.before!==before||deletion.targetId!==current.id||deletion.target!==exact(current)||now()>=deletion.preview.expiresAtMs))return result('STALE');
+  const oldPath=points(current),newPath=deletion?oldPath:points(edited);
+  if(!oldPath||!newPath)return result('OFFSCREEN');
+  const next=deletion?before.present.filter(d=>d.id!==current.id):before.present.map(d=>d.id===current.id?edited:d),expected=exact(next);
+  const op={epoch:drawingOwnershipEpoch(),cancelled:false,token:null,lastPoint:null,committed:false,writeStarted:false};active=op;
+  const abort=()=>{if(active===op)stop();};
+  signal?.addEventListener?.('abort',abort,{once:true});
+  const stillValid=()=>executeCheck(request,receipt,signal,op)&&getDrawingSnapshot(chart.symbol)===before&&
+    (!command.selected&&!deletion||exact(readSelection())===exact(selection))&&drawingOwnership(chart.symbol,current)==='VERIFIED_AI'&&samePath(oldPath,points(current))&&
+    (deletion?now()<deletion.preview.expiresAtMs:samePath(newPath,points(edited)));
+  try{
+   if(!stillValid())return result('STALE');
+   for(const p of deletion?oldPath:[...oldPath,...newPath]){
+    if(!op.token){op.token=cursor.start(p);if(!op.token)return result('STOPPED');if(!await cursor.move(op.token,p,{durationMs:100}))return result('STOPPED');}
+    else if(!await cursor.move(op.token,p,{durationMs:travelMs(op.lastPoint,p)}))return result('STOPPED');
+    op.lastPoint=p;
+    if(!stillValid())return result(op.cancelled||signal?.aborted?'STOPPED':'STALE');
+   }
+   if(!stillValid())return result(op.cancelled||signal?.aborted?'STOPPED':'STALE');
+   op.writeStarted=true;let notificationWarning=false;
+   try{commitDrawings(chart.symbol,next);}catch{notificationWarning=true;}
+   const after=getDrawingSnapshot(chart.symbol);
+   if(after.revision!==before.revision+1||exact(after.present)!==expected||exact(after.past.at(-1))!==baseline||after.future.length){
+    if(after===before&&exact(after.present)===baseline)return result('FAILED_NO_COMMIT');
+    uncertainSymbols.add(chart.symbol);return result('FAILED_UNCERTAIN');
+   }
+   lastBatch={epoch:op.epoch,after,before:baseline,expected,count:1};op.committed=true;
+   try{if(!deletion&&op.epoch===drawingOwnershipEpoch())registerVerifiedDrawings(chart.symbol,[edited]);}catch{/* conservative ownership downgrade */}
+   try{cursor.pulse(op.token);}catch{/* visual-only */}
+   return result(deletion?'DELETED':'EDITED',{count:1,notificationWarning});
+  }catch{
+   if(op.writeStarted){uncertainSymbols.add(chart.symbol);return result('FAILED_UNCERTAIN');}
+   return result(op.cancelled||signal?.aborted?'STOPPED':'FAILED_NO_COMMIT');
+  }finally{
+   signal?.removeEventListener?.('abort',abort);
+   try{if(op.token)cursor.finish(op.token,{lingerMs:op.committed?300:0});}catch{}
+   if(active===op)active=null;
+  }
+ }
  // Undo only the exact latest verified AI transaction. A later manual edit,
  // native undo/redo, or chart disposal invalidates this capability.
  function undoLastBatch(){
+  cancelDeletion();
   if(disposed||active)return result('DENIED');
   if(uncertainSymbols.has(chart.symbol))return result('RECOVERY_REQUIRED');
   if(!lastBatch)return result('NO_AI_BATCH');
+  if(lastBatch.epoch!==drawingOwnershipEpoch()){lastBatch=null;return result('NO_AI_BATCH');}
   const current=getDrawingSnapshot(chart.symbol),batch=lastBatch;
   if(current!==batch.after||exact(current.present)!==batch.expected||exact(current.past.at(-1))!==batch.before)return result('UNDO_CONFLICT');
   let warning=false;
@@ -147,5 +230,5 @@ export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor
   lastBatch=null;
   return result('UNDONE',{count:batch.count,...(warning?{notificationWarning:true}:{})});
  }
- return Object.freeze({execute,stop,undoLastBatch,dispose(){disposed=true;lastBatch=null;stop();applied.clear();}});
+ return Object.freeze({execute,edit,previewDeletion,confirmDeletion,cancelDeletion,stop,undoLastBatch,dispose(){disposed=true;lastBatch=null;stop();applied.clear();}});
 }

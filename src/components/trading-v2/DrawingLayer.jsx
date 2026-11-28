@@ -185,6 +185,19 @@ function DraftPointMarker({ point, secondary = false }) {
   );
 }
 
+// Inline native annotation label, not HTML or an independently editable object.
+function DrawingAnnotationLabel({drawing,x,y,size,chartTheme}) {
+  const label=typeof drawing.text==='string'?drawing.text.trim().slice(0,48):'';
+  if(!label||!Number.isFinite(x)||!Number.isFinite(y)||y<0||y>size.height||size.width<24)return null;
+  const width=Math.min(size.width-12,label.length*6+8);
+  const left=Math.max(6,Math.min(x,size.width-width-6));
+  const baseline=Math.max(12,Math.min(y-5,size.height-4));
+  return <text data-ai-drawing-label={drawing.id} x={left} y={baseline}
+    fill={drawing.style?.color||DEFAULT_STYLE.color} fillOpacity={drawingOpacity(drawing.style)}
+    fontSize="11" fontWeight="600" className="pointer-events-none"
+    style={{paintOrder:'stroke',stroke:chartTheme==='light'?'#FFFFFF':'#000000',strokeWidth:2.5}}>{label}</text>;
+}
+
 function DrawingShape({
   drawing,
   selected,
@@ -232,8 +245,9 @@ function DrawingShape({
   if (drawing.type === 'hline') {
     return (
       <g>
-        <line x1="0" y1={a.y} x2={size.width} y2={a.y} stroke="transparent" strokeWidth="16" {...common} />
+        <line data-drawing-hit-id={drawing.id} x1="0" y1={a.y} x2={size.width} y2={a.y} stroke="transparent" strokeWidth="16" {...common} />
         <line x1="0" y1={a.y} x2={size.width} y2={a.y} {...lineStyle(drawing)} className="pointer-events-none" />
+        <DrawingAnnotationLabel drawing={drawing} x={8} y={a.y} size={size} chartTheme={chartTheme}/>
         {interactive && selected && !effectiveLocked && <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />}
       </g>
     );
@@ -316,6 +330,7 @@ function DrawingShape({
           {...lineStyle(drawing)}
           {...common}
         />
+        {x+width>=0&&x<=size.width&&<DrawingAnnotationLabel drawing={drawing} x={x+5} y={y} size={size} chartTheme={chartTheme}/>}
         {interactive && selected && !effectiveLocked && (
           <>
             <Handle point={a} onPointerDown={event => onStartHandle(event, drawing.id, 'a')} />

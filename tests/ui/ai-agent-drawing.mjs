@@ -92,6 +92,17 @@ try{
  await panel.getByText(/Marked 2 liquidity level/).waitFor().catch(async error=>{console.error('Drawing fixture diagnostic:',await panel.innerText(),JSON.stringify(drawRequests),JSON.stringify(errors));throw error;});
  assert.equal(drawRequests.length,1);assert.equal(drawRequests[0].command,'LIQUIDITY');
  const first=await read();assert.equal(first.length,2);assert.ok(first.every(d=>d.createdBy==='ai'&&d.type==='hline'&&!d.locked));
+ // Local recognition uses the native store, not provider output or a new
+ // consent grant. A freshly verified batch has two unchanged AI drawings.
+ const inspectionRevision=revision,inspectionCalls=drawRequests.length;
+ await input.fill('List drawings');await send.click();
+ await panel.getByText('AI-created and unchanged: 2',{exact:true}).waitFor();
+ assert.equal(revision,inspectionRevision);assert.equal(drawRequests.length,inspectionCalls);
+ assert.deepEqual(await read(),first);
+ await input.fill('Which drawing is selected?');await send.click();
+ await panel.getByText('No visible drawing is selected on this chart.',{exact:true}).waitFor();
+ assert.equal(revision,inspectionRevision);assert.deepEqual(await read(),first);
+
  await cursor.waitFor({state:'detached'});
  await input.fill('Draw FVGs');
  await send.click();
@@ -100,6 +111,23 @@ try{
  await panel.getByText(/Marked 1 fair value gap/).waitFor();
  const second=await read();assert.equal(second.length,3);assert.equal(second[2].type,'rectangle');
  assert.equal(second[2].actionId,drawRequests[1].actionId);
+ // Edit the unique verified FVG through chat, without new HTTP draw or grant.
+ await cursor.waitFor({state:'detached'});
+ const editCalls=drawRequests.length,editRevision=revision;
+ await input.fill('Shorten AI FVG by 2 candles');await send.click();
+ await waitForCursor();
+ await panel.getByText(/Updated the AI drawing as requested/).waitFor();
+ const edited=await read();
+ assert.equal(edited.length,second.length);
+ assert.deepEqual(edited.slice(0,2),second.slice(0,2));
+ assert.equal(edited[2].sourceId,second[2].sourceId);
+ assert.equal(edited[2].b.time,second[2].b.time-2*tfSeconds[drawRequests[1].timeframe]);
+ assert.equal(edited[2].aiGeometryAdjusted,true);
+ assert.equal(drawRequests.length,editCalls);assert.equal(revision,editRevision);
+ await input.fill('Undo the last AI drawing batch');await send.click();
+ await panel.getByText('Undid the last AI drawing batch (1 drawings).',{exact:true}).waitFor();
+ assert.deepEqual(await read(),second);
+
  // Native chart undo, not a mock store.
  await input.evaluate(el=>el.blur());await page.keyboard.press('Control+z');
  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('acg-trader-drawings-v3:EURUSD')||'[]').length===2);
@@ -139,6 +167,86 @@ try{
  await panel.getByRole('button',{name:'Stop response'}).click();
  await panel.getByText(/Response stopped/).waitFor();
  assert.deepEqual(await read(),first);
+ // Start a fresh verified FVG after cancellation and exercise actual SVG labels.
+ await cursor.waitFor({state:'detached'});
+ mode='normal';await input.fill('Draw FVGs');
+ await page.waitForFunction(()=>document.querySelector('[data-ai-chat-preview] button[aria-label="Send message"]')?.disabled===false);
+ const newDraws=drawRequests.length;
+ await send.click();await page.waitForFunction(()=>JSON.parse(localStorage.getItem('acg-trader-drawings-v3:EURUSD')||'[]').length===3);
+ await cursor.waitFor({state:'detached'});
+ const appearanceBaseline=await read(),appearanceRevision=revision;
+ assert.equal(drawRequests.length,newDraws+1);
+ async function changeAppearance(question,n){
+  await input.fill(question);await send.click();
+  await panel.getByText(/Updated the AI drawing appearance or visibility as requested/).nth(n-1).waitFor();
+  await cursor.waitFor({state:'detached'});
+  const stored=await read();assert.equal(stored.length,3);assert.deepEqual(stored.slice(0,2),appearanceBaseline.slice(0,2));
+  assert.deepEqual(stored[2].a,appearanceBaseline[2].a);assert.deepEqual(stored[2].b,appearanceBaseline[2].b);
+  assert.equal(revision,appearanceRevision);assert.equal(drawRequests.length,newDraws+1);
+  return stored[2];
+ }
+ assert.equal((await changeAppearance('Change AI FVG to blue',1)).style.color,'#2962FF');
+ assert.equal((await changeAppearance('Label AI FVG as "Demand zone"',2)).text,'Demand zone');
+ const annotation=page.locator('[data-ai-drawing-label="'+appearanceBaseline[2].id+'"]');
+ await annotation.waitFor({state:'visible'});assert.equal(await annotation.textContent(),'Demand zone');
+ assert.equal((await changeAppearance('Hide AI FVG',3)).hidden,true);await annotation.waitFor({state:'detached'});
+ assert.equal((await changeAppearance('Show AI FVG',4)).hidden,false);await annotation.waitFor({state:'visible'});
+ assert.equal((await changeAppearance('Show AI FVG on all timeframes',5)).timeframeVisibility,'all');
+ await page.screenshot({path:'artifacts/ai-agent-drawing-appearance.png',animations:'allow'});
+ // Destructive commands never mutate until the exact inline confirmation.
+ const deletionBaseline=await read(),deletionCalls=drawRequests.length,deletionRevision=revision;
+ const confirm=panel.getByRole('button',{name:'Confirm deletion',exact:true});
+ const cancel=panel.getByRole('button',{name:'Cancel deletion',exact:true});
+ await input.fill('Delete AI FVG');await send.click();await confirm.waitFor();
+ assert.deepEqual(await read(),deletionBaseline);
+ await cancel.click();await panel.getByText('Deletion cancelled. No drawing was removed.').waitFor();
+ assert.deepEqual(await read(),deletionBaseline);
+ await input.fill('Delete AI FVG');await send.click();await confirm.waitFor();
+ // A chart gesture invalidates the pending exact target.
+ await page.mouse.click(plot.x+plot.width*.45,plot.y+plot.height*.35);
+ await confirm.click();
+ await panel.getByText('Deletion stopped or the confirmation is no longer valid. No automatic retry.').waitFor();
+ assert.deepEqual(await read(),deletionBaseline);
+ await input.fill('Delete AI FVG');await send.click();await confirm.waitFor();
+ await confirm.click();await waitForCursor();
+ await panel.getByText('Deleted the confirmed AI drawing. You can undo this deletion.').waitFor();
+ assert.deepEqual(await read(),deletionBaseline.slice(0,2));
+ await input.fill('Undo the last AI drawing batch');await send.click();
+ await panel.getByText('Undid the last AI drawing batch (1 drawings).',{exact:true}).last().waitFor();
+ assert.deepEqual(await read(),deletionBaseline);
+ assert.equal(drawRequests.length,deletionCalls);assert.equal(revision,deletionRevision);
+
+
+ // Real chart interaction: select an AI line and manually lock/unlock it.
+ // Returning to the same geometry must not restore mutation authority.
+ await cursor.waitFor({state:'detached'});
+ const target=deletionBaseline[1],hit=page.locator('[data-drawing-hit-id="'+target.id+'"]');
+ const line=await hit.boundingBox();assert.ok(line&&line.width>0);
+ await page.mouse.click(line.x+line.width*.65,line.y+line.height/2);
+ const lock=page.getByRole('button',{name:'Lock drawing',exact:true});
+ await lock.waitFor({state:'visible'});await lock.click();
+ await page.waitForFunction(id=>JSON.parse(localStorage.getItem('acg-trader-drawings-v3:EURUSD')||'[]').find(d=>d.id===id)?.locked===true,target.id);
+ await page.getByRole('button',{name:'Unlock drawing',exact:true}).click();
+ await page.waitForFunction(id=>JSON.parse(localStorage.getItem('acg-trader-drawings-v3:EURUSD')||'[]').find(d=>d.id===id)?.locked===false,target.id);
+ assert.deepEqual(await read(),deletionBaseline);
+ await input.fill('Change selected liquidity line to red');await send.click();
+ await panel.getByText(/That drawing is manual, locked, or no longer verified/).waitFor();
+ assert.deepEqual(await read(),deletionBaseline);
+ await input.fill('Delete selected AI drawing');await send.click();
+ await panel.getByText('That drawing is protected and cannot be deleted by AI.',{exact:true}).waitFor();
+ assert.equal(await confirm.count(),0);assert.deepEqual(await read(),deletionBaseline);
+ assert.equal(drawRequests.length,deletionCalls);assert.equal(revision,deletionRevision);
+ // Reload preserves drawings, not the page-session ownership capability.
+ await page.reload();
+ await page.getByRole('button',{name:'Open ACG AI preview'}).click();
+ await input.waitFor();
+ await input.fill('List drawings');await send.click();
+ await panel.getByText('Protected AI-created: 3',{exact:true}).waitFor();
+ await panel.getByText('AI-created and unchanged: 0',{exact:true}).waitFor();
+ assert.deepEqual(await read(),deletionBaseline);
+ await input.fill('Delete AI FVG');await send.click();
+ await panel.getByText('That drawing is protected and cannot be deleted by AI.',{exact:true}).waitFor();
+ assert.equal(await confirm.count(),0);assert.equal(drawRequests.length,deletionCalls);assert.equal(revision,deletionRevision);
  assert.deepEqual(unexpectedWrites,[]);assert.deepEqual(errors,[]);
  console.log('PASS mounted desktop chat, native chart anchors, gradient cursor, actual drawing store, batch undo, stale receipt and Stop; synthetic HTTP only');
  await page.close();
