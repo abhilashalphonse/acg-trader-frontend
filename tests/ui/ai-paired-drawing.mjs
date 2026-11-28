@@ -4,8 +4,9 @@ import {chromium} from 'playwright';
 
 // Isolated runner only. The backend writes this private ephemeral fixture
 // after seeding its real MongoDB candles and authenticating its staff user.
-// Only the chart candle transport is mirrored; every AI response is the
-// unmodified real backend HTTP response, including status/grant/draw.
+// Real status/grant responses are forwarded without modification. Chart
+// history is intentionally historical and differs from server data; native
+// annotations must come from the displayed candles, never /draw.
 assert.equal(process.env.CI,'true');
 assert.ok(process.env.ACG_AI_PAIRED_PRIVATE);
 const f=JSON.parse(await readFile(process.env.ACG_AI_PAIRED_PRIVATE,'utf8'));
@@ -15,7 +16,8 @@ assert.equal(f.step,3600000);
 const origin='http://127.0.0.1:5174';
 const runtime={runtimeMode:'WORKSPACE_CHAT',token:f.token,sessionId:'b'.repeat(24),accountId:f.accountId};
 const market={symbol:f.symbol,displaySymbol:f.symbol,name:'Isolated market',assetClass:'METAL',bid:112.99,ask:113.01,price:113,tickSize:.01,pipSize:.1,contractSize:100,defaultLeverage:50,marketState:'LIVE',sessionOpen:true,isStale:false,marketDataAvailable:true};
-const candles=f.rows.map(([open,high,low,close],i)=>({time:(f.end-(f.rows.length-i)*f.step)/1000,open,high,low,close,complete:true,synthetic:false,stateVersion:1}));
+const historicalEnd=f.end-7*86400000;
+const candles=f.rows.map(([open,high,low,close],i)=>({time:(historicalEnd-(f.rows.length-i)*f.step)/1000,open,high,low,close,complete:true,synthetic:false,stateVersion:1}));
 const headers={'access-control-allow-origin':origin,'access-control-allow-credentials':'true','access-control-allow-headers':'authorization,content-type','access-control-allow-methods':'GET,POST,OPTIONS'};
 const browser=await chromium.launch({headless:true,channel:'chrome',args:['--no-sandbox']});
 let stage='startup';
@@ -24,7 +26,7 @@ try{
   stage=mobile?'mobile startup':'desktop startup';
   const context=await browser.newContext({viewport:mobile?{width:393,height:852}:{width:1440,height:900},isMobile:mobile,hasTouch:mobile,reducedMotion:'no-preference'});
   const page=await context.newPage();
-  const receipts=[],calls=[],unexpected=[],errors=[];
+  const calls=[],unexpected=[],errors=[];
   page.on('pageerror',()=>errors.push('page error'));
   await page.addInitScript(({runtime,market})=>{
    window.__acgPairedDrawingFixture=Object.freeze({runtime,market});
@@ -39,14 +41,12 @@ try{
     if(url.searchParams.get('symbol')!==f.symbol||url.searchParams.get('timeframe')!=='1h'||url.searchParams.has('before'))return json({candles:[],pagination:{hasMore:false}});
     return json({candles,pagination:{hasMore:false}});
    }
-   if(req.method()==='POST'&&['/v1/ai/pilot/status','/v1/ai/pilot/grant','/v1/ai/pilot/draw'].includes(path)){
+   if(req.method()==='POST'&&['/v1/ai/pilot/status','/v1/ai/pilot/grant'].includes(path)){
     const b=req.postDataJSON();
     if(req.headers().authorization!=='Bearer '+f.token||b.accountId!==f.accountId||b.symbol!==f.symbol||b.timeframe!==f.timeframe){unexpected.push('scope');return json({},403);}
     calls.push(path.split('/').at(-1));
-    if(path.endsWith('/draw')&&(b.latestClosedAtMs!==f.end||Object.hasOwn(b,'geometry')||Object.hasOwn(b,'price'))){unexpected.push('draw scope');return json({},400);}
     const response=await fetch(f.root+path,{method:'POST',headers:{authorization:req.headers().authorization,'content-type':'application/json'},body:req.postData()});
     const body=await response.text();
-    if(path.endsWith('/draw')&&response.ok)receipts.push(JSON.parse(body));
     // Forward byte-for-byte, not a synthetic receipt or substituted geometry.
     return route.fulfill({status:response.status,headers,contentType:'application/json',body});
    }
@@ -68,28 +68,22 @@ try{
   await cursor.waitFor({state:'visible',timeout:15000});
   await panel.getByText(/Marked \d+ liquidity\/FVG drawing/).waitFor({timeout:15000});
   const stored=await read();
-  assert.equal(receipts.length,1);
-  const receipt=receipts[0];
-  assert.equal(receipt.state,'DRAWING_READY');assert.equal(receipt.executionAllowed,false);
-  assert.equal(receipt.receipt.context.latestClosedAtMs,f.end);
-  assert.equal(stored.length,receipt.receipt.actions.length);
-  assert.ok(stored.some(d=>d.type==='hline')&&stored.some(d=>d.type==='rectangle'));
-  for(const [i,a] of receipt.receipt.actions.entries()){
-   const d=stored[i],g=a.geometry;
-   assert.equal(d.id,'ai-'+a.sourceId);assert.equal(d.sourceId,a.sourceId);assert.equal(d.actionId,receipt.actionId);
-   assert.equal(d.type,g.type);
-   if(g.type==='hline'){assert.deepEqual(d.a,{time:g.time,price:g.price});}
-   else{assert.deepEqual(d.a,{time:g.fromTime,price:g.upper});assert.deepEqual(d.b,{time:g.toTime,price:g.lower});}
-  }
-  assert.ok(receipt.receipt.actions.some(a=>a.geometry.type==='rectangle'&&a.geometry.lower===104&&a.geometry.upper===109));
+  assert.equal(stored.length,3);
+  assert.ok(stored.every(d=>d.createdBy==='ai'&&/^draw_[a-f0-9]{32}$/.test(d.sourceId)&&d.id==='ai-'+d.sourceId));
+  assert.equal(new Set(stored.map(d=>d.actionId)).size,1);
+  assert.deepEqual(stored.map(d=>({type:d.type,a:d.a,b:d.b})),[
+    {type:'hline',a:{time:candles[2].time,price:95},b:{time:candles[2].time,price:95}},
+    {type:'rectangle',a:{time:candles[6].time,price:110},b:{time:candles[7].time,price:106}},
+    {type:'rectangle',a:{time:candles[5].time,price:109},b:{time:candles[7].time,price:104}}
+  ]);
   stage=(mobile?'mobile':'desktop')+' native undo';
   await cursor.waitFor({state:'detached'});
   await input.fill('Undo the last AI drawing batch');await send.click();
   await panel.getByText(/Undid the last AI drawing batch/).waitFor();
   assert.deepEqual(await read(),[]);
-  assert.deepEqual(calls,['status','grant','draw']);assert.deepEqual(unexpected,[]);assert.deepEqual(errors,[]);
+  assert.deepEqual(calls,['status','grant']);assert.deepEqual(unexpected,[]);assert.deepEqual(errors,[]);
   await context.close();
-  console.log('PASS '+(mobile?'mobile':'desktop')+' real authenticated receipt, exact native geometry and local undo; no provider or trade dispatch');
+  console.log('PASS '+(mobile?'mobile':'desktop')+' real staff authorization, exact historical chart geometry and local undo; no draw API, provider or trade dispatch');
  }
 }catch{
  // No raw browser diagnostics or credential-bearing request details in logs.
