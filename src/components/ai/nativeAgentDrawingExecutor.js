@@ -14,6 +14,9 @@ const keys=(v,k)=>v&&Object.getPrototypeOf(v)===Object.prototype&&Object.keys(v)
 const same=(a,b)=>a&&b&&a.symbol===b.symbol&&a.chartInstanceId===b.chartInstanceId&&canonicalDrawingTimeframe(a.timeframe)===canonicalDrawingTimeframe(b.timeframe);
 const result=(state,extra={})=>Object.freeze({state,...extra});
 const anchors=(a,b)=>a?.time===b?.time&&a?.price===b?.price;
+// Distances affect animation only, never data-space geometry or action authority.
+const travelMs=(from,to)=>Math.round(Math.min(300,Math.max(90,90+Math.hypot(to.x-from.x,to.y-from.y)*0.30)));
+const samePath=(a,b)=>a&&b&&a.length===b.length&&a.every((p,i)=>Math.hypot(p.x-b[i].x,p.y-b[i].y)<=2);
 const fingerprint=d=>JSON.stringify([d.type,d.a,d.b,d.timeframeVisibility,d.hidden,d.locked,d.style,d.text]);
 export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor,readCurrentContext,now=Date.now}={}){
  if(!workspace||typeof coordinateApi?.toScreen!=='function'||typeof coordinateApi?.plotSize!=='function'||!cursor||typeof readCurrentContext!=='function')throw new TypeError('Native chart ports required');
@@ -74,21 +77,28 @@ export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor
   // Offscreen zones are deferred, never silently repositioned. All anchors
   // are computed by the real chart transform; pixel positions are visual only.
   if(additions.some(a=>!points(a)))return result('OFFSCREEN');
-  const op={cancelled:false,token:null};active=op;
+  const op={cancelled:false,token:null,lastPoint:null,committed:false};active=op;
   const abort=()=>{if(active===op)stop();};
   signal?.addEventListener?.('abort',abort,{once:true});
   try{
+   const visited=[];
    for(const drawing of additions){
     if(!executeCheck(request,receipt,signal,op))return result(op.cancelled||signal?.aborted?'STOPPED':'STALE');
     const path=points(drawing);
     if(!path)return result('OFFSCREEN');
     for(const p of path){
-     if(!op.token){op.token=cursor.start(p);if(!op.token)return result('STOPPED');}
-     else if(!await cursor.move(op.token,p,{durationMs:180}))return result('STOPPED');
+     if(!op.token){
+      op.token=cursor.start(p);if(!op.token)return result('STOPPED');
+      // First target deserves one visible beat, even for a single level.
+      if(!await cursor.move(op.token,p,{durationMs:100}))return result('STOPPED');
+     }else if(!await cursor.move(op.token,p,{durationMs:travelMs(op.lastPoint,p)}))return result('STOPPED');
+     op.lastPoint=p;
      if(!executeCheck(request,receipt,signal,op))return result(op.cancelled||signal?.aborted?'STOPPED':'STALE');
     }
+    if(!samePath(path,points(drawing)))return result('STALE');
+    visited.push(path);
    }
-   if(!executeCheck(request,receipt,signal,op)||additions.some(a=>!points(a)))return result(op.cancelled||signal?.aborted?'STOPPED':'STALE');
+   if(!executeCheck(request,receipt,signal,op)||additions.some((a,i)=>!samePath(visited[i],points(a))))return result(op.cancelled||signal?.aborted?'STOPPED':'STALE');
    // Single synchronous commit is the only mutation; native undo treats the
    // whole batch as one transaction. No partially applied streamed actions.
    let commitError=false;
@@ -98,11 +108,12 @@ export function createNativeAgentDrawingExecutor({workspace,coordinateApi,cursor
    if(!verified)return result('FAILED_UNCERTAIN',{count:0});
    applied.set(request.actionId,{key:batchKey,expiresAtMs:receipt.context.expiresAtMs});
    lastBatch={after,before:JSON.stringify(before.present),count:additions.length};
+   op.committed=true;
    if(op.token)cursor.pulse(op.token);
    return result('VERIFIED',{count:additions.length,ids:Object.freeze(additions.map(d=>d.id)),notificationWarning:commitError});
   }finally{
    signal?.removeEventListener?.('abort',abort);
-   if(op.token)cursor.finish(op.token);
+   if(op.token)cursor.finish(op.token,{lingerMs:op.committed?300:0});
    if(active===op)active=null;
   }
  }
